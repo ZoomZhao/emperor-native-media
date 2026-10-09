@@ -1,0 +1,11 @@
+.DS_Store
+.generated/
+.local-results/
+**/build*/
+**/evidence/
+**/__pycache__/
+*.pyc
+*.app/
+*.dSYM/
+*.log
+*.core
