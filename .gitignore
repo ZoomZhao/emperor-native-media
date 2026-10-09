@@ -1,6 +1,7 @@
 .DS_Store
 .generated/
 .local-results/
+GameData/
 **/build*/
 **/evidence/
 **/__pycache__/
@@ -9,3 +10,5 @@
 *.dSYM/
 *.log
 *.core
+.local/
+legacy-local/

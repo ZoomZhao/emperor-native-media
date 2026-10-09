@@ -1,0 +1,249 @@
+{
+  "schema": "EMPEROR_STATIC_DEPENDENCY_AUDIT_V1",
+  "python_files_ast_parsed": 591,
+  "imports_of_held_modules": [
+    {
+      "source": "samples/checkpoint_stage18.py",
+      "module": "checkpoint_stage17",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/checkpoint_stage20.py",
+      "module": "stage20_sample",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/checkpoint_startup26.py",
+      "module": "stage26_resources",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/checkpoint_startup31.py",
+      "module": "checkpoint_startup30",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/checkpoint_startup56.py",
+      "module": "checkpoint_startup54",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/checkpoint_startup61.py",
+      "module": "checkpoint_startup54",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/stage51_environment_probe.py",
+      "module": "checkpoint_startup51",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/stage51_loader_stop_probe.py",
+      "module": "checkpoint_startup51",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/stage54_own_probe.py",
+      "module": "checkpoint_startup54",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/stage54_pending_entry_probe.py",
+      "module": "checkpoint_startup54",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/stage61_authorize_continuation.py",
+      "module": "stage61_prepare",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "samples/verify_stage17_restore.py",
+      "module": "checkpoint_stage17",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "stage83/batch-v1/tools/seal_final.py",
+      "module": "pipeline",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    },
+    {
+      "source": "stage83/batch-v1/tools/test_gates.py",
+      "module": "pipeline",
+      "status": "held sibling or shared samples source; archive cannot import as a complete checkout"
+    }
+  ],
+  "ambiguous_historical_imports": [
+    {
+      "source": "stage83/budget-review-v1/tools/seal.py",
+      "module": "pipeline",
+      "status": "same module name exists in multiple historical stages; search-path binding not established"
+    }
+  ],
+  "relative_quoted_includes_not_present": [
+    {
+      "source": "samples/stage24_bridge.c",
+      "include": "stage24_generated.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "samples/stage71_sr_abi_check.c",
+      "include": "llasm_cpu.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "samples/stage72_runtime.h",
+      "include": "llasm_cpu.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "samples/verify_stage5_native.c",
+      "include": "stage5_layout.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage78/tools/abi_probe.c",
+      "include": "llasm_cpu.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage80/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage80/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage80/tools/sparse_memory.h",
+      "include": "guest_memory.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage81/tools/runtime.h",
+      "include": "sparse_memory.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage81/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage81/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage81/tools/runtime.h",
+      "include": "heap_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage82/tools/native_driver.c",
+      "include": "build_scope.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage82/tools/runtime.h",
+      "include": "sparse_memory.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage82/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage82/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage82/tools/runtime.h",
+      "include": "heap_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/batch-v1/tools/native_driver.c",
+      "include": "build_scope.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/batch-v1/tools/runtime.h",
+      "include": "sparse_memory.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/batch-v1/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/batch-v1/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/batch-v1/tools/runtime.h",
+      "include": "heap_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/repair-v2/tools/native_driver.c",
+      "include": "build_scope.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/repair-v2/tools/runtime.h",
+      "include": "sparse_memory.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/repair-v2/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/repair-v2/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/repair-v2/tools/runtime.h",
+      "include": "heap_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/tools/native_driver.c",
+      "include": "build_scope.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/tools/runtime.h",
+      "include": "sparse_memory.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    },
+    {
+      "source": "stage83/tools/runtime.h",
+      "include": "heap_native.h",
+      "status": "not present at relative include path; may need historical build include flags/generated binding"
+    }
+  ],
+  "external_import_hints": {
+    "unicorn": 76
+  },
+  "limitations": "AST/import/include text audit only; no importing, compiling, linking or running; dynamic imports/ctypes/subprocess/input/config dependencies not proven closed"
+}

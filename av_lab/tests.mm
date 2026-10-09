@@ -24,6 +24,8 @@ std::string directory,stage="setup",movieFile;size_t assertions=0,decodedFrames=
 size_t scheduled=0,surfaceBytes=0,gpuFrames=0,badAssets=0;unsigned observedMax=0;uint64_t totalError=0;
 size_t videoMarkers=0,audioMarkers=0;
 bool gpuAvailable=false,encoded=false,decoded=false,rawPath=false,imageIOPath=false;std::string gpuReason,codec="H264 + LPCM S16LE";
+bool primaryRawPath=false,primaryImageIOPath=false;
+NSMutableArray<NSDictionary*>* decodePaths;
 struct Blocked:std::runtime_error{using std::runtime_error::runtime_error;};
 void check(bool ok,const char* text){++assertions;if(!ok)throw std::runtime_error(stage+": "+text);}
 #define CHECK(x) check((x),#x)
@@ -130,7 +132,9 @@ std::vector<uint8_t> referenceBytes(CMSampleBufferRef sample,const std::string& 
     const uint64_t begin=offset.unsignedLongLongValue;CHECK(begin<=file.length&&size<=file.length-begin);
     const auto* bytes=static_cast<const uint8_t*>(file.bytes);return {bytes+begin,bytes+begin+size};
 }
-Decoded readMovie(const std::string& path){stage=rawPath?"raw sample reference reading":"compressed decode";AVURLAsset* asset=[AVURLAsset URLAssetWithURL:url(path) options:nil];
+Decoded readMovie(const std::string& path){stage=rawPath?"raw sample reference reading":"compressed decode";
+    const size_t beforeColors=colorValues;const uint64_t beforeError=totalError;unsigned movieMax=0;
+    AVURLAsset* asset=[AVURLAsset URLAssetWithURL:url(path) options:nil];
     NSArray<AVAssetTrack*>* vt=[asset tracksWithMediaType:AVMediaTypeVideo];NSArray<AVAssetTrack*>* at=[asset tracksWithMediaType:AVMediaTypeAudio];
     CHECK(vt.count==1&&at.count==1);CHECK(CMTimeCompare(asset.duration,CMTimeMake(frames,fps))==0);
     CHECK(vt.firstObject.naturalSize.width==width&&vt.firstObject.naturalSize.height==height);
@@ -169,16 +173,17 @@ Decoded readMovie(const std::string& path){stage=rawPath?"raw sample reference r
         video_lab::Frame frame;frame.pts=i;frame.bgra.assign(out.clip.stride*height,0xad);
         for(int y=0;y<height;++y)for(int x=0;x<width;++x){const auto* p=base+size_t(y)*pitch+size_t(x)*4;
             std::copy(p,p+4,frame.bgra.begin()+std::ptrdiff_t(size_t(y)*out.clip.stride+size_t(x)*4));
-            for(int c=0;c<3;++c){const unsigned diff=unsigned(std::abs(int(p[c])-rgb[i%6][2-c]));observedMax=std::max(observedMax,diff);totalError+=diff;++colorValues;CHECK(diff<=maximumColorError);}CHECK(p[3]==255);}
+            for(int c=0;c<3;++c){const unsigned diff=unsigned(std::abs(int(p[c])-rgb[i%6][2-c]));observedMax=std::max(observedMax,diff);movieMax=std::max(movieMax,diff);totalError+=diff;++colorValues;CHECK(diff<=maximumColorError);}CHECK(p[3]==255);}
         if(pb)CHECK(CVPixelBufferUnlockBaseAddress(pb,kCVPixelBufferLock_ReadOnly)==kCVReturnSuccess);CFRelease(sb);
         decodedBytes.insert(decodedBytes.end(),frame.bgra.begin(),frame.bgra.end());out.clip.frames.push_back(std::move(frame));++decodedFrames;}
-    CHECK(out.clip.frames.size()==frames);CHECK(double(totalError)/double(colorValues)<=maximumMeanError);if(rawPath)CHECK(observedMax==0);bytes("decoded_frames.bgra",decodedBytes);
-    std::vector<uint8_t> audioBytes;
+    CHECK(out.clip.frames.size()==frames);const double movieMean=double(totalError-beforeError)/double(colorValues-beforeColors);
+    CHECK(movieMean<=maximumMeanError);if(rawPath)CHECK(movieMax==0);bytes("decoded_frames.bgra",decodedBytes);
+    std::vector<uint8_t> audioBytes;size_t movieAudio=0;
     while(CMSampleBufferRef sb=[audio copyNextSampleBuffer]){const CMItemCount count=CMSampleBufferGetNumSamples(sb);if(count==0){++audioMarkers;CFRelease(sb);continue;}CHECK(count>0);
-        CHECK(CMTimeCompare(CMSampleBufferGetPresentationTimeStamp(sb),CMTimeMake(int64_t(decodedAudio),rate))==0);
+        CHECK(CMTimeCompare(CMSampleBufferGetPresentationTimeStamp(sb),CMTimeMake(int64_t(movieAudio),rate))==0);
         const AudioStreamBasicDescription* asbd=CMAudioFormatDescriptionGetStreamBasicDescription(CMSampleBufferGetFormatDescription(sb));
         CHECK(asbd&&asbd->mSampleRate==rate&&asbd->mChannelsPerFrame==2&&asbd->mBitsPerChannel==16&&asbd->mBytesPerFrame==4);
-        CHECK(asbd->mFormatID==kAudioFormatLinearPCM);CHECK((asbd->mFormatFlags&kAudioFormatFlagIsSignedInteger)!=0);
+        CHECK(asbd&&asbd->mFormatID==kAudioFormatLinearPCM);CHECK((asbd->mFormatFlags&kAudioFormatFlagIsSignedInteger)!=0);
         CHECK((asbd->mFormatFlags&(kAudioFormatFlagIsFloat|kAudioFormatFlagIsBigEndian|kAudioFormatFlagIsNonInterleaved))==0);
         std::ofstream(directory+"/audio_format.json")<<"{\"rate\":48000,\"channels\":2,\"bits\":16,\"bytes_per_frame\":4,\"ASBD_flags\":"<<asbd->mFormatFlags<<",\"signed_integer\":true,\"little_endian\":true,\"interleaved\":true}";
         std::vector<uint8_t> raw;if(references)raw=referenceBytes(sb,path);
@@ -186,10 +191,13 @@ Decoded readMovie(const std::string& path){stage=rawPath?"raw sample reference r
         const size_t size=references?raw.size():CMBlockBufferGetDataLength(block);CHECK(size==size_t(count)*4);
         const size_t offset=audioBytes.size();audioBytes.resize(offset+size);
         if(references)std::copy(raw.begin(),raw.end(),audioBytes.begin()+std::ptrdiff_t(offset));else CHECK(CMBlockBufferCopyDataBytes(block,0,size,audioBytes.data()+offset)==noErr);
-        for(size_t j=offset;j<audioBytes.size();++j)CHECK(audioBytes[j]==0);decodedAudio+=size_t(count);++audioChunks;CFRelease(sb);}
+        for(size_t j=offset;j<audioBytes.size();++j)CHECK(audioBytes[j]==0);movieAudio+=size_t(count);decodedAudio+=size_t(count);++audioChunks;CFRelease(sb);}
     if(reader.status!=AVAssetReaderStatusCompleted)throw Blocked("AVAssetReader completion: "+message(reader.error));
-    CHECK(decodedAudio==audioFrames);CHECK(audioBytes.size()==audioFrames*4);out.pcm.assign(audioFrames*channels,0);bytes("decoded_audio.s16le",audioBytes);decoded=true;
-    std::cout<<"PASS offline "<<(rawPath?"raw-frame demux/read":"decode")<<": exact PTS/dimensions/audio framecount; max RGB error "<<observedMax<<", mean "<<double(totalError)/double(colorValues)<<"\n";return out;
+    CHECK(movieAudio==size_t(audioFrames));CHECK(audioBytes.size()==audioFrames*4);out.pcm.assign(audioFrames*channels,0);bytes("decoded_audio.s16le",audioBytes);decoded=true;
+    if(!decodePaths)decodePaths=[NSMutableArray array];
+    [decodePaths addObject:@{@"file":url(path).lastPathComponent,@"decoder":imageIOPath?@"ImageIO_JPEG":(rawPath?@"raw_sample_reference":@"AVFoundation_pixels"),
+        @"video_frames":@(out.clip.frames.size()),@"audio_frames":@(movieAudio),@"max_color_error":@(movieMax),@"mean_color_error":@(movieMean),@"PTS_and_PCM_checked":@YES}];
+    std::cout<<"PASS offline "<<(rawPath?"raw-frame demux/read":"decode")<<": exact PTS/dimensions/audio framecount; max RGB error "<<movieMax<<", mean "<<movieMean<<"\n";return out;
 }
 void pipeline(const Decoded& input){stage="component integration";video_lab::Player video(rate);scalar_reference::Reference oracle(rate);
     CHECK(video.load(input.clip)==video_lab::Status::Ok);CHECK(oracle.load(input.clip)==video_lab::Status::Ok);
@@ -239,12 +247,13 @@ void malformed(const std::string& movie){stage="self-authored malformed assets";
     for(const char* name:{"empty.mov","short.mov","corrupt.mov"}){CHECK(rejects(directory+"/"+name));++badAssets;}
     std::cout<<"PASS empty/16-byte truncated/self-authored invalid MOV rejected\n";
 }
+bool avfoundationPixelPassed=false,imageIOPassed=false;
 void summary(bool passed,bool available,const std::string& reason){NSDictionary* d=@{@"passed":@(passed),@"available":@(available),@"reason":[NSString stringWithUTF8String:reason.c_str()],
     @"stage":[NSString stringWithUTF8String:stage.c_str()],@"codec":[NSString stringWithUTF8String:codec.c_str()],@"movie_written":@(encoded),@"media_samples_read":@(decoded),
     @"movie_file":[NSString stringWithUTF8String:movieFile.c_str()],
-    @"uncompressed_passthrough":@(rawPath&&encoded),@"compressed_video_codec_verified":@(!rawPath&&decoded),
-    @"raw_movie_sample_reference_read":@(rawPath&&decoded),
-    @"ImageIO_JPEG_decode_passed":@(imageIOPath&&decoded),@"AVFoundation_pixel_decode_passed":@(!rawPath&&!imageIOPath&&decoded),
+    @"uncompressed_passthrough":@(primaryRawPath&&encoded),@"compressed_video_codec_verified":@(avfoundationPixelPassed||(primaryImageIOPath&&imageIOPassed)),
+    @"raw_movie_sample_reference_read":@(primaryRawPath&&decoded),@"decoded_paths":decodePaths?decodePaths:@[],
+    @"ImageIO_JPEG_decode_passed":@(imageIOPassed),@"AVFoundation_pixel_decode_passed":@(avfoundationPixelPassed),
     @"video_zero_sample_markers_skipped":@(videoMarkers),@"audio_zero_sample_markers_skipped":@(audioMarkers),
     @"assertions":@(assertions),@"video_frames_read":@(decodedFrames),@"audio_frames_read":@(decodedAudio),@"audio_chunks":@(audioChunks),
     @"width":@(width),@"height":@(height),@"fps":@(fps),@"audio_rate":@(rate),@"audio_channels":@(channels),@"color_values":@(colorValues),
@@ -266,6 +275,22 @@ int main(int argc,char** argv){@autoreleasepool{if(argc!=2)return 2;directory=ar
             try{makeMovie(path,candidate);movie=path;movieFile=path.substr(path.find_last_of('/')+1);attempts<<codec<<" : SUCCESS\n";break;}
             catch(const Blocked& e){attempts<<codec<<" : "<<e.what()<<"\n";attempts.flush();failures+=codec+" : "+e.what()+"; ";}}
         if(movie.empty())throw Blocked(failures);
-        const auto decodedClip=readMovie(movie);pipeline(decodedClip);malformed(movie);summary(true,true,"");return 0;}
+        const auto decodedClip=readMovie(movie);pipeline(decodedClip);malformed(movie);
+        primaryRawPath=rawPath;primaryImageIOPath=imageIOPath;
+        avfoundationPixelPassed=(!rawPath&&!imageIOPath&&decoded);
+        // Each required path must succeed. Keep the primary trace and bytes intact.
+        const std::string primaryDirectory=directory;directory+="/imageio-jpeg";
+        try{
+            CHECK([NSFileManager.defaultManager createDirectoryAtPath:[NSString stringWithUTF8String:directory.c_str()] withIntermediateDirectories:YES attributes:nil error:nil]);
+            const std::string jpegPath=directory+"/self_authored_imageio_jpeg.mov";
+            [NSFileManager.defaultManager removeItemAtURL:url(jpegPath) error:nil];
+            makeMovie(jpegPath,@"IMAGEIO_JPEG");
+            const auto jpegClip=readMovie(jpegPath);
+            imageIOPassed=(imageIOPath&&decoded&&jpegClip.clip.frames.size()==size_t(frames));
+            CHECK(imageIOPassed);
+            std::cout<<"PASS explicit ImageIO JPEG decode verified: 12 frames\n";
+        }catch(...){directory=primaryDirectory;throw;}
+        directory=primaryDirectory;stage="required decoding paths complete";
+        summary(true,true,"");return 0;}
     catch(const Blocked& e){summary(false,false,e.what());std::cout<<"BLOCKED AVFoundation "<<e.what()<<"\n";return 3;}
     catch(const std::exception& e){summary(false,true,e.what());std::cerr<<"FAIL AVFoundation "<<e.what()<<"\n";return 1;}}}

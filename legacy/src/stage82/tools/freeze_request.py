@@ -1,0 +1,18 @@
+"""Freeze concrete commands; creates no approval or original attempt claim."""
+import json,sys
+sys.dont_write_bytecode=True
+from common import ROOT,S,sha,put
+def main():
+ source=ROOT/'runs/stage12-state-cycle62p19';pins={}
+ paths=list((S/'tools').glob('*'))+[ROOT/'samples/stage73_cpu.py',source/'state.json',source/'memory.bin',source/'context.bin',ROOT/'stage80/evidence/measured-state.json',ROOT/'stage81/builds/full-separated-v5/game.ll',ROOT/'stage81/evidence/known-method-completed-closure.json',ROOT/'stage81/tools/domains_extended.c',ROOT/'stage81/tools/idiv.c',ROOT/'stage82/builds/original-v3/native-driver',ROOT/'stage82/builds/original-v3/result.json',ROOT/'stage82/builds/original-v3/build_scope.h',PathOriginal()]
+ paths+=list((ROOT/'vendor-tools/unicorn-2.1.4').rglob('*.py'))+[ROOT/'vendor-tools/unicorn-2.1.4/unicorn/lib/libunicorn.2.dylib',ROOT/'evidence/stage55-batch-ledger.json']
+ for p in paths:
+  if p.is_file():pins[str(p.relative_to(ROOT))if p.is_relative_to(ROOT)else str(p)]=sha(p)
+ p=S/'configs/original.json';c=json.loads(p.read_text());c['pins']=pins;p.write_text(json.dumps(c,indent=2)+'\n')
+ scope={'id':c['id'],'configuration_sha256':sha(p),'maximum_attempts':c['maximum_attempts'],'old_ledger_reopened':False,'input_or_activity_mutation':False,'worker_scheduling':False,'UI_keyboard_audio_video':False}
+ request={'status':'IMPLEMENTED_COMMAND_REQUIRES_NEW_USER_ORIGINAL_EXECUTION_AUTHORITY','current_original_authority':0,'scope_to_record_after_real_user_approval':scope,'approval_must_be_recorded_by_parent_from_actual_new_user_message':True,'new_approval_created':False,'new_original_claims_created':0,'command':['/usr/bin/python3','-B','stage82/tools/pipeline.py','--config','stage82/configs/original.json','--approval','stage82/evidence/PARENT_RECORDED_APPROVAL.json','--out','stage82/runs/original-ABC-once'],'preflight_command':['/usr/bin/python3','-B','stage82/tools/pipeline.py','--config','stage82/configs/original.json','--preflight'],'implementation_and_real_build_ready':True,'authored_protocol_and_platform_tests_passed':True,'natural_active_input_available':False,'known_path_platform_and_dynamic_domains_fully_closed':False,'roles':{'A':'one natural single-main-thread entry capture from exact unchanged cycle62p19; stop before4aeeb0','B':'only after genuine first A entry: one fixed reference from that exact input to actual4ac33d/SP','C':'only after B completes: one native executable from same A input to same original return/SP'},'limits':c['limits'],'engine_or_game_processes_maximum':3,'supervisor_processes_are_not_game_attempts':True,'hard_timeout_each_role_seconds':60,'failed_role_or_boundary_stops_entire_chain':True,'retry':False,'does_not_skip_empty_entry_to_search_for_active_receiver':True,'empty_path_result_is_separately_labelled':True,'residuals':['20 Win32 interfaces stop before fake success','20 non-IAT CALL sites and other legitimate domains at known sites remain unproved','SEH dispatch/unwind explicitly fails','first natural entry may be empty or unreachable within cap; no invented activity or forced PC/SP','native opaque contexts remain initial sidecars; GS_BASE query unsupported; supported public CPU and no selected x87/GS mutation are compared']}
+ put(S/'configs/combined-validation-request.json',request);print(json.dumps({'configuration_sha256':sha(p),'pinned_inputs':len(pins),'exact_command_ready':True,'original_authority':0,'new_approval_or_claim_created':False}))
+def PathOriginal():
+ from pathlib import Path
+ return Path('<LOCAL_ORIGINAL_PROJECT>/Exe/ghidra/input/EmperorEN.exe')
+if __name__=='__main__':main()

@@ -1,0 +1,11 @@
+import json,sys
+from pathlib import Path
+sys.dont_write_bytecode=True
+ROOT=Path(__file__).resolve().parents[2];S=ROOT/'stage79'
+def main():
+ d=json.loads((S/'evidence/call-domains.json').read_text());m=json.loads((S/'evidence/checkpoint-state.json').read_text());native=json.loads((S/'builds/core-state-open/result.json').read_text());missing=sorted(set(hex(r['target'])for c in d['conditional_singleton_site_certificates']for r in c['cases']if not r['target_in_full_function_entries']))
+ tests={label:json.loads((S/'evidence'/(label+'.result.json')).read_text())['returncode']==0 for label in ['run-own-all-guest-memory-import-v2','own-thread-CPU-exception-tests-v1','own-conditional-domain-tests-v1','own-CPU-request-interface-tests-v1','run-own-thread-native-v1']}
+ fresh=json.loads((S/'builds/full-bound-guarded-open/result.json').read_text())
+ report=dict(status='REFUSE_PHASE8_RUN_RESTORE_AND_DOMAIN_GAPS',self_authored_test_processes=tests,real_private_guest_memory_import_tested=True,mapped_regions=m['region_count'],mapped_bytes=m['mapped_bytes'],current_root_CPU_overrides_stale_saved_thread=True,public_workers_CPU_available=False,opaque_offsets_guessed=False,guest_kernel_five_API_ABIs_compiled=native['thread_APIs_defined'],conditional_domain_certificates=d['conditional_singleton_site_certificates'],runtime_checked_conditions_required=['actual saved vptr register','read-only current original table slot','unchanged original target bytes','exact callsite target','target migrated'],complete_per_site_domains=0,known_missing_native_targets=missing,known_missing_targets_now_added_to_guarded_build=not missing and fresh['original_instructions']==7346,conditional_domains_do_not_filter_receivers=True,SEH_success_returns_allowed=False,whole_thread_CPU_and_guest_arena_connected=False,cached_segments_verified=False,metadata_only_request_ready_for_explicit_approval=all(tests.values()),metadata_request_original_game_instructions=0,metadata_request_authored_instructions_maximum=56,phase8_runtime_allowed=False,new_engine_or_game_or_SR_game_library_executions=0)
+ (S/'evidence/preflight.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:report[k]for k in ['status','known_missing_native_targets','metadata_only_request_ready_for_explicit_approval','phase8_runtime_allowed']}))
+if __name__=='__main__':main()

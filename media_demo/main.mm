@@ -1,10 +1,12 @@
 #import <AppKit/AppKit.h>
 #import <QuartzCore/QuartzCore.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #include "controller.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <memory>
+#include <stdexcept>
 #include <thread>
 
 @interface MediaSeekSlider : NSSlider {BOOL _mouseTracking;}
@@ -21,11 +23,12 @@
     NSMutableArray<NSString*>* _lines;NSTimer* _timer;dispatch_queue_t _worker;
     std::unique_ptr<media_demo::Controller> _controller;std::string _moviePath;
     std::unique_ptr<media_demo::DeviceMonitor> _devices;NSString* _testReport;NSFileHandle* _testTrace;
+    std::unique_ptr<media_demo::DeviceEvent> _deferredDevice;
     BOOL _testInjectEvents,_testEventsScheduled;NSUInteger _staleDeliveries,_initialDeviceListeners;
     BOOL _testDelay,_testDelayDone,_testMetadataHold;
     std::shared_ptr<stream_lab::OpenControl> _loadControl;
     media_demo::State _state;uint64_t _revision,_ticks,_frameCount;NSUInteger _pending;
-    BOOL _tickQueued,_closing,_mediaAvailable;
+    BOOL _tickQueued,_closing,_mediaAvailable,_selecting,_switching;
 }
 - (void)play:(id)sender;
 - (void)pause:(id)sender;
@@ -52,7 +55,55 @@
     [appMenu addItemWithTitle:@"关于静音媒体演示" action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
     [appMenu addItem:[NSMenuItem separatorItem]];
     [appMenu addItemWithTitle:@"退出静音媒体演示" action:@selector(terminate:) keyEquivalent:@"q"];
-    appItem.submenu=appMenu;NSApp.mainMenu=menu;
+    appItem.submenu=appMenu;
+    NSMenuItem* fileItem=[[NSMenuItem alloc] init];[menu addItem:fileItem];
+    NSMenu* fileMenu=[[NSMenu alloc] initWithTitle:@"文件"];
+    [fileMenu addItemWithTitle:@"打开文件…" action:@selector(openDocument:) keyEquivalent:@"o"];
+    fileItem.submenu=fileMenu;
+    NSApp.mainMenu=menu;
+}
+// File selection is an ordinary user action. It is not evidence of successful
+// reads or of the cause of the historical package-external open wait.
+- (BOOL)validateMenuItem:(NSMenuItem*)item {
+    if(item.action==@selector(openDocument:))return !_closing&&!_selecting&&!_switching&&!_pending;
+    return YES;
+}
+- (void)openDocument:(id)sender {
+    (void)sender;if(_closing||_pending||_selecting||_switching)return;
+    _selecting=YES;[self updateControls];
+    NSOpenPanel* panel=[NSOpenPanel openPanel];
+    panel.allowedContentTypes=@[UTTypeQuickTimeMovie];
+    panel.canChooseDirectories=NO;panel.allowsMultipleSelection=NO;
+    panel.message=@"选择 MOV 文件（格式须匹配 64×48 30fps 48kHz S16LE 双声道）";
+    [panel beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){
+        self->_selecting=NO;if(self->_closing)return;
+        NSURL* selected=[panel.URL copy];
+        if(result!=NSModalResponseOK||!selected){[self updateControls];return;}
+        if(self->_loadControl)self->_loadControl->cancelled.store(true,std::memory_order_release);
+        const auto revision=++self->_revision;self->_switching=YES;++self->_pending;[self invalidateTimer];
+        self->_status.stringValue=@"正在切换文件…";[self updateControls];
+        dispatch_async(self->_worker,^{@autoreleasepool{
+            NSString* closeError=nil;
+            if(self->_controller){try{self->_controller->close();
+                if(!self->_controller->snapshot().resourcesZero())throw std::runtime_error("media owners remain after close");
+                self->_controller.reset();}catch(const std::exception& error){closeError=[NSString stringWithUTF8String:error.what()];}}
+            dispatch_async(dispatch_get_main_queue(),^{
+                if(self->_closing||revision!=self->_revision)return;
+                self->_switching=NO;if(self->_pending)--self->_pending;
+                if(closeError){self->_state=media_demo::State::Failed;self->_status.stringValue=@"发生错误 · 无法释放上一媒体";
+                    [self appendLog:closeError];[self updateControls];return;}
+                self->_moviePath=selected.path.UTF8String;
+                self->_mediaAvailable=YES;self->_state=media_demo::State::Ready;
+                self->_tickQueued=NO;self->_ticks=0;self->_frameCount=240;
+                self->_image.image=nil;self->_seek.maxValue=239;self->_seek.doubleValue=0;
+                self->_position.stringValue=[NSString stringWithFormat:@"0.00 / %.2f 秒",double(self->_frameCount)/30];
+                self->_status.stringValue=[NSString stringWithFormat:@"待机 · 已选择文件 · %@",selected.lastPathComponent];
+                [self appendLog:@"已选择文件，点击播放后检查媒体。"];
+                [self updateControls];
+                if(self->_deferredDevice){const auto event=*self->_deferredDevice;self->_deferredDevice.reset();[self requestDevice:event];}
+            });
+        }});
+    }];
 }
 - (void)applicationDidFinishLaunching:(NSNotification*)notification {
     (void)notification;_state=media_demo::State::Ready;_revision=1;_frameCount=240;
@@ -138,14 +189,14 @@
     }
 }
 - (void)updateControls {
-    const BOOL enabled=!_closing&&_pending==0&&_mediaAvailable;
+    const BOOL enabled=!_closing&&!_selecting&&!_switching&&_pending==0&&_mediaAvailable;
     _play.enabled=enabled&&_state!=media_demo::State::Playing;
     _pause.enabled=enabled&&_state==media_demo::State::Playing;
-    _stop.enabled=!_closing&&_mediaAvailable&&(_pending>0||_state!=media_demo::State::Ready);_seek.enabled=enabled;
+    _stop.enabled=!_closing&&!_selecting&&!_switching&&_mediaAvailable&&(_pending>0||_state!=media_demo::State::Ready);_seek.enabled=enabled;
 }
 - (void)invalidateTimer {[_timer invalidate];_timer=nil;}
 - (void)updateTimer {
-    if(_closing||_state!=media_demo::State::Playing){[self invalidateTimer];return;}
+    if(_closing||_switching||_state!=media_demo::State::Playing){[self invalidateTimer];return;}
     if(_timer)return;
     __weak MediaDemoDelegate* weakSelf=self;
     _timer=[NSTimer timerWithTimeInterval:1.0/30.0 repeats:YES block:^(NSTimer* timer){
@@ -190,7 +241,8 @@
     [self updateControls];[self updateTimer];
 }
 - (void)request:(media_demo::Action)action frame:(uint64_t)frame {
-    if(_closing||!_mediaAvailable)return;const BOOL tick=action==media_demo::Action::Tick;
+    if(_closing||_switching||!_mediaAvailable)return;const BOOL tick=action==media_demo::Action::Tick;
+    if(_selecting&&!tick)return;
     if(action==media_demo::Action::Stop&&_loadControl)_loadControl->cancelled.store(true,std::memory_order_release);
     if(action==media_demo::Action::Play&&_testInjectEvents&&!_testEventsScheduled){_testEventsScheduled=YES;
         const auto original=_devices->stats().current;
@@ -203,9 +255,10 @@
     else{++_revision;++_pending;[self invalidateTimer];_status.stringValue=@"正在处理…";[self updateControls];}
     const auto control=std::make_shared<stream_lab::OpenControl>();control->holdMetadataCompletionForTest=_testMetadataHold;_loadControl=control;
     const uint64_t revision=_revision;
+    const auto moviePath=_moviePath;const auto frameCount=_frameCount;
     dispatch_async(_worker,^{@autoreleasepool{
         std::shared_ptr<media_demo::Snapshot> output;
-        try{if(!self->_controller)self->_controller=std::make_unique<media_demo::Controller>(self->_moviePath,media_demo::Controller::PCMObserver{},self->_frameCount);
+        try{if(!self->_controller)self->_controller=std::make_unique<media_demo::Controller>(moviePath,media_demo::Controller::PCMObserver{},frameCount);
             if(action==media_demo::Action::Tick&&self->_testDelay&&!self->_testDelayDone&&self->_controller->snapshot().mediaPCM>=576000){
                 self->_testDelayDone=YES;std::this_thread::sleep_for(std::chrono::seconds(2));}
             output=std::make_shared<media_demo::Snapshot>(self->_controller->perform(action,frame,control));}
@@ -221,11 +274,14 @@
     [self request:media_demo::Action::Seek frame:frame];}
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)application {(void)application;return YES;}
 - (void)requestDevice:(media_demo::DeviceEvent)event {
-    if(_closing||!_mediaAvailable)return;++_revision;++_pending;[self invalidateTimer];[self updateControls];const auto revision=_revision;
+    if(_closing||!_mediaAvailable)return;
+    if(_switching){_deferredDevice=std::make_unique<media_demo::DeviceEvent>(event);return;}
+    ++_revision;++_pending;[self invalidateTimer];[self updateControls];const auto revision=_revision;
     if(_loadControl)_loadControl->cancelled.store(true,std::memory_order_release);
     const auto control=std::make_shared<stream_lab::OpenControl>();_loadControl=control;
+    const auto moviePath=_moviePath;const auto frameCount=_frameCount;
     dispatch_async(_worker,^{@autoreleasepool{
-        if(!self->_controller)self->_controller=std::make_unique<media_demo::Controller>(self->_moviePath,media_demo::Controller::PCMObserver{},self->_frameCount);
+        if(!self->_controller)self->_controller=std::make_unique<media_demo::Controller>(moviePath,media_demo::Controller::PCMObserver{},frameCount);
         auto output=std::make_shared<media_demo::Snapshot>(self->_controller->deviceChanged(event,control));
         dispatch_async(dispatch_get_main_queue(),^{[self deliver:output revision:revision tick:NO];});
     }});

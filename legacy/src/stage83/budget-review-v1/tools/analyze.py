@@ -1,0 +1,36 @@
+"""Static proposal review; does not load Unicorn or invoke any game function."""
+import json,re,struct,subprocess,sys
+from pathlib import Path
+sys.dont_write_bytecode=True
+R=Path(__file__).resolve().parents[3];V=R/'stage83/budget-review-v1';sys.path.insert(0,str(R/'stage83/batch-v1/tools'))
+from common import decode,sha,put
+source=R/'runs/stage12-state-cycle62p19/state.json';s=json.loads(source.read_text());host=decode(s['host']);cfg=json.loads((R/'stage83/batch-v1/configs/round01.json').read_text());run=json.loads((R/'stage83/runs/batch-v1-round01/capture/result.json').read_text());cpu=run['initial_CPU'];f=(source.parent/'memory.bin').open('rb')
+def read(a,n=4):
+ for r in s['regions']:
+  if r['low']<=a and a+n<=r['high']+1:f.seek(r['offset']+a-r['low']);return f.read(n)
+ raise ValueError('unmapped static address '+hex(a))
+def word(a):return struct.unpack('<I',read(a))[0]
+rows=word(cpu['ESP']+36);width=cpu['EBP'];pixels=cpu['EDI']+(rows-1)*width;instr=16+(pixels-1)*19+rows*5+(rows-1)*3+5;writes=pixels*4+rows
+assert(rows,width,pixels,instr,writes)==(389,1024,397730,7559981,1591309)
+dest_end=cpu['EAX']+4*pixels;src_end=cpu['ESI']+2*(pixels-1);assert dest_end==0x30801a00 and src_end==0x30981a00
+with(R/'stage83/runs/batch-v1-round01/capture/writes.bin').open('rb')as t:
+ trace_rows=0;outside=0
+ while True:
+  b=t.read(24*4096)
+  if not b:break
+  for row in struct.iter_unpack('<6I',b):
+   trace_rows+=1
+   if not(cpu['EAX']<=row[2]<dest_end or row[2]==cpu['ESP']+36):outside+=1
+assert trace_rows==run['write_records']and outside==0
+calls=[]
+for pc,glob in [(0x52c009,0x10de4a8),(0x52c01e,0x10de4a4)]:
+ obj=word(glob);vt=word(obj);target=word(vt+128);calls.append({'PC':pc,'object_global':glob,'object':obj,'vtable':vt,'slot':vt+128,'target':target,'captured_import':host['imports'][target],'supported_by_current_A':False})
+assert calls[0]['target']==0x61004370 and tuple(calls[0]['captured_import'])==('authored.dd','2.32')
+phase=word(0xc82ef8);table=[word(0x4ac4e8+4*i)for i in range(48)];phase8=[i+1 for i,a in enumerate(table)if a==0x4ac338];assert phase==22 and phase8==[8]
+historical=json.loads((R/'evidence/stage54-cycle62p19.json').read_text());older=json.loads((R/'evidence/stage54-cycle61p07.json').read_text());assert historical['natural_state']['phase']==22 and older['watch_state']['phase']==9
+commands=[]
+for label,lo,hi in [('conversion-loop',0x419027,0x419068),('first-COM-boundary',0x52bff0,0x52c024),('phase-dispatch',0x4ac2e4,0x4ac342),('phase-increment',0x4ac4c8,0x4ac4e8)]:
+ cmd=['/usr/bin/objdump','--disassemble','--start-address='+hex(lo),'--stop-address='+hex(hi),cfg['original_EXE']];q=subprocess.run(cmd,capture_output=True,timeout=15);assert not q.returncode;(V/'evidence'/(label+'.txt')).write_bytes(q.stdout);commands.append(cmd)
+cost=json.loads((V/'evidence/host-data-cost.json').read_text());duration=json.loads((R/'stage83/evidence/batch-v1-original-round01.result.json').read_text())['duration_seconds'];overhead=duration-8;rate=run['steps']/8;full_pixels=1024*768;next_lower=full_pixels*19;next_writes=full_pixels*4+768
+report={'status':'PROPOSED_A_ONLY_BUDGET_NOT_SUFFICIENT_FOR_STATED_NATURAL_ENTRY_GOAL','proposal_approved':False,'no_new_original_native_or_Unicorn_execution':True,'observed_remaining_current_function':{'pixels':pixels,'exact_instruction_count_including_outer_loop_and_RETURN_under_no_fault':instr,'exact_write_records_until_RETURN_under_no_fault':writes,'mapped_dest_end':dest_end,'mapped_source_end':src_end,'trace_records_rechecked':trace_rows,'writes_outside_conversion_output_or_row_counter':outside,'headroom_of_2000000_record_cap':2000000-writes,'approx_guest_seconds_at_round01_loop_throughput':instr/rate,'proposal_40s_20M_fits_this_loop_only':True},'next_unsupported_API':calls,'current_model_stops_before_first_COM_method_body':True,'current_phase_and_goal':{'actual_checkpoint_phase':phase,'phase8_dispatch_case':phase8[0],'phase8_already_passed_in_current_historical_cycle':True,'productive_advances_to_phase8_after_wrap':(8-phase)%51,'historical_phase_counter':historical['watch_state']['phase'],'old_advance_count':len(historical['watch_state']['advances']),'old_tail_returns':historical['watch_state']['tail_returns'],'future_refresh_frequency_not_proven_without_execution':True,'current_A_missing_scheduler_dispatch_conditional_certificate':not any(r['site']==0x4ac2f3 for r in cfg['conditional_domains'])},'conditional_if_one_more_same_full_size_conversion_precedes_entry':{'next_conversion_pixel_instruction_lower_bound':next_lower,'current_plus_next_instruction_lower_bound':7556867+next_lower,'next_conversion_write_records':next_writes,'current_plus_next_write_records':writes+next_writes,'both_20M_instruction_and_2M_write_caps_exceeded':True,'at_same_loop_throughput_guest_seconds_lower_projection':(7556867+next_lower)/rate,'why_conditional':'Existing phase5..22 observations repeatedly alternate city_refresh and scheduler; future input/control flow has not been executed.'},'whole_role_process_cost':{'observed_round01_controller_seconds':duration,'observed_guest_cap_seconds':8,'observed_non_guest_total_seconds_estimate':overhead,'40s_guest_plus_observed_non_guest_plus_host_encode_only':40+overhead+cost['encode_seconds'],'40s_guest_plus_observed_non_guest_plus_encode_and_JSON_sink':40+overhead+cost['encode_seconds']+cost['pretty_JSON_dump_to_counting_sink_seconds'],'filesystem_contexts_memory_snapshot_extra_unmeasured':True,'data_cost_measurement':cost,'serialization_is_success_path_only_failure_A_did_not_pay_it':True,'exact_future_walltime_not_claimed':True},'orchestrator_limit':{'existing_outer_bounded_wrapper_seconds':60,'individual_roles_seconds':60,'one_wrapper_covering_all_three_roles_would_compete_for_same_60s':True,'suggestion':'Use separately bounded one-shot role commands/claims; do not silently raise any role wall limit.'},'minimum_pre_execution_repairs':['Resolve captured surface Unlock/next Blt dependencies with honest guest-only contracts if separately in scope; keep host window/audio/video disabled and stop unknowns. Do not return fabricated success.','Audit scheduler prefix dynamic domains and unchanged old observer/cycle caps before attempting a new phase8 in a later cycle.','Implement lossless pinned-base/host-delta snapshot export with authored equivalence/cost checks; avoid re-encoding all unchanged captured payload and 589MB pretty JSON.','Split controller/role time accounting so each A/B/C has its own existing 60-second wall boundary.','Reassess input/target strategy: phase22-to-next-phase8 involves wrap and likely repeated refresh; changing A time/steps alone does not establish a 2M-write path.'],'approval_or_ledger_or_checkpoints_modified':False,'input_hashes':{str(source.relative_to(R)):sha(source),str((source.parent/'memory.bin').relative_to(R)):sha(source.parent/'memory.bin'),cfg['original_EXE']:sha(Path(cfg['original_EXE']))},'objdump_commands':commands}
+put(V/'evidence/result.json',report);print(json.dumps({'status':report['status'],'current_loop_instructions':instr,'current_loop_write_records':writes,'next_static_stop':'authored.dd!2.32','projected_40s_role_plus_encode_seconds':report['whole_role_process_cost']['40s_guest_plus_observed_non_guest_plus_host_encode_only'],'original_execution':0}))

@@ -21,7 +21,7 @@ fi
     "$task_demo_repo/video_lab/stream.cpp" "$task_demo_repo/audio_lab/audio.cpp" \
     "$task_demo_repo/surface_lab/surface.cpp" "$task_demo_repo/metal_lab/backend.mm" \
     -framework AppKit -framework QuartzCore -framework Foundation -framework AVFoundation -framework AudioToolbox \
-    -framework CoreMedia -framework CoreVideo -framework Metal -framework CoreAudio \
+    -framework CoreMedia -framework CoreVideo -framework Metal -framework CoreAudio -framework UniformTypeIdentifiers \
     -o "$task_demo_build/NativeMediaDemo.new" > "$task_demo_evidence/build.stdout.log" 2> "$task_demo_evidence/build.stderr.log"
 mkdir -p "$task_demo_app/Contents/MacOS" "$task_demo_app/Contents/Resources/TestMedia"
 mv "$task_demo_build/NativeMediaDemo.new" "$task_demo_app/Contents/MacOS/NativeMediaDemo"

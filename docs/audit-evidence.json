@@ -1,0 +1,162 @@
+{
+  "schema": "EMPEROR_AUDIT_EVIDENCE_V1",
+  "date": "2026-10-09",
+  "absolute_paths_stored_only_in_ignored_local_config": true,
+  "historical_reports_are_not_current_execution_authorization": true,
+  "records": [
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage23-native-surface-bridge.md",
+      "sha256": "12632e9da1c71f1185364915d05e2b014445eb49a5db0d296506c30f36cd5bcd",
+      "bytes": 8713,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage36-audio-contract.md",
+      "sha256": "0e518292258f5444bbc338ca18d7c0d3beb33a034f7fdbecb025eb4199ce5f0b",
+      "bytes": 2130,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage37-audio-module.md",
+      "sha256": "0d203ed2ca04731da29f4056cecbf1558963c9a475e55f5fbb1381e4900aa448",
+      "bytes": 5838,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage42-missing-movie-startup.md",
+      "sha256": "ddad8b17b6f58745077600414445c1706db2c6ff114da23f4946da8bb697b4bf",
+      "bytes": 7453,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage23-result.json",
+      "sha256": "b29d180876620cd8b8c1c991be14738ecb6384c96e9a27784e60edc7069d1239",
+      "bytes": 2506,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage37-result.json",
+      "sha256": "f44c7cd4c47caa08bbbe9a69fa4cd7a4e152c8f3678bc382d685e7970417967a",
+      "bytes": 4702,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage42-result.json",
+      "sha256": "14730dd832c9e1c6392d2a70f95f9a39010c4efe5fd3f868b753ec7987e10380",
+      "bytes": 15826,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage73-result.json",
+      "sha256": "4ea0a6db52c3e6dd7c6f696f103d69954270530065803ff5e4edaf5d8f0f98d8",
+      "bytes": 3930,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage74/reports/README.txt",
+      "sha256": "57df0b2d36481d96fe1ca656c8cf5046e605fa25ca28343aff4898bbe60644d6",
+      "bytes": 6351,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage76/reports/README.txt",
+      "sha256": "c2d304ff8fd4889108b942d552ae0d6bc08b307d9f59811b768a448ff58148ad",
+      "bytes": 10148,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage81/reports/README.txt",
+      "sha256": "de5cbf7e8ae1e94aaab5ade13c05896baf3910f01b71bfe6e201e0fe5d5a0976",
+      "bytes": 7315,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage82/reports/README.txt",
+      "sha256": "f7ffbb250fc1cbc8f1a295c5dd62afe47320148d44a574e324d4a0e84b9d405a",
+      "bytes": 7055,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage83/batch-v1/reports/README-final.txt",
+      "sha256": "ed08d4025b956b4f670ec92ba921ca2ebdbc1f91dcfabe2694cef8ec2c9b8220",
+      "bytes": 4569,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage83/repair-v2/reports/README.txt",
+      "sha256": "6f430e0ef344f6877d0e6182bdaf5dc2bed3331ad15e4197dbb6934ff2755e49",
+      "bytes": 5869,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage83/phase7-v2/reports/README.txt",
+      "sha256": "35a09150042d69f782b0ffcc079dae2f2d2a704602340579098be16c89a6d33e",
+      "bytes": 6453,
+      "scope": "historical report/result; read-only audit"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": ".local-results/endurance-release-1791561165303743000/summary.json",
+      "sha256": "2f6583a35ee3546871e1e1b08553e17256e85f6fdbf6af24b94f3083c7e27ac1",
+      "bytes": 1437,
+      "scope": "existing own-media result; not rerun"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": ".local-results/endurance-undefined-1791561362628528000/summary.json",
+      "sha256": "c86e9497ac207b6e39f7c90524a4ba4038157f2ab52bbbfb8adab7e7120efdf1",
+      "bytes": 1434,
+      "scope": "existing own-media result; not rerun"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "av_lab/evidence/release/summary.json",
+      "sha256": "e51cdd6359559d457d0d44d707590aff3479a3eb4a9a971d7c6b31d84dfa23db",
+      "bytes": 1749,
+      "scope": "existing result, including retained failed AV attempt; not rerun"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "av_lab/evidence/undefined/summary.json",
+      "sha256": "e51cdd6359559d457d0d44d707590aff3479a3eb4a9a971d7c6b31d84dfa23db",
+      "bytes": 1749,
+      "scope": "existing result, including retained failed AV attempt; not rerun"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": ".local-results/av-1791561114354273000/summary.json",
+      "sha256": "c1879c9b841c437f61166b57581fb276a0ab33953fabf8177625a3b706d4b8ea",
+      "bytes": 37,
+      "scope": "existing result, including retained failed AV attempt; not rerun"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": ".local-results/av-1791561279630134000/summary.json",
+      "sha256": "4a813307797d567732ab398f276fe57159252bee292dd7bd470edb77311a6074",
+      "bytes": 204,
+      "scope": "existing result, including retained failed AV attempt; not rerun"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "media_demo/evidence/clean-rebuild-1791561377183493000/summary.json",
+      "sha256": "da81bab889a34fc64a71ee8b52e8ac2626f274d25872ae91cd01b9454efc06a5",
+      "bytes": 593,
+      "scope": "existing result, including retained failed AV attempt; not rerun"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+import hashlib,json
+from pathlib import Path
+R=Path(__file__).resolve().parents[1];rel='Save/ImperialRecord.imr';p=R/'stage8-local/EmperorBaseline.app/Contents/Resources/drive_c/EmperorRotMK[ZeaS]'/rel;src=Path('<LOCAL_MACHINE_PATH>]')/rel;b=p.read_bytes();assert b==src.read_bytes();h=hashlib.sha256(b).hexdigest();row=dict(relative_path=rel,copy_path=str(p),original_path=str(src),copy_size=len(b),original_size=len(b),copy_sha256=h,original_sha256=h,source_copy_equal=True);(R/'evidence/stage40-record-catalog.readonly.json').write_text(json.dumps(dict(rows=[row],readonly=True),indent=2));print(json.dumps(dict(path=rel,bytes=len(b),sha256=h)))
