@@ -4,7 +4,7 @@
 #include <vector>
 
 namespace surface_lab {
-enum class Format { RGB565LE = 1, BGRA8 = 2 };
+enum class Format { RGB565LE = 1, BGRA8 = 2, RGB555LE = 3 };
 enum class Status {
     Ok, InvalidHandle, InvalidDesc, InvalidRect, Capacity,
     Lost, AlreadyReady, InvalidSnapshot, OutOfMemory

@@ -4,7 +4,7 @@ import hashlib,json,os,signal,subprocess,sys,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
 TASK=sys.argv[1] if len(sys.argv)==2 else ''
-TASKS=('generate','build','surface','audio','video','metal','av','stream')
+TASKS=('generate','build','surface','audio','video','metal','av','stream','game')
 if TASK not in TASKS:raise SystemExit('run.py '+'|'.join(TASKS))
 OUT=ROOT/'.local-results'/(TASK+'-'+str(time.time_ns()));OUT.mkdir(parents=True)
 DEADLINE=time.monotonic()+55

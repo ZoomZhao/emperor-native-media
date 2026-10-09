@@ -23,7 +23,7 @@ struct Random {
 struct Totals {
     size_t assertions = 0, bytesCompared = 0, copyCases = 0, nearestCases = 0;
     size_t negativeChecks = 0, randomPixelCases = 0, randomLifeEvents = 0, groupsPassed = 0;
-    size_t exhaustiveValues = 0, lifecycleCycles = 0;
+    size_t exhaustiveValues = 0, exhaustiveRGB555Values = 0, lifecycleCycles = 0;
     uint64_t pixelRngFinal = 0, lifeRngFinal = 0;
 } totals;
 std::string evidenceDirectory;
@@ -36,7 +36,7 @@ void status(Status actual, Status expected) {
     if (expected != Status::Ok) ++totals.negativeChecks;
     require(actual == expected, std::string("status expected ") + statusName(expected) + ", got " + statusName(actual));
 }
-size_t bpp(Format format) { return format == Format::RGB565LE ? 2 : 4; }
+size_t bpp(Format format) { return (format == Format::RGB565LE || format == Format::RGB555LE) ? 2 : 4; }
 Desc description(int width, int height, Format format, int padding = 0) {
     return {width, height, size_t(width) * bpp(format) + size_t(padding), format};
 }
@@ -82,9 +82,10 @@ void writeFile(const std::string& name, const std::vector<uint8_t>& value) {
 }
 std::string descText(Desc d) {
     std::ostringstream out;
+    const char* fmt = (d.format == Format::RGB565LE ? "RGB565LE" : (d.format == Format::RGB555LE ? "RGB555LE" : "BGRA8"));
     out << "{\"width\":" << d.width << ",\"height\":" << d.height
         << ",\"stride\":" << d.stride << ",\"format\":\""
-        << (d.format == Format::RGB565LE ? "RGB565LE" : "BGRA8") << "\"}";
+        << fmt << "\"}";
     return out.str();
 }
 std::string rectText(Rect r) {
@@ -156,7 +157,34 @@ void exhaustiveFormats() {
     const Handle c = create(store, channels, channelBytes), d = create(store, quantized, quantBefore);
     transferCase(store, d, c, channels, quantized, channelBytes, quantBefore,
         {0, 0, 256, 4}, {0, 0, 256, 4}, false, "BGRA channel quantization including alpha ignored");
-    for (Handle h : {a, b, c, d}) status(store.destroy(h), Status::Ok);
+    // Exhaustive 32768 RGB555LE words to BGRA8 and roundtrip
+    const Desc words555 = description(256, 128, Format::RGB555LE, 3);
+    const Desc colors555 = description(256, 128, Format::BGRA8, 5);
+    std::vector<uint8_t> raw555(words555.stride * 128, 0x5a);
+    for (unsigned value = 0; value < 32768; ++value) {
+        const size_t offset = size_t(value / 256) * words555.stride + size_t(value % 256) * 2;
+        raw555[offset] = uint8_t(value % 256); raw555[offset + 1] = uint8_t(value / 256);
+    }
+    const auto origDst555 = pattern(colors555, 13);
+    const Handle h555_src = create(store, words555, raw555), h555_dst = create(store, colors555, origDst555);
+    const Rect full555{0, 0, 256, 128};
+    transferCase(store, h555_dst, h555_src, words555, colors555, raw555, origDst555, full555, full555, false, "all 32768 RGB555 words");
+    totals.exhaustiveRGB555Values = 32768;
+    const auto decoded555 = read(store, h555_dst);
+    for (const auto& anchor : std::vector<std::pair<unsigned, scalar_oracle::Color>>{
+        {0x0000, {0, 0, 0, 255}}, {0x7c00, {0, 0, 255, 255}},
+        {0x03e0, {0, 255, 0, 255}}, {0x001f, {255, 0, 0, 255}}, {0x7fff, {255, 255, 255, 255}}}) {
+        const size_t at = size_t(anchor.first / 256) * colors555.stride + size_t(anchor.first % 256) * 4;
+        for (size_t channel = 0; channel < 4; ++channel) CHECK(decoded555[at + channel] == anchor.second[channel]);
+    }
+    const auto beforeBack555 = pattern(words555, 29);
+    status(store.replaceBytes(h555_src, beforeBack555), Status::Ok);
+    transferCase(store, h555_src, h555_dst, colors555, words555, decoded555, beforeBack555, full555, full555, false, "RGB555 roundtrip");
+    const auto roundtrip555 = read(store, h555_src);
+    for (int y = 0; y < 128; ++y) for (int x = 0; x < 512; ++x)
+        CHECK(roundtrip555[size_t(y) * words555.stride + size_t(x)] == raw555[size_t(y) * words555.stride + size_t(x)]);
+
+    for (Handle h : {a, b, c, d, h555_src, h555_dst}) status(store.destroy(h), Status::Ok);
     CHECK(store.liveCount() == 0 && store.activeBytes() == 0 && store.savedBytes() == 0);
 }
 
@@ -167,7 +195,7 @@ void clippingAndPadding() {
         {{0,0,13,7}, {16,8,13,7}}, {{0,0,13,7}, {17,9,13,7}},
         {{50,50,13,7}, {0,0,13,7}}, {{0,0,1,1}, {16,8,1,1}},
         {{-1,0,1,1}, {3,2,1,1}}, {{0,0,13,7}, {-13,0,13,7}}};
-    for (Format sf : {Format::RGB565LE, Format::BGRA8}) for (Format df : {Format::RGB565LE, Format::BGRA8}) {
+    for (Format sf : {Format::RGB565LE, Format::BGRA8, Format::RGB555LE}) for (Format df : {Format::RGB565LE, Format::BGRA8, Format::RGB555LE}) {
         const Desc sd = description(13, 7, sf, 5), dd = description(17, 9, df, 7);
         const auto input = pattern(sd, 3), output = pattern(dd, 17);
         for (const auto& c : cases) {
@@ -184,7 +212,7 @@ void overlappingCopies() {
         {{0,0,11,7}, {2,0,11,7}}, {{2,0,11,7}, {0,0,11,7}},
         {{0,0,13,6}, {0,1,13,6}}, {{0,1,13,6}, {0,0,13,6}},
         {{0,0,13,7}, {0,0,13,7}}, {{-2,-1,13,7}, {1,1,13,7}}};
-    for (Format f : {Format::RGB565LE, Format::BGRA8}) for (const auto& c : cases) {
+    for (Format f : {Format::RGB565LE, Format::BGRA8, Format::RGB555LE}) for (const auto& c : cases) {
         Store store; const Desc d = description(13, 7, f, 7); const auto original = pattern(d, 29);
         const Handle h = create(store, d, original);
         transferCase(store, h, h, d, d, original, original, c.first, c.second, false, "overlap source snapshot");
@@ -197,7 +225,7 @@ void nearestScaling() {
         {{0,0,3,2}, {-1,-1,5,4}}, {{0,0,8,6}, {0,0,16,12}},
         {{0,0,17,9}, {-4,-3,23,17}}, {{-2,-1,17,9}, {1,2,12,8}},
         {{12,6,9,8}, {0,0,7,6}}, {{0,0,17,9}, {40,40,5,4}}};
-    for (Format sf : {Format::RGB565LE, Format::BGRA8}) for (Format df : {Format::RGB565LE, Format::BGRA8}) {
+    for (Format sf : {Format::RGB565LE, Format::BGRA8, Format::RGB555LE}) for (Format df : {Format::RGB565LE, Format::BGRA8, Format::RGB555LE}) {
         const Desc sd = description(17, 9, sf, 3), dd = description(13, 11, df, 5);
         const auto input = pattern(sd, 7), output = pattern(dd, 11);
         for (const auto& c : cases) {
@@ -399,6 +427,7 @@ void writeSummary(bool ok,const std::string& error,double elapsed) {
         <<",\n  \"nearest_cases\":"<<totals.nearestCases<<",\n  \"negative_checks\":"<<totals.negativeChecks
         <<",\n  \"random_pixel_cases\":"<<totals.randomPixelCases<<",\n  \"random_lifecycle_events\":"<<totals.randomLifeEvents
         <<",\n  \"exhaustive_RGB565_values\":"<<totals.exhaustiveValues
+        <<",\n  \"exhaustive_RGB555_values\":"<<totals.exhaustiveRGB555Values
         <<",\n  \"allocation_loss_restore_release_cycles\":"<<totals.lifecycleCycles<<",\n"
         <<"  \"pixel_rng_final_hex\":\"0x"<<std::hex<<totals.pixelRngFinal<<"\",\n"
         <<"  \"lifecycle_rng_final_hex\":\"0x"<<totals.lifeRngFinal<<"\",\n"<<std::dec

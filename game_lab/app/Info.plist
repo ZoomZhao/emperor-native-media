@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
+    <key>CFBundleDisplayName</key><string>皇帝：龙之崛起</string>
+    <key>CFBundleName</key><string>EmperorApp</string>
+    <key>CFBundleExecutable</key><string>EmperorApp</string>
+    <key>CFBundleIdentifier</key><string>com.emperor.native.app</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.0.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>LSMinimumSystemVersion</key><string>15.0</string>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>LSApplicationCategoryType</key><string>public.app-category.games</string>
+    <key>NSHumanReadableCopyright</key><string>Emperor: Rise of the Middle Kingdom Native macOS Runtime.</string>
+</dict></plist>

@@ -15,8 +15,9 @@ void check(bool ok,const char* what){++assertions;if(!ok)throw std::runtime_erro
 #define CHECK(x) check((x),#x)
 uint64_t next(){rng^=rng<<13;rng^=rng>>7;rng^=rng<<17;return rng;}int below(int n){return int(next()%uint64_t(n));}
 std::vector<uint8_t> pattern(Desc d,int salt){std::vector<uint8_t> out(d.stride*size_t(d.height),uint8_t(0xc0+salt%32));
-    for(int y=0;y<d.height;++y)for(int x=0;x<d.width;++x){const size_t p=size_t(y)*d.stride+size_t(x)*(d.format==Format::RGB565LE?2:4);
+    for(int y=0;y<d.height;++y)for(int x=0;x<d.width;++x){const size_t p=size_t(y)*d.stride+size_t(x)*(d.format==Format::BGRA8?4:2);
         if(d.format==Format::RGB565LE){const unsigned w=unsigned(x*31+y*2053+salt*109)%65536;out[p]=uint8_t(w);out[p+1]=uint8_t(w>>8);}
+        else if(d.format==Format::RGB555LE){const unsigned w=unsigned(x*31+y*2053+salt*109)%32768;out[p]=uint8_t(w);out[p+1]=uint8_t(w>>8);}
         else{out[p]=uint8_t(x*7+salt);out[p+1]=uint8_t(y*29+salt*3);out[p+2]=uint8_t(x*17+y*11+salt*5);out[p+3]=uint8_t(x+y+salt*13);}}return out;}
 void save(const char* name,const std::vector<uint8_t>& v){std::ofstream out(directory+"/"+name,std::ios::binary);out.write(reinterpret_cast<const char*>(v.data()),std::streamsize(v.size()));CHECK(bool(out));}
 void one(Backend& gpu,Desc sd,Desc dd,SurfaceRect sr,SurfaceRect dr,bool scale,bool overlap=false,bool golden=false){
@@ -40,13 +41,13 @@ void one(Backend& gpu,Desc sd,Desc dd,SurfaceRect sr,SurfaceRect dr,bool scale,b
     ++cases;bytes+=result.size();
     if(golden){save("fixture_source.bin",input);save("fixture_destination_before.bin",original);save("fixture_expected.bin",expected);save("fixture_actual.bin",result);}
 }
-void formats(Backend& gpu){for(auto sf:{Format::RGB565LE,Format::BGRA8})for(auto df:{Format::RGB565LE,Format::BGRA8}){
-    const int sb=sf==Format::RGB565LE?2:4,db=df==Format::RGB565LE?2:4;
+void formats(Backend& gpu){for(auto sf:{Format::RGB565LE,Format::BGRA8,Format::RGB555LE})for(auto df:{Format::RGB565LE,Format::BGRA8,Format::RGB555LE}){
+    const int sb=sf==Format::BGRA8?4:2,db=df==Format::BGRA8?4:2;
     one(gpu,{7,5,size_t(7*sb+3),sf},{11,8,size_t(11*db+5),df},{-2,-1,9,7},{-3,-2,14,10},true);
     one(gpu,{7,5,size_t(7*sb+3),sf},{11,8,size_t(11*db+5),df},{0,0,7,5},{8,6,7,5},false);}
     one(gpu,{3,2,17,Format::BGRA8},{5,4,23,Format::BGRA8},{0,0,3,2},{-1,-1,5,4},true,false,true);
     one(gpu,{17,13,71,Format::BGRA8},{13,11,55,Format::BGRA8},{0,0,17,13},{0,0,13,11},true);
-    for(auto f:{Format::RGB565LE,Format::BGRA8}){const size_t stride=9*(f==Format::RGB565LE?2u:4u)+3;
+    for(auto f:{Format::RGB565LE,Format::BGRA8,Format::RGB555LE}){const size_t stride=9*(f==Format::BGRA8?4u:2u)+3;
         one(gpu,{9,7,stride,f},{9,7,stride,f},{0,0,7,5},{1,1,7,5},false,true);
         one(gpu,{9,7,stride,f},{9,7,stride,f},{1,1,7,5},{-1,0,9,7},true,true);}
     // Exhaust all 565 words on GPU; independent arithmetic oracle and canonical endpoints.
@@ -59,6 +60,19 @@ void formats(Backend& gpu){for(auto sf:{Format::RGB565LE,Format::BGRA8})for(auto
     CHECK(Backend::finish(store,t,&out)==Status::Ok);CHECK(out==expected);CHECK(out[0]==0&&out[1]==0&&out[2]==0&&out[3]==255);
     const size_t last=255*dd.stride+255*4;CHECK(out[last]==255&&out[last+1]==255&&out[last+2]==255);
     CHECK(Backend::callbackCount(t)==1);++callbacks;++cases;bytes+=out.size();
+
+    // Exhaust all 32768 RGB555 words on GPU
+    Store store555;SurfaceHandle s555=0,d555=0;Desc sd555{256,128,515,Format::RGB555LE},dd555{256,128,1029,Format::BGRA8};
+    CHECK(store555.create(sd555,s555)==surface_lab::Status::Ok);CHECK(store555.create(dd555,d555)==surface_lab::Status::Ok);
+    auto in555=pattern(sd555,1),orig555=pattern(dd555,2);
+    for(unsigned w=0;w<32768;++w){const size_t p=(w/256)*sd555.stride+(w%256)*2;in555[p]=uint8_t(w);in555[p+1]=uint8_t(w>>8);}
+    CHECK(store555.replaceBytes(s555,in555)==surface_lab::Status::Ok);CHECK(store555.replaceBytes(d555,orig555)==surface_lab::Status::Ok);
+    const auto exp555=scalar_oracle::expected(in555,sd555,orig555,dd555,{0,0,256,128},{0,0,256,128});Ticket t555;
+    CHECK(gpu.submit(store555,d555,s555,{0,0,256,128},{0,0,256,128},false,t555)==Status::Ok);std::vector<uint8_t> out555;
+    CHECK(Backend::finish(store555,t555,&out555)==Status::Ok);CHECK(out555==exp555);
+    CHECK(out555[0]==0&&out555[1]==0&&out555[2]==0&&out555[3]==255);
+    const size_t last555=127*dd555.stride+255*4;CHECK(out555[last555]==255&&out555[last555+1]==255&&out555[last555+2]==255);
+    CHECK(Backend::callbackCount(t555)==1);++callbacks;++cases;bytes+=out555.size();
 }
 void randomPixels(Backend& gpu){for(int n=0;n<512;++n){const auto sf=below(2)?Format::BGRA8:Format::RGB565LE,df=below(2)?Format::BGRA8:Format::RGB565LE;
     const int sw=1+below(25),sh=1+below(20),dw=1+below(25),dh=1+below(20);const bool scale=below(2);

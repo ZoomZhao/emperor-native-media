@@ -4,9 +4,10 @@
 
 | 位置 | 用途与状态 |
 |---|---|
-| `surface_lab/`、`metal_lab/` | 当前独立像素表面、裁剪/缩放与离屏 GPU 实验 |
+| `surface_lab/`、`metal_lab/` | 当前独立像素表面（RGB565/BGRA8/RGB555LE）、裁剪/缩放与离屏 GPU 实验 |
 | `audio_lab/`、`video_lab/` | 当前离线 PCM 队列、帧时间轴和生命周期模型 |
 | `av_lab/`、`stream_lab/`、`media_demo/` | 当前自造媒体解码、时钟与静音 App；保留原 Makefile 入口 |
+| `game_lab/` | GameData 原版资产加载层（JPEG/555/SG3/WAV/MAP/文本）与原生 `EmperorApp.app` 交互应用 |
 | `legacy/src/samples/` | 历史平台 C/Objective-C 桥、测试模型与研究工具 |
 | `legacy/src/stage74/` 至 `stage83/` | 历史内存/heap/thread/runtime、协议、差分与执行门源码归档 |
 | `legacy/import-manifest.json`、`legacy/FILES.sha256` | 每份来源/副本哈希、脱敏记录、暂留清单 |
@@ -17,7 +18,7 @@
 
 751 份历史自写文本源码已归档，其中 97 份副本将机器绝对路径换成占位符。41 份含原字节签名、生成绑定、私人记录或来源待核查内容的源码保留在旧目录。原 EXE、资源、存档、快照、提取物、生成游戏代码、构建产物、第三方工具和原始日志也保留原位；其绝对路径只记入忽略的本地配置。具体处置以迁移清单为准。文件归档完成不代表逻辑迁移或行为验证完成。
 
-当前媒体组件需要 macOS 15+ 与已安装的 Apple 开发工具，使用系统框架及 Python 3。例如 `make fixtures`、`make build`、`make surface`、`make audio`、`make video`、`make metal`、`make av`、`make stream`；完整入口和约束见 [媒体说明](docs/MEDIA.md)。这些目标只引用仓库自造图片、PCM、MOV 和事件。App 默认静音；PCM 消费不连接输出设备。历史归档没有接入这些入口。
+当前媒体组件需要 macOS 15+ 与已安装的 Apple 开发工具，使用系统框架及 Python 3。例如 `make fixtures`、`make build`、`make surface`、`make audio`、`make video`、`make metal`、`make av`、`make stream`、`make game`；构建与运行原版桌面应用可直接执行 `make game-app` 与 `make run-game`。完整入口和约束见 [媒体说明](docs/MEDIA.md)。这些目标只引用仓库自造图片、PCM、MOV 和事件。App 默认静音；PCM 消费不连接输出设备。历史归档没有接入这些入口。
 
 **本次整合只做文本复制、脱敏、哈希和静态语法/依赖核对，没有编译、运行测试或历史执行链，没有安装、联网、上传、操作 UI/键盘/音频设备或读取旧 Swift 实现。** 二进制转换/探测的既有平台安全拦截仍有效；移动目录、保存源码或旧批准记录不能解除拦截。不要从 `legacy/` 执行脚本、导入其运行时，或加载历史游戏衍生产物。
 

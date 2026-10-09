@@ -27,12 +27,15 @@ kernel void transfer(device const uchar* src [[buffer(0)]], device uchar* dst [[
     if(x<p.dx||y<p.dy||x>=p.dx+p.tw||y>=p.dy+p.th)return;
     int sx=p.sx+(x-p.dx)*p.rw/p.tw,sy=p.sy+(y-p.dy)*p.rh/p.th;
     if(sx<0||sy<0||sx>=p.sw||sy>=p.sh)return;
-    int sb=p.sf==1?2:4,db=p.df==1?2:4;
+    int sb=p.sf==2?4:2,db=p.df==2?4:2;
     int si=sy*p.ss+sx*sb,di=y*p.ds+x*db; uint4 c;
-    if(sb==4)c=uint4(src[si],src[si+1],src[si+2],src[si+3]);
+    if(p.sf==2)c=uint4(src[si],src[si+1],src[si+2],src[si+3]);
+    else if(p.sf==3){uint w=uint(src[si])|(uint(src[si+1])<<8),b=w&31,g=(w>>5)&31,r=(w>>10)&31;
+        c=uint4((b<<3)|(b>>2),(g<<3)|(g>>2),(r<<3)|(r>>2),255);}
     else { uint w=uint(src[si])|(uint(src[si+1])<<8),b=w&31,g=(w>>5)&63,r=(w>>11)&31;
         c=uint4((b<<3)|(b>>2),(g<<2)|(g>>4),(r<<3)|(r>>2),255); }
-    if(db==4){dst[di]=uchar(c.x);dst[di+1]=uchar(c.y);dst[di+2]=uchar(c.z);dst[di+3]=uchar(c.w);}
+    if(p.df==2){dst[di]=uchar(c.x);dst[di+1]=uchar(c.y);dst[di+2]=uchar(c.z);dst[di+3]=uchar(c.w);}
+    else if(p.df==3){uint w=((c.z>>3)<<10)|((c.y>>3)<<5)|(c.x>>3);dst[di]=uchar(w&255);dst[di+1]=uchar(w>>8);}
     else{uint w=((c.z>>3)<<11)|((c.y>>2)<<5)|(c.x>>3);dst[di]=uchar(w&255);dst[di+1]=uchar(w>>8);}
 }
 )METAL";

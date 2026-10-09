@@ -8,7 +8,8 @@ namespace surface_lab {
 namespace {
 size_t pixelSize(Format format) {
     switch (format) {
-        case Format::RGB565LE: return 2;
+        case Format::RGB565LE:
+        case Format::RGB555LE: return 2;
         case Format::BGRA8: return 4;
     }
     return 0;
@@ -30,6 +31,14 @@ struct Color { uint8_t b, g, r, a; };
 Color decode(const uint8_t* p, Format format) {
     if (format == Format::BGRA8) return {p[0], p[1], p[2], p[3]};
     const uint16_t word = uint16_t(uint16_t(p[0]) | uint16_t(uint16_t(p[1]) << 8));
+    if (format == Format::RGB555LE) {
+        const uint8_t b = uint8_t(word & 31);
+        const uint8_t g = uint8_t((word >> 5) & 31);
+        const uint8_t r = uint8_t((word >> 10) & 31);
+        return {uint8_t((b << 3) | (b >> 2)),
+                uint8_t((g << 3) | (g >> 2)),
+                uint8_t((r << 3) | (r >> 2)), 255};
+    }
     const uint8_t b = uint8_t(word & 31), g = uint8_t((word >> 5) & 63);
     const uint8_t r = uint8_t((word >> 11) & 31);
     return {uint8_t((b << 3) | (b >> 2)), uint8_t((g << 2) | (g >> 4)),
@@ -38,6 +47,12 @@ Color decode(const uint8_t* p, Format format) {
 void encode(uint8_t* p, Format format, Color c) {
     if (format == Format::BGRA8) {
         p[0] = c.b; p[1] = c.g; p[2] = c.r; p[3] = c.a;
+        return;
+    }
+    if (format == Format::RGB555LE) {
+        const uint16_t word = uint16_t(((uint16_t(c.r >> 3) & 31) << 10) |
+            ((uint16_t(c.g >> 3) & 31) << 5) | (uint16_t(c.b >> 3) & 31));
+        p[0] = uint8_t(word & 255); p[1] = uint8_t(word >> 8);
         return;
     }
     const uint16_t word = uint16_t((uint16_t(c.r >> 3) << 11) |

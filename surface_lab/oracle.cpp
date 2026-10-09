@@ -4,19 +4,26 @@
 namespace scalar_oracle {
 using namespace surface_lab;
 Color unpack(const std::vector<uint8_t>& bytes, Desc desc, int x, int y) {
-    const size_t step = desc.format == Format::RGB565LE ? 2 : 4;
+    const size_t step = (desc.format == Format::RGB565LE || desc.format == Format::RGB555LE) ? 2 : 4;
     const size_t p = size_t(y) * desc.stride + size_t(x) * step;
-    if (step == 4) return {bytes.at(p), bytes.at(p + 1), bytes.at(p + 2), bytes.at(p + 3)};
+    if (desc.format == Format::BGRA8) return {bytes.at(p), bytes.at(p + 1), bytes.at(p + 2), bytes.at(p + 3)};
     const unsigned word = bytes.at(p) + 256u * bytes.at(p + 1);
+    if (desc.format == Format::RGB555LE) {
+        const unsigned blue = word % 32, green = (word / 32) % 32, red = (word / 1024) % 32;
+        return {blue * 8 + blue / 4, green * 8 + green / 4, red * 8 + red / 4, 255};
+    }
     const unsigned blue = word % 32, green = (word / 32) % 64, red = word / 2048;
     // Arithmetic decomposition, independent of the component's bit operations.
     return {blue * 8 + blue / 4, green * 4 + green / 16, red * 8 + red / 4, 255};
 }
 void pack(std::vector<uint8_t>& bytes, Desc desc, int x, int y, Color c) {
-    const size_t step = desc.format == Format::RGB565LE ? 2 : 4;
+    const size_t step = (desc.format == Format::RGB565LE || desc.format == Format::RGB555LE) ? 2 : 4;
     const size_t p = size_t(y) * desc.stride + size_t(x) * step;
-    if (step == 4) {
+    if (desc.format == Format::BGRA8) {
         for (size_t n = 0; n < 4; ++n) bytes.at(p + n) = uint8_t(c[n]);
+    } else if (desc.format == Format::RGB555LE) {
+        const unsigned word = ((c[2] / 8) % 32) * 1024 + ((c[1] / 8) % 32) * 32 + ((c[0] / 8) % 32);
+        bytes.at(p) = uint8_t(word % 256); bytes.at(p + 1) = uint8_t(word / 256);
     } else {
         const unsigned word = (c[2] / 8) * 2048 + (c[1] / 4) * 32 + c[0] / 8;
         bytes.at(p) = uint8_t(word % 256); bytes.at(p + 1) = uint8_t(word / 256);
