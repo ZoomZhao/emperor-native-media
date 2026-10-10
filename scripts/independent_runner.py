@@ -32,6 +32,8 @@ APP = [
     'game_lab/asset_bytes.hpp', 'game_lab/asset_limits.hpp', 'game_lab/asset_pixels.cpp',
     'game_lab/wav_pcm.cpp', 'game_lab/resource_root.hpp', 'game_lab/resource_root.cpp',
     'game_lab/audio_policy.hpp', 'surface_lab/surface.hpp', 'surface_lab/surface.cpp',
+    'stream_lab/movie_io.hpp', 'stream_lab/movie_io.mm',
+    'video_lab/stream.hpp', 'video_lab/stream.cpp', 'video_lab/video.hpp',
     'game_lab/run_app_integration.sh',
 ]
 SUITES = {'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP}
@@ -156,13 +158,18 @@ def run(suite, mode, output):
         elif suite in ('media', 'integration'):
             compiled = ['game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
                         'game_lab/resource_root.cpp', 'surface_lab/surface.cpp']
+            extra_frameworks = []
             if suite == 'media':
                 compiled.insert(0, 'game_lab/pure_boundary_tests.mm')
             else:
-                compiled[:0] = ['game_lab/app_media_integration_tests.mm', 'game_lab/app_media.cpp']
+                compiled[:0] = ['game_lab/app_media_integration_tests.mm', 'game_lab/app_media.cpp',
+                                'stream_lab/movie_io.mm', 'video_lab/stream.cpp']
+                extra_frameworks = ['-framework', 'AVFoundation', '-framework', 'AudioToolbox',
+                                    '-framework', 'CoreMedia', '-framework', 'CoreVideo']
             command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-fobjc-arc', '-fno-modules',
-                                     '-Wall', '-Wextra', '-Werror', *flags, *[snapshot / name for name in compiled],
-                                     '-framework', 'Foundation', '-framework', 'ImageIO', '-framework', 'CoreGraphics',
+                                     '-Wall', '-Wextra', '-Werror', '-I', snapshot, *flags, *[snapshot / name for name in compiled],
+                                     '-framework', 'Foundation', *extra_frameworks,
+                                     '-framework', 'ImageIO', '-framework', 'CoreGraphics',
                                      '-lz', '-o', report / 'self-tests'])
             binaries = {'self-tests': sha(report / 'self-tests')}
             command('self-test', [report / 'self-tests'])

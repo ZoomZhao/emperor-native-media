@@ -16,11 +16,14 @@ sources = [
     'game_lab/asset_bytes.hpp', 'game_lab/asset_limits.hpp', 'game_lab/asset_pixels.cpp',
     'game_lab/wav_pcm.cpp', 'game_lab/resource_root.hpp', 'game_lab/resource_root.cpp',
     'game_lab/audio_policy.hpp', 'surface_lab/surface.hpp', 'surface_lab/surface.cpp',
+    'stream_lab/movie_io.hpp', 'stream_lab/movie_io.mm',
+    'video_lab/stream.hpp', 'video_lab/stream.cpp', 'video_lab/video.hpp',
 ]
 compiled = [
     'game_lab/app/main.mm', 'game_lab/app/av_audio_backend.mm', 'game_lab/app_media.cpp',
     'game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
     'game_lab/resource_root.cpp', 'surface_lab/surface.cpp',
+    'stream_lab/movie_io.mm', 'video_lab/stream.cpp',
 ]
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 assert len(sys.argv) == 2

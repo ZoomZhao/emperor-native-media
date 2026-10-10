@@ -5,9 +5,11 @@
 #include "image_presentation.hpp"
 #include "app_launch.hpp"
 #include "map_geometry.hpp"
+#include "../stream_lab/movie_io.hpp"
 #include "../scripts/self_fixture_evidence.hpp"
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <limits>
 #include <stdexcept>
 #include <cstdio>
@@ -434,6 +436,81 @@ void integration() {
                 "AppMedia text loads trimmed lines from EmperorText.txt");
         require(app.text("../EmperorText.txt").empty() && app.text("missing.txt").empty(),
                 "AppMedia text traversal/missing fail-closed");
+
+        // AppMedia Movie Poster loading through ResourceRoot:
+        const auto movieRel = "Movies/self_authored_8s.mov";
+        const auto movieAbs = files / "Movies/self_authored_8s.mov";
+        std::filesystem::create_directories(movieAbs.parent_path());
+        stream_lab::writeSyntheticMovie(movieAbs.string());
+        std::ifstream movieInput(movieAbs, std::ios::binary);
+        require(movieInput.is_open(), "generated movie input available for evidence capture");
+        const std::vector<uint8_t> movieBytes((std::istreambuf_iterator<char>(movieInput)),
+                                               std::istreambuf_iterator<char>());
+        require(!movieBytes.empty() && !movieInput.bad(), "generated movie input captured completely");
+        self_fixture::bytes("movie-generated", movieBytes);
+
+        auto poster = app.moviePoster(movieRel);
+        require(poster.valid() && poster.width == 64 && poster.height == 48,
+                "AppMedia moviePoster loads valid 64x48 first frame");
+        require(poster.pixelsBGRA.size() == 64 * 48,
+                "AppMedia moviePoster returns tight BGRA pixels without stride padding");
+
+        // Verify first frame pixels with color error <= 16 (PTS=0 -> expected RGB: 160, 80, 40):
+        for (size_t band = 0; band < 8; ++band) {
+            for (size_t y = 2; y < 48 - 2; ++y) {
+                for (size_t x = band * 8 + 2; x < band * 8 + 6; ++x) {
+                    const uint32_t pixel = poster.pixelsBGRA[y * 64 + x];
+                    const int b = int(pixel & 0xff);
+                    const int g = int((pixel >> 8) & 0xff);
+                    const int r = int((pixel >> 16) & 0xff);
+                    const int a = int((pixel >> 24) & 0xff);
+                    require(a == 255, "movie poster alpha must be 255");
+                    require(std::abs(b - 40) <= 16, "movie poster blue error <= 16");
+                    require(std::abs(g - 80) <= 16, "movie poster green error <= 16");
+                    require(std::abs(r - 160) <= 16, "movie poster red error <= 16");
+                }
+            }
+        }
+        for (const auto pixel : poster.pixelsBGRA) {
+            require(((pixel >> 24) & 0xff) == 255, "all poster pixels have alpha 255");
+        }
+
+        // Shared presentation contract with FakeImagePresenter:
+        FakeImagePresenter moviePresenter;
+        require(game_lab::presentImage(moviePresenter, poster.width, poster.height, poster.pixelsBGRA) == game_lab::PresentationResult::Presented &&
+                moviePresenter.image == poster.pixelsBGRA,
+                "valid movie poster presented successfully");
+
+        // Error boundary: empty relative path clears presenter
+        auto emptyPoster = app.moviePoster("");
+        require(!emptyPoster.valid() && emptyPoster.pixelsBGRA.empty(),
+                "empty movie path rejected fail-closed");
+        require(game_lab::presentImage(moviePresenter, emptyPoster.width, emptyPoster.height, emptyPoster.pixelsBGRA) == game_lab::PresentationResult::InvalidPixels &&
+                moviePresenter.image.empty(),
+                "invalid empty poster clears old image in presenter");
+
+        // Error boundary: missing file clears presenter
+        auto missingPoster = app.moviePoster("Movies/missing.mov");
+        require(!missingPoster.valid() && missingPoster.pixelsBGRA.empty(),
+                "missing movie rejected fail-closed");
+        require(game_lab::presentImage(moviePresenter, missingPoster.width, missingPoster.height, missingPoster.pixelsBGRA) == game_lab::PresentationResult::InvalidPixels &&
+                moviePresenter.image.empty(),
+                "missing movie clears old image in presenter");
+
+        // Error boundary: path traversal rejected
+        auto escapePoster = app.moviePoster("../escape.mov");
+        require(!escapePoster.valid() && escapePoster.pixelsBGRA.empty(),
+                "movie path traversal rejected fail-closed");
+
+        // Error boundary: corrupt media rejected and clears presenter
+        write(files / "Movies/corrupt.mov", {0, 0, 0, 8, 'f', 't', 'y', 'p', 0, 0});
+        auto corruptPoster = app.moviePoster("Movies/corrupt.mov");
+        require(!corruptPoster.valid() && corruptPoster.pixelsBGRA.empty(),
+                "corrupt movie rejected fail-closed");
+        require(game_lab::presentImage(moviePresenter, corruptPoster.width, corruptPoster.height, corruptPoster.pixelsBGRA) == game_lab::PresentationResult::InvalidPixels &&
+                moviePresenter.image.empty(),
+                "corrupt movie clears old image in presenter");
+
         // Shared Map Geometry (mapPointToTile) pure component validation:
         int tx = -77, ty = -88;
         // 1. Normal coordinate mapping

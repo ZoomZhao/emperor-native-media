@@ -20,7 +20,9 @@ echo "Compiling EmperorApp binary..."
     "$LAB_ROOT/emperor_assets.mm" \
     "$LAB_ROOT/wav_pcm.cpp" "$LAB_ROOT/asset_pixels.cpp" "$LAB_ROOT/resource_root.cpp" \
     "$REPO_ROOT/surface_lab/surface.cpp" \
+    "$REPO_ROOT/stream_lab/movie_io.mm" "$REPO_ROOT/video_lab/stream.cpp" \
     -framework AppKit -framework Foundation -framework AVFoundation \
+    -framework AudioToolbox -framework CoreMedia -framework CoreVideo \
     -framework ImageIO -framework CoreGraphics \
     -lz \
     -o "$BUILD_DIR/EmperorApp.bin"

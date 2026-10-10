@@ -1,5 +1,11 @@
 # 当前 EmperorApp 实际集成验收
 
+后续更新：真实 App 已增加受限的影片首帧预览页，接入共用的
+`AppMedia::moviePoster`、现有 MovieReader 与 ImagePresenter。具体接口、
+自造输入回归和限制见 [APP_MOVIE_POSTER.md](APP_MOVIE_POSTER.md)。
+以下“没有影片页”等结论为先前音频/图片接线时点的记录；新入口不代表
+影片播放、Bink、真实 GUI 或声音已经通过。
+
 2026-10-10。本轮审阅现有 build 脚本，修复真实 App 调用接线，执行自造输入的无 UI 集成测试，并只编译、链接、打包与本地签名校验当前自写 App。没有启动 App、访问 GameData/legacy、操作设备、安装、联网或恢复原二进制链；新改动未 commit/push。
 
 ## 已关闭的具体缺口

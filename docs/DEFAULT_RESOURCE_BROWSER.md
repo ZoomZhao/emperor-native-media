@@ -10,6 +10,11 @@ published platform sources. They do not require `city_simulation.hpp`. The
 manifest identifies the application mode as `resource-browser` and records
 `city_model_included: false`.
 
+The movie preview page now consumes the existing MovieReader through the shared
+AppMedia control, displaying only frame zero after an explicit request. Its
+limited input contract and validation are described in
+[APP_MOVIE_POSTER.md](APP_MOVIE_POSTER.md).
+
 Validate from a clean source export without Git or any prototype header:
 
 ```sh

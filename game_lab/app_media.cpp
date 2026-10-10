@@ -1,5 +1,7 @@
 #include "app_media.hpp"
 #include "asset_bytes.hpp"
+#include "../stream_lab/movie_io.hpp"
+#include <cstring>
 
 namespace game_lab {
 void AppMedia::setStatus(PlaybackState state, const char* message) {
@@ -34,6 +36,46 @@ DecodedImage AppMedia::sprite(const SG3Sprite& spriteRecord, const std::string& 
 std::vector<std::string> AppMedia::text(const std::string& relative) const {
     const auto path = resourcePath(relative);
     return path.empty() ? std::vector<std::string>{} : loadEmperorText(path);
+}
+DecodedImage AppMedia::moviePoster(const std::string& relative) const {
+    const auto path = resourcePath(relative);
+    if (path.empty()) {
+        return DecodedImage{};
+    }
+    try {
+        stream_lab::MovieReader reader;
+        reader.open(path, 0);
+        video_lab::Frame frame;
+        if (!reader.nextFrame(frame)) {
+            return DecodedImage{};
+        }
+        if (frame.pts != 0) {
+            return DecodedImage{};
+        }
+        const auto meta = reader.metadata();
+        if (meta.width != 64 || meta.height != 48 || meta.stride < meta.width * 4) {
+            return DecodedImage{};
+        }
+        if (frame.bgra.size() != meta.stride * meta.height) {
+            return DecodedImage{};
+        }
+        DecodedImage image;
+        image.width = meta.width;
+        image.height = meta.height;
+        image.pixelsBGRA.resize(size_t(image.width) * size_t(image.height));
+        for (uint32_t y = 0; y < image.height; ++y) {
+            const uint8_t* rowSrc = frame.bgra.data() + size_t(y) * meta.stride;
+            uint8_t* rowDst = reinterpret_cast<uint8_t*>(image.pixelsBGRA.data()) + size_t(y) * size_t(image.width) * 4;
+            std::memcpy(rowDst, rowSrc, size_t(image.width) * 4);
+        }
+        for (auto& pixel : image.pixelsBGRA) {
+            pixel = (pixel & 0x00ffffffu) | 0xff000000u;
+        }
+        reader.close();
+        return image;
+    } catch (...) {
+        return DecodedImage{};
+    }
 }
 bool AppMedia::readAudio(const std::string& relative, bool wav, std::vector<uint8_t>& bytes) {
     const auto path = resourcePath(relative);

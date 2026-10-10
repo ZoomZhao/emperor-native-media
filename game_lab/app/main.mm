@@ -118,6 +118,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTableView* _textTableView;
     NSSearchField* _textSearchField;
     NSMutableArray<NSString*>* _filteredTexts;
+
+    // Movie poster preview
+    NSView* _movieView;
+    NSTextField* _moviePathField;
+    NSTextField* _movieStatusLabel;
+    NSImageView* _movieImageView;
 }
 - (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root;
 - (void)refreshAudioStatus;
@@ -160,6 +166,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self setupSpriteView];
     [self setupMusicView];
     [self setupTextView];
+    [self setupMovieView];
     [self showTab:0];
     
     // Launch does not create an audio player or start playback.
@@ -177,7 +184,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSView* root = _window.contentView;
     
     // Top Navigation Bar
-    _navBar = [NSSegmentedControl segmentedControlWithLabels:@[@"主界面", @"城市地图", @"图素与贴图", @"国风音乐台", @"游戏文本资料库"]
+    _navBar = [NSSegmentedControl segmentedControlWithLabels:@[@"主界面", @"城市地图", @"图素与贴图", @"国风音乐台", @"游戏文本资料库", @"影片首帧预览"]
                                                 trackingMode:NSSegmentSwitchTrackingSelectOne
                                                       target:self
                                                       action:@selector(onTabChanged:)];
@@ -307,21 +314,21 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_mainMenuView addSubview:_mainMenuImageView];
     
     // Classical styled menu buttons panel on top of the background
-    NSView* menuOverlay = [[NSView alloc] initWithFrame:NSMakeRect(40, 120, 260, 480)];
+    NSView* menuOverlay = [[NSView alloc] initWithFrame:NSMakeRect(40, 70, 260, 560)];
     menuOverlay.wantsLayer = YES;
     menuOverlay.layer.backgroundColor = [NSColor colorWithCalibratedRed:0.08 green:0.08 blue:0.1 alpha:0.75].CGColor;
     menuOverlay.layer.cornerRadius = 10;
     [_mainMenuView addSubview:menuOverlay];
     
     NSTextField* titleLabel = [NSTextField labelWithString:@"皇帝：龙之崛起"];
-    titleLabel.frame = NSMakeRect(20, 420, 220, 36);
+    titleLabel.frame = NSMakeRect(20, 500, 220, 36);
     titleLabel.font = [NSFont boldSystemFontOfSize:22];
     titleLabel.textColor = [NSColor colorWithCalibratedRed:0.95 green:0.85 blue:0.4 alpha:1.0];
     [menuOverlay addSubview:titleLabel];
     
     NSTextField* subLabel = [NSTextField labelWithString:@"媒体资源浏览器 · 2026"];
     if (!_mainMenuImage) subLabel.stringValue = @"背景图片不可读取或转换失败";
-    subLabel.frame = NSMakeRect(20, 395, 220, 20);
+    subLabel.frame = NSMakeRect(20, 475, 220, 20);
     subLabel.font = [NSFont systemFontOfSize:12];
     subLabel.textColor = [NSColor colorWithCalibratedWhite:0.75 alpha:1.0];
     [menuOverlay addSubview:subLabel];
@@ -331,11 +338,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         @{@"title": @"🖼 图素与贴图", @"action": NSStringFromSelector(@selector(gotoSprites:))},
         @{@"title": @"🎵 国风民乐鉴赏", @"action": NSStringFromSelector(@selector(gotoMusic:))},
         @{@"title": @"📜 游戏文本与对话", @"action": NSStringFromSelector(@selector(gotoTexts:))},
+        @{@"title": @"🎬 影片首帧预览", @"action": NSStringFromSelector(@selector(gotoMovies:))},
         @{@"title": @"🔔 播放音效 (祈福)", @"action": NSStringFromSelector(@selector(playBlessSFX:))},
         @{@"title": @"❌ 退出应用", @"action": NSStringFromSelector(@selector(terminate:))}
     ];
     
-    CGFloat y = 330;
+    CGFloat y = 420;
     for (NSDictionary* cfg in btnConfigs) {
         NSButton* btn = [NSButton buttonWithTitle:cfg[@"title"] target:self action:NSSelectorFromString(cfg[@"action"])];
         btn.frame = NSMakeRect(20, y, 220, 36);
@@ -349,6 +357,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)gotoSprites:(id)sender { (void)sender; [self showTab:2]; }
 - (void)gotoMusic:(id)sender { (void)sender; [self showTab:3]; }
 - (void)gotoTexts:(id)sender { (void)sender; [self showTab:4]; }
+- (void)gotoMovies:(id)sender { (void)sender; [self showTab:5]; }
 - (void)playBlessSFX:(id)sender { (void)sender; [self playSFX:@"H_ancestor_bless.wav"]; }
 - (void)terminate:(id)sender { (void)sender; [NSApp terminate:nil]; }
 
@@ -640,6 +649,80 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 // ----------------------------------------------------
+// Tab 5: Movie First Frame Preview (Restricted MOV)
+// ----------------------------------------------------
+- (void)setupMovieView {
+    _movieView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
+    _movieView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+
+    NSTextField* title = [NSTextField labelWithString:@"影片首帧预览 (受限 QuickTime MOV: 64×48)"];
+    title.frame = NSMakeRect(20, 670, 600, 30);
+    title.font = [NSFont boldSystemFontOfSize:18];
+    [_movieView addSubview:title];
+
+    NSTextField* desc = [NSTextField labelWithString:@"预览资源根内 MOV 的第一帧；不播放影片或声音。"];
+    desc.frame = NSMakeRect(20, 642, 600, 20);
+    desc.font = [NSFont systemFontOfSize:12];
+    desc.textColor = [NSColor colorWithCalibratedWhite:0.75 alpha:1.0];
+    [_movieView addSubview:desc];
+
+    NSTextField* pathLabel = [NSTextField labelWithString:@"相对 MOV 路径:"];
+    pathLabel.frame = NSMakeRect(20, 602, 110, 22);
+    pathLabel.font = [NSFont systemFontOfSize:13 weight:NSFontWeightMedium];
+    [_movieView addSubview:pathLabel];
+
+    _moviePathField = [[NSTextField alloc] initWithFrame:NSMakeRect(135, 600, 360, 26)];
+    _moviePathField.placeholderString = @"例如 Movies/clip.mov";
+    _moviePathField.font = [NSFont systemFontOfSize:13];
+    [_movieView addSubview:_moviePathField];
+
+    NSButton* loadBtn = [NSButton buttonWithTitle:@"加载首帧" target:self action:@selector(onLoadMoviePoster:)];
+    loadBtn.frame = NSMakeRect(505, 598, 100, 30);
+    loadBtn.bezelStyle = NSBezelStyleRounded;
+    [_movieView addSubview:loadBtn];
+
+    NSButton* clearBtn = [NSButton buttonWithTitle:@"清空" target:self action:@selector(onClearMoviePoster:)];
+    clearBtn.frame = NSMakeRect(610, 598, 80, 30);
+    clearBtn.bezelStyle = NSBezelStyleRounded;
+    [_movieView addSubview:clearBtn];
+
+    _movieStatusLabel = [NSTextField labelWithString:@"请输入资源根内的相对 MOV 路径并点击加载首帧"];
+    _movieStatusLabel.frame = NSMakeRect(20, 560, 700, 22);
+    _movieStatusLabel.font = [NSFont systemFontOfSize:12];
+    _movieStatusLabel.textColor = [NSColor colorWithCalibratedWhite:0.8 alpha:1.0];
+    [_movieView addSubview:_movieStatusLabel];
+
+    _movieImageView = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 240, 384, 288)];
+    _movieImageView.imageScaling = NSImageScaleProportionallyUpOrDown;
+    _movieImageView.wantsLayer = YES;
+    _movieImageView.layer.borderColor = [NSColor grayColor].CGColor;
+    _movieImageView.layer.borderWidth = 1;
+    [_movieView addSubview:_movieImageView];
+}
+
+- (void)onLoadMoviePoster:(id)sender {
+    (void)sender;
+    NSString* pathStr = [_moviePathField stringValue];
+    const auto decoded = _media->moviePoster(pathStr.UTF8String ? pathStr.UTF8String : "");
+    if (!decoded.valid()) {
+        presentPixels(_movieImageView, 0, 0, {});
+        _movieStatusLabel.stringValue = [NSString stringWithFormat:@"首帧加载失败: 路径无效、缺失或媒体格式不匹配 (%@)", pathStr];
+        return;
+    }
+    if (!presentPixels(_movieImageView, decoded.width, decoded.height, decoded.pixelsBGRA)) {
+        _movieStatusLabel.stringValue = @"首帧图片呈现转换失败";
+        return;
+    }
+    _movieStatusLabel.stringValue = [NSString stringWithFormat:@"首帧加载成功: %u×%u · %@", decoded.width, decoded.height, pathStr];
+}
+
+- (void)onClearMoviePoster:(id)sender {
+    (void)sender;
+    presentPixels(_movieImageView, 0, 0, {});
+    _movieStatusLabel.stringValue = @"画面已清空";
+}
+
+// ----------------------------------------------------
 // Tab Switching
 // ----------------------------------------------------
 - (void)onTabChanged:(NSSegmentedControl*)sender {
@@ -657,6 +740,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         case 2: [_contentContainer addSubview:_spriteView]; break;
         case 3: [_contentContainer addSubview:_musicView]; break;
         case 4: [_contentContainer addSubview:_textView]; break;
+        case 5: [_contentContainer addSubview:_movieView]; break;
     }
 }
 
