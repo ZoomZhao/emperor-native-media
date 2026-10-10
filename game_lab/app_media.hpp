@@ -6,6 +6,7 @@
 #include <functional>
 
 namespace game_lab {
+class MovieSession;
 enum class PlaybackEvent { Finished, DecodeError };
 
 class PlaybackListener {
@@ -53,6 +54,7 @@ public:
     DecodedImage sprite(const SG3Sprite& sprite, const std::string& companionRelative) const;
     std::vector<std::string> text(const std::string& relative) const;
     DecodedImage moviePoster(const std::string& relative) const;
+    std::unique_ptr<MovieSession> createMovieSession(const std::string& relative = "") const;
     void selectMusic(const std::string& relative);
     void toggleMusic();
     void playSfx(const std::string& relative);

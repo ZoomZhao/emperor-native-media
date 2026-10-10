@@ -16,14 +16,19 @@ echo "Compiling EmperorApp binary..."
     -Wall -Wextra -Werror \
     -I"$REPO_ROOT" \
     "$APP_ROOT/main.mm" "$APP_ROOT/av_audio_backend.mm" \
-    "$LAB_ROOT/app_media.cpp" \
+    "$LAB_ROOT/app_media.cpp" "$LAB_ROOT/movie_session.mm" \
     "$LAB_ROOT/emperor_assets.mm" \
     "$LAB_ROOT/wav_pcm.cpp" "$LAB_ROOT/asset_pixels.cpp" "$LAB_ROOT/resource_root.cpp" \
     "$REPO_ROOT/surface_lab/surface.cpp" \
-    "$REPO_ROOT/stream_lab/movie_io.mm" "$REPO_ROOT/video_lab/stream.cpp" \
+    "$REPO_ROOT/stream_lab/movie_io.mm" "$REPO_ROOT/stream_lab/presenter.cpp" \
+    "$REPO_ROOT/video_lab/stream.cpp" \
+    "$REPO_ROOT/metal_lab/backend.mm" \
+    "$REPO_ROOT/audio_lab/audio.cpp" \
+    "$REPO_ROOT/media_demo/controller.cpp" \
     -framework AppKit -framework Foundation -framework AVFoundation \
     -framework AudioToolbox -framework CoreMedia -framework CoreVideo \
     -framework ImageIO -framework CoreGraphics \
+    -framework Metal \
     -lz \
     -o "$BUILD_DIR/EmperorApp.bin"
 

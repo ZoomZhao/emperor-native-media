@@ -1,5 +1,6 @@
 #include "app_media.hpp"
 #include "asset_bytes.hpp"
+#include "movie_session.hpp"
 #include "../stream_lab/movie_io.hpp"
 #include <cstring>
 
@@ -76,6 +77,13 @@ DecodedImage AppMedia::moviePoster(const std::string& relative) const {
     } catch (...) {
         return DecodedImage{};
     }
+}
+std::unique_ptr<MovieSession> AppMedia::createMovieSession(const std::string& relative) const {
+    auto session = std::make_unique<MovieSession>(root_);
+    if (!relative.empty()) {
+        session->openMovie(relative);
+    }
+    return session;
 }
 bool AppMedia::readAudio(const std::string& relative, bool wav, std::vector<uint8_t>& bytes) {
     const auto path = resourcePath(relative);

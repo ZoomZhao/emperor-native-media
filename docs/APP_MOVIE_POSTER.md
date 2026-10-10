@@ -40,3 +40,6 @@ python3 -I -B /absolute/export/scripts/independent_runner.py verify --report /ab
 Each process has a 60-second limit. Fixture generation needs the system
 AVFoundation media services; a failed writer fails the suite. GUI conversion,
 human-visible output, sound and original game behaviour remain unverified.
+
+
+首帧接口保持；同一影片页的静默连续预览适配与准确边界见 [APP_MOVIE_PLAYBACK.md](APP_MOVIE_PLAYBACK.md)。首帧通过不单独证明连续播放。

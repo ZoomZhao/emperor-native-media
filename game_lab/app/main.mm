@@ -1,6 +1,7 @@
 #import <AppKit/AppKit.h>
 #include "av_audio_backend.hpp"
 #include "../app_media.hpp"
+#include "../movie_session.hpp"
 #include "../emperor_assets.hpp"
 #include "../resource_root.hpp"
 #include "../audio_policy.hpp"
@@ -13,6 +14,14 @@
 #include <vector>
 #include <string>
 #include <memory>
+
+@interface AppMovieSeekSlider : NSSlider {BOOL _mouseTracking;}
+@property(nonatomic,readonly) BOOL mouseTracking;
+@end
+@implementation AppMovieSeekSlider
+- (BOOL)mouseTracking {return _mouseTracking;}
+- (void)mouseDown:(NSEvent*)event {_mouseTracking=YES;[super mouseDown:event];_mouseTracking=NO;}
+@end
 
 
 static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vector<uint32_t>& pixels) {
@@ -119,14 +128,28 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSSearchField* _textSearchField;
     NSMutableArray<NSString*>* _filteredTexts;
 
-    // Movie poster preview
+    // Movie silent continuous preview & poster
     NSView* _movieView;
     NSTextField* _moviePathField;
     NSTextField* _movieStatusLabel;
+    NSTextField* _moviePositionLabel;
     NSImageView* _movieImageView;
+    NSButton* _moviePlayButton;
+    NSButton* _moviePauseButton;
+    NSButton* _movieStopButton;
+    AppMovieSeekSlider* _movieSeekSlider;
+    NSTimer* _movieTimer;
+    BOOL _movieTickQueued;
+    NSUInteger _moviePending;
+    std::unique_ptr<game_lab::MovieSession> _movieSession;
+    std::unique_ptr<ViewImagePresenter> _moviePresenter;
 }
 - (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root;
 - (void)refreshAudioStatus;
+- (void)updateMovieControls;
+- (void)updateMovieTimer;
+- (void)invalidateMovieTimer;
+- (void)requestMovieAction:(media_demo::Action)action frame:(uint64_t)frame;
 @end
 
 @implementation EmperorAppDelegate
@@ -154,6 +177,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)applicationWillTerminate:(NSNotification*)notification {
     (void)notification;
+    [self invalidateMovieTimer];
+    if (_movieSession) {
+        _movieSession->close();
+        _movieSession.reset();
+    }
+    _movieTickQueued = NO;
+    _moviePending = 0;
     _media->stopAll();
 }
 
@@ -649,18 +679,18 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 // ----------------------------------------------------
-// Tab 5: Movie First Frame Preview (Restricted MOV)
+// Tab 5: Movie Silent Preview (Restricted MOV: 64×48)
 // ----------------------------------------------------
 - (void)setupMovieView {
     _movieView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
     _movieView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 
-    NSTextField* title = [NSTextField labelWithString:@"影片首帧预览 (受限 QuickTime MOV: 64×48)"];
+    NSTextField* title = [NSTextField labelWithString:@"影片静默连续预览 (受限 QuickTime MOV: 64×48)"];
     title.frame = NSMakeRect(20, 670, 600, 30);
     title.font = [NSFont boldSystemFontOfSize:18];
     [_movieView addSubview:title];
 
-    NSTextField* desc = [NSTextField labelWithString:@"预览资源根内 MOV 的第一帧；不播放影片或声音。"];
+    NSTextField* desc = [NSTextField labelWithString:@"预览受支持 MOV 的连续画面；播放、暂停和拖动进度均不输出声音。"];
     desc.frame = NSMakeRect(20, 642, 600, 20);
     desc.font = [NSFont systemFontOfSize:12];
     desc.textColor = [NSColor colorWithCalibratedWhite:0.75 alpha:1.0];
@@ -677,49 +707,229 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_movieView addSubview:_moviePathField];
 
     NSButton* loadBtn = [NSButton buttonWithTitle:@"加载首帧" target:self action:@selector(onLoadMoviePoster:)];
-    loadBtn.frame = NSMakeRect(505, 598, 100, 30);
+    loadBtn.frame = NSMakeRect(505, 598, 90, 30);
     loadBtn.bezelStyle = NSBezelStyleRounded;
     [_movieView addSubview:loadBtn];
 
     NSButton* clearBtn = [NSButton buttonWithTitle:@"清空" target:self action:@selector(onClearMoviePoster:)];
-    clearBtn.frame = NSMakeRect(610, 598, 80, 30);
+    clearBtn.frame = NSMakeRect(600, 598, 70, 30);
     clearBtn.bezelStyle = NSBezelStyleRounded;
     [_movieView addSubview:clearBtn];
 
-    _movieStatusLabel = [NSTextField labelWithString:@"请输入资源根内的相对 MOV 路径并点击加载首帧"];
-    _movieStatusLabel.frame = NSMakeRect(20, 560, 700, 22);
+    _moviePlayButton = [NSButton buttonWithTitle:@"播放" target:self action:@selector(onMoviePlay:)];
+    _moviePlayButton.frame = NSMakeRect(20, 558, 75, 30);
+    _moviePlayButton.bezelStyle = NSBezelStyleRounded;
+    [_movieView addSubview:_moviePlayButton];
+
+    _moviePauseButton = [NSButton buttonWithTitle:@"暂停" target:self action:@selector(onMoviePause:)];
+    _moviePauseButton.frame = NSMakeRect(100, 558, 75, 30);
+    _moviePauseButton.bezelStyle = NSBezelStyleRounded;
+    [_movieView addSubview:_moviePauseButton];
+
+    _movieStopButton = [NSButton buttonWithTitle:@"停止" target:self action:@selector(onMovieStop:)];
+    _movieStopButton.frame = NSMakeRect(180, 558, 75, 30);
+    _movieStopButton.bezelStyle = NSBezelStyleRounded;
+    [_movieView addSubview:_movieStopButton];
+
+    _moviePositionLabel = [NSTextField labelWithString:@"0.00 / 8.00 秒"];
+    _moviePositionLabel.frame = NSMakeRect(265, 563, 140, 22);
+    _moviePositionLabel.font = [NSFont monospacedDigitSystemFontOfSize:13 weight:NSFontWeightRegular];
+    [_movieView addSubview:_moviePositionLabel];
+
+    _movieSeekSlider = [[AppMovieSeekSlider alloc] initWithFrame:NSMakeRect(410, 560, 260, 26)];
+    _movieSeekSlider.minValue = 0;
+    _movieSeekSlider.maxValue = 239;
+    _movieSeekSlider.doubleValue = 0;
+    _movieSeekSlider.continuous = NO;
+    _movieSeekSlider.target = self;
+    _movieSeekSlider.action = @selector(onMovieSeek:);
+    [_movieView addSubview:_movieSeekSlider];
+
+    _movieStatusLabel = [NSTextField labelWithString:@"待机 · 点击加载首帧或播放开始静默预览"];
+    _movieStatusLabel.frame = NSMakeRect(20, 526, 700, 22);
     _movieStatusLabel.font = [NSFont systemFontOfSize:12];
     _movieStatusLabel.textColor = [NSColor colorWithCalibratedWhite:0.8 alpha:1.0];
     [_movieView addSubview:_movieStatusLabel];
 
-    _movieImageView = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 240, 384, 288)];
+    _movieImageView = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 220, 384, 288)];
     _movieImageView.imageScaling = NSImageScaleProportionallyUpOrDown;
     _movieImageView.wantsLayer = YES;
     _movieImageView.layer.borderColor = [NSColor grayColor].CGColor;
     _movieImageView.layer.borderWidth = 1;
     [_movieView addSubview:_movieImageView];
+
+    _moviePresenter = std::make_unique<ViewImagePresenter>(_movieImageView);
+    [self updateMovieControls];
+}
+
+- (void)updateMovieControls {
+    // ResourceRoot resolution is cached on this owner context; never wait on a
+    // decoding worker before a stop/seek request can cancel its metadata load.
+    const BOOL hasSession = (_movieSession && !_movieSession->resolvedPath().empty());
+    media_demo::State state = _movieSession ? _movieSession->lastSnapshot().state : media_demo::State::Ready;
+    const BOOL canPlay = hasSession && state != media_demo::State::Playing && !_moviePending;
+    const BOOL canPause = hasSession && state == media_demo::State::Playing && !_moviePending;
+    const BOOL canStop = hasSession && (state != media_demo::State::Ready || _moviePending);
+    const BOOL canSeek = hasSession && !_moviePending;
+
+    _moviePlayButton.enabled = canPlay || !hasSession; // Allow Play to open & play
+    _moviePauseButton.enabled = canPause;
+    _movieStopButton.enabled = canStop;
+    _movieSeekSlider.enabled = canSeek;
+}
+
+- (void)invalidateMovieTimer {
+    if (_movieTimer) {
+        [_movieTimer invalidate];
+        _movieTimer = nil;
+    }
+}
+
+- (void)updateMovieTimer {
+    if (!_movieSession || _moviePending || _movieSession->lastSnapshot().state != media_demo::State::Playing) {
+        [self invalidateMovieTimer];
+        return;
+    }
+    if (_movieTimer) return;
+    __weak EmperorAppDelegate* weakSelf = self;
+    _movieTimer = [NSTimer timerWithTimeInterval:1.0 / 30.0 repeats:YES block:^(NSTimer* timer) {
+        (void)timer;
+        EmperorAppDelegate* owner = weakSelf;
+        if (owner && !owner->_movieTickQueued && !owner->_moviePending) {
+            owner->_movieTickQueued = YES;
+            [owner requestMovieAction:media_demo::Action::Tick frame:0];
+        }
+    }];
+    [NSRunLoop.mainRunLoop addTimer:_movieTimer forMode:NSRunLoopCommonModes];
+}
+
+- (void)handleMovieDelivery:(const game_lab::MovieDelivery&)delivery tick:(BOOL)tick {
+    if (tick) {
+        _movieTickQueued = NO;
+    } else if (_moviePending) {
+        --_moviePending;
+    }
+
+    if (!delivery.accepted) {
+        [self updateMovieControls];
+        return;
+    }
+
+    const auto& snap = delivery.snapshot;
+    if (!_movieSeekSlider.mouseTracking) {
+        _movieSeekSlider.doubleValue = double(snap.frame);
+    }
+    const double seconds = double(snap.mediaPCM) / 48000.0;
+    _moviePositionLabel.stringValue = [NSString stringWithFormat:@"%.2f / 8.00 秒", seconds];
+    if (delivery.presentation == game_lab::PresentationResult::ConversionFailure) {
+        _movieStatusLabel.stringValue = @"当前画面转换失败，请停止后重试";
+    } else if (snap.state == media_demo::State::Failed) {
+        _movieStatusLabel.stringValue = @"无法读取影片或生成预览画面";
+    } else {
+        _movieStatusLabel.stringValue = [NSString stringWithFormat:@"%s · 静默预览",
+                                         media_demo::stateName(snap.state)];
+    }
+    [self updateMovieControls];
+    [self updateMovieTimer];
+}
+
+- (void)requestMovieAction:(media_demo::Action)action frame:(uint64_t)frame {
+    const BOOL tick = (action == media_demo::Action::Tick);
+    if (!tick) {
+        ++_moviePending;
+        [self invalidateMovieTimer];
+        [self updateMovieControls];
+    }
+    __weak EmperorAppDelegate* weakSelf = self;
+    _movieSession->request(action, frame, [weakSelf, tick](const game_lab::MovieDelivery& delivery) {
+        EmperorAppDelegate* owner = weakSelf;
+        if (owner) {
+            [owner handleMovieDelivery:delivery tick:tick];
+        }
+    }, _moviePresenter.get());
+}
+
+- (void)onMoviePlay:(id)sender {
+    (void)sender;
+    NSString* pathStr = [_moviePathField stringValue];
+    const std::string rel = pathStr.UTF8String ? pathStr.UTF8String : "";
+    if (!_movieSession || _movieSession->currentRelativePath() != rel) {
+        [self invalidateMovieTimer];
+        if (_movieSession) _movieSession->close();
+        _movieSession.reset();
+        _movieTickQueued = NO;
+        _moviePending = 0;
+        if (_moviePresenter) _moviePresenter->clear();
+        _movieSession = _media->createMovieSession();
+        if (!_movieSession || !_movieSession->openMovie(rel)) {
+            if (_moviePresenter) _moviePresenter->clear();
+            _movieStatusLabel.stringValue = [NSString stringWithFormat:@"无法打开媒体文件: %@", pathStr];
+            [self updateMovieControls];
+            return;
+        }
+    }
+    [self requestMovieAction:media_demo::Action::Play frame:0];
+}
+
+- (void)onMoviePause:(id)sender {
+    (void)sender;
+    if (!_movieSession) return;
+    [self requestMovieAction:media_demo::Action::Pause frame:0];
+}
+
+- (void)onMovieStop:(id)sender {
+    (void)sender;
+    [self invalidateMovieTimer];
+    if (!_movieSession) return;
+    [self requestMovieAction:media_demo::Action::Stop frame:0];
+}
+
+- (void)onMovieSeek:(AppMovieSeekSlider*)sender {
+    if (!_movieSession) return;
+    const uint64_t targetFrame = static_cast<uint64_t>(std::max(0.0, sender.doubleValue));
+    [self requestMovieAction:media_demo::Action::Seek frame:targetFrame];
 }
 
 - (void)onLoadMoviePoster:(id)sender {
     (void)sender;
+    [self invalidateMovieTimer];
+    if (_movieSession) {
+        _movieSession->close();
+        _movieSession.reset();
+    }
+    _movieTickQueued = NO;
+    _moviePending = 0;
     NSString* pathStr = [_moviePathField stringValue];
     const auto decoded = _media->moviePoster(pathStr.UTF8String ? pathStr.UTF8String : "");
     if (!decoded.valid()) {
         presentPixels(_movieImageView, 0, 0, {});
         _movieStatusLabel.stringValue = [NSString stringWithFormat:@"首帧加载失败: 路径无效、缺失或媒体格式不匹配 (%@)", pathStr];
+        [self updateMovieControls];
         return;
     }
     if (!presentPixels(_movieImageView, decoded.width, decoded.height, decoded.pixelsBGRA)) {
         _movieStatusLabel.stringValue = @"首帧图片呈现转换失败";
+        [self updateMovieControls];
         return;
     }
     _movieStatusLabel.stringValue = [NSString stringWithFormat:@"首帧加载成功: %u×%u · %@", decoded.width, decoded.height, pathStr];
+    [self updateMovieControls];
 }
 
 - (void)onClearMoviePoster:(id)sender {
     (void)sender;
+    [self invalidateMovieTimer];
+    if (_movieSession) {
+        _movieSession->close();
+        _movieSession.reset();
+    }
+    _movieTickQueued = NO;
+    _moviePending = 0;
     presentPixels(_movieImageView, 0, 0, {});
+    _moviePositionLabel.stringValue = @"0.00 / 8.00 秒";
+    _movieSeekSlider.doubleValue = 0;
     _movieStatusLabel.stringValue = @"画面已清空";
+    [self updateMovieControls];
 }
 
 // ----------------------------------------------------

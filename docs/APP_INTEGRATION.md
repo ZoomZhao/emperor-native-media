@@ -70,3 +70,8 @@ audio_lab/video_lab/metal_lab/av_lab/stream_lab/media_demo
 同一生产 App 源码通过新的仓库 portable runner 在含空格的干净源码导出/无关cwd复现。AppMedia 两配置仍各62断言通过；App只构建/签名通过，签名后二进制仍为3da77a3ee6e30112bb0dc7cd3b89bf141c43e16f3b38a5df73bb62b3e4b551f7。当前复现入口、native事件和runtime_core需求复核、逐项阻塞见 [BLOCKERS-AND-HANDOFF.md](BLOCKERS-AND-HANDOFF.md)。没有扩大GUI/设备/原链范围或新增业务行为。
 
 本页记录交接前版本验收；该源码已发布为dd6d6fe8e8841c505669ca740a088214241f991d。后续事件接口增量尚未发布，四项补充回归失败见 [BLOCKERS-AND-HANDOFF.md](BLOCKERS-AND-HANDOFF.md)。
+
+
+## 静默连续影片预览接线
+
+AppMedia::createMovieSession / MovieSession::request 与实际影片页消费既有 Controller。新增帧布局解包、revision旧交付拦截、销毁后回调保护与命令计数；Release/UBSan新消费接口集成和App仅构建通过。完整有声播放、实际GUI、Bink及原资源未验证。具体合同与本轮证据见 [APP_MOVIE_PLAYBACK.md](APP_MOVIE_PLAYBACK.md)；此前“影片模块未被App消费”仅为历史快照。

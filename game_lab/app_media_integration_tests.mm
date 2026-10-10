@@ -2,6 +2,7 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <ImageIO/ImageIO.h>
 #include "app_media.hpp"
+#include "movie_session.hpp"
 #include "image_presentation.hpp"
 #include "app_launch.hpp"
 #include "map_geometry.hpp"
@@ -10,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <chrono>
 #include <limits>
 #include <stdexcept>
 #include <cstdio>
@@ -20,6 +22,16 @@ size_t checks = 0;
 void require(bool condition, const char* why) {
     ++checks;
     if (!condition) throw std::runtime_error(why);
+}
+void drainMovieDeliveries() {
+    const auto done = std::make_shared<std::atomic<bool>>(false);
+    dispatch_async(dispatch_get_main_queue(), ^{ done->store(true); });
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+    while (!done->load() && std::chrono::steady_clock::now() < deadline) {
+        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.01, false);
+        usleep(1000);
+    }
+    require(done->load(), "headless owned main deliveries drained");
 }
 void put16(std::vector<uint8_t>& v, uint16_t n) { v.push_back(n & 255); v.push_back(n >> 8); }
 void put32(std::vector<uint8_t>& v, uint32_t n) { for (int i=0;i<4;++i) v.push_back((n >> (8*i)) & 255); }
@@ -510,6 +522,142 @@ void integration() {
         require(game_lab::presentImage(moviePresenter, corruptPoster.width, corruptPoster.height, corruptPoster.pixelsBGRA) == game_lab::PresentationResult::InvalidPixels &&
                 moviePresenter.image.empty(),
                 "corrupt movie clears old image in presenter");
+
+        // ----------------------------------------------------
+        // Continuous Silent Movie Session (Reusing media_demo::Controller):
+        // ----------------------------------------------------
+        const size_t audioCallsBeforeMovie = factory.calls;
+        FakeImagePresenter sessionPresenter;
+
+        auto session = app.createMovieSession(movieRel);
+        require(session != nullptr, "createMovieSession produces non-null session");
+        require(session->openMovie(movieRel), "openMovie succeeds for valid synthetic MOV");
+        require(session->hasActiveController(), "session owns an active Controller on worker");
+
+        // 1. Play produces first frame with 32x24 tight pixels (unpacked from 133-byte stride)
+        auto playDel = session->performSync(media_demo::Action::Play, 0, &sessionPresenter);
+        require(playDel.accepted && playDel.presented, "Play delivery accepted and presented");
+        require(playDel.snapshot.state == media_demo::State::Playing, "State transitions to Playing");
+        require(playDel.snapshot.frame == 0, "Play initial frame is 0");
+        require(playDel.pixelsBGRA.size() == 32 * 24, "Tightly packed 32x24 pixels (768 pixels)");
+        require(sessionPresenter.image.size() == 32 * 24, "Presenter updated with 32x24 pixels");
+        for (const auto p : playDel.pixelsBGRA) {
+            require(((p >> 24) & 0xff) == 255, "Alpha must be 255");
+        }
+
+        // 2. Advance with HostClock ticks
+        // Sleep slightly to let HostClock advance
+        usleep(40000); // 40ms
+        auto tickDel = session->performSync(media_demo::Action::Tick, 0, &sessionPresenter);
+        require(tickDel.accepted, "Tick delivery accepted");
+        require(tickDel.snapshot.state == media_demo::State::Playing, "Tick preserves Playing state");
+
+        // 3. Pause, Seek, near EOF, Stop
+        auto pauseDel = session->performSync(media_demo::Action::Pause, 0, &sessionPresenter);
+        require(pauseDel.accepted && pauseDel.snapshot.state == media_demo::State::Paused, "Pause transitions to Paused");
+
+        auto seekDel = session->performSync(media_demo::Action::Seek, 100, &sessionPresenter);
+        require(seekDel.accepted && seekDel.snapshot.frame == 100, "Seek jumps to target frame 100");
+        require(seekDel.presented && sessionPresenter.image.size() == 32 * 24, "Seek delivers frame 100 image");
+
+        // Seek near EOF (e.g. frame 238 of 240)
+        auto nearEofDel = session->performSync(media_demo::Action::Seek, 238, &sessionPresenter);
+        require(nearEofDel.accepted && nearEofDel.snapshot.frame == 238, "Seek jumps near EOF");
+
+        auto stopDel = session->performSync(media_demo::Action::Stop, 0, &sessionPresenter);
+        require(stopDel.accepted && stopDel.snapshot.state == media_demo::State::Ready, "Stop transitions to Ready");
+        require(stopDel.snapshot.clearImage && sessionPresenter.image.empty(), "Stop clears presenter image");
+
+        // 4. Stale delivery rejection after seek, replace, stop, and close
+        // Re-play to have an active state
+        session->performSync(media_demo::Action::Play, 0, &sessionPresenter);
+        const uint64_t oldRevision = session->revision();
+        media_demo::Snapshot lateSnap;
+        lateSnap.state = media_demo::State::Playing;
+        lateSnap.frame = 50;
+        lateSnap.bgra.resize(133 * 24, 0x7f);
+
+        // Advance revision via seek
+        session->performSync(media_demo::Action::Seek, 10, &sessionPresenter);
+        require(session->revision() > oldRevision, "Seek advances revision");
+
+        game_lab::MovieDelivery lateDelivery;
+        require(!game_lab::processMovieDelivery(session->revision(), oldRevision, lateSnap, &sessionPresenter, lateDelivery),
+                "Late delivery with old revision is rejected after Seek");
+        require(!lateDelivery.accepted, "Late delivery marked not accepted");
+
+        // Reject after stop
+        const uint64_t beforeStopRev = session->revision();
+        session->performSync(media_demo::Action::Stop, 0, &sessionPresenter);
+        require(!game_lab::processMovieDelivery(session->revision(), beforeStopRev, lateSnap, &sessionPresenter, lateDelivery),
+                "Late delivery with old revision is rejected after Stop");
+
+        // Reject after close
+        const uint64_t beforeCloseRev = session->revision();
+        session->close();
+        require(session->resourcesZero(), "Resources zero after close");
+        require(!game_lab::processMovieDelivery(session->revision(), beforeCloseRev, lateSnap, &sessionPresenter, lateDelivery),
+                "Late delivery with old revision is rejected after Close");
+
+        // 5. Double open/close and bad replacement recovery
+        require(session->openMovie(movieRel), "First open succeeds");
+        require(session->openMovie(movieRel), "Second consecutive open succeeds without leak");
+        session->close();
+        session->close(); // Double close
+        require(session->resourcesZero(), "Double close keeps resources zero");
+
+        // Bad replacement (missing or corrupt)
+        require(!session->openMovie("Movies/missing.mov"), "Opening missing file fails");
+        require(!session->hasActiveController(), "Bad open leaves no active controller");
+        require(session->openMovie(movieRel), "Recovery to valid movie succeeds after bad replacement");
+        require(session->hasActiveController(), "Recovered session has active controller");
+        session->close();
+
+        // 6. Presenter conversion failure clears old image
+        struct FailPresenter final : public game_lab::ImagePresenter {
+            std::vector<uint32_t> oldImage{1, 2, 3};
+            void clear() override { oldImage.clear(); }
+            bool present(uint32_t, uint32_t, const std::vector<uint32_t>&) override {
+                return false; // Conversion failure
+            }
+        } failPresenter;
+
+        game_lab::MovieDelivery failDel;
+        media_demo::Snapshot validSnap;
+        validSnap.state = media_demo::State::Playing;
+        validSnap.bgra.resize(133 * 24, 0xff);
+        const bool procOk = game_lab::processMovieDelivery(100, 100, validSnap, &failPresenter, failDel);
+        require(procOk && failDel.accepted, "Delivery processed");
+        require(!failDel.presented, "Presentation fails on presenter rejection");
+        require(failPresenter.oldImage.empty(), "Failed presentation clears old image from presenter");
+
+        // Exercise the real asynchronous request path, not only a fabricated revision.
+        require(session->openMovie(movieRel), "queued-delivery session opens");
+        session->performSync(media_demo::Action::Play, 0, &sessionPresenter);
+        size_t queuedCallbacks = 0;
+        bool queuedAccepted = true;
+        session->request(media_demo::Action::Tick, 0, [&](const game_lab::MovieDelivery& d) {
+            ++queuedCallbacks; queuedAccepted = d.accepted;
+        });
+        const auto newFrame = session->performSync(media_demo::Action::Seek, 50, &sessionPresenter);
+        const auto newPixels = sessionPresenter.image;
+        drainMovieDeliveries();
+        require(queuedCallbacks == 1 && !queuedAccepted && sessionPresenter.image == newPixels,
+                "queued old request cannot replace post-seek image");
+        require(newFrame.snapshot.frame == 50, "new consumer seek uses existing Controller");
+        session->close();
+        size_t destroyedCallbacks = 0;
+        auto disposable = app.createMovieSession(movieRel);
+        disposable->request(media_demo::Action::Play, 0, [&](const game_lab::MovieDelivery&) {
+            ++destroyedCallbacks;
+        });
+        disposable.reset();
+        drainMovieDeliveries();
+        require(destroyedCallbacks == 0, "destroyed owner suppresses queued callback and presentation");
+
+        // 7. Verify zero AudioFactory calls throughout entire movie session execution
+        require(factory.calls == audioCallsBeforeMovie,
+                "Continuous movie session produces exactly ZERO AudioFactory requests");
 
         // Shared Map Geometry (mapPointToTile) pure component validation:
         int tx = -77, ty = -88;

@@ -9,6 +9,7 @@ sources = [
     'game_lab/app/main.mm', 'game_lab/app/build.sh', 'game_lab/app/build_provenance.py',
     'game_lab/app/Info.plist', 'game_lab/app/av_audio_backend.hpp', 'game_lab/app/av_audio_backend.mm',
     'game_lab/app_media.hpp', 'game_lab/app_media.cpp',
+    'game_lab/movie_session.hpp', 'game_lab/movie_session.mm',
     'game_lab/image_presentation.hpp',
     'game_lab/app_launch.hpp',
     'game_lab/map_geometry.hpp',
@@ -17,13 +18,23 @@ sources = [
     'game_lab/wav_pcm.cpp', 'game_lab/resource_root.hpp', 'game_lab/resource_root.cpp',
     'game_lab/audio_policy.hpp', 'surface_lab/surface.hpp', 'surface_lab/surface.cpp',
     'stream_lab/movie_io.hpp', 'stream_lab/movie_io.mm',
+    'stream_lab/presenter.hpp', 'stream_lab/presenter.cpp',
     'video_lab/stream.hpp', 'video_lab/stream.cpp', 'video_lab/video.hpp',
+    'metal_lab/backend.hpp', 'metal_lab/backend.mm',
+    'audio_lab/audio.hpp', 'audio_lab/audio.cpp',
+    'media_demo/host_clock.hpp',
+    'media_demo/controller.hpp', 'media_demo/controller.cpp',
+    'media_demo/device_monitor.hpp',
 ]
 compiled = [
-    'game_lab/app/main.mm', 'game_lab/app/av_audio_backend.mm', 'game_lab/app_media.cpp',
+    'game_lab/app/main.mm', 'game_lab/app/av_audio_backend.mm',
+    'game_lab/app_media.cpp', 'game_lab/movie_session.mm',
     'game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
     'game_lab/resource_root.cpp', 'surface_lab/surface.cpp',
-    'stream_lab/movie_io.mm', 'video_lab/stream.cpp',
+    'stream_lab/movie_io.mm', 'stream_lab/presenter.cpp',
+    'video_lab/stream.cpp', 'metal_lab/backend.mm',
+    'audio_lab/audio.cpp',
+    'media_demo/controller.cpp',
 ]
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 assert len(sys.argv) == 2

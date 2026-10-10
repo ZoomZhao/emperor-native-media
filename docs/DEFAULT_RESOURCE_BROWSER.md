@@ -35,3 +35,6 @@ unpublished workspace changes. Their economy, buildings and save format have no
 demonstrated original-rule source. They are outside this published entry point;
 this change does not restore original city rules, save compatibility, or prove
 GUI/audio-device behaviour.
+
+
+影片页现已复用既有 Controller 接通静默连续预览，保留首帧入口；具体生产接口、交付失效、验收及未运行窗口/声音的边界见 [APP_MOVIE_PLAYBACK.md](APP_MOVIE_PLAYBACK.md)。默认来源仍不包含城市原型。

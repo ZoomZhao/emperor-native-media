@@ -27,13 +27,21 @@ MEDIA = [
 APP = [
     'game_lab/app/main.mm', 'game_lab/app/build.sh', 'game_lab/app/build_provenance.py',
     'game_lab/app/Info.plist', 'game_lab/app/av_audio_backend.hpp', 'game_lab/app/av_audio_backend.mm',
-    'game_lab/app_media.hpp', 'game_lab/app_media.cpp', 'game_lab/image_presentation.hpp', 'game_lab/app_launch.hpp', 'game_lab/map_geometry.hpp', 'game_lab/app_media_integration_tests.mm',
+    'game_lab/app_media.hpp', 'game_lab/app_media.cpp',
+    'game_lab/movie_session.hpp', 'game_lab/movie_session.mm',
+    'game_lab/image_presentation.hpp', 'game_lab/app_launch.hpp', 'game_lab/map_geometry.hpp', 'game_lab/app_media_integration_tests.mm',
     'game_lab/emperor_assets.hpp', 'game_lab/emperor_assets.mm',
     'game_lab/asset_bytes.hpp', 'game_lab/asset_limits.hpp', 'game_lab/asset_pixels.cpp',
     'game_lab/wav_pcm.cpp', 'game_lab/resource_root.hpp', 'game_lab/resource_root.cpp',
     'game_lab/audio_policy.hpp', 'surface_lab/surface.hpp', 'surface_lab/surface.cpp',
     'stream_lab/movie_io.hpp', 'stream_lab/movie_io.mm',
+    'stream_lab/presenter.hpp', 'stream_lab/presenter.cpp',
     'video_lab/stream.hpp', 'video_lab/stream.cpp', 'video_lab/video.hpp',
+    'metal_lab/backend.hpp', 'metal_lab/backend.mm',
+    'audio_lab/audio.hpp', 'audio_lab/audio.cpp',
+    'media_demo/host_clock.hpp',
+    'media_demo/controller.hpp', 'media_demo/controller.cpp',
+    'media_demo/device_monitor.hpp',
     'game_lab/run_app_integration.sh',
 ]
 SUITES = {'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP}
@@ -162,12 +170,22 @@ def run(suite, mode, output):
             if suite == 'media':
                 compiled.insert(0, 'game_lab/pure_boundary_tests.mm')
             else:
-                compiled[:0] = ['game_lab/app_media_integration_tests.mm', 'game_lab/app_media.cpp',
-                                'stream_lab/movie_io.mm', 'video_lab/stream.cpp']
-                extra_frameworks = ['-framework', 'AVFoundation', '-framework', 'AudioToolbox',
-                                    '-framework', 'CoreMedia', '-framework', 'CoreVideo']
+                compiled[:0] = [
+                    'game_lab/app_media_integration_tests.mm', 'game_lab/app_media.cpp',
+                    'game_lab/movie_session.mm',
+                    'stream_lab/movie_io.mm', 'stream_lab/presenter.cpp',
+                    'video_lab/stream.cpp', 'metal_lab/backend.mm',
+                    'audio_lab/audio.cpp',
+                    'media_demo/controller.cpp',
+                ]
+                extra_frameworks = [
+                    '-framework', 'AVFoundation', '-framework', 'AudioToolbox',
+                    '-framework', 'CoreMedia', '-framework', 'CoreVideo',
+                    '-framework', 'Metal',
+                ]
             command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-fobjc-arc', '-fno-modules',
-                                     '-Wall', '-Wextra', '-Werror', '-I', snapshot, *flags, *[snapshot / name for name in compiled],
+                                     '-Wall', '-Wextra', '-Werror', '-I', snapshot, '-I', snapshot / 'media_demo',
+                                     *flags, *[snapshot / name for name in compiled],
                                      '-framework', 'Foundation', *extra_frameworks,
                                      '-framework', 'ImageIO', '-framework', 'CoreGraphics',
                                      '-lz', '-o', report / 'self-tests'])

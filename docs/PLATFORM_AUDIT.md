@@ -45,3 +45,8 @@ GameData 旧 7 组/42 断言仅含一例 16×16 图素，MP3 只检查存在与�
 2026-10-10：AppMedia 已成为真实 App 与无 UI 测试共用的控制实现，补齐 App 音效到当前 WAV 校验、失败替换清理、默认静音/gain/显式播放/终止，以及 JPEG/raw555 的资源路径接线。Release/UBSAN 集成各 62 断言通过；当前 EmperorApp 编译、链接、打包和本地 codesign strict 校验通过，包内保存生产源码指纹，旧包保留。未启动 GUI、真实 AVAudioPlayer 或设备，未读取 GameData/legacy。
 
 真实依赖清单、当前包证据和限制见 [APP_INTEGRATION.md](APP_INTEGRATION.md)。runtime_core 仍没有 App 消费者；音频队列/视频/Metal demo 未被接入 EmperorApp，完整业务引擎与状态/调度/交互/存档合同仍缺失。先前“只静态/未构建”是当时记录；当前新包与无 UI 集成已实际验证，不能推广为完整游戏或声音/GUI通过。新修复未 commit/push。
+
+
+## 当前实际影片消费者更新
+
+原审计及旧数字仍是当时证据。现在真实App已通过MovieSession消费既有MovieReader/Controller/HostClock/离屏Presenter，支持有限静默连续预览及保留首帧入口。新验证针对实际共用接口的行布局、旧交付、错误替换和销毁保护，未重跑旧全时序套件；图形CPU/Metal的合同差异、离线PCM/注入恢复与真实设备的区别仍然适用。实际窗口/声音及有效Bink仍未验证；见 [APP_MOVIE_PLAYBACK.md](APP_MOVIE_PLAYBACK.md) 的接口、边界和三个具体下一步任务。
