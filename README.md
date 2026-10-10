@@ -22,7 +22,7 @@
 
 751 份历史自写文本源码归档保持哈希不变，其中 97 份副本做了机器路径脱敏；41 份来源/内容不适于此次迁移的源码留在旧目录。EXE、原资源、快照、生成游戏代码、衍生库、第三方工具和原始私人记录未随归档复制。文件归档或路径修正不构成行为迁移完成。
 
-2026-10-10 已将 `2f3378a91fb0987288e00c61befa0ddeacbe50be` 推送到私有远端 main；随后源码修复留在工作树，未再次提交或推送。初次修复仅静态检查；后续已按明确解除的范围执行独立自造测试，没有运行 App、音频设备或历史链。既有二进制转换/探测拦截仍有效，不从 legacy 恢复该工作，也不读取旧 Swift 实现或分析城市逻辑。
+2026-10-10，交接前独立修复已提交并推送为 `dd6d6fe8e8841c505669ca740a088214241f991d`。后续五项源码增量仍在工作区：现有90断言通过，补充回归发现四项音频状态/生命周期失败，尚未发布。当前验收与缺陷证据见 [BLOCKERS-AND-HANDOFF.md](docs/BLOCKERS-AND-HANDOFF.md)。城市目标与历史局部证据见 [CITY_CAPABILITY_AUDIT.md](docs/CITY_CAPABILITY_AUDIT.md)，具体受阻执行路线见 [EXECUTION_SCOPE.md](docs/EXECUTION_SCOPE.md)；普通城市工程分析可以继续。
 
 当前自写媒体源码采用 [MIT 许可证](LICENSE)。归档来源筛选不代替逐项许可确认；原游戏、第三方工具和 Apple SDK 的许可不因本目录改变。
 
@@ -34,6 +34,6 @@
 
 2026-10-10：AppMedia 已成为真实 App 与无 UI 测试共用的控制实现，补齐 App 音效到当前 WAV 校验、失败替换清理、默认静音/gain/显式播放/终止，以及 JPEG/raw555 的资源路径接线。Release/UBSAN 集成各 62 断言通过；当前 EmperorApp 编译、链接、打包和本地 codesign strict 校验通过，包内保存生产源码指纹，旧包保留。未启动 GUI、真实 AVAudioPlayer 或设备，未读取 GameData/legacy。
 
-真实依赖清单、当前包证据和限制见 [APP_INTEGRATION.md](docs/APP_INTEGRATION.md)。runtime_core 仍没有 App 消费者；音频队列/视频/Metal demo 未被接入 EmperorApp，完整业务引擎与状态/调度/交互/存档合同仍缺失。先前“只静态/未构建”是当时记录；当前新包与无 UI 集成已实际验证，不能推广为完整游戏或声音/GUI通过。新修复未 commit/push。
+真实依赖清单、当前包证据和限制见 [APP_INTEGRATION.md](docs/APP_INTEGRATION.md)。runtime_core 仍没有 App 消费者；音频队列/视频/Metal demo 未被接入 EmperorApp，完整业务引擎与状态/调度/交互/存档合同仍缺失。先前“只静态/未构建”是当时记录；当前新包与无 UI 集成已实际验证，不能推广为完整游戏或声音/GUI通过。这些交接前修复已发布；后续增量的验收状态以进度页为准。
 
-当前独立入口已修复并在干净白名单目录实际复现；实质发现、可接手命令与逐项阻塞见 [BLOCKERS-AND-HANDOFF.md](docs/BLOCKERS-AND-HANDOFF.md)。数据/TLV、媒体与 App 无 UI 集成 Release/UBSAN 均通过，当前 App 只构建/签名通过。新源码/报告仍未提交或推送。
+当前独立入口已修复并在干净白名单目录实际复现；实质发现、可接手命令与逐项阻塞见 [BLOCKERS-AND-HANDOFF.md](docs/BLOCKERS-AND-HANDOFF.md)。数据/TLV、媒体与 App 无 UI 集成 Release/UBSAN 均通过，当前 App 只构建/签名通过。交接前源码已发布；本轮审计记录收录新增失败证据，没有发布失败的源码增量。

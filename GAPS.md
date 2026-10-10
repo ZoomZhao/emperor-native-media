@@ -16,9 +16,9 @@
 
 可继续的工作是独立自写组件的实现、边界回归源码、路径/依赖整理与证据修正。在明确允许运行时，可只用自造输入验收这些组件。优先三项及具体通过标准见 [平台审计](docs/PLATFORM_AUDIT.md)：RGB555 图形边界/生命周期、无设备音频队列/恢复、视频跨 seek/取消/释放。它们补强平台基础，不自动补齐游戏引擎。
 
-原二进制转换/探测曾被平台安全拦截。不能通过改目录、复制库、换工具、分段或包装恢复/变相继续该工作；不读取 EXE/反汇编，不调用 SR/Unicorn/Wine，不运行原游戏或衍生游戏库，不读取/沿用旧 Swift 实现，不分析城市逻辑。最初文档审计的禁测范围与后续源码任务须分别核对，不能解释为永久禁测。最新委托已明确解除独立自造测试临时限制，本轮按白名单实际运行；直接来源见 [EXECUTION_SCOPE.md](docs/EXECUTION_SCOPE.md)，UI/设备和原链未启用。
+城市更新恢复仍是未完成目标。当前可以审阅自写接口和历史报告，梳理状态、调用和依赖缺口。历史六函数/728字节的固定输入局部匹配与203函数集合仅构建必须分开，见 [CITY_CAPABILITY_AUDIT.md](docs/CITY_CAPABILITY_AUDIT.md)。已有两次“possible cybersecurity risk”拒绝针对原城市指令执行恢复/差分任务；不重试或绕过同一受阻路线，不能将其扩大为工具名称或所有城市分析的永久禁令。当前自造测试、App仅构建与私有提交授权见 [EXECUTION_SCOPE.md](docs/EXECUTION_SCOPE.md)。真实项目GUI、设备和资产未验收。
 
-私有远端 main 已推送并核验为 `2f3378a91fb0987288e00c61befa0ddeacbe50be`。随后修复留在工作树，未自动提交或推送。初次修复只有静态记录；当前已生成并执行独立自写测试程序，两配置通过，证据见 [INDEPENDENT_VALIDATION.md](docs/INDEPENDENT_VALIDATION.md)。具体改动/限制见 `SOURCE_REPAIR.md`（本地历史报告；未纳入本次提交），静态凭据见 `source-repair-static-audit.json`（本地历史报告；未纳入本次提交）。
+交接前独立修复已推送为 `dd6d6fe8e8841c505669ca740a088214241f991d`，数据、资源和AppMedia无UI测试的源码绑定见 [COMMIT_SCOPE.md](docs/COMMIT_SCOPE.md)。后续五项增量仍未发布；四项音频回调回归失败已单独记录，不能因旧90断言通过标记完成。
 
 后续独立数据准备的具体变更、能力和未运行范围见 `RUNTIME_PREPARATION.md`（本地历史报告；未纳入本次提交）。纯 TLV 的 common/ROOT 依赖已从当前模块去除；原档案/生成绑定缺口不因此闭合。
 
@@ -26,6 +26,6 @@
 
 2026-10-10：AppMedia 已成为真实 App 与无 UI 测试共用的控制实现，补齐 App 音效到当前 WAV 校验、失败替换清理、默认静音/gain/显式播放/终止，以及 JPEG/raw555 的资源路径接线。Release/UBSAN 集成各 62 断言通过；当前 EmperorApp 编译、链接、打包和本地 codesign strict 校验通过，包内保存生产源码指纹，旧包保留。未启动 GUI、真实 AVAudioPlayer 或设备，未读取 GameData/legacy。
 
-真实依赖清单、当前包证据和限制见 [APP_INTEGRATION.md](docs/APP_INTEGRATION.md)。runtime_core 仍没有 App 消费者；音频队列/视频/Metal demo 未被接入 EmperorApp，完整业务引擎与状态/调度/交互/存档合同仍缺失。先前“只静态/未构建”是当时记录；当前新包与无 UI 集成已实际验证，不能推广为完整游戏或声音/GUI通过。新修复未 commit/push。
+真实依赖清单、当前包证据和限制见 [APP_INTEGRATION.md](docs/APP_INTEGRATION.md)。runtime_core 仍没有 App 消费者；音频队列/视频/Metal demo 未被接入 EmperorApp，完整业务引擎与状态/调度/交互/存档合同仍缺失。先前“只静态/未构建”是当时记录；当前新包与无 UI 集成已实际验证，不能推广为完整游戏或声音/GUI通过。这些交接前修复已发布；后续增量见进度页。
 
 当前主要阻塞与接手清单见 [BLOCKERS-AND-HANDOFF.md](docs/BLOCKERS-AND-HANDOFF.md)，区分工程缺失、真实后端未验收、平台原链拒绝和未知工具/文件访问根因。干净目录复现已完成，不再列为缺口。

@@ -1,0 +1,70 @@
+{
+  "schema": "CITY_CAPABILITY_REPORT_AUDIT_V1",
+  "date": "2026-10-10",
+  "method": "read-only existing reports and current self-written interfaces; no code execution",
+  "records": [
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage73-result.json",
+      "sha256": "4ea0a6db52c3e6dd7c6f696f103d69954270530065803ff5e4edaf5d8f0f98d8",
+      "bytes": 3930
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage73-differential-result.json",
+      "sha256": "77d57becdd52187c8fe202524fafd1ec2e4e95434ba97cbc32e09fb0de901ed7",
+      "bytes": 780
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage74/reports/README.txt",
+      "sha256": "57df0b2d36481d96fe1ca656c8cf5046e605fa25ca28343aff4898bbe60644d6",
+      "bytes": 6351
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage82/reports/README.txt",
+      "sha256": "f7ffbb250fc1cbc8f1a295c5dd62afe47320148d44a574e324d4a0e84b9d405a",
+      "bytes": 7055
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage83/batch-v1/reports/README-final.txt",
+      "sha256": "ed08d4025b956b4f670ec92ba921ca2ebdbc1f91dcfabe2694cef8ec2c9b8220",
+      "bytes": 4569
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "stage83/phase7-v2/reports/README.txt",
+      "sha256": "35a09150042d69f782b0ffcc079dae2f2d2a704602340579098be16c89a6d33e",
+      "bytes": 6453
+    }
+  ],
+  "historical_local_slice": {
+    "status": "DIFFERENTIAL_MATCH_EXACT_SCOPE",
+    "functions": 6,
+    "code_bytes": 728,
+    "ordered_writes": 49889,
+    "mapped_memory_bytes": 297521152,
+    "public_CPU_exact_match": true,
+    "all_mapped_memory_exact_match": true,
+    "cold_resume_equivalence_verified": false,
+    "whole_game_verified": false
+  },
+  "expanded_set": {
+    "functions": 203,
+    "instructions": 7346,
+    "code_bytes": 20089,
+    "built": true,
+    "original_behavior_verified": false
+  },
+  "current_source_review": {
+    "runtime_core/include/thread_state.hpp": "1343463cadaa7678fac827d5a592713324293109985e6ee4f15a96a8972ced34",
+    "runtime_core/state_codec.py": "b2c1c5c6f3d849fb3ee1d5d67172d6e525fbc948818995f538207de3fb341a7d",
+    "game_lab/app_media.hpp": "4bf315451d9df2092a396ac6093d21e36f267db7849133030d8f976d79c4a9e9"
+  },
+  "original_binary_read": false,
+  "historical_code_imported": false,
+  "project_or_game_executed": false,
+  "blocked_route_retried": false
+}

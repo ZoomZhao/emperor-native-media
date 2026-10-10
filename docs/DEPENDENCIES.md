@@ -15,7 +15,7 @@
 
 历史归档中的 Python 顶层可能加载 native 库、引擎、运行探针或创建窗口，所以本次只用 AST 解析文本，未 import。C 头文件/链接依赖扫描也是文本检查。语法可解析不等于构建成功；构建成功不等于行为等价；历史有限原函数差分也不等于整游戏通过。
 
-二进制转换/探测工作曾被平台安全拦截，整合目录不会解除该边界。本轮不恢复、不变相继续或绕过历史执行链；不读取 EXE/反汇编、不调用 SR/Unicorn/Wine、不执行游戏或衍生库、不分析城市逻辑。未来可继续的工程工作应使用完全自造数据，在独立组件中进行。
+当前普通城市接口/报告分析可以继续，原城市指令执行恢复/差分的具体受阻路线不重试或绕过。工具名称与整个城市任务不构成一般禁令；来源说明见 [EXECUTION_SCOPE.md](EXECUTION_SCOPE.md)。本轮独立执行仍只用自造输入，不加载原游戏或衍生库。城市历史局部证据与未闭合依赖见 [CITY_CAPABILITY_AUDIT.md](CITY_CAPABILITY_AUDIT.md)。
 
 
 ## 当前自写模块整理（2026-10-10）
@@ -32,6 +32,8 @@
 
 2026-10-10：AppMedia 已成为真实 App 与无 UI 测试共用的控制实现，补齐 App 音效到当前 WAV 校验、失败替换清理、默认静音/gain/显式播放/终止，以及 JPEG/raw555 的资源路径接线。Release/UBSAN 集成各 62 断言通过；当前 EmperorApp 编译、链接、打包和本地 codesign strict 校验通过，包内保存生产源码指纹，旧包保留。未启动 GUI、真实 AVAudioPlayer 或设备，未读取 GameData/legacy。
 
-真实依赖清单、当前包证据和限制见 [APP_INTEGRATION.md](APP_INTEGRATION.md)。runtime_core 仍没有 App 消费者；音频队列/视频/Metal demo 未被接入 EmperorApp，完整业务引擎与状态/调度/交互/存档合同仍缺失。先前“只静态/未构建”是当时记录；当前新包与无 UI 集成已实际验证，不能推广为完整游戏或声音/GUI通过。新修复未 commit/push。
+真实依赖清单、当前包证据和限制见 [APP_INTEGRATION.md](APP_INTEGRATION.md)。runtime_core 仍没有 App 消费者；音频队列/视频/Metal demo 未被接入 EmperorApp，完整业务引擎与状态/调度/交互/存档合同仍缺失。先前“只静态/未构建”是当时记录；当前新包与无 UI 集成已实际验证，不能推广为完整游戏或声音/GUI通过。这些交接前修复已发布；后续增量的失败证据见进度页。
 
 当前依赖需求复核与干净目录复现见 [BLOCKERS-AND-HANDOFF.md](BLOCKERS-AND-HANDOFF.md)。没有把 runtime_core 或离线队列事件硬接到 App；不存在真实逻辑地址/context/存档消费者，AV后端事件源也未定义。三个 runner 已统一为相对工程路径/明确输入/60秒期限，无历史机器路径依赖。
+
+以上初次静态整理记录保留其时点；当前验收、发布和AV事件增量状态以 [BLOCKERS-AND-HANDOFF.md](BLOCKERS-AND-HANDOFF.md) 为准。

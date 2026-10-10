@@ -57,8 +57,10 @@ audio_lab/video_lab/metal_lab/av_lab/stream_lab/media_demo
 
 当前 App 的对象与图像缓冲依赖 ARC、std::vector 和系统框架，未要求 runtime_core 的逻辑地址 heap、context 或 TLV。不能通过添加未使用的头文件/库、虚构 CPU/城市行为或制造游戏绑定来宣布接入。此次选择并关闭的真实依赖是 App 音效到当前 WAV 解析器、策略到播放器生命周期、图片/路径到生产加载器；runtime_core 没有可据此补接的真实 App 消费合同。
 
-剩余实际阻塞：当前范围只允许不启动的 App 构建与无设备集成，因此真实 GUI/NSImage、AVAudioPlayer 解码/播放/回调/设备恢复不能验收；自造 WAV 不证明真实 MP3/资产兼容；有限 PCM16 合同会拒绝其他 WAV 格式。App 本身仍是资源浏览器，没有业务引擎、游戏状态/调度/交互/存档接口，也没有影片页或有效 Bink 实现。原 EXE/SR/Unicorn/Wine/衍生库和原链恢复仍禁止，旧 Swift 与城市逻辑仍不进入本轮。完整可玩目标在此存在真实缺口，不再把更多颜色/队列小样例记为整游戏进度。
+剩余实际阻塞：当前范围只允许不启动的 App 构建与无设备集成，因此真实 GUI/NSImage、AVAudioPlayer 解码/播放/回调/设备恢复不能验收；自造 WAV 不证明真实 MP3/资产兼容；有限 PCM16 合同会拒绝其他 WAV 格式。App 本身仍是资源浏览器，没有业务引擎、游戏状态/调度/交互/存档接口，也没有影片页或有效 Bink 实现。本报告当轮没有读取旧Swift或执行城市业务；当前普通城市接口/报告分析已允许，具体受阻原指令恢复/差分路线仍不重试或绕过，见 [EXECUTION_SCOPE.md](EXECUTION_SCOPE.md)。完整可玩目标在此存在真实缺口，不再把更多颜色/队列小样例记为整游戏进度。
 
 ## 干净目录复现更新
 
 同一生产 App 源码通过新的仓库 portable runner 在含空格的干净源码导出/无关cwd复现。AppMedia 两配置仍各62断言通过；App只构建/签名通过，签名后二进制仍为3da77a3ee6e30112bb0dc7cd3b89bf141c43e16f3b38a5df73bb62b3e4b551f7。当前复现入口、native事件和runtime_core需求复核、逐项阻塞见 [BLOCKERS-AND-HANDOFF.md](BLOCKERS-AND-HANDOFF.md)。没有扩大GUI/设备/原链范围或新增业务行为。
+
+本页记录交接前版本验收；该源码已发布为dd6d6fe8e8841c505669ca740a088214241f991d。后续事件接口增量尚未发布，四项补充回归失败见 [BLOCKERS-AND-HANDOFF.md](BLOCKERS-AND-HANDOFF.md)。
