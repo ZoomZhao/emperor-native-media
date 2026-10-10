@@ -6,6 +6,7 @@
 #include "../audio_policy.hpp"
 #include "../image_presentation.hpp"
 #include "../app_launch.hpp"
+#include "../map_geometry.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -50,6 +51,22 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     return game_lab::presentImage(presenter, width, height, pixels) == game_lab::PresentationResult::Presented;
 }
 
+@interface InteractiveMapView : NSImageView
+@property (nonatomic, copy) void (^onTileClicked)(int tileX, int tileY);
+@end
+
+@implementation InteractiveMapView
+- (void)mouseDown:(NSEvent *)event {
+    NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
+    int x = 0, y = 0;
+    if (game_lab::mapPointToTile(location.x, location.y, self.bounds.size.width, self.bounds.size.height, 128, x, y)) {
+        if (_onTileClicked) {
+            _onTileClicked(x, y);
+        }
+    }
+}
+@end
+
 @interface EmperorAppDelegate : NSObject <NSApplicationDelegate, NSTableViewDelegate, NSTableViewDataSource> {
     NSWindow* _window;
     NSSegmentedControl* _navBar;
@@ -77,10 +94,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSImageView* _mainMenuImageView;
     
     // Maps
+    NSString* _selectedMapName;
     NSArray<NSString*>* _mapFiles;
     NSTableView* _mapTableView;
     NSTextField* _mapInfoLabel;
-    NSImageView* _mapCanvasView;
+    InteractiveMapView* _mapCanvasView;
     
     // Sprites & 555
     NSPopUpButton* _spritePackagePopup;
@@ -334,8 +352,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)playBlessSFX:(id)sender { (void)sender; [self playSFX:@"H_ancestor_bless.wav"]; }
 - (void)terminate:(id)sender { (void)sender; [NSApp terminate:nil]; }
 
+
 // ----------------------------------------------------
-// Tab 1: City Maps View
+// Tab 1: City Maps View (Resource Browser)
 // ----------------------------------------------------
 - (void)setupMapView {
     _mapView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
@@ -367,16 +386,30 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _mapInfoLabel.font = [NSFont boldSystemFontOfSize:16];
     [_mapView addSubview:_mapInfoLabel];
     
-    _mapCanvasView = [[NSImageView alloc] initWithFrame:NSMakeRect(340, 80, 560, 560)];
+    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(340, 80, 560, 560)];
     _mapCanvasView.imageScaling = NSImageScaleAxesIndependently;
     _mapCanvasView.wantsLayer = YES;
     _mapCanvasView.layer.borderColor = [NSColor grayColor].CGColor;
     _mapCanvasView.layer.borderWidth = 1;
+
+    __weak EmperorAppDelegate* weakSelf = self;
+    _mapCanvasView.onTileClicked = ^(int tileX, int tileY) {
+        [weakSelf handleDefaultTileClickAtX:tileX y:tileY];
+    };
     [_mapView addSubview:_mapCanvasView];
+}
+
+- (void)handleDefaultTileClickAtX:(int)x y:(int)y {
+    if (_selectedMapName) {
+        _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 地块坐标: (%d, %d)", _selectedMapName, x, y];
+    } else {
+        _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地块坐标: (%d, %d)", x, y];
+    }
 }
 
 - (void)loadAndRenderMap:(NSString*)filename {
     _mapCanvasView.image = nil;
+    _selectedMapName = nil;
     if (!filename || !filename.UTF8String) {
         _mapInfoLabel.stringValue = @"未指定地图文件";
         return;
@@ -402,6 +435,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         _mapInfoLabel.stringValue = @"地图图片转换失败";
         return;
     }
+    _selectedMapName = filename;
     _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 尺寸: 128×128 (共 %zu 地块) · zlib 解压完成",
                                  filename, cityMap.tiles.size()];
 }

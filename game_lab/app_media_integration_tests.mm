@@ -4,6 +4,7 @@
 #include "app_media.hpp"
 #include "image_presentation.hpp"
 #include "app_launch.hpp"
+#include "map_geometry.hpp"
 #include "../scripts/self_fixture_evidence.hpp"
 #include <filesystem>
 #include <fstream>
@@ -433,6 +434,86 @@ void integration() {
                 "AppMedia text loads trimmed lines from EmperorText.txt");
         require(app.text("../EmperorText.txt").empty() && app.text("missing.txt").empty(),
                 "AppMedia text traversal/missing fail-closed");
+        // Shared Map Geometry (mapPointToTile) pure component validation:
+        int tx = -77, ty = -88;
+        // 1. Normal coordinate mapping
+        require(game_lab::mapPointToTile(1.0, 0.5, 2.0, 1.0, 128, tx, ty) && tx == 64 && ty == 64,
+                "Normal center point maps to (64, 64)");
+        // 2. Extreme wide finite viewWidth (DBL_MAX) with intermediate overflow avoidance
+        tx = -77; ty = -88;
+        const double maxFinite = std::numeric_limits<double>::max();
+        require(game_lab::mapPointToTile(maxFinite / 2.0, 0.5, maxFinite, 1.0, 128, tx, ty) && tx == 64 && ty == 64,
+                "Extreme finite viewWidth does not overflow to inf and maps to (64, 64)");
+        // 3. NaN rejection preserving outX and outY unmodified
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(std::numeric_limits<double>::quiet_NaN(), 0.5, 2.0, 1.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "NaN x rejected and leaves outX/outY unmodified");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(1.0, std::numeric_limits<double>::quiet_NaN(), 2.0, 1.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "NaN y rejected and leaves outX/outY unmodified");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(1.0, 0.5, std::numeric_limits<double>::quiet_NaN(), 1.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "NaN viewWidth rejected and leaves outX/outY unmodified");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(1.0, 0.5, 2.0, std::numeric_limits<double>::quiet_NaN(), 128, tx, ty) && tx == -77 && ty == -88,
+                "NaN viewHeight rejected and leaves outX/outY unmodified");
+        // 4. Infinity rejection preserving outX and outY unmodified
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(1.0, 0.5, std::numeric_limits<double>::infinity(), 1.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Infinite width rejected and leaves outX/outY unmodified");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(1.0, 0.5, 2.0, std::numeric_limits<double>::infinity(), 128, tx, ty) && tx == -77 && ty == -88,
+                "Infinite height rejected and leaves outX/outY unmodified");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(std::numeric_limits<double>::infinity(), 0.5, 2.0, 1.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Infinite x rejected and leaves outX/outY unmodified");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(1.0, std::numeric_limits<double>::infinity(), 2.0, 1.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Infinite y rejected and leaves outX/outY unmodified");
+        // 5. 4 corners & center coordinate mapping
+        require(game_lab::mapPointToTile(0.0, 0.0, 560.0, 560.0, 128, tx, ty) && tx == 0 && ty == 127,
+                "Bottom-left origin (0,0) maps to tile (0, 127) without dropping y=0");
+        require(game_lab::mapPointToTile(0.0, 559.99, 560.0, 560.0, 128, tx, ty) && tx == 0 && ty == 0,
+                "Top-left edge maps to tile (0, 0)");
+        require(game_lab::mapPointToTile(559.99, 559.99, 560.0, 560.0, 128, tx, ty) && tx == 127 && ty == 0,
+                "Top-right edge maps to tile (127, 0)");
+        require(game_lab::mapPointToTile(559.99, 0.0, 560.0, 560.0, 128, tx, ty) && tx == 127 && ty == 127,
+                "Bottom-right edge maps to tile (127, 127)");
+        require(game_lab::mapPointToTile(280.0, 280.0, 560.0, 560.0, 128, tx, ty) && tx == 64 && ty == 64,
+                "Center coordinate maps to central tile (64, 64)");
+        // 6. 4 side out-of-bounds rejection with unmodified outputs
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(-1.0, 100.0, 560.0, 560.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Negative x rejected");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(100.0, -1.0, 560.0, 560.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Negative y rejected");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(560.0, 100.0, 560.0, 560.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Upper bound x rejected");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(100.0, 560.0, 560.0, 560.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Upper bound y rejected");
+        // 7. Invalid view dimensions rejection with unmodified outputs
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(100.0, 100.0, 0.0, 560.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Zero width view rejected");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(100.0, 100.0, -10.0, 560.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Negative width view rejected");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(100.0, 100.0, 560.0, 0.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Zero height view rejected");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(100.0, 100.0, 560.0, -10.0, 128, tx, ty) && tx == -77 && ty == -88,
+                "Negative height view rejected");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(100.0, 100.0, 560.0, 560.0, 0, tx, ty) && tx == -77 && ty == -88,
+                "Zero dim map rejected");
+        tx = -77; ty = -88;
+        require(!game_lab::mapPointToTile(100.0, 100.0, 560.0, 560.0, -10, tx, ty) && tx == -77 && ty == -88,
+                "Negative dim map rejected");
+
     }
     for (const auto& record : factory.records) require(record->destroyed && !record->playing,"all fake player ownership retired");
 }
