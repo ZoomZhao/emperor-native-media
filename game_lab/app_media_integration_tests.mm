@@ -2,6 +2,7 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <ImageIO/ImageIO.h>
 #include "app_media.hpp"
+#include "image_presentation.hpp"
 #include "../scripts/self_fixture_evidence.hpp"
 #include <filesystem>
 #include <fstream>
@@ -78,6 +79,85 @@ public:
         return std::make_unique<FakePlayback>(r);
     }
 };
+class FakeImagePresenter final : public game_lab::ImagePresenter {
+public:
+    bool reject = false;
+    size_t calls = 0;
+    std::vector<uint32_t> image;
+    void clear() override { image.clear(); }
+    bool present(uint32_t width, uint32_t height, const std::vector<uint32_t>& pixels) override {
+        ++calls;
+        self_fixture::numbers("presenter-input", {width, height, reject ? 0u : 1u});
+        const auto* bytes = reinterpret_cast<const uint8_t*>(pixels.data());
+        self_fixture::bytes("presenter-pixels", std::vector<uint8_t>(bytes, bytes + pixels.size() * sizeof(uint32_t)));
+        image = pixels; // A failed converter may leave partial output behind.
+        return !reject;
+    }
+};
+void presentation(uint32_t width, uint32_t height, const std::vector<uint32_t>& pixels) {
+    FakeImagePresenter presenter;
+    const auto show = [&] { return game_lab::presentImage(presenter, width, height, pixels); };
+    require(show() == game_lab::PresentationResult::Presented && presenter.image == pixels,
+            "valid decoded pixels reach the shared presenter");
+    presenter.reject = true;
+    require(show() == game_lab::PresentationResult::ConversionFailure && presenter.image.empty(),
+            "conversion failure clears old and partial images and cannot report success");
+    presenter.reject = false;
+    require(show() == game_lab::PresentationResult::Presented && presenter.image == pixels,
+            "valid replacement recovers after conversion failure");
+    const auto calls = presenter.calls;
+    require(game_lab::presentImage(presenter, 0, height, {}) == game_lab::PresentationResult::InvalidPixels &&
+            presenter.calls == calls && presenter.image.empty(), "invalid input clears the old image before the converter");
+    require(game_lab::presentImage(presenter, width, height, {}) == game_lab::PresentationResult::InvalidPixels &&
+            presenter.calls == calls, "short pixel storage cannot reach the converter");
+}
+void notifications(const game_lab::ResourceRoot& root) {
+    FakeFactory factory;
+    game_lab::AppMedia app(root, factory);
+    app.setMuted(false);
+    app.selectMusic("Audio/Music/self.wav");
+    app.playSfx("Audio/Wavs/self.wav");
+    auto music = factory.records.front(), sfx = factory.records.back();
+    std::vector<game_lab::PlaybackStatus> notices;
+    app.setStatusChangedCallback([&](const game_lab::PlaybackStatus& status) { notices.push_back(status); });
+    sfx->listener->onPlaybackEvent(sfx->ticket, game_lab::PlaybackEvent::Finished);
+    require(notices.size() == 1 && notices.back().state == game_lab::PlaybackState::Playing && app.musicPlaying(),
+            "SFX completion notifies once and preserves the active music status");
+    sfx->listener->onPlaybackEvent(sfx->ticket, game_lab::PlaybackEvent::DecodeError);
+    require(notices.size() == 1, "obsolete terminal event cannot notify again");
+    app.playSfx("Audio/Wavs/self.wav");
+    sfx = factory.records.back(); notices.clear();
+    sfx->listener->onPlaybackEvent(sfx->ticket, game_lab::PlaybackEvent::DecodeError);
+    require(notices.size() == 1 && notices.back().state == game_lab::PlaybackState::DecodeFailure,
+            "active decode error notifies exactly once");
+    sfx->listener->onPlaybackEvent(sfx->ticket, game_lab::PlaybackEvent::Finished);
+    require(notices.size() == 1, "obsolete completion cannot replace the error notification");
+    music->listener->onPlaybackEvent(music->ticket, game_lab::PlaybackEvent::Finished);
+    require(notices.size() == 2 && notices.back().state == game_lab::PlaybackState::Stopped,
+            "music completion notifies the stopped state without a user action");
+    app.setStatusChangedCallback({});
+    app.selectMusic("Audio/Music/self.wav"); music = factory.records.back();
+    music->listener->onPlaybackEvent(music->ticket, game_lab::PlaybackEvent::Finished);
+    require(notices.size() == 2, "unsubscribed observer receives no control or event notifications");
+    app.selectMusic("Audio/Music/self.wav"); music = factory.records.back();
+    bool snapshotStable = false; size_t reentrantCalls = 0;
+    app.setStatusChangedCallback([&](const game_lab::PlaybackStatus& status) {
+        ++reentrantCalls;
+        const auto message = status.message;
+        app.setStatusChangedCallback({});
+        app.stopAll();
+        snapshotStable = status.message == message;
+    });
+    music->listener->onPlaybackEvent(music->ticket, game_lab::PlaybackEvent::Finished);
+    require(reentrantCalls == 1 && snapshotStable, "self-unsubscription and reentry preserve the notification snapshot");
+    auto disposable = std::make_unique<game_lab::AppMedia>(root, factory);
+    disposable->setMuted(false); disposable->selectMusic("Audio/Music/self.wav");
+    auto retiring = factory.records.back();
+    disposable->setStatusChangedCallback([&](const game_lab::PlaybackStatus&) { ++reentrantCalls; });
+    disposable.reset();
+    require(reentrantCalls == 1 && retiring->destroyed && !retiring->playing,
+            "destruction unregisters the observer before playback cleanup");
+}
 std::vector<uint8_t> jpeg() {
     uint32_t pixels[2] = {0xff123456,0xffaabbcc};
     auto space=CGColorSpaceCreateDeviceRGB(); require(space,"JPEG fixture color space");
@@ -135,6 +215,7 @@ void integration() {
     std::filesystem::create_symlink(cwd/"self-outside.wav",files/"escape.wav");
     const auto root=game_lab::ResourceRoot::fromAbsolute(files.string());
     require(root.configured(),"explicit synthetic resource root");
+    notifications(root);
     FakeFactory factory;
     {
         game_lab::AppMedia app(root,factory);
@@ -198,12 +279,14 @@ void integration() {
         const auto image=jpeg(); write(files/"self.jpg",image);
         auto decoded=app.jpeg("self.jpg");
         require(decoded.valid() && decoded.width==2 && decoded.height==1,"App JPEG loading shares production decoder");
+        presentation(decoded.width, decoded.height, decoded.pixelsBGRA);
         auto broken=image; broken.pop_back(); write(files/"broken.jpg",broken);
         require(!app.jpeg("broken.jpg").valid(),"App JPEG truncation regression");
         require(!app.jpeg("missing.jpg").valid() && !app.jpeg("../self.jpg").valid(),"App JPEG missing/traversal invalid");
         write(files/"self.555",{0,0,255,127});
         auto raw=app.raw555("self.555",2,1);
         require(raw.valid() && raw.pixelsBGRA==std::vector<uint32_t>({0xff000000,0xffffffff}),"App raw loading uses actual surface conversion");
+        presentation(raw.width, raw.height, raw.pixelsBGRA);
         require(!app.raw555("self.555",3,1).valid(),"App raw invalid replacement returns no pixels");
         require(!app.raw555("escape.wav",2,1).valid(),"App raw external symlink rejected");
         std::ofstream oversized(files/"oversized.wav",std::ios::binary);
@@ -270,6 +353,7 @@ void integration() {
         auto map = app.cityMap("Cities/test.map");
         require(map.valid() && map.width == 128 && map.height == 128 && map.tiles.size() == 128 * 128,
                 "AppMedia cityMap loads valid synthetic 128x128 map");
+        presentation(map.width, map.height, std::vector<uint32_t>(map.tiles.size(), 0xff456789));
         require(!app.cityMap("../test.map").valid() && !app.cityMap("missing.map").valid(),
                 "AppMedia cityMap traversal/missing fail-closed");
 
@@ -282,6 +366,7 @@ void integration() {
         auto spr = app.sprite(archive.sprites[0], "DATA/test.555");
         require(spr.valid() && spr.width == 16 && spr.height == 16,
                 "AppMedia sprite extracts 16x16 raw555 from companion");
+        presentation(spr.width, spr.height, spr.pixelsBGRA);
         require(!app.sg3("../test.sg3").sprites.size() && !app.sprite(archive.sprites[0], "../test.555").valid(),
                 "AppMedia sg3/sprite traversal fail-closed");
 

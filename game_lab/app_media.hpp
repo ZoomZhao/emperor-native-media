@@ -3,6 +3,7 @@
 #include "emperor_assets.hpp"
 #include "resource_root.hpp"
 #include <memory>
+#include <functional>
 
 namespace game_lab {
 enum class PlaybackEvent { Finished, DecodeError };
@@ -41,7 +42,7 @@ struct PlaybackStatus {
 class AppMedia final : public PlaybackListener {
 public:
     AppMedia(ResourceRoot root, AudioFactory& factory) : root_(std::move(root)), factory_(factory) {}
-    ~AppMedia() override { stopAll(); }
+    ~AppMedia() override { setStatusChangedCallback({}); stopAll(); }
     AppMedia(const AppMedia&) = delete;
     AppMedia& operator=(const AppMedia&) = delete;
     std::string resourcePath(const std::string& relative) const { return root_.resolve(relative); }
@@ -60,11 +61,17 @@ public:
     bool muted() const { return policy_.muted(); }
     bool musicPlaying() const { return music_ && music_->playing(); }
     const PlaybackStatus& status() const { return status_; }
+    // Controls and events use one serialized context. The callback runs inline;
+    // replacing/clearing it takes effect for subsequent status notifications.
+    void setStatusChangedCallback(std::function<void(const PlaybackStatus&)> callback) {
+        statusChanged_ = std::move(callback);
+    }
     void onPlaybackEvent(uint64_t ticket, PlaybackEvent event) override;
 private:
     bool readAudio(const std::string& relative, bool wav, std::vector<uint8_t>& bytes);
     void startMusic();
     void applyPolicy();
+    void setStatus(PlaybackState state, const char* message);
     void retirePlayer(std::unique_ptr<AudioPlayback>& player);
     void collectRetiredPlayers();
     void playCurrent(std::unique_ptr<AudioPlayback>& player, uint64_t& currentTicket,
@@ -80,5 +87,6 @@ private:
     int inPlayDepth_ = 0;
     std::vector<std::unique_ptr<AudioPlayback>> retiredPlayers_;
     PlaybackStatus status_;
+    std::function<void(const PlaybackStatus&)> statusChanged_;
 };
 } // namespace game_lab

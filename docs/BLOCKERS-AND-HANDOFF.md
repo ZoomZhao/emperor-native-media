@@ -1,5 +1,7 @@
 # 原生媒体工程进度
 
+> 2026-10-10 App反馈增量：播放状态通知和共享图像呈现失败合同已接入；集成两配置各118断言、生命周期及App只构建通过。见 [APP_FEEDBACK.md](APP_FEEDBACK.md)。真实GUI/设备仍未验收，原活动目录未同步。
+
 > 2026-10-10 最新发布增量：当前提交已修复同步终止回调后 false 返回的空指针、状态覆盖与提前释放，最终源码所有相关回归和 App 只构建通过。见 [CALLBACK_REPAIR.md](CALLBACK_REPAIR.md)。以下失败记录保留为历史证据；原活动目录未同步，七个暂留路径未合入。
 
 代码发布基线：[dd6d6fe8e8841c505669ca740a088214241f991d](https://github.com/ZoomZhao/emperor-native-media/commit/dd6d6fe8e8841c505669ca740a088214241f991d)，private main 已核对。该版本包含交接前独立修复，来源范围见 [COMMIT_SCOPE.md](COMMIT_SCOPE.md)。当前完整游戏尚未实现。

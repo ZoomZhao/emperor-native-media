@@ -7,17 +7,23 @@
 @end
 
 @implementation AVPlayerDelegateHelper
+- (void)deliverEvent:(game_lab::PlaybackEvent)event {
+    // App controls and listener mutations share the main queue. Recheck the
+    // weak helper at delivery so retired players cannot deliver queued events.
+    __weak AVPlayerDelegateHelper* weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        AVPlayerDelegateHelper* helper = weakSelf;
+        if (helper && helper.listener && helper.ticket)
+            helper.listener->onPlaybackEvent(helper.ticket, event);
+    });
+}
 - (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag {
     (void)player;
-    if (_listener && _ticket) {
-        _listener->onPlaybackEvent(_ticket, flag ? game_lab::PlaybackEvent::Finished : game_lab::PlaybackEvent::DecodeError);
-    }
+    [self deliverEvent:flag ? game_lab::PlaybackEvent::Finished : game_lab::PlaybackEvent::DecodeError];
 }
 - (void)audioPlayerDecodeErrorDidOccur:(AVAudioPlayer *)player error:(NSError *)error {
     (void)player; (void)error;
-    if (_listener && _ticket) {
-        _listener->onPlaybackEvent(_ticket, game_lab::PlaybackEvent::DecodeError);
-    }
+    [self deliverEvent:game_lab::PlaybackEvent::DecodeError];
 }
 @end
 

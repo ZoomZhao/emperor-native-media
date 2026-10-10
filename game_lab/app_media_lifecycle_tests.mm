@@ -99,12 +99,17 @@ int main(int argc,char**argv){@autoreleasepool{
         if((path!="music-start" && path!="music-resume" && path!="sfx-start") || (kind!="error" && kind!="finished"))return 2;
         const auto event=kind=="error"?game_lab::PlaybackEvent::DecodeError:game_lab::PlaybackEvent::Finished;
         Factory f;game_lab::AppMedia app(root,f);app.setMuted(false);
+        size_t notificationCount=0;
+        auto notifiedState=game_lab::PlaybackState::Muted;
+        const auto observer=[&](const game_lab::PlaybackStatus& status){++notificationCount;notifiedState=status.state;};
         if(path=="music-resume"){
             app.selectMusic("self.wav");app.toggleMusic();
             auto r=f.records.back();r->emitDuringPlay=true;r->accepted=false;r->event=event;
+            app.setStatusChangedCallback(observer);
             app.toggleMusic();
         }else{
             f.immediateError=true;f.accepted=false;f.event=event;
+            app.setStatusChangedCallback(observer);
             if(path=="music-start")app.selectMusic("self.wav");else app.playSfx("self.wav");
         }
         auto r=f.records.back();
@@ -112,8 +117,9 @@ int main(int argc,char**argv){@autoreleasepool{
         const bool status=app.status().state==expected;
         const bool retired=r->destroyed && !r->playing && !app.musicPlaying();
         const bool lifetime=!r->destroyedDuringPlay;
-        std::printf("{\"path\":\"%s\",\"event\":\"%s\",\"return_value\":false,\"status_preserved\":%s,\"retired\":%s,\"backend_survives_own_play_callback\":%s}\n",path.c_str(),kind.c_str(),status?"true":"false",retired?"true":"false",lifetime?"true":"false");
-        return status && retired && lifetime?0:1;
+        const bool notified=notificationCount==1 && notifiedState==expected;
+        std::printf("{\"path\":\"%s\",\"event\":\"%s\",\"return_value\":false,\"status_preserved\":%s,\"retired\":%s,\"backend_survives_own_play_callback\":%s,\"terminal_notification_once\":%s}\n",path.c_str(),kind.c_str(),status?"true":"false",retired?"true":"false",lifetime?"true":"false",notified?"true":"false");
+        return status && retired && lifetime && notified?0:1;
     }
     bool overlap=false, synchronousStart=false, synchronousResume=false, callbackLifetime=false;
     {

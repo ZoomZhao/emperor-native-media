@@ -4,6 +4,7 @@
 #include "../emperor_assets.hpp"
 #include "../resource_root.hpp"
 #include "../audio_policy.hpp"
+#include "../image_presentation.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -28,6 +29,24 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
     NSImage* result = [[NSImage alloc] initWithCGImage:image size:NSMakeSize(width, height)];
     CGImageRelease(image);
     return result;
+}
+
+class ViewImagePresenter final : public game_lab::ImagePresenter {
+public:
+    explicit ViewImagePresenter(NSImageView* view) : view_(view) {}
+    void clear() override { view_.image = nil; }
+    bool present(uint32_t width, uint32_t height, const std::vector<uint32_t>& pixels) override {
+        if (!view_) return false;
+        view_.image = imageFromPixels(width, height, pixels);
+        return view_.image != nil;
+    }
+private:
+    NSImageView* __weak view_;
+};
+static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
+                          const std::vector<uint32_t>& pixels) {
+    ViewImagePresenter presenter(view);
+    return game_lab::presentImage(presenter, width, height, pixels) == game_lab::PresentationResult::Presented;
 }
 
 @interface EmperorAppDelegate : NSObject <NSApplicationDelegate, NSTableViewDelegate, NSTableViewDataSource> {
@@ -82,14 +101,25 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
     NSMutableArray<NSString*>* _filteredTexts;
 }
 - (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root;
+- (void)refreshAudioStatus;
 @end
 
 @implementation EmperorAppDelegate
 
 - (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root {
     self = [super init];
-    if (self) _media = std::make_unique<game_lab::AppMedia>(root, _audioFactory);
+    if (self) {
+        _media = std::make_unique<game_lab::AppMedia>(root, _audioFactory);
+        __weak EmperorAppDelegate* weakSelf = self;
+        _media->setStatusChangedCallback([weakSelf](const game_lab::PlaybackStatus&) {
+            [weakSelf refreshAudioStatus];
+        });
+    }
     return self;
+}
+
+- (void)dealloc {
+    if (_media) _media->setStatusChangedCallback({});
 }
 
 - (std::string)resourcePath:(NSString*)relativePath {
@@ -219,31 +249,26 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
 
 - (void)playMusicTrack:(NSString*)relativePath {
     _media->selectMusic(relativePath.UTF8String ? relativePath.UTF8String : "");
-    [self refreshAudioStatus];
 }
 
 - (void)playSFX:(NSString*)filename {
     const auto relative = [NSString stringWithFormat:@"Audio/Wavs/%@", filename];
     _media->playSfx(relative.UTF8String ? relative.UTF8String : "");
-    [self refreshAudioStatus];
 }
 
 - (void)togglePlayPause:(id)sender {
     (void)sender;
     _media->toggleMusic();
-    [self refreshAudioStatus];
 }
 
 - (void)toggleMute:(id)sender {
     (void)sender;
     _media->setMuted(!_media->muted());
-    [self refreshAudioStatus];
 }
 
 - (void)onVolumeChanged:(id)sender {
     (void)sender;
     _media->setVolume(_volumeSlider.doubleValue);
-    [self refreshAudioStatus];
 }
 
 // ----------------------------------------------------
@@ -255,10 +280,9 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
     
     // Load China_FE_MainMenu.jpg
     const auto decoded = _media->jpeg("DATA/China_FE_MainMenu.jpg");
-    _mainMenuImage = decoded.valid() ? imageFromPixels(decoded.width, decoded.height, decoded.pixelsBGRA) : nil;
-    
     _mainMenuImageView = [[NSImageView alloc] initWithFrame:_mainMenuView.bounds];
-    _mainMenuImageView.image = _mainMenuImage;
+    presentPixels(_mainMenuImageView, decoded.width, decoded.height, decoded.pixelsBGRA);
+    _mainMenuImage = _mainMenuImageView.image;
     _mainMenuImageView.imageScaling = NSImageScaleAxesIndependently;
     _mainMenuImageView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     [_mainMenuView addSubview:_mainMenuImageView];
@@ -363,9 +387,6 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
         return;
     }
     
-    _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 尺寸: 128×128 (共 %zu 地块) · zlib 解压完成",
-                                 filename, cityMap.tiles.size()];
-    
     // Preview tile IDs with arbitrary colors; this is not terrain simulation.
     std::vector<uint32_t> pixels(128 * 128);
     for (size_t i = 0; i < cityMap.tiles.size(); ++i) {
@@ -376,7 +397,12 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
         pixels[i] = (255u << 24) | (r << 16) | (g << 8) | b;
     }
     
-    _mapCanvasView.image = imageFromPixels(128, 128, pixels);
+    if (!presentPixels(_mapCanvasView, 128, 128, pixels)) {
+        _mapInfoLabel.stringValue = @"地图图片转换失败";
+        return;
+    }
+    _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 尺寸: 128×128 (共 %zu 地块) · zlib 解压完成",
+                                 filename, cityMap.tiles.size()];
 }
 
 // ----------------------------------------------------
@@ -441,8 +467,8 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
         const auto relative = [NSString stringWithFormat:@"DATA/%@", name];
         const auto raw = _media->raw555(relative.UTF8String, 640, 480);
         if (raw.valid()) {
-            _spriteImageView.image = imageFromPixels(raw.width, raw.height, raw.pixelsBGRA);
-            _spriteInfoLabel.stringValue = _spriteImageView.image ?
+            const bool presented = presentPixels(_spriteImageView, raw.width, raw.height, raw.pixelsBGRA);
+            _spriteInfoLabel.stringValue = presented ?
                 [NSString stringWithFormat:@"贴图: %@ · 尺寸: 640×480 · 格式: RGB555LE", name] :
                 @"贴图转换失败";
         }
@@ -470,12 +496,14 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
 }
 
 - (void)renderSpriteAtIndex:(size_t)idx {
-    if (idx >= _currentSG3.sprites.size()) return;
+    if (idx >= _currentSG3.sprites.size()) {
+        _spriteImageView.image = nil;
+        _spriteInfoLabel.stringValue = @"图素序号无效";
+        return;
+    }
     const auto& s = _currentSG3.sprites[idx];
     const auto extracted = _media->sprite(s, _current555Path);
-    _spriteImageView.image = extracted.valid() ?
-        imageFromPixels(extracted.width, extracted.height, extracted.pixelsBGRA) : nil;
-    if (!_spriteImageView.image) {
+    if (!presentPixels(_spriteImageView, extracted.width, extracted.height, extracted.pixelsBGRA)) {
         _spriteInfoLabel.stringValue = @"图素布局不受支持或转换失败";
         return;
     }
