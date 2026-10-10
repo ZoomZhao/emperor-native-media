@@ -1,0 +1,207 @@
+{
+  "schema": "AUTHORED_NATIVE_GUEST_MEMORY_TEST_V1",
+  "production_source_modified": false,
+  "host_page_verified_bytes": [
+    16384
+  ],
+  "other_host_page_sizes_verified": false,
+  "coverage": [
+    "adjacent region and hole guards",
+    "guest permissions remain enforced within shared native pages",
+    "actual native page RW union and NX",
+    "32-bit exclusive end and length overflow",
+    "selected allocation, mapping, file-open, page-size and first/final protection failure paths actually reached",
+    "truncated self-authored file and invalid offset cleanup",
+    "64 closed-object reuse cycles and repeated close"
+  ],
+  "non_claims": [
+    "original guest or checkpoint execution",
+    "game or city behavior",
+    "un-instrumented provider binary equivalence",
+    "resource pressure and OS failure occurrence",
+    "all host page sizes",
+    "real UI, video or audio devices"
+  ],
+  "runs": [
+    {
+      "layout": "repository",
+      "mode": "release",
+      "result": {
+        "passed": true,
+        "assertions": 1509,
+        "native_page_bytes": 16384,
+        "cycles": 64,
+        "cross_region": true,
+        "native_permissions_and_nx": true,
+        "overflow": true,
+        "failure_cleanup": true,
+        "repeated_lifecycle": true,
+        "GameData": false,
+        "checkpoint": false,
+        "guest_code": false,
+        "ui": false,
+        "audio_devices": false
+      },
+      "sources_sha256": {
+        "scripts/guest_memory_runner.py": "5f91fdef9abc45df352b4118eebc2af9e7e272a3a173b9be0aabad5aed11ecda",
+        "runtime_core/tests/guest_memory_native_tests.c": "9d6208af8069bd601a162aa10c3d1b95704261a18e8c6bf99d5af69c82f5cf88",
+        "runtime_core/tests/guest_memory_test_hooks.h": "2613c66476bd26a6601cbbd5652c3343f82ac48ccc8dcbe8e610acddee3638ac",
+        "legacy/src/stage79/tools/guest_memory.c": "1901e04bdd1cbc7ba7f3738ec48143e421f4d0e3e44ffbd9a32b81709981bf0d",
+        "legacy/src/stage79/tools/guest_memory.h": "498a899e93b85eb45274e5203e2e480df04b163596b2de0c4203dd23d7a46244"
+      },
+      "input_manifest": {
+        "self_authored": true,
+        "actual_inputs": {
+          "fixtures/full.bin": {
+            "sha256": "f55d429452b117f07b1b8cd185ecf79423a5b94a5424fdce10e8bfa9001b4d7b",
+            "bytes": 8192
+          },
+          "fixtures/short.bin": {
+            "sha256": "a368c0a1c10bda73d382d208c91ae5abf96964d7c156e2ed7a8443659a1b3a89",
+            "bytes": 31
+          },
+          "inputs.jsonl": {
+            "sha256": "dc67790c3dbe999df9641abcb27d6bd7572eb6932d7d57d47feb1a48ba125fab",
+            "bytes": 11991
+          }
+        }
+      },
+      "build_manifest": {
+        "binaries_sha256": {
+          "guest_memory.o": "4ca2ab3fae92feac0f7a2c9551489cacb3dae76a168099abfe8d25b852179aef",
+          "guest-tests.o": "b5b45c15589071984818e462ed184b03fea9dd78e076172242f55503580ed2a4",
+          "guest-tests": "b6a0cd6691c74f8a2812251b09e9e1ff24ff45ce713843b39722b13904548fde"
+        },
+        "source_manifest_sha256": "1e1c91261c92541ec5488e42c9e892bceec93b7acf0324ab32f29c0e02a4e044"
+      },
+      "result_manifest_sha256": "e8d1de174d449cc2b58f19977a8ee55aa8d037e6d6942c07f9625e03ac010672",
+      "processes": [
+        {
+          "label": "compiler-version",
+          "exit_code": 0,
+          "timed_out": false,
+          "timeout_seconds": 60,
+          "elapsed_seconds": 0.04834362500000001
+        },
+        {
+          "label": "compile-provider",
+          "exit_code": 0,
+          "timed_out": false,
+          "timeout_seconds": 60,
+          "elapsed_seconds": 0.08223600000000002
+        },
+        {
+          "label": "compile-test",
+          "exit_code": 0,
+          "timed_out": false,
+          "timeout_seconds": 60,
+          "elapsed_seconds": 0.14925141699999997
+        },
+        {
+          "label": "link-self-test",
+          "exit_code": 0,
+          "timed_out": false,
+          "timeout_seconds": 60,
+          "elapsed_seconds": 0.082739917
+        },
+        {
+          "label": "native-self-test",
+          "exit_code": 0,
+          "timed_out": false,
+          "timeout_seconds": 60,
+          "elapsed_seconds": 1.955002292
+        }
+      ]
+    },
+    {
+      "layout": "no_git_export",
+      "mode": "undefined",
+      "result": {
+        "passed": true,
+        "assertions": 1509,
+        "native_page_bytes": 16384,
+        "cycles": 64,
+        "cross_region": true,
+        "native_permissions_and_nx": true,
+        "overflow": true,
+        "failure_cleanup": true,
+        "repeated_lifecycle": true,
+        "GameData": false,
+        "checkpoint": false,
+        "guest_code": false,
+        "ui": false,
+        "audio_devices": false
+      },
+      "sources_sha256": {
+        "scripts/guest_memory_runner.py": "5f91fdef9abc45df352b4118eebc2af9e7e272a3a173b9be0aabad5aed11ecda",
+        "runtime_core/tests/guest_memory_native_tests.c": "9d6208af8069bd601a162aa10c3d1b95704261a18e8c6bf99d5af69c82f5cf88",
+        "runtime_core/tests/guest_memory_test_hooks.h": "2613c66476bd26a6601cbbd5652c3343f82ac48ccc8dcbe8e610acddee3638ac",
+        "legacy/src/stage79/tools/guest_memory.c": "1901e04bdd1cbc7ba7f3738ec48143e421f4d0e3e44ffbd9a32b81709981bf0d",
+        "legacy/src/stage79/tools/guest_memory.h": "498a899e93b85eb45274e5203e2e480df04b163596b2de0c4203dd23d7a46244"
+      },
+      "input_manifest": {
+        "self_authored": true,
+        "actual_inputs": {
+          "fixtures/full.bin": {
+            "sha256": "f55d429452b117f07b1b8cd185ecf79423a5b94a5424fdce10e8bfa9001b4d7b",
+            "bytes": 8192
+          },
+          "fixtures/short.bin": {
+            "sha256": "a368c0a1c10bda73d382d208c91ae5abf96964d7c156e2ed7a8443659a1b3a89",
+            "bytes": 31
+          },
+          "inputs.jsonl": {
+            "sha256": "dc67790c3dbe999df9641abcb27d6bd7572eb6932d7d57d47feb1a48ba125fab",
+            "bytes": 11991
+          }
+        }
+      },
+      "build_manifest": {
+        "binaries_sha256": {
+          "guest_memory.o": "bfd50841d3021529e6feda849d87421d3d3a4afa34dd362d91830b4fb875e962",
+          "guest-tests.o": "e3401d4208360e9f1030034a724928e05869d0c48aab529584e1830c934df737",
+          "guest-tests": "6e238fcfc1e3f3ddaf6df0e0aa1b1e1e2f7c159cd04e0610407112d05e673952"
+        },
+        "source_manifest_sha256": "b9ba588ef5d76944de42740796d02be83600f66f4c9a58b01fb8ffb9696c2abc"
+      },
+      "result_manifest_sha256": "d8936491e39c497ffd2695a0050456156de10c4c6310fc397b686b5bab2ef505",
+      "processes": [
+        {
+          "label": "compiler-version",
+          "exit_code": 0,
+          "timed_out": false,
+          "timeout_seconds": 60,
+          "elapsed_seconds": 0.048092499999999996
+        },
+        {
+          "label": "compile-provider",
+          "exit_code": 0,
+          "timed_out": false,
+          "timeout_seconds": 60,
+          "elapsed_seconds": 0.082646834
+        },
+        {
+          "label": "compile-test",
+          "exit_code": 0,
+          "timed_out": false,
+          "timeout_seconds": 60,
+          "elapsed_seconds": 0.149139
+        },
+        {
+          "label": "link-self-test",
+          "exit_code": 0,
+          "timed_out": false,
+          "timeout_seconds": 60,
+          "elapsed_seconds": 0.08835529199999997
+        },
+        {
+          "label": "native-self-test",
+          "exit_code": 0,
+          "timed_out": false,
+          "timeout_seconds": 60,
+          "elapsed_seconds": 2.340338084
+        }
+      ]
+    }
+  ]
+}
