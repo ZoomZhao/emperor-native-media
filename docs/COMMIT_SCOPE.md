@@ -1,9 +1,9 @@
 # 本次提交的来源与验收边界
 
-本次在已推送并核验的2297a2e基础上补上两个实际App消费者：播放状态通知到标签/按钮刷新，以及共享图像呈现结果到成功/失败说明。修改限当前自写AppMedia、原生delegate接线、呈现头文件、自造测试、源码指纹/明确runner清单和相关文档。
+本次从已发布452f9e9继续修复已有App的启动可用性：缺参数/环境配置时提供明确目录选择入口，取消正常退出，保留显式配置优先和失败拒绝。修改限共享启动决策、真实main接线、自造集成用例、源码指纹/明确runner清单及相关说明。
 
-最终源码重新通过原四项、六反例、扩展生命周期Release/UBSAN（六终止场景还要求只通知一次）、集成两配置各118断言及App仅构建/签名/系统链接检查。见 [APP_FEEDBACK.md](APP_FEEDBACK.md)、[app-feedback-receipt.json](app-feedback-receipt.json)。上一生命周期修复见 [CALLBACK_REPAIR.md](CALLBACK_REPAIR.md)，旧报告按自己的源码哈希和时点解释。
+最终源码集成Release/UBSAN各135断言与App只构建/签名/系统链接检查通过。先前播放反例的生产/测试及依赖字节均未变，以452f9e9凭据复核，不计为本轮新执行。见 [APP_LAUNCH.md](APP_LAUNCH.md) 与 [app-launch-receipt.json](app-launch-receipt.json)。
 
-保留原活动目录和索引，未声称它们已同步。继续排除 game_lab/run.sh、game_lab/boundary_tests.mm、runtime_core/dependency-map.json、docs/SOURCE_REPAIR.md、docs/source-repair-static-audit.json、docs/RUNTIME_PREPARATION.md、docs/runtime-preparation-static-audit.json，以及其他无关变化。
+继续排除原活动目录的七个暂留变化及其他无关修改；原目录、索引与ang会话不操作，不声称已同步。未加入GameData、原/衍生游戏二进制、生成程序/包、密钥或个人本地路径，legacy保持基线且未检出/执行。只提交可复现源码和去除本地路径的摘要凭据。
 
-没有新增游戏资产、原或衍生游戏二进制、生成程序/包、密钥或个人本地路径；legacy保持基线且未检出/执行。仓库只收可复现源码与去除本地路径的摘要凭据；原始输入和日志保留本地。未启动UI或使用音频设备，不恢复受阻的原执行路线。
+新NSOpenPanel接线只构建；没有启动项目GUI或使用设备，fake选择器不代表Finder/窗口运行通过。完整城市/视频/Bink/存档仍缺实现或消费者，不恢复受阻原执行路线。

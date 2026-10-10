@@ -5,6 +5,7 @@
 #include "../resource_root.hpp"
 #include "../audio_policy.hpp"
 #include "../image_presentation.hpp"
+#include "../app_launch.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -668,30 +669,41 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 @end
 
 int main(int argc, const char* argv[]) {
-    const char* environment = std::getenv("EMPEROR_GAMEDATA_ROOT");
-    std::string path = environment ? environment : "";
-    bool supplied = false;
-    for (int i = 1; i < argc; ++i) {
-        if (std::strcmp(argv[i], "--help") == 0) {
-            std::fprintf(stdout, "Usage: EmperorApp --data-root /absolute/path/to/GameData\n");
+    @autoreleasepool {
+        const char* environment = std::getenv("EMPEROR_GAMEDATA_ROOT");
+        std::vector<std::string> arguments;
+        for (int i = 1; i < argc; ++i) arguments.emplace_back(argv[i]);
+        const auto plan = game_lab::prepareLaunch(arguments, environment ? environment : "", [] {
+            NSApplication* app = [NSApplication sharedApplication];
+            [app setActivationPolicy:NSApplicationActivationPolicyRegular];
+            NSOpenPanel* chooser = [NSOpenPanel openPanel];
+            chooser.canChooseFiles = NO;
+            chooser.canChooseDirectories = YES;
+            chooser.allowsMultipleSelection = NO;
+            chooser.canCreateDirectories = NO;
+            chooser.message = @"请选择包含 DATA、Audio 等子目录的媒体资源目录";
+            chooser.prompt = @"选择";
+            if ([chooser runModal] != NSModalResponseOK) return std::string{};
+            const char* selected = chooser.URL.path.UTF8String;
+            return selected ? std::string(selected) : std::string{};
+        });
+        if (plan.action == game_lab::LaunchAction::Help) {
+            std::fprintf(stdout, "Usage: EmperorApp [--data-root /absolute/path/to/GameData]\n"
+                                 "Without a root argument or EMPEROR_GAMEDATA_ROOT, choose a resource directory.\n");
             return 0;
         }
-        if (std::strcmp(argv[i], "--data-root") != 0 || supplied || i + 1 >= argc) {
+        if (plan.action == game_lab::LaunchAction::ArgumentError) {
             std::fprintf(stderr, "Expected --data-root with an absolute resource directory.\n");
             return 2;
         }
-        path = argv[++i];
-        supplied = true;
-    }
-    const auto root = game_lab::ResourceRoot::fromAbsolute(path);
-    if (!root.configured()) {
-        std::fprintf(stderr, "Set --data-root or EMPEROR_GAMEDATA_ROOT to a readable absolute directory.\n");
-        return 2;
-    }
-    @autoreleasepool {
+        if (plan.action == game_lab::LaunchAction::RootError) {
+            std::fprintf(stderr, "Set --data-root or EMPEROR_GAMEDATA_ROOT to a readable absolute directory.\n");
+            return 2;
+        }
+        if (plan.action == game_lab::LaunchAction::Cancelled) return 0;
         NSApplication* app = [NSApplication sharedApplication];
         [app setActivationPolicy:NSApplicationActivationPolicyRegular];
-        EmperorAppDelegate* delegate = [[EmperorAppDelegate alloc] initWithResourceRoot:root];
+        EmperorAppDelegate* delegate = [[EmperorAppDelegate alloc] initWithResourceRoot:plan.root];
         app.delegate = delegate;
         [app run];
     }

@@ -24,7 +24,7 @@ EMPEROR_BUILD_DIR=/absolute/fresh/build make game-app # 新目录构建，不自
 make run-game                                  # 显式传入仓库 GameData 绝对目录后启动
 ```
 
-也可显式配置 `EmperorApp --data-root /absolute/path/to/GameData`，或环境变量 `EMPEROR_GAMEDATA_ROOT`；命令行优先。缺少/无效配置返回 2，在创建 App/播放器前退出。目录不打包、不提交；Finder 独立启动不会猜测工作目录。配置成功不证明所有候选资源存在或读取权限齐全。
+也可显式配置 `EmperorApp --data-root /absolute/path/to/GameData`，或环境变量 `EMPEROR_GAMEDATA_ROOT`；命令行优先。二者都未配置时会让用户明确选择资源目录，取消正常退出 0；明确配置无效仍返回 2，不弹选择器替代该配置。目录不打包、不提交、不保存为偏好；Finder 独立启动不猜测工作目录。配置成功不证明所有候选资源存在或读取权限齐全。实际选择窗口尚未运行验证，启动合同和 App 构建验收见 [APP_LAUNCH.md](../docs/APP_LAUNCH.md)。
 
 路径过滤只是应用自身的配置合同，不是 OS sandbox；并发替换 symlink 等竞态没有专门防护验收。本轮没有绕过任何读取权限，也没有判断旧包外读取等待的系统原因。
 

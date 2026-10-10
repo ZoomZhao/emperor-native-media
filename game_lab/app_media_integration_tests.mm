@@ -3,6 +3,7 @@
 #import <ImageIO/ImageIO.h>
 #include "app_media.hpp"
 #include "image_presentation.hpp"
+#include "app_launch.hpp"
 #include "../scripts/self_fixture_evidence.hpp"
 #include <filesystem>
 #include <fstream>
@@ -158,6 +159,60 @@ void notifications(const game_lab::ResourceRoot& root) {
     require(reentrantCalls == 1 && retiring->destroyed && !retiring->playing,
             "destruction unregisters the observer before playback cleanup");
 }
+void launches(const std::filesystem::path& files) {
+    const auto environmentFiles = files.parent_path() / "self-env root";
+    write(environmentFiles / "marker.wav", wave());
+    size_t choices = 0;
+    const auto choose = [&] {
+        self_fixture::numbers("launch-choice", {++choices});
+        const auto path = files.string();
+        self_fixture::bytes("launch-choice-path", std::vector<uint8_t>(path.begin(), path.end()));
+        return path;
+    };
+    const auto selected = game_lab::prepareLaunch({}, "", choose);
+    require(selected.action == game_lab::LaunchAction::Start && choices == 1 && selected.root.configured(),
+            "unconfigured launch accepts one explicit directory selection");
+    FakeFactory factory;
+    {
+        game_lab::AppMedia media(selected.root, factory);
+        require(media.muted() && factory.calls == 0, "selected launch root cannot auto-start audio");
+        media.setMuted(false); media.playSfx("Audio/Wavs/self.wav");
+        require(factory.calls == 1 && factory.records.back()->bytes == wave(),
+                "chosen launch root reaches the actual bounded AppMedia audio path");
+    }
+    const auto explicitRoot = game_lab::prepareLaunch({"--data-root", files.string()}, environmentFiles.string(), choose);
+    require(explicitRoot.action == game_lab::LaunchAction::Start && choices == 1 &&
+            !explicitRoot.root.resolve("Audio/Wavs/self.wav").empty() && explicitRoot.root.resolve("marker.wav").empty(),
+            "command-line root wins over environment and never opens the chooser");
+    const auto environmentRoot = game_lab::prepareLaunch({}, environmentFiles.string(), choose);
+    require(environmentRoot.action == game_lab::LaunchAction::Start && choices == 1 &&
+            !environmentRoot.root.resolve("marker.wav").empty(), "explicit environment root with spaces avoids the chooser");
+    for (const auto& arguments : std::vector<std::vector<std::string>>{
+            {"--data-root"}, {"--unknown"}, {"--data-root", files.string(), "--data-root", files.string()}}) {
+        const auto plan = game_lab::prepareLaunch(arguments, environmentFiles.string(), choose);
+        require(plan.action == game_lab::LaunchAction::ArgumentError && choices == 1,
+                "malformed/unknown/duplicate arguments fail before root choice");
+    }
+    for (const auto& path : std::vector<std::string>{"", "relative", (files.parent_path() / "missing-root").string()}) {
+        const auto plan = game_lab::prepareLaunch({"--data-root", path}, environmentFiles.string(), choose);
+        require(plan.action == game_lab::LaunchAction::RootError && choices == 1 && !plan.root.configured(),
+                "invalid supplied root cannot fall back to environment or picker");
+    }
+    require(game_lab::prepareLaunch({}, "relative", choose).action == game_lab::LaunchAction::RootError && choices == 1,
+            "invalid configured environment fails without a picker fallback");
+    require(game_lab::prepareLaunch({"--help"}, "relative", choose).action == game_lab::LaunchAction::Help && choices == 1,
+            "help does not inspect resources or open a picker");
+    require(game_lab::prepareLaunch({}, "", {}).action == game_lab::LaunchAction::RootError,
+            "headless caller without configuration fails rather than searching cwd");
+    size_t cancellations = 0;
+    const auto cancelled = game_lab::prepareLaunch({}, "", [&] { ++cancellations; return std::string{}; });
+    require(cancelled.action == game_lab::LaunchAction::Cancelled && cancellations == 1 && !cancelled.root.configured(),
+            "cancelled root choice ends startup without retry or resource access");
+    size_t invalidSelections = 0;
+    const auto invalid = game_lab::prepareLaunch({}, "", [&] { ++invalidSelections; return (files / "Audio/Wavs/self.wav").string(); });
+    require(invalid.action == game_lab::LaunchAction::RootError && invalidSelections == 1,
+            "picker output is validated as a directory rather than trusted");
+}
 std::vector<uint8_t> jpeg() {
     uint32_t pixels[2] = {0xff123456,0xffaabbcc};
     auto space=CGColorSpaceCreateDeviceRGB(); require(space,"JPEG fixture color space");
@@ -216,6 +271,7 @@ void integration() {
     const auto root=game_lab::ResourceRoot::fromAbsolute(files.string());
     require(root.configured(),"explicit synthetic resource root");
     notifications(root);
+    launches(files);
     FakeFactory factory;
     {
         game_lab::AppMedia app(root,factory);
