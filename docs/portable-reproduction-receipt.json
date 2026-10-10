@@ -1,0 +1,379 @@
+{
+  "schema": "CLEAN_INDEPENDENT_REPRODUCTION_V1",
+  "clean_export_sha256": "7a6c05fedb6dccf4312ed78a2c4f9194233e08892fcfc7285098232a20fca76e",
+  "source_files_sha256": {
+    "scripts/independent_runner.py": "ab933933ebad8c3691aa6369725cbf056c689416b46c50871a69d8b03f40e261",
+    "scripts/self_fixture_evidence.hpp": "34093527d4a50273d4630aeb22e0ba99c0b801a440cdce770cbeb59bd3635c09",
+    "runtime_core/src/heap_native.c": "0fc37f1974a0b3dc229f9b9fd2ccb5ff2c454a7f4d49e8ef36745951ae9de6f5",
+    "runtime_core/include/heap_native.h": "91a78e4378906d38349c16e35e7a00c31a0c6b88f1f562add58811972d09d205",
+    "runtime_core/include/memory.hpp": "b56d032f8927c035a1211b3e13f9c7570695ddaeaa62d4e367d90d515c36b672",
+    "runtime_core/include/thread_state.hpp": "1343463cadaa7678fac827d5a592713324293109985e6ee4f15a96a8972ced34",
+    "runtime_core/tests/boundary_tests.cpp": "b69ba2af2273a9e7bea5ff093acc3871ad3c72e6d108bbdf1539d82b401a1534",
+    "runtime_core/state_codec.py": "b2c1c5c6f3d849fb3ee1d5d67172d6e525fbc948818995f538207de3fb341a7d",
+    "runtime_core/tests/state_codec_tests.py": "453ca414385ecf16eec87541970685385023339d121ff3183553cd8c224f6633",
+    "runtime_core/run_boundaries.sh": "8db257ef41063a68ad5230d433fd65f75565b2225c09ea1ff2fd513a14c2514f",
+    "game_lab/pure_boundary_tests.mm": "205a871c27309257fec5ec51823a6a640fdeddf59f931a58cb3efaaef2f1a3b1",
+    "game_lab/emperor_assets.mm": "0ba2c9c96b13f20b116ca4a548ac4f5e12deb19a27b1ab632fdd204e38a6e579",
+    "game_lab/emperor_assets.hpp": "025cbe1b49860aae6e52e65ceda73f417347632ea8ad1655f27722a3979e0160",
+    "game_lab/asset_bytes.hpp": "cbff9db423ee6eddd83309345b20a5501a6d37baa45e2c1ebd4ab4f3b81ea1a0",
+    "game_lab/asset_limits.hpp": "f9de7d0f9092c910b8d22dd755c0f2ae1c7db887f0df1b9b16aac08923d128c2",
+    "game_lab/asset_pixels.cpp": "002697fa0052ca790e52994f570b9df741be9005d9bebc4d0e670bc689975ace",
+    "game_lab/wav_pcm.cpp": "bbeeebb29992cb0ff027a589eef0413bdb2edc363f796b0eed10429d10cf1665",
+    "game_lab/resource_root.cpp": "da8b4ecbfcd479cd104ddf43f383099a2a6c756ff7329dfce59b7cc9136e582b",
+    "game_lab/resource_root.hpp": "d43a9447a1280206687d6f42e41a1e1113a58050b6d8e39c5584c4d25c551f55",
+    "game_lab/audio_policy.hpp": "4d78a6ef7129f6d3e44c786726763ec79ef89780d88fa91c0a9a1715d2d979e0",
+    "surface_lab/surface.cpp": "2d0d0f79760b347d0d7451543d3aff0100f9f2892e382f6c3915ced88fd5dc79",
+    "surface_lab/surface.hpp": "003653b9ea75f662e6ed3e06b8fa70d6f0e968031708983747773923a63b280b",
+    "game_lab/run_boundaries.sh": "19263c0929ef617dd488be2f36d2faef128073f4ee32765f881f5e350a34ef19",
+    "game_lab/app/main.mm": "40ae5f4a1508ed023e875b224a908f3f8216e5878c99d74d3f8b1db9930c475a",
+    "game_lab/app/build.sh": "ef314fa66a2900edbae2668ec020a263a81f549dac721e4b7e8dd677dba1328a",
+    "game_lab/app/build_provenance.py": "b7377c7dc6ad7bb18258e559eaca469e3ee76faca0432a71a5e8ee3264fb7193",
+    "game_lab/app/Info.plist": "14363adf7f596057f71048b87b4b0549d1bda5bb3c4c93ae4f17b638b1a17ffd",
+    "game_lab/app/av_audio_backend.hpp": "48a5008d73f1aca309aee0b145ab66b4486509b27171f262d1424bd0214a0b72",
+    "game_lab/app/av_audio_backend.mm": "5d78853207a3a66a47eba78ddd29ce3a12a6195aa4167cbcdc166f28987db700",
+    "game_lab/app_media.hpp": "d4dc98e855752c9dd987f2df3a1d67780749710d5c71a000b798142377c9f609",
+    "game_lab/app_media.cpp": "4bd85b1b9cdaf2a716226f13000fb1dacc9ce5b1fd4536e119b41f5e3a76cbb2",
+    "game_lab/app_media_integration_tests.mm": "9e0defb8b4e4743d1afc6e326eaaa81033534455bd8954bfb3e542d565f5cacc",
+    "game_lab/run_app_integration.sh": "870792c88f4ad5fdb8d80e179ba179bc3b7ccd11d1a4fc2cdedabf3a42edf5bc"
+  },
+  "runs": {
+    "data-release-3tctrdrb": {
+      "result": {
+        "passed": true,
+        "suite": "data",
+        "mode": "release",
+        "results": {
+          "data": {
+            "passed": true,
+            "assertions": 91,
+            "input": "self-authored",
+            "original_engine": false
+          },
+          "tlv": {
+            "passed": true,
+            "tests_run": 11,
+            "failures": 0,
+            "errors": 0,
+            "fixtures": "self-authored-memory",
+            "file_input": false,
+            "legacy_imported": false
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "records_sha256": {
+        "source-manifest.json": "ec51a01085cc98e33c5b745d9adca8483220bf35c46c2de02c6e8bee8be4d6fb",
+        "compile-cpp.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-manifest.json": "1861a220e26b3544d9201413dc38ce811b1fa0979d4cde4b6bfe9d35bd7716e4",
+        "result.json": "a9fb79ca8762f3405ebc2e3748670eef1ea89b70ba177f0de485de375857df9d",
+        "tlv-test.stderr": "0d010c438a5f97482c5e6b2a2103ec7543d3e9480351818e78428d0ec13392d1",
+        "data-tests": "09541142e8fdf4bcda3b6b6cae3fe9c505a2d83c7727386279fd76f72f2cacbd",
+        "tlv-test.stdout": "8fd05ccdaf85fcd0a2a1bd2db17a71536eda1bf1b43667aa3c7cc8113e3f0d1b",
+        "build-manifest.json": "2ebb07cf094dbaad44df2a37cf2faa4d1f0c85b30c1cd55b9846bdd6b09f0c3e",
+        "compile-cpp.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heap_native.o": "20d6d1ada60478c6bd610a0308757105fe11e27639cae0cf43b03bb7cc280bb9",
+        "processes.json": "d3e31aad6e5bd23634921bb3dc78c5b7b35f55d0d2119de1a8621d0bfc5e3afb",
+        "compile-c.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "inputs.jsonl": "5999ad6841280174a63cf7417921fb48ab3bc7925417b3f017b19bb692232f9e",
+        "data-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compiler-version.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compiler-version.stdout": "c534474042eba8f5e2818c43d8587b4812393dcb37bfb1aaa17fcca9d61f50c0",
+        "data-test.stdout": "d83fca265a1253a4a0ce0e63178b8f275c1ffb81865938650c1bb7d19bc92614",
+        "compile-c.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "source_manifest_sha256": "ec51a01085cc98e33c5b745d9adca8483220bf35c46c2de02c6e8bee8be4d6fb",
+      "binaries_sha256": {
+        "heap_native.o": "20d6d1ada60478c6bd610a0308757105fe11e27639cae0cf43b03bb7cc280bb9",
+        "data-tests": "09541142e8fdf4bcda3b6b6cae3fe9c505a2d83c7727386279fd76f72f2cacbd"
+      }
+    },
+    "data-undefined-z95ed0fa": {
+      "result": {
+        "passed": true,
+        "suite": "data",
+        "mode": "undefined",
+        "results": {
+          "data": {
+            "passed": true,
+            "assertions": 91,
+            "input": "self-authored",
+            "original_engine": false
+          },
+          "tlv": {
+            "passed": true,
+            "tests_run": 11,
+            "failures": 0,
+            "errors": 0,
+            "fixtures": "self-authored-memory",
+            "file_input": false,
+            "legacy_imported": false
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "records_sha256": {
+        "source-manifest.json": "744cb39b0afe4e682fb55e7d54521b452ff4e174c62c6fb5f620659290af92bb",
+        "compile-cpp.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "input-manifest.json": "1861a220e26b3544d9201413dc38ce811b1fa0979d4cde4b6bfe9d35bd7716e4",
+        "result.json": "615f70a976f603d65783f58eee1674f7871db2c54085028196bc765f9d36f7b1",
+        "tlv-test.stderr": "eb3a829a0e8ba0a8739a8edd1e525c16a49d8aa2b2ed222e69fdf8ecadf2d585",
+        "data-tests": "0b2e57ce4ee9247080585b5b48a76929656647b22f705433639c907cf2c83e53",
+        "tlv-test.stdout": "8fd05ccdaf85fcd0a2a1bd2db17a71536eda1bf1b43667aa3c7cc8113e3f0d1b",
+        "build-manifest.json": "61e43f2938f00f6db237e40d63f0d980254a23223b5309f53930637a708c2210",
+        "compile-cpp.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heap_native.o": "3950ed0a090cb6529ac3039783c4cf8af1b971095f32852e6f209e05e386cc3e",
+        "processes.json": "ec7543a33c70adf720f5cb1b4b06f9ed8a836951b2865cce41cd303d71eac15c",
+        "compile-c.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "inputs.jsonl": "5999ad6841280174a63cf7417921fb48ab3bc7925417b3f017b19bb692232f9e",
+        "data-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compiler-version.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compiler-version.stdout": "c534474042eba8f5e2818c43d8587b4812393dcb37bfb1aaa17fcca9d61f50c0",
+        "data-test.stdout": "d83fca265a1253a4a0ce0e63178b8f275c1ffb81865938650c1bb7d19bc92614",
+        "compile-c.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "source_manifest_sha256": "744cb39b0afe4e682fb55e7d54521b452ff4e174c62c6fb5f620659290af92bb",
+      "binaries_sha256": {
+        "heap_native.o": "3950ed0a090cb6529ac3039783c4cf8af1b971095f32852e6f209e05e386cc3e",
+        "data-tests": "0b2e57ce4ee9247080585b5b48a76929656647b22f705433639c907cf2c83e53"
+      }
+    },
+    "media-release-1ioxhvyx": {
+      "result": {
+        "passed": true,
+        "suite": "media",
+        "mode": "release",
+        "results": {
+          "media": {
+            "passed": true,
+            "assertions": 65691,
+            "fixtures": "self-authored",
+            "game_data_read": false,
+            "ui": false,
+            "audio_devices": false
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "records_sha256": {
+        "source-manifest.json": "f458f770f1070e10a180684df618ad9de0ccab5d38b97c4767b9de4d7d57ff86",
+        "self-tests": "521358c2a2911c57e7e9b10d66fb23e775b236b6e882ff6aab773d6af4728bd4",
+        "input-manifest.json": "555bf610ade12f8a9f3453f0ab22feb8cb84f1b54bb5d093cd5641cc4fdb4de9",
+        "result.json": "cc846a1c99f23c5d647b184dc6847d4c0691ce2ea895db633985424ab225f2d7",
+        "build-manifest.json": "fc0dc349edb1c55dc4dc40dab85b108d3d63baa75528e3ac669665bfa68188e2",
+        "processes.json": "e46609ee28ae3a8627906515896c652b497c1cfcf16c95ed439c56d08f15f734",
+        "compile-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "inputs.jsonl": "82565811c79a8cbb7ab60ce469542fad5b0e9e1d8aa2eee5585049c27ea68b3e",
+        "compiler-version.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "self-test.stdout": "639f0f8009f95b6c55e229d4144ab9bc3e5c9abda88113391f4c779b1d7d13cf",
+        "compiler-version.stdout": "c534474042eba8f5e2818c43d8587b4812393dcb37bfb1aaa17fcca9d61f50c0",
+        "self-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compile-test.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "source_manifest_sha256": "f458f770f1070e10a180684df618ad9de0ccab5d38b97c4767b9de4d7d57ff86",
+      "binaries_sha256": {
+        "self-tests": "521358c2a2911c57e7e9b10d66fb23e775b236b6e882ff6aab773d6af4728bd4"
+      }
+    },
+    "media-undefined-hfig8cs9": {
+      "result": {
+        "passed": true,
+        "suite": "media",
+        "mode": "undefined",
+        "results": {
+          "media": {
+            "passed": true,
+            "assertions": 65691,
+            "fixtures": "self-authored",
+            "game_data_read": false,
+            "ui": false,
+            "audio_devices": false
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "records_sha256": {
+        "source-manifest.json": "030d4c8ef4919086d4f84b03b4c45a63e5c2c248fe681c4bbbc4def280cc9251",
+        "self-tests": "589a8ebbdff659ccf6b14984c256495866f415077868443519de3930fb842a3c",
+        "input-manifest.json": "0dfd258e554106d584a2684af2683227a1d19b8a1f257bfb74e954bf854e149a",
+        "result.json": "c1e4c14b2addab8fefc03122883bf3a496df4e250ec8cd9cb88fac3504f40da3",
+        "build-manifest.json": "393db10810361d145ff93d979e02d7fef60cc5f35903d805213bafe21437bef0",
+        "processes.json": "e8b29b9e121414aa87b38ed569948cd28cbf54f8b648c54e75f231b258093039",
+        "compile-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "inputs.jsonl": "05afbea1f2eb753caa871de7922ff3336410a1e114620ec0f407a3443a34a13b",
+        "compiler-version.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "self-test.stdout": "639f0f8009f95b6c55e229d4144ab9bc3e5c9abda88113391f4c779b1d7d13cf",
+        "compiler-version.stdout": "c534474042eba8f5e2818c43d8587b4812393dcb37bfb1aaa17fcca9d61f50c0",
+        "self-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compile-test.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "source_manifest_sha256": "030d4c8ef4919086d4f84b03b4c45a63e5c2c248fe681c4bbbc4def280cc9251",
+      "binaries_sha256": {
+        "self-tests": "589a8ebbdff659ccf6b14984c256495866f415077868443519de3930fb842a3c"
+      }
+    },
+    "integration-release-wu7a4tfw": {
+      "result": {
+        "passed": true,
+        "suite": "integration",
+        "mode": "release",
+        "results": {
+          "integration": {
+            "passed": true,
+            "assertions": 62,
+            "ui": false,
+            "audio_devices": false,
+            "backend": "fake"
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "records_sha256": {
+        "source-manifest.json": "0355c9186ccd10a4a9e2a7c6d77791365bce4c0103fe885147caba211d2ec198",
+        "self-tests": "039a1e9e03a29b47bdf51aae0da07733a49b8cc829771d2bf10f858dcca25494",
+        "input-manifest.json": "dfd4bf6fe3965f35097e5e07e1e8b5899f03e495c02b30978aa832be78b79784",
+        "result.json": "84f351c13616569ecce937e8b9a9de2d9479163c7934ee8e1d288f77c5142853",
+        "self-outside.wav": "f450c047da959112c815fdfed573e93a8aa8ce8656a741e4db7ea541d69a68af",
+        "build-manifest.json": "ee5cff62d975d25a7ec2f7897027db57697b148b86a20b1d888de098349ec47b",
+        "processes.json": "ca49637a2fde97ccd411de8f65fa48aac9f58104b56563b69ebea1392e0a835b",
+        "compile-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "inputs.jsonl": "856cc2f7f94d093c2974da25d3c0c3e22946b96839c1a3a4e3aab152c4ef784f",
+        "compiler-version.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "self-test.stdout": "f258dcdf7a9cd1e516468ce31385726abe8e7be3b8ea9f7b39790d562fa6eb8e",
+        "compiler-version.stdout": "c534474042eba8f5e2818c43d8587b4812393dcb37bfb1aaa17fcca9d61f50c0",
+        "self-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compile-test.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "source_manifest_sha256": "0355c9186ccd10a4a9e2a7c6d77791365bce4c0103fe885147caba211d2ec198",
+      "binaries_sha256": {
+        "self-tests": "039a1e9e03a29b47bdf51aae0da07733a49b8cc829771d2bf10f858dcca25494"
+      }
+    },
+    "integration-undefined-b8962rzy": {
+      "result": {
+        "passed": true,
+        "suite": "integration",
+        "mode": "undefined",
+        "results": {
+          "integration": {
+            "passed": true,
+            "assertions": 62,
+            "ui": false,
+            "audio_devices": false,
+            "backend": "fake"
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "records_sha256": {
+        "source-manifest.json": "c3e23a52793c9ed57c0572491bf03db40f5a8b68388a9d04e12cc57a8c5bc363",
+        "self-tests": "b9a1183292ff2cca6dd2245d803e0fbd3074cbd3b65956a88248c60243d4f275",
+        "input-manifest.json": "fd1a0ed1040f78a43c2c284a562449944f16a37aec946bc8aed541151aa3d26b",
+        "result.json": "ce894f758aeed2954c84793d2582729f01ca7b8e92a9b03c69e3c037f4b883a3",
+        "self-outside.wav": "f450c047da959112c815fdfed573e93a8aa8ce8656a741e4db7ea541d69a68af",
+        "build-manifest.json": "247e0b8f01a3402f7d80a1d8a3fcc8b370c94138e2afd915a2c76f0bd2ccf315",
+        "processes.json": "3b400245f93c27a3f270e990203e5363a0a97dc5f9e1228c3ee2a3bece1fea29",
+        "compile-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "inputs.jsonl": "6b4e00ada0ee62594715d8d06b9aa63563784a78e815821ed51033576a6eab20",
+        "compiler-version.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "self-test.stdout": "f258dcdf7a9cd1e516468ce31385726abe8e7be3b8ea9f7b39790d562fa6eb8e",
+        "compiler-version.stdout": "c534474042eba8f5e2818c43d8587b4812393dcb37bfb1aaa17fcca9d61f50c0",
+        "self-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compile-test.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "source_manifest_sha256": "c3e23a52793c9ed57c0572491bf03db40f5a8b68388a9d04e12cc57a8c5bc363",
+      "binaries_sha256": {
+        "self-tests": "b9a1183292ff2cca6dd2245d803e0fbd3074cbd3b65956a88248c60243d4f275"
+      }
+    },
+    "app-release-adc85o5e": {
+      "result": {
+        "passed": true,
+        "suite": "app",
+        "mode": "release",
+        "results": {
+          "app": {
+            "passed": true,
+            "signature_verified": true,
+            "linked_libraries": [
+              "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+              "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+              "/System/Library/Frameworks/AVFoundation.framework/Versions/A/AVFoundation",
+              "/System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO",
+              "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+              "/usr/lib/libz.1.dylib",
+              "/usr/lib/libobjc.A.dylib",
+              "/usr/lib/libc++.1.dylib",
+              "/usr/lib/libSystem.B.dylib",
+              "/System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio",
+              "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            ],
+            "app_launched": false
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "records_sha256": {
+        "source-manifest.json": "a45f8b5bf2844ee9b5a60dfe5c6ea7f5a7e6bf3292202cced74f170fa1c9c9d4",
+        "signature-verify.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "package-manifest.json": "4c9e7949ed18fcaa331e855217ad985ee6fa2952f501e0a65902b8c7d25accce",
+        "input-manifest.json": "13fe4f30a6c138da8ccc844a371d8198260797747ce7a404cbaf135be52d3d23",
+        "result.json": "966ff41e5aa7f78afb2b6c4d66d5c3f5b4e45987cb83d0a164115784a74c4935",
+        "build-manifest.json": "6e598aa8d172dbef245d1e9100d11a690b3aaddc34696e43ca4672564d86cbd6",
+        "signature-verify.stderr": "c083481d8abde07172091f1e6f3ca85bd9e66c3b97bd57327d69ce54c0e458d5",
+        "processes.json": "239e7af290c4623ab35f15de3d0280e5e6632520f7eb38b70e4ecd9acbce98fb",
+        "compiler-version.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "app-build.stderr": "82ee9f9dbf5d3212a4c82d2af730f973e8f4062cae47e9b22415d2d95182b362",
+        "linked-libraries.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compiler-version.stdout": "c534474042eba8f5e2818c43d8587b4812393dcb37bfb1aaa17fcca9d61f50c0",
+        "app-build.stdout": "f88eae476acc46ce8cfeed7e537146fcdcbaf39c5e9d2ad00326947d6c8acad2",
+        "linked-libraries.stdout": "ddd8d219965bf080034b2493e0e0323444958b985131257a718c51778fbe467e"
+      },
+      "source_manifest_sha256": "a45f8b5bf2844ee9b5a60dfe5c6ea7f5a7e6bf3292202cced74f170fa1c9c9d4",
+      "binaries_sha256": {
+        "build/EmperorApp.app/Contents/MacOS/EmperorApp": "3da77a3ee6e30112bb0dc7cd3b89bf141c43e16f3b38a5df73bb62b3e4b551f7"
+      }
+    }
+  },
+  "app_launched": false,
+  "GameData": false,
+  "legacy": false,
+  "audio_devices": false,
+  "final_app_relative_path": "portable-validation/reports/app-release-adc85o5e/build/EmperorApp.app",
+  "max_process_seconds": 6.960150832999999,
+  "same_repository_and_clean_sources": true
+}

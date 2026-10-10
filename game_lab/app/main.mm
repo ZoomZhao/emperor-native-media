@@ -1,11 +1,34 @@
 #import <AppKit/AppKit.h>
-#import <AVFoundation/AVFoundation.h>
-#import <Metal/Metal.h>
-#import <MetalKit/MetalKit.h>
+#include "av_audio_backend.hpp"
+#include "../app_media.hpp"
 #include "../emperor_assets.hpp"
+#include "../resource_root.hpp"
+#include "../audio_policy.hpp"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <vector>
 #include <string>
 #include <memory>
+
+
+static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vector<uint32_t>& pixels) {
+    size_t count = 0;
+    if (!game_lab::imagePixelCount(width, height, count) || pixels.size() != count) return nil;
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    if (!space) return nil;
+    CGContextRef context = CGBitmapContextCreate(const_cast<uint32_t*>(pixels.data()), width, height,
+        8, static_cast<size_t>(width) * 4, space,
+        kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst);
+    CGColorSpaceRelease(space);
+    if (!context) return nil;
+    CGImageRef image = CGBitmapContextCreateImage(context);
+    CGContextRelease(context);
+    if (!image) return nil;
+    NSImage* result = [[NSImage alloc] initWithCGImage:image size:NSMakeSize(width, height)];
+    CGImageRelease(image);
+    return result;
+}
 
 @interface EmperorAppDelegate : NSObject <NSApplicationDelegate, NSTableViewDelegate, NSTableViewDataSource> {
     NSWindow* _window;
@@ -26,9 +49,8 @@
     NSSlider* _volumeSlider;
     
     // Audio Player
-    AVAudioPlayer* _musicPlayer;
-    AVAudioPlayer* _sfxPlayer;
-    BOOL _isMuted;
+    game_lab::AVAudioFactory _audioFactory;
+    std::unique_ptr<game_lab::AppMedia> _media;
     
     // Main Menu Assets
     NSImage* _mainMenuImage;
@@ -59,9 +81,26 @@
     NSSearchField* _textSearchField;
     NSMutableArray<NSString*>* _filteredTexts;
 }
+- (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root;
 @end
 
 @implementation EmperorAppDelegate
+
+- (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root {
+    self = [super init];
+    if (self) _media = std::make_unique<game_lab::AppMedia>(root, _audioFactory);
+    return self;
+}
+
+- (std::string)resourcePath:(NSString*)relativePath {
+    if (!relativePath || !relativePath.UTF8String) return {};
+    return _media->resourcePath(relativePath.UTF8String);
+}
+
+- (void)applicationWillTerminate:(NSNotification*)notification {
+    (void)notification;
+    _media->stopAll();
+}
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     (void)notification;
@@ -74,8 +113,7 @@
     [self setupTextView];
     [self showTab:0];
     
-    // Start background music
-    [self playMusicTrack:@"GameData/Audio/Music/MENU1-San_Xuan.mp3"];
+    // Launch does not create an audio player or start playback.
 }
 
 - (void)setupWindow {
@@ -84,7 +122,7 @@
                                           styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable
                                             backing:NSBackingStoreBuffered
                                               defer:NO];
-    _window.title = @"皇帝：龙之崛起 (Emperor: Rise of the Middle Kingdom) · Native macOS";
+    _window.title = @"皇帝媒体资源浏览器 · Native macOS";
     [_window center];
     
     NSView* root = _window.contentView;
@@ -111,11 +149,11 @@
     bottomBar.layer.backgroundColor = [NSColor colorWithCalibratedWhite:0.12 alpha:1.0].CGColor;
     [root addSubview:bottomBar];
     
-    _playPauseButton = [NSButton buttonWithTitle:@"⏸ 暂停" target:self action:@selector(togglePlayPause:)];
+    _playPauseButton = [NSButton buttonWithTitle:@"▶ 播放" target:self action:@selector(togglePlayPause:)];
     _playPauseButton.frame = NSMakeRect(12, 10, 80, 28);
     [bottomBar addSubview:_playPauseButton];
     
-    _muteButton = [NSButton buttonWithTitle:@"🔊 静音" target:self action:@selector(toggleMute:)];
+    _muteButton = [NSButton buttonWithTitle:@"🔇 取消静音" target:self action:@selector(toggleMute:)];
     _muteButton.frame = NSMakeRect(100, 10, 80, 28);
     [bottomBar addSubview:_muteButton];
     
@@ -127,18 +165,16 @@
     _volumeSlider.action = @selector(onVolumeChanged:);
     [bottomBar addSubview:_volumeSlider];
     
-    _musicStatusLabel = [NSTextField labelWithString:@"♫ 正在载入背景音乐..."];
+    _musicStatusLabel = [NSTextField labelWithString:@"默认静音；取消静音后点击播放"];
     _musicStatusLabel.frame = NSMakeRect(330, 14, 680, 20);
     _musicStatusLabel.textColor = [NSColor colorWithCalibratedWhite:0.85 alpha:1.0];
     _musicStatusLabel.font = [NSFont systemFontOfSize:13 weight:NSFontWeightMedium];
     [bottomBar addSubview:_musicStatusLabel];
     
     [_window makeKeyAndOrderFront:nil];
-    [NSApp activateIgnoringOtherApps:YES];
 }
 
 - (void)setupAudio {
-    _isMuted = NO;
     _musicTracks = @[
         @"MENU1-San_Xuan.mp3",
         @"BG01-Lonely_Er_Hu.mp3",
@@ -175,60 +211,39 @@
     ];
 }
 
+- (void)refreshAudioStatus {
+    _musicStatusLabel.stringValue = [NSString stringWithUTF8String:_media->status().message.c_str()];
+    _playPauseButton.title = _media->musicPlaying() ? @"⏸ 暂停" : @"▶ 播放";
+    _muteButton.title = _media->muted() ? @"🔇 取消静音" : @"🔊 静音";
+}
+
 - (void)playMusicTrack:(NSString*)relativePath {
-    NSString* fullPath = [NSString stringWithUTF8String:relativePath.UTF8String];
-    NSURL* url = [NSURL fileURLWithPath:fullPath];
-    NSError* error = nil;
-    _musicPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:url error:&error];
-    if (_musicPlayer) {
-        _musicPlayer.numberOfLoops = -1; // Infinite loop
-        _musicPlayer.volume = _isMuted ? 0.0 : _volumeSlider.doubleValue;
-        [_musicPlayer play];
-        NSString* filename = [relativePath lastPathComponent];
-        _musicStatusLabel.stringValue = [NSString stringWithFormat:@"♫ 正在播放: %@ (时长: %.0f 秒)", filename, _musicPlayer.duration];
-        _playPauseButton.title = @"⏸ 暂停";
-    } else {
-        _musicStatusLabel.stringValue = [NSString stringWithFormat:@"无法播放音频: %@", error.localizedDescription];
-    }
+    _media->selectMusic(relativePath.UTF8String ? relativePath.UTF8String : "");
+    [self refreshAudioStatus];
 }
 
 - (void)playSFX:(NSString*)filename {
-    NSString* fullPath = [NSString stringWithFormat:@"GameData/Audio/Wavs/%@", filename];
-    NSURL* url = [NSURL fileURLWithPath:fullPath];
-    NSError* error = nil;
-    _sfxPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:url error:&error];
-    if (_sfxPlayer) {
-        _sfxPlayer.volume = _volumeSlider.doubleValue;
-        [_sfxPlayer play];
-    }
+    const auto relative = [NSString stringWithFormat:@"Audio/Wavs/%@", filename];
+    _media->playSfx(relative.UTF8String ? relative.UTF8String : "");
+    [self refreshAudioStatus];
 }
 
 - (void)togglePlayPause:(id)sender {
     (void)sender;
-    if (!_musicPlayer) return;
-    if (_musicPlayer.isPlaying) {
-        [_musicPlayer pause];
-        _playPauseButton.title = @"▶ 播放";
-    } else {
-        [_musicPlayer play];
-        _playPauseButton.title = @"⏸ 暂停";
-    }
+    _media->toggleMusic();
+    [self refreshAudioStatus];
 }
 
 - (void)toggleMute:(id)sender {
     (void)sender;
-    _isMuted = !_isMuted;
-    if (_musicPlayer) {
-        _musicPlayer.volume = _isMuted ? 0.0 : _volumeSlider.doubleValue;
-    }
-    _muteButton.title = _isMuted ? @"🔇 取消静音" : @"🔊 静音";
+    _media->setMuted(!_media->muted());
+    [self refreshAudioStatus];
 }
 
 - (void)onVolumeChanged:(id)sender {
     (void)sender;
-    if (_musicPlayer && !_isMuted) {
-        _musicPlayer.volume = _volumeSlider.doubleValue;
-    }
+    _media->setVolume(_volumeSlider.doubleValue);
+    [self refreshAudioStatus];
 }
 
 // ----------------------------------------------------
@@ -239,20 +254,8 @@
     _mainMenuView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     
     // Load China_FE_MainMenu.jpg
-    const auto decoded = game_lab::loadJPEG("GameData/DATA/China_FE_MainMenu.jpg");
-    if (decoded.valid()) {
-        CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
-        CGContextRef ctx = CGBitmapContextCreate(
-            (void*)decoded.pixelsBGRA.data(),
-            decoded.width, decoded.height, 8, decoded.width * 4,
-            cs, kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst
-        );
-        CGImageRef cgImg = CGBitmapContextCreateImage(ctx);
-        _mainMenuImage = [[NSImage alloc] initWithCGImage:cgImg size:NSMakeSize(decoded.width, decoded.height)];
-        CGImageRelease(cgImg);
-        CGContextRelease(ctx);
-        CGColorSpaceRelease(cs);
-    }
+    const auto decoded = _media->jpeg("DATA/China_FE_MainMenu.jpg");
+    _mainMenuImage = decoded.valid() ? imageFromPixels(decoded.width, decoded.height, decoded.pixelsBGRA) : nil;
     
     _mainMenuImageView = [[NSImageView alloc] initWithFrame:_mainMenuView.bounds];
     _mainMenuImageView.image = _mainMenuImage;
@@ -273,7 +276,8 @@
     titleLabel.textColor = [NSColor colorWithCalibratedRed:0.95 green:0.85 blue:0.4 alpha:1.0];
     [menuOverlay addSubview:titleLabel];
     
-    NSTextField* subLabel = [NSTextField labelWithString:@"Native Apple Engine · 2026"];
+    NSTextField* subLabel = [NSTextField labelWithString:@"媒体资源浏览器 · 2026"];
+    if (!_mainMenuImage) subLabel.stringValue = @"背景图片不可读取或转换失败";
     subLabel.frame = NSMakeRect(20, 395, 220, 20);
     subLabel.font = [NSFont systemFontOfSize:12];
     subLabel.textColor = [NSColor colorWithCalibratedWhite:0.75 alpha:1.0];
@@ -333,7 +337,7 @@
     [_mapView addSubview:scroll];
     
     // Right: Map preview and info
-    _mapInfoLabel = [NSTextField labelWithString:@"选择左侧地图文件以解压并预览地形"];
+    _mapInfoLabel = [NSTextField labelWithString:@"选择左侧文件以预览地块编号颜色"];
     _mapInfoLabel.frame = NSMakeRect(340, 650, 660, 40);
     _mapInfoLabel.font = [NSFont boldSystemFontOfSize:16];
     [_mapView addSubview:_mapInfoLabel];
@@ -347,7 +351,8 @@
 }
 
 - (void)loadAndRenderMap:(NSString*)filename {
-    std::string path = "GameData/Cities/" + std::string(filename.UTF8String);
+    const auto path = [self resourcePath:[NSString stringWithFormat:@"Cities/%@", filename]];
+    _mapCanvasView.image = nil;
     const auto cityMap = game_lab::loadCityMap(path);
     if (!cityMap.valid()) {
         _mapInfoLabel.stringValue = [NSString stringWithFormat:@"无法载入地图: %@", filename];
@@ -357,7 +362,7 @@
     _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 尺寸: 128×128 (共 %zu 地块) · zlib 解压完成",
                                  filename, cityMap.tiles.size()];
     
-    // Render 128x128 tile elevation into BGRA8 image
+    // Preview tile IDs with arbitrary colors; this is not terrain simulation.
     std::vector<uint32_t> pixels(128 * 128);
     for (size_t i = 0; i < cityMap.tiles.size(); ++i) {
         uint16_t tileId = cityMap.tiles[i];
@@ -367,16 +372,7 @@
         pixels[i] = (255u << 24) | (r << 16) | (g << 8) | b;
     }
     
-    CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
-    CGContextRef ctx = CGBitmapContextCreate(
-        pixels.data(), 128, 128, 8, 128 * 4,
-        cs, kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst
-    );
-    CGImageRef cgImg = CGBitmapContextCreateImage(ctx);
-    _mapCanvasView.image = [[NSImage alloc] initWithCGImage:cgImg size:NSMakeSize(128, 128)];
-    CGImageRelease(cgImg);
-    CGContextRelease(ctx);
-    CGColorSpaceRelease(cs);
+    _mapCanvasView.image = imageFromPixels(128, 128, pixels);
 }
 
 // ----------------------------------------------------
@@ -428,35 +424,34 @@
 - (void)onSpritePackageChanged:(id)sender {
     (void)sender;
     NSInteger sel = _spritePackagePopup.indexOfSelectedItem;
+    _currentSG3 = {};
+    _current555Path.clear();
+    _spriteImageView.image = nil;
+    _spriteSlider.enabled = NO;
+    _spriteInfoLabel.stringValue = @"资源不可读取或图素布局不受支持";
+    if (sel < 0 || sel >= 6) return;
     if (sel >= 3) {
         // Fullscreen demo 555 image
         NSString* demoNames[] = {@"China_DEMO1.555", @"China_DEMO2.555", @"China_DEMO3.555"};
         NSString* name = demoNames[sel - 3];
-        std::string path = "GameData/DATA/" + std::string(name.UTF8String);
-        const auto raw = game_lab::loadRaw555(path, 640, 480);
+        const auto relative = [NSString stringWithFormat:@"DATA/%@", name];
+        const auto raw = _media->raw555(relative.UTF8String, 640, 480);
         if (raw.valid()) {
-            CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
-            CGContextRef ctx = CGBitmapContextCreate(
-                (void*)raw.pixelsBGRA.data(),
-                raw.width, raw.height, 8, raw.width * 4,
-                cs, kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst
-            );
-            CGImageRef cgImg = CGBitmapContextCreateImage(ctx);
-            _spriteImageView.image = [[NSImage alloc] initWithCGImage:cgImg size:NSMakeSize(raw.width, raw.height)];
-            CGImageRelease(cgImg);
-            CGContextRelease(ctx);
-            CGColorSpaceRelease(cs);
-            _spriteInfoLabel.stringValue = [NSString stringWithFormat:@"贴图: %@ · 尺寸: 640×480 · 格式: RGB555LE (通过 surface_lab 转 BGRA8)", name];
+            _spriteImageView.image = imageFromPixels(raw.width, raw.height, raw.pixelsBGRA);
+            _spriteInfoLabel.stringValue = _spriteImageView.image ?
+                [NSString stringWithFormat:@"贴图: %@ · 尺寸: 640×480 · 格式: RGB555LE", name] :
+                @"贴图转换失败";
         }
         _spriteSlider.hidden = YES;
     } else {
         _spriteSlider.hidden = NO;
         NSString* sg3Names[] = {@"China_Elevation", @"China_General", @"China_Bodhidharma"};
         NSString* baseName = sg3Names[sel];
-        std::string sg3Path = "GameData/DATA/" + std::string(baseName.UTF8String) + ".sg3";
-        _current555Path = "GameData/DATA/" + std::string(baseName.UTF8String) + ".555";
+        const auto sg3Path = [self resourcePath:[NSString stringWithFormat:@"DATA/%@.sg3", baseName]];
+        _current555Path = [self resourcePath:[NSString stringWithFormat:@"DATA/%@.555", baseName]];
         _currentSG3 = game_lab::loadSG3(sg3Path);
-        if (!_currentSG3.sprites.empty()) {
+        if (!_currentSG3.sprites.empty() && !_current555Path.empty()) {
+            _spriteSlider.enabled = YES;
             _spriteSlider.maxValue = _currentSG3.sprites.size() - 1;
             _spriteSlider.doubleValue = 0;
             [self renderSpriteAtIndex:0];
@@ -474,20 +469,11 @@
     if (idx >= _currentSG3.sprites.size()) return;
     const auto& s = _currentSG3.sprites[idx];
     const auto extracted = game_lab::extractSprite(s, _current555Path);
-    if (extracted.valid()) {
-        CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
-        CGContextRef ctx = CGBitmapContextCreate(
-            (void*)extracted.pixelsBGRA.data(),
-            extracted.width, extracted.height, 8, extracted.width * 4,
-            cs, kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst
-        );
-        CGImageRef cgImg = CGBitmapContextCreateImage(ctx);
-        _spriteImageView.image = [[NSImage alloc] initWithCGImage:cgImg size:NSMakeSize(extracted.width, extracted.height)];
-        CGImageRelease(cgImg);
-        CGContextRelease(ctx);
-        CGColorSpaceRelease(cs);
-    } else {
-        _spriteImageView.image = nil;
+    _spriteImageView.image = extracted.valid() ?
+        imageFromPixels(extracted.width, extracted.height, extracted.pixelsBGRA) : nil;
+    if (!_spriteImageView.image) {
+        _spriteInfoLabel.stringValue = @"图素布局不受支持或转换失败";
+        return;
     }
     
     _spriteInfoLabel.stringValue = [NSString stringWithFormat:@"精灵序号: %zu / %zu · 偏移: %u · 长度: %u · 类型: %u · 尺寸: %dx%d",
@@ -505,7 +491,7 @@
     NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(20, 20, 480, 680)];
     _musicTableView = [[NSTableView alloc] initWithFrame:scroll.bounds];
     NSTableColumn* col = [[NSTableColumn alloc] initWithIdentifier:@"MusicName"];
-    col.title = @"原版中国传统民乐库 (20首 44.1kHz MP3)";
+    col.title = @"音乐资源列表 (20 个候选文件)";
     col.width = 460;
     [_musicTableView addTableColumn:col];
     _musicTableView.delegate = self;
@@ -520,7 +506,7 @@
     sfxPanel.layer.cornerRadius = 8;
     [_musicView addSubview:sfxPanel];
     
-    NSTextField* sfxTitle = [NSTextField labelWithString:@"🔊 原版音效触发展示台 (736 WAV音效)"];
+    NSTextField* sfxTitle = [NSTextField labelWithString:@"🔊 音效资源列表 (9 个候选文件)"];
     sfxTitle.frame = NSMakeRect(20, 640, 440, 25);
     sfxTitle.font = [NSFont boldSystemFontOfSize:16];
     sfxTitle.textColor = [NSColor colorWithCalibratedRed:0.95 green:0.85 blue:0.4 alpha:1.0];
@@ -550,7 +536,7 @@
     _textView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
     _textView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     
-    _chineseTexts = game_lab::loadEmperorText("GameData/EmperorText.txt");
+    _chineseTexts = game_lab::loadEmperorText([self resourcePath:@"EmperorText.txt"]);
     _filteredTexts = [NSMutableArray array];
     for (const auto& line : _chineseTexts) {
         [_filteredTexts addObject:[NSString stringWithUTF8String:line.c_str()]];
@@ -565,7 +551,7 @@
     NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(20, 20, 984, 645)];
     _textTableView = [[NSTableView alloc] initWithFrame:scroll.bounds];
     NSTableColumn* col = [[NSTableColumn alloc] initWithIdentifier:@"TextLine"];
-    col.title = [NSString stringWithFormat:@"原版中文文本库 (共 %zu 条记录 · GBK转码)", _chineseTexts.size()];
+    col.title = [NSString stringWithFormat:@"原版中文文本库 (共 %zu 条非空文本行 · GB18030 转码)", _chineseTexts.size()];
     col.width = 960;
     [_textTableView addTableColumn:col];
     _textTableView.delegate = self;
@@ -643,19 +629,37 @@
         [self loadAndRenderMap:_mapFiles[row]];
     } else if (tv == _musicTableView) {
         NSString* track = _musicTracks[row];
-        [self playMusicTrack:[NSString stringWithFormat:@"GameData/Audio/Music/%@", track]];
+        [self playMusicTrack:[NSString stringWithFormat:@"Audio/Music/%@", track]];
     }
 }
 
 @end
 
-int main(int argc, const char * argv[]) {
-    (void)argc;
-    (void)argv;
+int main(int argc, const char* argv[]) {
+    const char* environment = std::getenv("EMPEROR_GAMEDATA_ROOT");
+    std::string path = environment ? environment : "";
+    bool supplied = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--help") == 0) {
+            std::fprintf(stdout, "Usage: EmperorApp --data-root /absolute/path/to/GameData\n");
+            return 0;
+        }
+        if (std::strcmp(argv[i], "--data-root") != 0 || supplied || i + 1 >= argc) {
+            std::fprintf(stderr, "Expected --data-root with an absolute resource directory.\n");
+            return 2;
+        }
+        path = argv[++i];
+        supplied = true;
+    }
+    const auto root = game_lab::ResourceRoot::fromAbsolute(path);
+    if (!root.configured()) {
+        std::fprintf(stderr, "Set --data-root or EMPEROR_GAMEDATA_ROOT to a readable absolute directory.\n");
+        return 2;
+    }
     @autoreleasepool {
         NSApplication* app = [NSApplication sharedApplication];
         [app setActivationPolicy:NSApplicationActivationPolicyRegular];
-        EmperorAppDelegate* delegate = [[EmperorAppDelegate alloc] init];
+        EmperorAppDelegate* delegate = [[EmperorAppDelegate alloc] initWithResourceRoot:root];
         app.delegate = delegate;
         [app run];
     }

@@ -50,9 +50,31 @@
 | AV Release/UBSAN | H264/LPCM 与 ImageIO JPEG 两条必需路径分别成功，每条 12 帧/19200 音频帧；必需路径失败会非零退出 |
 | 同进程回放 Release | 一个 PID/一个 Controller，3×8 秒，2304000 样本一致，EOF 8.0125/8.0393/8.0111 秒；三次打开/释放，资源归零。末次相对首次释放 footprint 增长 327680 字节，峰值 13043264 字节 |
 | 同进程回放 UBSAN | 一个 PID/一个 Controller，3×8 秒，2304000 样本一致，EOF 8.0130/8.0123/8.0388 秒；三次打开/释放，资源归零。增长 278528 字节，峰值 14943936 字节 |
-| RGB555LE 像素格式验证 | `surface_lab` 与 `metal_lab` 全面支持 RGB555LE；CPU 与 GPU Compute Shader 穷举全部 32,768 个色值，与独立标量参考逐字节无损一致，通过 218,568 项断言 |
-| GameData 原版资产加载 (`game_lab`) | 7/7 项核心原版资产测试全部通过：1024×768 主菜单 JPEG 解码、640×480 RGB555LE DEMO 贴图转换、SG3 (372与2941个精灵) 解析、16×16/24×24/32×32 图素提取、RIFF WAV 线性 PCM 解码、128×128 城市地图 zlib 解压、7599 条中文本地化文本转码与古典三弦民乐验证，耗时仅 32ms |
-| 整体原生运行器 (`EmperorApp.app`) | 构建完成并签名；原生 AppKit + Metal 交互式应用，集成原版 1024×768 界面、AVAudioPlayer 背景民乐播放与音效触发、城市地图地形预览、555/SG3 图素浏览与中文文本库 |
+| RGB555LE 既有记录 | CPU Release/UBSAN 记录 218,568 断言、32,768 色值；CPU 记录没有完整来源指纹。Metal 两配置来源/结果指纹与所审版本一致，540 场景、634,699 字节、9,826 断言，含 32,768 色值；随机/生命周期记录仍不能自动推广到 RGB555 全部边界 |
+| GameData 旧样本记录 (`game_lab`) | 7 组/42 断言：一幅 JPEG、一个 raw555、两份 SG3 记录表、一例 16×16 图素、两份 PCM16 WAV、一个 128×128 map、文本与 MP3 文件存在/大小。没有 24/32 图素、MP3 解码/听觉或当前修复后的通过结果；旧 summary 无完整源码/输入/二进制指纹 |
+| `EmperorApp.app` 旧产物 | 存在旧 bundle 与打包材料；没有完整源码/二进制绑定或新 GUI/音频验收。源码为 AppKit/NSImage 资源浏览器，未接入完整游戏引擎或 Metal 呈现；旧包不能证明当前修复已构建/签名/运行 |
 
 对应 endurance summary 留在 `.local-results/`，逻辑定位和 SHA-256 见 [审计证据索引](docs/audit-evidence.json)。增长阈值 16MiB 是短时观测守卫；24 秒不证明无泄漏或小时级稳定，也没有真实声音输出。包外读取仍未验证，旧 open 等待的系统策略原因未确认。
 
+
+## 2026-10-10 源码修复的验证状态
+
+本次 WAV/RGB555/JPEG 边界、资源绝对目录、默认静音与 SFX 策略修复，以及 runtime_core 有限数据模块，只做编译器 `-fsyntax-only` 和文本/脚本静态检查。自造边界用例已编写；没有执行 Release/UBSAN、GameData 样本、App 构建/签名、UI 或声音验收。旧的通过数字不沿用为修改后通过结果。
+
+`game_lab/run_boundaries.sh` 是未来自造输入入口，按独立目录保存源码、构建及结果哈希；本轮未运行、未产生行为结果。静态检查命令与当前源码哈希见 `source-repair-static-audit.json`（本地历史报告；未纳入本次提交），修复范围及限制见 `SOURCE_REPAIR.md`（本地历史报告；未纳入本次提交）。
+
+## 独立数据准备的后续版本
+
+有限 heap 退役/状态保护、内存读取边界与纯内存 TLV 已写入，C/C++ 语法、Python AST 和 runner shell 语法检查通过；无构建/执行/import/行为结果。旧 source-repair 静态 JSON 是先前源码快照；当前版本见 `runtime-preparation-static-audit.json`（本地历史报告；未纳入本次提交）。禁测来源核查与最小验证候选见 [EXECUTION_SCOPE.md](docs/EXECUTION_SCOPE.md)，不把前一静态任务范围当作永久禁止独立测试。
+
+## 明确授权后的独立自造验收
+
+数据模块 Release/UBSAN 各91断言、TLV 各11测试、资源纯逻辑各65,691断言实际通过。保留并修复了 WAV 扩展长度和 JPEG 截断的实测失败。当前源码/输入/二进制/结果 SHA 已完整核对，每进程60秒，产物均在任务目录。此前“未运行”各节是历史快照；当前结果及未覆盖范围以 [INDEPENDENT_VALIDATION.md](docs/INDEPENDENT_VALIDATION.md) 为准。没有 App、设备、GameData、legacy、原游戏或衍生库运行。
+
+## 当前 App 实际集成与仅构建验收
+
+2026-10-10：AppMedia 已成为真实 App 与无 UI 测试共用的控制实现，补齐 App 音效到当前 WAV 校验、失败替换清理、默认静音/gain/显式播放/终止，以及 JPEG/raw555 的资源路径接线。Release/UBSAN 集成各 62 断言通过；当前 EmperorApp 编译、链接、打包和本地 codesign strict 校验通过，包内保存生产源码指纹，旧包保留。未启动 GUI、真实 AVAudioPlayer 或设备，未读取 GameData/legacy。
+
+真实依赖清单、当前包证据和限制见 [APP_INTEGRATION.md](docs/APP_INTEGRATION.md)。runtime_core 仍没有 App 消费者；音频队列/视频/Metal demo 未被接入 EmperorApp，完整业务引擎与状态/调度/交互/存档合同仍缺失。先前“只静态/未构建”是当时记录；当前新包与无 UI 集成已实际验证，不能推广为完整游戏或声音/GUI通过。新修复未 commit/push。
+
+当前仓库 runner 已统一为 scripts/independent_runner.py，按明确白名单冻结源码、保存实际输入并限制每进程60秒。含空格的干净导出/无关cwd复现：数据各91、TLV各11、媒体各65,691、App无UI各62通过，App仅构建签名通过。当前证据见 [portable-reproduction-receipt.json](docs/portable-reproduction-receipt.json) 和 [BLOCKERS-AND-HANDOFF.md](docs/BLOCKERS-AND-HANDOFF.md)。旧报告是其当时版本记录，不能把旧runner指纹用于新runner通过声明。

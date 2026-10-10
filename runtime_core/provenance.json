@@ -1,0 +1,36 @@
+{
+  "schema": "INDEPENDENT_AUTHORED_DATA_CORE_V1",
+  "archive_inputs_sha256": {
+    "legacy/src/stage77/tools/heap_native.h": "c85a1150a2d70704ed0c265aa8b7a6c175da6f33878adfd25dc608e0ba6689c4",
+    "legacy/src/stage77/tools/heap_native.c": "43ce20fc6bc6c16e2b2097a3e7fcb941a4e8fb2d335fe404c2846ad74dad8103",
+    "legacy/src/stage79/tools/thread_native.h": "05a0388700c662706d7f68f60eb080d1b56f8aa1b7c4011091f27ad5794b6b39",
+    "legacy/src/stage79/tools/thread_native.c": "46ac16ce5871eed9def4254384fb3e3621eb2132f5ba89f6d97d93a139992e4b",
+    "legacy/src/stage83/repair-v2/tools/binary_host.py": "693dcf4e3bf02b13bad94614ef7d0eac745cd31f9adffd117a53bf1ae267f884"
+  },
+  "current_source_sha256": {
+    "include/heap_native.h": "91a78e4378906d38349c16e35e7a00c31a0c6b88f1f562add58811972d09d205",
+    "src/heap_native.c": "0fc37f1974a0b3dc229f9b9fd2ccb5ff2c454a7f4d49e8ef36745951ae9de6f5",
+    "include/memory.hpp": "b56d032f8927c035a1211b3e13f9c7570695ddaeaa62d4e367d90d515c36b672",
+    "include/thread_state.hpp": "1343463cadaa7678fac827d5a592713324293109985e6ee4f15a96a8972ced34",
+    "tests/boundary_tests.cpp": "b69ba2af2273a9e7bea5ff093acc3871ad3c72e6d108bbdf1539d82b401a1534",
+    "state_codec.py": "b2c1c5c6f3d849fb3ee1d5d67172d6e525fbc948818995f538207de3fb341a7d",
+    "tests/state_codec_tests.py": "453ca414385ecf16eec87541970685385023339d121ff3183553cd8c224f6633",
+    "run_boundaries.sh": "8db257ef41063a68ad5230d433fd65f75565b2225c09ea1ff2fd513a14c2514f"
+  },
+  "adaptations": [
+    "C++ linkage and independent-model comments for heap",
+    "new bounded vector adapter without any file/checkpoint loader",
+    "context-local data model without opaque CPU or OS scheduling",
+    "finite model heap retirement and initialized/poisoned state guards",
+    "representable uint32 memory end and transactional failed read",
+    "in-memory authored TLV with builtin-only types and explicit budgets; no HostStore/ROOT/file loading"
+  ],
+  "original_engine_dependencies": false,
+  "tests_executed": true,
+  "shared_test_source_sha256": {
+    "scripts/self_fixture_evidence.hpp": "34093527d4a50273d4630aeb22e0ba99c0b801a440cdce770cbeb59bd3635c09"
+  },
+  "current_validation_receipt": "docs/portable-reproduction-receipt.json",
+  "portable_validation_entry": "scripts/independent_runner.py",
+  "portable_runner_sha256": "ab933933ebad8c3691aa6369725cbf056c689416b46c50871a69d8b03f40e261"
+}

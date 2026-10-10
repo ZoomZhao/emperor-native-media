@@ -1,27 +1,39 @@
-# emperor-native-media：Emperor 复刻工程工作目录
+# emperor-native-media：Emperor 工程工作目录
 
-本目录现在集中管理整个工程：当前维护的原生媒体组件，以及历史自写平台适配、运行时、状态协议、分析和验证工具。名称沿用 `emperor-native-media`。历史源码已按原相对路径归档，模块说明见 [legacy/INDEX.md](legacy/INDEX.md)，完整差距见 [GAPS.md](GAPS.md)。现有证据尚未证明完整游戏可以原生运行。
+本目录集中维护自写原生媒体组件、资源浏览器与历史自写源码归档。现有证据没有证明完整游戏可玩；资源浏览器不包含完整游戏业务或执行引擎。当前差距见 [GAPS.md](GAPS.md)。
 
 | 位置 | 用途与状态 |
 |---|---|
-| `surface_lab/`、`metal_lab/` | 当前独立像素表面（RGB565/BGRA8/RGB555LE）、裁剪/缩放与离屏 GPU 实验 |
-| `audio_lab/`、`video_lab/` | 当前离线 PCM 队列、帧时间轴和生命周期模型 |
-| `av_lab/`、`stream_lab/`、`media_demo/` | 当前自造媒体解码、时钟与静音 App；保留原 Makefile 入口 |
-| `game_lab/` | GameData 原版资产加载层（JPEG/555/SG3/WAV/MAP/文本）与原生 `EmperorApp.app` 交互应用 |
-| `legacy/src/samples/` | 历史平台 C/Objective-C 桥、测试模型与研究工具 |
-| `legacy/src/stage74/` 至 `stage83/` | 历史内存/heap/thread/runtime、协议、差分与执行门源码归档 |
-| `legacy/import-manifest.json`、`legacy/FILES.sha256` | 每份来源/副本哈希、脱敏记录、暂留清单 |
-| `docs/MEDIA.md`、`VALIDATION.md` | 现有媒体使用入口与历史验收范围 |
-| `docs/PLATFORM_AUDIT.md`、`docs/audit-evidence.json` | 本轮文档审计与证据定位/哈希 |
-| `docs/DEPENDENCIES.md` | 当前与历史依赖、构建和执行边界 |
-| `GameData/`、`.local/` | 忽略的本地素材与依赖路径；本轮未读取 GameData 内容 |
+| `surface_lab/`、`metal_lab/` | RGB565/BGRA8/RGB555LE、裁剪/缩放与离屏 GPU；有限数值验收记录 |
+| `audio_lab/`、`video_lab/` | 离线 S16 队列、帧时间轴和生命周期模型 |
+| `av_lab/`、`stream_lab/`、`media_demo/` | 自造媒体、时钟与默认静音的 NativeMediaDemo |
+| `game_lab/` | 资源加载与 AppKit 资源浏览器；解析和真实控制路径的无 UI 两配置通过；App 已只编译/签名，GUI/真实资产未运行 |
+| `runtime_core/` | 有限 heap/私有内存/context 与纯内存 TLV；自造 Release/UBSAN 验收通过 |
+| `legacy/src/`、`legacy/INDEX.md` | 历史自写平台/运行时/协议源码归档，保留原相对路径；不接入维护入口 |
+| `legacy/import-manifest.json`、`legacy/FILES.sha256` | 来源、副本哈希、脱敏及暂留记录 |
+| `docs/PLATFORM_AUDIT.md`、`VALIDATION.md` | 既有证据与实际覆盖边界 |
+| `docs/SOURCE_REPAIR.md`、`docs/source-repair-static-audit.json` | 初次源码修复与静态检查快照 |
+| `docs/DEPENDENCIES.md`、`runtime_core/dependency-map.json` | 当前依赖和历史缺口分类 |
+| `GameData/`、`.local/` | 忽略的本地素材与配置；本轮没有读取 GameData 内容 |
 
-751 份历史自写文本源码已归档，其中 97 份副本将机器绝对路径换成占位符。41 份含原字节签名、生成绑定、私人记录或来源待核查内容的源码保留在旧目录。原 EXE、资源、存档、快照、提取物、生成游戏代码、构建产物、第三方工具和原始日志也保留原位；其绝对路径只记入忽略的本地配置。具体处置以迁移清单为准。文件归档完成不代表逻辑迁移或行为验证完成。
+需要 macOS 15+ 与已安装的 Apple 开发工具。`make fixtures/build/surface/audio/video/metal/av/stream` 使用自造素材；`make game` 是读取本地 GameData 的旧资源样本测试，两者输入范围不同。`make game-boundaries` 是资源自造边界入口，`make runtime-boundaries` 是精确有限数据/TLV 入口；本轮均未运行，后续范围核查见 [EXECUTION_SCOPE.md](docs/EXECUTION_SCOPE.md)。`make game-app` 构建资源浏览器，`make run-game` 构建并打开它，同时显式传递仓库内 GameData 的绝对路径；本轮均未调用。更多配置见 [game_lab/README.md](game_lab/README.md)。
 
-当前媒体组件需要 macOS 15+ 与已安装的 Apple 开发工具，使用系统框架及 Python 3。例如 `make fixtures`、`make build`、`make surface`、`make audio`、`make video`、`make metal`、`make av`、`make stream`、`make game`；构建与运行原版桌面应用可直接执行 `make game-app` 与 `make run-game`。完整入口和约束见 [媒体说明](docs/MEDIA.md)。这些目标只引用仓库自造图片、PCM、MOV 和事件。App 默认静音；PCM 消费不连接输出设备。历史归档没有接入这些入口。
+两种 App 都默认静音。EmperorApp 不在启动或取消静音时自动播放；音乐与音效共用静音策略，实际声音仍未验证。它以 AppKit/NSImage 呈现资源，没有将离屏 Metal 测试接入完整游戏渲染。
 
-**本次整合只做文本复制、脱敏、哈希和静态语法/依赖核对，没有编译、运行测试或历史执行链，没有安装、联网、上传、操作 UI/键盘/音频设备或读取旧 Swift 实现。** 二进制转换/探测的既有平台安全拦截仍有效；移动目录、保存源码或旧批准记录不能解除拦截。不要从 `legacy/` 执行脚本、导入其运行时，或加载历史游戏衍生产物。
+751 份历史自写文本源码归档保持哈希不变，其中 97 份副本做了机器路径脱敏；41 份来源/内容不适于此次迁移的源码留在旧目录。EXE、原资源、快照、生成游戏代码、衍生库、第三方工具和原始私人记录未随归档复制。文件归档或路径修正不构成行为迁移完成。
 
-当前用户改动、媒体入口、MIT 许可证及本地 GameData 均保留；本轮没有提交或 push。下一步可在独立原生组件中用完全自造输入补齐验收，三个具体任务和通过标准见 [平台审计](docs/PLATFORM_AUDIT.md)。
+2026-10-10 已将 `2f3378a91fb0987288e00c61befa0ddeacbe50be` 推送到私有远端 main；随后源码修复留在工作树，未再次提交或推送。初次修复仅静态检查；后续已按明确解除的范围执行独立自造测试，没有运行 App、音频设备或历史链。既有二进制转换/探测拦截仍有效，不从 legacy 恢复该工作，也不读取旧 Swift 实现或分析城市逻辑。
 
-当前自写媒体源码采用 [MIT 许可证](LICENSE)。历史归档的静态来源筛选不代替逐项许可确认；原游戏、第三方工具及 Apple SDK 的许可不因项目目录或顶层许可证改变，亦未随此次整合复制。
+当前自写媒体源码采用 [MIT 许可证](LICENSE)。归档来源筛选不代替逐项许可确认；原游戏、第三方工具和 Apple SDK 的许可不因本目录改变。
+
+后续数据模块准备与当前版本静态证据见 `RUNTIME_PREPARATION.md`（本地历史报告；未纳入本次提交） 和 `runtime-preparation-static-audit.json`（本地历史报告；未纳入本次提交）。
+
+当前自造运行结果、修复的实测缺陷及哈希凭据见 [INDEPENDENT_VALIDATION.md](docs/INDEPENDENT_VALIDATION.md)。旧通用 Makefile/runner 没有作为本次受限输出入口运行。
+
+## 当前 App 实际集成与仅构建验收
+
+2026-10-10：AppMedia 已成为真实 App 与无 UI 测试共用的控制实现，补齐 App 音效到当前 WAV 校验、失败替换清理、默认静音/gain/显式播放/终止，以及 JPEG/raw555 的资源路径接线。Release/UBSAN 集成各 62 断言通过；当前 EmperorApp 编译、链接、打包和本地 codesign strict 校验通过，包内保存生产源码指纹，旧包保留。未启动 GUI、真实 AVAudioPlayer 或设备，未读取 GameData/legacy。
+
+真实依赖清单、当前包证据和限制见 [APP_INTEGRATION.md](docs/APP_INTEGRATION.md)。runtime_core 仍没有 App 消费者；音频队列/视频/Metal demo 未被接入 EmperorApp，完整业务引擎与状态/调度/交互/存档合同仍缺失。先前“只静态/未构建”是当时记录；当前新包与无 UI 集成已实际验证，不能推广为完整游戏或声音/GUI通过。新修复未 commit/push。
+
+当前独立入口已修复并在干净白名单目录实际复现；实质发现、可接手命令与逐项阻塞见 [BLOCKERS-AND-HANDOFF.md](docs/BLOCKERS-AND-HANDOFF.md)。数据/TLV、媒体与 App 无 UI 集成 Release/UBSAN 均通过，当前 App 只构建/签名通过。新源码/报告仍未提交或推送。
