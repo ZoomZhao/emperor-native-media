@@ -26,6 +26,8 @@
 
 当前自写媒体源码采用 [MIT 许可证](LICENSE)。归档来源筛选不代替逐项许可确认；原游戏、第三方工具和 Apple SDK 的许可不因本目录改变。
 
+来源明确的自造作用域与现成自写驱动现在有[仅编译检查入口](docs/AUTHORED_DRIVER_COMPILE.md)：生成一个对象，并要求入口与绑定保持未解析；不执行归档工具或驱动。归档源码本体不改。[城市构建交接](docs/CITY_BUILD_HANDOFF.md) 区分发布仓库未收录、本机已有产物和真实运行缺口。
+
 后续数据模块准备与当前版本静态证据见 `RUNTIME_PREPARATION.md`（本地历史报告；未纳入本次提交） 和 `runtime-preparation-static-audit.json`（本地历史报告；未纳入本次提交）。
 
 当前自造运行结果、修复的实测缺陷及哈希凭据见 [INDEPENDENT_VALIDATION.md](docs/INDEPENDENT_VALIDATION.md)。旧通用 Makefile/runner 没有作为本次受限输出入口运行。

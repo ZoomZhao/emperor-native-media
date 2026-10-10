@@ -1,9 +1,9 @@
 # 本次提交的来源与验收边界
 
-本次从已发布452f9e9继续修复已有App的启动可用性：缺参数/环境配置时提供明确目录选择入口，取消正常退出，保留显式配置优先和失败拒绝。修改限共享启动决策、真实main接线、自造集成用例、源码指纹/明确runner清单及相关说明。
+本增量从 5b1ef5d 增加现成自写 native_driver.c 的仅编译入口、来源明确的 authored 作用域参数及头文件生成方法、独立复现凭据和构建交接说明。只引用已有七个自写 C／头文件；归档源码本体不变，归档 Python 只读作来源记录，不导入或运行。
 
-最终源码集成Release/UBSAN各135断言与App只构建/签名/系统链接检查通过。先前播放反例的生产/测试及依赖字节均未变，以452f9e9凭据复核，不计为本轮新执行。见 [APP_LAUNCH.md](APP_LAUNCH.md) 与 [app-launch-receipt.json](app-launch-receipt.json)。
+仓库根目录与无 Git 的独立导出、不同 cwd、全新临时构建目录均编译成功，nm 明确保留入口／返回绑定／目标绑定。缺必需配置在编译前失败。结果严格为未链接、未执行的单对象检查，见 [AUTHORED_DRIVER_COMPILE.md](AUTHORED_DRIVER_COMPILE.md) 与 [authored-driver-compile-receipt.json](authored-driver-compile-receipt.json)。
 
-继续排除原活动目录的七个暂留变化及其他无关修改；原目录、索引与ang会话不操作，不声称已同步。未加入GameData、原/衍生游戏二进制、生成程序/包、密钥或个人本地路径，legacy保持基线且未检出/执行。只提交可复现源码和去除本地路径的摘要凭据。
+本机旧任务的 203 函数产物、配置与域文件存在；不是全局缺失。它们未被本增量复制、编译或归档，来源与现存行为边界见 [CITY_BUILD_HANDOFF.md](CITY_BUILD_HANDOFF.md)。没有 game.ll、原代码派生二进制、原绑定表、GameData、私有绝对路径或秘密进入提交。
 
-新NSOpenPanel接线只构建；没有启动项目GUI或使用设备，fake选择器不代表Finder/窗口运行通过。完整城市/视频/Bink/存档仍缺实现或消费者，不恢复受阻原执行路线。
+独立发布 checkout 完成提交／推送；本增量未写入原活动目录或其索引，也未操作 ang 会话。原目录中观察到的其他源码变更留在原位，未混入本次提交。没有新增 App／媒体样例、完整城市消费者或受阻的原指令执行。本次不重复既有 App 回归作为新成果。

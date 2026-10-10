@@ -1,0 +1,8 @@
+{
+  "schema": "AUTHORED_NATIVE_DRIVER_COMPILE_SCOPE_V1",
+  "kind": "authored_compile_only",
+  "entry": 2684354816,
+  "return": 2684354565,
+  "allowed_pcs": [2684354816, 2684354821, 2684354824, 2684354829],
+  "target_count": 0
+}

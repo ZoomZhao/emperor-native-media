@@ -1,5 +1,7 @@
 # 原生媒体工程进度
 
+> 2026-10-10 自写驱动构建增量：显式 authored 作用域生成 build_scope.h，现成 native_driver.c 仅编译检查可在仓库及无 Git 导出中复现；关键入口／返回绑定／目标绑定仍未解析，未链接未执行。203 函数及配置／域文件在本机旧任务中存在，未收录发布仓库；后续有界控制器也已有实现，真实 App 接入及 phase8 行为仍未验收。见 [AUTHORED_DRIVER_COMPILE.md](AUTHORED_DRIVER_COMPILE.md) 和 [CITY_BUILD_HANDOFF.md](CITY_BUILD_HANDOFF.md)。
+
 > 2026-10-10 启动入口增量：未配置资源目录时现有main调用明确目录选择器；取消正常退出，显式错误配置不回退。共享启动合同/集成两配置各135断言及App只构建通过，真实选择窗口未运行。见 [APP_LAUNCH.md](APP_LAUNCH.md)。原活动目录未同步。
 
 > 2026-10-10 App反馈增量：播放状态通知和共享图像呈现失败合同已接入；集成两配置各118断言、生命周期及App只构建通过。见 [APP_FEEDBACK.md](APP_FEEDBACK.md)。真实GUI/设备仍未验收，原活动目录未同步。
