@@ -2,6 +2,7 @@
 #include "movie_session.hpp"
 #include "app_media.hpp"
 #include <mutex>
+#include <algorithm>
 #include <thread>
 #include <chrono>
 #include <stdexcept>
@@ -41,6 +42,7 @@ struct MovieSessionState : std::enable_shared_from_this<MovieSessionState> {
     bool pumping=false, delivering=false;
     explicit MovieSessionState(ResourceRoot value):root(std::move(value)){}
     void enqueue(std::function<void(MovieSessionState&)> job) {
+        stats->workerEnqueues.fetch_add(1);
         bool start=false;
         { std::lock_guard<std::mutex> guard(lock);
           pendingJob=std::move(job); stats->pending=1;stats->maxPending=1;
@@ -60,7 +62,7 @@ struct MovieSessionState : std::enable_shared_from_this<MovieSessionState> {
         bool start=false;
         {std::lock_guard<std::mutex> guard(lock);mainDelivery=std::move(delivery);stats->delivery=1;stats->maxDelivery=1;
          if(!delivering){delivering=true;start=true;}}
-        if(start){auto self=shared_from_this();dispatch_async(dispatch_get_main_queue(),^{
+        if(start){stats->mainSchedules.fetch_add(1);auto self=shared_from_this();dispatch_async(dispatch_get_main_queue(),^{
             std::function<void()> item;
             {std::lock_guard<std::mutex> guard(self->lock);item=std::move(self->mainDelivery);self->mainDelivery={};
              self->delivering=false;self->stats->delivery=0;}
@@ -121,9 +123,31 @@ struct MovieSessionState : std::enable_shared_from_this<MovieSessionState> {
         return d;
     }
 };
+struct MovieTermination {
+    TerminationResult result;
+    uint64_t generation = 0;
+    std::chrono::steady_clock::time_point deadline;
+    dispatch_source_t timer = nullptr;
+    std::function<void(const TerminationResult&)> completion;
+    bool closeZero = false;
+    std::string closeError;
+};
+static bool workerIdle(const MovieSessionStats& s) {
+    return s.workerFinished && s.active == 0 && s.pending == 0 && s.delivery == 0;
+}
+std::string formatTerminationResult(const TerminationResult& r) {
+    switch(r.status) {
+    case TerminationStatus::Completed: return "媒体关闭完成";
+    case TerminationStatus::Failed: return "退出失败：" + r.reason;
+    case TerminationStatus::TimedOut: return "退出等待超时：" + r.reason;
+    case TerminationStatus::Pending: return "正在关闭媒体…";
+    case TerminationStatus::NotRequested: return "尚未请求退出";
+    } return "退出状态未知";
+}
 MovieSession::MovieSession(ResourceRoot root):root_(root),state_(std::make_shared<MovieSessionState>(std::move(root))){}
 void MovieSession::invalidate(){if(loadControl_)loadControl_->cancelled=true;++revision_;state_->revision=revision_;}
-MovieSession::~MovieSession(){*deliveryAlive_=false;invalidate();auto s=state_;
+MovieSession::~MovieSession(){*deliveryAlive_=false;cancelTerminationTimer();invalidate();auto s=state_;
+    if(workerIdle(*s->stats) && s->stats->resourcesZero && !s->stats->hasController)return;
     s->stats->resourcesZero=false;
     s->enqueue([](MovieSessionState& worker){try{worker.retire();}catch(...){
         // Final fallback destruction remains on the worker. Do not claim success.
@@ -144,6 +168,7 @@ void MovieSession::accept(MovieDelivery& d,ImagePresenter* presenter){
     lastSnapshot_=d.snapshot;
 }
 void MovieSession::loadAsync(const std::string& relative,bool poster,std::function<void(const MovieDelivery&)> callback,ImagePresenter* presenter){
+    if(terminationLocksCommands())return;
     invalidate();relativePath_=relative;resolvedPath_.clear();lastSnapshot_={};lastSnapshot_.clearImage=true;
     if(presenter)presenter->clear();
     const auto rev=revision_;auto control=std::make_shared<stream_lab::OpenControl>();control->holdMetadataCompletionForTest=state_->holdMetadata;loadControl_=control;
@@ -161,6 +186,7 @@ void MovieSession::loadAsync(const std::string& relative,bool poster,std::functi
 void MovieSession::openAndPlay(const std::string& p,std::function<void(const MovieDelivery&)> c,ImagePresenter* view){loadAsync(p,false,std::move(c),view);}
 void MovieSession::requestPoster(const std::string& p,std::function<void(const MovieDelivery&)> c,ImagePresenter* view){loadAsync(p,true,std::move(c),view);}
 void MovieSession::request(media_demo::Action action,uint64_t frame,std::function<void(const MovieDelivery&)> callback,ImagePresenter* presenter){
+    if(terminationLocksCommands())return;
     if(action!=media_demo::Action::Tick)invalidate();
     const auto rev=revision_;auto control=std::make_shared<stream_lab::OpenControl>();loadControl_=control;
     auto alive=deliveryAlive_;
@@ -173,6 +199,10 @@ void MovieSession::request(media_demo::Action action,uint64_t frame,std::functio
     });
 }
 void MovieSession::closeAsync(std::function<void(bool,const std::string&)> callback){
+    if(terminationLocksCommands())return;
+    closeAsyncImpl(std::move(callback));
+}
+void MovieSession::closeAsyncImpl(std::function<void(bool,const std::string&)> callback){
     invalidate();const auto rev=revision_;auto alive=deliveryAlive_;relativePath_.clear();resolvedPath_.clear();lastSnapshot_={};lastSnapshot_.clearImage=true;
     state_->stats->resourcesZero=false;const bool fault=state_->failClose;state_->failClose=false;
     state_->enqueue([this,alive,rev,fault,callback](MovieSessionState& worker){
@@ -180,18 +210,78 @@ void MovieSession::closeAsync(std::function<void(bool,const std::string&)> callb
         worker.publish([this,alive,rev,zero,error,callback]{if(!*alive)return;if(revision_!=rev){++staleDeliveries_;return;}if(callback)callback(zero,error);});
     });
 }
+bool MovieSession::terminationLocksCommands() const {
+    return termination_ && (termination_->result.status == TerminationStatus::Pending || termination_->result.status == TerminationStatus::Completed);
+}
+TerminationResult MovieSession::terminationResult() const {
+    return termination_ ? termination_->result : TerminationResult{};
+}
+void MovieSession::cancelTerminationTimer() {
+    if(!termination_ || !termination_->timer)return;
+    dispatch_source_cancel(termination_->timer);
+    termination_->timer=nullptr;
+    state_->stats->terminationTimers.fetch_sub(1);
+}
+void MovieSession::finishTermination(TerminationStatus status,const std::string& reason) {
+    auto& t=*termination_;
+    t.result.status=status;t.result.reason=reason;
+    t.result.resourcesZero=state_->stats->resourcesZero;
+    t.result.workerIdle=workerIdle(*state_->stats);
+    cancelTerminationTimer();
+    auto callback=std::move(t.completion);
+    const auto result=t.result;
+    state_->stats->terminationReplies.fetch_add(1);
+    // The App may destroy this session in its completion. No member access after.
+    if(callback)callback(result);
+}
+void MovieSession::checkTermination(uint64_t generation) {
+    if(!termination_ || termination_->generation!=generation || termination_->result.status!=TerminationStatus::Pending)return;
+    auto& t=*termination_;
+    if(std::chrono::steady_clock::now()>=t.deadline){
+        finishTermination(TerminationStatus::TimedOut,"未在截止时间内确认关闭；后台清理可能仍在进行");return;
+    }
+    if(!t.result.closeObserved)return;
+    if(!t.closeZero || !t.closeError.empty()){
+        finishTermination(TerminationStatus::Failed,t.closeError.empty()?"关闭未确认资源归零":t.closeError);return;
+    }
+    if(workerIdle(*state_->stats) && state_->stats->resourcesZero && !state_->stats->hasController){
+        finishTermination(TerminationStatus::Completed,"");return;
+    }
+}
+TerminationStatus MovieSession::requestTermination(uint32_t timeoutMs,std::function<void(const TerminationResult&)> callback) {
+    if(terminationLocksCommands())return termination_->result.status;
+    if(!termination_)termination_=std::make_unique<MovieTermination>();
+    auto& t=*termination_;++t.generation;t.result={};t.result.status=TerminationStatus::Pending;
+    t.closeZero=false;t.closeError.clear();t.completion=std::move(callback);
+    t.deadline=std::chrono::steady_clock::now()+std::chrono::milliseconds(std::clamp(timeoutMs,1u,60000u));
+    const auto generation=t.generation;auto alive=deliveryAlive_;
+    state_->stats->terminationAttempts.fetch_add(1);
+    t.timer=dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,0,0,dispatch_get_main_queue());
+    dispatch_source_set_timer(t.timer,dispatch_time(DISPATCH_TIME_NOW,5*NSEC_PER_MSEC),5*NSEC_PER_MSEC,NSEC_PER_MSEC);
+    dispatch_source_set_event_handler(t.timer,^{if(!*alive)return;checkTermination(generation);});
+    state_->stats->terminationTimers.fetch_add(1);state_->stats->maxTerminationTimers=std::max(state_->stats->maxTerminationTimers.load(),state_->stats->terminationTimers.load());
+    dispatch_resume(t.timer);
+    closeAsyncImpl([this,alive,generation](bool zero,const std::string& error){
+        if(!*alive || !termination_ || termination_->generation!=generation || termination_->result.status!=TerminationStatus::Pending)return;
+        termination_->result.closeObserved=true;termination_->closeZero=zero;termination_->closeError=error;
+        checkTermination(generation);
+    });
+    return TerminationStatus::Pending;
+}
 // Legacy synchronization is confined to explicit headless helpers. Do not mix
 // these helpers with owner callbacks that wait recursively. App uses only async methods.
 bool MovieSession::openMovie(const std::string& relative){
+    if(terminationLocksCommands())return false;
     invalidate();const auto rev=revision_;auto control=std::make_shared<stream_lab::OpenControl>();loadControl_=control;
     __block MovieDelivery d;auto s=state_;dispatch_sync(s->worker,^{d=s->load(rev,relative,false,control,0,true);});
     relativePath_=relative;resolvedPath_=d.snapshot.state==media_demo::State::Failed?"":d.resolvedPath;accept(d,nullptr);return !resolvedPath_.empty();
 }
 MovieDelivery MovieSession::performSync(media_demo::Action action,uint64_t frame,ImagePresenter* presenter){
+    if(terminationLocksCommands())throw std::runtime_error("termination locks media commands");
     if(action!=media_demo::Action::Tick)invalidate();const auto rev=revision_;auto control=std::make_shared<stream_lab::OpenControl>();loadControl_=control;
     __block MovieDelivery d;auto s=state_;dispatch_sync(s->worker,^{d=s->action(rev,action,frame,control);});accept(d,presenter);return d;
 }
-void MovieSession::close(){invalidate();auto s=state_;__block std::string error;dispatch_sync(s->worker,^{try{s->retire();}catch(const std::exception& e){error=e.what();s->stats->resourcesZero=false;}});
+void MovieSession::close(){if(terminationLocksCommands())return;invalidate();auto s=state_;__block std::string error;dispatch_sync(s->worker,^{try{s->retire();}catch(const std::exception& e){error=e.what();s->stats->resourcesZero=false;}});
     relativePath_.clear();resolvedPath_.clear();lastSnapshot_={};lastSnapshot_.clearImage=true;
     if(!error.empty())throw std::runtime_error(error);
 }

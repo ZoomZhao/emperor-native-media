@@ -183,15 +183,15 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _movieTerminating = YES;
     _moviePending = 1;
     __weak EmperorAppDelegate* weakSelf = self;
-    // Retain the session until its confirmed close callback. Moving it into a
-    // temporary here would destroy the front and suppress that callback.
-    _movieSession->closeAsync([weakSelf, sender](bool zero, const std::string& error) {
+    // The shared contract owns one deadline, reuses the existing worker, and
+    // confirms its idle/resource state. Retain the front until this result.
+    const auto status = _movieSession->requestTermination(5000, [weakSelf, sender](const game_lab::TerminationResult& result) {
         EmperorAppDelegate* owner = weakSelf;
         if (!owner) { [sender replyToApplicationShouldTerminate:NO]; return; }
         owner->_moviePending = 0;
-        if (!zero || !error.empty()) {
-            owner->_movieTerminating = NO;
-            owner->_movieStatusLabel.stringValue = [NSString stringWithUTF8String:("关闭失败：" + error).c_str()];
+        owner->_movieTerminating = NO;
+        if (!result.permitsExit()) {
+            owner->_movieStatusLabel.stringValue = [NSString stringWithUTF8String:game_lab::formatTerminationResult(result).c_str()];
             [owner updateMovieControls];
             [sender replyToApplicationShouldTerminate:NO];
             return;
@@ -199,6 +199,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         owner->_movieSession.reset();
         [sender replyToApplicationShouldTerminate:YES];
     });
+    if (status == game_lab::TerminationStatus::Completed) {
+        _moviePending = 0;
+        _movieTerminating = NO;
+        _movieSession.reset();
+        return NSTerminateNow;
+    }
     return NSTerminateLater;
 }
 

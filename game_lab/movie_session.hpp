@@ -15,10 +15,22 @@ namespace game_lab {
 enum class MovieErrorKind { None, PathSecurity, ResourceUnavailable, MetadataTimeout, DecodeFailure, PresenterFailure, CloseFailure };
 const char* movieErrorKindName(MovieErrorKind);
 struct MovieSessionStats {
+    std::atomic<size_t> workerEnqueues{0}, mainSchedules{0};
+    std::atomic<size_t> terminationTimers{0}, maxTerminationTimers{0}, terminationAttempts{0}, terminationReplies{0};
     std::atomic<size_t> active{0}, pending{0}, delivery{0}, maxActive{0}, maxPending{0}, maxDelivery{0};
     std::atomic<bool> resourcesZero{true}, hasController{false}, delayEntered{false}, workerFinished{false};
 };
 struct MovieSessionState;
+struct MovieTermination;
+enum class TerminationStatus { NotRequested, Pending, Completed, Failed, TimedOut };
+struct TerminationResult {
+    TerminationStatus status = TerminationStatus::NotRequested;
+    bool resourcesZero = false, workerIdle = false, closeObserved = false;
+    std::string reason;
+    bool permitsExit() const { return status == TerminationStatus::Completed && resourcesZero && workerIdle && closeObserved; }
+};
+std::string formatTerminationResult(const TerminationResult&);
+
 struct MovieDelivery {
     uint64_t revision = 0;
     media_demo::Snapshot snapshot;
@@ -87,6 +99,11 @@ public:
     void openAndPlay(const std::string&, std::function<void(const MovieDelivery&)>, ImagePresenter* = nullptr);
     void requestPoster(const std::string&, std::function<void(const MovieDelivery&)>, ImagePresenter* = nullptr);
     void closeAsync(std::function<void(bool, const std::string&)> = nullptr);
+    // Owner context only. Pending requests keep the original callback/deadline;
+    // Completed returns immediately without another callback. Failed/TimedOut
+    // may be retried. Only one owner timer; no additional worker is created.
+    TerminationStatus requestTermination(uint32_t timeoutMs, std::function<void(const TerminationResult&)>);
+    TerminationResult terminationResult() const;
     std::shared_ptr<const MovieSessionStats> stats() const;
     void setTestDelayMs(uint32_t);
     void holdMetadataForTest(bool);
@@ -119,6 +136,12 @@ private:
     std::shared_ptr<stream_lab::OpenControl> loadControl_;
     std::shared_ptr<MovieSessionState> state_;
     media_demo::Snapshot lastSnapshot_;
+    std::unique_ptr<MovieTermination> termination_;
+    bool terminationLocksCommands() const;
+    void closeAsyncImpl(std::function<void(bool, const std::string&)>);
+    void checkTermination(uint64_t);
+    void finishTermination(TerminationStatus, const std::string&);
+    void cancelTerminationTimer();
     void invalidate();
     void loadAsync(const std::string&, bool, std::function<void(const MovieDelivery&)>, ImagePresenter*);
     void accept(MovieDelivery&, ImagePresenter*);

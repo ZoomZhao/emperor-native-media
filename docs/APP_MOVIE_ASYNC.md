@@ -1,3 +1,5 @@
+退出协商的共用生产合同、有限期限和独立验收已补充，见 [APP_TERMINATION.md](APP_TERMINATION.md)。下文保留6edb899初始异步接口与当时后续任务记录。
+
 # 影片异步换片、关闭与错误交付
 
 794b325 的同步换片、首帧读取和关闭会等待 worker/Reader。影片页现使用同一个 MovieSession 的 openAndPlay/requestPoster/closeAsync，ResourceRoot 与媒体读取在原有串行 worker 上执行；控件只读缓存。首帧仍为64×48，连续帧仍为32×24和133字节行步长，不泛化输出布局。

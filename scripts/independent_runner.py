@@ -45,7 +45,8 @@ APP = [
     'game_lab/run_app_integration.sh',
 ]
 SUITES = {'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
-          'movie-async': APP + ['game_lab/movie_session_async_tests.mm']}
+          'movie-async': APP + ['game_lab/movie_session_async_tests.mm'],
+          'movie-termination': APP + ['game_lab/movie_termination_tests.mm']}
 
 
 def sha(path):
@@ -164,7 +165,7 @@ def run(suite, mode, output):
             command('data-test', [report / 'data-tests'])
             command('tlv-test', ['/usr/bin/python3', '-I', '-B', snapshot / 'runtime_core/tests/state_codec_tests.py'])
             results = {'data': read(report / 'data-test.stdout'), 'tlv': read(report / 'tlv-test.stdout')}
-        elif suite in ('media', 'integration', 'movie-async'):
+        elif suite in ('media', 'integration', 'movie-async', 'movie-termination'):
             compiled = ['game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
                         'game_lab/resource_root.cpp', 'surface_lab/surface.cpp']
             extra_frameworks = []
@@ -173,6 +174,7 @@ def run(suite, mode, output):
             else:
                 compiled[:0] = [
                     ('game_lab/movie_session_async_tests.mm' if suite == 'movie-async' else
+                     'game_lab/movie_termination_tests.mm' if suite == 'movie-termination' else
                      'game_lab/app_media_integration_tests.mm'), 'game_lab/app_media.cpp',
                     'game_lab/movie_session.mm',
                     'stream_lab/movie_io.mm', 'stream_lab/presenter.cpp',
@@ -192,7 +194,7 @@ def run(suite, mode, output):
                                      '-framework', 'ImageIO', '-framework', 'CoreGraphics',
                                      '-lz', '-o', report / 'self-tests'])
             binaries = {'self-tests': sha(report / 'self-tests')}
-            command('self-test', [report / 'self-tests', report / 'async-fixtures'] if suite == 'movie-async'
+            command('self-test', [report / 'self-tests', report / 'async-fixtures'] if suite in ('movie-async', 'movie-termination')
                     else [report / 'self-tests'])
             results = {suite: read(report / 'self-test.stdout')}
         else:
