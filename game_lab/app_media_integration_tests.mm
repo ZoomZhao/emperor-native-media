@@ -8,6 +8,7 @@
 #include <limits>
 #include <stdexcept>
 #include <cstdio>
+#include <zlib.h>
 
 namespace {
 size_t checks = 0;
@@ -17,6 +18,8 @@ void require(bool condition, const char* why) {
 }
 void put16(std::vector<uint8_t>& v, uint16_t n) { v.push_back(n & 255); v.push_back(n >> 8); }
 void put32(std::vector<uint8_t>& v, uint32_t n) { for (int i=0;i<4;++i) v.push_back((n >> (8*i)) & 255); }
+void set16(std::vector<uint8_t>& v, size_t off, uint16_t n) { v.at(off) = n & 255; v.at(off+1) = n >> 8; }
+void set32(std::vector<uint8_t>& v, size_t off, uint32_t n) { for (int i=0;i<4;++i) v.at(off+i) = (n >> (8*i)) & 255; }
 std::vector<uint8_t> wave(bool malformed = false) {
     std::vector<uint8_t> v{'R','I','F','F'};
     put32(v, malformed ? 42 : 40);
@@ -40,11 +43,17 @@ struct Record {
     double gain=0;
     int loops=0, plays=0, pauses=0, stops=0;
     bool playing=false, destroyed=false, allowPlay=true;
+    game_lab::PlaybackListener* listener = nullptr;
+    uint64_t ticket = 0;
 };
 class FakePlayback final : public game_lab::AudioPlayback {
 public:
     explicit FakePlayback(std::shared_ptr<Record> record) : record_(std::move(record)) {}
     ~FakePlayback() override { record_->destroyed=true; }
+    void setListener(game_lab::PlaybackListener* listener, uint64_t ticket) override {
+        record_->listener = listener;
+        record_->ticket = ticket;
+    }
     void setGain(double n) override { record_->gain=n; }
     void setLoops(int n) override { record_->loops=n; }
     bool play() override { ++record_->plays; record_->playing=record_->allowPlay; return record_->playing; }
@@ -82,6 +91,38 @@ std::vector<uint8_t> jpeg() {
     require(ok,"JPEG fixture finalize");
     auto bytes=std::vector<uint8_t>(CFDataGetBytePtr(data),CFDataGetBytePtr(data)+CFDataGetLength(data));
     CFRelease(data); return bytes;
+}
+std::vector<uint8_t> syntheticMap() {
+    constexpr size_t tileCount = 128u * 128u;
+    std::vector<uint8_t> raw(tileCount * 2, 0x42);
+    uLongf bound = compressBound(raw.size());
+    std::vector<uint8_t> compressed(bound);
+    int res = compress(compressed.data(), &bound, raw.data(), raw.size());
+    require(res == Z_OK, "zlib compress synthetic map");
+    compressed.resize(bound);
+    std::vector<uint8_t> fileBytes(16, 0);
+    fileBytes.insert(fileBytes.end(), compressed.begin(), compressed.end());
+    return fileBytes;
+}
+std::vector<uint8_t> syntheticSG3() {
+    constexpr size_t tableOffset = 40680, recordSize = 64;
+    std::vector<uint8_t> bytes(tableOffset + recordSize, 0);
+    set32(bytes, 4, 213);
+    set32(bytes, 16, 1);
+    set32(bytes, tableOffset + 0, 0);
+    set32(bytes, tableOffset + 4, 512);
+    set32(bytes, tableOffset + 8, 512);
+    set16(bytes, tableOffset + 12, 16);
+    set16(bytes, tableOffset + 14, 16);
+    set16(bytes, tableOffset + 20, 16);
+    return bytes;
+}
+std::vector<uint8_t> synthetic555() {
+    return std::vector<uint8_t>(512, 0x7c);
+}
+std::vector<uint8_t> syntheticText() {
+    std::string text = "Line 1 Chinese Text\nLine 2 Second Line\n\n";
+    return std::vector<uint8_t>(text.begin(), text.end());
 }
 void integration() {
     const auto cwd=std::filesystem::current_path();
@@ -171,6 +212,86 @@ void integration() {
         require(factory.calls==before && app.status().state==game_lab::PlaybackState::ResourceFailure,"App music size limit before native factory");
         app.playSfx("oversized.wav");
         require(factory.calls==before && app.status().state==game_lab::PlaybackState::ResourceFailure,"App SFX size limit before native factory");
+
+        // E4 Native Event Lifecycle: natural completion, ticket validation, async decode error, obsolete events
+        app.playSfx("Audio/Wavs/self.wav");
+        sfx = factory.records.back();
+        const auto activeTicket = sfx->ticket;
+        require(activeTicket > 0 && sfx->playing && app.status().state == game_lab::PlaybackState::Playing,
+                "SFX starts with non-zero ticket");
+        sfx->listener->onPlaybackEvent(activeTicket, game_lab::PlaybackEvent::Finished);
+        require(sfx->destroyed && app.status().state == game_lab::PlaybackState::Stopped,
+                "natural completion event retires SFX and updates status");
+
+        // Stale ticket invalidation on replacement:
+        app.playSfx("Audio/Wavs/self.wav");
+        auto sfx1 = factory.records.back();
+        const auto ticket1 = sfx1->ticket;
+        app.playSfx("Audio/Wavs/self.wav");
+        auto sfx2 = factory.records.back();
+        const auto ticket2 = sfx2->ticket;
+        require(ticket2 > ticket1, "replacement assigns newer ticket");
+        sfx1->listener->onPlaybackEvent(ticket1, game_lab::PlaybackEvent::Finished);
+        require(!sfx2->destroyed && sfx2->playing && app.status().state == game_lab::PlaybackState::Playing,
+                "stale ticket event cannot retire newer active player");
+
+        // Async decode error event retires active player:
+        sfx2->listener->onPlaybackEvent(ticket2, game_lab::PlaybackEvent::DecodeError);
+        require(sfx2->destroyed && app.status().state == game_lab::PlaybackState::DecodeFailure,
+                "async decode error event retires player and sets failure status");
+
+        // Stop/mute invalidates ticket:
+        app.playSfx("Audio/Wavs/self.wav");
+        auto sfx3 = factory.records.back();
+        const auto ticket3 = sfx3->ticket;
+        app.stopAll();
+        require(app.status().state == game_lab::PlaybackState::Stopped, "stopAll sets Stopped");
+        sfx3->listener->onPlaybackEvent(ticket3, game_lab::PlaybackEvent::Finished);
+        require(app.status().state == game_lab::PlaybackState::Stopped,
+                "obsolete event after stopAll ignored");
+
+        // Music natural finish and async error:
+        app.selectMusic("Audio/Music/self.wav");
+        music = factory.records.back();
+        const auto musicT = music->ticket;
+        require(musicT > 0 && music->playing, "music starts with ticket");
+        music->listener->onPlaybackEvent(musicT, game_lab::PlaybackEvent::Finished);
+        require(music->destroyed && app.status().state == game_lab::PlaybackState::Stopped,
+                "music finish event retires player and updates status");
+        app.selectMusic("Audio/Music/self.wav");
+        music = factory.records.back();
+        const auto musicErrT = music->ticket;
+        music->listener->onPlaybackEvent(musicErrT, game_lab::PlaybackEvent::DecodeError);
+        require(music->destroyed && app.status().state == game_lab::PlaybackState::DecodeFailure,
+                "music async decode error retires player and sets failure status");
+
+        // AppMedia CityMap loading through ResourceRoot:
+        write(files/"Cities/test.map", syntheticMap());
+        auto map = app.cityMap("Cities/test.map");
+        require(map.valid() && map.width == 128 && map.height == 128 && map.tiles.size() == 128 * 128,
+                "AppMedia cityMap loads valid synthetic 128x128 map");
+        require(!app.cityMap("../test.map").valid() && !app.cityMap("missing.map").valid(),
+                "AppMedia cityMap traversal/missing fail-closed");
+
+        // AppMedia SG3 and Sprite extraction through ResourceRoot:
+        write(files/"DATA/test.sg3", syntheticSG3());
+        write(files/"DATA/test.555", synthetic555());
+        auto archive = app.sg3("DATA/test.sg3");
+        require(archive.version == 213 && archive.sprites.size() == 1,
+                "AppMedia sg3 loads valid archive header and sprite table");
+        auto spr = app.sprite(archive.sprites[0], "DATA/test.555");
+        require(spr.valid() && spr.width == 16 && spr.height == 16,
+                "AppMedia sprite extracts 16x16 raw555 from companion");
+        require(!app.sg3("../test.sg3").sprites.size() && !app.sprite(archive.sprites[0], "../test.555").valid(),
+                "AppMedia sg3/sprite traversal fail-closed");
+
+        // AppMedia Game Text loading through ResourceRoot:
+        write(files/"EmperorText.txt", syntheticText());
+        auto lines = app.text("EmperorText.txt");
+        require(lines.size() == 2 && lines[0] == "Line 1 Chinese Text",
+                "AppMedia text loads trimmed lines from EmperorText.txt");
+        require(app.text("../EmperorText.txt").empty() && app.text("missing.txt").empty(),
+                "AppMedia text traversal/missing fail-closed");
     }
     for (const auto& record : factory.records) require(record->destroyed && !record->playing,"all fake player ownership retired");
 }

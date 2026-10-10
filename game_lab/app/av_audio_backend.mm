@@ -1,10 +1,43 @@
 #import <AVFoundation/AVFoundation.h>
 #include "av_audio_backend.hpp"
+
+@interface AVPlayerDelegateHelper : NSObject <AVAudioPlayerDelegate>
+@property (nonatomic, assign) game_lab::PlaybackListener* listener;
+@property (nonatomic, assign) uint64_t ticket;
+@end
+
+@implementation AVPlayerDelegateHelper
+- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag {
+    (void)player;
+    if (_listener && _ticket) {
+        _listener->onPlaybackEvent(_ticket, flag ? game_lab::PlaybackEvent::Finished : game_lab::PlaybackEvent::DecodeError);
+    }
+}
+- (void)audioPlayerDecodeErrorDidOccur:(AVAudioPlayer *)player error:(NSError *)error {
+    (void)player; (void)error;
+    if (_listener && _ticket) {
+        _listener->onPlaybackEvent(_ticket, game_lab::PlaybackEvent::DecodeError);
+    }
+}
+@end
+
 namespace game_lab {
 namespace {
 class AVPlayback final : public AudioPlayback {
 public:
-    explicit AVPlayback(AVAudioPlayer* player) : player_(player) {}
+    explicit AVPlayback(AVAudioPlayer* player) : player_(player) {
+        helper_ = [[AVPlayerDelegateHelper alloc] init];
+        player_.delegate = helper_;
+    }
+    ~AVPlayback() override {
+        player_.delegate = nil;
+        helper_.listener = nullptr;
+        helper_.ticket = 0;
+    }
+    void setListener(PlaybackListener* listener, uint64_t ticket) override {
+        helper_.listener = listener;
+        helper_.ticket = ticket;
+    }
     void setGain(double gain) override { player_.volume = gain; }
     void setLoops(int loops) override { player_.numberOfLoops = loops; }
     bool play() override { return [player_ play]; }
@@ -14,6 +47,7 @@ public:
     double duration() const override { return player_.duration; }
 private:
     AVAudioPlayer* __strong player_;
+    AVPlayerDelegateHelper* __strong helper_;
 };
 }
 std::unique_ptr<AudioPlayback> AVAudioFactory::create(const std::vector<uint8_t>& bytes) {

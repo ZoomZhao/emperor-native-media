@@ -351,9 +351,13 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
 }
 
 - (void)loadAndRenderMap:(NSString*)filename {
-    const auto path = [self resourcePath:[NSString stringWithFormat:@"Cities/%@", filename]];
     _mapCanvasView.image = nil;
-    const auto cityMap = game_lab::loadCityMap(path);
+    if (!filename || !filename.UTF8String) {
+        _mapInfoLabel.stringValue = @"未指定地图文件";
+        return;
+    }
+    const auto relative = [NSString stringWithFormat:@"Cities/%@", filename];
+    const auto cityMap = _media->cityMap(relative.UTF8String);
     if (!cityMap.valid()) {
         _mapInfoLabel.stringValue = [NSString stringWithFormat:@"无法载入地图: %@", filename];
         return;
@@ -447,9 +451,9 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
         _spriteSlider.hidden = NO;
         NSString* sg3Names[] = {@"China_Elevation", @"China_General", @"China_Bodhidharma"};
         NSString* baseName = sg3Names[sel];
-        const auto sg3Path = [self resourcePath:[NSString stringWithFormat:@"DATA/%@.sg3", baseName]];
-        _current555Path = [self resourcePath:[NSString stringWithFormat:@"DATA/%@.555", baseName]];
-        _currentSG3 = game_lab::loadSG3(sg3Path);
+        const auto relativeSg3 = [NSString stringWithFormat:@"DATA/%@.sg3", baseName];
+        _current555Path = [NSString stringWithFormat:@"DATA/%@.555", baseName].UTF8String;
+        _currentSG3 = _media->sg3(relativeSg3.UTF8String);
         if (!_currentSG3.sprites.empty() && !_current555Path.empty()) {
             _spriteSlider.enabled = YES;
             _spriteSlider.maxValue = _currentSG3.sprites.size() - 1;
@@ -468,7 +472,7 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
 - (void)renderSpriteAtIndex:(size_t)idx {
     if (idx >= _currentSG3.sprites.size()) return;
     const auto& s = _currentSG3.sprites[idx];
-    const auto extracted = game_lab::extractSprite(s, _current555Path);
+    const auto extracted = _media->sprite(s, _current555Path);
     _spriteImageView.image = extracted.valid() ?
         imageFromPixels(extracted.width, extracted.height, extracted.pixelsBGRA) : nil;
     if (!_spriteImageView.image) {
@@ -536,7 +540,7 @@ static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vect
     _textView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
     _textView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     
-    _chineseTexts = game_lab::loadEmperorText([self resourcePath:@"EmperorText.txt"]);
+    _chineseTexts = _media->text("EmperorText.txt");
     _filteredTexts = [NSMutableArray array];
     for (const auto& line : _chineseTexts) {
         [_filteredTexts addObject:[NSString stringWithUTF8String:line.c_str()]];

@@ -5,6 +5,14 @@
 #include <memory>
 
 namespace game_lab {
+enum class PlaybackEvent { Finished, DecodeError };
+
+class PlaybackListener {
+public:
+    virtual ~PlaybackListener() = default;
+    virtual void onPlaybackEvent(uint64_t ticket, PlaybackEvent event) = 0;
+};
+
 // AppKit-independent control path shared by the real delegate and integration tests.
 class AudioPlayback {
 public:
@@ -16,6 +24,9 @@ public:
     virtual void stop() = 0;
     virtual bool playing() const = 0;
     virtual double duration() const = 0;
+    virtual void setListener(PlaybackListener* listener, uint64_t ticket) {
+        (void)listener; (void)ticket;
+    }
 };
 class AudioFactory {
 public:
@@ -27,15 +38,19 @@ struct PlaybackStatus {
     PlaybackState state = PlaybackState::Muted;
     std::string message = "默认静音；取消静音后点击播放";
 };
-class AppMedia {
+class AppMedia final : public PlaybackListener {
 public:
     AppMedia(ResourceRoot root, AudioFactory& factory) : root_(std::move(root)), factory_(factory) {}
-    ~AppMedia() { stopAll(); }
+    ~AppMedia() override { stopAll(); }
     AppMedia(const AppMedia&) = delete;
     AppMedia& operator=(const AppMedia&) = delete;
     std::string resourcePath(const std::string& relative) const { return root_.resolve(relative); }
     DecodedImage jpeg(const std::string& relative) const;
     Raw555Image raw555(const std::string& relative, uint32_t width, uint32_t height) const;
+    CityMap cityMap(const std::string& relative) const;
+    SG3Archive sg3(const std::string& relative) const;
+    DecodedImage sprite(const SG3Sprite& sprite, const std::string& companionRelative) const;
+    std::vector<std::string> text(const std::string& relative) const;
     void selectMusic(const std::string& relative);
     void toggleMusic();
     void playSfx(const std::string& relative);
@@ -45,15 +60,25 @@ public:
     bool muted() const { return policy_.muted(); }
     bool musicPlaying() const { return music_ && music_->playing(); }
     const PlaybackStatus& status() const { return status_; }
+    void onPlaybackEvent(uint64_t ticket, PlaybackEvent event) override;
 private:
     bool readAudio(const std::string& relative, bool wav, std::vector<uint8_t>& bytes);
     void startMusic();
     void applyPolicy();
+    void retirePlayer(std::unique_ptr<AudioPlayback>& player);
+    void collectRetiredPlayers();
+    void playCurrent(std::unique_ptr<AudioPlayback>& player, uint64_t& currentTicket,
+                     const char* playingMessage, const char* failureMessage);
     ResourceRoot root_;
     AudioFactory& factory_;
     AudioPolicy policy_;
     std::string selectedMusic_ = "Audio/Music/MENU1-San_Xuan.mp3";
     std::unique_ptr<AudioPlayback> music_, sfx_;
+    uint64_t nextTicket_ = 0;
+    uint64_t musicTicket_ = 0;
+    uint64_t sfxTicket_ = 0;
+    int inPlayDepth_ = 0;
+    std::vector<std::unique_ptr<AudioPlayback>> retiredPlayers_;
     PlaybackStatus status_;
 };
 } // namespace game_lab
