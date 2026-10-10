@@ -1,3 +1,5 @@
+当前接口已补异步换片/首帧/关闭、共享 worker 生命周期、队列上限和实际错误理由。见 [APP_MOVIE_ASYNC.md](APP_MOVIE_ASYNC.md)。下文保留794b325初始连续预览合同，其中同步open/close与对应后续缺口已由新接口替代。
+
 # 实际 App 静默连续预览
 
 App 影片页已通过 `AppMedia::createMovieSession` / `MovieSession::request` 消费既有 `media_demo::Controller::perform`。保留 `moviePoster` 首帧加载，新增播放、暂停、停止与 seek。默认不自动打开文件或播放；输入经 ResourceRoot 解析，预览不输出声音。本项只接通既有生产接口，没有新增播放器、时钟或城市模型。

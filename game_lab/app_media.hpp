@@ -5,7 +5,11 @@
 #include <memory>
 #include <functional>
 
+namespace stream_lab { struct OpenControl; }
+
 namespace game_lab {
+// Worker-only helper preserves the Reader reason; legacy facade returns invalid.
+DecodedImage readMoviePosterBytes(const std::string&, std::shared_ptr<stream_lab::OpenControl> = {});
 class MovieSession;
 enum class PlaybackEvent { Finished, DecodeError };
 

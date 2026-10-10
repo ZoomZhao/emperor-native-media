@@ -143,6 +143,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSUInteger _moviePending;
     std::unique_ptr<game_lab::MovieSession> _movieSession;
     std::unique_ptr<ViewImagePresenter> _moviePresenter;
+    BOOL _movieTerminating;
 }
 - (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root;
 - (void)refreshAudioStatus;
@@ -175,13 +176,36 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     return _media->resourcePath(relativePath.UTF8String);
 }
 
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
+    if (_movieTerminating) return NSTerminateLater;
+    [self invalidateMovieTimer];
+    if (!_movieSession) return NSTerminateNow;
+    _movieTerminating = YES;
+    _moviePending = 1;
+    __weak EmperorAppDelegate* weakSelf = self;
+    // Retain the session until its confirmed close callback. Moving it into a
+    // temporary here would destroy the front and suppress that callback.
+    _movieSession->closeAsync([weakSelf, sender](bool zero, const std::string& error) {
+        EmperorAppDelegate* owner = weakSelf;
+        if (!owner) { [sender replyToApplicationShouldTerminate:NO]; return; }
+        owner->_moviePending = 0;
+        if (!zero || !error.empty()) {
+            owner->_movieTerminating = NO;
+            owner->_movieStatusLabel.stringValue = [NSString stringWithUTF8String:("关闭失败：" + error).c_str()];
+            [owner updateMovieControls];
+            [sender replyToApplicationShouldTerminate:NO];
+            return;
+        }
+        owner->_movieSession.reset();
+        [sender replyToApplicationShouldTerminate:YES];
+    });
+    return NSTerminateLater;
+}
+
 - (void)applicationWillTerminate:(NSNotification*)notification {
     (void)notification;
     [self invalidateMovieTimer];
-    if (_movieSession) {
-        _movieSession->close();
-        _movieSession.reset();
-    }
+    _movieSession.reset();
     _movieTickQueued = NO;
     _moviePending = 0;
     _media->stopAll();
@@ -772,10 +796,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const BOOL canStop = hasSession && (state != media_demo::State::Ready || _moviePending);
     const BOOL canSeek = hasSession && !_moviePending;
 
-    _moviePlayButton.enabled = canPlay || !hasSession; // Allow Play to open & play
-    _moviePauseButton.enabled = canPause;
-    _movieStopButton.enabled = canStop;
-    _movieSeekSlider.enabled = canSeek;
+    _moviePlayButton.enabled = !_movieTerminating && (canPlay || !hasSession); // Allow Play to open & play
+    _moviePauseButton.enabled = !_movieTerminating && canPause;
+    _movieStopButton.enabled = !_movieTerminating && canStop;
+    _movieSeekSlider.enabled = !_movieTerminating && canSeek;
 }
 
 - (void)invalidateMovieTimer {
@@ -821,22 +845,17 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     }
     const double seconds = double(snap.mediaPCM) / 48000.0;
     _moviePositionLabel.stringValue = [NSString stringWithFormat:@"%.2f / 8.00 秒", seconds];
-    if (delivery.presentation == game_lab::PresentationResult::ConversionFailure) {
-        _movieStatusLabel.stringValue = @"当前画面转换失败，请停止后重试";
-    } else if (snap.state == media_demo::State::Failed) {
-        _movieStatusLabel.stringValue = @"无法读取影片或生成预览画面";
-    } else {
-        _movieStatusLabel.stringValue = [NSString stringWithFormat:@"%s · 静默预览",
-                                         media_demo::stateName(snap.state)];
-    }
+    _movieStatusLabel.stringValue = [NSString stringWithUTF8String:game_lab::formatMovieStatus(delivery).c_str()];
     [self updateMovieControls];
     [self updateMovieTimer];
 }
 
 - (void)requestMovieAction:(media_demo::Action)action frame:(uint64_t)frame {
+    if (_movieTerminating) return;
     const BOOL tick = (action == media_demo::Action::Tick);
     if (!tick) {
-        ++_moviePending;
+        _moviePending = 1;
+        _movieTickQueued = NO;
         [self invalidateMovieTimer];
         [self updateMovieControls];
     }
@@ -850,34 +869,36 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)onMoviePlay:(id)sender {
+    if (_movieTerminating) return;
     (void)sender;
     NSString* pathStr = [_moviePathField stringValue];
     const std::string rel = pathStr.UTF8String ? pathStr.UTF8String : "";
-    if (!_movieSession || _movieSession->currentRelativePath() != rel) {
+    if (!_movieSession) _movieSession = _media->createMovieSession();
+    if (_movieSession->currentRelativePath() != rel || _movieSession->resolvedPath().empty() || !_movieSession->hasActiveController()) {
         [self invalidateMovieTimer];
-        if (_movieSession) _movieSession->close();
-        _movieSession.reset();
         _movieTickQueued = NO;
-        _moviePending = 0;
-        if (_moviePresenter) _moviePresenter->clear();
-        _movieSession = _media->createMovieSession();
-        if (!_movieSession || !_movieSession->openMovie(rel)) {
-            if (_moviePresenter) _moviePresenter->clear();
-            _movieStatusLabel.stringValue = [NSString stringWithFormat:@"无法打开媒体文件: %@", pathStr];
-            [self updateMovieControls];
-            return;
-        }
+        _moviePending = 1;
+        _movieStatusLabel.stringValue = @"正在读取影片…";
+        __weak EmperorAppDelegate* weakSelf = self;
+        _movieSession->openAndPlay(rel, [weakSelf](const game_lab::MovieDelivery& delivery) {
+            EmperorAppDelegate* owner = weakSelf;
+            if (owner) [owner handleMovieDelivery:delivery tick:NO];
+        }, _moviePresenter.get());
+        [self updateMovieControls];
+        return;
     }
     [self requestMovieAction:media_demo::Action::Play frame:0];
 }
 
 - (void)onMoviePause:(id)sender {
+    if (_movieTerminating) return;
     (void)sender;
     if (!_movieSession) return;
     [self requestMovieAction:media_demo::Action::Pause frame:0];
 }
 
 - (void)onMovieStop:(id)sender {
+    if (_movieTerminating) return;
     (void)sender;
     [self invalidateMovieTimer];
     if (!_movieSession) return;
@@ -885,50 +906,50 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)onMovieSeek:(AppMovieSeekSlider*)sender {
+    if (_movieTerminating) return;
     if (!_movieSession) return;
     const uint64_t targetFrame = static_cast<uint64_t>(std::max(0.0, sender.doubleValue));
     [self requestMovieAction:media_demo::Action::Seek frame:targetFrame];
 }
 
 - (void)onLoadMoviePoster:(id)sender {
+    if (_movieTerminating) return;
     (void)sender;
     [self invalidateMovieTimer];
-    if (_movieSession) {
-        _movieSession->close();
-        _movieSession.reset();
-    }
+    if (!_movieSession) _movieSession = _media->createMovieSession();
     _movieTickQueued = NO;
-    _moviePending = 0;
+    _moviePending = 1;
     NSString* pathStr = [_moviePathField stringValue];
-    const auto decoded = _media->moviePoster(pathStr.UTF8String ? pathStr.UTF8String : "");
-    if (!decoded.valid()) {
-        presentPixels(_movieImageView, 0, 0, {});
-        _movieStatusLabel.stringValue = [NSString stringWithFormat:@"首帧加载失败: 路径无效、缺失或媒体格式不匹配 (%@)", pathStr];
-        [self updateMovieControls];
-        return;
-    }
-    if (!presentPixels(_movieImageView, decoded.width, decoded.height, decoded.pixelsBGRA)) {
-        _movieStatusLabel.stringValue = @"首帧图片呈现转换失败";
-        [self updateMovieControls];
-        return;
-    }
-    _movieStatusLabel.stringValue = [NSString stringWithFormat:@"首帧加载成功: %u×%u · %@", decoded.width, decoded.height, pathStr];
+    _movieStatusLabel.stringValue = @"正在读取首帧…";
+    __weak EmperorAppDelegate* weakSelf = self;
+    _movieSession->requestPoster(pathStr.UTF8String ? pathStr.UTF8String : "", [weakSelf](const game_lab::MovieDelivery& delivery) {
+        EmperorAppDelegate* owner = weakSelf;
+        if (owner) [owner handleMovieDelivery:delivery tick:NO];
+    }, _moviePresenter.get());
     [self updateMovieControls];
 }
 
 - (void)onClearMoviePoster:(id)sender {
+    if (_movieTerminating) return;
     (void)sender;
     [self invalidateMovieTimer];
-    if (_movieSession) {
-        _movieSession->close();
-        _movieSession.reset();
-    }
     _movieTickQueued = NO;
-    _moviePending = 0;
-    presentPixels(_movieImageView, 0, 0, {});
+    _moviePending = _movieSession ? 1 : 0;
+    if (_moviePresenter) _moviePresenter->clear();
     _moviePositionLabel.stringValue = @"0.00 / 8.00 秒";
     _movieSeekSlider.doubleValue = 0;
-    _movieStatusLabel.stringValue = @"画面已清空";
+    _movieStatusLabel.stringValue = @"正在清空…";
+    if (_movieSession) {
+        __weak EmperorAppDelegate* weakSelf = self;
+        _movieSession->closeAsync([weakSelf](bool zero, const std::string& error) {
+            EmperorAppDelegate* owner = weakSelf;
+            if (!owner) return;
+            owner->_moviePending = 0;
+            owner->_movieStatusLabel.stringValue = zero && error.empty() ? @"画面已清空" :
+                [NSString stringWithUTF8String:("关闭失败：" + error).c_str()];
+            [owner updateMovieControls];
+        });
+    } else _movieStatusLabel.stringValue = @"画面已清空";
     [self updateMovieControls];
 }
 

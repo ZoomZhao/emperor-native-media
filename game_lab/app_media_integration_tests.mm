@@ -635,14 +635,13 @@ void integration() {
         require(session->openMovie(movieRel), "queued-delivery session opens");
         session->performSync(media_demo::Action::Play, 0, &sessionPresenter);
         size_t queuedCallbacks = 0;
-        bool queuedAccepted = true;
         session->request(media_demo::Action::Tick, 0, [&](const game_lab::MovieDelivery& d) {
-            ++queuedCallbacks; queuedAccepted = d.accepted;
+            (void)d; ++queuedCallbacks;
         });
         const auto newFrame = session->performSync(media_demo::Action::Seek, 50, &sessionPresenter);
         const auto newPixels = sessionPresenter.image;
         drainMovieDeliveries();
-        require(queuedCallbacks == 1 && !queuedAccepted && sessionPresenter.image == newPixels,
+        require(queuedCallbacks == 0 && sessionPresenter.image == newPixels,
                 "queued old request cannot replace post-seek image");
         require(newFrame.snapshot.frame == 50, "new consumer seek uses existing Controller");
         session->close();

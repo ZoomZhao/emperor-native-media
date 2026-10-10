@@ -44,7 +44,8 @@ APP = [
     'media_demo/device_monitor.hpp',
     'game_lab/run_app_integration.sh',
 ]
-SUITES = {'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP}
+SUITES = {'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
+          'movie-async': APP + ['game_lab/movie_session_async_tests.mm']}
 
 
 def sha(path):
@@ -163,7 +164,7 @@ def run(suite, mode, output):
             command('data-test', [report / 'data-tests'])
             command('tlv-test', ['/usr/bin/python3', '-I', '-B', snapshot / 'runtime_core/tests/state_codec_tests.py'])
             results = {'data': read(report / 'data-test.stdout'), 'tlv': read(report / 'tlv-test.stdout')}
-        elif suite in ('media', 'integration'):
+        elif suite in ('media', 'integration', 'movie-async'):
             compiled = ['game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
                         'game_lab/resource_root.cpp', 'surface_lab/surface.cpp']
             extra_frameworks = []
@@ -171,7 +172,8 @@ def run(suite, mode, output):
                 compiled.insert(0, 'game_lab/pure_boundary_tests.mm')
             else:
                 compiled[:0] = [
-                    'game_lab/app_media_integration_tests.mm', 'game_lab/app_media.cpp',
+                    ('game_lab/movie_session_async_tests.mm' if suite == 'movie-async' else
+                     'game_lab/app_media_integration_tests.mm'), 'game_lab/app_media.cpp',
                     'game_lab/movie_session.mm',
                     'stream_lab/movie_io.mm', 'stream_lab/presenter.cpp',
                     'video_lab/stream.cpp', 'metal_lab/backend.mm',
@@ -190,7 +192,8 @@ def run(suite, mode, output):
                                      '-framework', 'ImageIO', '-framework', 'CoreGraphics',
                                      '-lz', '-o', report / 'self-tests'])
             binaries = {'self-tests': sha(report / 'self-tests')}
-            command('self-test', [report / 'self-tests'])
+            command('self-test', [report / 'self-tests', report / 'async-fixtures'] if suite == 'movie-async'
+                    else [report / 'self-tests'])
             results = {suite: read(report / 'self-test.stdout')}
         else:
             command('app-build', ['/bin/sh', snapshot / 'game_lab/app/build.sh'])
@@ -215,7 +218,7 @@ def run(suite, mode, output):
     except Exception as caught:
         error = str(caught)
     inputs = {}
-    for name in ['fixtures', 'self-root']:
+    for name in ['fixtures', 'self-root', 'async-fixtures']:
         if (report / name).exists():
             for path in (report / name).rglob('*'):
                 key = path.relative_to(report).as_posix()

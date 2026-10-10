@@ -7,18 +7,32 @@
 #include <vector>
 #include <functional>
 #include <cstring>
+#include <atomic>
 #include <dispatch/dispatch.h>
 
 namespace game_lab {
 
+enum class MovieErrorKind { None, PathSecurity, ResourceUnavailable, MetadataTimeout, DecodeFailure, PresenterFailure, CloseFailure };
+const char* movieErrorKindName(MovieErrorKind);
+struct MovieSessionStats {
+    std::atomic<size_t> active{0}, pending{0}, delivery{0}, maxActive{0}, maxPending{0}, maxDelivery{0};
+    std::atomic<bool> resourcesZero{true}, hasController{false}, delayEntered{false}, workerFinished{false};
+};
+struct MovieSessionState;
 struct MovieDelivery {
     uint64_t revision = 0;
     media_demo::Snapshot snapshot;
     std::vector<uint32_t> pixelsBGRA;
+    MovieErrorKind errorKind = MovieErrorKind::None;
+    std::string errorMessage, resolvedPath;
+    uint32_t width = 32, height = 24;
+    bool poster = false;
     bool accepted = false;
     bool presented = false;
     PresentationResult presentation = PresentationResult::InvalidPixels;
 };
+
+std::string formatMovieStatus(const MovieDelivery&);
 
 // Common delivery processor shared between App and headless integration tests.
 inline bool processMovieDelivery(uint64_t activeRevision,
@@ -68,6 +82,16 @@ public:
     MovieSession(const MovieSession&) = delete;
     MovieSession& operator=(const MovieSession&) = delete;
 
+    // Owner calls return immediately; superseded callbacks are dropped. One
+    // active command, one latest pending command and one latest main delivery.
+    void openAndPlay(const std::string&, std::function<void(const MovieDelivery&)>, ImagePresenter* = nullptr);
+    void requestPoster(const std::string&, std::function<void(const MovieDelivery&)>, ImagePresenter* = nullptr);
+    void closeAsync(std::function<void(bool, const std::string&)> = nullptr);
+    std::shared_ptr<const MovieSessionStats> stats() const;
+    void setTestDelayMs(uint32_t);
+    void holdMetadataForTest(bool);
+    void failNextCloseForTest();
+    // Synchronous compatibility helpers are for headless callers only.
     bool openMovie(const std::string& relativePath);
     void request(media_demo::Action action, uint64_t seekFrame,
                  std::function<void(const MovieDelivery&)> callback,
@@ -93,9 +117,11 @@ private:
     uint64_t revision_ = 1;
     size_t staleDeliveries_ = 0;
     std::shared_ptr<stream_lab::OpenControl> loadControl_;
-    dispatch_queue_t worker_ = nullptr;
-    std::unique_ptr<media_demo::Controller> controller_;
+    std::shared_ptr<MovieSessionState> state_;
     media_demo::Snapshot lastSnapshot_;
+    void invalidate();
+    void loadAsync(const std::string&, bool, std::function<void(const MovieDelivery&)>, ImagePresenter*);
+    void accept(MovieDelivery&, ImagePresenter*);
 };
 
 } // namespace game_lab

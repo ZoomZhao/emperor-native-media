@@ -1,4 +1,5 @@
 #include "app_media.hpp"
+#include <stdexcept>
 #include "asset_bytes.hpp"
 #include "movie_session.hpp"
 #include "../stream_lab/movie_io.hpp"
@@ -38,27 +39,25 @@ std::vector<std::string> AppMedia::text(const std::string& relative) const {
     const auto path = resourcePath(relative);
     return path.empty() ? std::vector<std::string>{} : loadEmperorText(path);
 }
-DecodedImage AppMedia::moviePoster(const std::string& relative) const {
-    const auto path = resourcePath(relative);
+DecodedImage readMoviePosterBytes(const std::string& path, std::shared_ptr<stream_lab::OpenControl> control) {
     if (path.empty()) {
-        return DecodedImage{};
+        throw std::runtime_error("missing poster or fixed first-frame layout mismatch");
     }
-    try {
         stream_lab::MovieReader reader;
-        reader.open(path, 0);
+        reader.open(path, 0, std::move(control));
         video_lab::Frame frame;
         if (!reader.nextFrame(frame)) {
-            return DecodedImage{};
+            throw std::runtime_error("missing poster or fixed first-frame layout mismatch");
         }
         if (frame.pts != 0) {
-            return DecodedImage{};
+            throw std::runtime_error("missing poster or fixed first-frame layout mismatch");
         }
         const auto meta = reader.metadata();
         if (meta.width != 64 || meta.height != 48 || meta.stride < meta.width * 4) {
-            return DecodedImage{};
+            throw std::runtime_error("missing poster or fixed first-frame layout mismatch");
         }
         if (frame.bgra.size() != meta.stride * meta.height) {
-            return DecodedImage{};
+            throw std::runtime_error("missing poster or fixed first-frame layout mismatch");
         }
         DecodedImage image;
         image.width = meta.width;
@@ -74,9 +73,10 @@ DecodedImage AppMedia::moviePoster(const std::string& relative) const {
         }
         reader.close();
         return image;
-    } catch (...) {
-        return DecodedImage{};
-    }
+}
+DecodedImage AppMedia::moviePoster(const std::string& relative) const {
+    try {return readMoviePosterBytes(resourcePath(relative));}
+    catch (const std::exception&) {return {};}
 }
 std::unique_ptr<MovieSession> AppMedia::createMovieSession(const std::string& relative) const {
     auto session = std::make_unique<MovieSession>(root_);
