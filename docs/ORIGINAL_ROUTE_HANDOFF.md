@@ -31,3 +31,11 @@
 [新原静态合同](ORIGINAL_FILE_FILL_ERROR_PROPAGATION_CONTRACT.md)：fill447d30正常native75、handler6c4930正常native24闭合；首tag之外若干raw实际量及transform状态未检查，原样branch未缩available至payload短量。52Listing/10native的transform仅step1直接写outcount，失败不保证cap8d30成为有效量。raw22/mapper9完整native；bulk780533可返回短量，strict41fcb0为word2，经78074e不足走78090e/76501e请求RaiseException。异常模板e06d7363/flags1/3参数，实际catch/unwind/lifetime未证明。
 
 handler零清selfFC、非零Translate/DispatchMessage，没有直接owner34非零store；实际WndProc/message/alias/root仍Unknown。四完整正常native图130与各Listing/锚点层级分开，codec398库存非传递闭包。138/138/0、exit0/775.37秒、源/18模块不变/tmp空/0活动会话，无目标或组件执行/转换/网络/上传/UI/设备。e95046/0、9aac44/0已二方，原失败保留、旧静态阻碍解除；本批新增待复核，仅本地，push待批不变。
+
+## 最新选定codec原文件读取契约
+
+[codec合同](ORIGINAL_SELECTED_CODEC_FILE_CONTRACT.md)：字面版本1.0.7、正window15、method8/头部mod31与Adler32确认zlib包装DEFLATE；既有uncompress/inflate函数名仍为语义对应，原符号/厂商实现未恢复。外层398/14、blocks1187/10+type4、codes656/10与fast306的正常Listing标签图闭合，非全native/传递证明。
+
+最终flush117Listing/20native，两段copy均min(queued,avail_out)并更新total_out；在有效window/storage/DF0/nonalias/normalABI下受入口容量约束。codec可先写部分输出再失败，wrapper仅step1写外部count；fill忽略状态，实际短payload量及N上界也未核。有效输入规格要求完整framing/N、N<=名义36144、+15 zlib stream完成和成功actualcount；坏输入Native失败且零available是明确修复政策，不能冒称原行为。未知第三word、Huffman构造/distance/history及实际heap/文件仍Unknown。
+
+101Evidence/0provider错误，80native地址仅79解码，保留排除not-boundary元数据并核准确guard。exit0/439.106秒、目标/18模块不变/tmp空/0活动会话，无游戏/组件/目标API/网络/上传。caller元数据遗漏既有447db4，不作穷尽。模态间接alias极限保留；新语义待二方、runtime1/候选DENIED不变，仅本地，push独立待批。
