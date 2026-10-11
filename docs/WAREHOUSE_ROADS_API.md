@@ -65,3 +65,17 @@ Release/UBSan独立造图验证无仓/无工、斜角、直邻无路、绕路/�
 ## 手动库存搬迁增量
 
 新增`bool transferWarehouseStock(uint32_t sx,uint32_t sy,uint32_t dx,uint32_t dy,int64_t amount,std::string& message)`。仅不同v4官仓、正数且不超源存粮/目标600担余量；完整候选提交，错误不改字节/事件，成功总粮/国库/日期/历史月账保持。没有道路、费用或自动分摊要求；暂存UI不进入既有v4布局。具体交互与验收见[WAREHOUSE_INVENTORY_TRANSFER.md](WAREHOUSE_INVENTORY_TRANSFER.md)。
+
+## 农庄范围只读查询增量
+
+```cpp
+struct CityFarmWarehouseRoute {
+  bool valid=false, hasWorkers=false;
+  size_t farmTile=0;
+  std::vector<size_t> roadTiles, warehouseTiles;
+  int capacity=0, stored=0, freeCapacity=0;
+};
+CityFarmWarehouseRoute CitySimulation::farmWarehouseRoute(uint32_t x,uint32_t y) const;
+```
+
+仅v4合法农庄有效，`farmTile=y*128+x`；两集合按行优先排序、无重复。道路是所有农庄四邻道路分量的并集（包括没有官仓的可达支路），仓库是这些分量相邻仓的去重并集。容量为仓数×600、存粮取当前仓存、余量为两者之差；满仓仍保持连通。`hasWorkers`只表示当前availableWorkers>0，不声称该农庄获完整岗位或下一月必入仓。其他规则/非农庄/越界返回默认空结构，查询无状态/事件副作用。详细窗口清除合同和验证见[WAREHOUSE_ROAD_MARKERS.md](WAREHOUSE_ROAD_MARKERS.md)。此前v1冻结字段与运输公式保持，新增函数不改变存档。

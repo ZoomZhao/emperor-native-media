@@ -13,6 +13,7 @@
 #include "city_goal_feedback_adapter.hpp"
 #include "../city_game_state.hpp"
 #include "city_warehouse_transfer.hpp"
+#include "city_warehouse_routes.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -65,11 +66,34 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     return game_lab::presentImage(presenter, width, height, pixels) == game_lab::PresentationResult::Presented;
 }
 
-@interface InteractiveMapView : NSImageView
+@interface InteractiveMapView : NSImageView {
+    std::vector<size_t> _routeRoads, _routeWarehouses;
+    size_t _routeFarm;
+    BOOL _routeValid;
+}
+- (void)setWarehouseRoute:(const game_lab::CityFarmWarehouseRoute&)route;
 @property (nonatomic, copy) void (^onTileClicked)(int tileX, int tileY);
 @end
 
 @implementation InteractiveMapView
+- (void)setWarehouseRoute:(const game_lab::CityFarmWarehouseRoute&)route {
+    _routeValid=route.valid;_routeFarm=route.farmTile;
+    _routeRoads=route.roadTiles;_routeWarehouses=route.warehouseTiles;self.needsDisplay=YES;
+}
+- (void)drawRect:(NSRect)dirty {
+    [super drawRect:dirty];if(!_routeValid)return;
+    [NSGraphicsContext saveGraphicsState];NSRectClip(self.bounds);
+    const CGFloat w=self.bounds.size.width/128.0,h=self.bounds.size.height/128.0;
+    auto tile=[&](size_t i){return NSMakeRect(self.bounds.origin.x+(i%128)*w,self.bounds.origin.y+self.bounds.size.height-(i/128+1)*h,w,h);};
+    NSBezierPath* roads=[NSBezierPath bezierPath];
+    for(size_t i:_routeRoads)[roads appendBezierPathWithRect:NSInsetRect(tile(i),.25,.25)];
+    [[NSColor colorWithCalibratedRed:1 green:.83 blue:.08 alpha:.8] setFill];[roads fill];
+    NSBezierPath* warehouses=[NSBezierPath bezierPath];warehouses.lineWidth=1.7;
+    for(size_t i:_routeWarehouses)[warehouses appendBezierPathWithRect:NSInsetRect(tile(i),-2,-2)];
+    [[NSColor cyanColor] setStroke];[warehouses stroke];
+    NSBezierPath* farm=[NSBezierPath bezierPathWithOvalInRect:NSInsetRect(tile(_routeFarm),-3,-3)];farm.lineWidth=1.5;
+    [[NSColor whiteColor] setStroke];[farm stroke];[NSGraphicsContext restoreGraphicsState];
+}
 - (void)mouseDown:(NSEvent *)event {
     NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
     int x = 0, y = 0;
@@ -128,6 +152,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSButton* _warehouseTransferCancel;
     NSTextField* _warehouseTransferAmount;
     NSTextField* _warehouseTransferStatus;
+    NSTextField* _warehouseRouteLabel;
     NSSegmentedControl* _speedControl;
     NSSegmentedControl* _buildToolControl;
     NSArray<NSString*>* _mapFiles;
@@ -543,7 +568,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_mapView addSubview:_buildToolControl];
 
     // Leave room for the wrapped HUD; track the content height when macOS fits the window to the screen.
-    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 532, cityHeight - 252)];
+    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 532, cityHeight - 290)];
     _mapCanvasView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _mapCanvasView.imageScaling = NSImageScaleAxesIndependently;
     _mapCanvasView.wantsLayer = YES;
@@ -586,6 +611,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _warehouseTransferStatus.frame=NSMakeRect(714,cityHeight-182,294,20);
     _warehouseTransferStatus.font=[NSFont systemFontOfSize:11];
     _warehouseTransferStatus.autoresizingMask=NSViewMinYMargin|NSViewWidthSizable;[_mapView addSubview:_warehouseTransferStatus];
+
+    _warehouseRouteLabel=[NSTextField wrappingLabelWithString:@"仓储城勘查农庄：黄线为可达道路，青框为官仓"];
+    _warehouseRouteLabel.frame=NSMakeRect(286,cityHeight-226,722,34);
+    _warehouseRouteLabel.maximumNumberOfLines=2;_warehouseRouteLabel.font=[NSFont systemFontOfSize:11];
+    _warehouseRouteLabel.accessibilityIdentifier=@"warehouse-route-summary";
+    _warehouseRouteLabel.autoresizingMask=NSViewMinYMargin|NSViewWidthSizable;
+    [_mapView addSubview:_warehouseRouteLabel];
 
     // Bottom: Event Log / Status
     _cityEventLabel = [NSTextField wrappingLabelWithString:@"📜 帝都政务记录"];
@@ -737,6 +769,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self updateWarehouseTransferControls];_cityEventLabel.stringValue=[NSString stringWithUTF8String:message.c_str()];
 }
 - (void)renderCityGrid {
+    game_lab::CityFarmWarehouseRoute route;
+    if(_activeBuildTool==game_lab::BuildingType::None && !_warehouseTransfer.active() &&
+       _selectedCursorX>=0 && _selectedCursorY>=0)
+        route=_citySim.farmWarehouseRoute(_selectedCursorX,_selectedCursorY);
+    [_mapCanvasView setWarehouseRoute:route];
+    _warehouseRouteLabel.stringValue=[NSString stringWithUTF8String:game_lab::describeCityFarmWarehouseRoute(route).c_str()];
     const auto pixels = _citySim.renderGridPixels(_selectedCursorX, _selectedCursorY);
     if (!presentPixels(_mapCanvasView, 128, 128, pixels)) {
         _mapCanvasView.image = nil;
@@ -782,7 +820,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         case 9: _activeBuildTool = static_cast<game_lab::BuildingType>(99); break; // Demolish
         default: _activeBuildTool = game_lab::BuildingType::None; break;
     }
-    [self updateWarehouseTransferControls];
+    [self updateWarehouseTransferControls];[self renderCityGrid];
 }
 
 - (void)handleTileClickAtX:(int)x y:(int)y {

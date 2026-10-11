@@ -102,6 +102,12 @@ struct CityLogisticsOverview {
     int warehouses=0, capacity=0, stored=0, connectedFarms=0, disconnectedFarms=0;
 };
 
+struct CityFarmWarehouseRoute {
+    bool valid=false, hasWorkers=false;
+    size_t farmTile=0;
+    std::vector<size_t> roadTiles, warehouseTiles;
+    int capacity=0, stored=0, freeCapacity=0;
+};
 struct CityStats {
     int treasury = 5000;       // 初始资金（贯/铜钱）
     int population = 0;        // 当前人口
@@ -225,6 +231,23 @@ public:
         candidate.addEvent(result);
         *this = std::move(candidate); message = result;
         return true;
+    }
+    CityFarmWarehouseRoute farmWarehouseRoute(uint32_t x,uint32_t y) const {
+        CityFarmWarehouseRoute result;
+        if (ruleset_!=CityRuleset::RoadWarehouses || x>=kMapSize || y>=kMapSize ||
+            buildingAt(x,y)!=BuildingType::Farm) return result;
+        result.valid=true; result.farmTile=y*kMapSize+x;
+        result.hasWorkers=stats_.availableWorkers>0;
+        const auto network=roadNetwork();
+        const auto components=adjacentRoadComponents(result.farmTile,network.labels);
+        for(size_t i=0;i<kTotalTiles;++i)
+            if(network.labels[i]>=0 && std::binary_search(components.begin(),components.end(),network.labels[i]))
+                result.roadTiles.push_back(i);
+        result.warehouseTiles=reachableWarehouses(result.farmTile,network);
+        result.capacity=int(result.warehouseTiles.size())*CityWarehouseRules::capacity;
+        for(size_t i:result.warehouseTiles)result.stored+=warehouseStocks_[i];
+        result.freeCapacity=result.capacity-result.stored;
+        return result;
     }
     bool farmHasWarehouseRoute(uint32_t x, uint32_t y) const {
         if (ruleset_ != CityRuleset::RoadWarehouses || buildingAt(x,y) != BuildingType::Farm) return false;
