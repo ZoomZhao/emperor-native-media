@@ -12,7 +12,7 @@
 namespace game_lab {
 
 // Version 2 remains reserved. Version 1 keeps its original service contract.
-enum class CityRuleset : uint32_t { LegacyServices = 1, StaffedServices = 3 };
+enum class CityRuleset : uint32_t { LegacyServices = 1, StaffedServices = 3, RoadWarehouses = 4 };
 
 // Self-authored city building model; its rules have not been compared with the original game.
 enum class BuildingType : uint8_t {
@@ -23,7 +23,8 @@ enum class BuildingType : uint8_t {
     Well = 4,
     Temple = 5,
     Market = 6,
-    Watchtower = 7
+    Watchtower = 7,
+    Warehouse = 8
 };
 
 static constexpr bool isValidBuildingType(BuildingType type) {
@@ -33,7 +34,7 @@ static constexpr bool isValidBuildingType(BuildingType type) {
            type == BuildingType::Well ||
            type == BuildingType::Temple ||
            type == BuildingType::Market ||
-           type == BuildingType::Watchtower;
+           type == BuildingType::Watchtower || type == BuildingType::Warehouse;
 }
 
 struct BuildingCost {
@@ -46,6 +47,7 @@ struct BuildingCost {
             case BuildingType::Temple: return 50;
             case BuildingType::Market: return 30;
             case BuildingType::Watchtower: return 20;
+            case BuildingType::Warehouse: return 60;
             case BuildingType::None: default: return 0;
         }
     }
@@ -58,6 +60,7 @@ struct BuildingCost {
             case BuildingType::Temple: return "祭祖宗庙";
             case BuildingType::Market: return "市井粮肆";
             case BuildingType::Watchtower: return "巡更更楼";
+            case BuildingType::Warehouse: return "官粮仓库";
             case BuildingType::None: default: return "空地";
         }
     }
@@ -71,6 +74,7 @@ struct BuildingLabor {
             case BuildingType::Temple: return 4;
             case BuildingType::Market: return 4;
             case BuildingType::Watchtower: return 2;
+            case BuildingType::Warehouse: return 2;
             default: return 0;
         }
     }
@@ -82,6 +86,20 @@ struct FarmProductionRules {
     static constexpr int autumnBonus = 30;
     static constexpr int firstAutumnMonth = 8;
     static constexpr int lastAutumnMonth = 10;
+};
+
+struct CityWarehouseRules {
+    static constexpr int capacity = 600;
+    static constexpr uint32_t initialX = 5, initialY = 2;
+};
+struct CityLogisticsMonth {
+    bool valid = false;
+    int beginStored=0, produced=0, delivered=0;
+    int noRouteDiscard=0, fullDiscard=0;
+    int consumed=0, unmetDemand=0, endStored=0;
+};
+struct CityLogisticsOverview {
+    int warehouses=0, capacity=0, stored=0, connectedFarms=0, disconnectedFarms=0;
 };
 
 struct CityStats {
@@ -100,6 +118,8 @@ struct CityStats {
     int totalTemples = 0;
     int totalMarkets = 0;
     int totalWatchtowers = 0;
+    int totalWarehouses = 0;
+    int grainStorageCapacity = 0;
 
     int availableWorkers = 0;    // 适龄劳动力 (人口 / 2)
     int neededWorkers = 0;       // 营建岗位需求
@@ -112,6 +132,8 @@ public:
     static constexpr uint32_t kMapSize = 128;
     static constexpr uint32_t kTotalTiles = kMapSize * kMapSize;
     static constexpr int kTicksPerMonth = 10;
+    static constexpr size_t kLegacySnapshotBytes = 44 + kTotalTiles * 4;
+    static constexpr size_t kWarehouseSnapshotBytes = kLegacySnapshotBytes + kTotalTiles * 4 + 36;
 
     explicit CitySimulation(CityRuleset rules = CityRuleset::LegacyServices) : ruleset_(rules) {
         reset();
@@ -129,6 +151,13 @@ public:
         buildings_.assign(kTotalTiles, BuildingType::None);
         houseLevels_.assign(kTotalTiles, 0);
         events_.clear();
+        warehouseStocks_.assign(kTotalTiles, 0);
+        logisticsMonth_ = {};
+        if (ruleset_ == CityRuleset::RoadWarehouses) {
+            const size_t i = CityWarehouseRules::initialY * kMapSize + CityWarehouseRules::initialX;
+            buildings_[i] = BuildingType::Warehouse; houseLevels_[i] = 1;
+            warehouseStocks_[i] = 400;
+        }
         monthAccumulator_ = 0;
         addEvent("新朝初启，百废待兴。请修筑道路与民居，开垦沃野。");
         recalculateTotals();
@@ -136,6 +165,22 @@ public:
 
     bool loadFromMap(const CityMap& map) {
         if (!map.valid()) return false;
+        if (ruleset_ == CityRuleset::RoadWarehouses) {
+            size_t site = CityWarehouseRules::initialY * kMapSize + CityWarehouseRules::initialX;
+            const auto dry = [&](size_t i) { return map.tiles[i] < 200 || map.tiles[i] > 240; };
+            if (!dry(site)) {
+                site = 0; while (site < kTotalTiles && !dry(site)) ++site;
+                if (site == kTotalTiles) return false;
+            }
+            auto candidate = *this; candidate.reset(); candidate.terrain_ = map.tiles;
+            const size_t previous = CityWarehouseRules::initialY * kMapSize + CityWarehouseRules::initialX;
+            candidate.buildings_[previous] = BuildingType::None; candidate.houseLevels_[previous] = 0;
+            candidate.warehouseStocks_[previous] = 0;
+            candidate.buildings_[site] = BuildingType::Warehouse; candidate.houseLevels_[site] = 1;
+            candidate.warehouseStocks_[site] = 400;
+            candidate.recalculateTotals(); candidate.addEvent("已载入自造地图与初始官仓。");
+            *this = std::move(candidate); return true;
+        }
         reset();
         terrain_ = map.tiles;
         addEvent("已载入地图，开始营建城邑。");
@@ -147,6 +192,50 @@ public:
         auto candidate = *this;
         candidate.advanceMonth();
         return candidate.stats();
+    }
+    const CityLogisticsMonth& lastLogisticsMonth() const { return logisticsMonth_; }
+    CityLogisticsMonth nextMonthLogistics() const {
+        auto candidate = *this; candidate.advanceMonth(); return candidate.logisticsMonth_;
+    }
+    int warehouseStockAt(uint32_t x, uint32_t y) const {
+        if (x >= kMapSize || y >= kMapSize || buildingAt(x,y) != BuildingType::Warehouse) return 0;
+        return warehouseStocks_[y*kMapSize+x];
+    }
+    bool farmHasWarehouseRoute(uint32_t x, uint32_t y) const {
+        if (ruleset_ != CityRuleset::RoadWarehouses || buildingAt(x,y) != BuildingType::Farm) return false;
+        const auto network = roadNetwork();
+        return !reachableWarehouses(y*kMapSize+x,network).empty();
+    }
+    CityLogisticsOverview logisticsOverview() const {
+        CityLogisticsOverview result{stats_.totalWarehouses,stats_.grainStorageCapacity,stats_.foodSupply,0,0};
+        if (ruleset_ != CityRuleset::RoadWarehouses) return result;
+        const auto network = roadNetwork();
+        for (size_t i=0;i<kTotalTiles;++i) if (buildings_[i] == BuildingType::Farm) {
+            bool connected = false;
+            for (int component : adjacentRoadComponents(i,network.labels))
+                if (!network.warehouses[size_t(component)].empty()) connected = true;
+            if (connected) ++result.connectedFarms; else ++result.disconnectedFarms;
+        }
+        return result;
+    }
+    bool migrateToRoadWarehouses(uint32_t x, uint32_t y, std::string& message) {
+        if (ruleset_ != CityRuleset::StaffedServices) {
+            message = "仅服务需工v3自由城可转换；旧规则城请另建仓储城"; return false;
+        }
+        if (stats_.foodSupply > CityWarehouseRules::capacity) {
+            message = "现有存粮超过单仓600担，转换拒绝，粮食与城市保留"; return false;
+        }
+        auto candidate = *this; candidate.ruleset_ = CityRuleset::RoadWarehouses;
+        if (!candidate.canBuild(x,y,BuildingType::Warehouse)) {
+            message = "转换需要空陆格和60贯；现有城市保留"; return false;
+        }
+        candidate.warehouseStocks_.assign(kTotalTiles,0);
+        candidate.warehouseStocks_[y*kMapSize+x] = stats_.foodSupply;
+        candidate.logisticsMonth_ = {};
+        if (!candidate.build(x,y,BuildingType::Warehouse,message)) return false;
+        candidate.addEvent("已明确转换仓储规则，旧存粮完整移入新仓；仓库增加2岗位。");
+        *this = std::move(candidate); message = "仓储已启用，全部旧粮入仓；农庄须连通道路，非空仓不可拆除。";
+        return true;
     }
     void setSpeed(int speed) { stats_.speed = std::clamp(speed, 0, 3); }
     int monthAccumulator() const { return monthAccumulator_; }
@@ -164,7 +253,7 @@ public:
     }
 
     bool canBuild(uint32_t x, uint32_t y, BuildingType type) const {
-        if (!isValidBuildingType(type)) return false;
+        if (!isValidBuildingType(type) || (type == BuildingType::Warehouse && ruleset_ != CityRuleset::RoadWarehouses)) return false;
         if (x >= kMapSize || y >= kMapSize) return false;
         if (buildings_[y * kMapSize + x] != BuildingType::None) return false;
         if (isWaterTile(x, y)) return false; // 水域不可直接建陆上建筑
@@ -173,7 +262,7 @@ public:
     }
 
     bool build(uint32_t x, uint32_t y, BuildingType type, std::string& message) {
-        if (!isValidBuildingType(type)) {
+        if (!isValidBuildingType(type) || (type == BuildingType::Warehouse && ruleset_ != CityRuleset::RoadWarehouses)) {
             message = "非法或未定义的营建类型";
             return false;
         }
@@ -214,6 +303,10 @@ public:
         const size_t idx = y * kMapSize + x;
         if (buildings_[idx] == BuildingType::None) {
             message = "此处为天然旷野，无须清拆";
+            return false;
+        }
+        if (buildings_[idx] == BuildingType::Warehouse && warehouseStocks_[idx] != 0) {
+            message = "仓库仍有 " + std::to_string(warehouseStocks_[idx]) + " 担存粮，请用空后再拆；库存与资金保持";
             return false;
         }
         constexpr int demolishCost = 2;
@@ -267,7 +360,9 @@ public:
 
         // 1. 农田丰收周期（每月基础收成 + 秋季大收成，受劳动力满足率严格约束）
         updateLabor();
-        if (stats_.totalFarms > 0) {
+        if (ruleset_ == CityRuleset::RoadWarehouses) {
+            transportHarvest(farmYieldForMonth(stats_.month));
+        } else if (stats_.totalFarms > 0) {
             const int harvest = farmYieldForMonth(stats_.month);
             stats_.foodSupply = boundedInt(int64_t(stats_.foodSupply) + harvest);
             if (harvest == 0) {
@@ -279,8 +374,18 @@ public:
 
         // 2. 粮食消费：每 10 人每月食用 1 担粮食
         const int foodNeeded = (stats_.population + 9) / 10;
-        if (stats_.foodSupply >= foodNeeded) {
-            stats_.foodSupply -= foodNeeded;
+        if (ruleset_ == CityRuleset::RoadWarehouses) {
+            int remaining = foodNeeded;
+            for (auto& stock : warehouseStocks_) {
+                const int take = std::min(stock,remaining); stock -= take; remaining -= take;
+            }
+            logisticsMonth_.consumed = foodNeeded - remaining;
+            logisticsMonth_.unmetDemand = remaining;
+            stats_.foodSupply -= logisticsMonth_.consumed;
+            logisticsMonth_.endStored = stats_.foodSupply;
+        }
+        if (ruleset_ == CityRuleset::RoadWarehouses ? logisticsMonth_.unmetDemand == 0 : stats_.foodSupply >= foodNeeded) {
+            if (ruleset_ != CityRuleset::RoadWarehouses) stats_.foodSupply -= foodNeeded;
         } else {
             stats_.foodSupply = 0;
             // 饥荒导致人口流失与民心下降
@@ -311,7 +416,7 @@ public:
                            stats_.totalFarms * 1 +
                            stats_.totalWells * 1 +
                            stats_.totalMarkets * 2 +
-                           stats_.totalWatchtowers * 1;
+                           stats_.totalWatchtowers * 1 + stats_.totalWarehouses;
         stats_.treasury = boundedInt(int64_t(stats_.treasury) + taxCollected - upkeep);
 
         // 7. 宗庙庇佑与治安巡更
@@ -423,7 +528,7 @@ public:
                                stats_.totalWells * 2 +
                                stats_.totalTemples * 4 +
                                stats_.totalMarkets * 4 +
-                               stats_.totalWatchtowers * 2;
+                               stats_.totalWatchtowers * 2 + stats_.totalWarehouses * 2;
         if (stats_.neededWorkers == 0) {
             stats_.employmentPercent = 100;
         } else {
@@ -444,7 +549,7 @@ public:
     }
 
     void recalculateTotals() {
-        int roads = 0, houses = 0, farms = 0, wells = 0, temples = 0, markets = 0, watchtowers = 0;
+        int roads = 0, houses = 0, farms = 0, wells = 0, temples = 0, markets = 0, watchtowers = 0, warehouses = 0;
         for (size_t i = 0; i < kTotalTiles; ++i) {
             switch (buildings_[i]) {
                 case BuildingType::Road: ++roads; break;
@@ -454,6 +559,7 @@ public:
                 case BuildingType::Temple: ++temples; break;
                 case BuildingType::Market: ++markets; break;
                 case BuildingType::Watchtower: ++watchtowers; break;
+                case BuildingType::Warehouse: ++warehouses; break;
                 case BuildingType::None: default: break;
             }
         }
@@ -464,6 +570,12 @@ public:
         stats_.totalTemples = temples;
         stats_.totalMarkets = markets;
         stats_.totalWatchtowers = watchtowers;
+        stats_.totalWarehouses = warehouses;
+        stats_.grainStorageCapacity = warehouses * CityWarehouseRules::capacity;
+        if (ruleset_ == CityRuleset::RoadWarehouses) {
+            stats_.foodSupply = 0;
+            for (int stock : warehouseStocks_) stats_.foodSupply += stock;
+        }
         stabilizeHousingAndLabor();
         updateCityRank();
     }
@@ -477,7 +589,7 @@ public:
 
     std::vector<uint8_t> saveSnapshot() const {
         std::vector<uint8_t> buf;
-        buf.reserve(4 + 4 + 36 + kTotalTiles * 2 + kTotalTiles * 2);
+        buf.reserve(ruleset_ == CityRuleset::RoadWarehouses ? kWarehouseSnapshotBytes : kLegacySnapshotBytes);
         buf.push_back('E'); buf.push_back('M'); buf.push_back('P'); buf.push_back('1');
         const uint32_t ver = static_cast<uint32_t>(ruleset_);
         for (int i = 0; i < 4; ++i) buf.push_back(static_cast<uint8_t>((ver >> (i * 8)) & 0xff));
@@ -507,12 +619,18 @@ public:
         for (uint8_t l : houseLevels_) {
             buf.push_back(l);
         }
+        if (ruleset_ == CityRuleset::RoadWarehouses) {
+            for (int stock : warehouseStocks_) putI32(stock);
+            putI32(logisticsMonth_.valid ? 1 : 0);
+            for (int value : {logisticsMonth_.beginStored,logisticsMonth_.produced,logisticsMonth_.delivered,
+                             logisticsMonth_.noRouteDiscard,logisticsMonth_.fullDiscard,logisticsMonth_.consumed,
+                             logisticsMonth_.unmetDemand,logisticsMonth_.endStored}) putI32(value);
+        }
         return buf;
     }
 
     bool loadSnapshot(const std::vector<uint8_t>& buf) {
-        constexpr size_t expectedSize = 44 + kTotalTiles * 4;
-        if (buf.size() != expectedSize || buf[0] != 'E' || buf[1] != 'M' || buf[2] != 'P' || buf[3] != '1') return false;
+        if (buf.size() < 8 || buf[0] != 'E' || buf[1] != 'M' || buf[2] != 'P' || buf[3] != '1') return false;
         size_t offset = 4;
         auto word = [&]() {
             uint32_t result = 0;
@@ -520,7 +638,8 @@ public:
             return result;
         };
         const uint32_t version = word();
-        if (version != 1 && version != 3) return false;
+        if (version != 1 && version != 3 && version != 4) return false;
+        if (buf.size() != (version == 4 ? kWarehouseSnapshotBytes : kLegacySnapshotBytes)) return false;
         auto signedWord = [&]() {
             const uint32_t bits = word();
             return static_cast<int32_t>(bits <= 0x7fffffffu ? int64_t(bits) : int64_t(bits) - 0x100000000ll);
@@ -528,6 +647,7 @@ public:
         CitySimulation candidate = *this;
         candidate.ruleset_ = static_cast<CityRuleset>(version);
         candidate.stats_ = CityStats{};
+        candidate.warehouseStocks_.assign(kTotalTiles,0); candidate.logisticsMonth_ = {};
         auto& stats = candidate.stats_;
         stats.treasury = signedWord();
         stats.population = signedWord();
@@ -550,6 +670,7 @@ public:
         for (size_t i = 0; i < kTotalTiles; ++i) {
             const auto type = static_cast<BuildingType>(buf[offset++]);
             if (type != BuildingType::None && !isValidBuildingType(type)) return false;
+            if (type == BuildingType::Warehouse && version != 4) return false;
             if (type != BuildingType::None && candidate.isWaterTile(i % kMapSize, i / kMapSize)) return false;
             candidate.buildings_[i] = type;
         }
@@ -560,6 +681,30 @@ public:
                 (type == BuildingType::House && (level < 1 || level > 4)) ||
                 (type != BuildingType::None && type != BuildingType::House && level != 1)) return false;
             candidate.houseLevels_[i] = level;
+        }
+        if (version == 4) {
+            for (size_t i=0;i<kTotalTiles;++i) {
+                const uint32_t stock = word();
+                if (stock > uint32_t(CityWarehouseRules::capacity) ||
+                    (candidate.buildings_[i] != BuildingType::Warehouse && stock != 0)) return false;
+                candidate.warehouseStocks_[i] = int(stock);
+            }
+            const uint32_t valid = word(); if (valid > 1) return false;
+            auto& report = candidate.logisticsMonth_; report.valid = valid != 0;
+            int* fields[] = {&report.beginStored,&report.produced,&report.delivered,&report.noRouteDiscard,
+                             &report.fullDiscard,&report.consumed,&report.unmetDemand,&report.endStored};
+            for (auto field : fields) { *field = signedWord(); if (*field < 0) return false; }
+            if (!report.valid) { for (auto field : fields) if (*field != 0) return false; }
+            else {
+                constexpr int maxGrain = int(kTotalTiles)*CityWarehouseRules::capacity;
+                constexpr int maxHarvest = int(kTotalTiles)*35, maxDemand = int(kTotalTiles)*48/10+1;
+                if (report.beginStored > maxGrain || report.endStored > maxGrain || report.produced > maxHarvest ||
+                    report.delivered > maxHarvest || report.noRouteDiscard > maxHarvest || report.fullDiscard > maxHarvest ||
+                    int64_t(report.consumed)+report.unmetDemand > maxDemand ||
+                    int64_t(report.produced) != int64_t(report.delivered)+report.noRouteDiscard+report.fullDiscard ||
+                    int64_t(report.beginStored)+report.delivered-report.consumed != report.endStored ||
+                    report.endStored != stats.foodSupply) return false;
+            }
         }
         candidate.recalculateTotals();
         // Redundant capacity/level data must agree with the parsed buildings.
@@ -601,7 +746,19 @@ public:
             return "🔍 勘查地块 (" + std::to_string(x) + ", " + std::to_string(y) + "): 地形=陆地平原 · 建筑=无 · 天然旷野，可供营建";
         }
 
+        if (b == BuildingType::Warehouse) {
+            return "🔍 官粮仓库 (" + std::to_string(x) + ", " + std::to_string(y) + ") · 存粮 " +
+                std::to_string(warehouseStockAt(x,y)) + "/600 担 · 需工2 · 维护1贯/月\n农庄须经四邻道路入仓；有粮时不可拆，居民统一从仓库扣粮。";
+        }
         if (b == BuildingType::Farm) {
+            if (ruleset_ == CityRuleset::RoadWarehouses) {
+                const auto report = nextMonthLogistics();
+                return "🔍 农庄 (" + std::to_string(x) + ", " + std::to_string(y) + ") · " +
+                    (farmHasWarehouseRoute(x,y) ? "道路通仓" : "道路未通仓，收成损耗") +
+                    " · 需工8\n下月全城生产 " + std::to_string(report.produced) + " / 入仓 " +
+                    std::to_string(report.delivered) + " / 断路损耗 " + std::to_string(report.noRouteDiscard) +
+                    " / 满仓损耗 " + std::to_string(report.fullDiscard) + " 担";
+            }
             const int nextMonth = stats_.month == 12 ? 1 : stats_.month + 1;
             const bool autumn = nextMonth >= FarmProductionRules::firstAutumnMonth && nextMonth <= FarmProductionRules::lastAutumnMonth;
             const std::string reason = stats_.availableWorkers == 0 ? "严重缺工停产" :
@@ -632,7 +789,7 @@ public:
                    " 井" + (serviceCoverageAt(x, y, BuildingType::Well) ? "✓" : "✗") +
                    " 市" + (serviceCoverageAt(x, y, BuildingType::Market) ? "✓" : "✗") +
                    " 庙" + (serviceCoverageAt(x, y, BuildingType::Temple) ? "✓" : "✗") +
-                   (ruleset_ == CityRuleset::StaffedServices ? " · 缺工会缩短服务范围" : " · 旧存档服务规则");
+                   (ruleset_ != CityRuleset::LegacyServices ? " · 缺工会缩短服务范围" : " · 旧存档服务规则");
         }
 
         if (b == BuildingType::Well || b == BuildingType::Market || b == BuildingType::Temple || b == BuildingType::Watchtower) {
@@ -713,6 +870,8 @@ public:
                     color = 0xff20a0e0; // 繁盛金灿市集
                 } else if (b == BuildingType::Watchtower) {
                     color = 0xff707070; // 肃穆更楼灰石
+                } else if (b == BuildingType::Warehouse) {
+                    color = warehouseStocks_[idx] > 0 ? 0xff30b8f0 : 0xff307898;
                 }
 
                 // 光标十字标记高亮
@@ -727,6 +886,70 @@ public:
     }
 
 private:
+    struct RoadNetwork {
+        std::vector<int> labels;
+        std::vector<std::vector<size_t>> warehouses;
+    };
+    static std::vector<size_t> fourNeighbors(size_t i) {
+        std::vector<size_t> neighbors;
+        const size_t x=i%kMapSize, y=i/kMapSize;
+        if (x>0) neighbors.push_back(i-1);
+        if (x+1<kMapSize) neighbors.push_back(i+1);
+        if (y>0) neighbors.push_back(i-kMapSize);
+        if (y+1<kMapSize) neighbors.push_back(i+kMapSize);
+        return neighbors;
+    }
+    static std::vector<int> adjacentRoadComponents(size_t i,const std::vector<int>& labels) {
+        std::vector<int> ids;
+        for (size_t n : fourNeighbors(i)) if (labels[n]>=0) ids.push_back(labels[n]);
+        std::sort(ids.begin(),ids.end()); ids.erase(std::unique(ids.begin(),ids.end()),ids.end());
+        return ids;
+    }
+    RoadNetwork roadNetwork() const {
+        RoadNetwork net; net.labels.assign(kTotalTiles,-1);
+        std::vector<size_t> queue;
+        for (size_t i=0;i<kTotalTiles;++i) if (buildings_[i]==BuildingType::Road && net.labels[i]<0) {
+            const int id=int(net.warehouses.size()); net.warehouses.emplace_back();
+            queue.clear(); queue.push_back(i); net.labels[i]=id;
+            for (size_t head=0;head<queue.size();++head)
+                for (size_t n : fourNeighbors(queue[head])) if (buildings_[n]==BuildingType::Road && net.labels[n]<0) {
+                    net.labels[n]=id; queue.push_back(n);
+                }
+        }
+        for (size_t i=0;i<kTotalTiles;++i) if (buildings_[i]==BuildingType::Warehouse)
+            for (int id : adjacentRoadComponents(i,net.labels)) net.warehouses[size_t(id)].push_back(i);
+        return net;
+    }
+    static std::vector<size_t> reachableWarehouses(size_t i,const RoadNetwork& net) {
+        std::vector<size_t> sites;
+        for (int id : adjacentRoadComponents(i,net.labels)) {
+            const auto& component = net.warehouses[size_t(id)]; sites.insert(sites.end(),component.begin(),component.end());
+        }
+        std::sort(sites.begin(),sites.end()); sites.erase(std::unique(sites.begin(),sites.end()),sites.end());
+        return sites;
+    }
+    void transportHarvest(int produced) {
+        logisticsMonth_ = {}; auto& report = logisticsMonth_;
+        report.valid=true; report.beginStored=stats_.foodSupply; report.produced=produced;
+        if (produced>0 && stats_.totalFarms>0) {
+            const auto net=roadNetwork(); int ordinal=0;
+            for (size_t i=0;i<kTotalTiles;++i) if (buildings_[i]==BuildingType::Farm) {
+                int remaining=produced/stats_.totalFarms + (ordinal++ < produced%stats_.totalFarms ? 1 : 0);
+                if (remaining==0) continue;
+                const auto warehouses=reachableWarehouses(i,net);
+                if (warehouses.empty()) { report.noRouteDiscard+=remaining; continue; }
+                for (size_t site : warehouses) {
+                    const int amount=std::min(remaining,CityWarehouseRules::capacity-warehouseStocks_[site]);
+                    warehouseStocks_[site]+=amount; remaining-=amount; report.delivered+=amount;
+                    if (remaining==0) break;
+                }
+                report.fullDiscard+=remaining;
+            }
+        }
+        stats_.foodSupply+=report.delivered;
+        addEvent("仓储月结：生产" + std::to_string(report.produced) + " / 入仓" + std::to_string(report.delivered) +
+                 " / 断路损耗" + std::to_string(report.noRouteDiscard) + " / 满仓损耗" + std::to_string(report.fullDiscard) + "担。");
+    }
     static int boundedInt(int64_t value) {
         return static_cast<int>(std::clamp(value, int64_t(std::numeric_limits<int>::min()),
                                           int64_t(std::numeric_limits<int>::max())));
@@ -736,6 +959,8 @@ private:
     std::vector<uint16_t> terrain_;
     std::vector<BuildingType> buildings_;
     std::vector<uint8_t> houseLevels_;
+    std::vector<int> warehouseStocks_;
+    CityLogisticsMonth logisticsMonth_;
     std::vector<std::string> events_;
     int monthAccumulator_ = 0;
 };

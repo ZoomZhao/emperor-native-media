@@ -10,12 +10,13 @@
 #include <unistd.h>
 
 namespace game_lab {
-constexpr size_t kCityStateBytes = 44 + CitySimulation::kTotalTiles * 4;
+constexpr size_t kCityStateBytes = CitySimulation::kLegacySnapshotBytes;
+constexpr size_t kCityWarehouseStateBytes = CitySimulation::kWarehouseSnapshotBytes;
 inline bool saveCityState(const CitySimulation& city, const std::filesystem::path& path, std::string& error) {
     error.clear();
     if (path.empty()) { error = "No city save path selected"; return false; }
     const auto bytes = city.saveSnapshot();
-    if (bytes.size() != kCityStateBytes) { error = "Invalid self-authored city state"; return false; }
+    if (bytes.size() != kCityStateBytes && bytes.size() != kCityWarehouseStateBytes) { error = "Invalid self-authored city state"; return false; }
     const auto pattern = path.string() + ".tmp.XXXXXX";
     std::vector<char> temporary(pattern.begin(), pattern.end()); temporary.push_back(0);
     const int fd = mkstemp(temporary.data());
@@ -39,10 +40,10 @@ inline bool loadCityState(CitySimulation& city, const std::filesystem::path& pat
     const int fd = open(path.c_str(), O_RDONLY | O_CLOEXEC | O_NONBLOCK | O_NOFOLLOW);
     if (fd < 0) { error = "Cannot open city save"; return false; }
     struct stat metadata{};
-    if (fstat(fd, &metadata) != 0 || !S_ISREG(metadata.st_mode) || metadata.st_size != static_cast<off_t>(kCityStateBytes)) {
+    if (fstat(fd, &metadata) != 0 || !S_ISREG(metadata.st_mode) || (metadata.st_size != static_cast<off_t>(kCityStateBytes) && metadata.st_size != static_cast<off_t>(kCityWarehouseStateBytes))) {
         close(fd); error = "City save must be one complete EMP1 state"; return false;
     }
-    std::vector<uint8_t> bytes(kCityStateBytes); size_t offset = 0; bool ok = true;
+    std::vector<uint8_t> bytes(static_cast<size_t>(metadata.st_size)); size_t offset = 0; bool ok = true;
     while (offset < bytes.size()) {
         const auto count = read(fd, bytes.data() + offset, bytes.size() - offset);
         if (count < 0 && errno == EINTR) continue;

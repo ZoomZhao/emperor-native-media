@@ -141,7 +141,7 @@ inline bool saveCityGameState(const CitySimulation& city, const CityScenarioSess
 inline bool loadCityGameState(CitySimulation& city, CityScenarioSession& session,
     CityScenarioAwardBook& book, const std::filesystem::path& path, std::string& error) {
     error.clear(); std::vector<uint8_t> bytes;
-    if (!city_game_io_detail::readBounded(path,kCityGameMaxBytes,bytes,error)) return false;
+    if (!city_game_io_detail::readBounded(path,std::max(kCityGameMaxBytes,kCityWarehouseStateBytes),bytes,error)) return false;
     return decodeCityGameState(bytes,city,session,book,error);
 }
 

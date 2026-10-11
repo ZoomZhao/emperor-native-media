@@ -22,6 +22,7 @@ inline CityFeedbackSnapshot makeCityFeedbackSnapshot(const CityStats& stats, Cit
     s.temples = stats.totalTemples;
     s.markets = stats.totalMarkets;
     s.watchtowers = stats.totalWatchtowers;
+    s.warehouses = stats.totalWarehouses;
     s.harvestRule = rule == CityHarvestRule::BaselineBb00e6b ? rule : CityHarvestRule::Unknown;
     return s;
 }
@@ -35,6 +36,10 @@ template<class City, class = void> struct HasServiceRules : std::false_type {};
 template<class City> struct HasServiceRules<City, std::void_t<decltype(
     std::declval<const City&>().ruleset()), decltype(std::declval<const City&>().nextMonthStats())>> : std::true_type {};
 
+template<class City, class = void> struct HasWarehouseLogistics : std::false_type {};
+template<class City> struct HasWarehouseLogistics<City, std::void_t<decltype(
+    std::declval<const City&>().nextMonthLogistics())>> : std::true_type {};
+
 template<class City>
 inline CityFeedbackSnapshot capture(const City& city, CityHarvestRule rule) {
     auto s = makeCityFeedbackSnapshot(city.stats(), CityHarvestRule::Unknown);
@@ -47,6 +52,16 @@ inline CityFeedbackSnapshot capture(const City& city, CityHarvestRule rule) {
                 s.coreHarvest = city.farmYieldForMonth(next.month);
                 s.coreNextMonth = CityCoreNextMonth{next.month, next.population, next.housingCapacity, next.foodSupply, next.treasury};
                 return s;
+            }
+            if constexpr (HasWarehouseLogistics<City>::value) {
+                if (rule == CityHarvestRule::RoadWarehousesV1 && rules == 4) {
+                    const auto next = city.nextMonthStats(); const auto transport = city.nextMonthLogistics();
+                    if (!transport.valid || transport.endStored != next.foodSupply) return s;
+                    s.harvestRule = rule; s.coreHarvest = city.farmYieldForMonth(next.month);
+                    s.coreDelivered = transport.delivered;
+                    s.coreNextMonth = CityCoreNextMonth{next.month,next.population,next.housingCapacity,next.foodSupply,next.treasury};
+                    return s;
+                }
             }
             if (rules != 1) return s;
         }

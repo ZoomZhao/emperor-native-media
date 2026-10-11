@@ -16,7 +16,8 @@ enum class CityHarvestRule {
     BaselineBb00e6b,       // Regular 5/farm; autumn uses max(30%, integer labor percent).
     LaborLimitedPrototype, // Reserved old double-rule ID; deliberately returns unknown in v2.
     LaborLimitedIntegerV1, // Exact pooled integer harvest with legacy spatial services.
-    StaffedServicesV1      // EMP1 v3: core predicts housing and migration after staffing changes.
+    StaffedServicesV1,     // EMP1 v3: core predicts housing and migration after staffing changes.
+    RoadWarehousesV1       // EMP1 v4: exact production with road-limited warehouse admission.
 };
 
 struct CityCoreNextMonth {
@@ -31,10 +32,11 @@ struct CityFeedbackSnapshot {
     int month = 1;
     int speed = 1;
     int roads = 0, houses = 0, farms = 0, wells = 0;
-    int temples = 0, markets = 0, watchtowers = 0;
+    int temples = 0, markets = 0, watchtowers = 0, warehouses = 0;
     CityHarvestRule harvestRule = CityHarvestRule::Unknown;
     std::optional<int64_t> coreHarvest; // Read-only adapter may supply the authoritative next-month helper result.
     std::optional<CityCoreNextMonth> coreNextMonth;
+    std::optional<int64_t> coreDelivered; // v4: admitted before consumption, supplied by the real copied month.
 };
 
 struct CityGoalConfig {
@@ -58,7 +60,7 @@ enum class CityFeedbackCode {
     InvalidSnapshot, InvalidGoals, InvalidHistory, UnknownHarvestRule, Paused,
     NoHousing, HousingFull, HousingBelowGoal, HousingCoverageUnknown, ServiceLaborShortage, HousingDisplacement,
     NoFarms, LaborShortage, FoodDeficit, Famine, MigrationFoodBlocked,
-    MonthlyDeficit, TreasuryDebt, ConstructionFundsLow
+    MonthlyDeficit, TreasuryDebt, ConstructionFundsLow, TransportLoss
 };
 
 struct CityGoalProgress {
@@ -78,7 +80,8 @@ struct CityFeedbackIssue {
 struct CityMonthPreview {
     bool known = false; // Unknown rule => no fabricated production, migration, or treasury forecast.
     int month = 0;
-    int64_t harvest = 0;
+    int64_t harvest = 0; // Actual admitted grain for v4.
+    int64_t produced = 0;
     int64_t consumption = 0;
     int64_t foodAfter = 0;
     int64_t migrationFoodGap = 0; // Extra pre-consumption stock/harvest needed to leave >10.
@@ -111,17 +114,21 @@ struct CityGoalFeedback {
 
 namespace city_feedback_detail {
 inline int64_t upkeep(const CityFeedbackSnapshot& s) {
-    return int64_t(s.temples) * 3 + s.farms + s.wells + int64_t(s.markets) * 2 + s.watchtowers;
+    return int64_t(s.temples) * 3 + s.farms + s.wells + int64_t(s.markets) * 2 + s.watchtowers + s.warehouses;
 }
 
 inline bool validSnapshot(const CityFeedbackSnapshot& s) {
     constexpr int64_t tiles = 128 * 128;
-    const int counts[] = {s.roads, s.houses, s.farms, s.wells, s.temples, s.markets, s.watchtowers};
+    const int counts[] = {s.roads, s.houses, s.farms, s.wells, s.temples, s.markets, s.watchtowers, s.warehouses};
     int64_t total = 0;
     for (int count : counts) {
         if (count < 0 || count > tiles) return false;
         total += count;
     }
+    if (s.harvestRule == CityHarvestRule::RoadWarehousesV1 &&
+        int64_t(s.foodSupply) > int64_t(s.warehouses) * 600) return false;
+    if (s.warehouses != 0 && s.harvestRule != CityHarvestRule::RoadWarehousesV1 &&
+        s.harvestRule != CityHarvestRule::Unknown) return false;
     return total <= tiles && s.population >= 0 && s.foodSupply >= 0 &&
            s.housingCapacity >= int64_t(s.houses) * 4 &&
            s.housingCapacity <= int64_t(s.houses) * 48 &&
@@ -146,10 +153,13 @@ inline CityMonthPreview preview(const CityFeedbackSnapshot& s, int64_t workers, 
     p.consumption = (int64_t(s.population) + 9) / 10;
     if (s.harvestRule != CityHarvestRule::BaselineBb00e6b &&
         s.harvestRule != CityHarvestRule::LaborLimitedIntegerV1 &&
-        s.harvestRule != CityHarvestRule::StaffedServicesV1) return p;
-    if (s.harvestRule == CityHarvestRule::StaffedServicesV1 && (!s.coreHarvest || !s.coreNextMonth)) return p;
+        s.harvestRule != CityHarvestRule::StaffedServicesV1 &&
+        s.harvestRule != CityHarvestRule::RoadWarehousesV1) return p;
+    if ((s.harvestRule == CityHarvestRule::StaffedServicesV1 || s.harvestRule == CityHarvestRule::RoadWarehousesV1) &&
+        (!s.coreHarvest || !s.coreNextMonth)) return p;
+    if (s.harvestRule == CityHarvestRule::RoadWarehousesV1 && !s.coreDelivered) return p;
     const bool autumn = p.month >= 8 && p.month <= 10;
-    if (s.harvestRule == CityHarvestRule::LaborLimitedIntegerV1 || s.harvestRule == CityHarvestRule::StaffedServicesV1) {
+    if (s.harvestRule == CityHarvestRule::LaborLimitedIntegerV1 || s.harvestRule == CityHarvestRule::StaffedServicesV1 || s.harvestRule == CityHarvestRule::RoadWarehousesV1) {
         // Exact match for frozen core farmYieldForMonth: no double intermediate or per-farm truncation.
         if (s.farms > 0 && jobs > 0 && workers > 0) {
             const int64_t filled = std::min(workers, jobs);
@@ -169,6 +179,12 @@ inline CityMonthPreview preview(const CityFeedbackSnapshot& s, int64_t workers, 
         }
         p.harvest = *s.coreHarvest;
     }
+    p.produced = p.harvest;
+    if (s.harvestRule == CityHarvestRule::RoadWarehousesV1) {
+        if (*s.coreDelivered < 0 || *s.coreDelivered > p.produced ||
+            int64_t(s.foodSupply)+*s.coreDelivered > int64_t(s.warehouses)*600) return p;
+        p.harvest = *s.coreDelivered;
+    }
     const int64_t stored = boundedInt(int64_t(s.foodSupply) + p.harvest);
     p.migrationFoodGap = std::max(int64_t(0), p.consumption + 11 - stored);
     if (stored < p.consumption) {
@@ -185,7 +201,7 @@ inline CityMonthPreview preview(const CityFeedbackSnapshot& s, int64_t workers, 
     p.tax = p.populationAfter;
     p.balance = p.tax - p.upkeep;
     p.treasuryAfter = boundedInt(int64_t(s.treasury) + p.balance);
-    if (s.harvestRule == CityHarvestRule::StaffedServicesV1) {
+    if (s.harvestRule == CityHarvestRule::StaffedServicesV1 || s.harvestRule == CityHarvestRule::RoadWarehousesV1) {
         const auto& next = *s.coreNextMonth;
         if (next.month != p.month || next.population < 0 || next.housingCapacity < 0 ||
             next.population > next.housingCapacity || next.housingCapacity > int64_t(s.houses) * 48 ||
@@ -232,7 +248,7 @@ inline CityGoalFeedback evaluateCityGoals(const CityFeedbackSnapshot& s,
     out.valid = true;
     out.availableWorkers = s.population / 2;
     out.neededWorkers = int64_t(s.farms) * 8 + int64_t(s.wells) * 2 +
-                        int64_t(s.temples) * 4 + int64_t(s.markets) * 4 + int64_t(s.watchtowers) * 2;
+                        int64_t(s.temples) * 4 + int64_t(s.markets) * 4 + int64_t(s.watchtowers) * 2 + int64_t(s.warehouses) * 2;
     const int64_t upkeep = city_feedback_detail::upkeep(s);
     out.currentMonthlyBalance = int64_t(s.population) - upkeep;
     out.nextMonth = city_feedback_detail::preview(s, out.availableWorkers, out.neededWorkers);
@@ -286,7 +302,7 @@ inline CityGoalFeedback evaluateCityGoals(const CityFeedbackSnapshot& s,
               "没有农庄，收成为 0。有居民时会继续扣粮；营建农庄可生产粮食，每座农庄需要 8 个岗位。");
     }
     if (s.farms > 0 && out.availableWorkers < out.neededWorkers && out.nextMonth.known) {
-        if (s.harvestRule == CityHarvestRule::LaborLimitedIntegerV1 || s.harvestRule == CityHarvestRule::StaffedServicesV1) {
+        if (s.harvestRule == CityHarvestRule::LaborLimitedIntegerV1 || s.harvestRule == CityHarvestRule::StaffedServicesV1 || s.harvestRule == CityHarvestRule::RoadWarehousesV1) {
             issue(CityFeedbackCode::LaborShortage, CityFeedbackSeverity::Warning,
                   "农庄缺工：全城劳动力 " + std::to_string(out.availableWorkers) + "/" + std::to_string(out.neededWorkers) +
                   "，差 " + std::to_string(out.neededWorkers - out.availableWorkers) +
@@ -297,10 +313,15 @@ inline CityGoalFeedback evaluateCityGoals(const CityFeedbackSnapshot& s,
         }
     }
     const auto& p = out.nextMonth;
-    if (s.harvestRule == CityHarvestRule::StaffedServicesV1 && p.known &&
+    if ((s.harvestRule == CityHarvestRule::StaffedServicesV1 || s.harvestRule == CityHarvestRule::RoadWarehousesV1) && p.known &&
         (s.wells + s.markets + s.temples + s.watchtowers > 0) && out.availableWorkers < out.neededWorkers) {
         issue(CityFeedbackCode::ServiceLaborShortage, CityFeedbackSeverity::Warning,
               "服务缺工：井/市场/宗庙有效范围按岗位比例缩短，更楼需满岗。勘查住宅的有效邻近服务；增加人口或减少非必要岗位可恢复范围。");
+    }
+    if (s.harvestRule == CityHarvestRule::RoadWarehousesV1 && p.known && p.produced > p.harvest) {
+        issue(CityFeedbackCode::TransportLoss, CityFeedbackSeverity::Warning,
+              "下一月生产" + std::to_string(p.produced) + "担，实际入仓" + std::to_string(p.harvest) +
+              "担；农庄道路未通仓或仓库空间不足，其余收成损耗。勘查农庄通路和仓库余量。");
     }
     if (p.known && p.housingLoss > 0) {
         issue(CityFeedbackCode::HousingDisplacement, CityFeedbackSeverity::Critical,

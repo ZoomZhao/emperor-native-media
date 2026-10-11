@@ -55,12 +55,13 @@ SERVICE = [name for name in CITY if name != 'game_lab/city_simulation_tests.cpp'
 SCENARIO_STATE = [name for name in SERVICE if name != 'game_lab/service_labor_tests.cpp'] + [
     'game_lab/city_game_state.hpp', 'game_lab/app/city_scenario.hpp',
     'game_lab/app/city_scenario_checkpoint.hpp', 'game_lab/city_game_state_tests.cpp']
+WAREHOUSE = [name for name in SCENARIO_STATE if name != 'game_lab/city_game_state_tests.cpp'] + ['game_lab/warehouse_roads_tests.cpp']
 SURFACE = ['surface_lab/surface.hpp', 'surface_lab/surface.cpp',
            'surface_lab/oracle.hpp', 'surface_lab/oracle.cpp', 'surface_lab/tests.cpp']
 METAL = [name for name in SURFACE if name != 'surface_lab/tests.cpp'] + [
     'metal_lab/backend.hpp', 'metal_lab/backend.mm', 'metal_lab/tests.mm']
 SUITES = {'surface': SURFACE, 'metal': METAL,
-          'city': CITY, 'service': SERVICE, 'scenario-state': SCENARIO_STATE, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
+          'city': CITY, 'service': SERVICE, 'scenario-state': SCENARIO_STATE, 'warehouse': WAREHOUSE, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
           'movie-async': APP + ['game_lab/movie_session_async_tests.mm'],
           'movie-termination': APP + ['game_lab/movie_termination_tests.mm']}
 
@@ -189,9 +190,9 @@ def run(suite, mode, output):
             fixtures.mkdir()
             command('graphics-test', [report / 'graphics-tests', fixtures])
             results = {suite: read(fixtures / 'summary.json')}
-        elif suite in ('city', 'service', 'scenario-state'):
+        elif suite in ('city', 'service', 'scenario-state', 'warehouse'):
             test_file = {'service':'game_lab/service_labor_tests.cpp', 'city':'game_lab/city_simulation_tests.cpp',
-                         'scenario-state':'game_lab/city_game_state_tests.cpp'}[suite]
+                         'scenario-state':'game_lab/city_game_state_tests.cpp', 'warehouse':'game_lab/warehouse_roads_tests.cpp'}[suite]
             command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
                                      *flags, '-I', snapshot, snapshot / test_file,
                                      '-o', report / 'city-tests'])

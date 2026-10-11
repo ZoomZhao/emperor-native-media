@@ -29,6 +29,8 @@ def main():
     accepted_cores = [expected_core]
     if args.harvest_rule == 'integer-v1':
         accepted_cores.append('4a21f495f3353594cc34f20806d19ead8e851e71b874ab2f2a0586834b34874d') # Legacy ruleset still fully supported on this core.
+    if args.harvest_rule in ('integer-v1', 'services-v1'):
+        accepted_cores.append('d60e45ade98531edacfbfb4ac1e3ad3e03dd8e8ae1a08cdd811b97a6a1502ce0') # Optional v4 retains both published v1/v3 contracts.
     expected_core = sha(core / 'city_simulation.hpp')
     if expected_core not in accepted_cores:
         parser.error('Core SHA-256 does not match the explicitly selected tested rule; provide the correct frozen --core-directory')

@@ -520,14 +520,14 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
     // Building Tools Palette (Width 470)
     _buildToolControl = [NSSegmentedControl segmentedControlWithLabels:@[
-        @"勘查", @"道路", @"民居", @"农庄", @"水井", @"宗庙", @"市肆", @"更楼", @"拆除"
+        @"勘查", @"道路", @"民居", @"农庄", @"水井", @"宗庙", @"市肆", @"更楼", @"仓库", @"拆除"
     ]
                                                           trackingMode:NSSegmentSwitchTrackingSelectOne
                                                                 target:self
                                                                 action:@selector(onBuildToolChanged:)];
     _buildToolControl.frame = NSMakeRect(536, cityHeight - 102, 472, 26);
     _buildToolControl.autoresizingMask = NSViewMinYMargin | NSViewWidthSizable;
-    NSArray<NSString*>* toolTips = @[@"勘查地块", @"道路：5贯", @"民居：15贯", @"农庄：40贯", @"水井：10贯", @"宗庙：50贯", @"市肆：30贯", @"更楼：20贯", @"拆除：2贯"];
+    NSArray<NSString*>* toolTips = @[@"勘查地块", @"道路：5贯", @"民居：15贯", @"农庄：40贯", @"水井：10贯", @"宗庙：50贯", @"市肆：30贯", @"更楼：20贯", @"仓库：60贯；须启用仓储规则", @"拆除：2贯"];
     for (NSInteger i = 0; i < _buildToolControl.segmentCount; ++i) {
         [_buildToolControl setToolTip:toolTips[static_cast<NSUInteger>(i)] forSegment:i];
     }
@@ -535,7 +535,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_mapView addSubview:_buildToolControl];
 
     // Leave room for the wrapped HUD; track the content height when macOS fits the window to the screen.
-    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 532, cityHeight - 188)];
+    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 532, cityHeight - 216)];
     _mapCanvasView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _mapCanvasView.imageScaling = NSImageScaleAxesIndependently;
     _mapCanvasView.wantsLayer = YES;
@@ -550,8 +550,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_mapView addSubview:_mapCanvasView];
 
     // Status info label below controls
-    _mapInfoLabel = [NSTextField labelWithString:@""];
-    _mapInfoLabel.frame = NSMakeRect(286, cityHeight - 130, 722, 22);
+    _mapInfoLabel = [NSTextField wrappingLabelWithString:@""];
+    _mapInfoLabel.maximumNumberOfLines = 2;
+    _mapInfoLabel.frame = NSMakeRect(286, cityHeight - 148, 722, 40);
     _mapInfoLabel.autoresizingMask = NSViewMinYMargin | NSViewWidthSizable;
     _mapInfoLabel.font = [NSFont systemFontOfSize:12];
     _mapInfoLabel.textColor = [NSColor colorWithCalibratedWhite:0.8 alpha:1.0];
@@ -577,7 +578,14 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     resetButton.frame = NSMakeRect(188, 64, 82, 28);
     [_mapView addSubview:saveButton]; [_mapView addSubview:loadButton]; [_mapView addSubview:resetButton];
     NSTextField* saveLabel = [NSTextField labelWithString:@"城邑与挑战进度一起保存"];
-    saveLabel.frame = NSMakeRect(16, 26, 260, 22);
+    NSButton* warehouseCity = [NSButton buttonWithTitle:@"仓储新城" target:self action:@selector(onNewWarehouseCity:)];
+    warehouseCity.frame = NSMakeRect(16, 34, 124, 26);
+    warehouseCity.toolTip = @"明确新建仓储自由城：预置400/600担官仓，农庄须用四邻道路通仓。";
+    NSButton* convert = [NSButton buttonWithTitle:@"启用仓储" target:self action:@selector(onEnableWarehouses:)];
+    convert.frame = NSMakeRect(144, 34, 126, 26);
+    convert.toolTip = @"v3自由城：先勘查空陆格，再花60贯新增仓库搬入全部旧粮（最多600）。活动挑战不可转换。";
+    [_mapView addSubview:warehouseCity]; [_mapView addSubview:convert];
+    saveLabel.frame = NSMakeRect(16, 6, 260, 22);
     [_mapView addSubview:saveLabel];
     [self updateCityHUD];
     [self renderCityGrid];
@@ -585,8 +593,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)updateCityHUD {
     const auto& s = _citySim.stats();
-    const auto rule = _citySim.ruleset() == game_lab::CityRuleset::StaffedServices ?
+    const bool warehouses = _citySim.ruleset() == game_lab::CityRuleset::RoadWarehouses;
+    const auto rule = warehouses ? game_lab::CityHarvestRule::RoadWarehousesV1 :
+        _citySim.ruleset() == game_lab::CityRuleset::StaffedServices ?
         game_lab::CityHarvestRule::StaffedServicesV1 : game_lab::CityHarvestRule::LaborLimitedIntegerV1;
+    [_buildToolControl setEnabled:warehouses forSegment:8];
     const auto goal = game_lab::evaluateCityGoals(game_lab::makeCityFeedbackSnapshot(_citySim, rule), _cityGoalConfig, _cityGoalMemory);
     _cityGoalMemory = goal.nextMemory;
     const auto challenge = _cityScenario.observe({s.year,s.month},goal,_cityScenarioReceipts);
@@ -606,7 +617,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const auto selected = _cityScenarioPicker.indexOfSelectedItem;
     if (selected >= 0 && selected < 3)
         _cityScenarioPicker.toolTip = [NSString stringWithUTF8String:game_lab::selfAuthoredCityScenarios()[size_t(selected)].instructions.c_str()];
-    std::string goalText = (_citySim.ruleset() == game_lab::CityRuleset::StaffedServices ?
+    std::string goalText = (warehouses ? "自写经营目标（仓储运输）\n" :
+        _citySim.ruleset() == game_lab::CityRuleset::StaffedServices ?
         "自写经营目标（服务需工）\n" : "自写经营目标（旧存档服务规则）\n") + goal.status;
     if (goal.valid) {
         const char* labels[] = {"人口", "存粮", "国库", "人口月度收支"};
@@ -617,7 +629,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         }
         if (goal.nextMonth.known) {
             const auto& p = goal.nextMonth;
-            goalText += "\n下月" + std::to_string(p.month) + "月：新粮" + std::to_string(p.harvest) + " / 耗粮" + std::to_string(p.consumption) +
+            goalText += "\n下月" + std::to_string(p.month) + (warehouses ? "月：入仓" : "月：新粮") + std::to_string(p.harvest) + " / 耗粮" + std::to_string(p.consumption) +
                         "\n余粮" + std::to_string(p.foodAfter) + " / 迁入" + std::to_string(p.incoming) +
                         "\n税" + std::to_string(p.tax) + " − 维护" + std::to_string(p.upkeep) + " = " + std::to_string(p.balance);
         }
@@ -635,6 +647,17 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSString* yearStr = s.year < 0 ? [NSString stringWithFormat:@"公元前 %lld 年", -static_cast<long long>(s.year)] : [NSString stringWithFormat:@"公元 %d 年", s.year];
     _cityHUDLabel.stringValue = [NSString stringWithFormat:@"📅 %@ %d月 [%@]  |  💰 国库: %d贯  |  👥 户籍: %d人 (容积: %d)  |  🛠 就业: %d%% (%d/%d工)  |  🌾 存粮: %d担  |  🕊 繁荣: %d%%",
                                  yearStr, s.month, [NSString stringWithUTF8String:s.rankTitle.c_str()], s.treasury, s.population, s.housingCapacity, s.employmentPercent, s.availableWorkers, s.neededWorkers, s.foodSupply, s.favor];
+    if (warehouses) {
+        const auto current = _citySim.logisticsOverview(); const auto& last = _citySim.lastLogisticsMonth();
+        std::string text = "官仓" + std::to_string(current.warehouses) + "座 · 存粮" + std::to_string(current.stored) +
+            "/" + std::to_string(current.capacity) + "担 · 农庄通仓" + std::to_string(current.connectedFarms) +
+            "/" + std::to_string(current.connectedFarms+current.disconnectedFarms) + "；四邻道路连接，斜角不算";
+        if (last.valid) text += "\n上月生产" + std::to_string(last.produced) + " / 入仓" + std::to_string(last.delivered) +
+            " / 断路损耗" + std::to_string(last.noRouteDiscard) + " / 满仓损耗" + std::to_string(last.fullDiscard) +
+            " / 耗粮" + std::to_string(last.consumed) + "担";
+        else text += "\n先建住宅增加工人；勘查仓库位置，用连续四邻道路接到农庄";
+        _mapInfoLabel.stringValue = [NSString stringWithUTF8String:text.c_str()];
+    }
     if (!_citySim.events().empty()) {
         _cityEventLabel.stringValue = [NSString stringWithFormat:@"📜 帝都政务记录: %@", [NSString stringWithUTF8String:_citySim.events().back().c_str()]];
     }
@@ -681,7 +704,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         case 5: _activeBuildTool = game_lab::BuildingType::Temple; break;
         case 6: _activeBuildTool = game_lab::BuildingType::Market; break;
         case 7: _activeBuildTool = game_lab::BuildingType::Watchtower; break;
-        case 8: _activeBuildTool = static_cast<game_lab::BuildingType>(99); break; // Demolish
+        case 8: _activeBuildTool = game_lab::BuildingType::Warehouse; break;
+        case 9: _activeBuildTool = static_cast<game_lab::BuildingType>(99); break; // Demolish
         default: _activeBuildTool = game_lab::BuildingType::None; break;
     }
 }
@@ -727,6 +751,28 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _buildToolControl.selectedSegment = 0;
     _speedControl.selectedSegment = _citySim.stats().speed;
     [self updateCityHUD]; [self renderCityGrid];
+    _mapInfoLabel.stringValue = @"自写空城 · 服务需工 · 自由营建";
+}
+
+- (void)onNewWarehouseCity:(id)sender {
+    (void)sender;
+    _citySim.reset(game_lab::CityRuleset::RoadWarehouses); _citySim.setSpeed(0);
+    _cityScenario.disable(); _cityGoalConfig = {}; _cityGoalMemory = {};
+    _selectedCursorX = _selectedCursorY = -1; _activeBuildTool = game_lab::BuildingType::None;
+    _buildToolControl.selectedSegment = 0; _speedControl.selectedSegment = 0;
+    [self updateCityHUD]; [self renderCityGrid];
+}
+- (void)onEnableWarehouses:(id)sender {
+    (void)sender;
+    if (_cityScenario.active()) { _cityEventLabel.stringValue = @"挑战保留原规则；请另建仓储自由城。"; return; }
+    const uint32_t x = _selectedCursorX >= 0 ? uint32_t(_selectedCursorX) : game_lab::CityWarehouseRules::initialX;
+    const uint32_t y = _selectedCursorY >= 0 ? uint32_t(_selectedCursorY) : game_lab::CityWarehouseRules::initialY;
+    std::string message;
+    if (!_citySim.migrateToRoadWarehouses(x,y,message)) {
+        _cityEventLabel.stringValue = [NSString stringWithUTF8String:message.c_str()]; return;
+    }
+    _cityGoalMemory = {}; [self updateCityHUD]; [self renderCityGrid];
+    _cityEventLabel.stringValue = [NSString stringWithUTF8String:message.c_str()];
 }
 
 - (void)onStartCityScenario:(id)sender {
@@ -793,7 +839,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _buildToolControl.selectedSegment = 0;
     _speedControl.selectedSegment = _citySim.stats().speed;
     [self updateCityHUD]; [self renderCityGrid];
-    _mapInfoLabel.stringValue = @"已载入自写城邑存档";
+    if (_citySim.ruleset() != game_lab::CityRuleset::RoadWarehouses)
+        _mapInfoLabel.stringValue = @"已载入自写城邑存档";
 }
 
 - (void)loadAndRenderMap:(NSString*)filename {

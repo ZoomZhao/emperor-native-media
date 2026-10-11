@@ -2,7 +2,7 @@
 
 2026-10-11。城市页新增三关选择和“开始挑战”，明确新建暂停的空城。HUD显示当前四项目标、已过/剩余模拟月和胜负；到期月仍有最后一次达标机会，结算后可继续营建。“新建空城”回到自由营建。App此阶段不展示、不发放徽记、资金或粮食奖励。
 
-关卡规则和资源完全自写，不兼容原版任务或存档。接线基线为服务增量77369a1ee5b43ed144e934f548f1014fe77c95fd；服务核心SHA-256保持4a21f495f3353594cc34f20806d19ead8e851e71b874ab2f2a0586834b34874d，既有目标反馈公式和公开城市API保持不变。
+关卡规则和资源完全自写，不兼容原版任务或存档。接线基线为服务增量77369a1ee5b43ed144e934f548f1014fe77c95fd；服务接线时的核心SHA-256为4a21f495f3353594cc34f20806d19ead8e851e71b874ab2f2a0586834b34874d；后续共用核心新增可选仓储v4，三关仍用v3公式和原API，4/7/9月可达及完整1039合同已回归。
 
 ## 当前可达路线
 
@@ -34,7 +34,7 @@ v2修复了终态跳过反馈有效性检查的问题：Running/Won/Lost都先�
 
 ## 统一文件与恢复
 
-`game_lab/city_game_state.hpp` 提供 `encode/decode/save/loadCityGameState`。自由城保存原65580字节EMP1，旧v1/v3成功载入为自由营建；载入不静默升级规则。挑战使用单个ECG1 v1：
+`game_lab/city_game_state.hpp` 提供 `encode/decode/save/loadCityGameState`。v1/v3自由城为原65580字节EMP1，可选仓储v4自由城为131152字节；旧v1/v3载入为自由营建；载入不静默升级规则。挑战使用单个ECG1 v1：
 
 | 段 | 合同 |
 |---|---|
@@ -62,7 +62,7 @@ v2修复了终态跳过反馈有效性检查的问题：Running/Won/Lost都先�
 ```sh
 python3 scripts/independent_runner.py scenario-state --mode release --output /absolute/new-state-release
 python3 scripts/independent_runner.py scenario-state --mode undefined --output /absolute/new-state-undefined
-python3 scripts/city_scenario_runner.py --core-directory /absolute/own/game_lab --expected-core-sha256 4a21f495f3353594cc34f20806d19ead8e851e71b874ab2f2a0586834b34874d --mode release --output /absolute/new-module-release
+python3 scripts/city_scenario_runner.py --core-directory /absolute/own/game_lab --expected-core-sha256 d60e45ade98531edacfbfb4ac1e3ad3e03dd8e8ae1a08cdd811b97a6a1502ce0 --mode release --output /absolute/new-module-release
 ```
 
 监督器只复制明确自写源码清单，每个子进程≤60秒，保留源码、日志和指纹。App构建、签名、系统框架链接和生产来源清单核验通过；构建记录本身不代表窗口通过。
