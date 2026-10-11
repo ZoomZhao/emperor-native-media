@@ -2,7 +2,7 @@
 
 2026-10-11，扩链基线 `6a5c2475ada69d27f56bdd379703bde2e9236558`。固定原PE的入口已通过七条typed引用/解码CALL连到主循环、调度及phase8；累计30个唯一相关函数、8个关键站点，在共享20分钟预算内714.653秒完成并正常清理。新证据说明phase8的容器/对象/虚表槽、worker的引用释放路径，以及DirectDraw/Miles/Bink的原调用来源。虚表目标及完整原tick仍未知；目标SHA/身份未变，没有执行原程序。
 
-当前重点已转到完整原版调度：[51阶段、门控/时钟/额度/周期尾合同](ORIGINAL_SCHEDULER_CONTRACT.md)和[机器依赖顺序](original-scheduler-contract.json)已梳理；phase8是单个阶段，phase归零与tail返回分开。当前归档没有可核验的原函数转换覆盖；新增自有scheduler声明校验拒绝完整周期/运行绑定claim。schema12保留所有既有ABI更正和Unknown。
+当前重点已转到完整原版调度：[51阶段、门控/时钟/额度/周期尾合同](ORIGINAL_SCHEDULER_CONTRACT.md)和[机器依赖顺序](original-scheduler-contract.json)已梳理；phase8是单个阶段，phase归零与tail返回分开。当前归档没有可核验的原函数转换覆盖；新增自有scheduler声明校验拒绝完整周期/运行绑定claim。schema13保留所有既有ABI更正和Unknown。
 
 加载身份前沿已连接：候选554f00前缀→5d4890→51ce00→427430；O+b4请求32位序列化字段，O+62按版本有16位与byte零扩展差异，底层可短读且caller不核返回数。[字段来源与短读](REA_ABI_CONTRACTS.md#加载字段来源与短读返回的边界)仍保留实际槽身份/目标/完整子类副作用未知；自有[ABI preflight](ORIGINAL_ABI_PREFLIGHT.md)已独立复核整合，schema9不授权运行。
 
@@ -243,7 +243,7 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 | audio | 自造S16队列/循环、格式拒绝和fake设备恢复有离线证据，历史AudioUnit仅有限回调证据 | 54个Miles导入的合同/触发/混音/clock、真实输出与设备恢复未闭合；离线PCM不能当听觉验证，fake恢复不能当物理设备通过 |
 | video | 自造MOV reader/PTS/seek/epoch/取消有局部证据；旧Bink仅无输入/无factory的失败证据 | 14个Bink导入与Miles音轨连接未实现/未验；自造MOV的最新集成仍 `writer start failed`，不证明原Bink播放、EOB或双缓冲通过 |
 
-旧203函数/7346条静态指令/20089字节属选定构建证据，旧Stage82原函数调用为0。Stage73六函数、一个固定输入的有限匹配不能推广到203函数、原完整tick或游戏。更详细的提供者、API、heap及callback缺口见 [原版tick接线审计](ORIGINAL_TICK_WIRING_AUDIT.md)、[完整原版差距](ORIGINAL_GAME_GAP_AUDIT.md)；媒体验证范围见 [PLATFORM_AUDIT](PLATFORM_AUDIT.md)、[RGB555_BOUNDARIES](RGB555_BOUNDARIES.md)。
+旧203函数/7346条静态指令/20089字节及旧Stage82原函数调用0仅为历史选定构建审计声明；当前提交缺被引用IR/生成绑定，不能据此独立复核已转换原函数集合。Stage73六函数、一个固定输入的有限匹配不能推广到203函数、原完整tick或游戏。更详细的提供者、API、heap及callback缺口见 [原版tick接线审计](ORIGINAL_TICK_WIRING_AUDIT.md)、[完整原版差距](ORIGINAL_GAME_GAP_AUDIT.md)；媒体验证范围见 [PLATFORM_AUDIT](PLATFORM_AUDIT.md)、[RGB555_BOUNDARIES](RGB555_BOUNDARIES.md)。
 
 ## 先前接口审计确定的独立工作（本轮未执行）
 
@@ -277,3 +277,7 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 后续尾部核对已补入完整调度合同：phase1尾跳链最终普通RET，phase5/29原caller清4及创建wrapper双层清参，phase44循环重读end并经实际未绑定虚调用；局部RET与循环界限不证明完整阶段完成。只补文档；自有校验器和preflight没有改变或重跑。
 
 已补phase6/35/36、37、45的getter receiver、普通RET及直接清参。phase37的四项预压跨virtual+170，再由44ecd0消费7参数，是正常栈平衡约束，实际目标仍未绑定；索引1访问先于size<=1分支，不能把越界路径写成正常skip。
+
+[phase37条件虚调用合同](ORIGINAL_PHASE37_CALL_CONTRACT.md)补入416ad0的真实短指令与receiver+7读取、普通RET及七参数consumer衔接；五项NoProcedure失败保留，实际目标仍未绑定。
+
+转换证据作用域进一步明确：固定提交88515658可复核九份自写文本源码SHA及其路径引用；所引IR/生成绑定/driver不在该提交。这些源码只证明工具引用，不证明原函数转换成功。仅本地历史报告/产物引用保持历史声明，未读取/哈希其原派生产物，不能给出已核历史目标集合。当前全部原调度/tail转换覆盖与运行绑定未证。固定PE的另一路REA静态检查与转换产物清单分开，不上传派生产物或复跑拒绝动作。

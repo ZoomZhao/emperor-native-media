@@ -121,3 +121,9 @@ phase37：53c870固定EAX=115f6ec、普通RET，44f1d0保存该receiver并在结
 phase45：caller置ECX1e535f8调用5f02c0，后CALL4b94a0；两者正常出口普通RET。前者的517cc0由getter owner10bfef0调用，返回owner+28后signed比较350；517cc0含临时对象/helper、条件517de0以及FS:[0]异常帧(handler787e18)，不是纯count读取。PUSH5跨426a60（仅literal owner getter，普通RET），由5a8420 RET4消费；后者读10bfb40/10bfb50，不能把5交给getter。后续5f03f0消费object/scalar两参数RET8；选定body先覆盖incoming ECX，不能仅凭caller传入receiver推出实例绑定。其创建链重新接到4ea050/4e1420，还有virtual+114与4e6a70缺口；5f02c0自身还有+b8/+204及每轮长度重读。4b94a0局部没有CALL，但全局读写/维度循环也不能当成整阶段或周期已完成。
 
 本批29次查询/29 Evidence、16个选定新地址、5个既有helper Evidence复用，无错误；326.178秒exit0/官方close/临时根空，输入身份及18份选定官方模块成对SHA不变，未额外显式读取数据。本批只补静态合同，preflight/scheduler代码和既有检查未改变；新语义尚无独立复核。所有运行绑定及完整周期证明仍关闭。
+
+## phase37原虚调用候选的指令闭合
+
+详见[实际+170条件调用合同](ORIGINAL_PHASE37_CALL_CONTRACT.md)：四个构造表字共同指向416ad0，官方Listing关闭zeroextend8[O+7]/普通RET前缀及四个预压值保留；实际站点仍computed/unresolved，receiver存活/当前vptr/异常未绑定。后续consumer的直接正常清参已核，递归与FP资源/异常仍Unknown。
+
+转换证据作用域进一步明确：固定提交88515658可复核九份自写文本源码SHA及其路径引用；所引IR/生成绑定/driver不在该提交。这些源码只证明工具引用，不证明原函数转换成功。仅本地历史报告/产物引用保持历史声明，未读取/哈希其原派生产物，不能给出已核历史目标集合。当前全部原调度/tail转换覆盖与运行绑定未证。固定PE的另一路REA静态检查与转换产物清单分开，不上传派生产物或复跑拒绝动作。

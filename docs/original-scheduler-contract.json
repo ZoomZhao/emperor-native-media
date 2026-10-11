@@ -1547,8 +1547,17 @@
     },
     "historical_full_game_ir_claim": "build_drivers.py reads stage81/builds/full-separated-v5/game.ll, expects structural targets2020; source text only, actual function set/IR not present or read",
     "current_compiled_original_function_coverage": "unverified for every scheduler/tail function; cannot infer historically unconverted merely from absent imported artifact",
-    "original_or_derived_binaries_inspected_or_executed": false,
-    "build_scripts_imported_or_executed": false
+    "build_scripts_imported_or_executed": false,
+    "scope_categories": {
+      "repository_reviewable": "nine committed text-source SHA and path references, not converted original instructions",
+      "historical_local_claims": "reports/tools cite IR and generated driver; raw artifacts not inspected/hashed in this audit, cannot verify historical target set",
+      "unverified": "all current original scheduler/tail conversion coverage, actual runtime binding and natural-input behavior"
+    },
+    "checked_repository_commit": "88515658e95b240419542b0e54b0fb6c6543790e",
+    "repository_verified_original_conversion_targets": [],
+    "conversion_artifacts_inspected_or_executed": false,
+    "fixed_PE_static_REA_inspection_is_separate_from_conversion_inventory": true,
+    "historical_artifact_hashes_verified": false
   },
   "native_interface": "oabi_validate_scheduler_declaration;51immutable integer phase descriptors; allbindingdenied/cycleproofzero; fullcycleclaimrejected; no guest reads/phase transitions/executed target",
   "runtime_binding_created": false,
@@ -1920,7 +1929,9 @@
         "consumer": "0x44ecd0",
         "consumer_cleanup_bytes": 28,
         "inference": "normal unchanged-frame stack balance requires virtual+170 to retain the four pre-pushed words (cleanup0); actual target is unbound and not thereby proved",
-        "words_before_are_not_proved_virtual_arguments": true
+        "words_before_are_not_proved_virtual_arguments": true,
+        "selected_conditional_callee_listing": "416ad0 has zero-clear EAX/read8O+7/plainRET, compatible with four pre-pushed words retained",
+        "actual_target_unbound": true
       },
       "virtual_16c_balance_requirement": "four output pointer pushes; preserving this normal frame requires cleanup16 before separate eight-argument helper; actual target unbound",
       "size_reread_each_iteration": true,
@@ -2143,6 +2154,285 @@
         "sha256": "c08d4dadf4e5ba899cf743950208680528f3594168e553ddae9c485e357f7f58"
       }
     ],
+    "new_semantics_independently_reviewed": false
+  },
+  "phase37_virtual170_conditional_contract": {
+    "original_call_site": "0x44f2d2",
+    "original_call_return": "0x44f2d8",
+    "phase37_helper": "0x44f1d0",
+    "main_dispatcher_return": "0x4ac486",
+    "computed_resolution": "unresolved, targets[]",
+    "conditional_source_tables": [
+      {
+        "constructor": "0x426c90",
+        "vptr": "0x7ab59c",
+        "source": "saved constructor store + fixed subject table words, not current instance"
+      },
+      {
+        "constructor": "0x42d480",
+        "vptr": "0x7aba38",
+        "source": "saved constructor store + fixed subject table words, not current instance"
+      },
+      {
+        "constructor": "0x5630b0",
+        "vptr": "0x7b887c",
+        "source": "saved constructor store + fixed subject table words, not current instance"
+      },
+      {
+        "constructor": "0x56fb50",
+        "vptr": "0x7b8ad4",
+        "source": "saved constructor store + fixed subject table words, not current instance"
+      }
+    ],
+    "local_selected_words": {
+      "0x168": "0x413a00",
+      "0x16c": "0x416ac0",
+      "0x170": "0x416ad0"
+    },
+    "candidate_virtual170": {
+      "entry": "0x416ad0",
+      "procedure_manager_registered": false,
+      "containing_procedure_found": false,
+      "bounded_listing_prefix_bytes": 6,
+      "normal_path": "zero EAX; read8[ECX+7] intoAL; plainRET",
+      "receiver": "ECX=current O from raw slot, must remain readable at+7",
+      "result32": "zero-extended unsigned8, 0..255",
+      "argument_cleanup_bytes": 0,
+      "four_pre_push_words_preserved": true,
+      "no_local_call_store_release_or_vptr_change": true,
+      "memory_lifetime_or_exception_safety_proved": false
+    },
+    "candidate_virtual16c": {
+      "entry": "0x416ac0",
+      "procedure_manager_registered": false,
+      "listing_prefix_bytes": 3,
+      "normal_path": "RET16 only; does not initialize output pointers",
+      "argument_cleanup_bytes": 16
+    },
+    "selected_virtual168": "413a00 XOR AL,AL; plainRET => selected four stable-table paths take virtual170 branch",
+    "borrowed_receiver_frontier": "load O from current slot; no retain/pin in caller; selected filter and selector1..4 table-helper path have no local release or slot replacement. This is conditional local non-invalidation, not a lifetime proof",
+    "consumer_arguments32_in_stack_order": [
+      "signextend16[O+0xa]",
+      "signextend16[O+0xc]",
+      "zeroextend8[O+0x7] from candidate170 EAX",
+      "saved table value selector1",
+      "saved table value selector2",
+      "saved table value selector3",
+      "saved table value selector4"
+    ],
+    "consumer": "44ecd0 RET28 then44f1d0 loop/final44eb20, ownRET0 then4ac486 ->commonadvance reload",
+    "direct_return_contracts": {
+      "44ed90": "five32bit arguments RET20; saves/restores aligned EBP frame",
+      "44d090": "three32bit arguments including outparam; RET12; nested ring helpers",
+      "44cf00": "one32bit arg RET4; reads receiver and selected global table",
+      "44cf20": "one32bit arg RET4; signed<=1 base, otherwise calls44cf00 and recurses(count-1); depth/resource/table domain not proved",
+      "44f180": "one32bit arg RET4; AL byte result only, EAX upper24 not normalized; caller MOVSX AL",
+      "44f190/44f1b0": "two32bit args RET8; byte writer/update, global storage validity unproved",
+      "44e770": "two double64 stack values RET16; x87/FPATAN and <=16 local trials, inner44e4d0 one doubleRET8; FP environment/exception behavior unresolved",
+      "4bb390": "five32bit arguments plainRET, callerADD20; no CALL in selected body"
+    },
+    "closure_scope": "selected conditional source-frame obligations, not actual targets or fullphase/cycle completion",
+    "runtime_binding_created": false,
+    "actual_vptr_or_class_bound": false,
+    "vtable_extent_verified": false,
+    "actual_receiver_lifetime_proved": false,
+    "whole_cycle_completion_proved": false
+  },
+  "phase37_virtual170_evidence": {
+    "batch": "rea-static-phase37-virtual170-20261011",
+    "operations": 36,
+    "successful_Evidence": 31,
+    "preserved_query_errors": {
+      "virtual-one-seventy-selected-word-assembly": {
+        "sha256": "c93e30c71236a7d5c6969768d921bf1c0f1bc9b61555813694796064ed2e1808",
+        "local_file": "virtual-one-seventy-selected-word-assembly.error.json",
+        "reason": "NoProcedure; preserved, no forced function creation"
+      },
+      "virtual-one-seventy-selected-word-pseudo": {
+        "sha256": "cb4ec82f71f7034dc51591b1032a14e003cdb7bd93496c62318ea33dfabc5666",
+        "local_file": "virtual-one-seventy-selected-word-pseudo.error.json",
+        "reason": "NoProcedure; preserved, no forced function creation"
+      },
+      "virtual-one-sixty-c-selected-word-assembly": {
+        "sha256": "82ff53fc289ab67c1d669623210f5f8f6bd4ee276ff0e07da749b6679a1cd6c0",
+        "local_file": "virtual-one-sixty-c-selected-word-assembly.error.json",
+        "reason": "NoProcedure; preserved, no forced function creation"
+      },
+      "virtual-one-sixty-c-selected-word-pseudo": {
+        "sha256": "a95776aa83a6f177497fe492d3fd625f56194172f83b9b77139daca4089b21a8",
+        "local_file": "virtual-one-sixty-c-selected-word-pseudo.error.json",
+        "reason": "NoProcedure; preserved, no forced function creation"
+      },
+      "virtual-one-seventy-incoming-refs": {
+        "sha256": "e123467e2a92f9f7343b2de978a2e9a8b181b286840d17822b0838a89ad625c7",
+        "local_file": "virtual-one-seventy-incoming-refs.error.json",
+        "reason": "NoProcedure; preserved, no forced function creation"
+      }
+    },
+    "selected_procedure_addresses": 12,
+    "key_listing_anchors": 5,
+    "selected_read_bytes": 64,
+    "elapsed_seconds": 453.227,
+    "exit_code": 0,
+    "temp_empty": true,
+    "official_module_pairs": 18,
+    "evidence": {
+      "owner-seven-argument-child-assembly": {
+        "evidence_id": "ev_711347166dc9ee493f97f1716565edaf2285c665e5b304bb0f54647e55613a07",
+        "sha256": "f4b2328476ac3d4eda22bef4f1cff710c058c1b23ac5f3791f436b7a811174fd",
+        "local_file": "owner-seven-argument-child-assembly.evidence.json"
+      },
+      "owner-seven-argument-child-pseudo": {
+        "evidence_id": "ev_22e1253333590732e5d552d0db5deec7ddc8ad0683989fff2b44775492a137a9",
+        "sha256": "c2ec27c4399ee43324a959e329ea00062a8aacab9fd3a3ac463630b0d00296fa",
+        "local_file": "owner-seven-argument-child-pseudo.evidence.json"
+      },
+      "virtual-one-seventy-call-resolution": {
+        "evidence_id": "ev_bf81a728df2427466850e56607ff32b9fe99404a2f421220b6db11fbe07547ff",
+        "sha256": "0a348b6912d1b1cb8f54883921b5b4512997679a3319f9a7390fe55225849bc0",
+        "local_file": "virtual-one-seventy-call-resolution.evidence.json"
+      },
+      "virtual-one-seventy-call-instruction": {
+        "evidence_id": "ev_eedced8c28ab7022343d37aa209d3d93c1742061faad12b733f9833f9edf4adb",
+        "sha256": "21eecb21ed9f3e109ca9faa62b6df569046f1024473ec415d1f0ec039d31e879",
+        "local_file": "virtual-one-seventy-call-instruction.evidence.json"
+      },
+      "virtual-one-seventy-short-entry-bytes": {
+        "evidence_id": "ev_b74bb85bff1cc0e924435d8540b27ca9f84503153cd3f3b064f14b4a9c3ca80c",
+        "sha256": "29f3b983f1fe69e43a7d99c7e286d62c494fbcfcd4666956544b8866bbac9a2e",
+        "local_file": "virtual-one-seventy-short-entry-bytes.evidence.json"
+      },
+      "virtual-one-seventy-short-entry-instruction": {
+        "evidence_id": "ev_df62354ab048807a4562378c4f0a60b770285061aa2b6bc2c636e5432665e373",
+        "sha256": "ee5de783476535506f140cb3008dff53e7fc0ed1dc43ce38cace9bad2b026bdf",
+        "local_file": "virtual-one-seventy-short-entry-instruction.evidence.json"
+      },
+      "virtual-one-seventy-short-entry-containing": {
+        "evidence_id": "ev_49d688a7f0957b09ca0ffe3ba131a330f4b3f959e77d5a20378f6071dc62d9dd",
+        "sha256": "e77c60eeb721383c0576ec65d47a027cf0cf83c3995bae572ad92a29dea01896",
+        "local_file": "virtual-one-seventy-short-entry-containing.evidence.json"
+      },
+      "virtual-one-sixty-c-short-entry-bytes": {
+        "evidence_id": "ev_cfa948cc1ec4e001f0486f55855072d3973eb9321ed431b391ce325795be82cd",
+        "sha256": "47f0e50e0064c191064a78e322bd9c85d6c62b5fef431a34d3a3251f8288cdea",
+        "local_file": "virtual-one-sixty-c-short-entry-bytes.evidence.json"
+      },
+      "virtual-one-sixty-c-short-entry-instruction": {
+        "evidence_id": "ev_cb28f69a3bbf8f8b3ad40cc7d2351772ed5f3e4bae31453c42caf7fd015425c2",
+        "sha256": "03086976249c3f3a523f7febcb7d77d60f3f3b8eb8efad2903c8ecc7de883328",
+        "local_file": "virtual-one-sixty-c-short-entry-instruction.evidence.json"
+      },
+      "virtual-one-sixty-c-short-entry-containing": {
+        "evidence_id": "ev_aaf5bf9325c1f00a8f61fc8e73a36c67a5c2764e861d245a9ea019a9c073eb45",
+        "sha256": "9bf863e20c101785843a071622d1a06a5c787c05ec9f25f778437d552a4f2ab1",
+        "local_file": "virtual-one-sixty-c-short-entry-containing.evidence.json"
+      },
+      "virtual-one-seventy-byte-result": {
+        "evidence_id": "ev_dad6be0f4a6832d261b43f6d82cb3a33d7f1f22f412bbc72f07f29822c3270ae",
+        "sha256": "9ea92d8076f6a8ba5c0253e7558249fe196955f37f623b023e200ae4eda49117",
+        "local_file": "virtual-one-seventy-byte-result.evidence.json"
+      },
+      "virtual-one-seventy-plain-return": {
+        "evidence_id": "ev_e6df2cd7beaf574356f8ea3d99eda0cfd10c107572ac2fdeab531b88a4b2f513",
+        "sha256": "947a88c4afa84fe344a7336bdd4b3b9c4f48b629a17dc6e36fcfa7193ef58e94",
+        "local_file": "virtual-one-seventy-plain-return.evidence.json"
+      },
+      "owner-index-byte-reader-assembly": {
+        "evidence_id": "ev_9447ef0c62a3517cb27090a361be7e5db6763daab5fb05d8c459eab4980f8ced",
+        "sha256": "18c9372ab411642bc77d0c33557477aa6742698d9d473a8fcd57ba27658fe736",
+        "local_file": "owner-index-byte-reader-assembly.evidence.json"
+      },
+      "owner-index-byte-reader-pseudo": {
+        "evidence_id": "ev_086024e3e7dbb94bd3ff49df5e1d71a5fc36ba95bd3f72cac98c94cdafbf83f6",
+        "sha256": "76cf171854d01c376c0b78453c04e30bb879249998b3ac3861188ed73c14d478",
+        "local_file": "owner-index-byte-reader-pseudo.evidence.json"
+      },
+      "owner-index-byte-writer-assembly": {
+        "evidence_id": "ev_c754bed7c643116e248b52284769522ce45b9112995bfde6542e8b20e4e356a5",
+        "sha256": "1a3850fb392ddb73ff60d814583b9bc7914710587e3ef32994d96679e0ed69c5",
+        "local_file": "owner-index-byte-writer-assembly.evidence.json"
+      },
+      "owner-index-byte-writer-pseudo": {
+        "evidence_id": "ev_7d392faf887f6435f4007c651ed2cd1e4fb03b68e831402759e7e0edd0dced8e",
+        "sha256": "e0b0ef51aa1bfd81afbb96563ce8ef63e3d551f28f6a52e0de6ae93583e4aeb0",
+        "local_file": "owner-index-byte-writer-pseudo.evidence.json"
+      },
+      "owner-index-byte-update-assembly": {
+        "evidence_id": "ev_a719706636482ef4236d9d66f3a06c593a218aa7473864e765d638a47ac02c1c",
+        "sha256": "0706105f723b8d96aa24ed7bcac841d4814d26bff96f5bd4140bc7bf8dc312f8",
+        "local_file": "owner-index-byte-update-assembly.evidence.json"
+      },
+      "owner-index-byte-update-pseudo": {
+        "evidence_id": "ev_959b43354df94d1610a02db91ff56378fb7410ce1e4a1550784ed778eeb06940",
+        "sha256": "be14f3ef608ebfcce055e30a74da827310c487437232f8df180522e0a6c6851f",
+        "local_file": "owner-index-byte-update-pseudo.evidence.json"
+      },
+      "virtual-one-seventy-address-xrefs": {
+        "evidence_id": "ev_a6bb19bb2c00b11b7359649aa81b7517f9c78977e437fd1c7bc9db9d0d40249f",
+        "sha256": "cbd987e3cd718d34b6a4fcb1bf4ae042b6d207642fcd6d80dc916f4aa2bd0bc8",
+        "local_file": "virtual-one-seventy-address-xrefs.evidence.json"
+      },
+      "owner-ring-source-helper-assembly": {
+        "evidence_id": "ev_34b021d224f9e96aa2cfdcbec325a3673374a604f187202308041e43e78edac2",
+        "sha256": "3db816e5e15e99a454c41c1160886a8f06b5e20a118c7d0fd1c2a36dad04335b",
+        "local_file": "owner-ring-source-helper-assembly.evidence.json"
+      },
+      "owner-ring-source-helper-pseudo": {
+        "evidence_id": "ev_bad27826b5ea6f9df9755ebd6600beacf71511bfe956954c4e4299aada6d4151",
+        "sha256": "6e3a3817d431db1d010446841f96407ecd63ee2503bbdefe840c115a4d54b71b",
+        "local_file": "owner-ring-source-helper-pseudo.evidence.json"
+      },
+      "owner-double-input-helper-assembly": {
+        "evidence_id": "ev_e9e7347364bd10199ed73b568ea38f814a99ecf0d872c5c42a3ed11f8928ddcc",
+        "sha256": "5ffc98bcae299f6850eecf25af8db7a83c8d7aadb431a41be4ec902ccb5be1f5",
+        "local_file": "owner-double-input-helper-assembly.evidence.json"
+      },
+      "owner-double-input-helper-pseudo": {
+        "evidence_id": "ev_13375b9e50c6a6ef8fa79b575ee9d41ed60417743a305811afeb2647f7c8821b",
+        "sha256": "c63e54946fbe9cadb7532fe4409944341bbd5c31ea407e561772cf0f120821d6",
+        "local_file": "owner-double-input-helper-pseudo.evidence.json"
+      },
+      "owner-five-argument-test-helper-assembly": {
+        "evidence_id": "ev_0998efb8078fd146c4cec19e6dd7c1ea7a8fdb01e831af7d1102f5e7788f00ea",
+        "sha256": "1248edd0f5a49fef3a7cf11b04f4d5a444c1a009df534e081591b02e197f3af4",
+        "local_file": "owner-five-argument-test-helper-assembly.evidence.json"
+      },
+      "owner-five-argument-test-helper-pseudo": {
+        "evidence_id": "ev_7bfee5b19ea06355cf90578bec8791e3f9aa2331dea0fe2e1b7bb367d38fcb1b",
+        "sha256": "f2aa92efdcaeb5731aaad030d52beb97d9b5ea5c669ea47d43ac5f0c95a17e04",
+        "local_file": "owner-five-argument-test-helper-pseudo.evidence.json"
+      },
+      "owner-ring-count-helper-assembly": {
+        "evidence_id": "ev_f2938319c3cf36b0ec0bfec28754578ebbb6b7900aad1b6403f0e6fb3a8aa153",
+        "sha256": "288f159f11ce511ab8ea148cd65391fdfde7a3a6026473b1f51f12b5b8d05dc4",
+        "local_file": "owner-ring-count-helper-assembly.evidence.json"
+      },
+      "owner-ring-count-helper-pseudo": {
+        "evidence_id": "ev_db65830c855d6a1de233913608c43e1aa046d4da8a62000bf9059e4c518f0aa3",
+        "sha256": "6f3a9bb6d0ad8bd3ba9f6eae30bac887c0fc2cfe580e4a1df704e6d841909271",
+        "local_file": "owner-ring-count-helper-pseudo.evidence.json"
+      },
+      "owner-ring-index-helper-assembly": {
+        "evidence_id": "ev_a23ec1692da27cb7c6ea42b93502d8dd724bbcfb5c2419cf57a407ef24b49f63",
+        "sha256": "c1a9a709d97ba0a38f2ccd69aa47d948ae6135d4281832bb87392feb7dde6a95",
+        "local_file": "owner-ring-index-helper-assembly.evidence.json"
+      },
+      "owner-ring-index-helper-pseudo": {
+        "evidence_id": "ev_603219c3575f9ccd698edbc44c2bc807c43042649c711ac50e7c8f068dc9ac71",
+        "sha256": "fca91128034cc0286a7bc5a7efef7e02b113335985cfa53c81b60e80c07c776c",
+        "local_file": "owner-ring-index-helper-pseudo.evidence.json"
+      },
+      "owner-double-input-child-assembly": {
+        "evidence_id": "ev_7a85c1197c6bc1738068bb5fc2622366d5275c3f42f0cdeb96b5b5e166d58a9a",
+        "sha256": "a39264cc3eeeb3aa7ffae30a98c40bb6a985582b8afc6ae243af3830e5c2ffaf",
+        "local_file": "owner-double-input-child-assembly.evidence.json"
+      },
+      "owner-double-input-child-pseudo": {
+        "evidence_id": "ev_5fc61dfa92eb75cf29493e3424d6c323a611ff61c2ea9a74e7d652fcfa79733c",
+        "sha256": "e35de0e897f75f5c424cdf15477cdfb5c2f71d292c1ae1e5bd5a7c30ea6ecdb7",
+        "local_file": "owner-double-input-child-pseudo.evidence.json"
+      }
+    },
     "new_semantics_independently_reviewed": false
   }
 }
