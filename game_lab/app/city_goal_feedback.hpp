@@ -15,7 +15,12 @@ enum class CityHarvestRule {
     Unknown,
     BaselineBb00e6b,       // Regular 5/farm; autumn uses max(30%, integer labor percent).
     LaborLimitedPrototype, // Reserved old double-rule ID; deliberately returns unknown in v2.
-    LaborLimitedIntegerV1  // Frozen 9b564753 core: exact pooled integer ratios, separate truncation.
+    LaborLimitedIntegerV1, // Exact pooled integer harvest with legacy spatial services.
+    StaffedServicesV1      // EMP1 v3: core predicts housing and migration after staffing changes.
+};
+
+struct CityCoreNextMonth {
+    int month = 0, population = 0, housingCapacity = 0, foodSupply = 0, treasury = 0;
 };
 
 struct CityFeedbackSnapshot {
@@ -29,6 +34,7 @@ struct CityFeedbackSnapshot {
     int temples = 0, markets = 0, watchtowers = 0;
     CityHarvestRule harvestRule = CityHarvestRule::Unknown;
     std::optional<int64_t> coreHarvest; // Read-only adapter may supply the authoritative next-month helper result.
+    std::optional<CityCoreNextMonth> coreNextMonth;
 };
 
 struct CityGoalConfig {
@@ -50,7 +56,7 @@ enum class CityGoalTransition { None, Reached, Lost, Restored };
 enum class CityFeedbackSeverity { Info, Warning, Critical, Unknown };
 enum class CityFeedbackCode {
     InvalidSnapshot, InvalidGoals, InvalidHistory, UnknownHarvestRule, Paused,
-    NoHousing, HousingFull, HousingBelowGoal, HousingCoverageUnknown,
+    NoHousing, HousingFull, HousingBelowGoal, HousingCoverageUnknown, ServiceLaborShortage, HousingDisplacement,
     NoFarms, LaborShortage, FoodDeficit, Famine, MigrationFoodBlocked,
     MonthlyDeficit, TreasuryDebt, ConstructionFundsLow
 };
@@ -77,6 +83,7 @@ struct CityMonthPreview {
     int64_t foodAfter = 0;
     int64_t migrationFoodGap = 0; // Extra pre-consumption stock/harvest needed to leave >10.
     int famineLoss = 0;
+    int housingLoss = 0;
     int incoming = 0;
     int populationAfter = 0;
     int64_t tax = 0;
@@ -138,9 +145,11 @@ inline CityMonthPreview preview(const CityFeedbackSnapshot& s, int64_t workers, 
     p.upkeep = upkeep(s);
     p.consumption = (int64_t(s.population) + 9) / 10;
     if (s.harvestRule != CityHarvestRule::BaselineBb00e6b &&
-        s.harvestRule != CityHarvestRule::LaborLimitedIntegerV1) return p;
+        s.harvestRule != CityHarvestRule::LaborLimitedIntegerV1 &&
+        s.harvestRule != CityHarvestRule::StaffedServicesV1) return p;
+    if (s.harvestRule == CityHarvestRule::StaffedServicesV1 && (!s.coreHarvest || !s.coreNextMonth)) return p;
     const bool autumn = p.month >= 8 && p.month <= 10;
-    if (s.harvestRule == CityHarvestRule::LaborLimitedIntegerV1) {
+    if (s.harvestRule == CityHarvestRule::LaborLimitedIntegerV1 || s.harvestRule == CityHarvestRule::StaffedServicesV1) {
         // Exact match for frozen core farmYieldForMonth: no double intermediate or per-farm truncation.
         if (s.farms > 0 && jobs > 0 && workers > 0) {
             const int64_t filled = std::min(workers, jobs);
@@ -160,7 +169,6 @@ inline CityMonthPreview preview(const CityFeedbackSnapshot& s, int64_t workers, 
         }
         p.harvest = *s.coreHarvest;
     }
-    p.known = true;
     const int64_t stored = boundedInt(int64_t(s.foodSupply) + p.harvest);
     p.migrationFoodGap = std::max(int64_t(0), p.consumption + 11 - stored);
     if (stored < p.consumption) {
@@ -177,6 +185,22 @@ inline CityMonthPreview preview(const CityFeedbackSnapshot& s, int64_t workers, 
     p.tax = p.populationAfter;
     p.balance = p.tax - p.upkeep;
     p.treasuryAfter = boundedInt(int64_t(s.treasury) + p.balance);
+    if (s.harvestRule == CityHarvestRule::StaffedServicesV1) {
+        const auto& next = *s.coreNextMonth;
+        if (next.month != p.month || next.population < 0 || next.housingCapacity < 0 ||
+            next.population > next.housingCapacity || next.housingCapacity > int64_t(s.houses) * 48 ||
+            next.foodSupply != p.foodAfter ||
+            next.treasury != boundedInt(int64_t(s.treasury) + next.population - p.upkeep)) return p;
+        const int afterFamine = s.population - p.famineLoss;
+        p.populationAfter = next.population;
+        p.housingLoss = std::max(0, afterFamine - next.population);
+        p.incoming = std::max(0, next.population - afterFamine);
+        if (p.incoming > 6 || (p.foodAfter <= 10 && p.incoming > 0)) return p;
+        p.tax = next.population;
+        p.balance = p.tax - p.upkeep;
+        p.treasuryAfter = next.treasury;
+    }
+    p.known = true;
     return p;
 }
 } // namespace city_feedback_detail
@@ -262,7 +286,7 @@ inline CityGoalFeedback evaluateCityGoals(const CityFeedbackSnapshot& s,
               "没有农庄，收成为 0。有居民时会继续扣粮；营建农庄可生产粮食，每座农庄需要 8 个岗位。");
     }
     if (s.farms > 0 && out.availableWorkers < out.neededWorkers && out.nextMonth.known) {
-        if (s.harvestRule == CityHarvestRule::LaborLimitedIntegerV1) {
+        if (s.harvestRule == CityHarvestRule::LaborLimitedIntegerV1 || s.harvestRule == CityHarvestRule::StaffedServicesV1) {
             issue(CityFeedbackCode::LaborShortage, CityFeedbackSeverity::Warning,
                   "农庄缺工：全城劳动力 " + std::to_string(out.availableWorkers) + "/" + std::to_string(out.neededWorkers) +
                   "，差 " + std::to_string(out.neededWorkers - out.availableWorkers) +
@@ -273,6 +297,15 @@ inline CityGoalFeedback evaluateCityGoals(const CityFeedbackSnapshot& s,
         }
     }
     const auto& p = out.nextMonth;
+    if (s.harvestRule == CityHarvestRule::StaffedServicesV1 && p.known &&
+        (s.wells + s.markets + s.temples + s.watchtowers > 0) && out.availableWorkers < out.neededWorkers) {
+        issue(CityFeedbackCode::ServiceLaborShortage, CityFeedbackSeverity::Warning,
+              "服务缺工：井/市场/宗庙有效范围按岗位比例缩短，更楼需满岗。勘查住宅的有效邻近服务；增加人口或减少非必要岗位可恢复范围。");
+    }
+    if (p.known && p.housingLoss > 0) {
+        issue(CityFeedbackCode::HousingDisplacement, CityFeedbackSeverity::Critical,
+              "下一月劳动力下降将缩短服务范围，住房降级另流失 " + std::to_string(p.housingLoss) + " 人。请先补粮或减少非必要岗位。");
+    }
     if (!p.known) {
         issue(CityFeedbackCode::UnknownHarvestRule, CityFeedbackSeverity::Unknown,
               "unknown：收成规则未知/过期，或核心 helper 与所选规则不一致。下一月产量、粮荒、迁入和结余不作推断；请核实规则版本与接线。");

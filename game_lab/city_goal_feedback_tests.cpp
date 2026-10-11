@@ -252,7 +252,11 @@ void invalidAndExtremeInput() {
 }
 
 void modelAdapterAndMonthlyOracle() {
+#ifdef CITY_GOAL_TEST_SERVICES_V1
+    CitySimulation city(CityRuleset::StaffedServices);
+#else
     CitySimulation city;
+#endif
     std::string message;
     const auto build = [&](uint32_t x, uint32_t y, BuildingType type) {
         require(city.build(x, y, type, message), "self-authored oracle city building");
@@ -265,12 +269,14 @@ void modelAdapterAndMonthlyOracle() {
     build(4, 1, BuildingType::Temple);
     build(10, 10, BuildingType::Farm);
     build(11, 10, BuildingType::Farm);
-#ifdef CITY_GOAL_TEST_LEGACY
+#if defined(CITY_GOAL_TEST_SERVICES_V1)
+    constexpr auto rule = CityHarvestRule::StaffedServicesV1;
+#elif defined(CITY_GOAL_TEST_LEGACY)
     constexpr auto rule = CityHarvestRule::BaselineBb00e6b;
 #else
     constexpr auto rule = CityHarvestRule::LaborLimitedIntegerV1;
 #endif
-    require(city.stats().housingCapacity == 96, "real authored housing service capacity");
+    require(city.stats().housingCapacity == (rule == CityHarvestRule::StaffedServicesV1 ? 16 : 96), "real authored housing service capacity");
     require(!evaluateCityGoals(makeCityFeedbackSnapshot(city.stats(), CityHarvestRule::LaborLimitedIntegerV1)).nextMonth.known,
             "stats-only adapter cannot silently assert new helper contract");
     require(!evaluateCityGoals(makeCityFeedbackSnapshot(city, CityHarvestRule::LaborLimitedPrototype)).nextMonth.known,

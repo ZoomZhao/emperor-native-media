@@ -236,6 +236,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    _citySim.reset(game_lab::CityRuleset::StaffedServices);
     (void)notification;
     [self setupWindow];
     [self setupAudio];
@@ -565,9 +566,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)updateCityHUD {
     const auto& s = _citySim.stats();
-    const auto goal = game_lab::evaluateCityGoals(game_lab::makeCityFeedbackSnapshot(_citySim, game_lab::CityHarvestRule::LaborLimitedIntegerV1), _cityGoalConfig, _cityGoalMemory);
+    const auto rule = _citySim.ruleset() == game_lab::CityRuleset::StaffedServices ?
+        game_lab::CityHarvestRule::StaffedServicesV1 : game_lab::CityHarvestRule::LaborLimitedIntegerV1;
+    const auto goal = game_lab::evaluateCityGoals(game_lab::makeCityFeedbackSnapshot(_citySim, rule), _cityGoalConfig, _cityGoalMemory);
     _cityGoalMemory = goal.nextMemory;
-    std::string goalText = "自写经营目标（可继续经营）\n" + goal.status;
+    std::string goalText = (_citySim.ruleset() == game_lab::CityRuleset::StaffedServices ?
+        "自写经营目标（服务需工）\n" : "自写经营目标（旧存档服务规则）\n") + goal.status;
     if (goal.valid) {
         const char* labels[] = {"人口", "存粮", "国库", "人口月度收支"};
         for (size_t i = 0; i < goal.goals.size(); ++i) {
@@ -678,7 +682,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)onResetCity:(id)sender {
     (void)sender;
-    _citySim.reset();
+    _citySim.reset(game_lab::CityRuleset::StaffedServices);
     _cityGoalMemory = {};
     _selectedCursorX = _selectedCursorY = -1;
     _activeBuildTool = game_lab::BuildingType::None;
@@ -742,7 +746,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         return;
     }
     
-    _citySim.loadFromMap(cityMap);
+    auto freshCity = game_lab::CitySimulation(game_lab::CityRuleset::StaffedServices);
+    if (!freshCity.loadFromMap(cityMap)) {
+        _cityEventLabel.stringValue = @"地图无效，现有城市保持。";
+        return;
+    }
+    _citySim = std::move(freshCity);
     _cityGoalMemory = {};
     _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 128×128 地块已载入 · ⚠️ 自写城市营建", filename];
     [self updateCityHUD];

@@ -17,16 +17,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True, help='New absolute evidence directory')
     parser.add_argument('--mode', choices=['release', 'undefined'], default='release')
-    parser.add_argument('--harvest-rule', choices=['integer-v1', 'bb00e6b'], required=True)
+    parser.add_argument('--harvest-rule', choices=['integer-v1', 'services-v1', 'bb00e6b'], required=True)
     parser.add_argument('--core-directory', type=Path, help='Directory with authored city_simulation.hpp; default game_lab')
     args = parser.parse_args()
     if not args.output.is_absolute() or args.output.exists():
         parser.error('--output must be a new absolute directory')
     root = Path(__file__).resolve().parents[1]
     core = args.core_directory.resolve() if args.core_directory else root / 'game_lab'
-    expected_core = {'integer-v1': '9b5647534450e3a2c8c9b4818003093500bf7c6afc78cb0409126bd44658d3b4',
+    expected_core = {'services-v1': '4a21f495f3353594cc34f20806d19ead8e851e71b874ab2f2a0586834b34874d', 'integer-v1': '9b5647534450e3a2c8c9b4818003093500bf7c6afc78cb0409126bd44658d3b4',
                      'bb00e6b': '14d30ff19edffc099d2de9c1880fb6d7806eee1552365d9a58c66fd9981769c5'}[args.harvest_rule]
-    if sha(core / 'city_simulation.hpp') != expected_core:
+    accepted_cores = [expected_core]
+    if args.harvest_rule == 'integer-v1':
+        accepted_cores.append('4a21f495f3353594cc34f20806d19ead8e851e71b874ab2f2a0586834b34874d') # Legacy ruleset still fully supported on this core.
+    expected_core = sha(core / 'city_simulation.hpp')
+    if expected_core not in accepted_cores:
         parser.error('Core SHA-256 does not match the explicitly selected tested rule; provide the correct frozen --core-directory')
     compiler = shutil.which('clang++')
     if not compiler:
@@ -74,6 +78,9 @@ def main():
                                 'seconds': round(time.monotonic() - started, 3), 'log_sha256': sha(log)})
         print(text, end='')
         return code == 0
+
+    if args.harvest_rule == 'services-v1':
+        flags += ['-DCITY_GOAL_TEST_SERVICES_V1=1']
 
     # Verify the pure header compiles alone: it must not need the city model or frameworks.
     standalone = sources / 'standalone.cpp'

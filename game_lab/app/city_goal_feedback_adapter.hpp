@@ -31,10 +31,25 @@ template<class City, class = void> struct HasFarmYieldHelper : std::false_type {
 template<class City> struct HasFarmYieldHelper<City, std::void_t<decltype(
     std::declval<const City&>().farmYieldForMonth(1))>> : std::true_type {};
 
+template<class City, class = void> struct HasServiceRules : std::false_type {};
+template<class City> struct HasServiceRules<City, std::void_t<decltype(
+    std::declval<const City&>().ruleset()), decltype(std::declval<const City&>().nextMonthStats())>> : std::true_type {};
+
 template<class City>
 inline CityFeedbackSnapshot capture(const City& city, CityHarvestRule rule) {
     auto s = makeCityFeedbackSnapshot(city.stats(), CityHarvestRule::Unknown);
     if constexpr (HasFarmYieldHelper<City>::value) {
+        if constexpr (HasServiceRules<City>::value) {
+            const auto rules = static_cast<uint32_t>(city.ruleset());
+            if (rule == CityHarvestRule::StaffedServicesV1 && rules == 3) {
+                const auto next = city.nextMonthStats();
+                s.harvestRule = rule;
+                s.coreHarvest = city.farmYieldForMonth(next.month);
+                s.coreNextMonth = CityCoreNextMonth{next.month, next.population, next.housingCapacity, next.foodSupply, next.treasury};
+                return s;
+            }
+            if (rules != 1) return s;
+        }
         if (rule == CityHarvestRule::LaborLimitedIntegerV1) {
             s.harvestRule = rule;
             const int nextMonth = s.month == 12 ? 1 : s.month + 1;

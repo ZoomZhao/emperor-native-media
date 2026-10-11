@@ -49,12 +49,14 @@ APP = [
 CITY = ['game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
         'game_lab/city_simulation_tests.cpp', 'game_lab/emperor_assets.hpp',
         'game_lab/asset_limits.hpp', 'game_lab/map_geometry.hpp']
+SERVICE = [name for name in CITY if name != 'game_lab/city_simulation_tests.cpp'] + [
+    'game_lab/service_labor_tests.cpp', 'game_lab/app/city_goal_feedback.hpp', 'game_lab/app/city_goal_feedback_adapter.hpp']
 SURFACE = ['surface_lab/surface.hpp', 'surface_lab/surface.cpp',
            'surface_lab/oracle.hpp', 'surface_lab/oracle.cpp', 'surface_lab/tests.cpp']
 METAL = [name for name in SURFACE if name != 'surface_lab/tests.cpp'] + [
     'metal_lab/backend.hpp', 'metal_lab/backend.mm', 'metal_lab/tests.mm']
 SUITES = {'surface': SURFACE, 'metal': METAL,
-          'city': CITY, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
+          'city': CITY, 'service': SERVICE, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
           'movie-async': APP + ['game_lab/movie_session_async_tests.mm'],
           'movie-termination': APP + ['game_lab/movie_termination_tests.mm']}
 
@@ -183,13 +185,14 @@ def run(suite, mode, output):
             fixtures.mkdir()
             command('graphics-test', [report / 'graphics-tests', fixtures])
             results = {suite: read(fixtures / 'summary.json')}
-        elif suite == 'city':
+        elif suite in ('city', 'service'):
+            test_file = 'game_lab/service_labor_tests.cpp' if suite == 'service' else 'game_lab/city_simulation_tests.cpp'
             command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
-                                     *flags, '-I', snapshot, snapshot / 'game_lab/city_simulation_tests.cpp',
+                                     *flags, '-I', snapshot, snapshot / test_file,
                                      '-o', report / 'city-tests'])
             binaries = {'city-tests': sha(report / 'city-tests')}
             command('city-test', [report / 'city-tests', report / 'city-fixtures'])
-            results = {'city': read(report / 'city-test.stdout')}
+            results = {suite: read(report / 'city-test.stdout')}
         elif suite == 'data':
             command('compile-c', ['/usr/bin/clang', '-std=c11', '-Wall', '-Wextra', '-Werror', *flags,
                                  '-I', snapshot / 'runtime_core/include', '-c', snapshot / 'runtime_core/src/heap_native.c', '-o', report / 'heap_native.o'])

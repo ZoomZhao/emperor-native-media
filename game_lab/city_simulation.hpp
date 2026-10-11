@@ -11,6 +11,9 @@
 
 namespace game_lab {
 
+// Version 2 remains reserved. Version 1 keeps its original service contract.
+enum class CityRuleset : uint32_t { LegacyServices = 1, StaffedServices = 3 };
+
 // Self-authored city building model; its rules have not been compared with the original game.
 enum class BuildingType : uint8_t {
     None = 0,
@@ -110,7 +113,13 @@ public:
     static constexpr uint32_t kTotalTiles = kMapSize * kMapSize;
     static constexpr int kTicksPerMonth = 10;
 
-    CitySimulation() {
+    explicit CitySimulation(CityRuleset rules = CityRuleset::LegacyServices) : ruleset_(rules) {
+        reset();
+    }
+
+    CityRuleset ruleset() const { return ruleset_; }
+    void reset(CityRuleset rules) {
+        ruleset_ = rules;
         reset();
     }
 
@@ -134,6 +143,11 @@ public:
     }
 
     const CityStats& stats() const { return stats_; }
+    CityStats nextMonthStats() const {
+        auto candidate = *this;
+        candidate.advanceMonth();
+        return candidate.stats();
+    }
     void setSpeed(int speed) { stats_.speed = std::clamp(speed, 0, 3); }
     int monthAccumulator() const { return monthAccumulator_; }
 
@@ -277,7 +291,7 @@ public:
         }
 
         // 3. 水井滋养、集市供粮与民居升级
-        updateHousing();
+        stabilizeHousingAndLabor();
 
         // 4. 移民迁入机制
         if (stats_.population < stats_.housingCapacity && stats_.foodSupply > 10) {
@@ -289,7 +303,7 @@ public:
         }
 
         // 5. 劳动力与岗位核算
-        updateLabor();
+        stabilizeHousingAndLabor();
 
         // 6. 财政收支：居民赋税与建筑维护
         const int taxCollected = stats_.population * 1;
@@ -301,11 +315,11 @@ public:
         stats_.treasury = boundedInt(int64_t(stats_.treasury) + taxCollected - upkeep);
 
         // 7. 宗庙庇佑与治安巡更
-        if (stats_.totalTemples > 0) {
+        if (stats_.totalTemples > 0 && serviceIsOperational(BuildingType::Temple)) {
             stats_.favor = std::min(100, stats_.favor + 1);
         }
         if (stats_.population >= 40) {
-            if (stats_.totalWatchtowers == 0) {
+            if (stats_.totalWatchtowers == 0 || !serviceIsOperational(BuildingType::Watchtower)) {
                 if (stats_.month % 4 == 0) {
                     stats_.favor = std::max(0, stats_.favor - 2);
                     addEvent("警更缺失！市井巡查不足，坊间偶发走水之险。");
@@ -326,9 +340,9 @@ public:
                 const size_t idx = y * kMapSize + x;
                 if (buildings_[idx] == BuildingType::House) {
                     bool nearRoad = hasNeighbor(x, y, BuildingType::Road, 1);
-                    bool nearWell = hasNeighbor(x, y, BuildingType::Well, 3);
-                    bool nearMarket = hasNeighbor(x, y, BuildingType::Market, 4);
-                    bool nearTemple = hasNeighbor(x, y, BuildingType::Temple, 5);
+                    bool nearWell = serviceCoverageAt(x, y, BuildingType::Well);
+                    bool nearMarket = serviceCoverageAt(x, y, BuildingType::Market);
+                    bool nearTemple = serviceCoverageAt(x, y, BuildingType::Temple);
 
                     if (nearRoad && nearWell && nearMarket && nearTemple) {
                         houseLevels_[idx] = 4; // 朱门华堂
@@ -367,6 +381,40 @@ public:
             }
         }
         return false;
+    }
+
+    // Self-authored shared staffing: shortages reduce the spatial service radius.
+    int serviceEffectiveRadius(BuildingType type) const {
+        const int radius = type == BuildingType::Well ? 3 : type == BuildingType::Market ? 4 :
+                           type == BuildingType::Temple ? 5 : 0;
+        if (ruleset_ == CityRuleset::LegacyServices) return radius;
+        if (stats_.neededWorkers <= 0 || stats_.availableWorkers <= 0) return 0;
+        return int(int64_t(radius) * std::min(stats_.availableWorkers, stats_.neededWorkers) / stats_.neededWorkers);
+    }
+
+    bool serviceCoverageAt(uint32_t x, uint32_t y, BuildingType type) const {
+        if (x >= kMapSize || y >= kMapSize) return false;
+        const int radius = serviceEffectiveRadius(type);
+        return radius > 0 && hasNeighbor(x, y, type, radius);
+    }
+
+    bool serviceIsOperational(BuildingType type) const {
+        if (type == BuildingType::Watchtower)
+            return stats_.totalWatchtowers > 0 && (ruleset_ == CityRuleset::LegacyServices ||
+                   stats_.availableWorkers >= stats_.neededWorkers);
+        return serviceEffectiveRadius(type) > 0;
+    }
+
+    void stabilizeHousingAndLabor() {
+        // Capacity and labor can both fall after demolition or famine. Reach the
+        // canonical fixed point before exposing or serializing the city.
+        int previousPopulation;
+        do {
+            previousPopulation = stats_.population;
+            updateLabor();
+            updateHousing();
+        } while (stats_.population < previousPopulation);
+        updateLabor();
     }
 
     void updateLabor() {
@@ -416,8 +464,7 @@ public:
         stats_.totalTemples = temples;
         stats_.totalMarkets = markets;
         stats_.totalWatchtowers = watchtowers;
-        updateHousing();
-        updateLabor();
+        stabilizeHousingAndLabor();
         updateCityRank();
     }
 
@@ -432,7 +479,7 @@ public:
         std::vector<uint8_t> buf;
         buf.reserve(4 + 4 + 36 + kTotalTiles * 2 + kTotalTiles * 2);
         buf.push_back('E'); buf.push_back('M'); buf.push_back('P'); buf.push_back('1');
-        uint32_t ver = 1;
+        const uint32_t ver = static_cast<uint32_t>(ruleset_);
         for (int i = 0; i < 4; ++i) buf.push_back(static_cast<uint8_t>((ver >> (i * 8)) & 0xff));
 
         auto putI32 = [&](int32_t val) {
@@ -472,12 +519,14 @@ public:
             for (unsigned i = 0; i < 4; ++i) result |= uint32_t(buf[offset++]) << (8 * i);
             return result;
         };
-        if (word() != 1) return false;
+        const uint32_t version = word();
+        if (version != 1 && version != 3) return false;
         auto signedWord = [&]() {
             const uint32_t bits = word();
             return static_cast<int32_t>(bits <= 0x7fffffffu ? int64_t(bits) : int64_t(bits) - 0x100000000ll);
         };
         CitySimulation candidate = *this;
+        candidate.ruleset_ = static_cast<CityRuleset>(version);
         candidate.stats_ = CityStats{};
         auto& stats = candidate.stats_;
         stats.treasury = signedWord();
@@ -576,10 +625,25 @@ public:
             else if (lvl == 2) levelName = "平民木屋";
             else if (lvl == 1) levelName = nearRoad ? "郊野茅舍" : "闭塞小屋";
 
-            return "🔍 勘查地块 (" + std::to_string(x) + ", " + std::to_string(y) + "): 地形=" + terrainName +
-                   " · 建筑=民居 · 等级: " + std::to_string(lvl) + " (" + levelName +
-                   ") · 容量: " + std::to_string(cap) + " 人 · 全城人口: " +
-                   std::to_string(stats_.population) + "/" + std::to_string(stats_.housingCapacity);
+            return "🔍 民居 (" + std::to_string(x) + ", " + std::to_string(y) +
+                   ") · 等级: " + std::to_string(lvl) + " (" + levelName + ") · 容量: " + std::to_string(cap) +
+                   " 人 · 全城人口: " + std::to_string(stats_.population) + "/" + std::to_string(stats_.housingCapacity) +
+                   "\n有效邻近：路" + (nearRoad ? "✓" : "✗") +
+                   " 井" + (serviceCoverageAt(x, y, BuildingType::Well) ? "✓" : "✗") +
+                   " 市" + (serviceCoverageAt(x, y, BuildingType::Market) ? "✓" : "✗") +
+                   " 庙" + (serviceCoverageAt(x, y, BuildingType::Temple) ? "✓" : "✗") +
+                   (ruleset_ == CityRuleset::StaffedServices ? " · 缺工会缩短服务范围" : " · 旧存档服务规则");
+        }
+
+        if (b == BuildingType::Well || b == BuildingType::Market || b == BuildingType::Temple || b == BuildingType::Watchtower) {
+            const int fullRadius = b == BuildingType::Well ? 3 : b == BuildingType::Market ? 4 : b == BuildingType::Temple ? 5 : 0;
+            std::string service = fullRadius > 0 ? "有效半径 " + std::to_string(serviceEffectiveRadius(b)) + "/" + std::to_string(fullRadius) + " 格" :
+                "更楼需全城满岗才提供繁荣效果";
+            if (ruleset_ == CityRuleset::LegacyServices) service = "旧存档规则：服务不受用工约束";
+            return "🔍 " + std::string(BuildingCost::name(b)) + " (" + std::to_string(x) + ", " + std::to_string(y) +
+                   ") · 需工 " + std::to_string(BuildingLabor::workersRequired(b)) + " 人 · 全城 " + std::to_string(stats_.availableWorkers) +
+                   "/" + std::to_string(stats_.neededWorkers) + " 工\n" + service + " · " +
+                   (serviceIsOperational(b) ? "运作中" : "缺工停用；增加人口或减少岗位");
         }
 
         const int workers = BuildingLabor::workersRequired(b);
@@ -667,6 +731,7 @@ private:
         return static_cast<int>(std::clamp(value, int64_t(std::numeric_limits<int>::min()),
                                           int64_t(std::numeric_limits<int>::max())));
     }
+    CityRuleset ruleset_ = CityRuleset::LegacyServices;
     CityStats stats_;
     std::vector<uint16_t> terrain_;
     std::vector<BuildingType> buildings_;
