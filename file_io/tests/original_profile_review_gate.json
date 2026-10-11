@@ -1,0 +1,23 @@
+{
+  "schema": "INDEPENDENT_PROFILE_AND_OWNED_REVIEW_GATE_V1",
+  "approved_source_profile": true,
+  "approved_owned_wrapper": true,
+  "profile_commit": "4ac4fc861fffa9d4f63e330f8c8df951b453c41e",
+  "owned_commit": "08152cc48fa0229ea2e0d592a1c6f201145f45b8",
+  "profile_sha256": "0d6904422c510f7ae94985678efada2a41b03624aceb55a4f95edebbe8241de7",
+  "review_artifacts": [
+    {
+      "path": "docs/original-profile-owned-readiness.json",
+      "sha256": "41a4428ae9af10f80f55c78bb4833aae3837416d41183030f38b98d357acfa05"
+    }
+  ],
+  "component_source_sha256": {
+    "file_io/include/owned_reader.hpp": "c7d3f5ada30ddddd748c429f61f7bb4525504bccf0cc6d016325b8e60a13e937",
+    "file_io/include/framed_reader.hpp": "d3d21e07110f57a19cd37d7e1fa61a922203a4c2ccb7c4988f60cb2e543abbd9",
+    "file_io/include/strict_zlib.h": "8884a8a9bc6d8222320d93023d088cd18430017e479a282ca698f102c3eaf7a4",
+    "file_io/src/framed_reader.cpp": "648bb362ff03f96afa0596cc5c84e628b1b666d78325d41099a70181eab5d68b",
+    "file_io/src/strict_zlib.cpp": "1c13bf06ba9721a85000105f4b18763f88bfadf71626f2cae1127288c6fb2f0e"
+  },
+  "owned_each_mode_passed": 562,
+  "profile_passed_groups": 48
+}

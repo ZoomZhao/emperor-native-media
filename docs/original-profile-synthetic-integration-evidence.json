@@ -1,0 +1,162 @@
+{
+  "schema": "ORIGINAL_PROFILE_SYNTHETIC_E2E_AND_REAL_PREFIX_READINESS_V1",
+  "base_HEAD": "08152cc48fa0229ea2e0d592a1c6f201145f45b8",
+  "profile_review_commit": "4ac4fc861fffa9d4f63e330f8c8df951b453c41e",
+  "profile_review_groups_passed": 48,
+  "owned_review_commit": "08152cc48fa0229ea2e0d592a1c6f201145f45b8",
+  "owned_independent_eachmode_passed": 562,
+  "owned_independent_eachmode_failed": 0,
+  "owned_reimported_validation": {
+    "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/real-file-prefix-qualification-20261011/merged-owned-independent-validation/results.json",
+    "sha256": "0a6d5e21a5f05eeed42e5c885bad403608a9195df1b0bdd217bf0b0e0c217a92",
+    "four_object_transfer_compile_probes_rejected": true,
+    "actual_expired_read": false,
+    "ASan_run": false
+  },
+  "synthetic_e2e": {
+    "eachmode_passed": 334,
+    "eachmode_failed": 0,
+    "checks_by_mode_kind": {
+      "release": {
+        "independent_fixture_profile_integration": 298,
+        "modern_empty_container_policy": 4,
+        "modern_stream_policy_only": 22,
+        "modern_header_boundary": 10
+      },
+      "undefined": {
+        "independent_fixture_profile_integration": 298,
+        "modern_empty_container_policy": 4,
+        "modern_stream_policy_only": 22,
+        "modern_header_boundary": 10
+      }
+    },
+    "report_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/real-file-prefix-qualification-20261011/portable-profile-synthetic-integration/results.json",
+    "report_sha256": "896643f5d2ce2ba8587122c5901dba16f0536dd0d7303f578bc05fafe768dd95",
+    "manifest_sha256": "899172ebcd9d4415f65596d475a617f04c571cf1990528760e141c9f350c955a",
+    "input_only_generated_by_independent_synthetic_fixture_generator": true,
+    "original_data_used_in_e2e": false,
+    "copy_and_move_reuse_input_vector_as_output": true,
+    "original_15pending_snapshot_unchanged": true,
+    "four_byte_request_API_pending": true
+  },
+  "bounded_actual_data_prefix_inventory": {
+    "inspected_files": 31,
+    "perfilemax": 32,
+    "totalreadbytes": 992,
+    "constructor_header_match": 22,
+    "notmatched": 9,
+    "header_matching_all_firstmarkers_compressed": true,
+    "all_N_within36144": true,
+    "all_zlib_prefix_shape_pass": true,
+    "Adler_terminal_or_actual_output_verified": false,
+    "thirdword_seen_32768": 22
+  },
+  "actual_candidate_metadata": [
+    {
+      "priority": 1,
+      "GameData_relative_path": "Campaigns/UNTITLED/UNTITLEDP.map",
+      "bytes": 5224,
+      "first_N": 719,
+      "first_complete_frame_physical_bytes_if_valid": 735,
+      "prefix_sha256": "a4fc1e3bb8a6321438a9bdc7ed5bb9c7a69da79d82d83c10ac3c83b862a5aa72",
+      "inode": 32737943,
+      "mtime_ns": 1785166408017537951,
+      "current_qualification": "prefix-onlycandidate; not decoderaccepted",
+      "entry_qualification": "smallestmatchinglocalfile; originalconsumer/openernotqualified",
+      "first_frame_unknowns": [
+        "full payload",
+        "stream-end/checksum",
+        "actual produced",
+        "codec tail withinN",
+        "nextmarker/filetail/termination"
+      ]
+    },
+    {
+      "priority": 2,
+      "GameData_relative_path": "Save/zoom/C02M00_empireinfo.dat",
+      "bytes": 7147,
+      "first_N": 842,
+      "first_complete_frame_physical_bytes_if_valid": 858,
+      "prefix_sha256": "0742c18b164a8161006ba2f13088b4b24df550dc279ab720fc8701b82dfcc44a",
+      "inode": 32737958,
+      "mtime_ns": 1785166409328302026,
+      "current_qualification": "prefix-onlycandidate; not decoderaccepted",
+      "entry_qualification": "smallmatchingSavefile; extension-specificopenernotqualified",
+      "first_frame_unknowns": [
+        "full payload",
+        "stream-end/checksum",
+        "actual produced",
+        "codec tail withinN",
+        "nextmarker/filetail/termination"
+      ]
+    },
+    {
+      "priority": 3,
+      "GameData_relative_path": "Cities/Xia.map",
+      "bytes": 79450,
+      "first_N": 298,
+      "first_complete_frame_physical_bytes_if_valid": 314,
+      "prefix_sha256": "fb389b9ad2e1ac2e9bbe190449f564921dfececc3906131aae89f375d78cb6c2",
+      "inode": 32737826,
+      "mtime_ns": 1785166408103366375,
+      "current_qualification": "prefix-onlycandidate; not decoderaccepted",
+      "entry_qualification": "largermatchingmap; originalconsumer/openernotqualified",
+      "first_frame_unknowns": [
+        "full payload",
+        "stream-end/checksum",
+        "actual produced",
+        "codec tail withinN",
+        "nextmarker/filetail/termination"
+      ]
+    },
+    {
+      "priority": 4,
+      "GameData_relative_path": "Save/zoom/历史战役自动保存_1.sav",
+      "bytes": 165223,
+      "first_N": 307,
+      "first_complete_frame_physical_bytes_if_valid": 323,
+      "prefix_sha256": "6924f88c1208784e0f574a1715c172e37bcf1bab9499f4b025632f9b8aa6be4b",
+      "inode": 32737957,
+      "mtime_ns": 1785166409329159260,
+      "current_qualification": "prefix-onlycandidate; not decoderaccepted",
+      "entry_qualification": "smallestmatching.sav; 534a30pathvariable-sourceknown, specificfileentryassociationnotproved",
+      "first_frame_unknowns": [
+        "full payload",
+        "stream-end/checksum",
+        "actual produced",
+        "codec tail withinN",
+        "nextmarker/filetail/termination"
+      ]
+    }
+  ],
+  "actual_raw_prefix_dump_included": false,
+  "actual_raw_prefix_and_metadata_evidence_local_only": true,
+  "actual_payload_body_or_wholefile_read": false,
+  "actual_file_decoder_invoked": false,
+  "actual_file_or_game_accepted": false,
+  "future_body_action_proposal": {
+    "candidate": "Campaigns/UNTITLED/UNTITLEDP.map",
+    "requires": "confirmed applicablecontainerentry or explicitgenericenvelope-onlyscope, profile/ownedindependentreview, authorizedboundedbodyread; unknowntailfailclosed",
+    "maximum_input_bytes": 8192,
+    "maximum_decoded_block": 36144,
+    "maximum_total_output_bytes": 262144,
+    "maximum_blocks": 16,
+    "target_scope": "container framing/firststreamanddiagnostics only, no archivecityobjects orlogic",
+    "read_permitted_now": false,
+    "execute_planned_test_now": false
+  },
+  "requires_before_actual_decode": [
+    "Both fixedprofile andownedwrapper independentreviews mustbe read/hash-bound andall blockers addressed.",
+    "Qualify actualfileentry class or explicitlylimit to genericcontainer envelopeacceptance; do not claim originalsave/game semantics.",
+    "Confirm sourceidentity/size budget andread-only/no-symlink open; newlyauthorizeboundedfullpayload/wholefile reading, which exceeds32byteprefixscope.",
+    "Set trustedcap maxencoded/decoded36144,totalinput/output/block limits; no unknownfooter ormarker convertedtoEnd, errorsterminal andoutputprivate.",
+    "Record fullinputhash onlyafterqualifiedauthorizedboundedread; do not label currentprefixhash asfullfileidentity.",
+    "Consume originaldataonlywithselfauthoredmoderncomponent; nooriginal/translatedgame/oldcodec execution."
+  ],
+  "new_API_added": false,
+  "original_or_derived_game_executed": false,
+  "runtime_binding_created": false,
+  "new_REA_queries": 0,
+  "network_or_push": false,
+  "ASan_pass_claimed": false
+}

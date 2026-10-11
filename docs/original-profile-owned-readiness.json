@@ -1,0 +1,147 @@
+{
+  "schema": "INDEPENDENT_ORIGINAL_PROFILE_AND_OWNED_READINESS_V1",
+  "profile_review_commit": "4ac4fc861fffa9d4f63e330f8c8df951b453c41e",
+  "profile_review_passed": 48,
+  "profile_review_failed": 0,
+  "profile_readiness": {
+    "reviewed_commit": "4ac4fc861fffa9d4f63e330f8c8df951b453c41e",
+    "component_baseline": "16b4c8c8489b9003db8b31e1a66f9275bf52e91b",
+    "status": "selected constructor-bound static candidate accepted; no runtime or actual-file recognition performed",
+    "markers": {
+      "container_marker": {
+        "value_u32": 4275878570,
+        "hex": "0xfedcbaaa",
+        "bytes_le_hex": "aabadcfe",
+        "field": "F+0x10",
+        "store": "0x447be2"
+      },
+      "compressed_marker": {
+        "value_u32": 2882400255,
+        "hex": "0xabcdefff",
+        "bytes_le_hex": "ffefcdab",
+        "field": "F+0x14",
+        "store": "0x447bf7"
+      },
+      "raw_marker": {
+        "value_u32": 2863386095,
+        "hex": "0xaaabcdef",
+        "bytes_le_hex": "efcdabaa",
+        "field": "F+0x18",
+        "store": "0x447bfe"
+      }
+    },
+    "ready_for_synthetic_configuration": {
+      "marker_values_qualified": true,
+      "fixed_safe_max_encoded": 36144,
+      "fixed_safe_max_decoded": 36144,
+      "total_input_budget": null,
+      "total_output_budget": null,
+      "max_blocks": null,
+      "aggregate_budgets_require_explicit_trusted_caller_policy": true,
+      "archive_requested_buffer_bytes": 4096,
+      "archive_size_is_not_codec_or_block_limit": true,
+      "logical_span_bytes": 32768,
+      "codec_window_bytes_from_prior_source": 32768,
+      "nominal_codec_region_bytes": 36144,
+      "larger_owned_buffers_are_not_original_fixed_domain": true
+    },
+    "readonly_actual_file_recognition_spec": {
+      "already_executed": false,
+      "requires_separate_authorization_and_qualified_header_position": true,
+      "header_bytes_le": "aabadcfe",
+      "complete_header_only": true,
+      "matched_result": "selected_profile_candidate_only",
+      "short_result": "insufficient_header",
+      "mismatched_result": "not_this_header_candidate; originalpassthrough not excluded",
+      "relative_first_frame_offset_if_complete_normal_header_advance": 4,
+      "physical_absolute_offset_for_all_files_proved": false,
+      "OS_seek_success_proved": false,
+      "no_seek_or_codec_needed_for_prefix_classification": true,
+      "whole_file_or_root_or_termination_acceptance": false
+    },
+    "frame_schema": [
+      "LE32 F14 marker",
+      "LE32 N(F11a8c)",
+      "opaque4 fromwriterF11a88",
+      "N payload"
+    ],
+    "raw_frame_schema": [
+      "LE32 F18 marker",
+      "LE32 N(F11a88)",
+      "N rawbytes"
+    ],
+    "third_word": {
+      "selected_written_field": "post-compression-callF11a88",
+      "also_pre_call_encoder_input_count_field": "F11a88 passedbyvalue",
+      "equality_to_pre_call_count_requires_field_stability": true,
+      "equals_actual_decoded_count_proved": false,
+      "reader_role": "preserve opaque; no equality gate"
+    },
+    "unclosed": [
+      "liveF/root/storage/noalias qualification",
+      "actualoriginalfile read andallformatcoverage",
+      "originalouterposition/open/OSseek success",
+      "alltermination/footer/EOFprotocols",
+      "encoder613970/callback/alias/baseflush/close transport",
+      "opaque cross-file semantics andcountcoherence",
+      "four byte-request API policies",
+      "borrowed stream/output lifetime contract under separate mainline correction"
+    ],
+    "component_or_hostcodec_rerun": false,
+    "provider_or_original_executed": false
+  },
+  "owned_review_commit": "08152cc48fa0229ea2e0d592a1c6f201145f45b8",
+  "owned_eachmode_passed": 562,
+  "owned_eachmode_failed": 0,
+  "owned_support_domain": "Valid vectors and public owned copy/move-input protocol; owner remains alive; same caller or moved-from vector may serve as output; unique_ptr may hand off an address-stable object",
+  "owned_forbidden_premise": "Borrowed FramedReader source/backing must stay alive and disjoint from output storage. Moved input external aliases do not permit freeing or concurrent mutation of owned backing. No object-level copy/move",
+  "fixed_production_source_sha256": {
+    "file_io/include/owned_reader.hpp": "c7d3f5ada30ddddd748c429f61f7bb4525504bccf0cc6d016325b8e60a13e937",
+    "file_io/include/framed_reader.hpp": "d3d21e07110f57a19cd37d7e1fa61a922203a4c2ccb7c4988f60cb2e543abbd9",
+    "file_io/include/strict_zlib.h": "8884a8a9bc6d8222320d93023d088cd18430017e479a282ca698f102c3eaf7a4",
+    "file_io/src/framed_reader.cpp": "648bb362ff03f96afa0596cc5c84e628b1b666d78325d41099a70181eab5d68b",
+    "file_io/src/strict_zlib.cpp": "1c13bf06ba9721a85000105f4b18763f88bfadf71626f2cae1127288c6fb2f0e"
+  },
+  "source_profile_sha256": "0d6904422c510f7ae94985678efada2a41b03624aceb55a4f95edebbe8241de7",
+  "review_artifacts": [
+    {
+      "name": "REVIEW.zh-CN.md",
+      "sha256": "734e3a8808692585d86dd36d8012c4ec79f9ae58570085d9313bd5ea073a8e9c"
+    },
+    {
+      "name": "profile-readiness.json",
+      "sha256": "e161c4d0d11d466cc69393f26a8412161053949f4cf2301a61b662a8e9af793b"
+    },
+    {
+      "name": "findings.json",
+      "sha256": "6c5e9e49ab2cafed082d1f982d721babb84ab1c42b5af1448304807a115cbea4"
+    },
+    {
+      "name": "deliverables-manifest.json",
+      "sha256": "2466eee327890ca96fd648edd7f18a4af6fc685e9a9c97310bd35e893db33cbf"
+    },
+    {
+      "name": "results.json",
+      "sha256": "5762ad3f1a7afa259056dd7259da4e618579062ce1991c6b36fc79480c30314d"
+    },
+    {
+      "name": "receipt.json",
+      "sha256": "4db0b33088f0eb2164a58411f2281c37217a851dcfe03d31de19f801222c087f"
+    },
+    {
+      "name": "owned-lifetime-independent-manifest-v1.json",
+      "sha256": "b170afa749cd3aa4057673ab71b6f28ed9c1abe4ccfb62780216e192037e9182"
+    },
+    {
+      "name": "results.json",
+      "sha256": "ec58305a21509cfe1f7bc18f02244c4982b7044a6a4921deecea33a09b3de588"
+    },
+    {
+      "name": "OWNED_READER_INDEPENDENT_LIFETIME_REVIEW.md",
+      "sha256": "c738c714b7a309e23192684e871bad2a221c4c6d76ec4a19c69dcafdd5b83b36"
+    }
+  ],
+  "ASan_pass_claimed": false,
+  "real_file_or_game_accepted": false,
+  "raw_actual_file_prefix_or_payload_included": false
+}
