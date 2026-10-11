@@ -143,3 +143,7 @@ phase45：caller置ECX1e535f8调用5f02c0，后CALL4b94a0；两者正常出口�
 ## 后续静态证据增量
 
 [注册方法与嵌套池消费](ORIGINAL_POSTREGISTRATION_CONTRACT.md)补完+94正常ABI及+90/子对象/+1fc链；phase37的实际实例、后续副作用与生命周期仍未证。41组独立复核限定453bfc4/dbe5e60/19c4939，本轮语义未覆盖。
+
+## 后续原静态合同
+
+426d10完整EAX为byte[ECX+4]等于1或3时1、否则0，RET4；flag5反驳bit0推断。选定登记值3只在保持时通过。[生命周期/退出](ORIGINAL_LIFETIME_AND_EXIT_CONTRACT.md)进一步列明slot、分配、callback与旧对象销毁前提。

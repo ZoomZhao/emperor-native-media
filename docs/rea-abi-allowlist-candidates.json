@@ -1,5 +1,5 @@
 {
-  "schema_version": 16,
+  "schema_version": 17,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -473,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-postregistration-listing-20261011",
+  "latest_source_batch": "rea-static-lifetime-and-exit-registry-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -1595,6 +1595,19 @@
       "temp_empty": true,
       "official_module_pairs": 18,
       "whole_transitive_effects_proved": false
+    },
+    {
+      "batch": "rea-static-lifetime-and-exit-registry-20261011",
+      "session_ok": true,
+      "exit_code": 0,
+      "successful_Evidence": 139,
+      "saved_query_errors": 1,
+      "provider_requests": 140,
+      "native_anchors": 89,
+      "elapsed_seconds": 869.791,
+      "temp_empty": true,
+      "official_module_pairs": 18,
+      "actual_runtime_lifecycle_proved": false
     }
   ],
   "review_corrections_300a5a7": {
@@ -2129,6 +2142,8 @@
     "phase37_exception_contract_document": "ORIGINAL_PHASE37_EXCEPTION_CONTRACT.md",
     "object_factory_consumption_document": "ORIGINAL_OBJECT_FACTORY_ROUTE.md",
     "handoff_document": "ORIGINAL_ROUTE_HANDOFF.md",
-    "postregistration_document": "ORIGINAL_POSTREGISTRATION_CONTRACT.md"
+    "postregistration_document": "ORIGINAL_POSTREGISTRATION_CONTRACT.md",
+    "lifetime_and_exit_document": "ORIGINAL_LIFETIME_AND_EXIT_CONTRACT.md",
+    "filter_correction_document": "ORIGINAL_FILTER_CONTRACT_CORRECTION.md"
   }
 }

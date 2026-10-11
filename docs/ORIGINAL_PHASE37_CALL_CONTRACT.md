@@ -13,3 +13,7 @@
 后续直接callee正常清参已闭合：44ed90五个32位值RET20（EBP恢复对齐栈）；44d090三个32位值含outparamRET12；44cf00/44cf20单值RET4；44f180单值RET4且只AL定义byte，caller显式MOVSX AL，不能把EAX当标准化32位结果；44f190/44f1b0两值RET8；44e770两double64 RET16，内部44e4d0单doubleRET8；4bb390五值普通RET由caller清20。44cf20按signed count递归，原存储/输入域和资源深度未证；x87条件/异常环境仍未知。没有实现这些原算法或新增原运行绑定。44eb20最终链与47f1b0索引槽helper复用既有证据，普通返回合同不证明其自然输入、存储或阶段副作用完成。
 
 本批36操作：31 Evidence与5项保留NoProcedure错误；12个选定地址、5个Listing锚、64显式数据字节。453.227秒exit0、官方close、临时根空、输入身份及18份选定官方模块成对SHA不变。新语义未独立复核；自有校验器/测试未改未重跑。机器合同见original-scheduler-contract.json的phase37_virtual170_conditional_contract，完整调度仍未通过。
+
+## 后续原静态合同
+
+426d10门槛精确为O+4字节等于1或3，完整EAX0/1、RET4，不能推广奇数；flag5返回0。该[更正](ORIGINAL_FILTER_CONTRACT_CORRECTION.md)不改变当前vptr、slot、实例及存活未知。

@@ -70,3 +70,7 @@
 ## 后续静态证据增量
 
 [注册合同](ORIGINAL_POSTREGISTRATION_CONTRACT.md)已关闭428aa0本地Listing缺口，并连到注册期间的同池索引消费。新缺口具体是5268d0/418e80 transitiveeffects、766b16/88a3d4分配回调、旧对象销毁、registry与版本载入；静态工作未穷尽，实际实例/生命周期/完整运行没有通过。
+
+## 后续原静态合同
+
+[原生命周期/退出来源](ORIGINAL_LIFETIME_AND_EXIT_CONTRACT.md)连到真实CRT登记数组及正常主函数返回消费者，提供Q=O的明确条件而非自然实例证据；登记失败被忽略、回调数组/slot存活仍未证。[flag合同修正](ORIGINAL_FILTER_CONTRACT_CORRECTION.md)只接受1或3，5返回0。

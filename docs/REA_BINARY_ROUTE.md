@@ -288,3 +288,7 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 ## 后续静态证据增量
 
 research schema16追加[完整注册Listing与嵌套消费](ORIGINAL_POSTREGISTRATION_CONTRACT.md)：140查询137Evidence/3NoProcedure，exit0/清理完成。原动态绑定未生成；上轮exit1保留。
+
+## 后续原静态合同
+
+research schema17补[生命周期与退出数组](ORIGINAL_LIFETIME_AND_EXIT_CONTRACT.md)，并记录二方34通过/1失败与新增29通过，修复flag门槛。无新增自写回归或执行绑定。

@@ -12,7 +12,7 @@
 
 本批新增九个构造根表的选定字均与先前四个候选一致：+94=428aa0、+168=413a00、+16c=416ac0、+170=416ad0、+1e8=416b50。九项是51c9a0、5da3d0、4f8e30、540770、51e5e0、4c5dc0和三个内层选定constructor416cb0/5b4000/50a570；17个外层分支不等于17个恢复类，内层还有多构造出口。完整vtable范围及实际实例仍未绑定。
 
-登记后+94的缺口得到更具体定位：428aa0未注册procedure；所选Listing写O+4=3，正常RET12，但还含428b9a的virtual+1e8及未闭合direct callees。因此不能当纯setter，也不能默认不改vptr/全局slot。候选416b50的七字节Listing为LEAEAX,[ECX+c8]/RET，返回嵌入子对象地址，绝非boolean/no-op。phase37的44f1d0从同一8c7630池取O，426d10(O,0)检查flag bit0；所选登记值3满足该位，但O+3c、对象存活和调度时首槽仍需各自证明。随后调用者还有virtual+130等副作用前沿。
+登记后+94的缺口得到更具体定位：428aa0未注册procedure；所选Listing写O+4=3，正常RET12，但还含428b9a的virtual+1e8及未闭合direct callees。因此不能当纯setter，也不能默认不改vptr/全局slot。候选416b50的七字节Listing为LEAEAX,[ECX+c8]/RET，返回嵌入子对象地址，绝非boolean/no-op。phase37的44f1d0从同一8c7630池取O，426d10(O,0)只接受O+4字节等于1或3；若该字节仍为所选登记值3，过滤返回true，但O+3c、对象存活和调度时首槽仍需各自证明。随后调用者还有virtual+130等副作用前沿。
 
 本批部分完成：85成功Evidence、4保存NoProcedure错误；89请求实际送达provider，90为harness尝试计数。最后追加resolve_native_call_targets(address42d736)在送达REA前触发自定10站点限额，会话exit1/718.770秒；这是控制脚本范围错误，非审批/平台安全拒绝。未重写为全通过、未改官方guard、未重试该请求。输入身份与18对选定模块SHA不变，退出后临时根空。原代码、转换代码未执行、原产物未上传，运行绑定与完整周期证明仍无。新语义未独立复核。
 
@@ -21,3 +21,5 @@
 ## 后续静态证据增量
 
 上文是c0bbdff时点的部分结果；后续完整428aa0 Listing及+90/子对象/同池嵌套消费已补到[注册合同](ORIGINAL_POSTREGISTRATION_CONTRACT.md)。旧预算exit1不被覆盖；transitiveeffects与实际实例仍未证。
+
+[合同更正](ORIGINAL_FILTER_CONTRACT_CORRECTION.md)记录flag5最小反例及独立复核失败；[条件生命周期与退出链](ORIGINAL_LIFETIME_AND_EXIT_CONTRACT.md)补全后续原来源，未知实例条件继续保留。

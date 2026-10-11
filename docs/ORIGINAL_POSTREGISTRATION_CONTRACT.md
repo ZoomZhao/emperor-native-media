@@ -17,3 +17,7 @@
 分析会话exit0/816.460秒，官方清理后临时根空；140请求中137成功Evidence、3个NoProcedure保存，124个指令锚点；固定输入身份和18对选定官方模块SHA不变。140是事先声明的查询范围，未超预算；本轮未重试上轮未发送的42d736 resolver。首次Python读取正在写入的JSON曾失败，之后仅修正自写读取器并复用既有证据，REA未重启。上轮exit1预算错误保留为历史记录，不被本轮覆盖。
 
 父线程独立复核41组通过，范围是固定453bfc4/dbe5e60/19c4939及其自写回归依赖；不覆盖上轮c0bbdff或本轮新增静态语义。本轮没有新增测试或自写媒体工作。细节及Evidence ID/SHA见original-scheduler-contract.json，原始证据仅保存在本地任务目录。
+
+## 后续原静态合同
+
+本页原c82fced增量已获29组独立核对；同提交继承的flag合同失败另有[更正](ORIGINAL_FILTER_CONTRACT_CORRECTION.md)。后续[生命周期及退出合同](ORIGINAL_LIFETIME_AND_EXIT_CONTRACT.md)已补齐5268d0和helper正常写集合、构造初值、删除与registry来源；原先未完整项属于当时范围，不继续按当前缺口列出。动态条件与其他前沿仍保留。
