@@ -1,6 +1,6 @@
-# REA 安装、使用结果与原版执行路线
+# REA 固定 PE 静态关口、安装与原版接线缺口
 
-2026-10-11，仓库审阅基线 `8e17cb4f2e861021254ef8898a5f252d44ad7c4e`。REA 6.4.0 已隔离安装并实际用于无目标诊断、能力查询和自写接口源码索引。没有导入原 EXE、恢复原指令、执行原/派生游戏库或新增原行为对照；当前仍没有完整原版 tick 通过证据。
+2026-10-11，更新基线 `fb874907d8c71967357ce88cc99e4b40ad0cdbfe`。REA 6.4.0 已隔离安装。随后在新的明确授权下，完成固定原 PE 的身份、头部及导入表核对，并实际尝试有界 REA/Ghidra 静态 inspect 两次，均在分析器启动阶段失败。没有函数图或调用点结果；进一步的无目标 ownership-helper 自检被自动审批明确拒绝并停止。没有执行原程序、翻译执行原指令或新增原行为对照，完整原版 tick 仍未通过。
 
 ## 安装来源与复现
 
@@ -22,7 +22,7 @@
 
 安装过程保留失败：首次下载/展开达到60秒限时；继续安装虽 exit0，但一个 MCP client 文件展开不完整，CLI 五项调用均启动失败。离线 `npm ci` 又因锁文件缺少其他平台的可选 PTY 条目而拒绝。随后将该次 node_modules/lock 保留为 `interrupted-node_modules`/`interrupted-package-lock.json`，从缓存与官方源重新安装；最终版本及以下实际调用均通过。没有启用安装脚本来解决问题，旧失败不会改写成通过。最终锁文件尚未再次用 `npm ci` 验证跨平台复现，PTY/调试/运行观察也没有验收。
 
-## REA 实际使用及其结论
+## 第一阶段：无目标 REA 使用（已完成）
 
 所有命令使用固定 Node 和本地 `scripts/rea.mjs`，临时环境设置 `REA_ANALYSIS_PROVIDER=ghidra`、`GHIDRA_INSTALL_DIR=/opt/homebrew/opt/ghidra/libexec`、`JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`，未持久化。
 
@@ -36,38 +36,101 @@
 
 导入仅包括 native_driver/runtime/platform_native/heap_connection、heap_native/thread_native 的自写接口及现有审计；没有遍历整个仓库或 GameData，没有复制原 domains/IR/目标字节。REA 此命令的关系解析只支持 JS/TS/JSX/TSX，C 在本次仅被识别和哈希。结果另保留 Node 路径竞争限制；provenance.importer_version 为 null，版本由独立 `--version` 记录绑定，不能擅改工具输出。图根 SHA256 为 `44fce8668b1e38f8d70398e548ac984adab6c61fefc2aed86ca3e65543a4a691`。
 
-因此 REA 本轮新增的是工具就绪、能力/副作用声明与接口来源核对。以下原执行路线来自既有报告和授权接口人工审阅，并非 REA 对原二进制重新产生的反编译或调用图。
+这些结果属于先前无目标阶段，不能拿其中 `target_open=false` 描述后来 inspect 的尝试，也不能把 doctor 健康当作目标分析已通过。后续新增证据如下；原调度/运行事实仍只引用既有报告。
 
-## 原入口、调度与平台边界
+## 第二阶段：固定 PE 的新证据（只读元数据）
 
-| 环节 | 已有证据 | 尚未建立的连接 |
+当前授权允许固定文件的纯静态检查，先前“本轮不读取EXE”仅是当时审计范围，已被这次明确授权替代；不将旧转换/执行路线的拒绝扩大为所有 PE 静态工作都禁止。
+
+输入为 `/Users/zoomzhao/Workspace/lzjq/Exe/ghidra/input/EmperorEN.exe`，SHA256 `8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753`，4,820,992字节，路径/祖先无符号链接。每次 inspect 前后及只读元数据核对前后，文件哈希与身份未变。没有读取旧 Swift、GameData 或执行此文件。适用输入目录 AGENTS 已完整阅读；固定文件的新授权优先于通常先查既有 corpus 的指引。
+
+| 新结果 | 证据级别与限制 |
+|---|---|
+| i386 PE32；image base `0x400000`；入口 RVA `0x3688ba`，VA `0x7688ba`，位于 `.text` | `PE_METADATA_ONLY`：自写只读 PE 头部/导入表解析器的结果，不是 REA/Ghidra 反汇编；没有入口指令、到调度的调用链或可达性结果 |
+| `.text`、`.rdata`、`.data`、`.rsrc` 四节；15个导入DLL、433个导入项（包括ordinal项） | 仅声明的静态依赖；不是433个实际调用、所有运行时动态依赖或必要API的总表 |
+| DDRAW.dll：`DirectDrawCreate` 一项 | 能确定导入工厂名字；工厂产生的接口、vtable槽位、对象生命周期、调用路径、色键/ROP/表面恢复仍未知 |
+| mss32.dll：54个 Miles 导入 | 名字涉及 startup/shutdown、waveOutOpen、sample/stream/3D provider、状态/释放、速率/音量/声像/循环、文件与reverb/filter。不是54个已实现API；参数、callback、循环含义和实际触发未获证 |
+| binkw32.dll：14个 Bink 导入 | 包括 `_BinkOpen@8`、`_BinkDoFrame@4`、`_BinkCopyToBuffer@28`、`_BinkWait@4`、`_BinkService@4`、`_BinkOpenMiles@4`、`_BinkSetSoundSystem@8` 等。修饰名仅是ABI线索，不证明结构布局、参数合同、音视频时钟或原播放通过 |
+| KERNEL32/USER32/GDI32 等 | 声明有线程/事件/等待、内存/heap、加载器、异常及 `RtlUnwind` 等依赖；现有有限平台子集不能据此升级为完整Win32提供者 |
+
+完整导入数量按DLL为：KERNEL32 152、USER32 115、GDI32 51、comdlg32 1、ADVAPI32 5、SHELL32 1、ole32 3、DDRAW 1、WINMM 1、WSOCK32 28、mss32 54、binkw32 14、ijl10 3、COMCTL32 1、WINSPOOL 3。ordinal项保持ordinal，不猜名字。完整元数据只保存在本地 `rea-static-gate-20261011/pe-metadata.json`；Git只发布此筛选结论，不上传原文件或原始分析输出。
+
+入口 `0x7688ba` 与历史报告的调度地址 `0x4ac2b0` 是两个不同的已知坐标；目前没有把二者连接起来的静态图，更没有自然执行证据。
+
+## 有界 REA 关口的实际尝试与停止原因
+
+固定 Node/REA 使用以下相同命令，没有启动游戏、调用 SR/Unicorn/Wine 或使用替代执行器：
+
+```text
+node <本地 rea-agents/scripts/rea.mjs> inspect <上述固定 EmperorEN.exe> --provider ghidra --json
+```
+
+REA 启动限45秒，外层总限60秒；没有提高预算、增加分析seed/extensions或改 ownership guard。原目标只作为静态导入文件，临时分析项目使用 readOnly/deleteProject 配置。
+
+| 实际尝试 | 实际结果 |
+|---|---|
+| 普通沙盒，09:30:45 UTC | exit1，12.288秒；`execution_failure`、operation=`list_documents`、`GhidraLaunchError: Ghidra headless launch failed`、failure_kind=`start`、retryable=false。不是超时 |
+| 标准 `require_escalated` 获准，09:32:08 UTC | 相同命令实际执行，exit1，12.131秒，同一启动错误；不是审批拒绝，也不是目标分析已通过 |
+| 进一步的无目标自检 | 请求执行固定 `diagnose_startup.mjs`，在 CreateProcess 前被自动审批拒绝；脚本未开始、没有自检结果。已停止同等动作及依赖其正常生命周期的 provider 启动 |
+
+两个失败记录的 target hash 均为上述SHA，provider_version=12.1.2，profile_digest=`e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2`。stdout仅暴露上述包装错误，没有底层 Java/Swift/权限原因；不推测根因。两次自有临时根目录结束时均空，没有报告 cleanupIncomplete；这不证明全系统不存在所有残留进程。
+
+新的审批拒绝理由为：
+
+> 该自检会调用 REA 的 ownership helper，而其实现包含 `ps` 进程表查询；这属于此前明确禁止重试的被拒绝 `/bin/ps` 路线，不能以间接 helper 方式绕过，即使不提供目标也不应执行。
+
+工具另明确要求不得通过替代或间接执行绕过。这里记录的是新的具体拒绝；此前报告中“possible cybersecurity risk”的历史原转换/执行拒绝属于另一组证据，不能混成同一技术失败或永久泛化禁令。
+
+只读源码补充核对发现：被拒脚本在 macOS 的 `prepare` 分支只编译 REA 自带 helper，Java LaunchSupport 通过普通 execFile 查询配置；该脚本并不调用 ps、执行 native reader 或启动 Ghidra。整个正常 ownership 生命周期另包含全系统 `ps -axo pid=,ppid=,pgid=,uid=,stat=,command=`，以及 native reader 的全系统内核身份快照和选定成员 token 检查。因此不得写成“自检已经读取进程表”或“前两次启动错误一定由ps导致”。这个区别只作为标准复审证据，未据此重试。
+
+正常 lifecycle 的读取与清理范围：ps列出系统可见进程元数据，command可能含其他任务私密参数；macOS reader用KERN_PROC_ALL取身份快照，再对所选自有组成员读取KERN_PROCARGS2，仅输出runId/身份/失败原因，不输出其他环境值。清理可请求本次bridge退出，对本次根组/后代组的全部成员验证随机token并在发SIGKILL前复核；Ghidra不启用全系统token sweep，身份不可读/不匹配时停止清理。未改系统设置或权限。精确自检只涉及自有编译子进程的取消、临时/cache写入，没有用户其他进程终止。
+
+用户已要求“需要审批找我”和“完全访问”；主会话统一处理具体复审。本任务没有重复发问，也没有把宽泛授权当作平台拒绝已解除。拒绝文本没有提供用户必能覆盖的机制；授权/低风险证据可交标准审批方决定，当前没有复审通过。禁止移除guard、伪造token、换ps/sysctl查询或换执行器继续同等动作。
+
+后续深度1/最多4函数及最多2调用点均未启动，不能记为“空图”“目标已解析”或通过。预定参数及坐标仅是待成功inspect和审批阻塞解决后的限定计划：
+
+```text
+trace-native-values <固定目标> 0x4ac2b0 --provider ghidra --max-depth 1 --max-functions 4 --max-call-sites 64 --max-nodes 1000 --max-edges 2000 --limit 1000 --json
+resolve-native-call-targets <固定目标> 0x4ac338 --provider ghidra --json
+resolve-native-call-targets <固定目标> 0x5fc139 --provider ghidra --json
+```
+
+这些坐标来自既有报告，`max-call-sites 64` 是图内资源上限，独立解析仍仅两个指定站点；任何输出都须标明缺覆盖、置信度与截断，不能由静态推测升级为原调用ABI或行为等价。
+
+## 对当前原版接线的实际影响
+
+| 环节 | 目前能据证说什么 | 仍缺什么 |
 |---|---|---|
-| 原启动、菜单、地图载入 | 当前 App 零参数启动进入自写 CitySimulation；未见完整原主菜单/地图消费者证据 | 原启动到调度入口的完整连接未知；本轮没有分析入口点或原资源 |
-| 调度到选定切片 | 历史报告给调度入口 `0x4ac2b0`，tid1自然CALL `0x4ac338`→`0x4aeeb0`→返回 `0x4ac33d`，限定Watch实际7→8、无wrap、真实栈 | 这是phase8切片合同，不是完整城市tick。原参考batch A触及前缀像素预算，B/C未开始；较晚控制器新增原执行仍为0，没有合格自然活动输入 |
-| 切片消费者与绑定 | 自写 native_driver 导入私有内存→四线程→heap/锁/API站点→返回/条件目标表→入口/完成栈守卫→调用 s82_entry→完成后诊断/清理/退出 | 当前入口、completion、return bindings/count及structural bindings尚未解析；一次性驱动没有已验证的外层原城市连续调度消费者，App未链接它 |
-| 平台 dispatch | platform_native仅有限Heap/TLS/LastError/线程ID、三项单线程临界区及memcpy/memmove/memset；未知API明确停止 | 选定集合仍列20项Win32边界、20处未知非IAT调用；动态receiver、注册/释放、callee ABI、SEH展开、真实锁wait/wake和完整恢复欠缺。静态表成员不授权任意对象上的调用 |
-| graphics | 自造RGB555/565/BGRA、stride/裁剪/缩放/重叠/生命周期有CPU及离屏Metal证据 | 原DirectDraw消费链、色键/ROP/混合、表面失效及drawable/vblank等没有完整原画面证明；旧移位与当前补位扩展不同。GPU读回不证明游戏通过 |
-| audio | 离线S16队列/循环/格式拒绝/fake设备恢复；旧自造AudioUnit报告仅有限系统回调证据 | 原Miles等API、触发/混音/时钟、真实输出与设备恢复未闭合；队列0遍循环含义及格式必须按具体合同，离线PCM不能当听觉验证 |
-| video | 自造MOV的Reader/PTS/seek/epoch/取消等局部证据；旧Bink适配仅缺输入/缺factory明确失败 | 有效原Bink、DLL ABI、双缓冲/EOB/sound-open及原消费者无通过证据。最新通用媒体集成在自造MOV `writer start failed`，不能说整体通过 |
+| 原入口到调度 | 新PE入口元数据已定；原运行链仅有历史坐标 | 入口到 `0x4ac2b0` 的静态/自然运行连接、启动/原菜单/地图消费者未知 |
+| 调度及phase8 | 历史 tid1 CALL `0x4ac338`→`0x4aeeb0`→返回 `0x4ac33d`；限定Watch7→8、无wrap/真实栈的切片合同 | phase8不是完整tick。Stage83 batch A碰前缀像素预算，B/C未开始；较晚controller新增原执行为0，无合格自然活动输入 |
+| 切片消费者及绑定 | 自写驱动导入memory/threads/heap/锁/API/目标表并检查入口/完成栈后调用入口，完成后诊断/清理/退出 | 当前 `_s82_entry`、`_s82_completion`、返回表/count和structural bindings仍未解析；App未链接原消费者、timer仍是自写CitySimulation；一次性驱动不证明连续原调度 |
+| 动态callback | 历史 worker4 `0x5fc139`，ECX来自ESI对象、整数1、返回 `0x5fc13b`；初始槽为NULL | 初始NULL不是恒空；工厂/注册/释放、目标身份、栈清理/flags/x87及生命周期均未补上。这次没有新调用点结果 |
+| 平台及状态 | 当前有限15项dispatch，heap/TLS/LastError/线程ID、三种有限锁与memops；未知明确失败 | 旧选定集合20项Win32边界、20个非IAT目标、SEH/wait/wake/运行后冷恢复仍缺。新导入表扩大的是声明依赖视野，不证明这些接口已调用或通过 |
+| graphics | 自造RGB555/565/BGRA的stride、裁剪、缩放、重叠及生命周期已有限定CPU/离屏Metal证据 | DirectDrawCreate到原接口消费者未连通；旧移位最大248/252与当前补位255不同。GPU读回不等于原画面或全游戏通过 |
+| audio | 自造S16队列/循环、格式拒绝和fake设备恢复有离线证据，历史AudioUnit仅有限回调证据 | 54个Miles导入的合同/触发/混音/clock、真实输出与设备恢复未闭合；离线PCM不能当听觉验证，fake恢复不能当物理设备通过 |
+| video | 自造MOV reader/PTS/seek/epoch/取消有局部证据；旧Bink仅无输入/无factory的失败证据 | 14个Bink导入与Miles音轨连接未实现/未验；自造MOV的最新集成仍 `writer start failed`，不证明原Bink播放、EOB或双缓冲通过 |
 
-接口、20项API及heap/回调/线程细节见 [原版完整tick接线审计](ORIGINAL_TICK_WIRING_AUDIT.md)，模块差距见 [完整原版差距](ORIGINAL_GAME_GAP_AUDIT.md)，媒体验证时点见 [PLATFORM_AUDIT](PLATFORM_AUDIT.md) 和 [RGB555_BOUNDARIES](RGB555_BOUNDARIES.md)。旧203函数为选定构建集合，Stage82原函数调用为0；Stage73六函数一个固定输入的局部匹配不能扩展为203函数或完整游戏通过。
+旧203函数/7346条静态指令/20089字节属选定构建证据，旧Stage82原函数调用为0。Stage73六函数、一个固定输入的有限匹配不能推广到203函数、原完整tick或游戏。更详细的提供者、API、heap及callback缺口见 [原版tick接线审计](ORIGINAL_TICK_WIRING_AUDIT.md)、[完整原版差距](ORIGINAL_GAME_GAP_AUDIT.md)；媒体验证范围见 [PLATFORM_AUDIT](PLATFORM_AUDIT.md)、[RGB555_BOUNDARIES](RGB555_BOUNDARIES.md)。
 
-## 能继续推进的三个工程任务
+## 现在可独立推进的三个工程任务
 
 | 任务 | 具体通过标准 |
 |---|---|
-| 明确原链提供者与消费者合同 | 启动/完整tick/返回/内存/线程/heap/回调/媒体每项标明来源、版本/ABI、状态owner、真实调用者和缺失符号；phase8与完整tick明确分开。未知项留欠缺，不填空表或成功stub；不读取原EXE即可先完成接口工作 |
-| 修正自写heap提交及恢复格式 | 将权限与fill+copy总预算在提交前统一规划；失败不假称回滚成功；诊断和可重新导入状态分型且版本明确，包含所声明handles/regions/live/CPU/TLS/锁所有权。只用自造状态验证实际适配器，不称原行为等价；原状态续跑仍待原证据 |
-| 完成共享媒体接口的独立验收 | 完全自造图片/PCM/事件验证当前实际消费者：graphics各自像素合同、padding/裁剪/缩放/旧句柄及迟到GPU完成；audio样本/游标/循环、失效不消费、恢复续接、失败无状态污染及事件恰好一次；video先解决自造MOV writer失败，再验seek/epoch/取消/EOF与资源上限。记录限定结果，不转成原画面、听觉、物理设备或Bink通过 |
+| 将新导入依赖落实到提供者/消费者合同 | 启动/完整tick/返回/线程/heap/callback及DDraw/Miles/Bink逐项标来源、版本/ABI、状态owner、实际消费者与缺符号；导入名、静态猜测、历史运行分别标证据级别；未知目标/ABI保持明确失败，不补空表或成功stub |
+| 修正自写heap提交计划与可恢复状态格式 | fill+copy总预算/权限在提交前规划；失败不假称回滚。诊断与可导入快照分型并版本化，明确handles/regions/live及CPU/TLS/锁所有权；完全自造状态覆盖拒绝路径和重导入合同，只记适配器验证，不称原续跑等价 |
+| 验收现有媒体消费者的可声明子集 | 用自造图片逐合同检查555/565舍入、padding/裁剪/缩放、旧句柄与迟到GPU完成；自造PCM/事件核对队列样本/游标/0循环语义、失效不消费、恢复续接及事件恰好一次；先修自造MOV writer失败，再核对seek/epoch/取消/EOF和资源上限。原Miles/Bink、听觉/物理设备、原画面分别留待专门证据 |
 
-## 当前不能执行的部分与真正通过关口
+以上仍可做接口/源码与自造数据工程，不依赖运行原目标或继续被拒动作。本轮未执行这些工程测试，不能记作新通过结果。
 
-此前被拦截的是原二进制转换/指令恢复/探测及原城市执行对照的具体路线；现有报告只保留“possible cybersecurity risk”描述，没有足够原始拒绝信息重建每条命令。本轮没有发生新的此类审批拒绝，也不把旧拒绝扩大为禁止一切原版讨论。更换为 REA 不授权恢复、包装、委托或绕过同一路线；当前不读取原EXE/反汇编/旧Swift/GameData，不调用SR/Unicorn/Wine，不执行原/派生游戏库。
+窗口验收仍有独立的历史AX守卫失败：08:34:33两次助手在 `AXIsProcessTrusted()` 停止且未请求权限；08:29:45 `save panel required` 是另一个条件失败。本轮没有UI/键盘/音频设备操作或权限修改，也不通过REA UI功能绕过该守卫。
 
-Ghidra具备跨宿主PE/x86静态分析能力，与执行Windows游戏不同；本轮没有导入原PE，原目标支持/分析完整性未知。REA原生运行观察主要是Mach-O/LLDB路线，并未提供本次已验证的Windows Emperor执行器。工具安装成功不能消除原消费者、完整tick和对照证据缺口。
+当前不能继续的是已明确被拒的 ownership 自检及同等替代；原二进制转换/指令恢复执行/原城市对照的旧被拒路线同样没有重启。其余静态元数据与文档不受这次动作阻塞。真正完整tick通过仍需自然合格输入、完整阶段/完成边界、来源/ABI一致且实际被调用的消费者/目标、有对应原状态/对象/有序写/事件证据、完整恢复和连续调度/受控退出；工具安装或某个接口局部成功不能代替这些条件。
 
-窗口验收另有历史AX守卫失败：2026-10-11 08:34:33两次助手在 `AXIsProcessTrusted()` 停止，未请求权限；08:29:45的 `save panel required` 是另一个条件失败。本轮没有UI重测或权限修改，不推断全系统/当前GUI均不可用，不借REA UI工具绕过守卫。真实设备听觉/断连恢复也不在本轮范围。
+## 可追溯凭据
 
-真正的完整原tick关口必须同时具备：明确覆盖全部必要阶段的自然输入与完成边界；来源/ABI一致且实际调用的消费者、返回及动态对象目标；对应原状态/对象/有序写/事件证据；未知API明确停止且不伪造成功；完整状态恢复、连续调度与受控退出。之后才验原菜单/画面、战役、原存档和音视频。当前没有满足，不给完成百分比。
+本地任务根目录 `/Users/zoomzhao/Documents/Codex/2026-10-08/task-2`：
 
-本地可追溯证据位于任务目录 `rea-binary-route-20261011/`：源码获取及tar完整性凭据、安装失败/修复/最终锁文件、五项命令stdout/stderr与哈希、冻结接口manifest、结果摘要。原始诊断、依赖树、工具包和二进制不纳入Git；本次只发布此说明，现有工程草稿保持原字节。
+- `rea-binary-route-20261011/`：固定发布来源/integrity、失败/修复/最终安装锁、五项无目标调用、冻结接口manifest及结果摘要；原证据保持原样。
+- `rea-static-gate-20261011/`：input identity、两次inspect的stdout/stderr/status及哈希、PE_METADATA_ONLY结果、ownership源码核对与补充指纹、精确拒绝凭据及 `APPROVAL_SCOPE.zh-CN.md`。后者明确自检与完整生命周期的不同范围，并备有主会话的一次性复审问题草稿，未另发确认。
+
+仅提交此文档更新。原EXE/依赖树/工具包/原始分析输出不入Git，GameData不读取/上传，既有工程草稿与授权接口来源指纹保持原字节。
