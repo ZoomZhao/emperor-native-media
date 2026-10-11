@@ -1,5 +1,5 @@
 {
-  "schema_version": 7,
+  "schema_version": 8,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -473,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-record-unwind-20261011",
+  "latest_source_batch": "rea-static-pool-domain-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -1459,6 +1459,20 @@
       "exit_code": 0,
       "temp_empty": true,
       "official_module_pairs": 18
+    },
+    {
+      "batch": "rea-static-pool-domain-20261011",
+      "operations": 39,
+      "successful_Evidence": 37,
+      "saved_query_errors": 2,
+      "new_address_requests": 14,
+      "elapsed_seconds": 1028.767,
+      "selected_read_bytes": 60,
+      "saved_output_count_bytes": 905552,
+      "session_ok": true,
+      "exit_code": 0,
+      "temp_empty": true,
+      "official_module_pairs": 18
     }
   ],
   "review_corrections_300a5a7": {
@@ -1752,7 +1766,8 @@
       "verified caller parameter order/width/cleanup and AL versus EAX return use",
       "matched setter stores low8, not unconditional disable",
       "preserve normal delete-return-before-slot-zero and unsupported/unknown failures",
-      "for verified full-vector erase normal path: empty source range returnsbegin, setsend=begin, backing retained until subsequent teardown"
+      "for verified full-vector erase normal path: empty source range returnsbegin, setsend=begin, backing retained until subsequent teardown",
+      "separate checked slot size/capacity/index; do not assume default4000 is a load upper bound; preserve wide values before signed16 roundtrip validation"
     ],
     "conditional_only": [
       "a selected method ABI can inform interface declaration; actual object/vptr/allocator binding remains absent",
@@ -1762,9 +1777,107 @@
     "needs_dynamic_or_equally_direct_instance_evidence": [
       "current R/Osrc/Olookup and pool backing identity",
       "later write/call order and actual virtual target",
-      "thread/alias effects, exception paths, final lifetime and natural full tick"
+      "thread/alias effects, exception paths, final lifetime and natural full tick",
+      "loaded object class/vptr and O+b4 association with actual slot; validity/bounds of count32, stream and backing"
     ],
     "must_not_retry": "specifically rejected original execution/conversion actions or safety-guard changes",
     "runtime_binding_created": false
+  },
+  "pool_initialization_and_load_domain": {
+    "owner": "W=0x8c7630;P=W+4=0x8c7634",
+    "wrapper_ctor": "42d110 ECX=W;tailJMP42d140",
+    "wrapper_dtor": "42d130 ECX=W;42d135 decodedJMP42d1e0; not a getter",
+    "default_initialization": "42d140 zeroes P vector through554bc0, reserve4000 via4eedd0, then42d250(W,0,1); selected normal fill loops4000 attempts through426c90 or null and42b590 append",
+    "default_initialized_slot_count_if_all_normal_appends_complete": 4000,
+    "default_valid_positive_slot_indexes_if_actual_count_is4000": "1..3999; within signed16 positive range, not proof of current instance identity",
+    "reserve_is_capacity_not_size_or_global_maximum": true,
+    "load_count": "42d790 selected load/version branch calls42dc20(S,&N32); helper writes output parameter and returns S, not count inEAX",
+    "load_loop": "signed N>0 reconstructs N slots through42d0e0 then42b590; nonzero object state calls computed+c0(0)",
+    "padding": "signed N<4000 fills until counter reaches4000; for0<=N<4000 fills4000-N; negative count not explicitly rejected here and must not use max(N,4000) simplification",
+    "selected_load_body_has_4000_or32767_upper_bound": false,
+    "global_pool_upper_bound_proved": false,
+    "loaded_class_frontier": "42d0e0 passes expected descriptor817890 namedBuilding;77fd90 resolves cached object orclasscallback77bb54, newobject registered then computed+8(S); expectedbase does not bind actualsubclass",
+    "loaded_O_b4_equals_slot_index_proved": false,
+    "selected_child_stream_candidate": "554f00 noProcedure for assembly/references; two saved errors, no fabricated body",
+    "input_file_or_GameData_read_for_load_proof": false,
+    "runtime_binding_created": false,
+    "execution_allowed": false,
+    "provenance": [
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-wrapper-init-assembly.evidence.json",
+        "sha256": "962bb52196cf26004a88f812bae67ca169e48595053af3712735bf7ccd1ba9b5",
+        "evidence_id": "ev_83cac3672bec371901ab8d9a777bb1749a3bfe88784a10542ee6dbdd351c749f"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-wrapper-getter-entry.evidence.json",
+        "sha256": "40431f543a4aa37f74e6f3085a6b35728cc2753eec964e5a47b7b124581ef5c0",
+        "evidence_id": "ev_add8bdd86d4d9c2792bbd37fb7830e4e44fb0b62f27ae3c9131b7e325f97101e"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-wrapper-destructor-tail.evidence.json",
+        "sha256": "d142d7e4f4750df9ea8ab1253138a68d669ec0736b93e90bbbfa1696072cdd37",
+        "evidence_id": "ev_b281d461bb7f5908d2a9706e4bbe253d5cbccc48b5e8528d094c2b24c7931eda"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-wrapper-constructor-assembly.evidence.json",
+        "sha256": "f3ef7cd097e20be0a34a55b77d1fac3a17cd8657f5b64b146029b19d97fcc9b6",
+        "evidence_id": "ev_261c3974ec70b448d84318ee02b0ad80be8a1a639dd0c791e8b330217328e4bd"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-owner-clear-source-assembly.evidence.json",
+        "sha256": "28f35f43c4b667c6d19f2e5975f42e72284226b47cf717eff79629eebe037986",
+        "evidence_id": "ev_d0750178cd8cb9c059f1af3a2576e39c64ac1a6669d660a598bee47356b3ec9c"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-owner-load-source-assembly.evidence.json",
+        "sha256": "812b52090ba65e73c54aea339f7559caa7a68c8a2d772fc7e5553881d4e03f9e",
+        "evidence_id": "ev_4914160d22f83bd5e589e4ea77530c0bb69156625325d5d86241efab074f918e"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-count-read-assembly.evidence.json",
+        "sha256": "5f40ea62c0cdc74a8b6f4d2782b3b96e08777bf48087715ba3ea80ffb960d187",
+        "evidence_id": "ev_5830a71248baa1b52ada7b6e4882907ce60c82c28bd1fe2c28c107d4124d28c2"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-object-loader-assembly.evidence.json",
+        "sha256": "61031c2f68ad8794c151a9bf0f04a79b3f109c8cfe0ed75c47ebec933f7d4de1",
+        "evidence_id": "ev_1cee5e6367da5197b598a8c77e7c46b3288e43d90de41b0ad07ff078d4cec7f6"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/stream-object-reconstruct-assembly.evidence.json",
+        "sha256": "82460637581016a7d04b1add3e9436b6fca9f34073f7777823a045bc1033f0b3",
+        "evidence_id": "ev_1fd304716ab231f3cb4254d30f2d748af85deb8789af123cf3a4bd6e964723f4"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/stream-runtime-class-constructor-assembly.evidence.json",
+        "sha256": "10c006d0337f282e9d16cd0179c9f3578c997a43187debf15a6c8aa496788da1",
+        "evidence_id": "ev_c2758cb5535491a2a706681992291b2937edf430e0d0cc9fa0eea25bb3efff80"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-reserve-assembly.evidence.json",
+        "sha256": "dffbd53a0e12ba9c1c4e9f627434e8cd827f90784ab2d4bf78f00d3bda23cc5c",
+        "evidence_id": "ev_4e28452979b09b4c725526d4a51f9e01b7ba72324700f19d69709347f54ece3e"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-vector-capacity-assembly.evidence.json",
+        "sha256": "3e4e48e084583400341cd0125b13877d732eb7b6ff23150ec7b1c1229db155bc",
+        "evidence_id": "ev_2b026cb32856e6bf5ae23d09bf446f7770a1686c271aac27102294549a98ee61"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-vector-zero-init-assembly.evidence.json",
+        "sha256": "558d463e73e1f3861137dc931518fe79b8c0f6aa02737e3c4dfd33f21fd92530",
+        "evidence_id": "ev_cbf110677719eb426ab24637b26eb795b39a53882b5d95a1651d975354752d8e"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-expected-class-descriptor-bytes.evidence.json",
+        "sha256": "6890ee499828b4f3f0be94031f695740b4fc6d5f6de335be15427c3da5199a92",
+        "evidence_id": "ev_b8eff61554d66ec155655b1baf0d3af56cdc6ab030a3c17e4b046f7d344a579d"
+      },
+      {
+        "local_evidence_file": "rea-static-pool-domain-20261011/pool-expected-class-name-bytes.evidence.json",
+        "sha256": "b0008826492393d2d0ade658127c41723df21ff0fa1a4d2bf66e89953168d723",
+        "evidence_id": "ev_e5f2633b13e3ff7e63fa0ba3740a65f66e3a49bc8c0d1bd029b28245c97e70eb"
+      }
+    ]
   }
 }
