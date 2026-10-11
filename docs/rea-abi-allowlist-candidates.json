@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -39,14 +39,15 @@
         "Construction vptr candidates do not prove current instance or post-init vptr",
         "Offset word observations do not prove table extent or method membership",
         "Signed16 type equality does not prove full32bit selector identity",
-        "Init normal control flow and nested virtual effects are not yet closed"
+        "Init normal Listing CFG is closed; interprocedural/exception effects and actual binding remain unknown"
       ],
       "execution_allowed": false,
       "construction_candidate_refs": [
         "default",
         "primary",
         "tertiary",
-        "fourth"
+        "fourth",
+        "secondary.selector35.mill"
       ],
       "base_matching_word_candidate": {
         "address": "0x427180",
@@ -105,7 +106,8 @@
         "default",
         "primary",
         "tertiary",
-        "fourth"
+        "fourth",
+        "secondary.selector35.mill"
       ]
     },
     {
@@ -182,7 +184,7 @@
         "Secondary 0x51c660 branch has17 unexpanded returned-function edges",
         "Outer predicate bodies and selector values are not closed",
         "R signed-short ID assignment/eligibility is not sourced",
-        "Post-registration +0x94 word 0x428aa0 is unrecognized as a procedure; body and effects unknown",
+        "Post-registration +0x94 word 0x428aa0 has a decoded normal Listing body but no procedure metadata; nested and exception effects unknown",
         "Final instance vptr, complete table extent and virtual callee ABI are not proved",
         "Pool backing allocation/state/lifetime not sourced"
       ],
@@ -471,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-init-cfg-20261011",
+  "latest_source_batch": "rea-static-init-effects-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -720,6 +722,117 @@
         }
       ],
       "execution_allowed": false
+    },
+    {
+      "id": "secondary.selector35.mill",
+      "RTTI_class_name": "cMillBldg",
+      "constructor": "0x554d40",
+      "construction_vptr": "0x7b72c8",
+      "allocation_bytes": 388,
+      "factory_condition": "literal32 selector35 ->51c660 ->5d3580;543d90=false,5ddaf0=false,418d60=true; normal successful allocation/construction only",
+      "construction_pointer_source_closed": true,
+      "actual_phase8_instance_bound": false,
+      "post_registration_vptr_proved": false,
+      "vtable_extent_verified": false,
+      "extent_inference": {
+        "contiguous_code_pointer_words_before_next_COL": 189,
+        "next_COL_address": "0x7b75bc",
+        "next_component_root": "0x7b75c0",
+        "formal_array_length_metadata": false
+      },
+      "word_observations": {
+        "0x90": {
+          "word_address": "0x7b7358",
+          "word_value": "0x5d47f0",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false,
+          "actual_instance_bound": false,
+          "membership_inferred_from_contiguous_region": true
+        },
+        "0x94": {
+          "word_address": "0x7b735c",
+          "word_value": "0x428aa0",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false,
+          "actual_instance_bound": false,
+          "membership_inferred_from_contiguous_region": true
+        },
+        "0xc8": {
+          "word_address": "0x7b7390",
+          "word_value": "0x5d4770",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": true,
+          "actual_instance_bound": false,
+          "membership_inferred_from_contiguous_region": true
+        },
+        "0x1e8": {
+          "word_address": "0x7b74b0",
+          "word_value": "0x416b50",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false,
+          "actual_instance_bound": false,
+          "membership_inferred_from_contiguous_region": true
+        },
+        "0x264": {
+          "word_address": "0x7b752c",
+          "word_value": "0x5d4a60",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": true,
+          "actual_instance_bound": false,
+          "membership_inferred_from_contiguous_region": true
+        },
+        "0x2cc": {
+          "word_address": "0x7b7594",
+          "word_value": "0x546be0",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false,
+          "actual_instance_bound": false,
+          "membership_inferred_from_contiguous_region": true
+        },
+        "0x2d8": {
+          "word_address": "0x7b75a0",
+          "word_value": "0x546c40",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false,
+          "actual_instance_bound": false,
+          "membership_inferred_from_contiguous_region": true
+        }
+      },
+      "RTTI_locator": "0x7d3d30",
+      "RTTI_type_descriptor": "0x858fa0",
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-selector35-20261011/selector35-constructor-assembly.evidence.json",
+          "evidence_id": "ev_2cf1b84a7c31983c2f182d9f86f6103c3bc93004887668162d8759d61f6b3f65",
+          "sha256": "85b98b65178e3d864c986d33337284d97a4da37d9e5c7fb0de984a5f783a3a05"
+        },
+        {
+          "local_evidence_file": "rea-static-selector35-20261011/selector35-final-table-region.evidence.json",
+          "evidence_id": "ev_a0bc08d57c2cc76d1a2eb5c87775e7c5e005a20f52885d457ff1b8a660e7abe4",
+          "sha256": "3173aebcbabec9d06245581f475243574df6bcbc01c24ffd1e848bccaee136ee"
+        },
+        {
+          "local_evidence_file": "rea-static-selector35-20261011/selector35-final-table-type.evidence.json",
+          "evidence_id": "ev_b632e566f8896f80f02ab17cb55823e40bcb11bb716f31bb99c5d8f946a3055c",
+          "sha256": "d28e7ece620a563ae1a512609feb46779d4a834456c766e4105e879ca3f2a12d"
+        },
+        {
+          "local_evidence_file": "rea-static-storage-contract-20261011/selector35-root-rtti-locator.evidence.json",
+          "evidence_id": "ev_ecb7d3f6b951a6eeaeb79aea03523abdee7c6773be09dd58016c1ae70df44986",
+          "sha256": "d9f9ddfb93c5538b06172cbaedb113729a70c6624de005160a40a5199edbc058"
+        },
+        {
+          "local_evidence_file": "rea-static-storage-contract-20261011/selector35-root-rtti-type.evidence.json",
+          "evidence_id": "ev_098e67af54f8f62612fa9537b58b350e8c6036ec80552babee5163434d5641c2",
+          "sha256": "b8e88ea5f95ed3e2fe185f22470b0c6fba043e5336b81f2684c6e222d36ba74e"
+        },
+        {
+          "local_evidence_file": "rea-static-storage-contract-20261011/selector35-constructor-root-write.evidence.json",
+          "evidence_id": "ev_ea8904590e7fdc4eb8ac1324f986ba8328a689035847ce60068bd4f5bc3f0525",
+          "sha256": "fed7329d38a1fb21f7964f54fe07a809283b67730dbe3a1f025d369bfddbe125"
+        }
+      ],
+      "execution_allowed": false
     }
   ],
   "unexpanded_secondary_factory_return_edges": {
@@ -856,7 +969,7 @@
           "sha256": "e6fa6dc6d75f403cf87f9606673a3f98ca66ce38427d3b0593ede86d1f04d0ef"
         }
       ],
-      "selected_family": "0x51c660 -> 0x5d3580 via AL true0x5d36e0; first5d3580 filter0x543d90 false for0x35; next0x5ddaf0 still unexpanded",
+      "selected_family": "literal32 selector35 ->5d3580 ->third418d60 true ->554d40 ->7b72c8 cMillBldg, conditional construction source",
       "family_provenance": [
         {
           "local_evidence_file": "rea-static-init-cfg-20261011/secondary-late-filter-c-pseudo.evidence.json",
@@ -877,18 +990,103 @@
           "local_evidence_file": "rea-static-init-cfg-20261011/selected-factory-first-filter-assembly.evidence.json",
           "evidence_id": "ev_fce60f5e4ab4de02f5ea539f074ea6d51bf456aecc2bf7042de2a6edf16915bc",
           "sha256": "028a46ac29f4dafbe9ce17eb10250edde728cb42b099755ebc32df96720bf2b5"
+        },
+        {
+          "local_evidence_file": "rea-static-selector35-20261011/selected-family-second-filter-assembly.evidence.json",
+          "evidence_id": "ev_e96a2a72c1b0c3db6e98473ea676f530d08a05546bcfc29156fad91c8917a8b2",
+          "sha256": "8230fc4b3e7b70623d99bd401fa21a34071fc2a363eb93d79bf8150ba7ba043c"
+        },
+        {
+          "local_evidence_file": "rea-static-selector35-20261011/selected-family-third-filter-assembly.evidence.json",
+          "evidence_id": "ev_f702e3bbdb3e19833363e27eb76aec3154b4af4ae340a4989a074477a588525d",
+          "sha256": "5bac4ae77d0dde6333a662d002a6131919531ed8bd9cf7fc6855f9aa9b6027f2"
+        },
+        {
+          "local_evidence_file": "rea-static-selector35-20261011/selector35-constructor-assembly.evidence.json",
+          "evidence_id": "ev_2cf1b84a7c31983c2f182d9f86f6103c3bc93004887668162d8759d61f6b3f65",
+          "sha256": "85b98b65178e3d864c986d33337284d97a4da37d9e5c7fb0de984a5f783a3a05"
         }
-      ]
+      ],
+      "literal_selector_constructor_branch_closed": true,
+      "actual_instance_bound": false
     },
     "next_static_edges": [
-      "0x5ddaf0 and selected5ddb10 construction for literal32bit selector35",
-      "if second filterfalse,0x418d60 ->0x554d40/0x5d61e0; no business inference",
-      "selected class vptr extent and phase8 +c8/+264 ABI",
-      "initializer virtual90 ->virtual150 and industrial virtual1fc side effects",
-      "direct initializer helper contracts0x4baee0/0x5e1720/0x4b8200/0x5dd940",
-      "R-ID/enable, later type/vptr writes and actual instance selection"
+      "later O type/vptr writes and signed16 truncation aliases",
+      "remaining init direct/virtual effects, alias effects and exceptions",
+      "record load indirect methods and bytes; final live R/ID/O relation",
+      "worker current J, nonzero J+24 writer, callbacks and allocator mode/heap provenance"
     ],
-    "all_runtime_bindings_disabled": true
+    "all_runtime_bindings_disabled": true,
+    "selected_phase8_method_contracts": {
+      "predicate": {
+        "address": "0x5d4770",
+        "receiver": "ECX O",
+        "argument_bits": 32,
+        "return_used": "AL",
+        "callee_pop_bytes": 4,
+        "behavior": "base427180 signed16(O+14)==arg, or arg==-7; arg35 still requires signed16 equality",
+        "actual_instance_bound": false,
+        "provenance": [
+          {
+            "local_evidence_file": "rea-static-selector35-20261011/selected-predicate-override-assembly.evidence.json",
+            "evidence_id": "ev_07540b0a4293b6c6254f8802d6d38f46b73d666e5b0273f796a81cb3c65bca7e",
+            "sha256": "766697e512af54fb2c9a58431f10cab1015df2e318c18836f01ba032b58fd250"
+          }
+        ]
+      },
+      "aggregate": {
+        "address": "0x5d4a60",
+        "receiver": "ECX O",
+        "argument_bits": 32,
+        "return": "EAX32 sum modulo2^32",
+        "callee_pop_bytes": 4,
+        "record_stride_bytes": 16,
+        "call_order": [
+          "virtual+2cc()",
+          "virtual+2d8(0)",
+          "signed count test",
+          "record filters and sum"
+        ],
+        "record_fields": {
+          "4": "32bit category",
+          "8": "32bit value"
+        },
+        "caller_two_calls_preserved": true,
+        "actual_instance_bound": false,
+        "provenance": [
+          {
+            "local_evidence_file": "rea-static-selector35-20261011/selected-aggregate-method-assembly.evidence.json",
+            "evidence_id": "ev_ed09437f363979fdf0fa7ddc68c08920232060f09f730c7a49d00fcc1f269caa",
+            "sha256": "0d02c8742f13eaf863313f4c97906f1cd097d31aedfd7bcd0ae2b5baea17ded9"
+          },
+          {
+            "local_evidence_file": "rea-static-storage-contract-20261011/selected-aggregate-count-source-assembly.evidence.json",
+            "evidence_id": "ev_2fa44f7408b7f7e608ef9865699e1de0a689ba6cb881e36ac2f038610bd33a8e",
+            "sha256": "942dbb470ad33f92f40467a7a0b8bc2b4d6c4191258c2600bc9e0ac5da44236a"
+          },
+          {
+            "local_evidence_file": "rea-static-storage-contract-20261011/selected-component-count-method-assembly.evidence.json",
+            "evidence_id": "ev_db3cfb0e6b4dfa37e3dfb1e835e06454fcd5db4cb819227bf966bb76e98c6ea1",
+            "sha256": "7b03dfe2b9a32c2d8b626c315e8159f87a793561beffdacbd5f5c546f08a0f03"
+          },
+          {
+            "local_evidence_file": "rea-static-storage-contract-20261011/selected-record-filter-a-assembly.evidence.json",
+            "evidence_id": "ev_3bfdf27ca335427f1bc3454ca8154f911c3516c0015efcdbfc19addc1f746c8a",
+            "sha256": "cdbc4fc0cbccce0f8020645b3de8abe3c5c974cf180ab2f85a53d26176c32e1c"
+          },
+          {
+            "local_evidence_file": "rea-static-storage-contract-20261011/selected-record-filter-b-assembly.evidence.json",
+            "evidence_id": "ev_74f624901333ca5f88a4c60e6beef85c82efc3bdb2c6dcd13483edaacdfcf553",
+            "sha256": "6793e651d44eef72963752a53917b9d219155cf056bba9bfc64dace5feec0599"
+          },
+          {
+            "local_evidence_file": "rea-static-storage-contract-20261011/shared-end-field-accessor-assembly.evidence.json",
+            "evidence_id": "ev_8664280034fd57632f76f5bed665324d27a0b4adb06ef45e9c496828612aef5a",
+            "sha256": "14d6be3ce6d4e70e60722d0894b9d164f4318d50fbd3ea3d58ac9dc1333edbe7"
+          }
+        ]
+      }
+    }
   },
   "orphan_leaf_candidate": {
     "entry": "0x416b50",
@@ -914,5 +1112,314 @@
         "sha256": "599e42b7a11d41bfe883fa07429f41260b7f24fae698952dec2b084b3f906110"
       }
     ]
-  }
+  },
+  "record_link_contract": {
+    "source": "0x5451a0 conditional ->4afe60 ->506610 receiver10bc910",
+    "input": "32bit O+b4 pool index; same input sent to47f1b0 receiver8c7634 and506610",
+    "writes": "record+8 low16(input), record+c=1 after506920 reset; reuse or allocation branch",
+    "return": "32bit record vector index ->O+62 low16; original O virtual+d4(recordIndex)",
+    "full_index_roundtrip_proved": false,
+    "later_record_writes_excluded": false,
+    "runtime_instance_bound": false,
+    "provenance": [
+      {
+        "local_evidence_file": "rea-static-record-link-20261011/record-link-source-assembly.evidence.json",
+        "evidence_id": "ev_4434090a3965832137f540fad02b028f2f4eac097814257025ca276a70d0861f",
+        "sha256": "2f28163eec8e7fd80f6c76b64bfae575492f8e8a2b5f79ca7540f5c5428b464a"
+      },
+      {
+        "local_evidence_file": "rea-static-record-link-20261011/record-link-caller-assembly.evidence.json",
+        "evidence_id": "ev_a7e54df1cd9ec92e5d7b5105bcf80df6e093678c48da8ce106ad1f921bd26265",
+        "sha256": "5791a1e4ec2d04809c1586397309305cfe2e0ed58f93c1ff0e44b789952c27c7"
+      },
+      {
+        "local_evidence_file": "rea-static-record-link-20261011/record-receiver-source-assembly.evidence.json",
+        "evidence_id": "ev_b60e4397d4f6b4796e004ebe64c0cf54ac5bc3d24a71cb398f5bf6bca8818e91",
+        "sha256": "c563ca654a93b2cd0139da58ab98092b722248a2cde9b1f3d4f224e2de289a43"
+      },
+      {
+        "local_evidence_file": "rea-static-record-link-20261011/record-refresh-source-assembly.evidence.json",
+        "evidence_id": "ev_d00b84b10f7944a5b5365ea90f6a06d10a6ab8830c94e55dbff30a79eff83031",
+        "sha256": "9cce99b3be56d67a8dcd95d586b423cd005bf932ac24b1fb06a47cef088c65ad"
+      },
+      {
+        "local_evidence_file": "rea-static-record-link-20261011/record-repopulate-source-assembly.evidence.json",
+        "evidence_id": "ev_4ebb456c672b000ee8d0972ba1f661ef99592ab46adfb4e25c51e0ec78832741",
+        "sha256": "86e94aef120f4fe2c10d2967cea4ec48dcc9f027c63860ec457bc04bedcb89e0"
+      }
+    ]
+  },
+  "init_pointer_registration_contract": {
+    "source": "5d47f0 prepushO ->5d2b60 returnsGaddress1e4ee30 ->5d7960 receiverG",
+    "element_bytes": 4,
+    "scope": "selected insertion existing/new fill and525890->5258d0->42b5b0 placement chain copies raw pointer; no object retain on this local chain",
+    "ownership_or_complete_lifetime_proved": false,
+    "provenance": [
+      {
+        "local_evidence_file": "rea-static-selector35-20261011/selected-initializer-virtual90-assembly.evidence.json",
+        "evidence_id": "ev_e14397e9972aee964ed43ad334451a82501a3c3bbd3579410aa972c7a14bc68e",
+        "sha256": "51509658c920e195456046ff8bb6dd59fc9a5103823a7b26076506009b32147a"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/selected-init-nested-a-assembly.evidence.json",
+        "evidence_id": "ev_1d106af2eab3daf64cb63585e41de18584b6bf7010fec16b0bc7cee94786dd86",
+        "sha256": "b76e8b0844dd1f7b3f9c24121d89b365bf8e020eeb7e7692df76fae46d0c0eba"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/selected-init-nested-b-assembly.evidence.json",
+        "evidence_id": "ev_5d70fcde9593e4742e2045353ba9de8af063c5aa740d40e15d31d53b2b83d1fb",
+        "sha256": "45f36143bbd955427e0c1cc62b9d42e38cb2875b9e0e2338deca1db4a396abac"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/selected-init-reference-helper-assembly.evidence.json",
+        "evidence_id": "ev_abe1fdffd8c131afe22c2a8ed8400f5a5579a3adf1dbd91a39798afb6fff0e6f",
+        "sha256": "bf1cc723e2c55e1ffb1c560026fe6ae205eb8d40bbfffa33d26cc9e01a949573"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/global-registration-insert-assembly.evidence.json",
+        "evidence_id": "ev_7ccae774ee23e1c1281945acabcff1bbe052b407fb7f844a17e01e6880de1e71",
+        "sha256": "a33eda1217437c74ca08a3f3cf4a8ce54189bd53fb6505d5d2a5c7fc5eb852fb"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/init-assign-helper-assembly.evidence.json",
+        "evidence_id": "ev_d2db8522946a7f468cd7aa4196a60207df6d4157404ba6cb8533e82f628171dd",
+        "sha256": "486a7278313b15d07164b478583a90f8b58e29f19cac0bdd083e23e6a931f357"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/global-register-fill-existing-assembly.evidence.json",
+        "evidence_id": "ev_2f5c47c1ee8673996ac17a1fdfaf286a2cf9985a214ca0e495b52450fb33ad09",
+        "sha256": "518d6e526d4672b5240e4661e46808edc3e15e9042cf2952a210f7b6a43df370"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/global-register-fill-new-assembly.evidence.json",
+        "evidence_id": "ev_d6327d37e01497b784090c63640e170d7d58f323b0b2b3e4fb69004732faa40b",
+        "sha256": "1b4e5f2faa83d6d503a732c7f06bab24dc381fb7ae69797b26aa89fc03295ced"
+      },
+      {
+        "local_evidence_file": "rea-static-record-link-20261011/global-registration-pointer-copy-assembly.evidence.json",
+        "evidence_id": "ev_3b3d30b3774df5752a959a7b0dd3914bf5f928bb6efeb8544ed819c8cef55e95",
+        "sha256": "24b2a583b66fe9e5bcbfc7ea081e8e1f2a7799673e78a186bfb601c19bcb435e"
+      },
+      {
+        "local_evidence_file": "rea-static-record-link-20261011/pointer-copy-leaf-assembly.evidence.json",
+        "evidence_id": "ev_d258b2df641dcbf034c5726a4865b49db27e96ca290cbfbda8c5d8241c85be48",
+        "sha256": "eafcee9cff9891ef8fdcbbeeda4651a48ce22095a57ce4872e142e42db140f72"
+      },
+      {
+        "local_evidence_file": "rea-static-record-link-20261011/registration-placement-assembly.evidence.json",
+        "evidence_id": "ev_b605e352c8fd147df3f4f970c77ec8e4a9ba600abf93e120611dd231826feaad",
+        "sha256": "6c7509c199a555ea229f34757fbb5167aa51714c2c697c43610fc1ae28fd58a2"
+      }
+    ]
+  },
+  "selected_component_contract": {
+    "root": "0x7b75c0",
+    "RTTI": "cMillInfo",
+    "first_target": "0x4e1d00",
+    "selected_constructed_count": 8,
+    "all_live_components_proved": false,
+    "provenance": [
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/constructor-component-table.evidence.json",
+        "evidence_id": "ev_4b4cccb333707d10345b21b1abab9bd029719d7230333addb03d873a406cd90c",
+        "sha256": "7cdd836fc1af3c1bb4dae98e4207cdc6197f16b74fe7b9970f9b68cfc0fc2d51"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/selected-next-root-rtti-locator.evidence.json",
+        "evidence_id": "ev_8ebe50c25a2e0547e6626fa33cc7b4b4cc2c2d9e1a88eb0d52df3121d32d3451",
+        "sha256": "981ac59dd3436e7322dc610dc29638a69468ce78f24824d862b8a9c82745371f"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/selected-next-root-rtti-type.evidence.json",
+        "evidence_id": "ev_88aa46e59e8e6f41dfe40919b9b304e2ceb9c4c4e5fbbec70f851cc02f29db53",
+        "sha256": "1eb6181d656265e7c22c64d0f2b57ebde4041da95b34eab6b3d7274baedc9155"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/selected-component-count-method-assembly.evidence.json",
+        "evidence_id": "ev_db3cfb0e6b4dfa37e3dfb1e835e06454fcd5db4cb819227bf966bb76e98c6ea1",
+        "sha256": "7b03dfe2b9a32c2d8b626c315e8159f87a793561beffdacbd5f5c546f08a0f03"
+      }
+    ]
+  },
+  "initializer_direct_helper_contracts": {
+    "scope": "selected normal bodies and416bb0 direct dependency; no full initializer/alias/exception closure",
+    "helpers": [
+      {
+        "address": "0x4baee0",
+        "stack_argument_bits": [
+          32,
+          32,
+          32
+        ],
+        "callee_pop_bytes": 0,
+        "caller_cleanup_bytes": 12,
+        "normal_result": "EAX0 or1 used as AL; reads static tables/global arrays, no explicit nonstack store",
+        "provenance": [
+          {
+            "local_evidence_file": "rea-static-init-effects-20261011/init-direct-a-assembly.evidence.json",
+            "evidence_id": "ev_b03253d3666084d68a99a6cf9e8facdd15edbb58b169c3b59d7127ecb4ff7646",
+            "sha256": "746e0e2078829220f05b92aa4cb70541639f340ec0dd214873f305ebf50ae92c"
+          },
+          {
+            "local_evidence_file": "rea-static-init-effects-20261011/init-direct-a-references.evidence.json",
+            "evidence_id": "ev_3574001e638108aa903d4ba57f62977a540b6342e5b3dfc2bbf8be95f010c4bb",
+            "sha256": "c92327ae92288e776958098e8b92ae695df0698fbc4d8243fefc89e82c7b4b66"
+          }
+        ]
+      },
+      {
+        "address": "0x4b8200",
+        "stack_argument_bits": [
+          32,
+          32,
+          32,
+          32
+        ],
+        "callee_pop_bytes": 0,
+        "normal_result": "EAX32 including literal0x3e7 path; caller next consumes global1c500 rather than that EAX",
+        "explicit_global_writes": [
+          "0x101c500",
+          "0x101c504"
+        ],
+        "direct_call_target": "0x416bb0",
+        "dependency_reads_only_on_selected_normal_body": true,
+        "provenance": [
+          {
+            "local_evidence_file": "rea-static-init-effects-20261011/init-direct-b-assembly.evidence.json",
+            "evidence_id": "ev_52440e0204a9401fb6496c2406d84319075138013916627b11c5ec58e42f330e",
+            "sha256": "5617676e12d9a5fc2b2ed5ef31a02db1c9b48fe2b7567b24345005288c1331e7"
+          },
+          {
+            "local_evidence_file": "rea-static-init-effects-20261011/init-direct-b-references.evidence.json",
+            "evidence_id": "ev_77cefa349e42464946e6c51c4c5b938f513f264887ba6c297bce28cef3e56126",
+            "sha256": "d0f88407b4651cd5299ea2eb647458cab9215b2a2b4fe2f7fbd53179eee876ce"
+          },
+          {
+            "local_evidence_file": "rea-static-init-effects-20261011/init-direct-b-dependency-assembly.evidence.json",
+            "evidence_id": "ev_9677ba4bb555a0aa089f2d0f5ab75ec3d4b278a1d784d732ea53cd85d6a8248b",
+            "sha256": "10497fc2dade49734bbbe43dd1f5e4c84683aae2e64801dd87c8d73d1421f1a2"
+          },
+          {
+            "local_evidence_file": "rea-static-init-effects-20261011/init-direct-b-dependency-references.evidence.json",
+            "evidence_id": "ev_c428bf2dcc41715d5203c48a4a7e3451c56446f2cf8b1707719ac24d2827885e",
+            "sha256": "75e1cbcf0809813daf3872da2d83b5f21ca02dcaa6a1d5285e1d9523e9609e1e"
+          }
+        ]
+      },
+      {
+        "address": "0x5dd940",
+        "stack_argument_bits": [
+          32,
+          32
+        ],
+        "callee_pop_bytes": 0,
+        "normal_result": "EDX:EAX two32bit bitpatterns selected from128byte local stack table; caller adds AX/DX toO+a/O+c",
+        "index_bounds_proved": false,
+        "explicit_nonstack_writes": false,
+        "provenance": [
+          {
+            "local_evidence_file": "rea-static-init-effects-20261011/init-direct-c-assembly.evidence.json",
+            "evidence_id": "ev_b130d6e55913fa5c9a7eb3ffac310f73f952193d98b24c0b7b6a86525ddc5e7c",
+            "sha256": "6ec25a8060ce9d8ab72f319e5e69199ff49758f2a15371dc740cb05cb5943926"
+          },
+          {
+            "local_evidence_file": "rea-static-init-effects-20261011/init-direct-c-references.evidence.json",
+            "evidence_id": "ev_c28b97cc592b7619df039d83a97442c8d3993520faffd4b5b02a5db2afc4acc4",
+            "sha256": "0b07cf83790ef9c5eec777d15cef9ade546eaaaf7a90340129bf657846b238b2"
+          }
+        ]
+      },
+      {
+        "address": "0x5e1720",
+        "stack_argument_bits": [
+          32
+        ],
+        "callee_pop_bytes": 0,
+        "normal_result": "EAX0/1 equality to0x38; caller passes signed16 O+14 expanded32",
+        "provenance": [
+          {
+            "local_evidence_file": "rea-static-init-effects-20261011/init-direct-prior-assembly.evidence.json",
+            "evidence_id": "ev_0f17f472055e8e64206c8cf7da53a19769143771c9fc63dc09aba200682534cc",
+            "sha256": "ee02f3ba142f4ceffdfc6a514863c59e36666c473f22dd394c11a87436aecc18"
+          },
+          {
+            "local_evidence_file": "rea-static-init-effects-20261011/init-direct-prior-references.evidence.json",
+            "evidence_id": "ev_427f88e450f54639cfaad6533f6a4f1e51c67bd52bc4e13f60efdd3e84a58013",
+            "sha256": "d96eb5ac35db3679433add7f206d7edc05e5b1c67bedd289fbdda06b048e60eb"
+          }
+        ]
+      }
+    ],
+    "combined_caller_cleanup": "428be2 ADD ESP,0x18 clears four4b8200 args plus two5dd940 args",
+    "runtime_bound": false,
+    "execution_allowed": false
+  },
+  "batch_outcomes": [
+    {
+      "batch": "rea-static-selector35-20261011",
+      "session_ok": false,
+      "exit_code": 1,
+      "elapsed_seconds": 561.44,
+      "operations": 42,
+      "saved_Evidence": 39,
+      "saved_query_errors": 3,
+      "new_address_requests": 13,
+      "selected_read_bytes": 1024,
+      "saved_output_count_bytes": 524091,
+      "error": {
+        "name": "Error",
+        "message": "Invalid or duplicate read-only operation"
+      },
+      "normal_cleanup_empty_temp": true,
+      "selected_official_module_pairs": 18
+    },
+    {
+      "batch": "rea-static-storage-contract-20261011",
+      "session_ok": false,
+      "exit_code": 1,
+      "elapsed_seconds": 1171.469,
+      "operations": 77,
+      "saved_Evidence": 74,
+      "saved_query_errors": 3,
+      "new_address_requests": 16,
+      "selected_read_bytes": 568,
+      "saved_output_count_bytes": 710417,
+      "error": {
+        "name": "Error",
+        "message": "1170-second analysis deadline; 30 seconds reserved for cleanup"
+      },
+      "normal_cleanup_empty_temp": true,
+      "selected_official_module_pairs": 18
+    },
+    {
+      "batch": "rea-static-record-link-20261011",
+      "session_ok": true,
+      "exit_code": 0,
+      "elapsed_seconds": 367.379,
+      "operations": 56,
+      "saved_Evidence": 50,
+      "saved_query_errors": 6,
+      "new_address_requests": 18,
+      "selected_read_bytes": 24,
+      "saved_output_count_bytes": 1038986,
+      "error": null,
+      "normal_cleanup_empty_temp": true,
+      "selected_official_module_pairs": 18
+    },
+    {
+      "batch": "rea-static-init-effects-20261011",
+      "session_ok": true,
+      "exit_code": 0,
+      "elapsed_seconds": 318.276,
+      "operations": 15,
+      "saved_Evidence": 15,
+      "saved_query_errors": 0,
+      "new_address_requests": 4,
+      "selected_read_bytes": 0,
+      "saved_output_count_bytes": 616211,
+      "error": null,
+      "normal_cleanup_empty_temp": true,
+      "selected_official_module_pairs": 18
+    }
+  ]
 }

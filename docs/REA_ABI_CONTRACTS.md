@@ -225,7 +225,7 @@ parent清理 `0x60c6d0`、listener构造 `0x610fb0` 及callback `0x60c780` 未�
 
 secondary的前五个选定返回来源已展开；其内部成功构造条件均不含0x35，不能从这些分支得到合法的非空selector35构造。后续第六组filter0x4142e0排除0x35，第七组0x48a7e0仍委托0x48b540，第八组0x5b3af0只匹配0x7c/0x7f。下一静态入口是0x48b540及0x48a800，再按结果追后续谓词/工厂；不把未知predicate的执行结果编成已发生。
 
-另两条secondary构造候选的写表/RTTI已补：`0x51c9a0 → 0x7b65e4` 对应 `cIndustrialBldg`，`0x5da3d0 → 0x7be544` 对应 `cTower`；均不代表selector35已选择它们。选定偏移读数用于下一批定位+0x90候选0x51cad0和+0x1e8候选0x416b50，槽范围和实际消费表仍需确认。四个旧表的+0x264越过近端连续代码指针段，且default/primary紧邻表有各自构造写入xref；这些是归属限制线索，不能据此造完整数组长度或已绑定目标。
+另两条secondary构造候选的写表/RTTI已补：`0x51c9a0 → 0x7b65e4` 对应 `cIndustrialBldg`，`0x5da3d0 → 0x7be544` 对应 `cTower`；均不代表selector35已选择它们。选定偏移读数用于下一批定位+0x90候选0x51cad0和+0x1e8候选0x416b50，槽范围和实际消费表仍需确认。四个旧表的+0x264越过近端连续代码指针段，且default/primary相邻候选表地址存在静态xref，引用指令及构造/写入性质尚未核对；这些是归属限制线索，不能据此造完整数组长度或已绑定目标。
 
 本批20个新增函数请求，94项操作全部保存Evidence；独立地址是2个虚call-site和4个非call入口/写入/返回锚点。586.404秒、exit0，官方正常close，自有临时根为空；读取8968字节选定数据，保存计数1,373,923字节，单项≤8MiB。固定输入身份/SHA、18份选定官方模块成对指纹及受保护草稿/源码未变。自有verified-slots核对ID/subject/profile/内容SHA和选定合同，不能代替独立语义认证。所有运行绑定仍关闭，完整原tick未验证。
 
@@ -242,3 +242,29 @@ secondary前八组selector判断现已补全，0x48b540只匹配0x47/0x4b，排�
 本批20个新地址请求，19个取得procedure视图；0x416b50三项procedure查询错误保留。178项操作保存175份成功Evidence和3份invalid-procedure错误；116个Listing指令地址包含上述114条CFG及2条短候选，独立call-resolver站点为0，不能把全部指令数叫调用点。560.339秒、exit0，正常close后自有临时根为空；192字节显式选定数据读取、1,668,925字节保存计数，单项≤8MiB。固定输入身份/SHA及18份选定官方模块成对相同，草稿/选定源码未变。自有verified-cfg核对保存内容与图，原始输出仅在rea-static-init-cfg-20261011/本地；schema4清单保持运行绑定关闭、实际phase8 targets为空。
 
 已沿确定的工厂前沿启动下一有界静态批次，未在文档处停下。当前实例/vptr、R-ID/enable、后续字段写入、表范围/虚方法ABI和interprocedural影响仍需继续；没有原/派生游戏执行、转换执行、城市动态对照、GameData/旧Swift读取或设备/UI操作，完整原tick仍无通过证据。
+
+## selector35构造来源、记录输入与局部所有权
+
+2026-10-11，基线 `24eadf8edc4ed25185e3b920dff007c7b1fa7f61`。本节更新前述“第二谓词/constructor/记录输入未知”的前沿：固定32位selector35经secondary到0x5d3580；0x543d90与0x5ddaf0均不匹配，第三谓词0x418d60匹配，成功分支分配0x184字节并调用0x554d40。构造首word为0x7b72c8，COL0x7d3d30/type0x858fa0的RTTI为cMillBldg。**这是条件构造来源，当前phase8实例、登记后/后续写入后的vptr、short截断别名仍未证明。** 不解释或移植城市业务规则。
+
+选定表的+0xc8字为0x5d4770，+0x264字为0x5d4a60；连续代码指针段至下个组件COL前推得189个word，是范围推断。数据库只提供pointer数据型，没有正式数组长度，不把它写成完整虚表已认证，也不把偏移字登记为运行目标。
+
+| 选定方法 | 已核对的ABI/局部合同 | 限制 |
+| --- | --- | --- |
+| 0x5d4770 | ECX=O，一项32位栈参数，RET4；委托0x427180比较signed16(O+14)，另外接受参数-7；caller只用AL | 参数35仍要求字段比较相等；高位EAX不能当规范化bool |
+| 0x5d4a60 | ECX=O，一项32位category，RET4，返回EAX32累加；先调用+2cc取N，再调用+2d8(0)取记录基址，之后才判断signed N<=0；步长16 | 保留phase8两次调用和顺序；decompiler的unaff_retaddr/void不代表没有参数或结果，跨调用副作用未排除 |
+| 0x546be0 / 0x546c40 | 前者从O+150描述对象尾跳首槽取N，null返回0；后者O+154+16*index、RET4，没有边界检查 | 0x546c40仍无procedure，通过5条Listing闭合局部体；尾跳不增加返回帧 |
+
+构造的4字节描述对象首word0x7b75c0，RTTI为cMillInfo，其首槽0x4e1d00返回8。这里只将8绑定到成功构造出的这个候选组件。记录+4是比较用32位category，+8是累加值；0x4b04f0仅在这两字段均为0时返回1，否则调用0x4b04d0匹配category后由0x4f8200读取+8。保持32位加法位型，不加饱和、不缓存、不合并两次aggregate。
+
+记录输入已定位到条件调用链0x5451a0→0x4afe60→0x506610：0x5451a0测试第六栈参数低字节，成立时传O+b4；0x4afe60用同一32位输入调用P=0x8c7634上的0x47f1b0，取得对象，再以0x506240返回的C=0x10bc910为receiver调用0x506610。后者复用未启用记录或分配/追加新记录，调用0x506920 reset后写record+8=输入低16位、record+c=1，返回32位记录向量索引；caller将索引传给原对象虚槽+d4，并写原O+62低16位。预先压入的索引跨两个无参数helper保留，不能把它误算成helper参数。该链闭合了局部同池输入来源，**不证明低16位经signed扩展仍等于原32位索引、不证明调用已发生，也不排除后续R写入**。0x506710还存在输入路径经记录虚槽+8写入；其caller查询为空不能排除computed调用，输入字节和实际方法仍未知。
+
+初始化+90候选0x5d47f0先调用0x51cad0，再预压O，调用无参数0x5d2b60得到全局向量地址G=0x1e4ee30，ECX=G调用0x5d7960。G的begin/end/capacity在+4/+8/+c，元素4字节；已有槽填充和新增槽525890→5258d0→42b5b0链均复制原指针，没有这条局部链上的object retain。不能把receiver写成O或O+c8，也不能由裸指针复制宣称向量拥有对象或完整生命周期已安全。
+
+0x51cad0创建的辅助对象A保存poolIndex于A+14，root0x7b6b3c。初始化虚槽+1fc的0x51cc10是null检查后JMP0x418d90；Ghidra将此JMP投影成call，已按解码opcode保留尾跳。自有首次CFG把它当fallthrough的错误版本保留，第二版明确以外部边为未闭合前沿。A+8槽0x4fa3a0返回3，A+14槽0x526880通过4条Listing确认清零A+18/+1c后RET；A后续虚槽/时间helper和异常影响仍未知。cMillBldg的+4包装器0x554e50先析构、flags低位为1时调用0x40ae70，RET4且EAX返回原指针位型；析构后返回位型不证明对象仍存活，allocator与数组/辅助对象最终释放仍需核对。
+
+三批原始记录仅本地保存：selector批因自有大写label校验失败（exit1），storage批因1170秒截止取消（exit1）；两批正常cleanup后自有临时根均为空，成功保存内容逐项重核，不能称整批通过。record-link批367.379秒、exit0，共56操作/50份Evidence/6份invalid-procedure错误、18个新地址请求、4个Listing锚点、24字节显式数据读。各批固定输入身份前后一致，18份选定官方模块均有相同成对SHA；这不认证全部安装文件。verified-contracts是自有保存内容/合同一致性核对，尚无本增补的独立语义评审。未执行原游戏、衍生游戏或任何原指令，未读GameData/旧Swift、安装下载、操作UI/设备；schema5保持所有execution_allowed=false，实际phase8 targets为空。
+
+随后已完成初始化四个直接helper及一个依赖的下一有界批次：0x4baee0接收三项32位栈参数、RET无立即数，caller清12，读取表/全局数组后返回0或1，没有选定正常体的非栈写入；0x5e1720接收一项32位参数，比较0x38，RET，caller传signed16(O+14)扩展值。0x4b8200接收四项32位参数、RET，显式改写全局dword 0x101c500/0x101c504，其全部选定CALL只指向0x416bb0，后者读取0x890210指针表和对象byte+18、返回0或1。0x5dd940接收两项32位参数，在128字节局部栈表中索引得到EDX:EAX两个32位位型，RET；caller使用AX/DX加到O+a/O+c。索引边界尚未证明，不把它称ABI意义的单一64位值。0x428be2的ADD ESP,0x18一次清掉前后两个callee共6项参数，不能把它当后一callee单独清栈。该批318.276秒exit0、15操作/15份Evidence、4新地址请求、无查询错误，输入和18份选定官方模块成对一致、临时根为空；只补局部ABI/显式副作用，不恢复业务语义。完整初始化的动态callee/别名/异常影响仍缺。
+
+还可继续核对后来type/vptr写入、记录输入虚方法、worker当前J与J+24非零写入、回调/排空/allocator合同。需要运行中实例才能确认的缺项是实际R/ID/O/vptr、队列当前J/对象最终存活及自然完整tick；静态结果不能替代这些值。

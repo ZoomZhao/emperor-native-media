@@ -2,6 +2,8 @@
 
 2026-10-11，扩链基线 `6a5c2475ada69d27f56bdd379703bde2e9236558`。固定原PE的入口已通过七条typed引用/解码CALL连到主循环、调度及phase8；累计30个唯一相关函数、8个关键站点，在共享20分钟预算内714.653秒完成并正常清理。新证据说明phase8的容器/对象/虚表槽、worker的引用释放路径，以及DirectDraw/Miles/Bink的原调用来源。虚表目标及完整原tick仍未知；目标SHA/身份未变，没有执行原程序。
 
+继续收敛：literal32 selector35的条件构造分支已接到0x554d40→0x7b72c8/cMillBldg，并补+c8/+264候选callee ABI、描述组件数量8、裸指针登记、R-ID/enable同池输入链及初始化直接helper的局部ABI/显式副作用。signed16截断、后续写入、完整表范围及实际实例仍未知；[最新来源与记录合同](REA_ABI_CONTRACTS.md#selector35构造来源记录输入与局部所有权)区分已保存静态证据和动态缺项。schema5的执行/运行绑定继续关闭；两次未完整批次的错误/超时明确保留。
+
 最新 [phase8/worker ABI合同附录](REA_ABI_CONTRACTS.md) 补全索引布局、AsyncOp候选首槽的清栈/flags/返回和队列入引用路径，并修正worker上游零参数的分支条件。该轮新增20个函数、6个调用站点和3个上下文指令锚点，802.024秒；实际对象表、真实释放及完整tick仍未知。此前30函数/8站点/714.653秒是主路线轮次，未与ABI轮次混计。
 
 后续构造/注册批次补出 `0x42d540@0x42d723` 的登记槽写入，以及WONAPICore owner→内嵌队列→全局注册；节点copy/release与条件allocator路径已补清。详见 [ABI文末收敛结果](REA_ABI_CONTRACTS.md#构造注册链收敛已找到写入者实例目标仍未知) 和 [allowlist候选清单](rea-abi-allowlist-candidates.json)。该批25个新增函数、7个调用站点和3个指令锚点，609.909秒；未唯一绑定phase8最终表或worker实际派生类型，静态精确前沿尚未展开，不能称静态已穷尽。
