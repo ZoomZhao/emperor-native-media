@@ -74,7 +74,7 @@ REA 启动限45秒，外层总限60秒；没有提高预算、增加分析seed/e
 | 原先无目标自检的首次审批 | 固定 `diagnose_startup.mjs` 在 CreateProcess 前被拒，未执行；该拒绝凭据保留 |
 | 同一无目标自检的一次标准复审 | 基于新用户授权与macOS分支不调用ps的源码证据，原命令/脚本指纹不变，标准 `require_escalated` 获准并实际执行；Java配置ok，helper准备失败并给出准确Swift/SDK冲突。脚本exit0仅说明保存诊断完成，不能称helper通过 |
 | 配对已有SDK后的 `inspect final`，09:54:31 UTC | 子进程使用CLT Swift5.10/SDK14.5；exit1，47.053秒，`provider_timeout`、operation=`list_documents`、timeout_ms=45000。外层60秒未触发 |
-| 同参数有自有日志记录的 `inspect observed`，09:57:49 UTC | exit1，47.790秒，同一45秒provider_timeout。自有ownership manifest的parent_pid匹配本次CLI；保留了PE导入和自动分析阶段日志；没有完成握手或查询结果 |
+| 同参数有自有日志记录的 `inspect observed`，09:57:50 UTC | exit1，47.790秒，同一45秒provider_timeout。自有ownership manifest的parent_pid匹配本次CLI；保留了PE导入和自动分析阶段日志；没有完成握手或查询结果 |
 
 最初两次失败记录的target hash均为上述SHA，provider_version=12.1.2，profile_digest=`e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2`。当时stdout只暴露包装错误；新的获准自检才取得明确SDK错误，不能改写旧日志。所有inspect前后目标哈希/身份未变；结束时自有临时根均空，没有报告cleanupIncomplete，不推断全系统残留进程为零。
 
