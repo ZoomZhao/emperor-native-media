@@ -25,6 +25,7 @@ MEDIA = [
     'game_lab/run_boundaries.sh',
 ]
 APP = [
+    'LICENSE', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
     'game_lab/app/main.mm', 'game_lab/app/build.sh', 'game_lab/app/build_provenance.py',
     'game_lab/app/Info.plist', 'game_lab/app/av_audio_backend.hpp', 'game_lab/app/av_audio_backend.mm',
     'game_lab/app_media.hpp', 'game_lab/app_media.cpp',
@@ -44,7 +45,10 @@ APP = [
     'media_demo/device_monitor.hpp',
     'game_lab/run_app_integration.sh',
 ]
-SUITES = {'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
+CITY = ['game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
+        'game_lab/city_simulation_tests.cpp', 'game_lab/emperor_assets.hpp',
+        'game_lab/asset_limits.hpp', 'game_lab/map_geometry.hpp']
+SUITES = {'city': CITY, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
           'movie-async': APP + ['game_lab/movie_session_async_tests.mm'],
           'movie-termination': APP + ['game_lab/movie_termination_tests.mm']}
 
@@ -111,7 +115,8 @@ def run(suite, mode, output):
     report = Path(tempfile.mkdtemp(prefix=suite + '-' + mode + '-', dir=output))
     snapshot = report / 'source'
     records = {}
-    for name in sorted(set(CONTROL + SUITES[suite])):
+    suite_sources = list(SUITES[suite])
+    for name in sorted(set(CONTROL + suite_sources)):
         original = ROOT / name
         if original.is_symlink() or not original.is_file():
             raise RuntimeError('Unreviewed/missing source: ' + name)
@@ -156,7 +161,14 @@ def run(suite, mode, output):
     flags = ['-O2'] if mode == 'release' else ['-O1', '-g', '-fsanitize=undefined', '-fno-sanitize-recover=all']
     try:
         command('compiler-version', ['/usr/bin/clang++', '--version'])
-        if suite == 'data':
+        if suite == 'city':
+            command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
+                                     *flags, '-I', snapshot, snapshot / 'game_lab/city_simulation_tests.cpp',
+                                     '-o', report / 'city-tests'])
+            binaries = {'city-tests': sha(report / 'city-tests')}
+            command('city-test', [report / 'city-tests', report / 'city-fixtures'])
+            results = {'city': read(report / 'city-test.stdout')}
+        elif suite == 'data':
             command('compile-c', ['/usr/bin/clang', '-std=c11', '-Wall', '-Wextra', '-Werror', *flags,
                                  '-I', snapshot / 'runtime_core/include', '-c', snapshot / 'runtime_core/src/heap_native.c', '-o', report / 'heap_native.o'])
             command('compile-cpp', ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror', *flags,
@@ -220,7 +232,7 @@ def run(suite, mode, output):
     except Exception as caught:
         error = str(caught)
     inputs = {}
-    for name in ['fixtures', 'self-root', 'async-fixtures']:
+    for name in ['fixtures', 'self-root', 'async-fixtures', 'city-fixtures']:
         if (report / name).exists():
             for path in (report / name).rglob('*'):
                 key = path.relative_to(report).as_posix()

@@ -6,6 +6,7 @@ import sys
 
 repository = Path(__file__).resolve().parents[2]
 sources = [
+    'LICENSE', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
     'game_lab/app/main.mm', 'game_lab/app/build.sh', 'game_lab/app/build_provenance.py',
     'game_lab/app/Info.plist', 'game_lab/app/av_audio_backend.hpp', 'game_lab/app/av_audio_backend.mm',
     'game_lab/app_media.hpp', 'game_lab/app_media.cpp',
@@ -51,8 +52,9 @@ manifest = {
     'sources_sha256': records,
     'compiled_sources': compiled,
     'binary_sha256_before_signing': sha(bundle/'Contents/MacOS/EmperorApp'),
-    'application_mode': 'resource-browser',
-    'city_model_included': False,
+    'application_mode': 'city-and-media',
+    'city_model_included': True,
+    'city_model_origin': 'self-authored; original rules not compared',
     'external_game_inputs': False,
     'app_executed_by_build': False,
 }

@@ -6,11 +6,11 @@
 #include "image_presentation.hpp"
 #include "app_launch.hpp"
 #include "map_geometry.hpp"
+#include "city_simulation.hpp"
 #include "../stream_lab/movie_io.hpp"
 #include "../scripts/self_fixture_evidence.hpp"
 #include <filesystem>
 #include <fstream>
-#include <iterator>
 #include <chrono>
 #include <limits>
 #include <stdexcept>
@@ -60,20 +60,35 @@ struct Record {
     double gain=0;
     int loops=0, plays=0, pauses=0, stops=0;
     bool playing=false, destroyed=false, allowPlay=true;
+    bool insidePlay=false, destroyedDuringPlay=false;
+    bool emitDuringPlay=false;
+    game_lab::PlaybackEvent playEvent = game_lab::PlaybackEvent::Finished;
     game_lab::PlaybackListener* listener = nullptr;
     uint64_t ticket = 0;
 };
 class FakePlayback final : public game_lab::AudioPlayback {
 public:
     explicit FakePlayback(std::shared_ptr<Record> record) : record_(std::move(record)) {}
-    ~FakePlayback() override { record_->destroyed=true; }
+    ~FakePlayback() override {
+        record_->destroyed=true;
+        record_->destroyedDuringPlay = record_->insidePlay;
+    }
     void setListener(game_lab::PlaybackListener* listener, uint64_t ticket) override {
         record_->listener = listener;
         record_->ticket = ticket;
     }
     void setGain(double n) override { record_->gain=n; }
     void setLoops(int n) override { record_->loops=n; }
-    bool play() override { ++record_->plays; record_->playing=record_->allowPlay; return record_->playing; }
+    bool play() override {
+        ++record_->plays;
+        record_->insidePlay = true;
+        if (record_->emitDuringPlay && record_->listener && record_->ticket) {
+            record_->listener->onPlaybackEvent(record_->ticket, record_->playEvent);
+        }
+        record_->playing=record_->allowPlay;
+        record_->insidePlay = false;
+        return record_->playing;
+    }
     void pause() override { ++record_->pauses; record_->playing=false; }
     void stop() override { ++record_->stops; record_->playing=false; }
     bool playing() const override { return record_->playing; }
@@ -86,11 +101,15 @@ public:
     std::vector<std::shared_ptr<Record>> records;
     size_t calls=0;
     bool failCreate=false, failPlay=false;
+    bool emitDuringPlay=false;
+    game_lab::PlaybackEvent playEvent = game_lab::PlaybackEvent::Finished;
     std::unique_ptr<game_lab::AudioPlayback> create(const std::vector<uint8_t>& bytes) override {
         ++calls;
         self_fixture::bytes("factory-actual-data",bytes);
         if (failCreate) { failCreate=false; return {}; }
         auto r=std::make_shared<Record>(); r->bytes=bytes; r->allowPlay=!failPlay; failPlay=false;
+        r->emitDuringPlay=emitDuringPlay; emitDuringPlay=false;
+        r->playEvent=playEvent;
         records.push_back(r);
         return std::make_unique<FakePlayback>(r);
     }
@@ -419,6 +438,89 @@ void integration() {
         require(music->destroyed && app.status().state == game_lab::PlaybackState::DecodeFailure,
                 "music async decode error retires player and sets failure status");
 
+        // Six synchronous false-return scenarios with terminal state preservation and lifetime:
+        // 1. music-start with DecodeError returning false:
+        factory.emitDuringPlay = true;
+        factory.playEvent = game_lab::PlaybackEvent::DecodeError;
+        factory.failPlay = true;
+        app.selectMusic("Audio/Music/self.wav");
+        auto syncMusicErr = factory.records.back();
+        require(syncMusicErr->destroyed && !syncMusicErr->playing && !app.musicPlaying(),
+                "music-start sync decode error retired player");
+        require(!syncMusicErr->destroyedDuringPlay,
+                "music-start player survived own play callback");
+        require(app.status().state == game_lab::PlaybackState::DecodeFailure,
+                "music-start sync decode error preserved terminal state");
+
+        // 2. music-start with Finished returning false:
+        factory.emitDuringPlay = true;
+        factory.playEvent = game_lab::PlaybackEvent::Finished;
+        factory.failPlay = true;
+        app.selectMusic("Audio/Music/self.wav");
+        auto syncMusicFin = factory.records.back();
+        require(syncMusicFin->destroyed && !syncMusicFin->playing && !app.musicPlaying(),
+                "music-start sync finished retired player");
+        require(!syncMusicFin->destroyedDuringPlay,
+                "music-start player survived own play callback");
+        require(app.status().state == game_lab::PlaybackState::Stopped,
+                "music-start sync finished preserved terminal state");
+
+        // 3. music-resume with DecodeError returning false:
+        app.selectMusic("Audio/Music/self.wav"); // starts normally
+        app.toggleMusic(); // pauses
+        auto syncResumeErr = factory.records.back();
+        syncResumeErr->emitDuringPlay = true;
+        syncResumeErr->playEvent = game_lab::PlaybackEvent::DecodeError;
+        syncResumeErr->allowPlay = false;
+        app.toggleMusic(); // resumes
+        require(syncResumeErr->destroyed && !syncResumeErr->playing && !app.musicPlaying(),
+                "music-resume sync decode error retired player");
+        require(!syncResumeErr->destroyedDuringPlay,
+                "music-resume player survived own play callback");
+        require(app.status().state == game_lab::PlaybackState::DecodeFailure,
+                "music-resume sync decode error preserved terminal state");
+
+        // 4. music-resume with Finished returning false:
+        app.selectMusic("Audio/Music/self.wav"); // starts normally
+        app.toggleMusic(); // pauses
+        auto syncResumeFin = factory.records.back();
+        syncResumeFin->emitDuringPlay = true;
+        syncResumeFin->playEvent = game_lab::PlaybackEvent::Finished;
+        syncResumeFin->allowPlay = false;
+        app.toggleMusic(); // resumes
+        require(syncResumeFin->destroyed && !syncResumeFin->playing && !app.musicPlaying(),
+                "music-resume sync finished retired player");
+        require(!syncResumeFin->destroyedDuringPlay,
+                "music-resume player survived own play callback");
+        require(app.status().state == game_lab::PlaybackState::Stopped,
+                "music-resume sync finished preserved terminal state");
+
+        // 5. sfx-start with DecodeError returning false:
+        factory.emitDuringPlay = true;
+        factory.playEvent = game_lab::PlaybackEvent::DecodeError;
+        factory.failPlay = true;
+        app.playSfx("Audio/Wavs/self.wav");
+        auto syncSfxErr = factory.records.back();
+        require(syncSfxErr->destroyed && !syncSfxErr->playing,
+                "sfx-start sync decode error retired player");
+        require(!syncSfxErr->destroyedDuringPlay,
+                "sfx-start player survived own play callback");
+        require(app.status().state == game_lab::PlaybackState::DecodeFailure,
+                "sfx-start sync decode error preserved terminal state");
+
+        // 6. sfx-start with Finished returning false:
+        factory.emitDuringPlay = true;
+        factory.playEvent = game_lab::PlaybackEvent::Finished;
+        factory.failPlay = true;
+        app.playSfx("Audio/Wavs/self.wav");
+        auto syncSfxFin = factory.records.back();
+        require(syncSfxFin->destroyed && !syncSfxFin->playing,
+                "sfx-start sync finished retired player");
+        require(!syncSfxFin->destroyedDuringPlay,
+                "sfx-start player survived own play callback");
+        require(app.status().state == game_lab::PlaybackState::Stopped,
+                "sfx-start sync finished preserved terminal state");
+
         // AppMedia CityMap loading through ResourceRoot:
         write(files/"Cities/test.map", syntheticMap());
         auto map = app.cityMap("Cities/test.map");
@@ -454,12 +556,15 @@ void integration() {
         const auto movieAbs = files / "Movies/self_authored_8s.mov";
         std::filesystem::create_directories(movieAbs.parent_path());
         stream_lab::writeSyntheticMovie(movieAbs.string());
-        std::ifstream movieInput(movieAbs, std::ios::binary);
-        require(movieInput.is_open(), "generated movie input available for evidence capture");
-        const std::vector<uint8_t> movieBytes((std::istreambuf_iterator<char>(movieInput)),
-                                               std::istreambuf_iterator<char>());
-        require(!movieBytes.empty() && !movieInput.bad(), "generated movie input captured completely");
-        self_fixture::bytes("movie-generated", movieBytes);
+
+        // Capture self-authored MOV fixture bytes into input evidence:
+        {
+            std::ifstream movStream(movieAbs, std::ios::binary);
+            std::vector<uint8_t> movBytes((std::istreambuf_iterator<char>(movStream)),
+                                           std::istreambuf_iterator<char>());
+            require(!movBytes.empty(), "synthetic movie must have non-empty bytes");
+            self_fixture::bytes("app-movie-mov", movBytes);
+        }
 
         auto poster = app.moviePoster(movieRel);
         require(poster.valid() && poster.width == 64 && poster.height == 48,
@@ -738,6 +843,164 @@ void integration() {
         require(!game_lab::mapPointToTile(100.0, 100.0, 560.0, 560.0, -10, tx, ty) && tx == -77 && ty == -88,
                 "Negative dim map rejected");
 
+        // Self-authored CitySimulation Engine Verification:
+        game_lab::CitySimulation sim;
+        require(sim.stats().treasury == 5000 && sim.stats().population == 0 && sim.stats().year == -1046 && sim.stats().month == 1,
+                "CitySimulation initializes default governance stats");
+
+        std::string buildMsg;
+        // 1. Build road
+        require(sim.build(10, 10, game_lab::BuildingType::Road, buildMsg), "Road build succeeded");
+        require(sim.stats().treasury == 4995 && sim.stats().totalRoads == 1 && sim.buildingAt(10, 10) == game_lab::BuildingType::Road,
+                "Road building cost deducted and placed on grid");
+        require(sim.build(9, 10, game_lab::BuildingType::Road, buildMsg), "Auxiliary road build succeeded");
+        require(sim.stats().treasury == 4990 && sim.stats().totalRoads == 2, "Auxiliary road accounted");
+
+        // 2. Reject building on occupied tile
+        require(!sim.build(10, 10, game_lab::BuildingType::Road, buildMsg), "Cannot build on already occupied tile");
+
+        // 3. Build house adjacent to road
+        require(sim.build(10, 11, game_lab::BuildingType::House, buildMsg), "House build succeeded");
+        require(sim.stats().treasury == 4975 && sim.stats().housingCapacity == 8,
+                "House building adjacent to road provides shelter capacity for 8 citizens");
+
+        // 4. Build farm
+        require(sim.build(10, 12, game_lab::BuildingType::Farm, buildMsg), "Farm build succeeded");
+        require(sim.stats().treasury == 4935 && sim.stats().totalFarms == 1, "Farm building cost accounted");
+
+        // 5. Build well near house -> upgrades house to level 2!
+        require(sim.build(11, 11, game_lab::BuildingType::Well, buildMsg), "Well build succeeded");
+        require(sim.stats().treasury == 4925 && sim.stats().housingCapacity == 20,
+                "Well provides clean water and upgrades adjacent house from level 1 to level 2 (capacity 20)");
+
+        // 6. Build temple
+        require(sim.build(12, 12, game_lab::BuildingType::Temple, buildMsg), "Temple build succeeded");
+        require(sim.stats().treasury == 4875 && sim.stats().totalTemples == 1, "Temple cost accounted");
+
+        // 7. Demolish auxiliary road with clearance labor cost
+        require(sim.demolish(9, 10, buildMsg), "Demolish road succeeded");
+        require(sim.stats().treasury == 4873 && sim.buildingAt(9, 10) == game_lab::BuildingType::None,
+                "Demolish cleared building and deducted clearance labor fee");
+        require(!sim.demolish(9, 10, buildMsg), "Cannot demolish empty tile");
+
+        // 8. Reject out of bounds
+        require(!sim.build(128, 128, game_lab::BuildingType::House, buildMsg), "Out of bounds build rejected");
+        require(!sim.demolish(128, 128, buildMsg), "Out of bounds demolish rejected");
+
+        // 9. Monthly tick advance & economic cycle
+        const int prevFood = sim.stats().foodSupply;
+        const int prevPop = sim.stats().population;
+        sim.advanceMonth();
+        require(sim.stats().month == 2 && sim.stats().year == -1046, "Month advances on simulation step");
+        require(sim.stats().foodSupply > prevFood, "Farm generates grain in harvest cycle");
+        require(sim.stats().population >= prevPop, "Population grows towards housing capacity");
+
+        // 10. Annual calendar turnover
+        for (int m = 0; m < 11; ++m) sim.advanceMonth();
+        require(sim.stats().month == 1 && sim.stats().year == -1045, "Year advances correctly across 12 months");
+
+        // 11. Pixel grid rendering
+        const auto gridPixels = sim.renderGridPixels(11, 11);
+        require(gridPixels.size() == 128 * 128, "CitySimulation grid renders full 128x128 BGRA buffer");
+        presentation(128, 128, gridPixels);
+
+        // 12. Load from CityMap
+        sim.loadFromMap(map);
+        require(sim.stats().totalRoads == 0 && sim.stats().treasury == 5000, "Loading city map resets civil layout onto new terrain");
+
+        // 13. BuildingType validation & failure contract
+        const size_t eventsBeforeNone = sim.events().size();
+        const int treasuryBeforeNone = sim.stats().treasury;
+        require(!sim.canBuild(15, 15, game_lab::BuildingType::None), "canBuild rejects None building type");
+        require(!sim.build(15, 15, game_lab::BuildingType::None, buildMsg), "build rejects None building type");
+        require(sim.events().size() == eventsBeforeNone && sim.stats().treasury == treasuryBeforeNone,
+                "Failed None build produces no events and modifies no treasury state");
+        require(!sim.canBuild(15, 15, static_cast<game_lab::BuildingType>(255)), "canBuild rejects invalid 255 type");
+        require(!sim.build(15, 15, static_cast<game_lab::BuildingType>(255), buildMsg), "build rejects invalid 255 type");
+        require(sim.buildingAt(15, 15) == game_lab::BuildingType::None, "Grid tile untouched by invalid building type");
+
+        // 14. Tick phase restoration on reset and loadFromMap
+        sim.setSpeed(1);
+        for (int t = 0; t < 9; ++t) sim.tick();
+        require(sim.stats().month == 1 && sim.monthAccumulator() == 9, "9 ticks at 1x advance accumulator to 9 without advancing month");
+        sim.reset();
+        require(sim.stats().month == 1 && sim.monthAccumulator() == 0, "reset restores tick accumulator phase to 0");
+        sim.tick();
+        require(sim.stats().month == 1 && sim.monthAccumulator() == 1, "Single tick after reset does not advance month");
+        for (int t = 0; t < 9; ++t) sim.tick();
+        require(sim.stats().month == 2 && sim.monthAccumulator() == 0, "10th tick after reset completes first month cycle");
+
+        // 15. Speed remainder preservation across multi-speed simulation
+        sim.reset();
+        sim.setSpeed(1);
+        for (int t = 0; t < 30; ++t) sim.tick();
+        require(sim.stats().month == 4, "30 ticks at 1x advance exactly 3 months (from month 1 to 4)");
+
+        sim.reset();
+        sim.setSpeed(3);
+        for (int t = 0; t < 30; ++t) sim.tick();
+        require(sim.stats().month == 10, "30 ticks at 3x advance exactly 9 months (from month 1 to 10, exactly 3x speed)");
+
+        // 16. Multi-tier house progression (Level 1..4) with Market and Temple
+        game_lab::CitySimulation city;
+        std::string outMsg;
+        require(city.build(20, 20, game_lab::BuildingType::Road, outMsg), "Road placed");
+        require(city.build(20, 21, game_lab::BuildingType::House, outMsg), "House placed on road");
+        require(city.stats().housingCapacity == 8, "House starts at Level 1 (8 capacity)");
+
+        require(city.build(21, 21, game_lab::BuildingType::Well, outMsg), "Well placed");
+        require(city.stats().housingCapacity == 20, "Well upgrades house to Level 2 (20 capacity)");
+
+        require(city.build(22, 21, game_lab::BuildingType::Market, outMsg), "Market placed");
+        require(city.stats().housingCapacity == 32, "Market food supply upgrades house to Level 3 (32 capacity)");
+
+        require(city.build(23, 21, game_lab::BuildingType::Temple, outMsg), "Temple placed");
+        require(city.stats().housingCapacity == 48, "Temple blessing upgrades house to Level 4 (48 capacity)");
+
+        // 17. Labor and employment tracking
+        require(city.stats().neededWorkers == 10, "Needed workers accurately calculated across industries");
+        require(city.stats().availableWorkers == 0, "No citizens yet, available workers = 0");
+        require(city.stats().employmentPercent == 0, "Employment is 0% when no workers available");
+
+        // Advance months to immigrate citizens into available 48 capacity
+        city.advanceMonth();
+        city.advanceMonth();
+        require(city.stats().population >= 12, "Immigration flows into higher capacity housing");
+        require(city.stats().availableWorkers >= 6, "Working-age labor force scales with population");
+        require(city.stats().employmentPercent > 50, "Employment percent reflects available vs needed workers");
+
+        // Build Watchtower
+        require(city.build(20, 19, game_lab::BuildingType::Watchtower, outMsg), "Watchtower placed");
+        require(city.stats().totalWatchtowers == 1 && city.stats().neededWorkers == 12,
+                "Watchtower adds 2 required guards to workforce demand");
+
+        // 18. State Snapshot Serialization Round-Trip
+        const auto snapshot = city.saveSnapshot();
+        require(snapshot.size() == 65580, "Snapshot serialized to exact expected byte size");
+        require(snapshot[0] == 'E' && snapshot[1] == 'M' && snapshot[2] == 'P' && snapshot[3] == '1',
+                "Snapshot header contains EMP1 magic");
+
+        game_lab::CitySimulation restoredCity;
+        require(restoredCity.stats().totalHouses == 0 && restoredCity.stats().treasury == 5000,
+                "Fresh city starts with default stats before loading snapshot");
+
+        require(restoredCity.loadSnapshot(snapshot), "Snapshot loads successfully");
+        require(restoredCity.stats().treasury == city.stats().treasury, "Treasury matches original snapshot");
+        require(restoredCity.stats().population == city.stats().population, "Population matches original snapshot");
+        require(restoredCity.stats().housingCapacity == city.stats().housingCapacity, "Housing capacity matches snapshot");
+        require(restoredCity.stats().totalHouses == 1 && restoredCity.stats().totalWells == 1 &&
+                restoredCity.stats().totalMarkets == 1 && restoredCity.stats().totalTemples == 1 &&
+                restoredCity.stats().totalWatchtowers == 1,
+                "All civil buildings restored from snapshot");
+        require(restoredCity.stats().employmentPercent == city.stats().employmentPercent,
+                "Employment percent matches original simulation");
+
+        // Test truncated / corrupted snapshot rejection
+        std::vector<uint8_t> corrupt = snapshot;
+        corrupt[0] = 'X';
+        require(!restoredCity.loadSnapshot(corrupt), "Corrupted magic rejected");
+        corrupt.resize(100);
+        require(!restoredCity.loadSnapshot(corrupt), "Truncated payload rejected");
     }
     for (const auto& record : factory.records) require(record->destroyed && !record->playing,"all fake player ownership retired");
 }

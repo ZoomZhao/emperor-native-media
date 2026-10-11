@@ -8,6 +8,8 @@
 #include "../image_presentation.hpp"
 #include "../app_launch.hpp"
 #include "../map_geometry.hpp"
+#include "../city_simulation.hpp"
+#include "../city_state_io.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -102,8 +104,16 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSImage* _mainMenuImage;
     NSImageView* _mainMenuImageView;
     
-    // Maps
-    NSString* _selectedMapName;
+    // Maps & Simulation
+    game_lab::CitySimulation _citySim;
+    game_lab::BuildingType _activeBuildTool;
+    int _selectedCursorX;
+    int _selectedCursorY;
+    NSTimer* _simTimer;
+    NSTextField* _cityHUDLabel;
+    NSTextField* _cityEventLabel;
+    NSSegmentedControl* _speedControl;
+    NSSegmentedControl* _buildToolControl;
     NSArray<NSString*>* _mapFiles;
     NSTableView* _mapTableView;
     NSTextField* _mapInfoLabel;
@@ -210,6 +220,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)applicationWillTerminate:(NSNotification*)notification {
     (void)notification;
+    if (_simTimer) {
+        [_simTimer invalidate];
+        _simTimer = nil;
+    }
     [self invalidateMovieTimer];
     _movieSession.reset();
     _movieTickQueued = NO;
@@ -229,7 +243,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self setupMovieView];
     [self showTab:0];
     
-    // Launch does not create an audio player or start playback.
+    // Start the self-authored city tick timer
+    _simTimer = [NSTimer scheduledTimerWithTimeInterval:0.25 target:self selector:@selector(onSimulationStep:) userInfo:nil repeats:YES];
 }
 
 - (void)setupWindow {
@@ -238,13 +253,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                                           styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable
                                             backing:NSBackingStoreBuffered
                                               defer:NO];
-    _window.title = @"皇帝媒体资源浏览器 · Native macOS";
+    _window.title = @"皇帝：龙之崛起 · 城市营建与媒体（自写）";
     [_window center];
     
     NSView* root = _window.contentView;
     
     // Top Navigation Bar
-    _navBar = [NSSegmentedControl segmentedControlWithLabels:@[@"主界面", @"城市地图", @"图素与贴图", @"国风音乐台", @"游戏文本资料库", @"影片首帧预览"]
+    _navBar = [NSSegmentedControl segmentedControlWithLabels:@[@"主界面", @"城市营建（自写）", @"图素与贴图", @"国风音乐台", @"游戏文本资料库", @"影片首帧预览"]
                                                 trackingMode:NSSegmentSwitchTrackingSelectOne
                                                       target:self
                                                       action:@selector(onTabChanged:)];
@@ -394,7 +409,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [menuOverlay addSubview:subLabel];
     
     NSArray* btnConfigs = @[
-        @{@"title": @"🏯 浏览城市地图", @"action": NSStringFromSelector(@selector(gotoMaps:))},
+        @{@"title": @"🏯 营建城邑", @"action": NSStringFromSelector(@selector(gotoMaps:))},
         @{@"title": @"🖼 图素与贴图", @"action": NSStringFromSelector(@selector(gotoSprites:))},
         @{@"title": @"🎵 国风民乐鉴赏", @"action": NSStringFromSelector(@selector(gotoMusic:))},
         @{@"title": @"📜 游戏文本与对话", @"action": NSStringFromSelector(@selector(gotoTexts:))},
@@ -413,7 +428,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     }
 }
 
-- (void)gotoMaps:(id)sender { (void)sender; [self showTab:1]; }
+- (void)gotoMaps:(id)sender {
+    (void)sender;
+    [self showTab:1];
+}
 - (void)gotoSprites:(id)sender { (void)sender; [self showTab:2]; }
 - (void)gotoMusic:(id)sender { (void)sender; [self showTab:3]; }
 - (void)gotoTexts:(id)sender { (void)sender; [self showTab:4]; }
@@ -421,9 +439,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)playBlessSFX:(id)sender { (void)sender; [self playSFX:@"H_ancestor_bless.wav"]; }
 - (void)terminate:(id)sender { (void)sender; [NSApp terminate:nil]; }
 
-
 // ----------------------------------------------------
-// Tab 1: City Maps View (Resource Browser)
+// Tab 1: Self-authored City Building
 // ----------------------------------------------------
 - (void)setupMapView {
     _mapView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
@@ -437,77 +454,248 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         @"ASSR-Liangzhou.map", @"ASSR-LopNor.map", @"ASSR-Loulan.map"
     ];
     
-    // Left: Table of maps
-    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(20, 20, 300, 680)];
+    // Left: Table of maps (width 260)
+    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(16, 108, 260, 596)];
     _mapTableView = [[NSTableView alloc] initWithFrame:scroll.bounds];
     NSTableColumn* col = [[NSTableColumn alloc] initWithIdentifier:@"MapName"];
     col.title = @"原版城市地图 (.map)";
-    col.width = 280;
+    col.width = 240;
     [_mapTableView addTableColumn:col];
     _mapTableView.delegate = self;
     _mapTableView.dataSource = self;
     scroll.documentView = _mapTableView;
     [_mapView addSubview:scroll];
     
-    // Right: Map preview and info
-    _mapInfoLabel = [NSTextField labelWithString:@"选择左侧文件以预览地块编号颜色"];
-    _mapInfoLabel.frame = NSMakeRect(340, 650, 660, 40);
-    _mapInfoLabel.font = [NSFont boldSystemFontOfSize:16];
-    [_mapView addSubview:_mapInfoLabel];
+    // Right Top: City HUD Status (Width 730)
+    _cityHUDLabel = [NSTextField labelWithString:@"📅 城市模拟已就绪"];
+    _cityHUDLabel.frame = NSMakeRect(286, 676, 722, 28);
+    _cityHUDLabel.font = [NSFont boldSystemFontOfSize:13];
+    _cityHUDLabel.textColor = [NSColor colorWithCalibratedRed:0.95 green:0.85 blue:0.4 alpha:1.0];
+    [_mapView addSubview:_cityHUDLabel];
     
-    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(340, 80, 560, 560)];
+    // Speed Control Bar (Width 240)
+    _speedControl = [NSSegmentedControl segmentedControlWithLabels:@[@"⏸ 暂停", @"▶ 1x", @"⏩ 2x", @"⏭ 3x", @"⏩+1月"]
+                                                      trackingMode:NSSegmentSwitchTrackingSelectOne
+                                                            target:self
+                                                            action:@selector(onSpeedChanged:)];
+    _speedControl.frame = NSMakeRect(286, 642, 240, 26);
+    _speedControl.selectedSegment = 1;
+    [_mapView addSubview:_speedControl];
+
+    // Building Tools Palette (Width 470)
+    _buildToolControl = [NSSegmentedControl segmentedControlWithLabels:@[
+        @"🔍 勘查", @"🛣 道路(5)", @"🏠 民居(15)", @"🌾 农庄(40)", @"💧 水井(10)", @"🏛 宗庙(50)", @"🏪 市肆(30)", @"🗼 更楼(20)", @"🔨 拆除(2)"
+    ]
+                                                          trackingMode:NSSegmentSwitchTrackingSelectOne
+                                                                target:self
+                                                                action:@selector(onBuildToolChanged:)];
+    _buildToolControl.frame = NSMakeRect(536, 642, 472, 26);
+    _buildToolControl.selectedSegment = 0;
+    [_mapView addSubview:_buildToolControl];
+
+    // Center: Interactive Map Canvas View (560x560)
+    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 560, 560)];
     _mapCanvasView.imageScaling = NSImageScaleAxesIndependently;
     _mapCanvasView.wantsLayer = YES;
-    _mapCanvasView.layer.borderColor = [NSColor grayColor].CGColor;
-    _mapCanvasView.layer.borderWidth = 1;
+    _mapCanvasView.layer.borderColor = [NSColor colorWithCalibratedRed:0.6 green:0.5 blue:0.3 alpha:1.0].CGColor;
+    _mapCanvasView.layer.borderWidth = 2;
+    _mapCanvasView.layer.cornerRadius = 4;
 
     __weak EmperorAppDelegate* weakSelf = self;
     _mapCanvasView.onTileClicked = ^(int tileX, int tileY) {
-        [weakSelf handleDefaultTileClickAtX:tileX y:tileY];
+        [weakSelf handleTileClickAtX:tileX y:tileY];
     };
     [_mapView addSubview:_mapCanvasView];
+
+    // Status info label below controls
+    _mapInfoLabel = [NSTextField labelWithString:@""];
+    _mapInfoLabel.frame = NSMakeRect(286, 614, 722, 22);
+    _mapInfoLabel.font = [NSFont systemFontOfSize:12];
+    _mapInfoLabel.textColor = [NSColor colorWithCalibratedWhite:0.8 alpha:1.0];
+    [_mapView addSubview:_mapInfoLabel];
+
+    // Bottom: Event Log / Status
+    _cityEventLabel = [NSTextField labelWithString:@"📜 帝都政务记录"];
+    _cityEventLabel.frame = NSMakeRect(286, 12, 722, 34);
+    _cityEventLabel.font = [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
+    _cityEventLabel.textColor = [NSColor colorWithCalibratedWhite:0.85 alpha:1.0];
+    [_mapView addSubview:_cityEventLabel];
+
+    _selectedCursorX = -1;
+    _selectedCursorY = -1;
+    _activeBuildTool = game_lab::BuildingType::None;
+    NSButton* saveButton = [NSButton buttonWithTitle:@"保存城邑" target:self action:@selector(onSaveCity:)];
+    NSButton* loadButton = [NSButton buttonWithTitle:@"载入城邑" target:self action:@selector(onLoadCity:)];
+    NSButton* resetButton = [NSButton buttonWithTitle:@"新建空城" target:self action:@selector(onResetCity:)];
+    saveButton.frame = NSMakeRect(16, 64, 82, 28);
+    loadButton.frame = NSMakeRect(102, 64, 82, 28);
+    resetButton.frame = NSMakeRect(188, 64, 82, 28);
+    [_mapView addSubview:saveButton]; [_mapView addSubview:loadButton]; [_mapView addSubview:resetButton];
+    NSTextField* saveLabel = [NSTextField labelWithString:@"城邑存档使用自写格式"];
+    saveLabel.frame = NSMakeRect(16, 26, 260, 22);
+    [_mapView addSubview:saveLabel];
+    [self updateCityHUD];
+    [self renderCityGrid];
 }
 
-- (void)handleDefaultTileClickAtX:(int)x y:(int)y {
-    if (_selectedMapName) {
-        _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 地块坐标: (%d, %d)", _selectedMapName, x, y];
-    } else {
-        _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地块坐标: (%d, %d)", x, y];
+- (void)updateCityHUD {
+    const auto& s = _citySim.stats();
+    NSString* yearStr = s.year < 0 ? [NSString stringWithFormat:@"公元前 %lld 年", -static_cast<long long>(s.year)] : [NSString stringWithFormat:@"公元 %d 年", s.year];
+    _cityHUDLabel.stringValue = [NSString stringWithFormat:@"📅 %@ %d月 [%s]  |  💰 国库: %d贯  |  👥 户籍: %d人 (容积: %d)  |  🛠 就业: %d%% (%d/%d工)  |  🌾 存粮: %d担  |  🕊 繁荣: %d%%",
+                                 yearStr, s.month, s.rankTitle.c_str(), s.treasury, s.population, s.housingCapacity, s.employmentPercent, s.availableWorkers, s.neededWorkers, s.foodSupply, s.favor];
+    if (!_citySim.events().empty()) {
+        _cityEventLabel.stringValue = [NSString stringWithFormat:@"📜 帝都政务记录: %@", [NSString stringWithUTF8String:_citySim.events().back().c_str()]];
     }
+}
+
+- (void)renderCityGrid {
+    const auto pixels = _citySim.renderGridPixels(_selectedCursorX, _selectedCursorY);
+    if (!presentPixels(_mapCanvasView, 128, 128, pixels)) {
+        _mapCanvasView.image = nil;
+        _mapInfoLabel.stringValue = @"地图画面转换或呈现失败";
+    }
+}
+
+- (void)onSimulationStep:(NSTimer*)timer {
+    (void)timer;
+    const int oldMonth = _citySim.stats().month;
+    _citySim.tick();
+    [self updateCityHUD];
+    if (_citySim.stats().month != oldMonth) {
+        [self renderCityGrid];
+    }
+}
+
+- (void)onSpeedChanged:(NSSegmentedControl*)sender {
+    NSInteger seg = sender.selectedSegment;
+    if (seg == 4) {
+        _citySim.advanceMonth();
+        [self updateCityHUD];
+        [self renderCityGrid];
+        sender.selectedSegment = _citySim.stats().speed;
+    } else {
+        _citySim.setSpeed((int)seg);
+        [self updateCityHUD];
+    }
+}
+
+- (void)onBuildToolChanged:(NSSegmentedControl*)sender {
+    switch (sender.selectedSegment) {
+        case 0: _activeBuildTool = game_lab::BuildingType::None; break;
+        case 1: _activeBuildTool = game_lab::BuildingType::Road; break;
+        case 2: _activeBuildTool = game_lab::BuildingType::House; break;
+        case 3: _activeBuildTool = game_lab::BuildingType::Farm; break;
+        case 4: _activeBuildTool = game_lab::BuildingType::Well; break;
+        case 5: _activeBuildTool = game_lab::BuildingType::Temple; break;
+        case 6: _activeBuildTool = game_lab::BuildingType::Market; break;
+        case 7: _activeBuildTool = game_lab::BuildingType::Watchtower; break;
+        case 8: _activeBuildTool = static_cast<game_lab::BuildingType>(99); break; // Demolish
+        default: _activeBuildTool = game_lab::BuildingType::None; break;
+    }
+}
+
+- (void)handleTileClickAtX:(int)x y:(int)y {
+    _selectedCursorX = x;
+    _selectedCursorY = y;
+
+    if (_activeBuildTool == game_lab::BuildingType::None) {
+        const auto b = _citySim.buildingAt(x, y);
+        const char* name = game_lab::BuildingCost::name(b);
+        _cityEventLabel.stringValue = [NSString stringWithFormat:@"🔍 勘查地块 (%d, %d): 地形=%s · 建筑=%s",
+                                       x, y, _citySim.isWaterTile(x, y) ? "河湖水域" : "陆地平原", name];
+    } else {
+        std::string msg;
+        if (static_cast<int>(_activeBuildTool) == 99) {
+            if (_citySim.demolish(x, y, msg)) {
+                [self playSFX:@"Fire.wav"];
+            }
+        } else {
+            if (_citySim.build(x, y, _activeBuildTool, msg)) {
+                if (_activeBuildTool == game_lab::BuildingType::Temple) {
+                    [self playSFX:@"H_ancestor_bless.wav"];
+                } else if (_activeBuildTool == game_lab::BuildingType::Well) {
+                    [self playSFX:@"D_flood.wav"];
+                } else {
+                    [self playSFX:@"Halberd_attack.wav"];
+                }
+            }
+        }
+        [self updateCityHUD];
+        _cityEventLabel.stringValue = [NSString stringWithFormat:@"📜 帝都政务记录: %s", msg.c_str()];
+    }
+    [self renderCityGrid];
+}
+
+- (void)onResetCity:(id)sender {
+    (void)sender;
+    _citySim.reset();
+    _selectedCursorX = _selectedCursorY = -1;
+    _activeBuildTool = game_lab::BuildingType::None;
+    _buildToolControl.selectedSegment = 0;
+    _speedControl.selectedSegment = _citySim.stats().speed;
+    [self updateCityHUD]; [self renderCityGrid];
+}
+
+- (void)onSaveCity:(id)sender {
+    (void)sender;
+    NSSavePanel* panel = [NSSavePanel savePanel];
+    panel.nameFieldStringValue = @"city.emp";
+    panel.message = @"保存自写城邑状态；此格式不兼容原版游戏存档。";
+    if ([panel runModal] != NSModalResponseOK) return;
+    std::string error;
+    const char* path = panel.URL.fileSystemRepresentation;
+    const bool saved = game_lab::saveCityState(_citySim, path ? path : "", error);
+    _cityEventLabel.stringValue = saved ? @"城邑已保存" :
+        [NSString stringWithUTF8String:error.c_str()];
+}
+
+- (void)onLoadCity:(id)sender {
+    (void)sender;
+    NSOpenPanel* panel = [NSOpenPanel openPanel];
+    panel.canChooseFiles = YES; panel.canChooseDirectories = NO; panel.allowsMultipleSelection = NO;
+    panel.message = @"选择自写城邑 .emp 存档；原版游戏存档不受支持。";
+    if ([panel runModal] != NSModalResponseOK) return;
+    std::string error;
+    const char* path = panel.URL.fileSystemRepresentation;
+    if (!game_lab::loadCityState(_citySim, path ? path : "", error)) {
+        _cityEventLabel.stringValue = [NSString stringWithUTF8String:error.c_str()];
+        return;
+    }
+    _selectedCursorX = _selectedCursorY = -1;
+    _activeBuildTool = game_lab::BuildingType::None;
+    _buildToolControl.selectedSegment = 0;
+    _speedControl.selectedSegment = _citySim.stats().speed;
+    [self updateCityHUD]; [self renderCityGrid];
+    _mapInfoLabel.stringValue = @"已载入自写城邑存档";
 }
 
 - (void)loadAndRenderMap:(NSString*)filename {
     _mapCanvasView.image = nil;
-    _selectedMapName = nil;
+    _selectedCursorX = -1;
+    _selectedCursorY = -1;
     if (!filename || !filename.UTF8String) {
+        [self updateCityHUD];
+        [self renderCityGrid];
         _mapInfoLabel.stringValue = @"未指定地图文件";
+        _cityEventLabel.stringValue = @"📜 地图载入失败：未指定文件。";
         return;
     }
     const auto relative = [NSString stringWithFormat:@"Cities/%@", filename];
     const auto cityMap = _media->cityMap(relative.UTF8String);
     if (!cityMap.valid()) {
+        [self updateCityHUD];
+        [self renderCityGrid];
         _mapInfoLabel.stringValue = [NSString stringWithFormat:@"无法载入地图: %@", filename];
+        _cityEventLabel.stringValue = [NSString stringWithFormat:@"📜 地图载入失败: %@", filename];
         return;
     }
     
-    // Preview tile IDs with arbitrary colors; this is not terrain simulation.
-    std::vector<uint32_t> pixels(128 * 128);
-    for (size_t i = 0; i < cityMap.tiles.size(); ++i) {
-        uint16_t tileId = cityMap.tiles[i];
-        uint8_t r = (tileId * 17) % 256;
-        uint8_t g = (tileId * 31 + 40) % 200 + 55;
-        uint8_t b = (tileId * 7) % 150 + 40;
-        pixels[i] = (255u << 24) | (r << 16) | (g << 8) | b;
-    }
-    
-    if (!presentPixels(_mapCanvasView, 128, 128, pixels)) {
-        _mapInfoLabel.stringValue = @"地图图片转换失败";
-        return;
-    }
-    _selectedMapName = filename;
-    _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 尺寸: 128×128 (共 %zu 地块) · zlib 解压完成",
-                                 filename, cityMap.tiles.size()];
+    _citySim.loadFromMap(cityMap);
+    _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 128×128 地块已载入 · ⚠️ 自写城市营建", filename];
+    [self updateCityHUD];
+    [self renderCityGrid];
 }
+
 
 // ----------------------------------------------------
 // Tab 2: Sprites & 555 Textures View
@@ -732,7 +920,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_movieView addSubview:pathLabel];
 
     _moviePathField = [[NSTextField alloc] initWithFrame:NSMakeRect(135, 600, 360, 26)];
-    _moviePathField.placeholderString = @"例如 Movies/clip.mov";
+    _moviePathField.stringValue = @"Movies/self_authored_8s.mov";
     _moviePathField.font = [NSFont systemFontOfSize:13];
     [_movieView addSubview:_moviePathField];
 

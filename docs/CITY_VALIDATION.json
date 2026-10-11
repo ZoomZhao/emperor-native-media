@@ -1,0 +1,299 @@
+{
+  "schema": "SELF_AUTHORED_CITY_MEDIA_ACCEPTANCE_V1",
+  "date": "2026-10-11",
+  "baseline_commit": "357783a9beb16608aa531d9178ad5a9b4e5ffa8c",
+  "city_source_origin": "ang self-authored source; original preserved in local before-all-local backup",
+  "original_ang_city_sha256": "1e7547cf4371511e24d29cbd5f25b46563fdb0d5f6d827bbf5262ff195a87301",
+  "production_and_test_sources_sha256": {
+    "game_lab/asset_limits.hpp": "f9de7d0f9092c910b8d22dd755c0f2ae1c7db887f0df1b9b16aac08923d128c2",
+    "game_lab/city_simulation.hpp": "14d30ff19edffc099d2de9c1880fb6d7806eee1552365d9a58c66fd9981769c5",
+    "game_lab/city_simulation_tests.cpp": "c9499649701938f66e7af84e81f65765d06899e251734d32ab96e006839602b4",
+    "game_lab/city_state_io.hpp": "d2378cdd27f3981e82b8947a002a02f5e537a94412a211bf9945e242bac97ae1",
+    "game_lab/emperor_assets.hpp": "025cbe1b49860aae6e52e65ceda73f417347632ea8ad1655f27722a3979e0160",
+    "game_lab/map_geometry.hpp": "130fc348c5164e3c4b2760a1a52c0358283a1e70ca0b0ff361305fbf88632006",
+    "scripts/independent_runner.py": "a4f0df2405fa16a75cb6f469a1e9255d3354b435bb5b7d231d676cd1cc4c5b0a",
+    "scripts/self_fixture_evidence.hpp": "34093527d4a50273d4630aeb22e0ba99c0b801a440cdce770cbeb59bd3635c09",
+    "game_lab/asset_bytes.hpp": "cbff9db423ee6eddd83309345b20a5501a6d37baa45e2c1ebd4ab4f3b81ea1a0",
+    "game_lab/asset_pixels.cpp": "002697fa0052ca790e52994f570b9df741be9005d9bebc4d0e670bc689975ace",
+    "game_lab/audio_policy.hpp": "4d78a6ef7129f6d3e44c786726763ec79ef89780d88fa91c0a9a1715d2d979e0",
+    "game_lab/emperor_assets.mm": "0ba2c9c96b13f20b116ca4a548ac4f5e12deb19a27b1ab632fdd204e38a6e579",
+    "game_lab/pure_boundary_tests.mm": "205a871c27309257fec5ec51823a6a640fdeddf59f931a58cb3efaaef2f1a3b1",
+    "game_lab/resource_root.cpp": "da8b4ecbfcd479cd104ddf43f383099a2a6c756ff7329dfce59b7cc9136e582b",
+    "game_lab/resource_root.hpp": "d43a9447a1280206687d6f42e41a1e1113a58050b6d8e39c5584c4d25c551f55",
+    "game_lab/run_boundaries.sh": "19263c0929ef617dd488be2f36d2faef128073f4ee32765f881f5e350a34ef19",
+    "game_lab/wav_pcm.cpp": "bbeeebb29992cb0ff027a589eef0413bdb2edc363f796b0eed10429d10cf1665",
+    "surface_lab/surface.cpp": "2d0d0f79760b347d0d7451543d3aff0100f9f2892e382f6c3915ced88fd5dc79",
+    "surface_lab/surface.hpp": "003653b9ea75f662e6ed3e06b8fa70d6f0e968031708983747773923a63b280b",
+    "LICENSE": "344421e0e479e403fa97b517be95cd276309dcdad13a334fdeb53ec7ca6f261c",
+    "audio_lab/audio.cpp": "31fe1ac489822c97ceda2f6fd935cf50482eff292a82366390ada396fad02dd3",
+    "audio_lab/audio.hpp": "e366de20530c68c6effb9324c57705c7bc7e6ad228a48f644b59426fd2e49b7a",
+    "game_lab/app/Info.plist": "14363adf7f596057f71048b87b4b0549d1bda5bb3c4c93ae4f17b638b1a17ffd",
+    "game_lab/app/av_audio_backend.hpp": "48a5008d73f1aca309aee0b145ab66b4486509b27171f262d1424bd0214a0b72",
+    "game_lab/app/av_audio_backend.mm": "295b241ac206197ac6be0f49c8d13ce95f94836d06e426c2395211553a8c3dd9",
+    "game_lab/app/build.sh": "a7ad6f554426214f3df31893276e9689d8656ca820d4e9f9e088ce8bbba0211b",
+    "game_lab/app/build_provenance.py": "caaa2dbb71e9ef86d36262520a40f6f3f0cf430dbc91ca57d87d4ebc73e64ad9",
+    "game_lab/app/main.mm": "45a3e7edb28d2ebaad46e4fcaee98745d86b82edd9e06cd34187b34e90fd5de3",
+    "game_lab/app_launch.hpp": "97be2d9690f2f95281439313a347cd2c429cd98e4fb6d36732e52cbb8c1a8724",
+    "game_lab/app_media.cpp": "aff214a9821f993e10e00f6c91b5107f0d4f5f6de89e26da132c492acc92a0f6",
+    "game_lab/app_media.hpp": "a208ffdc49352afcc7e43faa088817095ddd0acd3ca7017b3ed874c4cefde06a",
+    "game_lab/app_media_integration_tests.mm": "40d082ab6efd84d0728020c46740f24dd0409c59f0ca8ceddc76c6e1b37623b6",
+    "game_lab/image_presentation.hpp": "3fc2c8ca67af7dd8b9964ab7635e64306185f833a8bb09213062af921023e6ff",
+    "game_lab/movie_session.hpp": "fee62037613520d9bb3e9d7651e55368a5a1d7e9df8313d1a8275478a0ce3cc1",
+    "game_lab/movie_session.mm": "82868dc7a0d38eb57bf9e0d9c1b6b79808df770d177055677ba6dfc0d5b78f36",
+    "game_lab/run_app_integration.sh": "870792c88f4ad5fdb8d80e179ba179bc3b7ccd11d1a4fc2cdedabf3a42edf5bc",
+    "media_demo/controller.cpp": "8cd87c4792faee38dd5dcad5a4cf6625acf30e46d4008678f9ef3fdbdd034799",
+    "media_demo/controller.hpp": "a26cfbbea48718eed9a57aaece00b9b825a4dfead219e82bcf732bc2d8d528e8",
+    "media_demo/device_monitor.hpp": "e9ef390ccf3bbcca9c87765f70fc1bf1cf921ceac60049cf958895a215f00f0d",
+    "media_demo/host_clock.hpp": "44f9a6b3d0f521a38d7ff1d364ffab248332bce87fe502d04a7f7b7588e18369",
+    "metal_lab/backend.hpp": "5a21ab23584e2e5e057032a5eb058f731808f845c1f0a2a5d3a21022fb60b58e",
+    "metal_lab/backend.mm": "d0e55d057882046d8a6418403ab604d6c7110dcc01e6aa6a124afc0df596d536",
+    "stream_lab/movie_io.hpp": "1a94e00af9209d7efa483934a9bdfb619af89a25453f08f16e983777bb9320f5",
+    "stream_lab/movie_io.mm": "ed6b70f0d39cdaee3e0cc238a85caff1768a45edf52409fb455cc2610bcd9ae2",
+    "stream_lab/presenter.cpp": "2848ebee68359cfe9fcd7ba66c1063fb7ea6ce2237d870a52be028ec51325613",
+    "stream_lab/presenter.hpp": "4b45b3d60ec10910a024729912be236614a6fb6202529e7e7b3fd2c8892dd857",
+    "video_lab/stream.cpp": "529876d8ecafc6ca7a1e9e70c9441db6b8419586839c682ec4eca23287b6056a",
+    "video_lab/stream.hpp": "e3a8ff8c11a1eeb9e9b8a2d539c84e7a701385c32864bcf880aaf939bb2c068d",
+    "video_lab/video.hpp": "9b7ca0acf6fdd4f1487a87cb5e844b64b2604c6f62fb3d42a1b1dceb4e443e83",
+    "game_lab/movie_session_async_tests.mm": "7bb9b243c421f86e86ead279b25697239e893d7b5e4ecf2bbbfbf8bcd0d210ae",
+    "game_lab/movie_termination_tests.mm": "a66390aa2602fb66aa0e0e4f7d109c238a530a3ea1d900a8290f1a8538353e2a"
+  },
+  "accepted_reports": [
+    {
+      "report_id": "clean-validation/city-release-_12mqfew",
+      "suite": "city",
+      "mode": "release",
+      "result": {
+        "city": {
+          "passed": true,
+          "checks": 91,
+          "self_authored_city": true,
+          "UI": false,
+          "audio_devices": false,
+          "failures": []
+        }
+      },
+      "source_manifest_sha256": "0736a12221c8fc59ea63e4ef48670d0852cb7998dc3990e1f67bd7c33dbe3efc",
+      "input_manifest_sha256": "175b5c1ee2c69320c0d56c58ed010a79280beda5b43d7fff1e55aa7283f38eca",
+      "build_manifest_sha256": "a5bc0cbe4363f2b9f98e54b871f0bc693a4034117c9dab8e698f009968870b13",
+      "result_manifest_sha256": "1aa145b28a7a515cf44b89226094aa357bba68bb7d4e8b432c8a860525735c6b",
+      "longest_process_seconds": 1.3258870840000003
+    },
+    {
+      "report_id": "clean-validation/city-undefined-r4r6b7i6",
+      "suite": "city",
+      "mode": "undefined",
+      "result": {
+        "city": {
+          "passed": true,
+          "checks": 91,
+          "self_authored_city": true,
+          "UI": false,
+          "audio_devices": false,
+          "failures": []
+        }
+      },
+      "source_manifest_sha256": "281d9246d59497765fac088a0186f9afc467231576982c57ba5117c761f0651f",
+      "input_manifest_sha256": "e06fa26f6d5960266e470c6547fc928624670f1d103a9656c5dae546ef16ba9f",
+      "build_manifest_sha256": "df6070033a82c7a14339ce6d26f765007f0c6f93531006c470bf97d2430a80a6",
+      "result_manifest_sha256": "21d66df23b93b2eddf43ad288a45919ee071e926d54dea331207a0d953fba1b9",
+      "longest_process_seconds": 1.3987052910000002
+    },
+    {
+      "report_id": "clean-validation/media-release-qidpa5sb",
+      "suite": "media",
+      "mode": "release",
+      "result": {
+        "media": {
+          "passed": true,
+          "assertions": 65691,
+          "fixtures": "self-authored",
+          "game_data_read": false,
+          "ui": false,
+          "audio_devices": false
+        }
+      },
+      "source_manifest_sha256": "7a36b356a8ebf59328aedcba1df7e3e0262633b8b2707e13bc7b76c1527f563f",
+      "input_manifest_sha256": "48b91732e19620a48eac39b92888a293862e8a8c0b500ccd7aa5180edecc503f",
+      "build_manifest_sha256": "541261d6fff5b7fa7cd4fb29a405350448b637dc746bb545a7d64f1ef0b5016a",
+      "result_manifest_sha256": "b1f17050bf8d595f1bafe28be18437946a61c66af41e8ae4c816aecafb949aa0",
+      "longest_process_seconds": 3.418437166
+    },
+    {
+      "report_id": "clean-validation/media-undefined-cn3ghlyq",
+      "suite": "media",
+      "mode": "undefined",
+      "result": {
+        "media": {
+          "passed": true,
+          "assertions": 65691,
+          "fixtures": "self-authored",
+          "game_data_read": false,
+          "ui": false,
+          "audio_devices": false
+        }
+      },
+      "source_manifest_sha256": "2315211ee69e1f577f9f214370ff37a6669a635957a8c1ce8de1759418f9fc97",
+      "input_manifest_sha256": "0c58a061274c3b6fb851f94e9c2af36b185fff5e24e52706220f9a30baac7899",
+      "build_manifest_sha256": "17608f38d665f6a2e8331c1d0a5ba113c0cc1c1142f800d1610233b6248d6af4",
+      "result_manifest_sha256": "00b7959a22b931e89827b2b5d5230e734d9dc4eafcdc69d79e3aa60a39e5b166",
+      "longest_process_seconds": 4.152033834
+    },
+    {
+      "report_id": "final-validation/app-release-s22mbeik",
+      "suite": "app",
+      "mode": "release",
+      "result": {
+        "app": {
+          "passed": true,
+          "signature_verified": true,
+          "linked_libraries": [
+            "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+            "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+            "/System/Library/Frameworks/AVFoundation.framework/Versions/A/AVFoundation",
+            "/System/Library/Frameworks/AudioToolbox.framework/Versions/A/AudioToolbox",
+            "/System/Library/Frameworks/CoreMedia.framework/Versions/A/CoreMedia",
+            "/System/Library/Frameworks/CoreVideo.framework/Versions/A/CoreVideo",
+            "/System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO",
+            "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+            "/System/Library/Frameworks/Metal.framework/Versions/A/Metal",
+            "/usr/lib/libz.1.dylib",
+            "/usr/lib/libobjc.A.dylib",
+            "/usr/lib/libc++.1.dylib",
+            "/usr/lib/libSystem.B.dylib",
+            "/System/Library/Frameworks/AVFAudio.framework/Versions/A/AVFAudio",
+            "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+          ],
+          "app_launched": false
+        }
+      },
+      "source_manifest_sha256": "befc7933d4efa0d1b01fff4b9a2b457d1579331e63c4fea31fd1337d269d82b1",
+      "input_manifest_sha256": "13fe4f30a6c138da8ccc844a371d8198260797747ce7a404cbaf135be52d3d23",
+      "build_manifest_sha256": "4438c46433276a1413eb2121307daa8caa6a9b24048e3176ef1e0bfff09659cb",
+      "result_manifest_sha256": "80514d6a6cc4fbaba4a515c541836ed34d72cdebf7b2d51b38f478d0ea9380d7",
+      "longest_process_seconds": 14.369456709
+    },
+    {
+      "report_id": "final-validation/integration-release-w638gv9y",
+      "suite": "integration",
+      "mode": "release",
+      "result": {
+        "integration": {
+          "passed": true,
+          "assertions": 9777,
+          "ui": false,
+          "audio_devices": false,
+          "backend": "fake"
+        }
+      },
+      "source_manifest_sha256": "8a271f20df3cff34fbd54b1cd13bb4370534d9df70b0b6dafdce28ed0bb98b54",
+      "input_manifest_sha256": "a766a3cce4415271ccc01fb15ebd55748dd75555b432683a7841901b4fa4b45f",
+      "build_manifest_sha256": "db5babd578a4a0c9536279b88a7cbbac0731b5af735201f235efb4e770a39650",
+      "result_manifest_sha256": "c7cf56b58b9c3f3d5d8296a91fb1d179aa552743fca67becc81d8b7d58a16af0",
+      "longest_process_seconds": 12.968686791
+    },
+    {
+      "report_id": "final-validation/integration-undefined-4xjqjnf6",
+      "suite": "integration",
+      "mode": "undefined",
+      "result": {
+        "integration": {
+          "passed": true,
+          "assertions": 9777,
+          "ui": false,
+          "audio_devices": false,
+          "backend": "fake"
+        }
+      },
+      "source_manifest_sha256": "6b9b2c1b7386f93f4a7ff82ee1d0538f1c03bbd73f9f77f3763b9e7b074b284d",
+      "input_manifest_sha256": "29052acd0c85710ef305cce48db94593c9f0e4977bffab4fe72cd08510dcf873",
+      "build_manifest_sha256": "b715ba57d81c91cac247171a6732be571d11baeb00f03930bbf528cfcd376718",
+      "result_manifest_sha256": "a18a5515def02740bfff61b28cdcd1ec70ee0f68eb80e5eddc678de3b3463f14",
+      "longest_process_seconds": 17.938006124999998
+    },
+    {
+      "report_id": "final-validation/movie-async-release-at2eu_3k",
+      "suite": "movie-async",
+      "mode": "release",
+      "result": {
+        "movie-async": {
+          "passed": true,
+          "checks": 127,
+          "synthetic_MOV": true,
+          "UI": false,
+          "audio_devices": false
+        }
+      },
+      "source_manifest_sha256": "675536ac0e23435a19139b573d01914e12e57ba350f0a4cb560b76e52ad64bd9",
+      "input_manifest_sha256": "eaf3bbe25a193e6357aa3e6487faf4b7d41731af87bdae354cc0f897e580f25a",
+      "build_manifest_sha256": "2e9557d0fdd89d25a4685046da8e146a0920fca8d27fe8361dd0458d4b391059",
+      "result_manifest_sha256": "924d7799ce3c965add1dba1af5c8dccfa599380768d0dc87bf8b886eb21e364b",
+      "longest_process_seconds": 13.193239250000001
+    },
+    {
+      "report_id": "final-validation/movie-async-undefined-xvpn2too",
+      "suite": "movie-async",
+      "mode": "undefined",
+      "result": {
+        "movie-async": {
+          "passed": true,
+          "checks": 127,
+          "synthetic_MOV": true,
+          "UI": false,
+          "audio_devices": false
+        }
+      },
+      "source_manifest_sha256": "47b9e5eb92f6b4255ccc74013ff60cbe619a3149ab9e5e2edd81996a510a9c18",
+      "input_manifest_sha256": "8533f4cf5b35ffcb9fd75e21644d1f3c8b0ffbdac18e13617c877c582e3b6af7",
+      "build_manifest_sha256": "c737929c621a0360bc107fffdcbe8272fd366496b8e75a7dfdfbcf79e857d7a7",
+      "result_manifest_sha256": "58d195b29c043376160d3983336e5d6f6f8701767a9dcecb4555f9430b047fb6",
+      "longest_process_seconds": 19.3388095
+    },
+    {
+      "report_id": "final-validation/movie-termination-release-78_oaj_1",
+      "suite": "movie-termination",
+      "mode": "release",
+      "result": {
+        "movie-termination": {
+          "passed": true,
+          "checks": 133,
+          "UI": false,
+          "audio_devices": false,
+          "actual_termination_consumer": true
+        }
+      },
+      "source_manifest_sha256": "6294c6aefb5c8e0e21873b62220e9f389a8d4e80441dc4b51133695a961556d7",
+      "input_manifest_sha256": "6c607bc3f122253dc60eda268c87950768fa25ca301387d2d0329a6050d2ea2d",
+      "build_manifest_sha256": "32356ec3336555c76d9421b7082e412e546f1e16a38c2570b229ed58e6317666",
+      "result_manifest_sha256": "05a5c13a5fd63b6b8504e496c884a8c72cf8fd17f0dbb290549d127f21068ff5",
+      "longest_process_seconds": 11.186666375
+    },
+    {
+      "report_id": "final-validation/movie-termination-undefined-j3wmd1r4",
+      "suite": "movie-termination",
+      "mode": "undefined",
+      "result": {
+        "movie-termination": {
+          "passed": true,
+          "checks": 133,
+          "UI": false,
+          "audio_devices": false,
+          "actual_termination_consumer": true
+        }
+      },
+      "source_manifest_sha256": "cf486f30facf28c6c22357527f856b0753fc470a883b1722d7bda667c26249ab",
+      "input_manifest_sha256": "78741f48ee5e4571821cd0b1ebeca10db709004f4e550197c7f7d1959cbede73",
+      "build_manifest_sha256": "997aa3e866edbfd28d3f07de195fa497d7ce5eb04664e4e4364c2eac7475124d",
+      "result_manifest_sha256": "46b8ac9b2a91f266257ed80413b9961fc1d8f18bbdd39236a0c1779fcd20d19d",
+      "longest_process_seconds": 15.577925042
+    }
+  ],
+  "process_timeout_seconds": 60,
+  "passed": true,
+  "clean_export_without_git": true,
+  "UI": false,
+  "audio_devices": false,
+  "GameData": false,
+  "legacy": false,
+  "App_launched": false,
+  "original_game_equivalence": false
+}
