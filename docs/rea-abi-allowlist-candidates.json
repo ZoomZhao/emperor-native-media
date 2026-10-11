@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -35,9 +35,17 @@
       ],
       "reject_conditions": [
         "Final O vptr / callee not sourced",
-        "Callee cleanup, lifetime or side effects unknown"
+        "Callee cleanup, lifetime or side effects unknown",
+        "Construction vptr candidates do not prove current instance or post-init vptr",
+        "Offset word observations do not prove table extent or method membership"
       ],
-      "execution_allowed": false
+      "execution_allowed": false,
+      "construction_candidate_refs": [
+        "default",
+        "primary",
+        "tertiary",
+        "fourth"
+      ]
     },
     {
       "id": "phase8.aggregate",
@@ -70,14 +78,22 @@
       ],
       "reject_conditions": [
         "Final O vptr / callee not sourced",
-        "Do not merge two calls before ABI/side-effect proof"
+        "Do not merge two calls before ABI/side-effect proof",
+        "Construction vptr candidates do not prove current instance or post-init vptr",
+        "Offset word observations do not prove table extent or method membership"
       ],
-      "execution_allowed": false
+      "execution_allowed": false,
+      "construction_candidate_refs": [
+        "default",
+        "primary",
+        "tertiary",
+        "fourth"
+      ]
     },
     {
       "id": "pool.registration",
-      "status": "static_write_and_factory_frontier",
-      "static_source_closed_for_stated_scope": false,
+      "status": "static_indexed_registration_with_partial_constructor_candidates",
+      "static_source_closed_for_stated_scope": true,
       "sites": [
         "0x42d723",
         "0x42d714"
@@ -87,7 +103,7 @@
       ],
       "contract": {
         "wrapper_source": "0x420ef0 passes ECX=0x8c7630 to 0x42d540",
-        "slot_source": "0x413b40(wrapper,index), body not expanded",
+        "slot_source": "0x413b40: vector=W+4=P; unsigned size>index else throw; [P+4]+4*index",
         "object_source": "EAX from 0x42d360(type)",
         "write": "32-bit object pointer to selected slot; object+0xb4=index",
         "post_registration_virtual_offset": "0x94",
@@ -98,7 +114,14 @@
           32,
           32
         ],
-        "registrar_cleanup_bytes": 20
+        "registrar_cleanup_bytes": 20,
+        "scope": "checked index mapping and registration write; four construction branches before unknown post-init, excludes nested secondary factory",
+        "construction_candidate_refs": [
+          "default",
+          "primary",
+          "tertiary",
+          "fourth"
+        ]
       },
       "provenance": [
         {
@@ -120,18 +143,36 @@
           "local_evidence_file": "rea-static-binding-20261011/pool-factory-entry-assembly.evidence.json",
           "evidence_id": "ev_06ba322763af6a600a158617d804f5549a5e45c0ebdf2bf04ab45c39b573180e",
           "sha256": "84488ba7c41ec3fbb85240446db2efc3d6dfa88e0f8db106323e383089554fad"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/pool-index-slot-assembly.evidence.json",
+          "evidence_id": "ev_73652e466973ed0361ccecfd139bc81098eacd6298b3346be65551385ae2f201",
+          "sha256": "e5b318aa77514657ab9331b9b7c0099621390316585c42784475e2a92f87a47e"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/pool-index-failure-pseudo.evidence.json",
+          "evidence_id": "ev_16c5ec91c33fefb657172d1230f5f04e3cef84b876c0acc8b75370569faa913f",
+          "sha256": "77bbd428b73b233a9c11a85da8ba399f2be10ff606d44816798adfb96df5649e"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/pool-object-factory-assembly.evidence.json",
+          "evidence_id": "ev_a7defcf0cc915601571c3f31fcbf964f7b2648c6acfe2f94af140c1753df4ed9",
+          "sha256": "91ab83f9a9fffbb97ac20474028f80251179dc3bf3ff0590dd8ce8abced4a672"
         }
       ],
       "reject_conditions": [
-        "Exact index helper relation to phase8 slot not closed",
-        "Factory constructors/final vptr not expanded",
-        "Post-registration virtual method may alter state; targets unknown"
+        "Secondary 0x51c660 branch has17 unexpanded returned-function edges",
+        "Outer predicate bodies and selector values are not closed",
+        "R signed-short ID assignment/eligibility is not sourced",
+        "Post-registration +0x94 word 0x428aa0 is unrecognized as a procedure; body and effects unknown",
+        "Final instance vptr, complete table extent and virtual callee ABI are not proved",
+        "Pool backing allocation/state/lifetime not sourced"
       ],
       "execution_allowed": false
     },
     {
       "id": "worker.release",
-      "status": "base_class_candidate_only",
+      "status": "base_candidate_with_conditional_specific_producer",
       "static_source_closed_for_stated_scope": false,
       "sites": [
         "0x5fc139"
@@ -172,9 +213,52 @@
       "reject_conditions": [
         "Actual queued payload final vptr not bound",
         "Derived constructor may overwrite base table",
-        "Candidate ABI cannot be assigned to unknown derived target"
+        "Candidate ABI cannot be assigned to unknown derived target",
+        "Specific base-object producer does not identify all queue payloads",
+        "Listener/parent/callback effects and live instance selection remain unknown",
+        "Nonzero custom J+0x24 registration writers have not been found in selected scope"
       ],
-      "execution_allowed": false
+      "execution_allowed": false,
+      "conditional_producer": {
+        "procedure": "0x60c550",
+        "role": "producer method, not a derived constructor",
+        "condition": "nonzero input and successful allocations/normal return; owner ready for enqueue",
+        "allocation_bytes": 68,
+        "constructed_with": "0x5fb4d0",
+        "initial_vptr": "0x7c14d4",
+        "initial_queue_field": "J+0x24=0",
+        "held_pointer_source": "parent+0x8c",
+        "submit_call": "0x60c699->0x5fbbd0->0x5fba00(mode1)->0x5fb730",
+        "default_queue_path": "0x6125e0->[0x1e54dac]+4->0x5fbea0",
+        "current_worker_instance_bound": false,
+        "unexpanded_edges": [
+          "0x60c6d0 parent cleanup",
+          "0x610fb0 listener construction",
+          "0x60c780 callback"
+        ],
+        "provenance": [
+          {
+            "local_evidence_file": "rea-static-final-source-20261011/asyncop-traced-derived-constructor-assembly.evidence.json",
+            "evidence_id": "ev_9a2b051fafbf146086d17d795130a193455beb3e599001fb4cadb80fbb68f30d",
+            "sha256": "2bad707dd62f96fad5370c2dfcde77b9a0d4949038a6da393bd5ea10ea6bc14f"
+          },
+          {
+            "local_evidence_file": "rea-static-final-source-20261011/producer-base-constructor-target.evidence.json",
+            "evidence_id": "ev_c766e6f3fc9bbf77663fb0e23d661086d2a44a9f9f5bd239a4d8f1722cf4e987",
+            "sha256": "b826c9b852b2b89757bc9f20a36087d1dc21f495592ae88b6028de3c9b9c6535"
+          },
+          {
+            "local_evidence_file": "rea-static-final-source-20261011/producer-submit-target.evidence.json",
+            "evidence_id": "ev_f0e25cfb450ef4870f0b6b144443995677ef8271d556a61c575d97492e5eeb4b",
+            "sha256": "d62c39f4a6e27dbe15ec260877d1d447be55de105152acdcf934fa67fdfd4b5a"
+          },
+          {
+            "local_evidence_file": "rea-static-final-source-20261011/asyncop-pump-register-assembly.evidence.json",
+            "evidence_id": "ev_a16d7d37d2ff8bb0caca10d9469a2e75ab564064976a961cc73aaf5579c81fcc",
+            "sha256": "cfa351fa297358aad174aad94d7a74d1db01cda0f1ff7f39f362f5cce3234ce6"
+          }
+        ]
+      }
     },
     {
       "id": "queue.copy",
@@ -368,5 +452,291 @@
       ],
       "execution_allowed": false
     }
-  ]
+  ],
+  "latest_source_batch": "rea-static-final-source-20261011",
+  "construction_candidates": [
+    {
+      "id": "default",
+      "RTTI_class_name": "Building",
+      "constructor": "0x426c90",
+      "construction_vptr": "0x7ab59c",
+      "allocation_bytes": 200,
+      "factory_condition": "all four outer predicates return AL=0",
+      "construction_pointer_source_closed": true,
+      "actual_phase8_instance_bound": false,
+      "post_registration_vptr_proved": false,
+      "vtable_extent_verified": false,
+      "word_observations": {
+        "0x94": {
+          "word_address": "0x7ab630",
+          "word_value": "0x428aa0",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        },
+        "0xc8": {
+          "word_address": "0x7ab664",
+          "word_value": "0x427180",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        },
+        "0x264": {
+          "word_address": "0x7ab800",
+          "word_value": "0x42cc30",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        }
+      },
+      "RTTI_locator": "0x7cf828",
+      "RTTI_type_descriptor": "0x815ff0",
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-default-constructor-assembly.evidence.json",
+          "evidence_id": "ev_fb34a1feb5a053ba83605fe5d9ceb97d56fa87e809185fddab4d43843dfa03a5",
+          "sha256": "11ecb14e566f2947ffb615d2e6b3e72c6db73a5c78f5fa19fa052f0acf3112ae"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-default-vtable-bytes.evidence.json",
+          "evidence_id": "ev_7885a724e8aabe20ad0e794f60f98aac24d15c3c8e0873b5213d0c398002f8bd",
+          "sha256": "53761bab5e7d1712612af9a50a670ac1d7ef3b3e754a9d2afa9cd40fd2263a6f"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-default-rtti-locator-bytes.evidence.json",
+          "evidence_id": "ev_209ca8c40703fe1d84df0103f3fb28db0c3354ff74f62849e48a135df8668ea2",
+          "sha256": "8f79e8f5109c48495bd03af884767f73be31f3af710d45f6013cdb6f711fb605"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-default-type-descriptor-bytes.evidence.json",
+          "evidence_id": "ev_44218e835543523c7288a670ade9931333c103ad10f5db65f43e9624674b39f4",
+          "sha256": "92b4123962007e1e0f56f46f2dc328cea2dce48ceb841df8e7575d89802e0997"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/default-table-data-type.evidence.json",
+          "evidence_id": "ev_bd5e39040750b734de19df2037baa97bbe62215a528f2108b3729286d623dd06",
+          "sha256": "8062e274a8d91e9ed75f02ebbbac935812c0cfe872db56109adc0ca9b59ab12a"
+        }
+      ],
+      "execution_allowed": false
+    },
+    {
+      "id": "primary",
+      "RTTI_class_name": "HouseBldg",
+      "constructor": "0x42d480",
+      "construction_vptr": "0x7aba38",
+      "allocation_bytes": 268,
+      "factory_condition": "0x5188b0(selector) returns AL!=0",
+      "construction_pointer_source_closed": true,
+      "actual_phase8_instance_bound": false,
+      "post_registration_vptr_proved": false,
+      "vtable_extent_verified": false,
+      "word_observations": {
+        "0x94": {
+          "word_address": "0x7abacc",
+          "word_value": "0x428aa0",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        },
+        "0xc8": {
+          "word_address": "0x7abb00",
+          "word_value": "0x427180",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        },
+        "0x264": {
+          "word_address": "0x7abc9c",
+          "word_value": "0x42e0b0",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        }
+      },
+      "RTTI_locator": "0x7cfad0",
+      "RTTI_type_descriptor": "0x817938",
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-primary-constructor-assembly.evidence.json",
+          "evidence_id": "ev_bf6aed1a438f852a55d0e17096ff9f6f52c39e414364a619fb3830f29d22685b",
+          "sha256": "1797a4d90960fbcf744b3dc97086933bd3018ab1a9f4800ee034de71d4f1678c"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-primary-vtable-bytes.evidence.json",
+          "evidence_id": "ev_81a5464cdd8d8362e7113520aaf858217b9503f8580cb9c6c4983569ff5d5dc9",
+          "sha256": "46974f4cea7d6309d1f30eecf3bc4482ddca536b440aaab28f31f0822bb83bd9"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-primary-rtti-locator-bytes.evidence.json",
+          "evidence_id": "ev_c95c7fc181ac85c24c21373a2bb7355f98ee9d1a36e8b3fe8f8e464a337eb0be",
+          "sha256": "96b8c8e0376ca44cd3306c0425365c7f7d951992ddb6e664a6223238ba90bdf9"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-primary-type-descriptor-bytes.evidence.json",
+          "evidence_id": "ev_d08fc8942780086b91d7ff2a1d55da1d425562440e53350dbd0d93bbf67fe7c1",
+          "sha256": "8cdea76cde740bab989c0993f7d747ba9801467cc05175cbaa810ff972d7b118"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/primary-table-data-type.evidence.json",
+          "evidence_id": "ev_4313e2d38fb5daf33fd5b8a7a9c76cc6d3e8e4e914a2bd1a2469182a0fa5102f",
+          "sha256": "f50fa0f14a586bc2388e29b63448b3bc868136f1a31638bbcee0c348b94a8656"
+        }
+      ],
+      "execution_allowed": false
+    },
+    {
+      "id": "tertiary",
+      "RTTI_class_name": "cMonumentBldg",
+      "constructor": "0x5630b0",
+      "construction_vptr": "0x7b887c",
+      "allocation_bytes": 352,
+      "factory_condition": "0x5188b0=0, 0x51c620=0, 0x562e80!=0",
+      "construction_pointer_source_closed": true,
+      "actual_phase8_instance_bound": false,
+      "post_registration_vptr_proved": false,
+      "vtable_extent_verified": false,
+      "word_observations": {
+        "0x94": {
+          "word_address": "0x7b8910",
+          "word_value": "0x428aa0",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        },
+        "0xc8": {
+          "word_address": "0x7b8944",
+          "word_value": "0x427180",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        },
+        "0x264": {
+          "word_address": "0x7b8ae0",
+          "word_value": "0x56fc20",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        }
+      },
+      "RTTI_locator": "0x7d4b40",
+      "RTTI_type_descriptor": "0x859e98",
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-tertiary-constructor-assembly.evidence.json",
+          "evidence_id": "ev_4294622611e1cd4dd44060f5c20a0d53c742e8b0baaec1b9aeaaf02aa54155e0",
+          "sha256": "667dbf5b98eb372e3c1d1f1ad94b3a553d883084319e773a820f3b00afd85f4d"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-tertiary-vtable-bytes.evidence.json",
+          "evidence_id": "ev_a5d832919156934a7e541f5e18438875f5072d63b6af689dc4fc9c68ffd3b415",
+          "sha256": "824e64b03b1a2f966f2f2ae250d5e7cf0d779ef86c0ff31f8584bbf9859905fa"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-tertiary-rtti-locator-bytes.evidence.json",
+          "evidence_id": "ev_56ffcab1e2e4fcd275bba11e67225dea2e9cea1c48025b93dc544c1d7f4dfa85",
+          "sha256": "f27d4f4b202da797533fe32c2ae66e6b8eefffb8690ca0d9c5a0df78917fcb47"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-tertiary-type-descriptor-bytes.evidence.json",
+          "evidence_id": "ev_a7c125fe5a038664cae06a8b091154cb9d3842138ce7c4a6685cc5ef736466f0",
+          "sha256": "68d1ea795040f50877f840ae9eec954b5b3b48eb0014e37393b0ddeff87137db"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/tertiary-table-data-type.evidence.json",
+          "evidence_id": "ev_2c5195ed084f42b4b52e87b90dfac8e1790ccb1c16ee70403139a10423f57b6d",
+          "sha256": "53c2749a8a8cda5067331239b533fd3978d97481e8b45207d8226bb25efc6206"
+        }
+      ],
+      "execution_allowed": false
+    },
+    {
+      "id": "fourth",
+      "RTTI_class_name": "cFillBldg",
+      "constructor": "0x56fb50",
+      "construction_vptr": "0x7b8ad4",
+      "allocation_bytes": 352,
+      "factory_condition": "first three predicates=0, 0x562e90!=0, selector=0x5e",
+      "construction_pointer_source_closed": true,
+      "actual_phase8_instance_bound": false,
+      "post_registration_vptr_proved": false,
+      "vtable_extent_verified": false,
+      "word_observations": {
+        "0x94": {
+          "word_address": "0x7b8b68",
+          "word_value": "0x428aa0",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        },
+        "0xc8": {
+          "word_address": "0x7b8b9c",
+          "word_value": "0x427180",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        },
+        "0x264": {
+          "word_address": "0x7b8d38",
+          "word_value": "0x570bc0",
+          "vtable_membership_verified": false,
+          "callee_ABI_verified": false
+        }
+      },
+      "RTTI_locator": "0x7d4c80",
+      "RTTI_type_descriptor": "0x85a368",
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-fourth-constructor-assembly.evidence.json",
+          "evidence_id": "ev_92f8665144032519837a23010c8a5d903356615bc1f0dcbb6de8ba8e7ed92d99",
+          "sha256": "813eb22be207437bf2683fb67eceb489551dd79686fa7d9ce91f0b8f652fbcf4"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-fourth-vtable-bytes.evidence.json",
+          "evidence_id": "ev_d2d8631013cc4d62657bf47f6323a643870eb54b1aa575fe4efb842a4a60ffc0",
+          "sha256": "8eeaff7fbff7e38dc566d726d8d202ef2ef7a6abd70ab09958fdd69d3d5bcbc8"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-fourth-rtti-locator-bytes.evidence.json",
+          "evidence_id": "ev_0c345b868b7d625122cf5d48254f51507ca0e049a48a3d3adb4c728d0189ac39",
+          "sha256": "b537f615a4a7529c64d67e5a755b11abca0977ac8dbd461e75d102a09bcef51c"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/object-fourth-type-descriptor-bytes.evidence.json",
+          "evidence_id": "ev_10aacd2327c96696e4151710028fb6019d067cead2a069484d8cda3b953a16b2",
+          "sha256": "c0b948050431251c040ba776afb3a33ae371783c3e5414e70d92e6e72905c056"
+        },
+        {
+          "local_evidence_file": "rea-static-final-source-20261011/fourth-table-data-type.evidence.json",
+          "evidence_id": "ev_764327df092902fdaf746d19f7a419d1866bb5cefbd6428ca8746e0190d2e612",
+          "sha256": "afc80c3acb05ba0f9278af58949ab4cdd3b69cef0fda9331fdcb598e41daf3ee"
+        }
+      ],
+      "execution_allowed": false
+    }
+  ],
+  "unexpanded_secondary_factory_return_edges": {
+    "source": "0x51c660",
+    "targets": [
+      "0x4c0660",
+      "0x4c2960",
+      "0x5075a0",
+      "0x5aae70",
+      "0x51bef0",
+      "0x4143b0",
+      "0x48a800",
+      "0x5b3b10",
+      "0x5d3580",
+      "0x5f0e20",
+      "0x50a2f0",
+      "0x51c9a0",
+      "0x5da3d0",
+      "0x4c5dc0",
+      "0x51e5e0",
+      "0x540770",
+      "0x4f8e30"
+    ],
+    "predicate_bodies_and_return_callees_expanded": false,
+    "provenance": [
+      {
+        "local_evidence_file": "rea-static-final-source-20261011/object-secondary-factory-pseudo.evidence.json",
+        "evidence_id": "ev_13bec59168b96a30c2530f4fac217f5a1be86b0705072192cfab09c762f925f8",
+        "sha256": "fd4013ef3fa5794a2c8e53948b387d787723ca922f60d67d38eca1d736e6b496"
+      },
+      {
+        "local_evidence_file": "rea-static-final-source-20261011/object-secondary-factory-references.evidence.json",
+        "evidence_id": "ev_450916b9bac2ebec91a05763c8c91ad8cf44d45091ae373ea7d93841e3d4728b",
+        "sha256": "6d9063d17817368ed02c4a0b9185a7549c70f93a97d0332d438d535ea0871dda"
+      }
+    ]
+  }
 }

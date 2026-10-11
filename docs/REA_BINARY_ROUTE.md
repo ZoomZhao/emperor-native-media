@@ -6,6 +6,8 @@
 
 后续构造/注册批次补出 `0x42d540@0x42d723` 的登记槽写入，以及WONAPICore owner→内嵌队列→全局注册；节点copy/release与条件allocator路径已补清。详见 [ABI文末收敛结果](REA_ABI_CONTRACTS.md#构造注册链收敛已找到写入者实例目标仍未知) 和 [allowlist候选清单](rea-abi-allowlist-candidates.json)。该批25个新增函数、7个调用站点和3个指令锚点，609.909秒；未唯一绑定phase8最终表或worker实际派生类型，静态精确前沿尚未展开，不能称静态已穷尽。
 
+最后一批已补0x413b40同索引槽公式、0x42d360四项构造vptr/RTTI候选，以及0x60c550基础AsyncOp的条件生产→后备队列路径；[最终对象来源图与未知表](REA_ABI_CONTRACTS.md#最终对象来源图与未展开前沿)列出全部限制。关键发现是完整表范围未证明，0x7b887c+0x264落在相邻构造表区域；偏移字读数不能绑定为方法。20个新函数地址请求只19个有函数视图，0x428aa0三项procedure查询失败已保留；88份成功Evidence、91项操作、4调用站点+6非调用锚点，778.4秒正常清理。schema2候选清单的运行绑定继续关闭，剩余精确静态边仍可定位，不称静态不可能。
+
 ## 安装来源与复现
 
 本地工程：`/Users/zoomzhao/Workspace/emperor-native-media`。CLI 安装在 `.local/rea-cli-6.4.0/node_modules/rea-agents`，没有替换全局 Node/npm/REA，没有运行 `rea setup`、安装分析器或写入持久 MCP/技能配置。已有全局 REA 保留原状。
@@ -206,8 +208,8 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 
 后续最有价值的三个收敛点：
 
-1. **phase8具体对象/虚表目标**：追踪容器及 `0x8c7634`槽写入、对象构造时首word赋值，再解析表 `+0xc8/+0x264`。通过标准是同一对象来源→明确表→有效函数入口的静态链、参数/返回使用一致；仅有偏移/候选类名不能算通过。
-2. **worker对象产生和释放ABI**：追踪队列节点 `+8`生产者、对象refcount/首word初始化、首槽真实目标及外层注册/线程入口。通过标准是入队→保留→出队→末次释放→具体callee的链与调用约定/所有权相互一致；参数1不能单独证明删除析构函数或实际free。
+1. **phase8具体对象/虚表目标**：登记槽和四条构造表来源已补；仍需secondary返回边、R-ID/启用、登记后最终vptr及表范围/有效槽归属。通过标准是同一对象来源→有效表槽→函数入口及参数/返回/清栈一致；偏移字读数或构造候选类名不能算绑定通过。
+2. **worker对象产生和释放ABI**：已有基础AsyncOp条件生产者、owner及正常节点/current引用链；其他payload/非零J+0x24写入、parent/listener/callback效果和实际current/线程入口仍缺。通过标准是同一J入队→保留→出队→末次释放→实际callee的链与调用约定/所有权一致；基类表或参数1不能独立证明实例目标和实际free。
 3. **启动/调度依赖及完成边界**：核对窗口回调/模式迁移、时钟/暂停字段写入、所有51个步序及慢周期依赖/退出边界。通过标准是条件和来源闭合、computed目标/未恢复函数/警告逐项明示。静态闭合与完整原tick运行通过分别记录；后者目前没有证据，旧被拦截的转换执行/动态对照路线不重启。
 
 本地机器记录 `rea-static-route-20261011/verified-route.json`包含七条边的site/来源Evidence、六项媒体解析分类、对象/worker未知项、累计范围/时间、输入身份及全部保存输出的SHA。两个会话的raw dossier/伪代码/汇编/日志仅本地留存；Git发布筛选结论，不上传原二进制、素材或这些分析原文。
@@ -219,7 +221,7 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 | 原入口到调度 | 新扩链确认入口→应用消息循环→帧/模式→调度的条件式直接连接 | 自然条件是否满足、原菜单/地图的全部消费者与实际执行仍未知 |
 | 调度及phase8 | 新静态引用确认 `0x4ac338→0x4aeeb0`；tid1、返回 `0x4ac33d`、Watch7→8及真实栈仍仅属历史报告 | 静态CALL不是自然到达或完整tick。旧batch A预算失败、B/C未开始；本轮原执行仍0，无新合格活动输入 |
 | 切片消费者及绑定 | 自写驱动导入memory/threads/heap/锁/API/目标表并检查入口/完成栈后调用入口，完成后诊断/清理/退出 | 当前 `_s82_entry`、`_s82_completion`、返回表/count和structural bindings仍未解析；App未链接原消费者、timer仍是自写CitySimulation；一次性驱动不证明连续原调度 |
-| 动态callback | 历史 worker4 `0x5fc139`，ECX来自ESI对象、整数1、返回 `0x5fc13b`；初始槽为NULL | 初始NULL不是恒空；具体对象的工厂/最终表尚未闭合；新ABI附录找到AsyncOp基类表/删除包装器并核清该候选callee的ABI，但当前对象未唯一绑定。站点仍computed/unresolved，引用转移/真实释放/线程注册仍缺 |
+| 动态callback | 历史 worker4 `0x5fc139`，ECX来自ESI对象、整数1、返回 `0x5fc13b`；初始槽为NULL | 初始NULL不是恒空；有一条基础AsyncOp生产→条件后备队列路径及正常node/current引用转移证据，其他payload与当前对象最终表未绑定。候选删除包装器ABI已核清，站点仍computed/unresolved；异常/回调引用、真实释放及线程入口仍缺 |
 | 平台及状态 | 当前有限15项dispatch，heap/TLS/LastError/线程ID、三种有限锁与memops；未知明确失败 | 旧选定集合20项Win32边界、20个非IAT目标、SEH/wait/wake/运行后冷恢复仍缺。新导入表扩大的是声明依赖视野，不证明这些接口已调用或通过 |
 | graphics | 自造RGB555/565/BGRA的stride、裁剪、缩放、重叠及生命周期已有限定CPU/离屏Metal证据 | DirectDrawCreate跳板与原初始化已有静态连接，Bink复制进入surface槽；完整接口/像素消费者未验证。旧移位最大248/252与补位255不同，GPU读回不等于原画面或全游戏通过 |
 | audio | 自造S16队列/循环、格式拒绝和fake设备恢复有离线证据，历史AudioUnit仅有限回调证据 | 54个Miles导入的合同/触发/混音/clock、真实输出与设备恢复未闭合；离线PCM不能当听觉验证，fake恢复不能当物理设备通过 |
@@ -252,5 +254,6 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 - `rea-static-route-20261011/`、`rea-static-route-resume-20261011/`：本次扩链及小视图补齐，保存控制/范围/输入/完成事件、原始Evidence、自有日志及verified-route；这是入口至调度的静态主路线结果。原始分析只本地留存。
 - `rea-static-abi-20261011/`：新的phase8/worker ABI有界查询、verified-abi、成对选定工具指纹、原始Evidence及提交/发布凭据；筛选附录见REA_ABI_CONTRACTS.md。
 - `rea-static-binding-20261011/`：构造/登记写入、copy/release/allocator及owner收敛证据、verified-bindings、候选清单与发布凭据；原始分析仅本地保存。
+- `rea-static-final-source-20261011/`：索引槽、四条构造表/RTTI、基础AsyncOp条件生产者、表范围限制及0x428aa0失败凭据；verified-sources、最终来源图/未知表、schema2候选清单和发布凭据，原始分析仅本地保存。
 
-当前构造/注册发布选择此文档、ABI合同附录和声明式allowlist候选清单。原EXE/依赖树/工具包/原始分析输出不入Git，GameData不读取/上传，既有工程草稿与授权接口来源指纹保持原字节。
+最后一批对象来源发布选择此文档、ABI合同附录和声明式allowlist候选清单。原EXE/依赖树/工具包/原始分析输出不入Git，GameData不读取/上传，既有工程草稿与授权接口来源指纹保持原字节。
