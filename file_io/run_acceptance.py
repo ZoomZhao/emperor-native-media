@@ -28,6 +28,8 @@ def main():
     parser.add_argument("--mode", choices=("release", "undefined"), default="release")
     parser.add_argument("--corpus", type=Path)
     args = parser.parse_args()
+    if sys.flags.optimize:
+        parser.error("Python optimization disables mandatory validation checks; use unoptimized Python")
     output = args.output
     if not output.is_absolute() or output.exists():
         parser.error("output must be a fresh absolute directory")

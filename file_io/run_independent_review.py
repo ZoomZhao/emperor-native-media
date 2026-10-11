@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Run only reviewer-written tests plus fixed self-authored reader with system zlib."""
+import sys
 import argparse,hashlib,json,os,subprocess,time
 from pathlib import Path
 R=Path(__file__).resolve().parent
 ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,required=True);args=ap.parse_args()
+if sys.flags.optimize:
+ ap.error('Python optimization disables mandatory validation checks; use unoptimized Python')
 out=args.output.resolve()
 if not args.output.is_absolute() or out.exists():ap.error('output must be new absolute directory')
 out.mkdir(parents=True);commands=[];start=time.monotonic()

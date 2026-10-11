@@ -14,6 +14,8 @@ parser.add_argument('--profile', type=Path, required=True)
 parser.add_argument('--gate', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
+if sys.flags.optimize:
+    parser.error('Python optimization disables mandatory review and semantic assertion checks; use unoptimized Python')
 repo = args.repo.resolve()
 root = Path(__file__).resolve().parent
 out = args.output

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Self-authored ownership tests only, not the independent reviewer suite."""
+import sys
 import argparse
 import hashlib
 import json
@@ -10,6 +11,8 @@ root = Path(__file__).resolve().parent
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
+if sys.flags.optimize:
+    parser.error("Python optimization disables mandatory validation checks; use unoptimized Python")
 out = args.output
 if not out.is_absolute() or out.exists(): parser.error('new absolute output required')
 out.mkdir(parents=True)

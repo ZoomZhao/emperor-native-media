@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Read a separately authorized small data file; emit counts/hashes, never bytes."""
+import sys
 import argparse
 import hashlib
 import json
@@ -15,6 +16,8 @@ parser.add_argument('--max-output', type=int, required=True)
 parser.add_argument('--max-blocks', type=int, required=True)
 parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
+if sys.flags.optimize:
+    parser.error("Python optimization disables mandatory validation checks; use unoptimized Python")
 root = Path(__file__).resolve().parent
 repo = root.parent
 sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
@@ -25,9 +28,11 @@ if not (4 <= args.expected_bytes <= args.max_input <= 8192 and 0 <= args.max_out
     parser.error('explicit budgets exceed tool supported domain')
 ready = json.loads((repo/'docs/original-profile-owned-readiness.json').read_text())
 for relative, digest in ready['fixed_production_source_sha256'].items():
-    assert sha(repo/relative) == digest
+    if sha(repo/relative) != digest:
+        raise RuntimeError('reviewed production source SHA mismatch: '+relative)
 profile_path = repo/'docs/original-file-outer-profile.json'
-assert sha(profile_path) == ready['source_profile_sha256']
+if sha(profile_path) != ready['source_profile_sha256']:
+    raise RuntimeError('reviewed source profile SHA mismatch')
 profile = json.loads(profile_path.read_text())
 markers = profile['marker_parameters']
 args.output.mkdir(parents=True)
@@ -54,7 +59,8 @@ try:
                    markers['raw_marker']['value_u32'],36144,36144],'qualification',30)
     if run.returncode: raise RuntimeError('fixed-path readonly qualification failed; consult stderr; no retry or alternative path')
     statistics = json.loads(run.stdout)
-    assert statistics['canonical_path'] == str(args.input) and not statistics['raw_or_decoded_bytes_exported']
+    if statistics['canonical_path'] != str(args.input) or statistics['raw_or_decoded_bytes_exported']:
+        raise RuntimeError('qualification path/export result mismatch')
     (args.output/'statistics.json').write_text(json.dumps(statistics,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps({key:statistics[key] for key in ('input_bytes','input_sha256','termination',
           'validated_blocks','validated_output_bytes','unconsumed_file_bytes')},ensure_ascii=False))
