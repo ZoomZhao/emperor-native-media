@@ -1,0 +1,372 @@
+{
+  "schema_version": 1,
+  "purpose": "Filtered static research candidates; no runtime dispatch registration",
+  "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+  "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+  "pointer_bits": 32,
+  "runtime_binding_created": false,
+  "target_execution_performed": false,
+  "default_unknown_action": "reject; no success stub",
+  "static_source_closed_definition": "Only the stated local call/write/helper scope; excludes runtime reachability and all unexpanded dynamic targets",
+  "candidates": [
+    {
+      "id": "phase8.predicate",
+      "status": "unresolved_dynamic_target",
+      "static_source_closed_for_stated_scope": false,
+      "sites": [
+        "0x4aef47"
+      ],
+      "targets": [],
+      "contract": {
+        "receiver": "O from signed 16-bit ID / pool slot",
+        "vtable_offset": "0xc8",
+        "argument_stack_bits": [
+          32
+        ],
+        "argument_value": "0x35",
+        "caller_return_use": "AL"
+      },
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-abi-20261011/phase8-predicate-target.evidence.json",
+          "evidence_id": "ev_69f5aad627765bb2cf5bb24a8af8aa0b91cf19456dececcaabee73cd71429fc2",
+          "sha256": "888e6b543b86d164e9e2837b1a5eb19a78db78f917cc969b752751537d2d4581"
+        }
+      ],
+      "reject_conditions": [
+        "Final O vptr / callee not sourced",
+        "Callee cleanup, lifetime or side effects unknown"
+      ],
+      "execution_allowed": false
+    },
+    {
+      "id": "phase8.aggregate",
+      "status": "unresolved_dynamic_target",
+      "static_source_closed_for_stated_scope": false,
+      "sites": [
+        "0x4aef92",
+        "0x4aefaa"
+      ],
+      "targets": [],
+      "contract": {
+        "vtable_offset": "0x264",
+        "argument_stack_bits": [
+          32
+        ],
+        "argument_source": "same caller local slot loaded twice",
+        "caller_return_use": "32-bit EAX addition"
+      },
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-abi-20261011/phase8-value-target1.evidence.json",
+          "evidence_id": "ev_a3f5762ca6114faeef28c4f2e8acb9ab59f4ba4e25609eaecb8f59ab7959f0b6",
+          "sha256": "bbcf27442a290e76dc61399f54a93cd2119dd22479f068729526908a9e7edada"
+        },
+        {
+          "local_evidence_file": "rea-static-abi-20261011/phase8-value-target2.evidence.json",
+          "evidence_id": "ev_8ff9298173805e2fa76a95bf1bbdd5ca5f0e21158e5318545b1a5808aacf9776",
+          "sha256": "9cd9b6d76dcae71461ab142471f3849e5a1cf3d2ea75ae2b741f7ea9240dd2a6"
+        }
+      ],
+      "reject_conditions": [
+        "Final O vptr / callee not sourced",
+        "Do not merge two calls before ABI/side-effect proof"
+      ],
+      "execution_allowed": false
+    },
+    {
+      "id": "pool.registration",
+      "status": "static_write_and_factory_frontier",
+      "static_source_closed_for_stated_scope": false,
+      "sites": [
+        "0x42d723",
+        "0x42d714"
+      ],
+      "targets": [
+        "0x42d360"
+      ],
+      "contract": {
+        "wrapper_source": "0x420ef0 passes ECX=0x8c7630 to 0x42d540",
+        "slot_source": "0x413b40(wrapper,index), body not expanded",
+        "object_source": "EAX from 0x42d360(type)",
+        "write": "32-bit object pointer to selected slot; object+0xb4=index",
+        "post_registration_virtual_offset": "0x94",
+        "registrar_stack_bits": [
+          32,
+          32,
+          32,
+          32,
+          32
+        ],
+        "registrar_cleanup_bytes": 20
+      },
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-binding-20261011/pool-factory-wrapper-call-target.evidence.json",
+          "evidence_id": "ev_ae30ca6ae9adc229d28ad16d22eda6b8107ed795e42c9d34433d1126dd9ad5a4",
+          "sha256": "1f0bfb6d32e85b3d6e17ec531e1e2f63966f4ee9e01567ee6bb26b7197954d36"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/pool-returned-object-call-target.evidence.json",
+          "evidence_id": "ev_c7a5f607099fa4ce9a17b1c8074720336c666d014786ae028d23dae93a926230",
+          "sha256": "7ee49023042ace199abfbf852e73aa8719ebd5e46b51cd27ea79e33c9b0a6205"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/pool-slot-registration-write.evidence.json",
+          "evidence_id": "ev_1da21cd3597794be15833065e2af2c80ec36619d32438e8c865f67681e0fe0a1",
+          "sha256": "9412506103d2eea0c4ac1ae3626d36e672feea7fda14459fccb06a1193f3d147"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/pool-factory-entry-assembly.evidence.json",
+          "evidence_id": "ev_06ba322763af6a600a158617d804f5549a5e45c0ebdf2bf04ab45c39b573180e",
+          "sha256": "84488ba7c41ec3fbb85240446db2efc3d6dfa88e0f8db106323e383089554fad"
+        }
+      ],
+      "reject_conditions": [
+        "Exact index helper relation to phase8 slot not closed",
+        "Factory constructors/final vptr not expanded",
+        "Post-registration virtual method may alter state; targets unknown"
+      ],
+      "execution_allowed": false
+    },
+    {
+      "id": "worker.release",
+      "status": "base_class_candidate_only",
+      "static_source_closed_for_stated_scope": false,
+      "sites": [
+        "0x5fc139"
+      ],
+      "targets": [
+        {
+          "candidate_vtable": "0x7c14d4",
+          "candidate_target": "0x5fb520",
+          "RTTI": "WONAPI::AsyncOp"
+        }
+      ],
+      "contract": {
+        "receiver": "current payload, ECX",
+        "argument_stack_bits": [
+          32
+        ],
+        "argument_value": 1,
+        "release_guard": "signed InterlockedDecrement(payload+4)<=0",
+        "candidate_cleanup_bytes": 4
+      },
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-abi-20261011/worker-release-target.evidence.json",
+          "evidence_id": "ev_fbb2c53202a6884509db1d0b2e8419ecba7b4711d824a5b7d743efaddc3d6efd",
+          "sha256": "a5e4c916fb593bd9af01283660ee6e7bebcecfd333cb111576888aed0bbb8869"
+        },
+        {
+          "local_evidence_file": "rea-static-abi-20261011/job-base-constructor-write.evidence.json",
+          "evidence_id": "ev_3bbe3ca8113d9e0fbd52d6e52b5b9f663e5c988804dd66f9e24770ad4aca670f",
+          "sha256": "874119b7ce3c16082fc4f28077d00076a8e3cd5cd02b66de1fad69f8a7ee12a6"
+        },
+        {
+          "local_evidence_file": "rea-static-abi-20261011/job-base-deleting-destructor-assembly.evidence.json",
+          "evidence_id": "ev_7be20866e31a3fc11aaf14b5c5bee50977fc07b3226b185a210d340479ae456e",
+          "sha256": "02fb97c76a37dc2c6cfce470b469681170513bae17d73b980551e36cdc13f047"
+        }
+      ],
+      "reject_conditions": [
+        "Actual queued payload final vptr not bound",
+        "Derived constructor may overwrite base table",
+        "Candidate ABI cannot be assigned to unknown derived target"
+      ],
+      "execution_allowed": false
+    },
+    {
+      "id": "queue.copy",
+      "status": "static_direct_helper_contract",
+      "static_source_closed_for_stated_scope": true,
+      "sites": [
+        "0x5fbf47"
+      ],
+      "targets": [
+        "0x718850"
+      ],
+      "contract": {
+        "argument_stack_bits": [
+          32,
+          32
+        ],
+        "arguments": "destination node+8, address of temporary reference holder",
+        "non_null_action": "increment payload+4 and store payload",
+        "abi": "cdecl-compatible, caller clears 8 bytes"
+      },
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-binding-20261011/queue-copy-call-target.evidence.json",
+          "evidence_id": "ev_a6c90b61acf92f341c1576c42b3fa83a703d01a02ad9aedba89917d4d08ae9f1",
+          "sha256": "6389de4ab35749661a70010d9bb7fea17bcb7c0e2ae6976315fc700498a1a2f1"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/payload-copy-assembly.evidence.json",
+          "evidence_id": "ev_204fea5f403b7ea37f8e91e7789cf4a10d08807498b43b5e6e7d7a913676f4d1",
+          "sha256": "bf1e5d3971d1d66c69da2c0444dbb3493a7457ad478712034f11ee276aeca3eb"
+        }
+      ],
+      "reject_conditions": [
+        "Node allocation/copy did not complete normally",
+        "Exception/rollback contract missing",
+        "Payload is invalid or width/lifetime evidence missing"
+      ],
+      "execution_allowed": false
+    },
+    {
+      "id": "node.release",
+      "status": "static_helper_chain_dynamic_tail",
+      "static_source_closed_for_stated_scope": true,
+      "sites": [
+        "0x6054fd"
+      ],
+      "targets": [
+        "0x58d6c0",
+        "0x58f2c0",
+        "0x4799b0"
+      ],
+      "contract": {
+        "receiver": "node+8 reference holder -> payload",
+        "tail_edges": [
+          "0x58d6c0 JMP 0x58f2c0",
+          "0x58f2c6 JMP 0x4799b0"
+        ],
+        "last_release": "signed decrement<=0; ECX payload; 32-bit flags=1; first vtable slot remains unknown"
+      },
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-binding-20261011/node-holder-dtor-call-target.evidence.json",
+          "evidence_id": "ev_2f22518f0105da052705c0097bf0aec68b541516ea2ffcdd007d24c726ac89b0",
+          "sha256": "1030d497e1050f340db6ee89c4d898a5c6be2a802abfb2fdcbeab854294fb879"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/node-payload-destroy-assembly.evidence.json",
+          "evidence_id": "ev_d95ee28e54457fec3ffffc9ed0824d1d47bb18d102c52a17429ec72f53a8c685",
+          "sha256": "834838e52fc6e48b5e9e80a770309d6713d5e44015887f57e9cf5fa626ac0832"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/payload-holder-dtor-assembly.evidence.json",
+          "evidence_id": "ev_9b0447ea05d7c1c7f5460f8ebebe7d1eb7f1b13a855dc7b86aa811131149fcdb",
+          "sha256": "359aa43d61ed0bfff39345c96dc7bb11dde2d328ff82c9796af86fa6df254fb7"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/payload-release-assembly.evidence.json",
+          "evidence_id": "ev_1f902a6dde75db32dbada7ebf544cf5ca74f90e044b8ed10bd6345e990795813",
+          "sha256": "284634ecfe516d6429070b40e6341d053a3192bb36724fed4233e33b715daf0a"
+        }
+      ],
+      "reject_conditions": [
+        "Dynamic first-slot target/ABI not bound",
+        "No evidence for successful exception unwind or release"
+      ],
+      "execution_allowed": false
+    },
+    {
+      "id": "allocator.forward",
+      "status": "static_forward_and_conditional_import",
+      "static_source_closed_for_stated_scope": true,
+      "sites": [
+        "0x77bb35",
+        "0x7657b3"
+      ],
+      "targets": [
+        "0x7656df",
+        "KERNEL32.DLL::HeapFree"
+      ],
+      "contract": {
+        "argument_stack_bits": [
+          32
+        ],
+        "abi": "cdecl-compatible",
+        "scope": "forwarder and conditional generic HeapFree branch only",
+        "branch_selector": "0x1e58d24, modes2/3 have additional unexpanded helpers",
+        "heap_handle_source": "[0x1e58d20]",
+        "HeapFree_flags": 0
+      },
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-binding-20261011/delete-forward-call-target.evidence.json",
+          "evidence_id": "ev_73bcf59608b1b779c44a07a742a9505079b2b48e9f7cb1d8fc3819f61b3bfd60",
+          "sha256": "29e681fcd2431945c81d18e16dc3b975b40e85cf4a57bca4d1c9e340e272155a"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/delete-helper-assembly.evidence.json",
+          "evidence_id": "ev_6fd67ffb53c8adda2ebc47799492a744e9bba3a770caf7a4873634f662f15955",
+          "sha256": "4117e14079a05fb73ae1273517f18cd2c95eae4c19b789a5d0f88ad7947f89f6"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/allocator-heapfree-call-target.evidence.json",
+          "evidence_id": "ev_c43486910acb8c92db8353d2a0032d008f82dec0eb601362eb96a430b06e70cf",
+          "sha256": "5a2b33f8f742980abc4008a48311fc8495fc9938dec795cfafba714c29f1a75b"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/crt-free-assembly.evidence.json",
+          "evidence_id": "ev_9027c827d8ecea224a7e45970261d617e853cf27face49f2058d4e267025c495",
+          "sha256": "9d5ca25772cd52019a786730276f7fcaa226fb66250960e724514b3b39d9bc27"
+        }
+      ],
+      "reject_conditions": [
+        "Actual allocator mode/heap handle/ownership not sourced",
+        "Mode2/3 helper bodies not closed",
+        "HeapFree success unobserved"
+      ],
+      "execution_allowed": false
+    },
+    {
+      "id": "owner.queue",
+      "status": "static_construction_and_registration",
+      "static_source_closed_for_stated_scope": true,
+      "sites": [
+        "0x612063",
+        "0x612007"
+      ],
+      "targets": [
+        "0x5fbc30"
+      ],
+      "contract": {
+        "owner_constructor": "0x612040",
+        "owner_vtable": "0x7c1808",
+        "owner_RTTI": "WONAPI::WONAPICore",
+        "queue_receiver": "owner+4",
+        "global_owner_registration": "0x611f60 writes owner to 0x1e54dac",
+        "fallback_receiver": "[0x1e54dac]+4",
+        "owner_constructor_stack_cleanup_bytes": 4,
+        "constructor_parameter_meaning": "unknown"
+      },
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-binding-20261011/owner-queue-construction-call-target.evidence.json",
+          "evidence_id": "ev_f361d389bde8a298a0d736943e8704d0a13a682924345665aba9639a26043f12",
+          "sha256": "feaf19ee360ef99cf540c86ab028bc33907173d3504c0a9895d9925beab75ba9"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/global-owner-full-constructor-assembly.evidence.json",
+          "evidence_id": "ev_ca58d1b1a6abfcab10611dd838cd975b638647e68fd37ec97af7dc7904a98a4c",
+          "sha256": "4a717bb30c9031e62937501ef9a87b2f61c5f55586a03e9d1bffafd593083bcb"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/global-owner-write-instruction.evidence.json",
+          "evidence_id": "ev_97970e465c06a8c6771fb5c9b9e1cd8a7c867097a97ff149650753ad0b0e6cac",
+          "sha256": "e32b94c5e0982ef7ed56ea6caf10d4801b2c94fcbc58e252dc23f0ee3eb06df6"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/global-owner-type-descriptor-bytes.evidence.json",
+          "evidence_id": "ev_c6b5d837418d1bb3e102708267e9f778948301acde1752a37e5a4e02034121aa",
+          "sha256": "6ca5017d34d5f7c68cfed398f5c57185f08adc31ef5f473cb6f1d3aaeb6200a8"
+        },
+        {
+          "local_evidence_file": "rea-static-binding-20261011/queue-fallback-assembly.evidence.json",
+          "evidence_id": "ev_8d9ea435a5a14dbedd07eda6b5bd72421ba47cb7a1c2aa448367ecc688113bb0",
+          "sha256": "db5cc9e9009187f443496aa4dc8dd87ed34f0aee0a971905f18299199577aa64"
+        }
+      ],
+      "reject_conditions": [
+        "Owner/queue not constructed or registered in current instance",
+        "Owner and AsyncOp payload identities conflated",
+        "This does not source payload derived type or city worker role"
+      ],
+      "execution_allowed": false
+    }
+  ]
+}

@@ -4,6 +4,8 @@
 
 最新 [phase8/worker ABI合同附录](REA_ABI_CONTRACTS.md) 补全索引布局、AsyncOp候选首槽的清栈/flags/返回和队列入引用路径，并修正worker上游零参数的分支条件。该轮新增20个函数、6个调用站点和3个上下文指令锚点，802.024秒；实际对象表、真实释放及完整tick仍未知。此前30函数/8站点/714.653秒是主路线轮次，未与ABI轮次混计。
 
+后续构造/注册批次补出 `0x42d540@0x42d723` 的登记槽写入，以及WONAPICore owner→内嵌队列→全局注册；节点copy/release与条件allocator路径已补清。详见 [ABI文末收敛结果](REA_ABI_CONTRACTS.md#构造注册链收敛已找到写入者实例目标仍未知) 和 [allowlist候选清单](rea-abi-allowlist-candidates.json)。该批25个新增函数、7个调用站点和3个指令锚点，609.909秒；未唯一绑定phase8最终表或worker实际派生类型，静态精确前沿尚未展开，不能称静态已穷尽。
+
 ## 安装来源与复现
 
 本地工程：`/Users/zoomzhao/Workspace/emperor-native-media`。CLI 安装在 `.local/rea-cli-6.4.0/node_modules/rea-agents`，没有替换全局 Node/npm/REA，没有运行 `rea setup`、安装分析器或写入持久 MCP/技能配置。已有全局 REA 保留原状。
@@ -249,5 +251,6 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 - `rea-static-session-20261011/`：前次最小静态关口与发布凭据，包含3-procedure截断图及两站点。
 - `rea-static-route-20261011/`、`rea-static-route-resume-20261011/`：本次扩链及小视图补齐，保存控制/范围/输入/完成事件、原始Evidence、自有日志及verified-route；这是入口至调度的静态主路线结果。原始分析只本地留存。
 - `rea-static-abi-20261011/`：新的phase8/worker ABI有界查询、verified-abi、成对选定工具指纹、原始Evidence及提交/发布凭据；筛选附录见REA_ABI_CONTRACTS.md。
+- `rea-static-binding-20261011/`：构造/登记写入、copy/release/allocator及owner收敛证据、verified-bindings、候选清单与发布凭据；原始分析仅本地保存。
 
-当前发布仅选择此文档和ABI合同附录。原EXE/依赖树/工具包/原始分析输出不入Git，GameData不读取/上传，既有工程草稿与授权接口来源指纹保持原字节。
+当前构造/注册发布选择此文档、ABI合同附录和声明式allowlist候选清单。原EXE/依赖树/工具包/原始分析输出不入Git，GameData不读取/上传，既有工程草稿与授权接口来源指纹保持原字节。
