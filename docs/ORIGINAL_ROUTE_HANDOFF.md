@@ -19,3 +19,9 @@
 两owner34guards仍独立读取，未找到实际变值store亦未证明不变；reset0/0/0/1仅条件分支。原28后hooks、pretick四helper/tail、buffered四缺边、append双编号/失败、Q274/cc/P150、OS异常/handler重入仍保留。实际载入、首次新状态tick、完整周期/可玩未证明。
 
 不执行原/衍生游戏、转换/SR/Unicorn/Wine或历史被拒探测，不读GameData/旧Swift，不运行组件或UI/设备；没有本批网络/push/替代上传。558八份文档push两次预执行自动拒绝、旧问题待人类明确目的地/载荷回复；最后核远端697c4b0，未重新联网，新HEAD范围不自动受旧八文档审批覆盖。
+
+## 最新有限模态来源与缓冲读取
+
+[新静态合同](ORIGINAL_MODAL_SOURCE_BUFFERED_READ_CONTRACT.md)：1e551e4的29准确xref为28读/1store；4faca0分配1a0→6c4530→618670发布this，匹配派生root7c82fc+4=6c4930；16native前缀有条件self+fc零写，缺6c4956/6c4971。不是live绑定，owner34非零/guard相等仍未闭合。
+
+447e00复用90+补48得138native正常局部图，四RET8；N>=A先fill后看remaining，包含buffered零请求，而raw零请求提前返0；fill后A0可返回累计短量。当前virtual60候选447d30仅8native、缺447d4c/447dfb，底层格式/OS/异常与存活Unknown。138/135/3总查询证据及元数据结果，继续官方exit0/688.393秒，源/18模块不变、临时空。原label错误/初次拒绝保留，附具体用户REA原文同命令标准复审一次获准；护栏/权限不改，无执行/转换/网络/上传/测试。新语义待独立复核，push待批不变。

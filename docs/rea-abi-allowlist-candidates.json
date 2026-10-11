@@ -1,5 +1,5 @@
 {
-  "schema_version": 22,
+  "schema_version": 23,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -473,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-owner34-production-and-derived100-20261011",
+  "latest_source_batch": "rea-static-modal-source-and-buffered-read-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -1745,6 +1745,38 @@
       "derived100_all_native_graph_proved": false,
       "original_or_derived_game_executed": false,
       "runtime_binding_created": false,
+      "new_semantics_independently_reviewed": false,
+      "push_attempts_this_batch": 0
+    },
+    {
+      "batch": "rea-static-modal-source-and-buffered-read-20261011",
+      "initial_attempt_queries": 6,
+      "initial_attempt_exit_code": 1,
+      "initial_failure": "uppercase Listing in own request label, not invalid operation name; original failure retained",
+      "standard_re_review_attempts": 1,
+      "standard_re_review": "same command approved with supplied specific user REA transcript; no guard or permission changes",
+      "continuation_requests": 132,
+      "continuation_Evidence": 129,
+      "NoProcedure_metadata_errors": 3,
+      "cumulative_queries": 138,
+      "cumulative_Evidence": 135,
+      "distinct_procedure_parameters": 11,
+      "native_anchors": 107,
+      "selected_read_bytes": 16,
+      "continuation_exit_code": 0,
+      "continuation_elapsed_seconds": 688.393,
+      "both_sessions_elapsed_seconds": 864.172,
+      "closed_normal_file_graph_nodes": 138,
+      "reused_old_file_nodes": 90,
+      "new_file_graph_nodes": 48,
+      "selected_modal_handler_partial_nodes": 16,
+      "selected_file_fill_partial_nodes": 8,
+      "input_identity_unchanged": true,
+      "official_module_pairs": 18,
+      "temporary_empty": true,
+      "runtime_binding_created": false,
+      "original_or_derived_or_arm64_game_executed": false,
+      "component_tests_run": false,
       "new_semantics_independently_reviewed": false,
       "push_attempts_this_batch": 0
     }
@@ -3115,5 +3147,111 @@
       "new_semantics_independently_reviewed": false,
       "push_attempts_this_batch": 0
     }
+  },
+  "original_modal_source_buffered_read_contract": {
+    "document": "docs/ORIGINAL_MODAL_SOURCE_BUFFERED_READ_CONTRACT.md",
+    "manifest": "docs/original-modal-source-buffered-read-evidence.json",
+    "proof_class": "Fixed original-x86 source normal CFG and conditional construction root matching only; no live receiver/ABI execution",
+    "modal_provenance": {
+      "global": "1e551e4",
+      "exact_xrefs": 29,
+      "classified_reads": 28,
+      "direct_writer": "618856 MOV[1e551e4],ESI inside618670",
+      "all_alias_writes_covered": false,
+      "construction": "4faca0 malloc1a0;nonnull calls6c4530(0),which calls618670;618670 setsroot7c1a6c andwritesglobal,6c4530 thenwritesroot7c82fc",
+      "base_widget_distinction": "616d90 onlyreads1e551e4 intochild7c;dcwidget7c8344 notmodalreceiver",
+      "conditional_slot4": "7c1a6c+4=61b500;selectedderived7c82fc+4=6c4930;fixedwords andmatchingconstructor are conditional candidates,notlivebinding",
+      "selected_handler_partial": "16native nodes;firstexternal callat6c4941 thenEAXzero branch6c4949->6c4966 writes self+fc=0. Anotherexternal callat6c4950;staticEXTERNAL refs b0/9f observed,API names/implementations andmessagecallback effectclosure not established",
+      "reader_stops": [
+        "6c4956",
+        "6c4971"
+      ],
+      "full_handler_normal_or_exception_graph_closed": false,
+      "nonzero_owner34_production_identified": false,
+      "two_owner34_guards_same_proved": false,
+      "termination_or_actual_object_lifetime_proved": false
+    },
+    "buffered_effective_read": {
+      "entry": "447e00;selectedroot7ac7d4+34 is447e00 perpriorfixedsource;actualroot/flagunbound",
+      "normal_graph": {
+        "nodes": 138,
+        "reused": 90,
+        "new": 48,
+        "closed": true,
+        "ret8_exits": [
+          "447e5c",
+          "447f15",
+          "447f5c",
+          "447f75"
+        ],
+        "calls": {
+          "447f6b": "77c2c1",
+          "447ea8": "currentvirtual60",
+          "447f05": "currentvirtual60"
+        }
+      },
+      "premises": [
+        "normal callee return and original ABI preservation",
+        "valid receiver/buffer/destination and sufficient storage",
+        "DF0 for forward REP copy",
+        "nonnegative bounded available counts and valid arithmetic/pointer ranges",
+        "no concurrent/reentrant alias invalidation"
+      ],
+      "raw_branch": "Fbyte1e zero ->77c2c1;zero request returns0 beforeReadFile;successful OS branch returns actual out-count,not guaranteed requested-count",
+      "small_request_branch": "buffered N<A:copyN,advanceF20,decreaseF11a88,normalRET N",
+      "equal_or_larger_branch": "N>=A:copyA ifsignedA>0,clearavailable,invoke currentvirtual60 BEFORE testingremaining;N==A andbufferedN==A==0 stillreachfill",
+      "loop": "while remaining>0,positiveavailable copied/added andfillcalled again;requestedgreaterthan newlyavailable0 returns accumulated short count;last remaining<=available copy consumes remaining. Countvalidity/memorybounds/termination not runtimeproved",
+      "short_return": "No forced full-read in447e00;withvalidA=0afterfill,N>0 returns accumulated total at447f15",
+      "fill_candidate": "selected7ac7d4+60word=447d30;8native prefix only;missing447d4c/447dfb. MetadataNoProcedure isnotmissingmachinecode or safetyrejection",
+      "archive_consumer": "saved78074e mayiterate underlyingcurrentvirtual34 whilepositiveactualcountandneedunmet;afterfill comparesavailablewithneed andcalls78090e(3,0)ifshort. Not proof actualfilemode,content,cursor,OSreturn or exceptiontransport"
+    },
+    "read_failure_frontier": {
+      "77caa3": "errorargzero RET8;nonzero path calls77cbcf then77cb64",
+      "77cbcf": "capturedListing iserror-code mapper withRET4 andcomputedjump tables;query label allocation is not semantic evidence",
+      "77cb64": "capturedListing allocates14/buildsrecord andcalls76501e;no complete normal/exception delivery proof",
+      "ReadFile": "previousnamed7a92e8 import source retained;NoOSAPIexecuted",
+      "actual_error_code_or_shortread_proved": false
+    },
+    "runtime_binding_created": false,
+    "target_execution_performed": false,
+    "execution_allowed": false,
+    "new_semantics_independently_reviewed": false,
+    "publication": "local only; push approval unchanged; old5587fb5 eight-doc approval does not authorize currentHEAD"
+  },
+  "original_modal_source_buffered_read_evidence": {
+    "manifest": "docs/original-modal-source-buffered-read-evidence.json",
+    "outcome": {
+      "batch": "rea-static-modal-source-and-buffered-read-20261011",
+      "initial_attempt_queries": 6,
+      "initial_attempt_exit_code": 1,
+      "initial_failure": "uppercase Listing in own request label, not invalid operation name; original failure retained",
+      "standard_re_review_attempts": 1,
+      "standard_re_review": "same command approved with supplied specific user REA transcript; no guard or permission changes",
+      "continuation_requests": 132,
+      "continuation_Evidence": 129,
+      "NoProcedure_metadata_errors": 3,
+      "cumulative_queries": 138,
+      "cumulative_Evidence": 135,
+      "distinct_procedure_parameters": 11,
+      "native_anchors": 107,
+      "selected_read_bytes": 16,
+      "continuation_exit_code": 0,
+      "continuation_elapsed_seconds": 688.393,
+      "both_sessions_elapsed_seconds": 864.172,
+      "closed_normal_file_graph_nodes": 138,
+      "reused_old_file_nodes": 90,
+      "new_file_graph_nodes": 48,
+      "selected_modal_handler_partial_nodes": 16,
+      "selected_file_fill_partial_nodes": 8,
+      "input_identity_unchanged": true,
+      "official_module_pairs": 18,
+      "temporary_empty": true,
+      "runtime_binding_created": false,
+      "original_or_derived_or_arm64_game_executed": false,
+      "component_tests_run": false,
+      "new_semantics_independently_reviewed": false,
+      "push_attempts_this_batch": 0
+    },
+    "new_semantics_independently_reviewed": false
   }
 }

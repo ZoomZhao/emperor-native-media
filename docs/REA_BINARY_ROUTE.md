@@ -312,3 +312,9 @@ research schema17补[生命周期与退出数组](ORIGINAL_LIFETIME_AND_EXIT_CON
 ## 前置选择依赖与选定派生100
 
 [新原源合同](ORIGINAL_PRESELECTION_DERIVED100_CONTRACT.md)核linked/owner0/10具体写和61b510 current4循环；nonzeroowner34未识别，两guard仍独立。所选4c69a0 RET18，25c表读24字节步长/1e8返回O+c8后写O128；正常ABI下arg5零跳过两26c，live/异常/alias仍Unknown。三fullnative正常图52与84Listing/23native分别计，139/138/1、exit0/源与18模块不变/临时空，无原或组件执行。9beed/82已独立38/0，旧失败保留、descriptor进制明确；本批新结论待二方复核/仅本地，发布仍待精确授权。
+
+## 模态构造匹配与缓冲短读正常图
+
+[modal/buffered原源合同](ORIGINAL_MODAL_SOURCE_BUFFERED_READ_CONTRACT.md)收敛唯一直接global writer618856、1a0构造链与root+4候选6c4930，16native handler有条件fc0写但非live/完整handler；owner34生产仍Unknown。447e00正常图138=90旧+48新，四RET8与三callee保持条件；buffered零/等量先fill，fill后A0短返回累计量；候选fill447d30只8native，异常和运行输入未闭合。
+
+合计138请求/135Evidence/3NoProcedure（元数据非机器码不存在），11procedure/107native/16bytes，继续exit0/688.393秒/目标与18模块不变/tmp空。原自写label大写导致失败保留；授权上下文初拒后，补具体用户REA原文，同一python3 run_session.py标准复审一次获准，不改变官方护栏或权限。没有原/派生/arm64/组件/UI/OS执行或转换、新联网/上传，新增待独立审阅。只本地增量，精确push审批不变。
