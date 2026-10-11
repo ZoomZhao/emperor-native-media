@@ -2,6 +2,8 @@
 
 2026-10-11，扩链基线 `6a5c2475ada69d27f56bdd379703bde2e9236558`。固定原PE的入口已通过七条typed引用/解码CALL连到主循环、调度及phase8；累计30个唯一相关函数、8个关键站点，在共享20分钟预算内714.653秒完成并正常清理。新证据说明phase8的容器/对象/虚表槽、worker的引用释放路径，以及DirectDraw/Miles/Bink的原调用来源。虚表目标及完整原tick仍未知；目标SHA/身份未变，没有执行原程序。
 
+最新 [phase8/worker ABI合同附录](REA_ABI_CONTRACTS.md) 补全索引布局、AsyncOp候选首槽的清栈/flags/返回和队列入引用路径，并修正worker上游零参数的分支条件。该轮新增20个函数、6个调用站点和3个上下文指令锚点，802.024秒；实际对象表、真实释放及完整tick仍未知。此前30函数/8站点/714.653秒是主路线轮次，未与ABI轮次混计。
+
 ## 安装来源与复现
 
 本地工程：`/Users/zoomzhao/Workspace/emperor-native-media`。CLI 安装在 `.local/rea-cli-6.4.0/node_modules/rea-agents`，没有替换全局 Node/npm/REA，没有运行 `rea setup`、安装分析器或写入持久 MCP/技能配置。已有全局 REA 保留原状。
@@ -173,13 +175,13 @@ flowchart TD
 
 ## phase8与worker：已补的参数来源、仍未知的目标
 
-`0x4aeeb0`先清理 `0xc82ffc`、`0xc82f6c`等输出缓冲及计数。`0x506240`返回静态容器 `0x10bc910`；begin helper `0x413a50(1)`和end helper `0x4f8200`形成遍历边界。记录的非零字节 `+0xc`及short ID `+8`筛选后，ECX=`0x8c7634`的索引池经 `0x47f1b0(ID)`给出对象槽，再解引用取得对象O；对象创建和具体类型未恢复。
+`0x4aeeb0`先清理 `0xc82ffc`、`0xc82f6c`等输出缓冲及计数。`0x506240`返回静态容器 `0x10bc910`；`0x413a50(1)`是带边界检查的索引访问（不是无条件begin），与end helper `0x4f8200`形成从索引1开始的遍历边界；详细布局/异常合同见新ABI附录。记录的非零字节 `+0xc`及short ID `+8`筛选后，ECX=`0x8c7634`的索引池经 `0x47f1b0(ID)`给出对象槽，再解引用取得对象O；对象创建和具体类型未恢复。
 
-对象byte `O+4`经 `0x426d10`筛选为1或3；之后出现三个未解析computed call：`0x4aef47`通过虚表 `+0xc8`，ECX=O、显式参数0x35；`0x4aef92`/`0x4aefaa`通过虚表 `+0x264`，ECX=O、参数来自 `0x5db530`递增筛选的类别索引（1..9，筛选谓词本轮未展开）。返回值用于局部求和与输出累积，另有 `O+0x48`非零、short `O+0x24>0`等门槛。两次 `+0x264`调用的保存汇编均传同一栈索引；伪代码的unaff_EBP不能当已证明的额外参数来源。这是城市对象统计/更新候选，具体业务与虚表目标仍未知，不能把地址/字段名称当业务证据。
+对象byte `O+4`经 `0x426d10`筛选为1或3；之后出现三个未解析computed call：`0x4aef47`通过虚表 `+0xc8`，ECX=O、显式参数0x35；`0x4aef92`/`0x4aefaa`通过虚表 `+0x264`，ECX=O、参数来自 `0x5db530`递增筛选的类别索引（1..9，筛选谓词本轮未展开）。返回值用于局部求和与输出累积，另有 `O+0x48`非零、short `O+0x24>0`等门槛。两次 `+0x264`调用的保存汇编均从同一caller栈槽取类别；callee清栈/副作用未闭合，不能证明运行时参数值始终相同；伪代码的unaff_EBP不能当已证明的额外参数来源。这是城市对象统计/更新候选，具体业务与虚表目标仍未知，不能把地址/字段名称当业务证据。
 
-历史称worker4的 `0x5fc139`现有更具体上下文：在 `0x5fbfc0`的等待/队列及引用释放路径中，队列上下文Q的 `+0x30`是当前对象槽。`0x6eb1c0`把队列节点payload（节点 `+8`）交给该槽，替换时对旧对象 `+4`递减引用，对新对象 `+4`递增；`0x6054e0`随后移除节点。尾部读取O=`[Q+0x30]`，InterlockedDecrement(O+4)非正时读取首word `[O]`，将O交给ECX、参数1入栈，在 `0x5fc139`调用该表的首项，然后清空当前槽。布局/条件与引用计数释放或删除析构函数相容，**这是候选，具体C++类型、表地址、函数身份及callee ABI仍未知**；不能再只称为任意城市更新callback。
+历史称worker4的 `0x5fc139`现有更具体上下文：在 `0x5fbfc0`的等待/队列及引用释放路径中，队列上下文Q的 `+0x30`是当前对象槽。`0x6eb1c0`把队列节点payload（节点 `+8`）交给该槽，替换时对旧对象 `+4`递减引用，对新对象 `+4`递增；`0x6054e0`随后移除节点。尾部读取O=`[Q+0x30]`，InterlockedDecrement(O+4)非正时读取首word `[O]`，将O交给ECX、参数1入栈，在 `0x5fc139`调用该表的首项，然后清空当前槽。布局/条件与引用计数释放或删除析构函数相容，**这是当时的候选结论；新ABI附录已找到WONAPI::AsyncOp基类表及首槽删除包装器并核清该候选ABI，当前对象的派生类型/最终表与该候选仍未唯一绑定**；不能再只称为任意城市更新callback。
 
-直接上游 `0x6124a0@0x6124f4`向该队列函数传ECX=外层对象+4、显式零及另一个参数；外层还通过对象 `+0x9c`的虚表槽 `+0x24`调用另一接口。没有证明 `0x6124a0`与上述城市主路线或具体工作线程连通；其另一个入引用在 `0x612730`，提供者未给出所属函数，保留为边界缺口。
+直接上游 `0x6124a0@0x6124f4`传ECX=外层对象+4；第一32位参数在外层byte `+0xa1=0`分支为0，在非零分支为ESI中的输入预算减已经过时间，第二32位参数来自EBP。外层通过 `+0x9c`对象的虚表槽 `+0x24`调用另一接口也只发生在 `+0xa1=0`分支。此前漏掉非零分支的“显式零”已按第二方核验和保存汇编更正。没有证明 `0x6124a0`与上述城市主路线或具体工作线程连通；其另一个入引用在 `0x612730`，提供者未给出所属函数，保留为边界缺口。
 
 ## 原graphics/audio/video的实际静态调用
 
@@ -188,7 +190,7 @@ flowchart TD
 | 应用入口→ `0x52b590`→ `0x52bde0`→ `0x52bc30@0x52bc45` | **direct**→ `0x5fb4c0`，FunctionManager标为DirectDrawCreate跳板，目标 `EXTERNAL:0x149`；IAT=`0x7a9020` | 三个显式参数为NULL、栈输出地址、NULL；该站点受 `[0x854c04]≠0`约束。`0x52bc30`还直接调用 `0x44d1d0`，后者 `0x44d307`另有跳板xref，但本轮未展开该函数/将该xref升级为独立typed调用点结果 |
 | 应用入口→ `0x5c34f0`→ `0x761df0@0x761e4f` | **resolved-indirect/computed**→ `_AIL_startup@0`，IAT=`0x7a96b4` | 静态导入引用已解析；OS版本检查有早退，不能当真实Miles初始化已成功 |
 | 同一 `0x761df0@0x761f50` | **resolved-indirect/computed**→ `_AIL_waveOutOpen@16`，IAT=`0x7a96b0` | 设备输出槽 `this+0x178`，format从 `this+0x17c`及配置字段组合、tag=1；本次保存汇编确认初始化receiver为0x1156bc8，失败/成功分支已见。`0x762ccb@0x762d40`另有open_stream的xref及typed出引用，随后设置loop/volume/start；不能当听觉或物理设备恢复验证 |
-| 应用入口的有条件intro分支→ `0x41fed0@0x41ff8c` | **resolved-indirect/computed**→ `_BinkOpen@8`，IAT=`0x7a95cc` | 路径字符串/flags交给Bink，结果存对象 `+0x10`；没有读对应素材。BinkSetSoundSystem传BinkOpenMiles导入符号和全局音频对象设备槽 `+0x178`，说明音视频存在静态设备依赖 |
+| 应用入口的有条件intro分支→ `0x41fed0@0x41ff8c` | **resolved-indirect/computed**→ `_BinkOpen@8`，IAT=`0x7a95cc` | 路径字符串/flags交给Bink，结果存对象 `+0x10`；没有读对应素材。BinkSetSoundSystem传BinkOpenMiles导入符号和 `DAT_01e56324`所指对象设备槽 `+0x178`，支持静态音视频依赖；该指针与初始化receiver `0x1156bc8`的身份尚未闭合，不能证明两路径实际共享同一已初始化设备 |
 | `0x41fed0`→ `0x420ae0@0x420bac` | **resolved-indirect/computed**→ `_BinkDoFrame@4`，IAT=`0x7a95c8` | 从对象 `+0x10`取handle；同函数NextFrame、Service、Wait及消息泵有typed出引用，后调用复制路径；不能称解码/播放成功 |
 | `0x420ae0`→ `0x41fdb0@0x41fea6` | **resolved-indirect/computed**→ `_BinkCopyToBuffer@28`，IAT=`0x7a95c0` | 目标地址/stride由surface descriptor及坐标组合；同函数间接surface槽 `+0x64/+0x6c/+0x80`和恢复重试分支已见。真实surface创建、接口版本、完整像素/裁剪合同及实际输出仍未验证 |
 
@@ -215,7 +217,7 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 | 原入口到调度 | 新扩链确认入口→应用消息循环→帧/模式→调度的条件式直接连接 | 自然条件是否满足、原菜单/地图的全部消费者与实际执行仍未知 |
 | 调度及phase8 | 新静态引用确认 `0x4ac338→0x4aeeb0`；tid1、返回 `0x4ac33d`、Watch7→8及真实栈仍仅属历史报告 | 静态CALL不是自然到达或完整tick。旧batch A预算失败、B/C未开始；本轮原执行仍0，无新合格活动输入 |
 | 切片消费者及绑定 | 自写驱动导入memory/threads/heap/锁/API/目标表并检查入口/完成栈后调用入口，完成后诊断/清理/退出 | 当前 `_s82_entry`、`_s82_completion`、返回表/count和structural bindings仍未解析；App未链接原消费者、timer仍是自写CitySimulation；一次性驱动不证明连续原调度 |
-| 动态callback | 历史 worker4 `0x5fc139`，ECX来自ESI对象、整数1、返回 `0x5fc13b`；初始槽为NULL | 初始NULL不是恒空；具体对象的工厂/注册、释放目标及ABI/生命周期尚未闭合。站点仍computed/unresolved；新增静态上下文已补Q+0x30→ECX和refcount释放条件，具体对象/表首槽/callee ABI仍未知 |
+| 动态callback | 历史 worker4 `0x5fc139`，ECX来自ESI对象、整数1、返回 `0x5fc13b`；初始槽为NULL | 初始NULL不是恒空；具体对象的工厂/最终表尚未闭合；新ABI附录找到AsyncOp基类表/删除包装器并核清该候选callee的ABI，但当前对象未唯一绑定。站点仍computed/unresolved，引用转移/真实释放/线程注册仍缺 |
 | 平台及状态 | 当前有限15项dispatch，heap/TLS/LastError/线程ID、三种有限锁与memops；未知明确失败 | 旧选定集合20项Win32边界、20个非IAT目标、SEH/wait/wake/运行后冷恢复仍缺。新导入表扩大的是声明依赖视野，不证明这些接口已调用或通过 |
 | graphics | 自造RGB555/565/BGRA的stride、裁剪、缩放、重叠及生命周期已有限定CPU/离屏Metal证据 | DirectDrawCreate跳板与原初始化已有静态连接，Bink复制进入surface槽；完整接口/像素消费者未验证。旧移位最大248/252与补位255不同，GPU读回不等于原画面或全游戏通过 |
 | audio | 自造S16队列/循环、格式拒绝和fake设备恢复有离线证据，历史AudioUnit仅有限回调证据 | 54个Miles导入的合同/触发/混音/clock、真实输出与设备恢复未闭合；离线PCM不能当听觉验证，fake恢复不能当物理设备通过 |
@@ -245,6 +247,7 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 - `rea-static-gate-20261011/`：input identity、最初两次inspect失败、PE_METADATA_ONLY、ownership源码/精确拒绝及历史 `APPROVAL_SCOPE.zh-CN.md`；旧证据未覆盖。新增 `selfcheck-review-request.json`/`selfcheck-review-receipt.json`、`startup-selfcheck.json`/`startup-root-cause.json`、匹配SDK及观察runner指纹、`inspect-final.*`/`inspect-observed.*`及自有provider日志、`review-and-inspect-result.json`。后者记录当时状态：复审获准，SDK修正后仍45秒provider_timeout。
 - `rea-static-review-20261011/`：前一次复审/SDK修正/45秒超时的历史结果与发布凭据。
 - `rea-static-session-20261011/`：前次最小静态关口与发布凭据，包含3-procedure截断图及两站点。
-- `rea-static-route-20261011/`、`rea-static-route-resume-20261011/`：本次扩链及小视图补齐，保存控制/范围/输入/完成事件、原始Evidence、自有日志及verified-route；这是当前静态主路线结果。原始分析只本地留存。
+- `rea-static-route-20261011/`、`rea-static-route-resume-20261011/`：本次扩链及小视图补齐，保存控制/范围/输入/完成事件、原始Evidence、自有日志及verified-route；这是入口至调度的静态主路线结果。原始分析只本地留存。
+- `rea-static-abi-20261011/`：新的phase8/worker ABI有界查询、verified-abi、成对选定工具指纹、原始Evidence及提交/发布凭据；筛选附录见REA_ABI_CONTRACTS.md。
 
-仅提交此文档更新。原EXE/依赖树/工具包/原始分析输出不入Git，GameData不读取/上传，既有工程草稿与授权接口来源指纹保持原字节。
+当前发布仅选择此文档和ABI合同附录。原EXE/依赖树/工具包/原始分析输出不入Git，GameData不读取/上传，既有工程草稿与授权接口来源指纹保持原字节。
