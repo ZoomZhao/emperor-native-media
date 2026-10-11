@@ -1,0 +1,11 @@
+# 自写调度描述校验器：独立边界回归
+
+本次合入45e86bc独立审查提供的自写C测试，原校验器生产代码与schema1不变。新增64位窄化别名、全部64字节身份、错误入口/返回、51项合法描述、任意非零full-cycle/runtime请求、固定种子4096项边界扰动和输入/常量描述不变检查。测试期望来自已公开的声明合同，没有原指令执行、guest读取、游戏时钟或完成trace。
+
+标准runner现在顺序编译原503检查与独立回归，仅捕获自写五份源文件，并链接系统标准库；每步60秒超时。候选runner与最终提交的源码SHA相同：Release与UBSan各503原检查、4929独立cases/30859checks通过，C++17独立头编译通过。因runner增量已测试且源码保持完全一致，发布阶段未重复执行。
+
+这证明声明接受/拒绝边界及不可变性，所有输入仍binding denied、cycle_completion_proved=0。不认证新phase37的虚调用/异常ABI，更不认证原完整调度或自然输入。
+
+独立审查固定提交45e86bce2c94d30f315c23056554049aba8f0f0b，25组静态检查通过；另一份88515658审查28组通过，各只覆盖各自快照。453bfc4及dbe5e60新增原静态语义仍未独立复核。
+
+提供者patch SHA256：1150a12e0aeb7e5642da0b1d3061b293a2398a645914e86ac569fd962aad9ac3；C测试SHA256：01d6d2195ef1aa4471959f3eac406f8406432ad177c1ca4b6dd46a5676195d44。只采纳其中C测试，未复制独立审查runner、原程序或派生产物。可用scripts/scheduler_shape_validation_runner.py --mode release/undefined --output 新绝对目录复核。

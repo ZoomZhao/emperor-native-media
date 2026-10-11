@@ -25,7 +25,8 @@ def main():
         parser.error('Existing clang/clang++ required; no software will be installed')
     root = Path(__file__).resolve().parents[1]
     own = ['original_bridge/include/scheduler_shape.h', 'original_bridge/src/scheduler_shape.c',
-           'original_bridge/tests/scheduler_shape_tests.c', 'original_bridge/include/static_abi.h']
+           'original_bridge/tests/scheduler_shape_tests.c', 'original_bridge/include/static_abi.h',
+           'original_bridge/tests/scheduler_shape_independent_tests.c']
     captured = {path: (root / path).read_bytes() for path in own}
     for path, content in captured.items():
         if (root / path).read_bytes() != content:
@@ -71,6 +72,13 @@ def main():
     if ok:
         report['binary_sha256'] = sha(binary)
         ok = run([str(binary)], 'synthetic-descriptor-tests')
+    independent = args.output / 'scheduler-shape-independent-tests'
+    if ok:
+        ok = run([compiler, '-std=c11', *flags, '-I', str(include), str(sources / own[1]),
+                  str(sources / own[4]), '-o', str(independent)], 'compile-independent-regression')
+    if ok:
+        report['independent_binary_sha256'] = sha(independent)
+        ok = run([str(independent)], 'independent-synthetic-regression')
     report['passed'] = ok
     (args.output / 'result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     print(('PASS' if ok else 'FAIL') + ' receipt: ' + str(args.output / 'result.json'))

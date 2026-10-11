@@ -131,3 +131,7 @@ phase45：caller置ECX1e535f8调用5f02c0，后CALL4b94a0；两者正常出口�
 ## phase37异常与最终选定调用
 
 详见[异常清理帧合同](ORIGINAL_PHASE37_EXCEPTION_CONTRACT.md)：关闭RaiseException参数形成、局部状态0清理action与EBP=registration+12的conditional receiver偏移；12个最终table调用明示nonzero selector。OS真实传播、当前对象及分配/复制仍未知，不能默认返回/推进。
+
+## 自写声明回归的固定审查与合入
+
+45e86bc二方25组与88515658二方28组静态审查已通过，仅认证各自快照。已合入[独立声明边界回归](SCHEDULER_DECLARATION_REGRESSION.md)，Release/UBSan各4929cases/30859checks及原503检查通过；生产校验器/schema1不变，运行绑定仍拒绝、完整周期证明仍0。该回归不认证后续453bfc4/dbe5e60的新原虚调用和异常ABI。
