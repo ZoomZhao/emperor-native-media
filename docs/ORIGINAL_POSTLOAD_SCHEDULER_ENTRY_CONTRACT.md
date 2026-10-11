@@ -14,7 +14,7 @@
 
 | 字段/来源 | 明确写入 | 后续条件与覆盖缺口 |
 |---|---|---|
-| speed10de0dc | 534c91从10de120写入，限owner+10 predicate为零；4fb779在共同join写70。 | 多个后续helper、字段/owner当前值未知；不能称真实速度已保持。 |
+| speed10de0dc | 534c91在owner为空或非空owner+10 predicate为零时从10de120写入；4fb779在共同join写70。 | 多个后续helper、字段/owner当前值未知；不能称真实速度已保持。 |
 | quota阻塞byte10de0d0 | 534f1a写0。 | 后面仍有28个CALL站点，逐站保留在索引；不能称首tick时一定为0。 |
 | gate88ec38 | 536b20先写10c6f60=0，42e430固定case0@42e473写gate0；4fb60c也写0。 | 42e430另外case2写gate1。写后5a6980、文件/其它hook与tick前helper未闭合，不能说helper总清gate或最终获准调度。 |
 | mode10de045 | 536dff或4fb753写1。 | 载入函数返回值被忽略，mode1不证明成功载入；仍需下一次入口及门控。 |

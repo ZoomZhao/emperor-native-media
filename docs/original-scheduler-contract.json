@@ -7044,7 +7044,7 @@
     "global_postload_hook": {
       "entry": "534bf0,explicit Listing and directcallee list captured; notalltransitiveeffects closed",
       "phase8_helper": "directCALL4aeeb0@534ec4; same helper asphase8 dispatcher; conditional loaded record/mainpool consumer, no phaseincrement implied",
-      "speed_write": "if408ac0 owner+10 predicate4fae50 zero,534c8c loads10de120 and534c91 writes10de0dc; actual value/currentowner conditions unknown",
+      "speed_write": "if408ac0 returnsnull OR nonnullowner+10 predicate4fae50 zero,534c8c loads10de120 and534c91 writes10de0dc; actual value/currentowner conditions unknown",
       "quota_byte_write": "534f1a storesbyte10de0d0=0;28 laterCALLsites retained as coverage frontier; zeroatwrite doesnotprovezeroatfirsttick",
       "literal_phase_reset_call_in_this_function": false,
       "computed_f8": "10315dc record lookup andcurrentvirtual+f8 testedAL; rawreceiver/currenttarget/lifetime unbound",
