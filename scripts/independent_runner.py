@@ -33,7 +33,7 @@ APP = [
     'game_lab/app/Info.plist', 'game_lab/app/av_audio_backend.hpp', 'game_lab/app/av_audio_backend.mm',
     'game_lab/app_media.hpp', 'game_lab/app_media.cpp',
     'game_lab/movie_session.hpp', 'game_lab/movie_session.mm',
-    'game_lab/image_presentation.hpp', 'game_lab/app_launch.hpp', 'game_lab/map_geometry.hpp', 'game_lab/app_media_integration_tests.mm',
+    'game_lab/image_presentation.hpp', 'game_lab/app_launch.hpp', 'game_lab/map_geometry.hpp', 'game_lab/map_viewport.hpp', 'game_lab/app_media_integration_tests.mm',
     'game_lab/emperor_assets.hpp', 'game_lab/emperor_assets.mm',
     'game_lab/asset_bytes.hpp', 'game_lab/asset_limits.hpp', 'game_lab/asset_pixels.cpp',
     'game_lab/wav_pcm.cpp', 'game_lab/resource_root.hpp', 'game_lab/resource_root.cpp',
@@ -61,12 +61,13 @@ WAREHOUSE_TRAINING_STATE = [name for name in SCENARIO_STATE if name != 'game_lab
 WAREHOUSE = [name for name in SCENARIO_STATE if name != 'game_lab/city_game_state_tests.cpp'] + ['game_lab/warehouse_roads_tests.cpp']
 WAREHOUSE_TRANSFER = [name for name in WAREHOUSE_TRAINING_STATE if name != 'game_lab/warehouse_training_state_tests.cpp'] + ['game_lab/warehouse_transfer_tests.cpp']
 WAREHOUSE_ROUTES = [name for name in WAREHOUSE_TRANSFER if name != 'game_lab/warehouse_transfer_tests.cpp'] + ['game_lab/warehouse_route_tests.cpp']
+VIEWPORT = ['game_lab/map_viewport.hpp','game_lab/map_viewport_tests.cpp']
 LAUNCH = ['game_lab/app_launch.hpp','game_lab/resource_root.hpp','game_lab/resource_root.cpp','game_lab/app_launch_tests.cpp']
 SURFACE = ['surface_lab/surface.hpp', 'surface_lab/surface.cpp',
            'surface_lab/oracle.hpp', 'surface_lab/oracle.cpp', 'surface_lab/tests.cpp']
 METAL = [name for name in SURFACE if name != 'surface_lab/tests.cpp'] + [
     'metal_lab/backend.hpp', 'metal_lab/backend.mm', 'metal_lab/tests.mm']
-SUITES = {'launch': LAUNCH, 'surface': SURFACE, 'metal': METAL,
+SUITES = {'viewport': VIEWPORT, 'launch': LAUNCH, 'surface': SURFACE, 'metal': METAL,
           'city': CITY, 'service': SERVICE, 'scenario-state': SCENARIO_STATE, 'warehouse': WAREHOUSE,
           'warehouse-routes': WAREHOUSE_ROUTES, 'warehouse-transfer': WAREHOUSE_TRANSFER, 'warehouse-training-state': WAREHOUSE_TRAINING_STATE, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
           'movie-async': APP + ['game_lab/movie_session_async_tests.mm'],
@@ -207,6 +208,12 @@ def run(suite, mode, output):
             binaries = {'city-tests': sha(report / 'city-tests')}
             command('city-test', [report / 'city-tests', report / 'city-fixtures'])
             results = {suite: read(report / 'city-test.stdout')}
+        elif suite == 'viewport':
+            command('compile-test', ['/usr/bin/clang++','-std=c++17','-Wall','-Wextra','-Werror',*flags,
+                                     '-I',snapshot,snapshot/'game_lab/map_viewport_tests.cpp','-o',report/'viewport-tests'])
+            binaries={'viewport-tests':sha(report/'viewport-tests')}
+            command('viewport-test',[report/'viewport-tests'])
+            results={'viewport':read(report/'viewport-test.stdout')}
         elif suite == 'launch':
             command('compile-test', ['/usr/bin/clang++','-std=c++17','-Wall','-Wextra','-Werror',*flags,
                                      '-I',snapshot,snapshot/'game_lab/app_launch_tests.cpp',

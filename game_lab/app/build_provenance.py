@@ -16,7 +16,7 @@ sources = [
     'game_lab/movie_session.hpp', 'game_lab/movie_session.mm',
     'game_lab/image_presentation.hpp',
     'game_lab/app_launch.hpp',
-    'game_lab/map_geometry.hpp',
+    'game_lab/map_geometry.hpp', 'game_lab/map_viewport.hpp',
     'game_lab/emperor_assets.hpp', 'game_lab/emperor_assets.mm',
     'game_lab/asset_bytes.hpp', 'game_lab/asset_limits.hpp', 'game_lab/asset_pixels.cpp',
     'game_lab/wav_pcm.cpp', 'game_lab/resource_root.hpp', 'game_lab/resource_root.cpp',

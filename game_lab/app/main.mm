@@ -8,6 +8,7 @@
 #include "../image_presentation.hpp"
 #include "../app_launch.hpp"
 #include "../map_geometry.hpp"
+#include "../map_viewport.hpp"
 #include "../city_simulation.hpp"
 #include "../city_state_io.hpp"
 #include "city_goal_feedback_adapter.hpp"
@@ -69,10 +70,19 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 @interface InteractiveMapView : NSImageView {
     std::vector<size_t> _routeRoads, _routeWarehouses;
     size_t _routeFarm;
-    BOOL _routeValid;
+    BOOL _routeValid, _panMode, _dragging;
+    NSPoint _dragPoint;
+    game_lab::MapViewport _viewport;
 }
 - (void)setWarehouseRoute:(const game_lab::CityFarmWarehouseRoute&)route;
 @property (nonatomic, copy) void (^onTileClicked)(int tileX, int tileY);
+@property (nonatomic, copy) void (^onViewportChanged)(void);
+@property (nonatomic) BOOL panMode;
+- (void)zoomBy:(double)factor anchorX:(double)x anchorY:(double)y;
+- (void)panX:(double)x y:(double)y;
+- (void)fullViewport;
+- (void)initialViewport;
+- (const game_lab::MapViewport&)viewport;
 @end
 
 @implementation InteractiveMapView
@@ -80,29 +90,50 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _routeValid=route.valid;_routeFarm=route.farmTile;
     _routeRoads=route.roadTiles;_routeWarehouses=route.warehouseTiles;self.needsDisplay=YES;
 }
+- (const game_lab::MapViewport&)viewport {return _viewport;}
+- (BOOL)panMode {return _panMode;}
+- (void)setPanMode:(BOOL)value {_panMode=value;_dragging=NO;[self viewportChanged];}
+- (void)viewportChanged {self.needsDisplay=YES;if(_onViewportChanged)_onViewportChanged();}
+- (void)zoomBy:(double)factor anchorX:(double)x anchorY:(double)y {
+    if(_viewport.zoomBy(factor,x,y))[self viewportChanged];
+}
+- (void)panX:(double)x y:(double)y {if(_viewport.pan(x,y))[self viewportChanged];}
+- (void)fullViewport {_viewport.reset();_panMode=NO;_dragging=NO;[self viewportChanged];}
+- (void)initialViewport {_viewport.reset();_viewport.zoomBy(4,0,0);_panMode=NO;_dragging=NO;[self viewportChanged];}
 - (void)drawRect:(NSRect)dirty {
-    [super drawRect:dirty];if(!_routeValid)return;
-    [NSGraphicsContext saveGraphicsState];NSRectClip(self.bounds);
-    const CGFloat w=self.bounds.size.width/128.0,h=self.bounds.size.height/128.0;
-    auto tile=[&](size_t i){return NSMakeRect(self.bounds.origin.x+(i%128)*w,self.bounds.origin.y+self.bounds.size.height-(i/128+1)*h,w,h);};
-    NSBezierPath* roads=[NSBezierPath bezierPath];
-    for(size_t i:_routeRoads)[roads appendBezierPathWithRect:NSInsetRect(tile(i),.25,.25)];
-    [[NSColor colorWithCalibratedRed:1 green:.83 blue:.08 alpha:.8] setFill];[roads fill];
-    NSBezierPath* warehouses=[NSBezierPath bezierPath];warehouses.lineWidth=1.7;
-    for(size_t i:_routeWarehouses)[warehouses appendBezierPathWithRect:NSInsetRect(tile(i),-2,-2)];
-    [[NSColor cyanColor] setStroke];[warehouses stroke];
-    NSBezierPath* farm=[NSBezierPath bezierPathWithOvalInRect:NSInsetRect(tile(_routeFarm),-3,-3)];farm.lineWidth=1.5;
-    [[NSColor whiteColor] setStroke];[farm stroke];[NSGraphicsContext restoreGraphicsState];
-}
-- (void)mouseDown:(NSEvent *)event {
-    NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-    int x = 0, y = 0;
-    if (game_lab::mapPointToTile(location.x, location.y, self.bounds.size.width, self.bounds.size.height, 128, x, y)) {
-        if (_onTileClicked) {
-            _onTileClicked(x, y);
-        }
+    (void)dirty;[NSGraphicsContext saveGraphicsState];NSRectClip(self.bounds);
+    [NSGraphicsContext currentContext].imageInterpolation=NSImageInterpolationNone;
+    [[NSColor colorWithCalibratedRed:.16 green:.2 blue:.16 alpha:1] setFill];NSRectFill(self.bounds);
+    const auto& v=_viewport;
+    if(self.image)[self.image drawInRect:self.bounds fromRect:NSMakeRect(v.left(),128-v.top()-v.span(),v.span(),v.span())
+        operation:NSCompositingOperationCopy fraction:1 respectFlipped:NO hints:nil];
+    if(_routeValid) {
+        auto rect=[&](size_t i,NSRect& result){game_lab::MapTileRect r;if(!v.tileRect(i%128,i/128,self.bounds.size.width,self.bounds.size.height,r))return false;result=NSMakeRect(self.bounds.origin.x+r.x,self.bounds.origin.y+r.y,r.width,r.height);return true;};
+        NSBezierPath* roads=[NSBezierPath bezierPath];NSRect tile;
+        for(size_t i:_routeRoads)if(rect(i,tile))[roads appendBezierPathWithRect:NSInsetRect(tile,.25,.25)];
+        [[NSColor colorWithCalibratedRed:1 green:.83 blue:.08 alpha:.8] setFill];[roads fill];
+        NSBezierPath* warehouses=[NSBezierPath bezierPath];warehouses.lineWidth=1.7;
+        for(size_t i:_routeWarehouses)if(rect(i,tile))[warehouses appendBezierPathWithRect:NSInsetRect(tile,-2,-2)];
+        [[NSColor cyanColor] setStroke];[warehouses stroke];
+        if(rect(_routeFarm,tile)){NSBezierPath* farm=[NSBezierPath bezierPathWithOvalInRect:NSInsetRect(tile,-3,-3)];farm.lineWidth=1.5;[[NSColor whiteColor] setStroke];[farm stroke];}
     }
+    [NSGraphicsContext restoreGraphicsState];
 }
+- (void)mouseDown:(NSEvent*)event {
+    NSPoint p=[self convertPoint:event.locationInWindow fromView:nil];
+    if(!NSPointInRect(p,self.bounds))return;
+    if(_panMode){_dragging=YES;_dragPoint=p;return;}
+    int x=0,y=0;
+    if(_viewport.pointToTile(p.x-self.bounds.origin.x,p.y-self.bounds.origin.y,self.bounds.size.width,self.bounds.size.height,x,y)&&_onTileClicked)_onTileClicked(x,y);
+}
+- (void)mouseDragged:(NSEvent*)event {
+    if(!_dragging||!_panMode)return;NSPoint p=[self convertPoint:event.locationInWindow fromView:nil];
+    if(self.bounds.size.width>0&&self.bounds.size.height>0)
+        [self panX:-double(p.x-_dragPoint.x)/self.bounds.size.width*_viewport.span() y:double(p.y-_dragPoint.y)/self.bounds.size.height*_viewport.span()];
+    _dragPoint=p;
+}
+- (void)mouseUp:(NSEvent*)event {(void)event;_dragging=NO;}
+
 @end
 
 @interface EmperorAppDelegate : NSObject <NSApplicationDelegate, NSTableViewDelegate, NSTableViewDataSource> {
@@ -154,6 +185,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTextField* _warehouseTransferAmount;
     NSTextField* _warehouseTransferStatus;
     NSTextField* _warehouseRouteLabel;
+    NSTextField* _mapViewportLabel;
+    NSButton* _mapPanToggle;
+    NSButton* _mapZoomIn;
+    NSButton* _mapZoomOut;
     NSSegmentedControl* _speedControl;
     NSSegmentedControl* _buildToolControl;
     NSArray<NSString*>* _mapFiles;
@@ -298,6 +333,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                                           styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable
                                             backing:NSBackingStoreBuffered
                                               defer:NO];
+    _window.contentMinSize=NSMakeSize(1024,760);
     _window.title = @"皇帝：龙之崛起 · 城市营建与媒体（自写）";
     [_window center];
     
@@ -579,7 +615,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_mapView addSubview:_buildToolControl];
 
     // Leave room for the wrapped HUD; track the content height when macOS fits the window to the screen.
-    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 532, cityHeight - 290)];
+    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 532, cityHeight - 326)];
     _mapCanvasView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _mapCanvasView.imageScaling = NSImageScaleAxesIndependently;
     _mapCanvasView.wantsLayer = YES;
@@ -592,6 +628,23 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         [weakSelf handleTileClickAtX:tileX y:tileY];
     };
     [_mapView addSubview:_mapCanvasView];
+    _mapCanvasView.onViewportChanged=^{[weakSelf updateMapViewportControls];};
+    _mapZoomOut=[NSButton buttonWithTitle:@"−" target:self action:@selector(onMapZoom:)];_mapZoomOut.tag=-1;
+    _mapZoomIn=[NSButton buttonWithTitle:@"+" target:self action:@selector(onMapZoom:)];_mapZoomIn.tag=1;
+    NSButton* full=[NSButton buttonWithTitle:@"全图" target:self action:@selector(onMapFull:)];
+    NSArray<NSButton*>* zoomButtons=@[_mapZoomOut,_mapZoomIn,full];
+    const CGFloat zx[]={286,326,366},zw[]={34,34,52};
+    for(NSUInteger i=0;i<zoomButtons.count;++i){NSButton* b=zoomButtons[i];b.frame=NSMakeRect(zx[i],cityHeight-262,zw[i],26);b.autoresizingMask=NSViewMinYMargin;[_mapView addSubview:b];}
+    NSArray<NSString*>* arrows=@[@"←",@"↑",@"↓",@"→"];
+    for(NSUInteger i=0;i<4;++i){NSButton* b=[NSButton buttonWithTitle:arrows[i] target:self action:@selector(onMapPan:)];b.tag=i;b.frame=NSMakeRect(424+i*36,cityHeight-262,30,26);b.autoresizingMask=NSViewMinYMargin;[_mapView addSubview:b];}
+    _mapPanToggle=[NSButton buttonWithTitle:@"拖动平移" target:self action:@selector(onMapDrag:)];_mapPanToggle.buttonType=NSButtonTypePushOnPushOff;
+    _mapPanToggle.frame=NSMakeRect(574,cityHeight-262,88,26);_mapPanToggle.autoresizingMask=NSViewMinYMargin;
+    _mapPanToggle.toolTip=@"开启后拖动地图移动视图，不建设；再次点击退出平移";[_mapView addSubview:_mapPanToggle];
+    _mapViewportLabel=[NSTextField labelWithString:@""];
+    _mapViewportLabel.frame=NSMakeRect(672,cityHeight-258,336,20);_mapViewportLabel.font=[NSFont systemFontOfSize:11];
+    _mapViewportLabel.autoresizingMask=NSViewMinYMargin|NSViewWidthSizable;_mapViewportLabel.accessibilityIdentifier=@"map-viewport-summary";[_mapView addSubview:_mapViewportLabel];
+    [_mapCanvasView initialViewport];
+
 
     // Status info label below controls
     _mapInfoLabel = [NSTextField wrappingLabelWithString:@""];
@@ -779,6 +832,24 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     if(moved) {[self updateCityHUD];[self renderCityGrid];_warehouseTransferAmount.stringValue=@"";}
     [self updateWarehouseTransferControls];_cityEventLabel.stringValue=[NSString stringWithUTF8String:message.c_str()];
 }
+- (void)updateMapViewportControls {
+    const auto& v=[_mapCanvasView viewport];
+    _mapViewportLabel.stringValue=[NSString stringWithUTF8String:v.summary().c_str()];
+    _mapPanToggle.state=_mapCanvasView.panMode?NSControlStateValueOn:NSControlStateValueOff;
+    _mapZoomIn.enabled=v.zoom()<8;_mapZoomOut.enabled=v.zoom()>1;
+}
+- (void)onMapZoom:(NSButton*)sender {
+    const auto& v=[_mapCanvasView viewport];double x=v.left()+v.span()/2,y=v.top()+v.span()/2;
+    if(_selectedCursorX>=v.left()&&_selectedCursorX<v.left()+v.span()&&_selectedCursorY>=v.top()&&_selectedCursorY<v.top()+v.span())
+        {x=_selectedCursorX+.5;y=_selectedCursorY+.5;}
+    [_mapCanvasView zoomBy:sender.tag>0?2:.5 anchorX:x anchorY:y];
+}
+- (void)onMapPan:(NSButton*)sender {
+    const double step=[_mapCanvasView viewport].span()/4;
+    [_mapCanvasView panX:sender.tag==0?-step:sender.tag==3?step:0 y:sender.tag==1?-step:sender.tag==2?step:0];
+}
+- (void)onMapFull:(id)sender {(void)sender;[_mapCanvasView fullViewport];}
+- (void)onMapDrag:(NSButton*)sender {_mapCanvasView.panMode=sender.state==NSControlStateValueOn;}
 - (void)renderCityGrid {
     game_lab::CityFarmWarehouseRoute route;
     if(_activeBuildTool==game_lab::BuildingType::None && !_warehouseTransfer.active() &&
@@ -817,6 +888,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)onBuildToolChanged:(NSSegmentedControl*)sender {
+    _mapCanvasView.panMode=NO;
     _warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
     switch (sender.selectedSegment) {
         case 0: _activeBuildTool = game_lab::BuildingType::None; break;
@@ -878,7 +950,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _cityScenario.disable();
     _cityGoalConfig = {};
     _cityGoalMemory = {};
-    _selectedCursorX = _selectedCursorY = -1;
+    _selectedCursorX = _selectedCursorY = -1; [_mapCanvasView initialViewport];
     _activeBuildTool = game_lab::BuildingType::None;
     _buildToolControl.selectedSegment = 0;
     _speedControl.selectedSegment = _citySim.stats().speed;
@@ -891,7 +963,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _citySim.reset(game_lab::CityRuleset::RoadWarehouses); _citySim.setSpeed(0);
     _warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
     _cityScenario.disable(); _cityGoalConfig = {}; _cityGoalMemory = {};
-    _selectedCursorX = _selectedCursorY = -1; _activeBuildTool = game_lab::BuildingType::None;
+    _selectedCursorX = _selectedCursorY = -1; [_mapCanvasView initialViewport]; _activeBuildTool = game_lab::BuildingType::None;
     _buildToolControl.selectedSegment = 0; _speedControl.selectedSegment = 0;
     [self updateCityHUD]; [self renderCityGrid];
 }
@@ -936,7 +1008,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
     _citySim = std::move(candidate); _cityScenario = std::move(challenge);
     _cityGoalConfig = definition.spec.goals; _cityGoalMemory = {};
-    _selectedCursorX = _selectedCursorY = -1; _activeBuildTool = game_lab::BuildingType::None;
+    _selectedCursorX = _selectedCursorY = -1; [_mapCanvasView initialViewport]; _activeBuildTool = game_lab::BuildingType::None;
     _buildToolControl.selectedSegment = 0; _speedControl.selectedSegment = 0;
     [self updateCityHUD]; [self renderCityGrid];
     _mapInfoLabel.stringValue = [NSString stringWithUTF8String:definition.instructions.c_str()];
@@ -971,7 +1043,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
     _cityGoalConfig = _cityScenario.active() ? _cityScenario.checkpoint().spec.goals : game_lab::CityGoalConfig{};
     _cityGoalMemory = {};
-    _selectedCursorX = _selectedCursorY = -1;
+    _selectedCursorX = _selectedCursorY = -1; [_mapCanvasView initialViewport];
     _activeBuildTool = game_lab::BuildingType::None;
     _buildToolControl.selectedSegment = 0;
     _speedControl.selectedSegment = _citySim.stats().speed;
@@ -984,6 +1056,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _mapCanvasView.image = nil;
     _selectedCursorX = -1;
     _selectedCursorY = -1;
+    [_mapCanvasView initialViewport];
     if (!filename || !filename.UTF8String) {
         [self updateCityHUD];
         [self renderCityGrid];
