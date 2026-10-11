@@ -11,6 +11,7 @@
 #include "../city_simulation.hpp"
 #include "../city_state_io.hpp"
 #include "city_goal_feedback_adapter.hpp"
+#include "../city_game_state.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -110,6 +111,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     game_lab::CityGoalConfig _cityGoalConfig;
     game_lab::CityGoalMemory _cityGoalMemory;
     NSTextField* _cityGoalLabel;
+    game_lab::CityScenarioSession _cityScenario;
+    game_lab::CityScenarioAwardBook _cityScenarioReceipts;
+    NSPopUpButton* _cityScenarioPicker;
+    NSTextField* _cityScenarioLabel;
     game_lab::BuildingType _activeBuildTool;
     int _selectedCursorX;
     int _selectedCursorY;
@@ -461,7 +466,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     
     // Left: Table of maps (width 260)
     const CGFloat cityHeight = _mapView.bounds.size.height;
-    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(16, 360, 260, cityHeight - 376)];
+    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(16, 456, 260, cityHeight - 472)];
     scroll.autoresizingMask = NSViewHeightSizable;
     _mapTableView = [[NSTableView alloc] initWithFrame:scroll.bounds];
     NSTableColumn* col = [[NSTableColumn alloc] initWithIdentifier:@"MapName"];
@@ -479,6 +484,20 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _cityGoalLabel.font = [NSFont systemFontOfSize:11];
     _cityGoalLabel.textColor = [NSColor colorWithCalibratedWhite:0.9 alpha:1.0];
     [_mapView addSubview:_cityGoalLabel];
+
+    _cityScenarioPicker = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(16, 366, 164, 28) pullsDown:NO];
+    for (const auto& definition : game_lab::selfAuthoredCityScenarios())
+        [_cityScenarioPicker addItemWithTitle:[NSString stringWithUTF8String:definition.title.c_str()]];
+    [_mapView addSubview:_cityScenarioPicker];
+    NSButton* startChallenge = [NSButton buttonWithTitle:@"开始挑战" target:self action:@selector(onStartCityScenario:)];
+    startChallenge.frame = NSMakeRect(186, 366, 90, 28);
+    startChallenge.toolTip = @"新建空城并开始所选挑战；新建空城按钮回到自由营建。";
+    [_mapView addSubview:startChallenge];
+    _cityScenarioLabel = [NSTextField wrappingLabelWithString:@"自由营建：可选择限期挑战"];
+    _cityScenarioLabel.frame = NSMakeRect(16, 402, 260, 42);
+    _cityScenarioLabel.maximumNumberOfLines = 3;
+    _cityScenarioLabel.font = [NSFont systemFontOfSize:11 weight:NSFontWeightMedium];
+    [_mapView addSubview:_cityScenarioLabel];
 
     // Right Top: City HUD Status (Width 730)
     _cityHUDLabel = [NSTextField wrappingLabelWithString:@"📅 城市模拟已就绪"];
@@ -557,7 +576,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     loadButton.frame = NSMakeRect(102, 64, 82, 28);
     resetButton.frame = NSMakeRect(188, 64, 82, 28);
     [_mapView addSubview:saveButton]; [_mapView addSubview:loadButton]; [_mapView addSubview:resetButton];
-    NSTextField* saveLabel = [NSTextField labelWithString:@"城邑存档使用自写格式"];
+    NSTextField* saveLabel = [NSTextField labelWithString:@"城邑与挑战进度一起保存"];
     saveLabel.frame = NSMakeRect(16, 26, 260, 22);
     [_mapView addSubview:saveLabel];
     [self updateCityHUD];
@@ -570,6 +589,23 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         game_lab::CityHarvestRule::StaffedServicesV1 : game_lab::CityHarvestRule::LaborLimitedIntegerV1;
     const auto goal = game_lab::evaluateCityGoals(game_lab::makeCityFeedbackSnapshot(_citySim, rule), _cityGoalConfig, _cityGoalMemory);
     _cityGoalMemory = goal.nextMemory;
+    const auto challenge = _cityScenario.observe({s.year,s.month},goal,_cityScenarioReceipts);
+    std::string challengeText = "自由营建：可选择限期挑战\n开始挑战会新建空城";
+    if (challenge.active) {
+        std::string title = "自定义挑战";
+        for (const auto& definition : game_lab::selfAuthoredCityScenarios())
+            if (definition.spec.id == _cityScenario.checkpoint().spec.id) title = definition.title;
+        challengeText = title + " · ";
+        if (!challenge.ok) challengeText += challenge.message;
+        else if (challenge.status == game_lab::CityScenarioStatus::Won) challengeText += "胜利：目标已按期达成\n可继续营建，或另开新挑战";
+        else if (challenge.status == game_lab::CityScenarioStatus::Lost) challengeText += "失败：到期未达成\n可继续营建，或另开新挑战";
+        else challengeText += "已过" + std::to_string(challenge.elapsedMonths) + "月 / 剩余" +
+            std::to_string(challenge.remainingMonths) + "月\n暂停不计时，+1月计入期限";
+    }
+    _cityScenarioLabel.stringValue = [NSString stringWithUTF8String:challengeText.c_str()];
+    const auto selected = _cityScenarioPicker.indexOfSelectedItem;
+    if (selected >= 0 && selected < 3)
+        _cityScenarioPicker.toolTip = [NSString stringWithUTF8String:game_lab::selfAuthoredCityScenarios()[size_t(selected)].instructions.c_str()];
     std::string goalText = (_citySim.ruleset() == game_lab::CityRuleset::StaffedServices ?
         "自写经营目标（服务需工）\n" : "自写经营目标（旧存档服务规则）\n") + goal.status;
     if (goal.valid) {
@@ -683,6 +719,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)onResetCity:(id)sender {
     (void)sender;
     _citySim.reset(game_lab::CityRuleset::StaffedServices);
+    _cityScenario.disable();
+    _cityGoalConfig = {};
     _cityGoalMemory = {};
     _selectedCursorX = _selectedCursorY = -1;
     _activeBuildTool = game_lab::BuildingType::None;
@@ -691,15 +729,47 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self updateCityHUD]; [self renderCityGrid];
 }
 
+- (void)onStartCityScenario:(id)sender {
+    (void)sender;
+    const auto index = _cityScenarioPicker.indexOfSelectedItem;
+    if (index < 0 || index >= 3) return;
+    NSError* directoryError = nil;
+    NSURL* support = [[NSFileManager defaultManager] URLForDirectory:NSApplicationSupportDirectory
+        inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:&directoryError];
+    NSURL* profile = [support URLByAppendingPathComponent:@"EmperorNativeMedia" isDirectory:YES];
+    if (!profile || ![[NSFileManager defaultManager] createDirectoryAtURL:profile withIntermediateDirectories:YES attributes:nil error:&directoryError]) {
+        _cityEventLabel.stringValue = @"无法创建本 App 挑战记录目录；现有城市保持。"; return;
+    }
+    const char* path = [profile URLByAppendingPathComponent:@"RunCounter.ecr"].fileSystemRepresentation;
+    std::string error; uint64_t runId = 0;
+    if (!path || !game_lab::allocateCityRunId(path,
+        game_lab::assignedCityRunFloor(_cityScenario,_cityScenarioReceipts),runId,error)) {
+        _cityEventLabel.stringValue = [NSString stringWithUTF8String:error.c_str()]; return;
+    }
+    game_lab::CitySimulation candidate(game_lab::CityRuleset::StaffedServices);
+    candidate.setSpeed(0);
+    game_lab::CityScenarioSession challenge;
+    const auto& definition = game_lab::selfAuthoredCityScenarios()[size_t(index)];
+    const auto begun = challenge.begin(definition.spec,runId,{candidate.stats().year,candidate.stats().month},_cityScenarioReceipts);
+    if (!begun.ok) { _cityEventLabel.stringValue = [NSString stringWithUTF8String:begun.message.c_str()]; return; }
+    _citySim = std::move(candidate); _cityScenario = std::move(challenge);
+    _cityGoalConfig = definition.spec.goals; _cityGoalMemory = {};
+    _selectedCursorX = _selectedCursorY = -1; _activeBuildTool = game_lab::BuildingType::None;
+    _buildToolControl.selectedSegment = 0; _speedControl.selectedSegment = 0;
+    [self updateCityHUD]; [self renderCityGrid];
+    _mapInfoLabel.stringValue = [NSString stringWithUTF8String:definition.instructions.c_str()];
+}
+
 - (void)onSaveCity:(id)sender {
     (void)sender;
     NSSavePanel* panel = [NSSavePanel savePanel];
     panel.nameFieldStringValue = @"city.emp";
-    panel.message = @"保存自写城邑状态；此格式不兼容原版游戏存档。";
+    panel.message = @"保存自写城邑及当前挑战进度。";
     if ([panel runModal] != NSModalResponseOK) return;
     std::string error;
     const char* path = panel.URL.fileSystemRepresentation;
-    const bool saved = game_lab::saveCityState(_citySim, path ? path : "", error);
+    [self updateCityHUD];
+    const bool saved = game_lab::saveCityGameState(_citySim,_cityScenario,_cityScenarioReceipts,path ? path : "",error);
     _cityEventLabel.stringValue = saved ? @"城邑已保存" :
         [NSString stringWithUTF8String:error.c_str()];
 }
@@ -708,14 +778,15 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     (void)sender;
     NSOpenPanel* panel = [NSOpenPanel openPanel];
     panel.canChooseFiles = YES; panel.canChooseDirectories = NO; panel.allowsMultipleSelection = NO;
-    panel.message = @"选择自写城邑 .emp 存档；原版游戏存档不受支持。";
+    panel.message = @"选择自写城邑或挑战存档。";
     if ([panel runModal] != NSModalResponseOK) return;
     std::string error;
     const char* path = panel.URL.fileSystemRepresentation;
-    if (!game_lab::loadCityState(_citySim, path ? path : "", error)) {
+    if (!game_lab::loadCityGameState(_citySim,_cityScenario,_cityScenarioReceipts,path ? path : "",error)) {
         _cityEventLabel.stringValue = [NSString stringWithUTF8String:error.c_str()];
         return;
     }
+    _cityGoalConfig = _cityScenario.active() ? _cityScenario.checkpoint().spec.goals : game_lab::CityGoalConfig{};
     _cityGoalMemory = {};
     _selectedCursorX = _selectedCursorY = -1;
     _activeBuildTool = game_lab::BuildingType::None;
@@ -752,6 +823,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         return;
     }
     _citySim = std::move(freshCity);
+    _cityScenario.disable();
+    _cityGoalConfig = {};
     _cityGoalMemory = {};
     _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 128×128 地块已载入 · ⚠️ 自写城市营建", filename];
     [self updateCityHUD];

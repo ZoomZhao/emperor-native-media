@@ -3,7 +3,7 @@
 2026-10-11。ang 的 `CitySimulation` 已纳入正常 App 构建；无需启用演示宏。这是可以继续发展的自写城市营建功能。规则没有与原游戏对比，当前不声称原版行为一致或完整复刻。源码适用仓库 MIT 许可证，App 包内保留 LICENSE 与生产源码 SHA-256 清单。
 
 
-2026-10-11 经营增量已验收：农庄缺工产出、整数秋收、目标达成/失守/恢复及原生存档往返。新空城已进一步启用服务用工，缺工缩短服务范围并实际降低住宅容量，减少岗位可恢复；旧存档保留原规则。规则与验收见 [SERVICE_LABOR.md](SERVICE_LABOR.md)、[SERVICE_LABOR_PLAYTEST.md](SERVICE_LABOR_PLAYTEST.md)、[CITY_GOAL_FEEDBACK.md](CITY_GOAL_FEEDBACK.md)。粮食仍为全城虚拟库存，尚无运输或有期限胜负。
+2026-10-11 经营增量已验收：农庄缺工产出、整数秋收、目标达成/失守/恢复及原生存档往返。新空城已进一步启用服务用工，缺工缩短服务范围并实际降低住宅容量，减少岗位可恢复；旧存档保留原规则。可选三关已有模拟月期限和胜负，统一保存挑战进度，见 [CITY_SCENARIOS.md](CITY_SCENARIOS.md)。服务规则与验收见 [SERVICE_LABOR.md](SERVICE_LABOR.md)、[SERVICE_LABOR_PLAYTEST.md](SERVICE_LABOR_PLAYTEST.md)、[CITY_GOAL_FEEDBACK.md](CITY_GOAL_FEEDBACK.md)。粮食仍为全城虚拟库存，尚无仓储容量或道路运输。
 
 ## 实现与验收范围
 

@@ -2,7 +2,7 @@
 
 当前 App 已集成 v2 模块并完成有限真实窗口验收，结果见 [GAMEPLAY_INCREMENT.md](GAMEPLAY_INCREMENT.md)。纯 C++17 头文件只读评估目标；adapter 读取公开城市快照与核心 `farmYieldForMonth()`，不推进月份，不修改模型、事件或 EMP1。关卡数值为自写配置，未与原版规则对比。
 
-默认目标为人口 50、存粮 120、国库 500、当前人口税减维护 ≥0，可通过 `CityGoalConfig` 替换。状态为 Unknown/InProgress/Met/Regressed，单次转变为 Reached/Lost/Restored。目标达成后可以继续经营，失守可恢复；没有有期限关卡、破产终局或强制停止。
+自由营建默认目标为人口50、存粮120、国库500、当前人口税减维护≥0，可通过 `CityGoalConfig` 替换。状态为Unknown/InProgress/Met/Regressed，单次转变为Reached/Lost/Restored。目标达成后可以继续经营，失守可恢复。可选限期关卡复用本反馈的当前四项数值，采用独立原期限与终态记录，见 [CITY_SCENARIOS.md](CITY_SCENARIOS.md)；没有破产终局或强制停止。
 
 `updateCityHUD()` 按城市规则选择 `StaffedServicesV1` 或旧城的 `LaborLimitedIntegerV1`。新规则的权威下月预测来自 `nextMonthStats()` 的真实月结副本，纳入服务范围下降造成的额外住房流失；原城市与事件不变，缺失或冲突时返回Unknown。可见目标区显示状态、四项数值和差额、下月新粮/消费/迁入/税费及最主要原因，tooltip 补充其他经营原因。勘查、建造失败与存档信息保留各自信息栏。新城、成功换图和成功载入重置临时目标历史；取消或失败载入保留历史；历史不写入 EMP1。服务规则与窗口复验见 [SERVICE_LABOR.md](SERVICE_LABOR.md)。
 
