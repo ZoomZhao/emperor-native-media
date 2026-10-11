@@ -109,3 +109,15 @@ phase5/29：54c6f0先恢复ESI，再JMP4ea8e0；后者4eac49普通RET，主调�
 phase44：4af5d0设置ECX=8c7630，尾跳42d9a0，正常出口42da05普通RET；d62408=1可跳过。本体用有符号IDIV读取817748作为除数，未见本地非零保护；运行时取值未证。owner+4交给4f8210/4f8200，故begin/end分别读取owner+8/+12。当前槽对象ECX上虚调用+30，压参顺序0、0、余数，随后槽指针加4并重新读取end；真实callee清理、对象存活、回调是否改end及循环收敛均未证。返回AL聚合非零时依次5ad8f0、5ad960尾跳522810；前者再调用5ad440（5参数、caller清20），后者调用5223b0（4参数、caller清16）。这两个依赖又含虚调用+cc/+264/+270以及+1ec/+cc。不能把顶层RET地址当成这些动态调用已正常返回的证据。
 
 本批31次查询、14个选定新地址均有Evidence且无错误；357.910秒exit0、官方close及临时根清空、输入身份和18份选定官方模块SHA成对不变；未额外显式读取数据。此更新仅补充静态合同，scheduler校验器、preflight及其测试源码未改变，未重跑旧检查。Release/UBSan各503检查是上批自造声明结果，本批新语义没有独立复核。原/转换代码执行和运行绑定仍关闭；现有证据不能证明完整城市周期通过。
+
+## 中间阶段receiver、预压参数与正常返回（继续静态批次）
+
+phase6/35/36：5177b0固定EAX=10bfef0、普通RET。5185c0使用传入ECX，vector receiver为owner+4，最终518688普通RET；517b40/517ad0在本体重新调用getter取owner，不使用原传入ECX，最终517bb1/517b3a普通RET。三者无显式入口压参，426d10消费各次压入的一个32位值、RET4；其所选实现只测试receiver+4，不能把压入0的名字猜成业务bool。phase6/35含虚调用+b8/+1e4，phase36为+b8/+218；phase35将+1e4返回EAX设为ECX交给517280。循环取出的slot/object及返回对象仍未绑定；每轮554c00重读长度，不能以一次初始count宣称循环收敛。
+
+phase37：53c870固定EAX=115f6ec、普通RET，44f1d0保存该receiver并在结尾传给44eb20；主helper最终44f322普通RET。它先PUSH1→413b40(ECX8c7630)，该函数RET4；所选size不大于index时先调用413b70异常路径，随后才有size<=1分支。因此小容器不等于已证明正常skip。4次44cc50各2参数、普通RET，caller集中清32；条件路径44ea70消费8参数、RET32。
+
+另一条件路径在virtual+170前依次压四个表值，之后又压三个值调用44ecd0，而44ecd0正常出口RET28。从正常栈平衡可推导：+170需保留四个预压值（清参0），再由44ecd0消费7个值；不能把四值都归为虚函数参数，或误把44ecd0写成仅3参数。这是原调用者的约束，真实+170目标、异常/非正常帧是否遵守仍未知。同理+16c前压四个输出指针，后续另压8值到44ea70；正常平衡要求该虚调用先清16，但也未证明实际callee。虚偏移+168/+16c/+170都仍DENIED。
+
+phase45：caller置ECX1e535f8调用5f02c0，后CALL4b94a0；两者正常出口普通RET。前者的517cc0由getter owner10bfef0调用，返回owner+28后signed比较350；517cc0含临时对象/helper、条件517de0以及FS:[0]异常帧(handler787e18)，不是纯count读取。PUSH5跨426a60（仅literal owner getter，普通RET），由5a8420 RET4消费；后者读10bfb40/10bfb50，不能把5交给getter。后续5f03f0消费object/scalar两参数RET8；选定body先覆盖incoming ECX，不能仅凭caller传入receiver推出实例绑定。其创建链重新接到4ea050/4e1420，还有virtual+114与4e6a70缺口；5f02c0自身还有+b8/+204及每轮长度重读。4b94a0局部没有CALL，但全局读写/维度循环也不能当成整阶段或周期已完成。
+
+本批29次查询/29 Evidence、16个选定新地址、5个既有helper Evidence复用，无错误；326.178秒exit0/官方close/临时根空，输入身份及18份选定官方模块成对SHA不变，未额外显式读取数据。本批只补静态合同，preflight/scheduler代码和既有检查未改变；新语义尚无独立复核。所有运行绑定及完整周期证明仍关闭。

@@ -1833,5 +1833,316 @@
       }
     ],
     "new_semantics_independently_reviewed": false
+  },
+  "selected_middle_phase_abi_contracts": {
+    "phase6": {
+      "phases": [
+        6
+      ],
+      "getter": "0x5177b0",
+      "getter_EAX_literal": "0x10bfef0",
+      "helper": "0x5185c0",
+      "receiver_source": "incoming ECX=EAX used as owner; vector receiver owner+4",
+      "normal_RET": "0x518688",
+      "explicit_arguments": 0,
+      "virtual_offsets": [
+        "0xb8",
+        "0x1e4"
+      ],
+      "size_reread_each_iteration": true,
+      "runtime_bound": false,
+      "transitive_completion_proved": false,
+      "live_owner_slot_target_identity_proved": false
+    },
+    "phase35": {
+      "phases": [
+        35
+      ],
+      "helper": "0x517b40",
+      "dispatcher_receiver_literal": "0x10bfef0",
+      "incoming_receiver_consumed_before_overwrite": false,
+      "body_receiver_source": "repeated 5177b0 literal getter, vector owner+4",
+      "normal_RET": "0x517bb1",
+      "explicit_arguments": 0,
+      "virtual_offsets": [
+        "0xb8",
+        "0x1e4"
+      ],
+      "returned_receiver_handoff": "virtual+1e4 EAX -> ECX -> 517280 plainRET, local writes, no CALL",
+      "size_reread_each_iteration": true,
+      "runtime_bound": false,
+      "transitive_completion_proved": false,
+      "live_owner_slot_target_identity_proved": false
+    },
+    "phase36": {
+      "phases": [
+        36
+      ],
+      "helper": "0x517ad0",
+      "dispatcher_receiver_literal": "0x10bfef0",
+      "incoming_receiver_consumed_before_overwrite": false,
+      "body_receiver_source": "repeated 5177b0 literal getter, vector owner+4",
+      "normal_RET": "0x517b3a",
+      "explicit_arguments": 0,
+      "virtual_offsets": [
+        "0xb8",
+        "0x218"
+      ],
+      "size_reread_each_iteration": true,
+      "runtime_bound": false,
+      "transitive_completion_proved": false,
+      "live_owner_slot_target_identity_proved": false
+    },
+    "phase37": {
+      "phases": [
+        37
+      ],
+      "getter": "0x53c870",
+      "getter_EAX_literal": "0x115f6ec",
+      "helper": "0x44f1d0",
+      "saved_receiver_for_final_call": "incoming ECX=0x115f6ec -> 44eb20 normalRET0",
+      "normal_RET": "0x44f322",
+      "explicit_arguments": 0,
+      "slot_access": "413b40(ECX=8c7630, index1) before subsequent size<=1 branch; RET4; out-of-range invokes413b70",
+      "virtual_offsets": [
+        "0x168",
+        "0x16c",
+        "0x170"
+      ],
+      "direct_table_calls": "44cc50(two32-bit args, plainRET), four calls followed by ADD ESP32",
+      "owner_first_helper": "44ea70(eight32-bit args) RET32",
+      "owner_second_helper": "44ecd0(seven32-bit args) RET28",
+      "forwarded_pre_push": {
+        "virtual_site": "0x44f2d2",
+        "virtual_offset": "0x170",
+        "words_before_virtual": 4,
+        "words_pushed_after_virtual": 3,
+        "consumer": "0x44ecd0",
+        "consumer_cleanup_bytes": 28,
+        "inference": "normal unchanged-frame stack balance requires virtual+170 to retain the four pre-pushed words (cleanup0); actual target is unbound and not thereby proved",
+        "words_before_are_not_proved_virtual_arguments": true
+      },
+      "virtual_16c_balance_requirement": "four output pointer pushes; preserving this normal frame requires cleanup16 before separate eight-argument helper; actual target unbound",
+      "size_reread_each_iteration": true,
+      "runtime_bound": false,
+      "transitive_completion_proved": false,
+      "live_owner_slot_target_identity_proved": false
+    },
+    "phase45": {
+      "phases": [
+        45
+      ],
+      "dispatcher_receiver_literal": "0x1e535f8",
+      "direct_order": [
+        "0x5f02c0",
+        "0x4b94a0"
+      ],
+      "normal_RET": [
+        "0x5f03e3",
+        "0x4b953d"
+      ],
+      "explicit_arguments": 0,
+      "threshold_chain": "5177b0 ECX10bfef0 -> 517cc0, signed EAX comparison350",
+      "threshold_helper": "517cc0 includes FS:[0] frame handler787e18 and helper/possible517de0 effects before returning owner+28; not a pure size getter",
+      "virtual_offsets": [
+        "0xb8",
+        "0x204"
+      ],
+      "size_reread_each_iteration": true,
+      "pre_push": "PUSH5 crosses426a60 plainRET; 5a8420 RET4 consumes5; actual5a8420 uses globals10bfb40/10bfb50 rather than ECX",
+      "subcall": "5f03f0(object32, scalar32) RET8; selected body overwrites incoming ECX before reading it",
+      "remaining_creation_dependency": "5f03f0 -> 4ea050 -> 4e1420 from prior tail batch; additional virtual+114 and4e6a70 still unclosed",
+      "second_helper": "4b94a0 plainRET, no CALL; global counter/dimension loops and writes, not entire phase completion",
+      "runtime_bound": false,
+      "transitive_completion_proved": false,
+      "live_owner_slot_target_identity_proved": false
+    }
+  },
+  "middle_phase_abi_evidence": {
+    "batch": "rea-static-middle-phase-abi-20261011",
+    "operations": 29,
+    "successful_evidence": 29,
+    "selected_procedures": 16,
+    "reused_direct_helper_subjects": 5,
+    "elapsed_seconds": 326.178,
+    "exit_code": 0,
+    "temp_empty": true,
+    "explicit_read_bytes": 0,
+    "selected_official_module_pairs": 18,
+    "evidence": {
+      "phase-six-thirty-five-thirty-six-owner-assembly": {
+        "evidence_id": "ev_a575daa0a71f8726e48f1ff42217b1d36b569fa64cb36d2352d95d605c8c52ba",
+        "sha256": "2a26196c96db3e1a8d07a1f88cbe364a66b1c8fdcfa9ca9659cc6656d5fd465a",
+        "local_file": "phase-six-thirty-five-thirty-six-owner-assembly.evidence.json"
+      },
+      "phase-six-thirty-five-thirty-six-owner-pseudo": {
+        "evidence_id": "ev_72d7dc87d52110a37dc54d73d23d65e81c70edd33ae0b185e1257397eef94140",
+        "sha256": "d3bb434c689071d97ed325c15b5906f0a1e535dbf4ab52ae9dc612a786665e22",
+        "local_file": "phase-six-thirty-five-thirty-six-owner-pseudo.evidence.json"
+      },
+      "phase-six-helper-assembly": {
+        "evidence_id": "ev_c9a385602f2a9dfa0940fd8110a9e6aacc532a49f1f71fc83e848ad6e41c4c4f",
+        "sha256": "365cb6141aa65d189cd473160b4a7417107df66d2e79a964a3f19b3c9b0f4cb7",
+        "local_file": "phase-six-helper-assembly.evidence.json"
+      },
+      "phase-six-helper-pseudo": {
+        "evidence_id": "ev_5977374087215c82da5dd6340fe4076e2c95922d38e69753bdb4bd6b55b31de1",
+        "sha256": "59bc84042996f645ab36e3fce145e723eb9189d736b28634bb6127d8b0979b0a",
+        "local_file": "phase-six-helper-pseudo.evidence.json"
+      },
+      "phase-thirty-five-helper-assembly": {
+        "evidence_id": "ev_7dd1c4e819dcfec2526392e92d37180db8d0d0a12b00efae4b86a79adaade09d",
+        "sha256": "426531c52b24fe6fed3a73a2b60c7cb9a850e547e97edb87014025759b400381",
+        "local_file": "phase-thirty-five-helper-assembly.evidence.json"
+      },
+      "phase-thirty-five-helper-pseudo": {
+        "evidence_id": "ev_c3b1086076f6ed1a1f91199b964deaab4dec428178972513b1813b5decf39c74",
+        "sha256": "192983fde4848bb664cb5c829a7f12d5f516e7375796e2d795183ff7e74f4607",
+        "local_file": "phase-thirty-five-helper-pseudo.evidence.json"
+      },
+      "phase-thirty-six-helper-assembly": {
+        "evidence_id": "ev_d91072fe5f02f2b128f86a6428cc0b855ec08ecafb7f5c7c7141451ebfb8d04a",
+        "sha256": "f898ab3844f60ba2d244e81797bccaa108d63a462de8fdf4ad1f95760211ebef",
+        "local_file": "phase-thirty-six-helper-assembly.evidence.json"
+      },
+      "phase-thirty-six-helper-pseudo": {
+        "evidence_id": "ev_c01638269a78871977b4b9ee68772867ccbb705f7ade75f50ef81196dbdd88eb",
+        "sha256": "af94a3ecf2b71b49d14b9d34243060165d2fc7defba225a017a6cda8c36def5f",
+        "local_file": "phase-thirty-six-helper-pseudo.evidence.json"
+      },
+      "phase-thirty-seven-owner-assembly": {
+        "evidence_id": "ev_661bdb217249508f450a200c2932f8e1496a440511a3fb809de0d11c587f00a1",
+        "sha256": "b14bfb5d750f6a3c96c8fe3537163a52c81db5b1f46d0eca4821f0e67baad735",
+        "local_file": "phase-thirty-seven-owner-assembly.evidence.json"
+      },
+      "phase-thirty-seven-owner-pseudo": {
+        "evidence_id": "ev_91edfef28915b3beaabb00ad217c6ff4a5a8c8267d88f71e9b553a5e6b07b0e1",
+        "sha256": "60ade01e6bd41197c4f884c883049ec9fd873781990bba130b0315b6ecd7680a",
+        "local_file": "phase-thirty-seven-owner-pseudo.evidence.json"
+      },
+      "phase-thirty-seven-helper-assembly": {
+        "evidence_id": "ev_ff8c5fe29429c662fe8f4aa8ed691b783817d7dfe30199a494dd4ffc14e95b79",
+        "sha256": "700911c567ef39f3825011f2fc89e321616026996e37434c63fd3dbaf1d4a366",
+        "local_file": "phase-thirty-seven-helper-assembly.evidence.json"
+      },
+      "phase-thirty-seven-helper-pseudo": {
+        "evidence_id": "ev_0dc26a359a83eeaf7c83cf7aaf86923db204b75d8ba295f67652d80181fae9ce",
+        "sha256": "c13d8ac904df751d848a060d285c3e874403dc5167dbb3a13fde65177f0186ca",
+        "local_file": "phase-thirty-seven-helper-pseudo.evidence.json"
+      },
+      "phase-forty-five-helper-assembly": {
+        "evidence_id": "ev_a33171bbaf0912fcb11d69368a11aba9d1cd215902c0a698d03cced7dfb6fb76",
+        "sha256": "e15dcb6937807f3aa13dd9a1150440affc22359e5523fdf5c8079b1aeb6ab332",
+        "local_file": "phase-forty-five-helper-assembly.evidence.json"
+      },
+      "phase-forty-five-helper-pseudo": {
+        "evidence_id": "ev_eb784be3a03ea5465c62ee4ee8d9dd8b0b02ea3ec588c4ec777c67ff049a9407",
+        "sha256": "13b398ee8003373dde4bed45608a017f875def714b5df36e71b0d82005d6484c",
+        "local_file": "phase-forty-five-helper-pseudo.evidence.json"
+      },
+      "phase-forty-five-threshold-getter-assembly": {
+        "evidence_id": "ev_2a97a163f71d27e3605b498d2e4a550e4021972fb6f41956c78e9d2f1f8721c5",
+        "sha256": "e0c2bcab9c26303fa57d6a8c496ca64caf8e331ec7d672b1641b1ec61ee1b267",
+        "local_file": "phase-forty-five-threshold-getter-assembly.evidence.json"
+      },
+      "phase-forty-five-threshold-getter-pseudo": {
+        "evidence_id": "ev_bee560d7f6d837c26cad0936812f572377eb37c1534e390d2678b765420e1f89",
+        "sha256": "b3165c20367e1e77fb1d46c42df64a4278cfde0a807d02a82fbe072de27e8d39",
+        "local_file": "phase-forty-five-threshold-getter-pseudo.evidence.json"
+      },
+      "phase-thirty-five-returned-owner-helper-assembly": {
+        "evidence_id": "ev_3159f4a37976e45101fa490fca79d1f2df2463ff6493d5bab4cf045a81c89cf5",
+        "sha256": "f0c6ea49d905c8d991b70d617f3bef41a4ac456be17b58cf004235567212f4d3",
+        "local_file": "phase-thirty-five-returned-owner-helper-assembly.evidence.json"
+      },
+      "phase-thirty-five-returned-owner-helper-pseudo": {
+        "evidence_id": "ev_b87319234ce3f0d930f914b430da7b97e30a983095fb2223fe630f5d9f5f3986",
+        "sha256": "fc13a641059828797cf1a9f0b7defa48972ebaf5f4c9e2086acdfdebad886922",
+        "local_file": "phase-thirty-five-returned-owner-helper-pseudo.evidence.json"
+      },
+      "phase-thirty-seven-final-owner-helper-assembly": {
+        "evidence_id": "ev_0cb76464138720540b461adde579adac1a4f752428273b64ef7cbc55fd8c1b54",
+        "sha256": "b06a80cd6371230736b3066ddd586f136e876df8aa69aaf2479d65d7224dcc5f",
+        "local_file": "phase-thirty-seven-final-owner-helper-assembly.evidence.json"
+      },
+      "phase-thirty-seven-final-owner-helper-pseudo": {
+        "evidence_id": "ev_8301dacb539bc03d3234f7efe624096a9d51295dc8eaef6e567800ba3604741d",
+        "sha256": "243e7d7f8ea34a25aa3a8ca6e8a152f5d6ec83fac0773b1160eb0a6dea73cac6",
+        "local_file": "phase-thirty-seven-final-owner-helper-pseudo.evidence.json"
+      },
+      "phase-forty-five-prepush-consumer-assembly": {
+        "evidence_id": "ev_04f79491432d8b2084aeaf2cf5894992bdcb6bd597856c70a0f1ffe2a624d3df",
+        "sha256": "05ed23bffd606892e28289daf421d9385651c4819060299e7df9e2c66393b0c0",
+        "local_file": "phase-forty-five-prepush-consumer-assembly.evidence.json"
+      },
+      "phase-forty-five-prepush-consumer-pseudo": {
+        "evidence_id": "ev_b12ca1accb88b3bfb090bd5ae40fe929384c0afc434c225683b3546356aa7e55",
+        "sha256": "d94900bf82ef3c34ee3ce43bee38a13b5fe71e13627c2c2e244d4fb5670af295",
+        "local_file": "phase-forty-five-prepush-consumer-pseudo.evidence.json"
+      },
+      "phase-forty-five-own-receiver-helper-assembly": {
+        "evidence_id": "ev_2d807cc5f8c0c5bf66e4d11ba67cafa1cae8e3b3f96f66e5894a6b94eeeec25d",
+        "sha256": "3030a62efe3b512f600d550c1d19a35598a94eeb5447907d62fd7622ed6b692d",
+        "local_file": "phase-forty-five-own-receiver-helper-assembly.evidence.json"
+      },
+      "phase-forty-five-own-receiver-helper-pseudo": {
+        "evidence_id": "ev_6d2490efb55002a876471a24312733193342b2961c09b65aa4409dc5acaa9114",
+        "sha256": "ea97e67d2210d8dce9262556f696e1838918ab438f0dd2947cbdcb74f844eb33",
+        "local_file": "phase-forty-five-own-receiver-helper-pseudo.evidence.json"
+      },
+      "phase-forty-five-second-direct-helper-assembly": {
+        "evidence_id": "ev_604524a9969eeada278b9e654c143b09e0390834c8fce670dc8aa1e358379795",
+        "sha256": "14a11bc20ee73ff6ed19e8b9bd266eadbad0c30d133c55823745604328aad69d",
+        "local_file": "phase-forty-five-second-direct-helper-assembly.evidence.json"
+      },
+      "phase-forty-five-second-direct-helper-pseudo": {
+        "evidence_id": "ev_b35350cbeb624145b0b78bf43183473763c9afe6eb5546d4eee10f5ed58b4187",
+        "sha256": "becf74590e1fef48fa39e9fafcd866c69fbc346f7a13e932669dcf2018dafa73",
+        "local_file": "phase-forty-five-second-direct-helper-pseudo.evidence.json"
+      },
+      "phase-thirty-seven-table-helper-assembly": {
+        "evidence_id": "ev_393e7393490a5bfeee4f75a4ce42fcfc39ef055ba1fd766669c227e0e740b867",
+        "sha256": "47e814e77bf1b49ad64679b26f550b5abebb5eb432b9345566f3fe96adc0bc6d",
+        "local_file": "phase-thirty-seven-table-helper-assembly.evidence.json"
+      },
+      "phase-thirty-seven-owner-first-helper-assembly": {
+        "evidence_id": "ev_fdb85b69df50d5b32b49537459f3652a1ea35edaf9e4476c9109a772310cc27b",
+        "sha256": "1fc0b0680d30de2c7043d1053edeb6570c2e849761797b1e226af6aeb430eafc",
+        "local_file": "phase-thirty-seven-owner-first-helper-assembly.evidence.json"
+      },
+      "phase-thirty-seven-owner-second-helper-assembly": {
+        "evidence_id": "ev_f12a4714d2e48c8829f968c6350bcad462e75468d0a05a0cda6f00a31d14ee7d",
+        "sha256": "9759d2d035eb9224df198716e0d537cdbc807505910b4883354d998f990dde5d",
+        "local_file": "phase-thirty-seven-owner-second-helper-assembly.evidence.json"
+      }
+    },
+    "reused_evidence": [
+      {
+        "address": "0x4f8210",
+        "evidence_id": "ev_e366e7bfdc6b347527286d4962b6ecfafca8d66af0fa7596a1436875d3586e68",
+        "sha256": "c8726a545b7bebb65cc562e0b35801ce8ec48b34526bc859f1bb78fbfd95f7ac"
+      },
+      {
+        "address": "0x554c00",
+        "evidence_id": "ev_f23a7d078169f6744b9fc04bd125bd046d4521b9244805e9e0061eac8955d1c4",
+        "sha256": "530735a156d511f0c582058bb161ccb2251bc7639f0b87661ba783f78bf7fdc9"
+      },
+      {
+        "address": "0x413b40",
+        "evidence_id": "ev_73652e466973ed0361ccecfd139bc81098eacd6298b3346be65551385ae2f201",
+        "sha256": "e5b318aa77514657ab9331b9b7c0099621390316585c42784475e2a92f87a47e"
+      },
+      {
+        "address": "0x426a60",
+        "evidence_id": "ev_15ebd66fb983f13b8fc00c09f656a078ce60cc3bc72080ec7516161e93080d82",
+        "sha256": "90113565ed221b16eb78f1754a25f300c421f00b003314a910eaf3a201a1474b"
+      },
+      {
+        "address": "0x426d10",
+        "evidence_id": "ev_713b5f640b812331baef7fa0f4141e50e8665a061ba1a01df0ecd2a7ed5da823",
+        "sha256": "c08d4dadf4e5ba899cf743950208680528f3594168e553ddae9c485e357f7f58"
+      }
+    ],
+    "new_semantics_independently_reviewed": false
   }
 }
