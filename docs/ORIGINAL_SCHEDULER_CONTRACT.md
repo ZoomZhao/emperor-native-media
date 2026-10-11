@@ -127,3 +127,7 @@ phase45：caller置ECX1e535f8调用5f02c0，后CALL4b94a0；两者正常出口�
 详见[实际+170条件调用合同](ORIGINAL_PHASE37_CALL_CONTRACT.md)：四个构造表字共同指向416ad0，官方Listing关闭zeroextend8[O+7]/普通RET前缀及四个预压值保留；实际站点仍computed/unresolved，receiver存活/当前vptr/异常未绑定。后续consumer的直接正常清参已核，递归与FP资源/异常仍Unknown。
 
 转换证据作用域进一步明确：固定提交88515658可复核九份自写文本源码SHA及其路径引用；所引IR/生成绑定/driver不在该提交。这些源码只证明工具引用，不证明原函数转换成功。仅本地历史报告/产物引用保持历史声明，未读取/哈希其原派生产物，不能给出已核历史目标集合。当前全部原调度/tail转换覆盖与运行绑定未证。固定PE的另一路REA静态检查与转换产物清单分开，不上传派生产物或复跑拒绝动作。
+
+## phase37异常与最终选定调用
+
+详见[异常清理帧合同](ORIGINAL_PHASE37_EXCEPTION_CONTRACT.md)：关闭RaiseException参数形成、局部状态0清理action与EBP=registration+12的conditional receiver偏移；12个最终table调用明示nonzero selector。OS真实传播、当前对象及分配/复制仍未知，不能默认返回/推进。

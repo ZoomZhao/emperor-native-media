@@ -1,5 +1,5 @@
 {
-  "schema_version": 13,
+  "schema_version": 14,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -473,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-phase37-virtual170-20261011",
+  "latest_source_batch": "rea-static-phase37-final-exception-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -1546,6 +1546,21 @@
       "exit_code": 0,
       "temp_empty": true,
       "official_module_pairs": 18
+    },
+    {
+      "batch": "rea-static-phase37-final-exception-20261011",
+      "operations": 56,
+      "successful_Evidence": 56,
+      "saved_query_errors": 0,
+      "queried_functions": 20,
+      "new_address_requests": 20,
+      "key_listing_anchors": 5,
+      "selected_read_bytes": 142,
+      "elapsed_seconds": 884.527,
+      "session_ok": true,
+      "exit_code": 0,
+      "temp_empty": true,
+      "official_module_pairs": 18
     }
   ],
   "review_corrections_300a5a7": {
@@ -2076,6 +2091,7 @@
     "selected_tail_returns_documented": true,
     "selected_middle_stage_receivers_and_cleanup_documented": true,
     "phase37_conditional_virtual_call_document": "ORIGINAL_PHASE37_CALL_CONTRACT.md",
-    "conversion_coverage_scope": "committed source hashes and historical references only; IR/bindings unavailable; original function conversion not verified"
+    "conversion_coverage_scope": "committed source hashes and historical references only; IR/bindings unavailable; original function conversion not verified",
+    "phase37_exception_contract_document": "ORIGINAL_PHASE37_EXCEPTION_CONTRACT.md"
   }
 }

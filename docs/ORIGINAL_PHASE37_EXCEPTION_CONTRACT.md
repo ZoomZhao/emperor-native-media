@@ -1,0 +1,17 @@
+# phase37：越界异常、局部清理栈帧与最终调用范围
+
+越界分支不是可默认成功返回的占位入口。413b40自己比较unsigned size>index，不满足时调用413b70；44f1d0随后另有size<=1分支，实际槽对象加载44f21a位于该分支之后。不能把accessor调用在前误述为对象解引用发生在所有边界检查之前。
+
+413b70构造局部字符串（4084b0 RET8），将状态写0，复制异常对象（408390 RET4），以异常对象地址及ThrowInfo7e4508调用76501e。该wrapper复制7cdd88模板，静态形成code=e06d7363、flags=1、参数数3，以及magic19930520/异常对象地址/ThrowInfo三项参数，经IAT7a924c调用RaiseException。官方resolver为resolved-indirect EXTERNAL:0x56；这是静态导入引用，未调用OS。wrapper自身有RET8；已保存413b70函数体止于该CALL，没有其正常继续/RET证据。既不能凭名称说机器体无RET，也不能把wrapper的RET8当作caller正常返回或阶段已推进。
+
+handler782c48是MOV EAX,7e4bd0后JMP764cc1，不能按CALL_TERMINATOR标签另添调用帧。固定FuncInfo的maxState=1、UnwindMap=7e4bf0、nTryBlocks=0；唯一状态0记录为toState=-1/action782c40。结构解释来自Ghidra数据库，并非原始调试源码。764cc1将四个分派参数、FuncInfo与三个0压给76bfaa，caller清32/普通RET。76bfaa在flags&66及其他条件下调用76c2ff，目标状态-1；normal/search分支仍需真实异常上下文。
+
+76c2ff从登记frame+8读状态，按UnwindMap取得action，调用76c7b0(action,frame,103)，再跟随toState，最后写frame+8。76c7b0在间接CALL EAX前设置EBP=frame+12；notification764ffd尾跳765010写通知记录，保存目标EAX、清一个flag参数RET4；辅助函数随后恢复EBP并RET12。清理funclet782c40仅LEAECX,[EBP-38]后JMP4084e0，不能当独立cdecl函数绑定。
+
+栈算术补上receiver来源：令S为413b70入口ESP，三个登记压栈后frame=S-12，减30后ESP=S-60，字符串temporary位于ESP+4=S-56；若传入的登记frame确为本帧，辅助函数令EBP=frame+12=S，funclet的EBP-38也为S-56。这里EBP是辅助函数设置的父帧锚，不是413b70主动建立的普通EBP帧。此条件关系关闭局部receiver偏移，实际OS提供的登记frame/状态、线程栈与异常执行仍未绑定。
+
+局部temporary析构4084e0调用408690(flag1)，普通RET0。ThrowInfo7e4508的独立unwind入口408410则尾跳408310，后者清owner+c存储并调用7651d7的base destructor；不能把二者混为同一清理。构造初始化408690(flag0)只在选定路径跳过旧buffer释放；408640/408700、408480以及765150仍依赖未闭合的分配/复制及失败清理。没有实现原字符串、堆或异常业务，也没有用成功桩补缺口。
+
+44eb20的最终选定路径复用原149行Listing，12个44cc50调用为三个条件组，各自明示selector1/2/3/4。因此这些调用不会进入selector0的44c380子路径；不能把这一选定路径证明扩展为通用44cc50全部完成。索引/全局表、receiver与后续44ecd0的自然输入仍未知。
+
+本批56项Evidence，20个地址、5个Listing锚、142显式数据字节；884.527秒exit0，官方close、临时根空、固定输入及18对选定模块SHA不变。原代码/派生库未执行、未转换、未建立运行绑定。新语义尚无独立复核；25组/28组既有审查分别属于45e86bc/88515658，不能认证本批。自写校验器的合成测试也不能认证此异常路径或完整调度。
