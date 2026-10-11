@@ -488,6 +488,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _cityScenarioPicker = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(16, 366, 164, 28) pullsDown:NO];
     for (const auto& definition : game_lab::selfAuthoredCityScenarios())
         [_cityScenarioPicker addItemWithTitle:[NSString stringWithUTF8String:definition.title.c_str()]];
+    [_cityScenarioPicker addItemWithTitle:[NSString stringWithUTF8String:game_lab::selfAuthoredWarehouseTraining().title.c_str()]];
     [_mapView addSubview:_cityScenarioPicker];
     NSButton* startChallenge = [NSButton buttonWithTitle:@"开始挑战" target:self action:@selector(onStartCityScenario:)];
     startChallenge.frame = NSMakeRect(186, 366, 90, 28);
@@ -600,12 +601,15 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_buildToolControl setEnabled:warehouses forSegment:8];
     const auto goal = game_lab::evaluateCityGoals(game_lab::makeCityFeedbackSnapshot(_citySim, rule), _cityGoalConfig, _cityGoalMemory);
     _cityGoalMemory = goal.nextMemory;
-    const auto challenge = _cityScenario.observe({s.year,s.month},goal,_cityScenarioReceipts);
+    const bool training = _cityScenario.active() && game_lab::isCityWarehouseTrainingSpec(_cityScenario.checkpoint().spec);
+    const auto challenge = training ? game_lab::observeCityWarehouseTraining(_cityScenario,_citySim,_cityScenarioReceipts) :
+        _cityScenario.observe({s.year,s.month},goal,_cityScenarioReceipts);
     std::string challengeText = "自由营建：可选择限期挑战\n开始挑战会新建空城";
     if (challenge.active) {
         std::string title = "自定义挑战";
         for (const auto& definition : game_lab::selfAuthoredCityScenarios())
             if (definition.spec.id == _cityScenario.checkpoint().spec.id) title = definition.title;
+        if (training) title = game_lab::selfAuthoredWarehouseTraining().title;
         challengeText = title + " · ";
         if (!challenge.ok) challengeText += challenge.message;
         else if (challenge.status == game_lab::CityScenarioStatus::Won) challengeText += "胜利：目标已按期达成\n可继续营建，或另开新挑战";
@@ -617,6 +621,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const auto selected = _cityScenarioPicker.indexOfSelectedItem;
     if (selected >= 0 && selected < 3)
         _cityScenarioPicker.toolTip = [NSString stringWithUTF8String:game_lab::selfAuthoredCityScenarios()[size_t(selected)].instructions.c_str()];
+    else if (selected == 3)
+        _cityScenarioPicker.toolTip = [NSString stringWithUTF8String:game_lab::selfAuthoredWarehouseTraining().instructions.c_str()];
     std::string goalText = (warehouses ? "自写经营目标（仓储运输）\n" :
         _citySim.ruleset() == game_lab::CityRuleset::StaffedServices ?
         "自写经营目标（服务需工）\n" : "自写经营目标（旧存档服务规则）\n") + goal.status;
@@ -642,6 +648,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         }
         if (primary && priority(primary->severity) > 0) goalText += "\n" + primary->message;
         _cityGoalLabel.toolTip = [NSString stringWithUTF8String:details.c_str()];
+    }
+    if (training) {
+        const auto guide = game_lab::evaluateCityWarehouseTraining(game_lab::makeCityWarehouseTrainingSnapshot(_citySim),_cityGoalConfig);
+        std::string allHints;
+        for (const auto& hint : guide.hints) allHints += hint.text + "\n";
+        if (!guide.hints.empty()) goalText += "\n" + guide.hints.front().text;
+        _cityGoalLabel.toolTip = [_cityGoalLabel.toolTip stringByAppendingFormat:@"\n%@",[NSString stringWithUTF8String:allHints.c_str()]];
     }
     _cityGoalLabel.stringValue = [NSString stringWithUTF8String:goalText.c_str()];
     NSString* yearStr = s.year < 0 ? [NSString stringWithFormat:@"公元前 %lld 年", -static_cast<long long>(s.year)] : [NSString stringWithFormat:@"公元 %d 年", s.year];
@@ -778,7 +791,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)onStartCityScenario:(id)sender {
     (void)sender;
     const auto index = _cityScenarioPicker.indexOfSelectedItem;
-    if (index < 0 || index >= 3) return;
+    if (index < 0 || index >= 4) return;
     NSError* directoryError = nil;
     NSURL* support = [[NSFileManager defaultManager] URLForDirectory:NSApplicationSupportDirectory
         inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:&directoryError];
@@ -792,11 +805,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         game_lab::assignedCityRunFloor(_cityScenario,_cityScenarioReceipts),runId,error)) {
         _cityEventLabel.stringValue = [NSString stringWithUTF8String:error.c_str()]; return;
     }
-    game_lab::CitySimulation candidate(game_lab::CityRuleset::StaffedServices);
+    const bool training = index == 3;
+    game_lab::CitySimulation candidate(training ? game_lab::CityRuleset::RoadWarehouses : game_lab::CityRuleset::StaffedServices);
     candidate.setSpeed(0);
     game_lab::CityScenarioSession challenge;
-    const auto& definition = game_lab::selfAuthoredCityScenarios()[size_t(index)];
-    const auto begun = challenge.begin(definition.spec,runId,{candidate.stats().year,candidate.stats().month},_cityScenarioReceipts);
+    const auto& definition = training ? game_lab::selfAuthoredWarehouseTraining() : game_lab::selfAuthoredCityScenarios()[size_t(index)];
+    const auto begun = training ? game_lab::beginCityWarehouseTraining(challenge,candidate,runId,_cityScenarioReceipts) :
+        challenge.begin(definition.spec,runId,{candidate.stats().year,candidate.stats().month},_cityScenarioReceipts);
     if (!begun.ok) { _cityEventLabel.stringValue = [NSString stringWithUTF8String:begun.message.c_str()]; return; }
     _citySim = std::move(candidate); _cityScenario = std::move(challenge);
     _cityGoalConfig = definition.spec.goals; _cityGoalMemory = {};

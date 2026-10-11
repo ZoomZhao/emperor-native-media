@@ -72,3 +72,10 @@ python3 scripts/city_scenario_runner.py --core-directory /absolute/own/game_lab 
 两次原生面板辅助定位失败保留日志，确认只剩主窗口、目标文件未创建后，新的独立保存操作成功；失败未计作通过。没有读取GameData或原代码，没有操作真实音频设备；截图和二进制未上传。
 
 本地证据位于 `/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/scenario-loop-20261011/`：`state-v2-final-release/`、`state-v2-final-undefined/`、`module-v2-release/`、`module-v2-undefined/`、`app-v2-validation/`、`ui-final-session/`、`scenario-ui-acceptance.json`，以及保留的v1失败回归和v2补丁指纹。
+
+
+## 可选第四关：官仓通路
+
+原三关定义数组和v3规则不变，App另外提供“官仓通路”：仓储v4空城，24个模拟月内人口32、存粮650、国库4000且月度收支不亏。满仓/断路/重连是建议练习，直接连通两仓也可胜利。模块v2修复矛盾道路快照提示，实际城市的生产和运输仍来自原核心。
+
+活动训练进度使用ECG1版本2完整保存，不用自由城EMP1代替；恢复原runId、捕获目标、起始月、期限和终态，混段或非法输入拒绝且旧城保持。原ECG1版本1精确规则保持。通过详情与窗口有限范围见[WAREHOUSE_TRAINING_APP.md](WAREHOUSE_TRAINING_APP.md)；模块作者范围见[CITY_WAREHOUSE_TRAINING.md](CITY_WAREHOUSE_TRAINING.md)。没有资源奖励或全局通关档案。

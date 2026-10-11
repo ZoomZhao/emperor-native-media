@@ -1,14 +1,18 @@
 #pragma once
 #include "city_state_io.hpp"
 #include "app/city_scenario_checkpoint.hpp"
+#include "app/city_warehouse_training.hpp"
 #include <sys/file.h>
 #include <CommonCrypto/CommonDigest.h>
 
 namespace game_lab {
 // Self-authored single-file challenge saves. Free cities retain the complete EMP1 contract.
 constexpr size_t kCityGameHeaderBytes = 20 + CC_SHA256_DIGEST_LENGTH;
-constexpr size_t kCityGameMaxBytes = kCityGameHeaderBytes + kCityStateBytes +
+constexpr size_t kCityClassicGameMaxBytes = kCityGameHeaderBytes + kCityStateBytes +
     kCityScenarioCheckpointBytes + 12 + 8 * CityScenarioAwardBook::kMaxEntries;
+constexpr size_t kCityWarehouseGameMaxBytes = kCityGameHeaderBytes + kCityWarehouseStateBytes +
+    kCityScenarioCheckpointBytes + 12 + 8 * CityScenarioAwardBook::kMaxEntries;
+constexpr size_t kCityGameMaxBytes = std::max(kCityClassicGameMaxBytes,kCityWarehouseGameMaxBytes);
 
 namespace city_game_io_detail {
 inline bool writeAtomic(const std::vector<uint8_t>& bytes, const std::filesystem::path& path,
@@ -70,17 +74,20 @@ inline std::vector<uint8_t> encodeCityGameState(const CitySimulation& city,
     const auto cityBytes = city.saveSnapshot();
     if (!session.active()) return cityBytes;
     const auto& s = city.stats(); int64_t month = 0;
-    if (city.ruleset() != CityRuleset::StaffedServices ||
+    const bool training = isCityWarehouseTrainingSpec(session.checkpoint().spec);
+    const bool classic = city.ruleset() == CityRuleset::StaffedServices &&
+        session.checkpoint().spec.id != 4;
+    if ((!classic && !(training && city.ruleset() == CityRuleset::RoadWarehouses)) ||
         !city_scenario_detail::monthNumber({s.year,s.month},month) ||
         session.checkpoint().lastObservedMonth != month) {
-        error = "Challenge metadata must match the current staffed-service city month"; return {};
+        error = "Challenge rule, registered training revision and current city month must match"; return {};
     }
     auto metadata = encodeCityScenarioCheckpoint(session.checkpoint(), error);
     if (metadata.empty()) return {};
     const auto awards = encodeCityScenarioAwards(book,error);
     if (awards.empty()) return {};
     std::vector<uint8_t> bytes{'E','C','G','1'};
-    for (uint64_t n : {uint64_t(1),uint64_t(cityBytes.size()),uint64_t(metadata.size()),uint64_t(awards.size())})
+    for (uint64_t n : {uint64_t(training ? 2 : 1),uint64_t(cityBytes.size()),uint64_t(metadata.size()),uint64_t(awards.size())})
         city_scenario_codec_detail::put(bytes,n,4);
     bytes.insert(bytes.end(),cityBytes.begin(),cityBytes.end());
     bytes.insert(bytes.end(),metadata.begin(),metadata.end());
@@ -102,7 +109,9 @@ inline bool decodeCityGameState(const std::vector<uint8_t>& bytes, CitySimulatio
         size_t offset = 4;
         const auto get = [&]() { return city_scenario_codec_detail::get(bytes,offset,4); };
         const auto version = get(), citySize = get(), scenarioSize = get(), awardSize = get();
-        if (version != 1 || citySize != kCityStateBytes || scenarioSize != kCityScenarioCheckpointBytes ||
+        const bool classic = version == 1 && citySize == kCityStateBytes;
+        const bool training = version == 2 && citySize == kCityWarehouseStateBytes;
+        if ((!classic && !training) || scenarioSize != kCityScenarioCheckpointBytes ||
             awardSize < 12 || awardSize > 12 + 8 * CityScenarioAwardBook::kMaxEntries ||
             bytes.size() != kCityGameHeaderBytes + citySize + scenarioSize + awardSize) {
             error = "Invalid complete challenge container lengths/version"; return false;
@@ -117,14 +126,24 @@ inline bool decodeCityGameState(const std::vector<uint8_t>& bytes, CitySimulatio
         const auto part = [&](size_t n) {
             std::vector<uint8_t> result(bytes.begin()+offset,bytes.begin()+offset+n); offset += n; return result;
         };
-        if (!candidate.loadSnapshot(part(size_t(citySize))) || candidate.ruleset() != CityRuleset::StaffedServices) {
-            error = "Invalid staffed-service challenge city"; return false;
+        if (!candidate.loadSnapshot(part(size_t(citySize))) ||
+            candidate.ruleset() != (training ? CityRuleset::RoadWarehouses : CityRuleset::StaffedServices)) {
+            error = "Invalid challenge city rule/version pairing"; return false;
         }
         const auto metadata = part(size_t(scenarioSize)); CityScenarioAwardBook savedAwards;
         if (!decodeCityScenarioAwards(part(size_t(awardSize)),savedAwards,error) ||
             !mergeCityScenarioAwards(awards,savedAwards,error)) return false;
-        const auto& s = candidate.stats();
-        if (!resumeCityScenarioFromBytes(challenge,metadata,{s.year,s.month},awards,error)) return false;
+        CityScenarioCheckpoint saved;
+        if (!decodeCityScenarioCheckpoint(metadata,saved,error)) return false;
+        if (training) {
+            const auto result = restoreCityWarehouseTraining(challenge,saved,candidate,awards);
+            if (!result.ok) { error = result.message; return false; }
+        } else {
+            if (saved.spec.id == 4) { error = "Warehouse training requires ECG1 version2 and warehouse rules"; return false; }
+            const auto& s = candidate.stats();
+            const auto result = challenge.restore(saved,{s.year,s.month},awards);
+            if (!result.ok) { error = result.message; return false; }
+        }
     }
     city = std::move(candidate); session = std::move(challenge); book = std::move(awards);
     return true;

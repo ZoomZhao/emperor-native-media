@@ -49,3 +49,8 @@ python3 scripts/independent_runner.py warehouse --mode undefined
 入口参数以`--help`为准；每个子进程上限60秒。使用自造状态，不读取GameData或原游戏实现。旧65580字节v1/v3不静默升级；v4自由城尚未支持ECG1挑战，现有挑战和原期限/结果绑定保持。
 
 后续三项工程任务及具体通过标准见[CONTINUATION_SCOPE.md](CONTINUATION_SCOPE.md)。
+
+
+## 后续独立训练关接入
+
+“官仓通路”现在是App单独第四项：仓储v4、24模拟月、四项人口32/粮650/钱4000/月收支不亏；默认自由城与原三关仍保持各自规则。ECG1版本2完整训练存档保留期限、目标和结算，旧版本1/v3不迁移。库存搬粮、路网标记尚待下一小步实现，当前没有搬运单位或全局奖励。主线接线/绑定和窗口证据见[WAREHOUSE_TRAINING_APP.md](WAREHOUSE_TRAINING_APP.md)。
