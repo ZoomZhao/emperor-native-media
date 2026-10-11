@@ -25,7 +25,7 @@ MEDIA = [
     'game_lab/run_boundaries.sh',
 ]
 APP = [
-    'LICENSE', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
+    'LICENSE', 'docs/FIRST_PLAY.md', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
     'game_lab/city_game_state.hpp', 'game_lab/app/city_scenario.hpp', 'game_lab/app/city_scenario_checkpoint.hpp',
     'game_lab/app/city_warehouse_training.hpp', 'game_lab/app/city_warehouse_transfer.hpp', 'game_lab/app/city_warehouse_routes.hpp',
     'game_lab/app/main.mm', 'game_lab/app/city_goal_feedback.hpp', 'game_lab/app/city_goal_feedback_adapter.hpp',
@@ -61,11 +61,12 @@ WAREHOUSE_TRAINING_STATE = [name for name in SCENARIO_STATE if name != 'game_lab
 WAREHOUSE = [name for name in SCENARIO_STATE if name != 'game_lab/city_game_state_tests.cpp'] + ['game_lab/warehouse_roads_tests.cpp']
 WAREHOUSE_TRANSFER = [name for name in WAREHOUSE_TRAINING_STATE if name != 'game_lab/warehouse_training_state_tests.cpp'] + ['game_lab/warehouse_transfer_tests.cpp']
 WAREHOUSE_ROUTES = [name for name in WAREHOUSE_TRANSFER if name != 'game_lab/warehouse_transfer_tests.cpp'] + ['game_lab/warehouse_route_tests.cpp']
+LAUNCH = ['game_lab/app_launch.hpp','game_lab/resource_root.hpp','game_lab/resource_root.cpp','game_lab/app_launch_tests.cpp']
 SURFACE = ['surface_lab/surface.hpp', 'surface_lab/surface.cpp',
            'surface_lab/oracle.hpp', 'surface_lab/oracle.cpp', 'surface_lab/tests.cpp']
 METAL = [name for name in SURFACE if name != 'surface_lab/tests.cpp'] + [
     'metal_lab/backend.hpp', 'metal_lab/backend.mm', 'metal_lab/tests.mm']
-SUITES = {'surface': SURFACE, 'metal': METAL,
+SUITES = {'launch': LAUNCH, 'surface': SURFACE, 'metal': METAL,
           'city': CITY, 'service': SERVICE, 'scenario-state': SCENARIO_STATE, 'warehouse': WAREHOUSE,
           'warehouse-routes': WAREHOUSE_ROUTES, 'warehouse-transfer': WAREHOUSE_TRANSFER, 'warehouse-training-state': WAREHOUSE_TRAINING_STATE, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
           'movie-async': APP + ['game_lab/movie_session_async_tests.mm'],
@@ -206,6 +207,13 @@ def run(suite, mode, output):
             binaries = {'city-tests': sha(report / 'city-tests')}
             command('city-test', [report / 'city-tests', report / 'city-fixtures'])
             results = {suite: read(report / 'city-test.stdout')}
+        elif suite == 'launch':
+            command('compile-test', ['/usr/bin/clang++','-std=c++17','-Wall','-Wextra','-Werror',*flags,
+                                     '-I',snapshot,snapshot/'game_lab/app_launch_tests.cpp',
+                                     snapshot/'game_lab/resource_root.cpp','-o',report/'launch-tests'])
+            binaries={'launch-tests':sha(report/'launch-tests')}
+            command('launch-test',[report/'launch-tests',report/'launch-fixtures'])
+            results={'launch':read(report/'launch-test.stdout')}
         elif suite == 'data':
             command('compile-c', ['/usr/bin/clang', '-std=c11', '-Wall', '-Wextra', '-Werror', *flags,
                                  '-I', snapshot / 'runtime_core/include', '-c', snapshot / 'runtime_core/src/heap_native.c', '-o', report / 'heap_native.o'])

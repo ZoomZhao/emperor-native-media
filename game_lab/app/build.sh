@@ -33,10 +33,11 @@ echo "Compiling EmperorApp binary..."
     -o "$BUILD_DIR/EmperorApp.bin"
 
 echo "Packaging EmperorApp.app bundle..."
-mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
+mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources/SelfAuthoredData"
 mv "$BUILD_DIR/EmperorApp.bin" "$APP_BUNDLE/Contents/MacOS/EmperorApp"
 cp "$APP_ROOT/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
 cp "$REPO_ROOT/LICENSE" "$APP_BUNDLE/Contents/Resources/LICENSE"
+cp "$REPO_ROOT/docs/FIRST_PLAY.md" "$APP_BUNDLE/Contents/Resources/FIRST_PLAY.md"
 printf 'APPL????' > "$APP_BUNDLE/Contents/PkgInfo"
 
 /usr/bin/python3 -I -B "$APP_ROOT/build_provenance.py" "$APP_BUNDLE"

@@ -123,6 +123,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSButton* _muteButton;
     NSSlider* _volumeSlider;
     
+    BOOL _selfAuthoredLaunch;
     // Audio Player
     game_lab::AVAudioFactory _audioFactory;
     std::unique_ptr<game_lab::AppMedia> _media;
@@ -196,7 +197,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     std::unique_ptr<ViewImagePresenter> _moviePresenter;
     BOOL _movieTerminating;
 }
-- (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root;
+- (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root selfAuthored:(BOOL)selfAuthored;
 - (void)refreshAudioStatus;
 - (void)updateMovieControls;
 - (void)updateMovieTimer;
@@ -206,9 +207,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 @implementation EmperorAppDelegate
 
-- (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root {
+- (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root selfAuthored:(BOOL)selfAuthored {
     self = [super init];
     if (self) {
+        _selfAuthoredLaunch = selfAuthored;
         _media = std::make_unique<game_lab::AppMedia>(root, _audioFactory);
         __weak EmperorAppDelegate* weakSelf = self;
         _media->setStatusChangedCallback([weakSelf](const game_lab::PlaybackStatus&) {
@@ -274,6 +276,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     _citySim.reset(game_lab::CityRuleset::StaffedServices);
+    _citySim.setSpeed(0);
     (void)notification;
     [self setupWindow];
     [self setupAudio];
@@ -283,7 +286,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self setupMusicView];
     [self setupTextView];
     [self setupMovieView];
-    [self showTab:0];
+    [self showTab:1];
     
     // Start the self-authored city tick timer
     _simTimer = [NSTimer scheduledTimerWithTimeInterval:0.25 target:self selector:@selector(onSimulationStep:) userInfo:nil repeats:YES];
@@ -496,19 +499,27 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         @"ASSR-Liangzhou.map", @"ASSR-LopNor.map", @"ASSR-Loulan.map"
     ];
     
+    if (_selfAuthoredLaunch) _mapFiles = @[];
     // Left: Table of maps (width 260)
     const CGFloat cityHeight = _mapView.bounds.size.height;
     NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(16, 456, 260, cityHeight - 472)];
     scroll.autoresizingMask = NSViewHeightSizable;
     _mapTableView = [[NSTableView alloc] initWithFrame:scroll.bounds];
     NSTableColumn* col = [[NSTableColumn alloc] initWithIdentifier:@"MapName"];
-    col.title = @"原版城市地图 (.map)";
+    col.title = _selfAuthoredLaunch ? @"自写空白平原（无需原版资源）" : @"媒体目录地图 (.map)";
     col.width = 240;
     [_mapTableView addTableColumn:col];
     _mapTableView.delegate = self;
     _mapTableView.dataSource = self;
     scroll.documentView = _mapTableView;
     [_mapView addSubview:scroll];
+    if (_selfAuthoredLaunch) {
+        scroll.hidden=YES;
+        NSTextField* firstPlay=[NSTextField wrappingLabelWithString:@"第一次玩：\n1. 选“聚落初成”，点击开始挑战\n2. 选民居，在空地建六户\n3. 点击 +1月，观察人口与目标\n4. 也可新建仓储城，自由营建\n5. 保存城邑，之后载入继续"];
+        firstPlay.frame=scroll.frame;firstPlay.autoresizingMask=NSViewHeightSizable;
+        firstPlay.maximumNumberOfLines=10;firstPlay.font=[NSFont systemFontOfSize:12];
+        firstPlay.accessibilityIdentifier=@"first-play-guide";[_mapView addSubview:firstPlay];
+    }
     
     _cityGoalLabel = [NSTextField wrappingLabelWithString:@"自写经营目标"];
     _cityGoalLabel.frame = NSMakeRect(16, 108, 260, 238);
@@ -1533,6 +1544,7 @@ int main(int argc, const char* argv[]) {
         const char* environment = std::getenv("EMPEROR_GAMEDATA_ROOT");
         std::vector<std::string> arguments;
         for (int i = 1; i < argc; ++i) arguments.emplace_back(argv[i]);
+        NSString* ownRoot = [NSBundle.mainBundle.resourcePath stringByAppendingPathComponent:@"SelfAuthoredData"];
         const auto plan = game_lab::prepareLaunch(arguments, environment ? environment : "", [] {
             NSApplication* app = [NSApplication sharedApplication];
             [app setActivationPolicy:NSApplicationActivationPolicyRegular];
@@ -1546,10 +1558,10 @@ int main(int argc, const char* argv[]) {
             if ([chooser runModal] != NSModalResponseOK) return std::string{};
             const char* selected = chooser.URL.path.UTF8String;
             return selected ? std::string(selected) : std::string{};
-        });
+        }, ownRoot.UTF8String ? ownRoot.UTF8String : "");
         if (plan.action == game_lab::LaunchAction::Help) {
             std::fprintf(stdout, "Usage: EmperorApp [--data-root /absolute/path/to/GameData]\n"
-                                 "Without a root argument or EMPEROR_GAMEDATA_ROOT, choose a resource directory.\n");
+                                 "Normal launch uses packaged self-authored empty data; no resource selection required.\n");
             return 0;
         }
         if (plan.action == game_lab::LaunchAction::ArgumentError) {
@@ -1563,7 +1575,7 @@ int main(int argc, const char* argv[]) {
         if (plan.action == game_lab::LaunchAction::Cancelled) return 0;
         NSApplication* app = [NSApplication sharedApplication];
         [app setActivationPolicy:NSApplicationActivationPolicyRegular];
-        EmperorAppDelegate* delegate = [[EmperorAppDelegate alloc] initWithResourceRoot:plan.root];
+        EmperorAppDelegate* delegate = [[EmperorAppDelegate alloc] initWithResourceRoot:plan.root selfAuthored:plan.bundledSelfAuthored];
         app.delegate = delegate;
         [app run];
     }
