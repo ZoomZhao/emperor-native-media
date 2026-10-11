@@ -22,7 +22,9 @@ EMP1 是本模型自己的格式，不兼容原游戏存档。v1 精确为 65580
 
 `city` 的 Release/UBSan 通过，覆盖空/非法建造、重置 tick、三倍速余数、有效/无效地图、坐标边界、完整存档往返、截断/尾随/非法状态拒绝、失败不污染城市、共用文件接口错误与极值月份推进。原模型的独立失败记录和 UBSan 年份溢出日志保留在本地任务报告；测试监督器早期编译/工作目录问题另标注，不归因于产品。
 
-现有媒体解析、默认静音/fake 音频控制、城市加媒体集成、自造 MOV 异步处理和真实终止消费者的 Release/UBSan 回归均通过。App 编译、系统框架链接、打包与 codesign strict 校验通过；未启动 GUI 或操作音频设备。GPU 读回和离线 PCM 不等于完整游戏视觉或听觉验收。AppMedia、音频后端、MovieSession 及其媒体依赖保持已有源码内容；新增的是城市接线。
+最新 App 的有限真实窗口验收另见 [WINDOW_ACCEPTANCE.md](WINDOW_ACCEPTANCE.md)：建造/拆除/勘查、暂停/1x/2x/3x/单月、真实面板保存/载入后两份完整 EMP1 字节一致，静默影片控制与播放中正常退出均通过。修复了实际内容高度布局、中文 UTF-8 状态及暂停勘查文字被覆盖的问题。
+
+现有媒体解析、默认静音/fake 音频控制、城市加媒体集成、自造 MOV 异步处理和真实终止消费者的 Release/UBSan 回归均通过。App 编译、系统框架链接、打包与 codesign strict 校验通过；此前仅构建的回归阶段没有启动 GUI 或操作音频设备。GPU 读回和离线 PCM 不等于完整游戏视觉或听觉验收。AppMedia、音频后端、MovieSession 及其媒体依赖保持已有源码内容；新增的是城市接线。
 
 ```sh
 python3 scripts/independent_runner.py city --mode release --output /absolute/new-output
@@ -41,4 +43,4 @@ python3 scripts/independent_runner.py app --output /absolute/new-output
 | 图形裁剪、缩放与生命周期 | 完全自造 RGB555/RGB565/BGRA8 和独立像素 oracle，覆盖 stride、边界裁剪、缩放、重叠与 create/resize/destroy；像素逐项一致，非法输入不改输出，无失效资源引用；离屏 GPU 结果单独注明设备与误差 |
 | 音视频取消与恢复 | 自造 PCM/MOV 和 fake 设备/时钟事件，覆盖队列满/空、循环、格式拒绝、恢复、seek、取消、超时和销毁；旧 epoch 回调不写入新会话，停止/释放后无遗留播放或回调，恢复保持合同；每个子进程 ≤60 秒 |
 
-普通自写模型、组件和工程集成可以继续。原任务已被安全拦截的原城市指令恢复/差分路线不能恢复、包装重试或绕过；不读取原 EXE、反汇编、旧 Swift 或 GameData 内容，不执行原或衍生游戏库。真实 GUI、听觉、硬件恢复及原版兼容仍是独立未验证项。
+普通自写模型、组件和工程集成可以继续。原任务已被安全拦截的原城市指令恢复/差分路线不能恢复、包装重试或绕过；不读取原 EXE、反汇编、旧 Swift 或 GameData 内容，不执行原或衍生游戏库。上述有限真实窗口路径之外的 GUI、听觉、硬件恢复及原版兼容仍是独立未验证项。

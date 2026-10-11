@@ -455,7 +455,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     ];
     
     // Left: Table of maps (width 260)
-    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(16, 108, 260, 596)];
+    const CGFloat cityHeight = _mapView.bounds.size.height;
+    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(16, 108, 260, cityHeight - 124)];
+    scroll.autoresizingMask = NSViewHeightSizable;
     _mapTableView = [[NSTableView alloc] initWithFrame:scroll.bounds];
     NSTableColumn* col = [[NSTableColumn alloc] initWithIdentifier:@"MapName"];
     col.title = @"原版城市地图 (.map)";
@@ -467,8 +469,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_mapView addSubview:scroll];
     
     // Right Top: City HUD Status (Width 730)
-    _cityHUDLabel = [NSTextField labelWithString:@"📅 城市模拟已就绪"];
-    _cityHUDLabel.frame = NSMakeRect(286, 676, 722, 28);
+    _cityHUDLabel = [NSTextField wrappingLabelWithString:@"📅 城市模拟已就绪"];
+    _cityHUDLabel.frame = NSMakeRect(286, cityHeight - 66, 722, 50);
+    _cityHUDLabel.maximumNumberOfLines = 2;
+    _cityHUDLabel.autoresizingMask = NSViewMinYMargin | NSViewWidthSizable;
     _cityHUDLabel.font = [NSFont boldSystemFontOfSize:13];
     _cityHUDLabel.textColor = [NSColor colorWithCalibratedRed:0.95 green:0.85 blue:0.4 alpha:1.0];
     [_mapView addSubview:_cityHUDLabel];
@@ -478,23 +482,30 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                                                       trackingMode:NSSegmentSwitchTrackingSelectOne
                                                             target:self
                                                             action:@selector(onSpeedChanged:)];
-    _speedControl.frame = NSMakeRect(286, 642, 240, 26);
+    _speedControl.frame = NSMakeRect(286, cityHeight - 102, 240, 26);
+    _speedControl.autoresizingMask = NSViewMinYMargin;
     _speedControl.selectedSegment = 1;
     [_mapView addSubview:_speedControl];
 
     // Building Tools Palette (Width 470)
     _buildToolControl = [NSSegmentedControl segmentedControlWithLabels:@[
-        @"🔍 勘查", @"🛣 道路(5)", @"🏠 民居(15)", @"🌾 农庄(40)", @"💧 水井(10)", @"🏛 宗庙(50)", @"🏪 市肆(30)", @"🗼 更楼(20)", @"🔨 拆除(2)"
+        @"勘查", @"道路", @"民居", @"农庄", @"水井", @"宗庙", @"市肆", @"更楼", @"拆除"
     ]
                                                           trackingMode:NSSegmentSwitchTrackingSelectOne
                                                                 target:self
                                                                 action:@selector(onBuildToolChanged:)];
-    _buildToolControl.frame = NSMakeRect(536, 642, 472, 26);
+    _buildToolControl.frame = NSMakeRect(536, cityHeight - 102, 472, 26);
+    _buildToolControl.autoresizingMask = NSViewMinYMargin | NSViewWidthSizable;
+    NSArray<NSString*>* toolTips = @[@"勘查地块", @"道路：5贯", @"民居：15贯", @"农庄：40贯", @"水井：10贯", @"宗庙：50贯", @"市肆：30贯", @"更楼：20贯", @"拆除：2贯"];
+    for (NSInteger i = 0; i < _buildToolControl.segmentCount; ++i) {
+        [_buildToolControl setToolTip:toolTips[static_cast<NSUInteger>(i)] forSegment:i];
+    }
     _buildToolControl.selectedSegment = 0;
     [_mapView addSubview:_buildToolControl];
 
-    // Center: Interactive Map Canvas View (560x560)
-    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 560, 560)];
+    // Leave room for the wrapped HUD; track the content height when macOS fits the window to the screen.
+    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 532, cityHeight - 188)];
+    _mapCanvasView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _mapCanvasView.imageScaling = NSImageScaleAxesIndependently;
     _mapCanvasView.wantsLayer = YES;
     _mapCanvasView.layer.borderColor = [NSColor colorWithCalibratedRed:0.6 green:0.5 blue:0.3 alpha:1.0].CGColor;
@@ -509,7 +520,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
     // Status info label below controls
     _mapInfoLabel = [NSTextField labelWithString:@""];
-    _mapInfoLabel.frame = NSMakeRect(286, 614, 722, 22);
+    _mapInfoLabel.frame = NSMakeRect(286, cityHeight - 130, 722, 22);
+    _mapInfoLabel.autoresizingMask = NSViewMinYMargin | NSViewWidthSizable;
     _mapInfoLabel.font = [NSFont systemFontOfSize:12];
     _mapInfoLabel.textColor = [NSColor colorWithCalibratedWhite:0.8 alpha:1.0];
     [_mapView addSubview:_mapInfoLabel];
@@ -541,8 +553,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)updateCityHUD {
     const auto& s = _citySim.stats();
     NSString* yearStr = s.year < 0 ? [NSString stringWithFormat:@"公元前 %lld 年", -static_cast<long long>(s.year)] : [NSString stringWithFormat:@"公元 %d 年", s.year];
-    _cityHUDLabel.stringValue = [NSString stringWithFormat:@"📅 %@ %d月 [%s]  |  💰 国库: %d贯  |  👥 户籍: %d人 (容积: %d)  |  🛠 就业: %d%% (%d/%d工)  |  🌾 存粮: %d担  |  🕊 繁荣: %d%%",
-                                 yearStr, s.month, s.rankTitle.c_str(), s.treasury, s.population, s.housingCapacity, s.employmentPercent, s.availableWorkers, s.neededWorkers, s.foodSupply, s.favor];
+    _cityHUDLabel.stringValue = [NSString stringWithFormat:@"📅 %@ %d月 [%@]  |  💰 国库: %d贯  |  👥 户籍: %d人 (容积: %d)  |  🛠 就业: %d%% (%d/%d工)  |  🌾 存粮: %d担  |  🕊 繁荣: %d%%",
+                                 yearStr, s.month, [NSString stringWithUTF8String:s.rankTitle.c_str()], s.treasury, s.population, s.housingCapacity, s.employmentPercent, s.availableWorkers, s.neededWorkers, s.foodSupply, s.favor];
     if (!_citySim.events().empty()) {
         _cityEventLabel.stringValue = [NSString stringWithFormat:@"📜 帝都政务记录: %@", [NSString stringWithUTF8String:_citySim.events().back().c_str()]];
     }
@@ -560,8 +572,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     (void)timer;
     const int oldMonth = _citySim.stats().month;
     _citySim.tick();
-    [self updateCityHUD];
     if (_citySim.stats().month != oldMonth) {
+        [self updateCityHUD];
         [self renderCityGrid];
     }
 }
@@ -601,8 +613,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     if (_activeBuildTool == game_lab::BuildingType::None) {
         const auto b = _citySim.buildingAt(x, y);
         const char* name = game_lab::BuildingCost::name(b);
-        _cityEventLabel.stringValue = [NSString stringWithFormat:@"🔍 勘查地块 (%d, %d): 地形=%s · 建筑=%s",
-                                       x, y, _citySim.isWaterTile(x, y) ? "河湖水域" : "陆地平原", name];
+        _cityEventLabel.stringValue = [NSString stringWithFormat:@"🔍 勘查地块 (%d, %d): 地形=%@ · 建筑=%@",
+                                       x, y, _citySim.isWaterTile(x, y) ? @"河湖水域" : @"陆地平原", [NSString stringWithUTF8String:name]];
     } else {
         std::string msg;
         if (static_cast<int>(_activeBuildTool) == 99) {
@@ -621,7 +633,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
             }
         }
         [self updateCityHUD];
-        _cityEventLabel.stringValue = [NSString stringWithFormat:@"📜 帝都政务记录: %s", msg.c_str()];
+        _cityEventLabel.stringValue = [NSString stringWithFormat:@"📜 帝都政务记录: %@", [NSString stringWithUTF8String:msg.c_str()]];
     }
     [self renderCityGrid];
 }
@@ -975,6 +987,14 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _movieImageView.layer.borderColor = [NSColor grayColor].CGColor;
     _movieImageView.layer.borderWidth = 1;
     [_movieView addSubview:_movieImageView];
+
+    // Keep the fixed movie controls below navigation when the window is fitted to a shorter screen.
+    for (NSView* control in _movieView.subviews) {
+        NSRect rect = control.frame;
+        rect.origin.y += _movieView.bounds.size.height - 720;
+        control.frame = rect;
+        control.autoresizingMask |= NSViewMinYMargin;
+    }
 
     _moviePresenter = std::make_unique<ViewImagePresenter>(_movieImageView);
     [self updateMovieControls];
