@@ -2,7 +2,7 @@
 
 2026-10-11。目标是完整原版《皇帝：龙之崛起》运行。当前仓库交付的是自写平台组件、有限资源解析和自写城市 App；还没有完整原版启动、城市周期、战役及原版存档的端到端通过证据。自写玩法、GPU 读回、离线 PCM 和编译成功均不能替代该目标。
 
-本次只读核对授权工程源码与既有文本/JSON 报告，不读取 EXE、反汇编、原 IR、原/派生游戏库、旧 Swift 或 GameData 内容，不执行历史工具链或被拒路线。停止新增自写玩法、关卡及泛用媒体微测试。在途视口改动已安全收口，成果和其他草稿保留。
+初次审计只读工程源码/报告；后续已明确授权固定SHA原PE的REA/Ghidra纯静态检查，现已完成多批。旧“不读EXE/反汇编”是初次范围，不继续作为当前静态禁令。原IR/派生库/旧Swift/GameData未读，原/转换代码和被拒执行路线未运行。停止新增自写玩法、关卡及泛用媒体微测试。在途视口改动已安全收口，成果和其他草稿保留。
 
 具体接线依赖见 [原版完整 tick 接线审计](ORIGINAL_TICK_WIRING_AUDIT.md)：首先缺完整 tick 边界及合格自然输入，其次缺当前入口/返回/条件目标绑定和未来回调契约。phase8 切片返回不能直接认定为完整 tick；legacy C heap/线程/异常合同与当前有限模型也须分别核对。该审计未运行原链或 UI，并记录了 AX 实际检测时点与影响。
 
@@ -50,7 +50,7 @@
 
 技术缺实现/缺验证包括原逻辑消费者、完整 tick、上述 Win32/SEH/动态回调、资源/战役/存档/原音视频。可以继续讨论完整目标、审阅授权源码和报告、设计真实接线与错误合同、整理依赖和实施已授权的平台修复。
 
-此前平台安全拦截的是具体原二进制转换/指令恢复/探测路线；本轮不恢复、包装、委托重试或换目录/工具绕过。不将该拒绝扩大成禁止讨论整个目标或所有平台工程。本任务也不读取 EXE/反汇编/旧 Swift、不调用 SR/Unicorn/Wine、不执行原/派生游戏库；这些不是新的技术兼容结论。普通 Git 推送仅发布授权源码和说明。GameData 放入目录没有自动增加读取/执行/上传授权。
+此前平台安全拦截的是具体原二进制转换/指令恢复/探测路线；本轮不恢复、包装、委托重试或换目录/工具绕过。不将该拒绝扩大成禁止讨论整个目标或所有平台工程。当前已批准的固定原PE静态读取与REA分析可以继续；旧Swift/GameData和原/派生游戏执行、SR/Unicorn/Wine不在本轮范围。这些范围记录不是新的技术兼容结论，也不禁止整个原版恢复目标。普通 Git 推送仅发布授权源码和说明。GameData 放入目录没有自动增加读取/执行/上传授权。
 
 当前窗口辅助返回“existing AX permission unavailable; no request made”，未改系统权限；这是本次剩余自有窗口验收的具体条件缺失，不是新的一揽子安全拒绝。最新通用媒体集成的 MOV writer 失败属于实际测试失败，不与原执行安全拒绝混写。
 
@@ -61,3 +61,8 @@
 当前源码依据：game_lab/app/build.sh、app/main.mm、city_simulation.hpp、city_game_state.hpp、emperor_assets.mm 及 runtime_core/README.md。工程证据摘要见 [CITY_BUILD_HANDOFF](CITY_BUILD_HANDOFF.md)、[CITY_CAPABILITY_AUDIT](CITY_CAPABILITY_AUDIT.md)、[AUTHORED_DRIVER_COMPILE](AUTHORED_DRIVER_COMPILE.md)、[NATIVE_GUEST_MEMORY](NATIVE_GUEST_MEMORY.md)、[PLATFORM_AUDIT](PLATFORM_AUDIT.md)、[RGB555_BOUNDARIES](RGB555_BOUNDARIES.md)、[APP_MOVIE_PLAYBACK](APP_MOVIE_PLAYBACK.md) 和 [MAP_VIEWPORT](MAP_VIEWPORT.md)。
 
 旧文本定位（LOCAL_LEGACY_TASK 只是证据别名，不是运行入口）：stage81/builds/full-separated-v5/result.json、stage82/builds/original-v3/result.json、stage82/evidence/blockers-verified.json、stage83/batch-v1/reports/README-final.txt、stage83/phase7-probe-v1/reports/README.txt、evidence/stage73-differential-result.json。本地审计源指纹封存在任务目录 original-game-gap-audit-20261011/evidence-manifest.json；不上传旧产物、原始轨迹、图片、音频、存档或二进制。
+
+
+## 原入口与实际对象来源增量
+
+[对象工厂/登记/消费路线](ORIGINAL_OBJECT_FACTORY_ROUTE.md)补上CRT初始化表消费8c7630，以及固定selector a1的51c9a0构造、同池登记和按返回索引立即消费；载入版本站点与phase37共用主池。+94仍有完整Listing与transitive effects缺口，不能默认构造表稳定。批次因自定站点预算exit1，保存85Evidence/4NoProcedure及未执行请求，未标全通过。具体后续入口与精确阻碍见[原版handoff](ORIGINAL_ROUTE_HANDOFF.md)。静态工作未穷尽，原完整运行/动态绑定未通过，不转用自写媒体成果代替。

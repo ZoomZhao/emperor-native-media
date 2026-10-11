@@ -1,5 +1,5 @@
 {
-  "schema_version": 14,
+  "schema_version": 15,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -473,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-phase37-final-exception-20261011",
+  "latest_source_batch": "rea-static-object-factory-consumption-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -1561,6 +1561,27 @@
       "exit_code": 0,
       "temp_empty": true,
       "official_module_pairs": 18
+    },
+    {
+      "batch": "rea-static-object-factory-consumption-20261011",
+      "session_ok": false,
+      "exit_code": 1,
+      "successful_Evidence": 85,
+      "saved_query_errors": 4,
+      "provider_requests_executed": 89,
+      "harness_attempts": 90,
+      "unissued_request": {
+        "operation": "resolve_native_call_targets",
+        "parameters": {
+          "address": "0x42d736"
+        },
+        "label": "registration-post-call-target-resolution",
+        "reason": "task harness 10-key-call-site budget reached before session.execute",
+        "approval_rejection": false
+      },
+      "elapsed_seconds": 718.77,
+      "temp_empty": true,
+      "official_module_pairs": 18
     }
   ],
   "review_corrections_300a5a7": {
@@ -2092,6 +2113,8 @@
     "selected_middle_stage_receivers_and_cleanup_documented": true,
     "phase37_conditional_virtual_call_document": "ORIGINAL_PHASE37_CALL_CONTRACT.md",
     "conversion_coverage_scope": "committed source hashes and historical references only; IR/bindings unavailable; original function conversion not verified",
-    "phase37_exception_contract_document": "ORIGINAL_PHASE37_EXCEPTION_CONTRACT.md"
+    "phase37_exception_contract_document": "ORIGINAL_PHASE37_EXCEPTION_CONTRACT.md",
+    "object_factory_consumption_document": "ORIGINAL_OBJECT_FACTORY_ROUTE.md",
+    "handoff_document": "ORIGINAL_ROUTE_HANDOFF.md"
   }
 }

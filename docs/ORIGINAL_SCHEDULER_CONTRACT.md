@@ -135,3 +135,7 @@ phase45：caller置ECX1e535f8调用5f02c0，后CALL4b94a0；两者正常出口�
 ## 自写声明回归的固定审查与合入
 
 45e86bc二方25组与88515658二方28组静态审查已通过，仅认证各自快照。已合入[独立声明边界回归](SCHEDULER_DECLARATION_REGRESSION.md)，Release/UBSan各4929cases/30859checks及原503检查通过；生产校验器/schema1不变，运行绑定仍拒绝、完整周期证明仍0。该回归不认证后续453bfc4/dbe5e60的新原虚调用和异常ABI。
+
+## 原池构造/登记/消费来源
+
+[固定调用者的构造关系](ORIGINAL_OBJECT_FACTORY_ROUTE.md)补到CRT启动、加载版本站点、selector a1构造/登记与立即同池消费；phase37同源池可静态连接，真实vptr/存活和+94 transitive effects未闭合。具体原路线后续见[handoff](ORIGINAL_ROUTE_HANDOFF.md)，不转去声明/媒体回归。
