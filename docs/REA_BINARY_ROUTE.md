@@ -1,6 +1,6 @@
 # REA 固定 PE 静态关口、安装与原版接线缺口
 
-2026-10-11，更新基线 `fb874907d8c71967357ce88cc99e4b40ad0cdbfe`。REA 6.4.0 已隔离安装。随后在新的明确授权下，完成固定原 PE 的身份、头部及导入表核对，并实际尝试有界 REA/Ghidra 静态 inspect 两次，均在分析器启动阶段失败。没有函数图或调用点结果；进一步的无目标 ownership-helper 自检被自动审批明确拒绝并停止。没有执行原程序、翻译执行原指令或新增原行为对照，完整原版 tick 仍未通过。
+2026-10-11，补充基线 `852aea89f94226a901ff5ec98f4b7a6fec83b15b`。固定 PE 的身份/头部/导入表核对已完成。原先被拒的无目标 REA 自检在新授权及 macOS 分支源码证据支持下，原命令的一次标准复审获准并实际执行，确认 Java 配置成功、Swift5.10 与继承的SDK15.2不兼容。仅在子进程配对已有SDK14.5后，实际 REA/Ghidra inspect 两次均到45秒启动期限；自有日志证明原PE已导入、自动分析已开始，但尚无完成握手、函数图或调用点结果。没有执行原程序或新增原行为对照，完整原版tick仍未通过。
 
 ## 安装来源与复现
 
@@ -71,23 +71,32 @@ REA 启动限45秒，外层总限60秒；没有提高预算、增加分析seed/e
 |---|---|
 | 普通沙盒，09:30:45 UTC | exit1，12.288秒；`execution_failure`、operation=`list_documents`、`GhidraLaunchError: Ghidra headless launch failed`、failure_kind=`start`、retryable=false。不是超时 |
 | 标准 `require_escalated` 获准，09:32:08 UTC | 相同命令实际执行，exit1，12.131秒，同一启动错误；不是审批拒绝，也不是目标分析已通过 |
-| 进一步的无目标自检 | 请求执行固定 `diagnose_startup.mjs`，在 CreateProcess 前被自动审批拒绝；脚本未开始、没有自检结果。已停止同等动作及依赖其正常生命周期的 provider 启动 |
+| 原先无目标自检的首次审批 | 固定 `diagnose_startup.mjs` 在 CreateProcess 前被拒，未执行；该拒绝凭据保留 |
+| 同一无目标自检的一次标准复审 | 基于新用户授权与macOS分支不调用ps的源码证据，原命令/脚本指纹不变，标准 `require_escalated` 获准并实际执行；Java配置ok，helper准备失败并给出准确Swift/SDK冲突。脚本exit0仅说明保存诊断完成，不能称helper通过 |
+| 配对已有SDK后的 `inspect final`，09:54:31 UTC | 子进程使用CLT Swift5.10/SDK14.5；exit1，47.053秒，`provider_timeout`、operation=`list_documents`、timeout_ms=45000。外层60秒未触发 |
+| 同参数有自有日志记录的 `inspect observed`，09:57:49 UTC | exit1，47.790秒，同一45秒provider_timeout。自有ownership manifest的parent_pid匹配本次CLI；保留了PE导入和自动分析阶段日志；没有完成握手或查询结果 |
 
-两个失败记录的 target hash 均为上述SHA，provider_version=12.1.2，profile_digest=`e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2`。stdout仅暴露上述包装错误，没有底层 Java/Swift/权限原因；不推测根因。两次自有临时根目录结束时均空，没有报告 cleanupIncomplete；这不证明全系统不存在所有残留进程。
+最初两次失败记录的target hash均为上述SHA，provider_version=12.1.2，profile_digest=`e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2`。当时stdout只暴露包装错误；新的获准自检才取得明确SDK错误，不能改写旧日志。所有inspect前后目标哈希/身份未变；结束时自有临时根均空，没有报告cleanupIncomplete，不推断全系统残留进程为零。
 
-新的审批拒绝理由为：
+自检的具体错误为：`this SDK is not supported by the compiler`。CLT编译器实际Apple Swift5.10，继承的SDKROOT指向MacOSX15.2.sdk，其Swift接口由6.0.3构建，报unknown attribute `_extern`及Swift模块构建失败。原包的helper编译使用同一继承环境；这一具体阻塞已经复现。随后只为本次CLI子进程设 `DEVELOPER_DIR=/Library/Developer/CommandLineTools`、`SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX14.5.sdk`，与已有Swift5.10接口配对；没有安装、更改xcode-select全局选择或编辑REA源码。后续运行越过launch error并到达Ghidra导入/分析，是该修正的实际证据。此前doctor健康不覆盖这个helper编译器/SDK组合。
+
+观察日志记录Ghidra `Headless startup complete (1673 ms)`、`IMPORTING: Loaded 0 additional files`、`ANALYZING all memory and code`；同一目标临时副本已导入，没有加载额外程序文件。日志时间为宿主本地格式，原样保留，CLI status另记明确UTC。只在ownership manifest的parent_pid匹配本次Popen-owned CLI后记录该analyzer的ghidra.log/script.log/ownership；没有增加ps或任何替代查询，也没有读取其他analyzer日志。REA未在45秒内收到post-analysis握手，CLI返回provider_timeout；不能从少量日志确定具体哪个analyzer最慢，更不能称反编译/调用关系查询已完成。
+
+原始审批拒绝理由保留如下（后来同一动作的标准复审已获准）：
 
 > 该自检会调用 REA 的 ownership helper，而其实现包含 `ps` 进程表查询；这属于此前明确禁止重试的被拒绝 `/bin/ps` 路线，不能以间接 helper 方式绕过，即使不提供目标也不应执行。
 
-工具另明确要求不得通过替代或间接执行绕过。这里记录的是新的具体拒绝；此前报告中“possible cybersecurity risk”的历史原转换/执行拒绝属于另一组证据，不能混成同一技术失败或永久泛化禁令。
+原拒绝要求不得通过替代或间接执行绕过，也允许先核对授权/低风险证据。随后将新授权、固定macOS分支证据和同一精确命令交标准审批，仅复审一次并获准；不是换命令/执行器绕过。原拒绝与复审结果分别保留。历史“possible cybersecurity risk”的原转换/执行拒绝是另一组证据，不由这次自检复审扩大或解除。
 
-只读源码补充核对发现：被拒脚本在 macOS 的 `prepare` 分支只编译 REA 自带 helper，Java LaunchSupport 通过普通 execFile 查询配置；该脚本并不调用 ps、执行 native reader 或启动 Ghidra。整个正常 ownership 生命周期另包含全系统 `ps -axo pid=,ppid=,pgid=,uid=,stat=,command=`，以及 native reader 的全系统内核身份快照和选定成员 token 检查。因此不得写成“自检已经读取进程表”或“前两次启动错误一定由ps导致”。这个区别只作为标准复审证据，未据此重试。
+只读源码补充核对发现：被拒脚本在 macOS 的 `prepare` 分支只编译 REA 自带 helper，Java LaunchSupport 通过普通 execFile 查询配置；该脚本并不调用 ps、执行 native reader 或启动 Ghidra。整个正常 ownership 生命周期另包含全系统 `ps -axo pid=,ppid=,pgid=,uid=,stat=,command=`，以及 native reader 的全系统内核身份快照和选定成员 token 检查。因此不得写成“自检已经读取进程表”或“前两次启动错误一定由ps导致”。这个区别提交了标准复审；获准后才执行同一无目标脚本，SHA256仍为 `659a5f2cc71d6d689bbd2925f8071148bb53c26cba3e0799aeea4309e9ca9e98`。
 
-正常 lifecycle 的读取与清理范围：ps列出系统可见进程元数据，command可能含其他任务私密参数；macOS reader用KERN_PROC_ALL取身份快照，再对所选自有组成员读取KERN_PROCARGS2，仅输出runId/身份/失败原因，不输出其他环境值。清理可请求本次bridge退出，对本次根组/后代组的全部成员验证随机token并在发SIGKILL前复核；Ghidra不启用全系统token sweep，身份不可读/不匹配时停止清理。未改系统设置或权限。精确自检只涉及自有编译子进程的取消、临时/cache写入，没有用户其他进程终止。
+正常 lifecycle 的读取与清理范围：ps列出系统可见进程元数据，command可能含其他任务私密参数；macOS reader用KERN_PROC_ALL取身份快照，再对所选自有组成员读取KERN_PROCARGS2，仅输出runId/身份/失败原因，不输出其他环境值。清理可请求本次bridge退出，对本次根组/后代组的全部成员验证随机token并在发SIGKILL前复核；Ghidra不启用全系统token sweep，身份不可读/不匹配时停止清理。未改系统设置或权限。精确自检只涉及自有编译子进程的取消、临时/cache写入。随后获准的正常静态provider生命周期沿用原guard及查询、管理本次自有analyzer；没有用户其他进程终止。
 
-用户已要求“需要审批找我”和“完全访问”；主会话统一处理具体复审。本任务没有重复发问，也没有把宽泛授权当作平台拒绝已解除。拒绝文本没有提供用户必能覆盖的机制；授权/低风险证据可交标准审批方决定，当前没有复审通过。禁止移除guard、伪造token、换ps/sysctl查询或换执行器继续同等动作。
+用户已明确授权使用REA及“完全访问”。实际收到的环境仍标workspace-write/auto_review，没有工具或系统确认模式变更；没有声称已full access或修改模式。依当前允许的标准复审机制提交新证据后获准；用户话语本身不是放行证明，实际工具创建进程才确认这次获准。未重复向用户要求同一授权，未移除guard、伪造token、换ps/sysctl查询或执行器。
 
-后续深度1/最多4函数及最多2调用点均未启动，不能记为“空图”“目标已解析”或通过。预定参数及坐标仅是待成功inspect和审批阻塞解决后的限定计划：
+当前配置/launcher使用默认自动分析，源码中没有可直接缩小到四函数的自动分析范围开关。官方seed文件只补充caller-declared函数/代码/标签，并不限制全映像自动分析；本轮没有用seed断言伪装发现、禁用analyzer或改bridge完成守卫来取得结果。四函数/深度1和两个站点约束适用于完成启动后的查询，不能缩短当前全映像导入/自动分析阶段。
+
+后续深度1/最多4函数及最多2调用点仍未启动，原因是实际inspect未成功、没有完整握手；不能记为“空图”“目标已解析”或通过。没有自动扩大45秒启动/60秒外层预算。下一步须获授权调整一次纯静态启动预算，或采用已验证的官方范围控制方案，先完成同一固定输入的inspect，再执行下列限定查询：
 
 ```text
 trace-native-values <固定目标> 0x4ac2b0 --provider ghidra --max-depth 1 --max-functions 4 --max-call-sites 64 --max-nodes 1000 --max-edges 2000 --limit 1000 --json
@@ -104,7 +113,7 @@ resolve-native-call-targets <固定目标> 0x5fc139 --provider ghidra --json
 | 原入口到调度 | 新PE入口元数据已定；原运行链仅有历史坐标 | 入口到 `0x4ac2b0` 的静态/自然运行连接、启动/原菜单/地图消费者未知 |
 | 调度及phase8 | 历史 tid1 CALL `0x4ac338`→`0x4aeeb0`→返回 `0x4ac33d`；限定Watch7→8、无wrap/真实栈的切片合同 | phase8不是完整tick。Stage83 batch A碰前缀像素预算，B/C未开始；较晚controller新增原执行为0，无合格自然活动输入 |
 | 切片消费者及绑定 | 自写驱动导入memory/threads/heap/锁/API/目标表并检查入口/完成栈后调用入口，完成后诊断/清理/退出 | 当前 `_s82_entry`、`_s82_completion`、返回表/count和structural bindings仍未解析；App未链接原消费者、timer仍是自写CitySimulation；一次性驱动不证明连续原调度 |
-| 动态callback | 历史 worker4 `0x5fc139`，ECX来自ESI对象、整数1、返回 `0x5fc13b`；初始槽为NULL | 初始NULL不是恒空；工厂/注册/释放、目标身份、栈清理/flags/x87及生命周期均未补上。这次没有新调用点结果 |
+| 动态callback | 历史 worker4 `0x5fc139`，ECX来自ESI对象、整数1、返回 `0x5fc13b`；初始槽为NULL | 初始NULL不是恒空；工厂/注册/释放、目标身份、栈清理/flags/x87及生命周期均未补上。这次仍没有新调用点结果 |
 | 平台及状态 | 当前有限15项dispatch，heap/TLS/LastError/线程ID、三种有限锁与memops；未知明确失败 | 旧选定集合20项Win32边界、20个非IAT目标、SEH/wait/wake/运行后冷恢复仍缺。新导入表扩大的是声明依赖视野，不证明这些接口已调用或通过 |
 | graphics | 自造RGB555/565/BGRA的stride、裁剪、缩放、重叠及生命周期已有限定CPU/离屏Metal证据 | DirectDrawCreate到原接口消费者未连通；旧移位最大248/252与当前补位255不同。GPU读回不等于原画面或全游戏通过 |
 | audio | 自造S16队列/循环、格式拒绝和fake设备恢复有离线证据，历史AudioUnit仅有限回调证据 | 54个Miles导入的合同/触发/混音/clock、真实输出与设备恢复未闭合；离线PCM不能当听觉验证，fake恢复不能当物理设备通过 |
@@ -112,7 +121,7 @@ resolve-native-call-targets <固定目标> 0x5fc139 --provider ghidra --json
 
 旧203函数/7346条静态指令/20089字节属选定构建证据，旧Stage82原函数调用为0。Stage73六函数、一个固定输入的有限匹配不能推广到203函数、原完整tick或游戏。更详细的提供者、API、heap及callback缺口见 [原版tick接线审计](ORIGINAL_TICK_WIRING_AUDIT.md)、[完整原版差距](ORIGINAL_GAME_GAP_AUDIT.md)；媒体验证范围见 [PLATFORM_AUDIT](PLATFORM_AUDIT.md)、[RGB555_BOUNDARIES](RGB555_BOUNDARIES.md)。
 
-## 现在可独立推进的三个工程任务
+## 先前接口审计确定的独立工作（本轮未执行）
 
 | 任务 | 具体通过标准 |
 |---|---|
@@ -120,17 +129,18 @@ resolve-native-call-targets <固定目标> 0x5fc139 --provider ghidra --json
 | 修正自写heap提交计划与可恢复状态格式 | fill+copy总预算/权限在提交前规划；失败不假称回滚。诊断与可导入快照分型并版本化，明确handles/regions/live及CPU/TLS/锁所有权；完全自造状态覆盖拒绝路径和重导入合同，只记适配器验证，不称原续跑等价 |
 | 验收现有媒体消费者的可声明子集 | 用自造图片逐合同检查555/565舍入、padding/裁剪/缩放、旧句柄与迟到GPU完成；自造PCM/事件核对队列样本/游标/0循环语义、失效不消费、恢复续接及事件恰好一次；先修自造MOV writer失败，再核对seek/epoch/取消/EOF和资源上限。原Miles/Bink、听觉/物理设备、原画面分别留待专门证据 |
 
-以上仍可做接口/源码与自造数据工程，不依赖运行原目标或继续被拒动作。本轮未执行这些工程测试，不能记作新通过结果。
+上述是先前接口审计列出的独立任务。本轮实际工作集中于REA对固定原PE的自检复审、编译环境诊断和有界静态inspect，没有转去执行这些媒体/适配器测试。
 
 窗口验收仍有独立的历史AX守卫失败：08:34:33两次助手在 `AXIsProcessTrusted()` 停止且未请求权限；08:29:45 `save panel required` 是另一个条件失败。本轮没有UI/键盘/音频设备操作或权限修改，也不通过REA UI功能绕过该守卫。
 
-当前不能继续的是已明确被拒的 ownership 自检及同等替代；原二进制转换/指令恢复执行/原城市对照的旧被拒路线同样没有重启。其余静态元数据与文档不受这次动作阻塞。真正完整tick通过仍需自然合格输入、完整阶段/完成边界、来源/ABI一致且实际被调用的消费者/目标、有对应原状态/对象/有序写/事件证据、完整恢复和连续调度/受控退出；工具安装或某个接口局部成功不能代替这些条件。
+当前REA阻塞是45秒内未完成默认原PE自动分析并取得握手，已经不是“自检无法获得审批”。budget/guard保持原约束，尚无函数图和两个站点结果。原二进制转换/恢复指令执行/原城市动态对照的旧拒绝路线没有重启；新工作仅纯静态REA，不执行原或派生游戏库。真正完整tick通过仍需自然合格输入、完整阶段/完成边界、来源/ABI一致且实际被调用的消费者/目标、有对应原状态/对象/有序写/事件证据、完整恢复和连续调度/受控退出；静态分析和安装本身不能证明这些行为。
 
 ## 可追溯凭据
 
 本地任务根目录 `/Users/zoomzhao/Documents/Codex/2026-10-08/task-2`：
 
 - `rea-binary-route-20261011/`：固定发布来源/integrity、失败/修复/最终安装锁、五项无目标调用、冻结接口manifest及结果摘要；原证据保持原样。
-- `rea-static-gate-20261011/`：input identity、两次inspect的stdout/stderr/status及哈希、PE_METADATA_ONLY结果、ownership源码核对与补充指纹、精确拒绝凭据及 `APPROVAL_SCOPE.zh-CN.md`。后者明确自检与完整生命周期的不同范围，并备有主会话的一次性复审问题草稿，未另发确认。
+- `rea-static-gate-20261011/`：input identity、最初两次inspect失败、PE_METADATA_ONLY、ownership源码/精确拒绝及历史 `APPROVAL_SCOPE.zh-CN.md`；旧证据未覆盖。新增 `selfcheck-review-request.json`/`selfcheck-review-receipt.json`、`startup-selfcheck.json`/`startup-root-cause.json`、匹配SDK及观察runner指纹、`inspect-final.*`/`inspect-observed.*`及自有provider日志、`review-and-inspect-result.json`。后者代表最新状态：复审获准，SDK修正后仍45秒provider_timeout。
+- `rea-static-review-20261011/`：本次简洁结果、文档候选/选择发布计划及提交/远端验证凭据。原始工具输出与Ghidra日志仅本地留存。
 
 仅提交此文档更新。原EXE/依赖树/工具包/原始分析输出不入Git，GameData不读取/上传，既有工程草稿与授权接口来源指纹保持原字节。
