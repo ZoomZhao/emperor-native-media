@@ -6664,5 +6664,191 @@
       }
     },
     "new_semantics_independently_reviewed": false
+  },
+  "original_callback_lifetime_contract": {
+    "document": "docs/ORIGINAL_CALLBACK_LIFETIME_CONTRACT.md",
+    "manifest": "docs/original-callback-lifetime-evidence.json",
+    "authority": "conditional original fixed-PE static source; no original execution",
+    "virtual130": {
+      "candidate_root": "0x7b65e4",
+      "offset": "0x130",
+      "selected_target": "0x42a980",
+      "normal_listing_instructions": 87,
+      "stack_return_bytes": 16,
+      "return_consumed_by_42bbd0": false,
+      "separate_record_pool": "0x10315dc",
+      "main_pool": "0x8c7630",
+      "record_field_68": "low16 of outer object field+b4",
+      "record_pointer_spans_calls_without_local_pin": true,
+      "prior_call_cleanup": "408170 RET4; following 4b72b0/5ad440/5ad940 use deferred ADD ESP 0x44 (68 bytes)",
+      "actual_root_instance_and_all_transitive_effects": "Unknown"
+    },
+    "followup_5ad440": {
+      "caller_fifth_argument": 1,
+      "main_pool_cursor": "raw slot EDI from 413b40; EDI+=4; length re-read without rebase",
+      "selected_filter": "426d10 byte==1 or byte==3 AND 4bdb60 selector==0xd2",
+      "virtual270_guard": "only if full EAX from virtual264 is nonzero; unchanged constructed P150=0 skips virtual270",
+      "object_retention": "raw P in ESI across virtual+264 and virtual+270; no local pin",
+      "outer_retention": "42bbd0 reuses saved outer ESI after helper returns; register restoration proves bits only",
+      "invalidation_free_or_uaf_proved": false,
+      "runtime_effects": "Unknown"
+    },
+    "selected_d2_root": {
+      "constructor": "4c5dc0 installs 7afbd8; field150=0; calls4c6c50",
+      "initializer": "4c6c50 under clear DF writes500 dwords+154..+923=-1, field924=0; no field150 store",
+      "virtual264": {
+        "target": "0x4c7170",
+        "instructions": 2,
+        "return": "full raw field150; RET0"
+      },
+      "virtual270": {
+        "target": "0x4c6d30",
+        "instructions": 102,
+        "return": "RET0",
+        "switch": "signed ECX<0 exits; unsigned>6 bypasses; fixed7-word table4c6e64 closes cases0..6 only while table remains valid",
+        "calls": [
+          "own virtual+278",
+          "47f1b0 main-pool lookup",
+          "other object virtual+274"
+        ],
+        "local_effects": "indexed global13789c0 word/byte writes; no direct root/main-slot/free operation observed",
+        "other_object_virtual274_effects": "Unknown"
+      },
+      "virtual278": {
+        "target": "0x4c6e80",
+        "instructions": 21,
+        "return_stack_bytes": 8,
+        "calls": "4ba9e0 ->4b8f70,4bc140; selected direct normal-helper bodies closed",
+        "global_writes": [
+          "0x101c560",
+          "0x101c5b8..0x101c5d4 (eight dwords)",
+          "0x10c72ac",
+          "0x10c72a8"
+        ],
+        "output_arguments": "on success arg1=global10c72ac, arg2=global10c72a8",
+        "return": "failure EAX0; success EAX contains second output-pointer bits with AL=1, not full-EAX bool",
+        "consumer": "virtual270 tests AL"
+      },
+      "virtual268": "fixed word4c6c50, initializer source available",
+      "virtual26c": "fixed word4c6c70; only SUB ESP0x10 entry decoded, setter/effects NOT proved",
+      "actual_live_d2_instance_and_field150_assignment": "Unknown"
+    },
+    "replacement_handler_780ad9": {
+      "instructions": 35,
+      "normal_return_stack_bytes": 0,
+      "state_source": "781ab3 ->7818f8; cached/fresh state through supplied7814f2 factory; current cache unknown",
+      "new_state": "7814f2 allocates0x118=280 via78160f; IAT7a9324 named LocalAlloc, flags0x40; null invokes77aeba",
+      "constructor": "781a0d root7cd308, fieldsd4 and104=-1; does not directly initialize fieldc",
+      "nonempty_reserve": "capacity76b61c; unsignedcapacity<=requested+4 =>7656df(pointer), state+c=0; else76b70a(pointer,capacity-requested-4); additions/subtractions are modulo32",
+      "resize": "116 normal instructions; modes2/3 helpers unclosed; fallback roundedsize/flag0x10 ->IAT7a9208",
+      "resize_return_ignored_and_state_pointer_not_replaced": true,
+      "return": "normal reserve branch EAX1 regardless shrink result; missing state/reserve invokes77aeba, EAX0 only if it returns",
+      "allocation_or_retry_success_guaranteed": false,
+      "actual_cache_heap_os_and_callback": "Unknown"
+    },
+    "handler_swap_77d715_exception": {
+      "install": "77d739 sets780ad9, old handler in EBX",
+      "allocation_bytes": 72,
+      "allocation_hex": "0x48",
+      "state_zero_set": "77d74d AFTER allocation returns",
+      "protected_constructor": "77f80c at77d75e; embedded constructors/effects still unclosed",
+      "normal_restore": "77d76f calls setter with savedEBX after state=-1",
+      "metadata": "handler7a865a -> actual JMP764cc1; FuncInfo810220 state0 -> -1/action7a8650 viaUnwindMap810240",
+      "selected_action": "4 instructions: push[EBP8],call77bb31,popECX,RET; no local handler restore",
+      "exception_path_proves_global_handler_restored": false,
+      "actual_exception_state_and_outer_handlers": "Unknown"
+    },
+    "initializer_failure_exit": {
+      "fixed_initial_88aa00": "0x769fbe",
+      "consumer": "7689c2 reads current88aa00 with status255; if unchanged, 769fbe quick-exit skips registry callbacks",
+      "current_pointer_and_actual_exit": "Unknown",
+      "allocation_failure_if_handler_returns": "registry initializer still dereferences currentbegin; no safe-null-return proof"
+    },
+    "review": {
+      "prior_commit": "3a15dc7b8c4b96e55da975210a86f0c1bedd2497",
+      "prior_passed_groups": 44,
+      "prior_failed_new_groups": 0,
+      "prior_review_sha256": "9f13014902dfd9efe2b9ad5de172b39e3a6bac9d5426875020dd2d4681bcc215",
+      "new_contract_independently_reviewed": false
+    },
+    "runtime_binding_created": false,
+    "target_execution_performed": false,
+    "execution_allowed": false,
+    "unknowns": [
+      "actual O/P/Q/root/slot identity and lifetime",
+      "other object+274 and earlier+cc callbacks",
+      "field150 assignment and4c6c70 effects",
+      "cross-pool factories and5c4500/IAT effects",
+      "heap modes2/3, reserve/cache aliases and API outcomes",
+      "OS exception frame/state, current88aa00/88a3d4",
+      "exit-array re-registration/reallocation/reentrancy"
+    ]
+  },
+  "independent_review_updates": {
+    "reviewed_commit": "3a15dc7b8c4b96e55da975210a86f0c1bedd2497",
+    "passed_groups": 44,
+    "failed_new_groups": 0,
+    "review_sha256": "9f13014902dfd9efe2b9ad5de172b39e3a6bac9d5426875020dd2d4681bcc215",
+    "historical_c0_c82_receipts_preserved": true,
+    "current_callback_contract_reviewed": false
+  },
+  "original_callback_lifetime_evidence": {
+    "manifest": "docs/original-callback-lifetime-evidence.json",
+    "batch_outcomes": [
+      {
+        "batch": "rea-static-virtual130-and-exit-failure-20261011",
+        "session_ok": true,
+        "exit_code": 0,
+        "provider_requests": 100,
+        "successful_Evidence": 99,
+        "saved_query_errors": 1,
+        "native_anchors": 89,
+        "selected_read_bytes": 4,
+        "elapsed_seconds": 714.403,
+        "temp_empty": true,
+        "official_module_pairs": 18,
+        "original_or_derived_game_executed": false,
+        "runtime_binding_created": false,
+        "new_semantics_independently_reviewed": false,
+        "approval_rejection": false
+      },
+      {
+        "batch": "rea-static-callback-effects-and-exit-unwind-20261011",
+        "session_ok": true,
+        "exit_code": 0,
+        "provider_requests": 139,
+        "successful_Evidence": 137,
+        "saved_query_errors": 2,
+        "native_anchors": 127,
+        "selected_read_bytes": 56,
+        "elapsed_seconds": 630.695,
+        "temp_empty": true,
+        "official_module_pairs": 18,
+        "original_or_derived_game_executed": false,
+        "runtime_binding_created": false,
+        "new_semantics_independently_reviewed": false,
+        "approval_rejection": false
+      },
+      {
+        "batch": "rea-static-callback-closure-20261011",
+        "session_ok": true,
+        "exit_code": 0,
+        "provider_requests": 124,
+        "successful_Evidence": 123,
+        "saved_query_errors": 1,
+        "native_anchors": 113,
+        "selected_read_bytes": 36,
+        "elapsed_seconds": 1044.133,
+        "temp_empty": true,
+        "official_module_pairs": 18,
+        "original_or_derived_game_executed": false,
+        "runtime_binding_created": false,
+        "new_semantics_independently_reviewed": false,
+        "approval_rejection": false
+      }
+    ],
+    "reviewed_prior_commit": "3a15dc7b8c4b96e55da975210a86f0c1bedd2497",
+    "prior_passed_groups": 44,
+    "new_semantics_reviewed": false
   }
 }

@@ -292,3 +292,7 @@ research schema16追加[完整注册Listing与嵌套消费](ORIGINAL_POSTREGISTR
 ## 后续原静态合同
 
 research schema17补[生命周期与退出数组](ORIGINAL_LIFETIME_AND_EXIT_CONTRACT.md)，并记录二方34通过/1失败与新增29通过，修复flag门槛。无新增自写回归或执行绑定。
+
+## +130、d2作用与异常handler后续（2026-10-11）
+
+[回调与生命周期合同](ORIGINAL_CALLBACK_LIFETIME_CONTRACT.md)及[证据索引](original-callback-lifetime-evidence.json)补齐42a98087条、4c6d30含switch102条、4c6e8021条、76b70a116条正常Listing。原源证明与自写组件测试分开；5ad440保活不足是待证缺口，非已证释放/UAF。3a15dc7已独立44/0复核，本轮新增未复核。三个会话exit0、源身份和18对官方模块不变、临时项目为空，未执行原/派生游戏或产生绑定。继续入口见[handoff](ORIGINAL_ROUTE_HANDOFF.md)。

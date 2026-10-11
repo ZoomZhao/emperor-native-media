@@ -74,3 +74,7 @@
 ## 后续原静态合同
 
 [原生命周期/退出来源](ORIGINAL_LIFETIME_AND_EXIT_CONTRACT.md)连到真实CRT登记数组及正常主函数返回消费者，提供Q=O的明确条件而非自然实例证据；登记失败被忽略、回调数组/slot存活仍未证。[flag合同修正](ORIGINAL_FILTER_CONTRACT_CORRECTION.md)只接受1或3，5返回0。
+
+## 回调及异常退出缺口更新（2026-10-11）
+
+[新原源合同](ORIGINAL_CALLBACK_LIFETIME_CONTRACT.md)已补齐选定+130、d2+264/+270/+278的正常局部路径，以及备用块handler和所选异常free action。真正待证的是live O/P/Q、当前根/slot、Q+274与其它间接回调、特殊heap模式、OS异常和退出重入。不能把缺pin直接记为UAF，也不能把局部没有free记为全部callee安全。3a15dc7独立复核44/0，新增语义未复核；自然游戏graphics/audio/video及完整周期仍未通过。

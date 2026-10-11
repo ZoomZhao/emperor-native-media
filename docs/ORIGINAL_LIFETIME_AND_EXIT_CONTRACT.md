@@ -33,3 +33,7 @@
 独立二方对c0bbdff为34组通过/1组flag误述失败；c82fced新增29组通过，整体仍继承同一失败。本批依原Listing修正为flag==1或3，附[flag5反例](ORIGINAL_FILTER_CONTRACT_CORRECTION.md)，修复与本轮新语义尚待复核。旧Evidence/提交/失败收据不改写。
 
 本轮会话exit0/869.791秒，140请求139Evidence/1NoProcedure（42a980），89指令锚点、28选定procedure地址；输入身份、18对选定官方模块SHA不变，官方清理后临时根空。已取+130目标42a980的PUSH EBX入口，未声称完整。后续继续该方法、handler替换/异常恢复、特殊heap模式和异常退出链，静态工作未穷尽。
+
+## 后续证据与复核更新（2026-10-11）
+
+3a15dc7已经独立复核44组通过、0项新增语义失败，前文“本轮修复待复核”仅描述该提交制作时状态；历史c0/c82失败收据保持原样。本次[回调合同](ORIGINAL_CALLBACK_LIFETIME_CONTRACT.md)补齐+130、5ad440存活缺口、d2局部作用、780ad9真实释放/缩减和77d715所选异常funclet。77d715的0x48分配为72字节，state0在分配返回后设置；action7a8650只释放[EBP8]，不恢复handler，实际OS异常/外层恢复仍Unknown。88aa00的固定初值769fbe只支持条件quick-exit。新增语义未独立复核，不声称UAF或完整游戏通过。
