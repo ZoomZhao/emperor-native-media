@@ -1,0 +1,141 @@
+#include "owned_reader.hpp"
+#include <CommonCrypto/CommonDigest.h>
+#include <algorithm>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+#include <cstring>
+#include <fcntl.h>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <sys/stat.h>
+#include <unistd.h>
+
+using namespace emperor::file_io;
+namespace {
+struct ReadOnlyFd {
+    int value;
+    explicit ReadOnlyFd(const char *path) : value(::open(path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)) {
+        if (value < 0) throw std::runtime_error(std::string("readonly open failed: ") + std::strerror(errno));
+    }
+    ~ReadOnlyFd() { ::close(value); }
+};
+uint64_t number(const char *s) {
+    const std::string value(s); size_t used = 0;
+    if (value.empty() || value[0]=='-' || value[0]=='+') throw std::invalid_argument("unsigned argument");
+    auto n = std::stoull(value, &used, 0);
+    if (used != value.size()) throw std::invalid_argument("integer argument");
+    return n;
+}
+uint32_t word(const char *s) {
+    auto n = number(s);
+    if (n > UINT32_MAX) throw std::out_of_range("marker argument");
+    return static_cast<uint32_t>(n);
+}
+std::string digest(const uint8_t *data, size_t size) {
+    if (size > UINT_MAX) throw std::out_of_range("digest slice");
+    uint8_t empty = 0, result[CC_SHA256_DIGEST_LENGTH];
+    if (!CC_SHA256(size ? data : &empty, static_cast<CC_LONG>(size), result))
+        throw std::runtime_error("SHA256 failed");
+    constexpr char hex[] = "0123456789abcdef";
+    std::string text; text.reserve(2 * sizeof(result));
+    for (auto c : result) { text += hex[c >> 4]; text += hex[c & 15]; }
+    return text;
+}
+std::string final_digest(CC_SHA256_CTX context) {
+    uint8_t result[CC_SHA256_DIGEST_LENGTH]; CC_SHA256_Final(result, &context);
+    constexpr char hex[] = "0123456789abcdef";
+    std::string text;
+    for (auto c : result) { text += hex[c >> 4]; text += hex[c & 15]; }
+    return text;
+}
+uint32_t le32(const uint8_t *p) {
+    return uint32_t(p[0]) | (uint32_t(p[1]) << 8) | (uint32_t(p[2]) << 16) | (uint32_t(p[3]) << 24);
+}
+bool same(const struct stat &a, const struct stat &b) {
+    return a.st_dev==b.st_dev && a.st_ino==b.st_ino && a.st_size==b.st_size &&
+        a.st_mtimespec.tv_sec==b.st_mtimespec.tv_sec && a.st_mtimespec.tv_nsec==b.st_mtimespec.tv_nsec;
+}
+}
+int main(int argc, char **argv) {
+    try {
+        if (argc != 11) throw std::invalid_argument(
+            "PATH EXPECTED_BYTES MAX_INPUT MAX_OUTPUT MAX_BLOCKS HEADER COMPRESSED RAW MAX_ENCODED MAX_DECODED");
+        const std::string path(argv[1]);
+        if (!std::all_of(path.begin(),path.end(),[](unsigned char c){return c>=32 && c!=127;}))
+            throw std::invalid_argument("path control character");
+        std::unique_ptr<char, decltype(&std::free)> resolved(::realpath(path.c_str(),nullptr),&std::free);
+        if (!resolved || path != resolved.get()) throw std::runtime_error("absolute canonical nonsymlink path required");
+        const uint64_t expected = number(argv[2]);
+        if (expected < 4) throw std::invalid_argument("qualification input must contain a complete four-byte header");
+        FrameProfile profile{word(argv[6]),word(argv[7]),word(argv[8]),static_cast<size_t>(number(argv[9])),
+            static_cast<size_t>(number(argv[10])),number(argv[3]),number(argv[4]),number(argv[5])};
+        if (profile.max_input_bytes>8192 || profile.max_output_bytes>1048576 || profile.max_blocks>64 ||
+            profile.max_encoded_block>36144 || profile.max_decoded_block>36144 || expected>profile.max_input_bytes)
+            throw std::out_of_range("qualification tool hard budget");
+        ReadOnlyFd fd(path.c_str()); struct stat before{},after{};
+        if (::fstat(fd.value,&before) || !S_ISREG(before.st_mode) || before.st_size<0 ||
+            static_cast<uint64_t>(before.st_size)!=expected) throw std::runtime_error("input identity/size mismatch");
+        std::vector<uint8_t> input(static_cast<size_t>(expected)); size_t done=0;
+        while (done<input.size()) {
+            const ssize_t got=::read(fd.value,input.data()+done,input.size()-done);
+            if (got<0 && errno==EINTR) continue;
+            if (got<=0) throw std::runtime_error("input shortread/I/O failure");
+            done+=static_cast<size_t>(got);
+        }
+        uint8_t probe=0;
+        if (::pread(fd.value,&probe,1,static_cast<off_t>(expected))!=0 || ::fstat(fd.value,&after) || !same(before,after))
+            throw std::runtime_error("input changed or non-EOF after boundedread");
+        const std::string input_sha=digest(input.data(),input.size());
+        OwnedFramedReader reader(input,profile);
+        std::vector<uint8_t> output;
+        CC_SHA256_CTX cumulative{}; CC_SHA256_Init(&cumulative);
+        std::cout<<std::boolalpha<<"{\"canonical_path\":"<<std::quoted(path)
+            <<",\"input_bytes\":"<<input.size()<<",\"input_sha256\":"<<std::quoted(input_sha)
+            <<",\"inode\":"<<before.st_ino<<",\"device\":"<<before.st_dev
+            <<",\"mtime_seconds\":"<<before.st_mtimespec.tv_sec<<",\"mtime_nanoseconds\":"<<before.st_mtimespec.tv_nsec
+            <<",\"zlib_runtime\":"<<std::quoted(emfr_zlib_runtime_version())
+            <<",\"read_only\":true,\"raw_or_decoded_bytes_exported\":false,\"budgets\":{\"input\":"<<profile.max_input_bytes
+            <<",\"output\":"<<profile.max_output_bytes<<",\"blocks\":"<<profile.max_blocks
+            <<",\"encoded_block\":"<<profile.max_encoded_block<<",\"decoded_block\":"<<profile.max_decoded_block<<"},\"events\":[";
+        bool comma=false;
+        for (uint64_t index=0;index<profile.max_blocks+2;++index) {
+            auto result=reader.next(output);
+            if (result.input_offset>input.size()) throw std::runtime_error("invalid source consumption diagnostic");
+            if (comma) std::cout<<','; comma=true;
+            uint32_t N=0;
+            if (result.frame_start<=input.size() && input.size()-result.frame_start>=8)
+                N=le32(input.data()+static_cast<size_t>(result.frame_start)+4);
+            const bool frame=result.status==ReadStatus::Frame;
+            if (frame && !output.empty()) CC_SHA256_Update(&cumulative,output.data(),static_cast<CC_LONG>(output.size()));
+            std::cout<<"{\"status\":\""<<read_status_name(result.status)<<"\",\"compressed\":"<<result.compressed
+                <<",\"frame_start\":"<<result.frame_start<<",\"input_offset\":"<<result.input_offset
+                <<",\"framing_bytes_consumed\":"<<(result.input_offset-result.frame_start)
+                <<",\"declared_payload_N\":"<<N<<",\"opaque_word\":"<<result.opaque_word
+                <<",\"blocks_completed\":"<<result.blocks_completed<<",\"total_validated_output\":"<<result.total_output
+                <<",\"published_output_bytes\":"<<result.output_available
+                <<",\"output_sha256\":"<<std::quoted(frame?digest(output.data(),output.size()):std::string())
+                <<",\"codec_status\":\""<<emfr_status_name(result.codec.status)<<"\",\"codec_native_status\":"<<result.codec.codec_status
+                <<",\"codec_consumed\":"<<result.codec.input_consumed<<",\"codec_private_produced\":"<<result.codec.output_produced
+                <<",\"codec_published\":"<<result.codec.output_available<<",\"codec_unused_payload\":"<<result.codec.trailing_input
+                <<",\"codec_called\":"<<result.compressed
+                <<",\"terminal_and_Adler_validated\":"<<(frame && result.compressed && result.codec.codec_status==1)<<'}';
+            if (!frame) {
+                const size_t remaining=input.size()-static_cast<size_t>(result.input_offset);
+                if (::fstat(fd.value,&after) || !same(before,after)) throw std::runtime_error("input metadata changed duringqualification");
+                std::cout<<"],\"termination\":\""<<read_status_name(result.status)<<"\",\"validated_blocks\":"<<result.blocks_completed
+                    <<",\"validated_output_bytes\":"<<result.total_output
+                    <<",\"validated_output_prefix_sha256\":"<<std::quoted(final_digest(cumulative))
+                    <<",\"unconsumed_file_bytes\":"<<remaining<<",\"unconsumed_file_sha256\":"
+                    <<std::quoted(digest(input.data()+static_cast<size_t>(result.input_offset),remaining))
+                    <<",\"input_metadata_unchanged\":true,\"whole_original_file_or_game_accepted\":false}\n";
+                return 0; // Explicit protocol/limit errors are reported, not process success claims.
+            }
+        }
+        throw std::runtime_error("qualification event budget exceeded");
+    } catch (const std::exception &error) { std::cerr<<error.what()<<'\n'; return 2; }
+}
