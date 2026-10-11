@@ -308,3 +308,7 @@ research schema17补[生命周期与退出数组](ORIGINAL_LIFETIME_AND_EXIT_CON
 ## owner字段重读与选定派生读后依赖
 
 [owner34/派生合同](ORIGINAL_OWNER34_DERIVED_POSTLOAD_CONTRACT.md)追原源前置清零、两次当前读取与conditional reset；明确记录/字符串/观察状态写及新对象分配失败边，保留传递/alias未闭合。选定派生4f0150的15指令正常图会调用当前virtual+100，静态root候选4c69a0而actualcallee未解析；AL1不代表完整EAX1。140/137/3、exit0/源与18模块不变/临时空；四正常图65节点及另13节点partial分别计，未运行原/派生/组件。9beed221修正b2的空owner速度遗漏，新增待独立复核/仅本地。
+
+## 前置选择依赖与选定派生100
+
+[新原源合同](ORIGINAL_PRESELECTION_DERIVED100_CONTRACT.md)核linked/owner0/10具体写和61b510 current4循环；nonzeroowner34未识别，两guard仍独立。所选4c69a0 RET18，25c表读24字节步长/1e8返回O+c8后写O128；正常ABI下arg5零跳过两26c，live/异常/alias仍Unknown。三fullnative正常图52与84Listing/23native分别计，139/138/1、exit0/源与18模块不变/临时空，无原或组件执行。9beed/82已独立38/0，旧失败保留、descriptor进制明确；本批新结论待二方复核/仅本地，发布仍待精确授权。

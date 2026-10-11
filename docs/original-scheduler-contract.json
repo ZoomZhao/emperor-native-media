@@ -6813,6 +6813,17 @@
       "corrected_speed_condition": "408ac0 returnsnull OR nonnullowner predicate4fae50==0;534c7f nullbranch skipspredicate,534c8a nonzeropredicate skipsspeedwrite",
       "correction_independently_reviewed": false,
       "new_current_owner34_derived_semantics_independently_reviewed": false
+    },
+    "owner34_derived_82d9cf5": {
+      "commit": "82d9cf50d00e887bbed8cfecb2aa8d7fee03c69a",
+      "correction_commit": "9beed2216f084b64c9e81966224349a59e72b255",
+      "passed_groups": 38,
+      "failed_groups": 0,
+      "prior_b2_speed_failure_closed": true,
+      "review_sha256": "fe19b67b9686a83b69bf586ca311445cceb238129e7b6e15faa2ce1db5e80d71",
+      "previous_failure_receipt_preserved": true,
+      "descriptor_size_explicit": "0x928 =2344bytes",
+      "this_new_batch_reviewed": false
     }
   },
   "original_callback_lifetime_evidence": {
@@ -7403,7 +7414,7 @@
       "direct_local_object_store": false,
       "transitive_object_or_global_writes_closed": false,
       "static100_word": "samefixedroot7afbd8+100@7afcd8=4c69a0,notactualruntimebinding;ReferenceManagercomputedcall unresolvedwithnotargets",
-      "descriptor": "root0=4c5d90;two nativeinstructionsreturn84ca08. Descriptor20bytes fieldsnamepointer84ca40,size928,schema0,factory4c5d30,parent854438;names/factoryeffects notexpanded",
+      "descriptor": "root0=4c5d90;two nativeinstructionsreturn84ca08. Descriptor20bytes fieldsnamepointer84ca40,size0x928=2344bytes,schema0,factory4c5d30,parent854438;names/factoryeffects notexpanded",
       "raw_cursor_relocation_or_instance_lifetime_proved": false,
       "one_class_method_effect_generalizes_to_all_derived": false
     },
@@ -7454,6 +7465,107 @@
         "4fb400 stopped at declared75-new-native-reader limit",
         "4fb460 not expanded"
       ],
+      "original_or_derived_game_executed": false,
+      "runtime_binding_created": false,
+      "new_semantics_independently_reviewed": false,
+      "push_attempts_this_batch": 0
+    }
+  },
+  "original_preselection_derived100_contract": {
+    "document": "docs/ORIGINAL_PRESELECTION_DERIVED100_CONTRACT.md",
+    "manifest": "docs/original-preselection-derived100-evidence.json",
+    "proof_class": "Fixed original source-only preselection side effects and single constructor-matched derived100 conditional local/ABI contract;no nonzeroowner34writer orlivecallee bound",
+    "owner_source_and_writes": {
+      "selected_callers": "42f5d0@42f60a,4493a0@4493ae,4ec2b0@4ec2f4 getowner from408ac0 whichreturnsfixed10bc348;theirnormalCALL4fb530receiversourceproved,notactualruntime",
+      "selected_field_address": "10bc348+34=10bc37c;ReferenceManagerxrefsempty meansnoobservedstaticreferences,notnoaliasstore oralwayszero",
+      "500400": "ifowner8nonnull,503260 writeslinked170=passedzero; noowner34directstore",
+      "5003a0": "ifowner8nonnull,503210 writeslinked2c4=current10de2d8 then4ff170(owner,-2);notowner34directsetter",
+      "413a40": "writesdwordowner0=passedvalue5;noowner34store",
+      "4fca20": "writesowner10=0inside4fd600 beforelastowner34clear;fieldlaterreadbybool4fae50 andmask1 4fae60/4fca10, differentpredicates andvaluepersistence unknown",
+      "5032c0": "writeslinked2e0=1onpreselectionALtruebranch; noowner34directstore",
+      "queued_preselection_effects": "4ff170 alloc238/construct502a20/4ff590->58ee60;502a20 clears0x8edwords(0x238bytes forwardifDF0) andfillsrecordfields,normalRET24;null allocation stilllaterdereferencesESI10. 4ff760 islinkedtail58ea10:alloc18/construct4fa7e0/register58ee60;exceptions,transitive container/OS/currentalias unclosed",
+      "nonzero_owner34_production_identified": false,
+      "two_owner34_guards_same_proved": false,
+      "all_loads_reset_policy_proved": false
+    },
+    "preselection_actual_dependencies": {
+      "62e720": "alternatebranch1e5522c/1e551f0 mayusecurrentvirtual4c andreturns0;mainbranchzeroescurrent1e55200+58,+60 andsets+5c1,then62d070 returnscurrentglobal1e551e4,61b510 runsifnonnull;afterrun rereads1e55200 andreturnscurrent+58",
+      "61b510": "46native normalnodes:nonnullself148required;selfdc cleared/restored,InterlockedIncrement(self4),selff8++/fc=f8,loopcurrentvirtual4 untilf8>fc;capturesreturnself100 thenInterlockedDecrement(self4),signedresult<=0 maycurrentvirtual0(1). Currentroots/handlerwrites/termination/deletion/exceptions unknown",
+      "62e7f0": "ifcurrent1e55200nonnull writebyte+60=1;call66ce40fortwocurrentglobalchildren;optional627490>0 calls6274b0/624c60;tail62db60",
+      "66ce40": "actualcomputedJMP[currentvptr+8],resolvernot-call doesnotprove noeffects orboundtarget",
+      "62db60": "62d9e0 current1e55200+120 lookup62d9b0;nonnullreturnedobject tailscurrentvirtual44;not-callmetadata notnoaction",
+      "6249e0": "current1e55200+28 receivercalls6ef160 withtwoargaddresses whennonnull; noowner34directstore,transitivewrites unknown",
+      "factory_not_live_modal_binding": "4fae70 allocdc andconstruct6c4a80,whichwritesroot7c8344 after616d90;currentmodal61b510 receivesglobal1e551e4 andaccesses148,notprovedsameobject asdcwidget. NoUI/API/event executed",
+      "between_guards": "beforefirstguardopaque selection flow alreadycanchangefieldsource;betweenfirstandsecond includesselectedvirtual10,534a30/reconcile/registration/postedmessages. Theiralias/transitiveeffects remainunclosed;no actualchangeasserted",
+      "complete_owner34_writer_or_alias_coverage": false
+    },
+    "selected_derived100": {
+      "entry": "fixed4c5dc0 root7afbd8+100=4c69a0,onlythisselectedclass expanded;currentvptr stillunbound",
+      "normal_local_source": "whole84Listinginstructionsin237-bytebody,4basicblocks;23selectednativeanchors;notall84nativeproof",
+      "ABI": "callee4c6a8a RET18 cleanssixargs;normaltail4c6a87 setsAL1,notfullEAX1. GuessedFunctionManagersignaturezeroargs notABIcontract",
+      "selected25c": "fixedrootslot7afe34->4f13f0,fourcomplete nativeinstructions: signedwordO14, multiply3 andindexed8dwordload8235a0 ->24bytesstride;input/tablebounds unproved",
+      "selected1e8": "fixedrootslot7afdc0->416b50,two nativeinstructions returnO+c8;understable selectedroot4c69eb writesO128=lowbyte current101c500. Notowner34 orphase/gateenable proof",
+      "other_direct_calls": "4b8200,408170,4b84b0,4b72b0,5ad970,conditional47f1b0. OriginalhelperListings captured/reused;notalltransitive/lifetime/exceptioneffectgraphs closed",
+      "explicit_helper_effects": "4b8200writes101c504/101c500;4b84b0/4b72b0 contain101c52c errorwritesandindexedglobaldataarrays;5ad970 containsindexedbytewrites. Thisbatchdoesnotinterpretcitysimulationlogic orprovevalidindices/gatepersistence",
+      "postload_zero_argument5": {
+        "saved_register_bytes": 16,
+        "pending_cdecl_argument_bytes": {
+          "call4b84b0": 16,
+          "call4b72b0": 32,
+          "call5ad970": 16
+        },
+        "offset_at_argument5_read": -80,
+        "read_displacement": 100,
+        "original_stack_offset": 20,
+        "argument_index": 5,
+        "postload_supplies_argument5": 0,
+        "normal_arg5zero_skips_virtual26c": true,
+        "conditions": "selected fixed roots at25c/1e8,normalcdecl/RET4callee returns,valid stack andstorage,ABI preservesESI;notruntimeproven",
+        "guest_execution": false
+      },
+      "conditional26c": "methodgeneralnonzeroarg5 AND O150nonnull takeslookupandtwocurrentvirtual26c. Underchosenpostloadsixpushes/normalABI arg5=0 sofirstJZskipsboth;do notcallthisallactivationpolicy",
+      "selected26c_static_word": "7afe44 word4c6c70;notexpanded becausechosenarg5zero normalpathskipsit;actualalternate targetunbound",
+      "current25c_and1e8_resolution": "ReferenceManager computedcallunresolved;fixedslotwords areconditionalcandidatesonly",
+      "object_or_cursor_lifetime_and_relocation_proved": false,
+      "all_transitive_writer_set_closed": false,
+      "all_gate_quota_hold_inputs_stable_proved": false
+    },
+    "independent_review_update": {
+      "commit": "82d9cf50d00e887bbed8cfecb2aa8d7fee03c69a",
+      "correction_commit": "9beed2216f084b64c9e81966224349a59e72b255",
+      "passed_groups": 38,
+      "failed_groups": 0,
+      "prior_b2_speed_failure_closed": true,
+      "review_sha256": "fe19b67b9686a83b69bf586ca311445cceb238129e7b6e15faa2ce1db5e80d71",
+      "previous_failure_receipt_preserved": true,
+      "descriptor_size_explicit": "0x928 =2344bytes",
+      "this_new_batch_reviewed": false
+    },
+    "runtime_binding_created": false,
+    "target_execution_performed": false,
+    "execution_allowed": false,
+    "publication": "localonly,no pushretryorupload. Old5587fb5 eightdocs approvalpending;currentnewHEADscope notautomaticallycovered"
+  },
+  "original_preselection_derived100_evidence": {
+    "manifest": "docs/original-preselection-derived100-evidence.json",
+    "batch_outcome": {
+      "batch": "rea-static-owner34-production-and-derived100-20261011",
+      "provider_requests": 139,
+      "successful_Evidence": 138,
+      "NoProcedure_metadata_errors": 1,
+      "queried_procedure_addresses": 30,
+      "native_anchors": 86,
+      "selected_read_bytes": 16,
+      "exit_code": 0,
+      "elapsed_seconds": 746.741,
+      "input_identity_unchanged": true,
+      "official_module_pairs": 18,
+      "temporary_entries_after": [],
+      "full_native_normal_graphs": 3,
+      "full_native_normal_graph_nodes": 52,
+      "derived100_Listing_graph_nodes": 84,
+      "derived100_native_anchors": 23,
+      "derived100_all_native_graph_proved": false,
       "original_or_derived_game_executed": false,
       "runtime_binding_created": false,
       "new_semantics_independently_reviewed": false,

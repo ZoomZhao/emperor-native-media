@@ -34,7 +34,7 @@ Ghidra尚未为4f0150定义function，assembly/callees报NoProcedure、containin
 
 当前虚调用4f016b的ReferenceManager无目标，仍computed unresolved。若实际vptr保持选定固定root，其+100字是4c69a0；这是下一可取证静态候选，不是当前live binding。正常callee按与六次push一致的栈清理返回后，4f0171仅MOV AL1/RET；不能说完整EAX1，42da10也没有消费该返回。原异常/对象存活、raw cursor/容器重定位尚未证明。
 
-同root首字为4c5d90，两条原生指令返回descriptor84ca08。选定20字节描述符显示name指针84ca40、size928、schema0、factory4c5d30、parent854438；未读名称或执行factory，不给它臆造类型名/实际对象归属。
+同root首字为4c5d90，两条原生指令返回descriptor84ca08。选定20字节描述符显示name指针84ca40、size0x928（2344字节）、schema0、factory4c5d30、parent854438；未读名称或执行factory，不给它臆造类型名/实际对象归属。
 
 ## 修正上一批遗漏与验证范围
 
@@ -51,3 +51,7 @@ b2b6ab1独立复核38组通过、1项文档合同遗漏：534c7f在owner为空�
 可继续固定原源纯静态取证、保存来源复核、局部合同与文档修正/选择性本地提交。不能执行原/衍生游戏、转换或SR/Unicorn/Wine/历史被拒探测，不能把GameData或旧Swift用作替代源；本批不执行组件测试或操作UI/设备，不以PCM解码/GPU读回当完整游戏验收。
 
 当前仅本地提交。5587fb5八份文档push仍待用户明确目的地与载荷授权；没有本批push/网络/替代上传，当前新HEAD不自动在原请求范围。远端仅最后核实697c4b0，不冒充本时刻已重新查询。见[筛选证据](original-owner34-derived-postload-evidence.json)与[handoff](ORIGINAL_ROUTE_HANDOFF.md)。
+
+## 后续复核与前置/派生+100补充
+
+本提交快照后，9beed速度修正与82d9cf5新增已独立38通过/0失败，旧b2 38/1保留，失败已闭合。描述符进制明确为0x928=2344字节。新[前置与+100合同](ORIGINAL_PRESELECTION_DERIVED100_CONTRACT.md)核owner0/10及linked170/2c4/2e0写、模态current+4循环及所选4c69a0正常RET18；仍未找到owner34非零store。选定根25c为24字节步长表读取、1e8返回O+c8而写O128；postload arg5=0在正常ABI下跳过两个26c。当前虚目标/异常/alias/首次tick继续未闭合，新批待独立复核，发布仍待人类精确授权。

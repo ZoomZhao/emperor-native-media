@@ -127,7 +127,7 @@
       "direct_local_object_store": false,
       "transitive_object_or_global_writes_closed": false,
       "static100_word": "samefixedroot7afbd8+100@7afcd8=4c69a0,notactualruntimebinding;ReferenceManagercomputedcall unresolvedwithnotargets",
-      "descriptor": "root0=4c5d90;two nativeinstructionsreturn84ca08. Descriptor20bytes fieldsnamepointer84ca40,size928,schema0,factory4c5d30,parent854438;names/factoryeffects notexpanded",
+      "descriptor": "root0=4c5d90;two nativeinstructionsreturn84ca08. Descriptor20bytes fieldsnamepointer84ca40,size0x928=2344bytes,schema0,factory4c5d30,parent854438;names/factoryeffects notexpanded",
       "raw_cursor_relocation_or_instance_lifetime_proved": false,
       "one_class_method_effect_generalizes_to_all_derived": false
     },
@@ -1660,5 +1660,16 @@
   "target_execution_performed": false,
   "execution_allowed": false,
   "new_semantics_independently_reviewed": false,
-  "publication_authorized_for_this_increment": false
+  "publication_authorized_for_this_increment": false,
+  "independent_review_updates": {
+    "commit": "82d9cf50d00e887bbed8cfecb2aa8d7fee03c69a",
+    "correction_commit": "9beed2216f084b64c9e81966224349a59e72b255",
+    "passed_groups": 38,
+    "failed_groups": 0,
+    "prior_b2_speed_failure_closed": true,
+    "review_sha256": "fe19b67b9686a83b69bf586ca311445cceb238129e7b6e15faa2ce1db5e80d71",
+    "previous_failure_receipt_preserved": true,
+    "descriptor_size_explicit": "0x928 =2344bytes",
+    "this_new_batch_reviewed": false
+  }
 }
