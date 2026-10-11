@@ -2,6 +2,8 @@
 
 2026-10-11，扩链基线 `6a5c2475ada69d27f56bdd379703bde2e9236558`。固定原PE的入口已通过七条typed引用/解码CALL连到主循环、调度及phase8；累计30个唯一相关函数、8个关键站点，在共享20分钟预算内714.653秒完成并正常清理。新证据说明phase8的容器/对象/虚表槽、worker的引用释放路径，以及DirectDraw/Miles/Bink的原调用来源。虚表目标及完整原tick仍未知；目标SHA/身份未变，没有执行原程序。
 
+当前重点已转到完整原版调度：[51阶段、门控/时钟/额度/周期尾合同](ORIGINAL_SCHEDULER_CONTRACT.md)和[机器依赖顺序](original-scheduler-contract.json)已梳理；phase8是单个阶段，phase归零与tail返回分开。当前归档没有可核验的原函数转换覆盖；新增自有scheduler声明校验拒绝完整周期/运行绑定claim。schema10保留所有既有ABI更正和Unknown。
+
 加载身份前沿已连接：候选554f00前缀→5d4890→51ce00→427430；O+b4请求32位序列化字段，O+62按版本有16位与byte零扩展差异，底层可短读且caller不核返回数。[字段来源与短读](REA_ABI_CONTRACTS.md#加载字段来源与短读返回的边界)仍保留实际槽身份/目标/完整子类副作用未知；自有[ABI preflight](ORIGINAL_ABI_PREFLIGHT.md)已独立复核整合，schema9不授权运行。
 
 池边界继续核实：默认构造尝试建立4000槽，载入数量32位且所选body没有4000/32767上限；actual加载子类与O+b4槽身份仍未证。[池规模与载入增补](REA_ABI_CONTRACTS.md#池初始化规模与载入数量的不同边界)防止把初始capacity硬写为原合法上限，schema8运行绑定继续关闭。

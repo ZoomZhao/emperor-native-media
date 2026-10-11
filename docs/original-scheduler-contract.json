@@ -1,0 +1,1557 @@
+{
+  "schema_version": 1,
+  "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+  "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+  "purpose": "original full scheduler contract observations and self-owned declaration validation; no runtime binding",
+  "entry_layers": {
+    "refresh_entry": "536fe0 ->536b20(1)",
+    "parent": "536b20 conditional quota loop->5371a0",
+    "step": "5371a0 ifload32(88ec38)==0->4ac2b0 @5371bf, staticreturn5371c4",
+    "phase8_slice": "4ac338->4aeeb0 staticreturn4ac33d",
+    "cycle_tail": "4ac4e2 decodedJMP4ac650; no extra callframe, completion requires actualtailreturn"
+  },
+  "phase_state": "uint32bits atc82ef8; supported normal domain0..50; dispatch1..48; commonreload/inc signedcompare51 thenreset0+tail",
+  "phase_rows": [
+    {
+      "phase": 0,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 1,
+      "dispatch_block": "0x4ac2fa",
+      "local_calls": [
+        {
+          "site": "0x4ac2fa",
+          "target": "0x4f1560",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 2,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 3,
+      "dispatch_block": "0x4ac42d",
+      "local_calls": [],
+      "local_flag_store": true,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 4,
+      "dispatch_block": "0x4ac304",
+      "local_calls": [
+        {
+          "site": "0x4ac304",
+          "target": "0x4819f0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 5,
+      "dispatch_block": "0x4ac30e",
+      "local_calls": [
+        {
+          "site": "0x4ac310",
+          "target": "0x54c6f0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 6,
+      "dispatch_block": "0x4ac31d",
+      "local_calls": [
+        {
+          "site": "0x4ac31d",
+          "target": "0x5177b0",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac324",
+          "target": "0x5185c0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 7,
+      "dispatch_block": "0x4ac32e",
+      "local_calls": [
+        {
+          "site": "0x4ac32e",
+          "target": "0x4af350",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 8,
+      "dispatch_block": "0x4ac338",
+      "local_calls": [
+        {
+          "site": "0x4ac338",
+          "target": "0x4aeeb0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 9,
+      "dispatch_block": "0x4ac342",
+      "local_calls": [
+        {
+          "site": "0x4ac342",
+          "target": "0x40fc20",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 10,
+      "dispatch_block": "0x4ac34c",
+      "local_calls": [
+        {
+          "site": "0x4ac34c",
+          "target": "0x4aeb30",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 11,
+      "dispatch_block": "0x4ac356",
+      "local_calls": [
+        {
+          "site": "0x4ac356",
+          "target": "0x590a50",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 12,
+      "dispatch_block": "0x4ac360",
+      "local_calls": [
+        {
+          "site": "0x4ac360",
+          "target": "0x4ace60",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 13,
+      "dispatch_block": "0x4ac36a",
+      "local_calls": [
+        {
+          "site": "0x4ac384",
+          "target": "0x591ec0",
+          "conditional": true,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac38e",
+          "target": "0x5925a0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 14,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 15,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 16,
+      "dispatch_block": "0x4ac398",
+      "local_calls": [
+        {
+          "site": "0x4ac398",
+          "target": "0x5d3cb0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 17,
+      "dispatch_block": "0x4ac3a2",
+      "local_calls": [
+        {
+          "site": "0x4ac3a2",
+          "target": "0x4aedf0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 18,
+      "dispatch_block": "0x4ac3ac",
+      "local_calls": [
+        {
+          "site": "0x4ac3ae",
+          "target": "0x426a60",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac3b5",
+          "target": "0x5a8170",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 19,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 20,
+      "dispatch_block": "0x4ac3bf",
+      "local_calls": [
+        {
+          "site": "0x4ac3bf",
+          "target": "0x51e4a0",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac3c4",
+          "target": "0x4bc440",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 21,
+      "dispatch_block": "0x4ac3ce",
+      "local_calls": [
+        {
+          "site": "0x4ac3ce",
+          "target": "0x4acfc0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 22,
+      "dispatch_block": "0x4ac3d8",
+      "local_calls": [
+        {
+          "site": "0x4ac3d8",
+          "target": "0x4ad3d0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 23,
+      "dispatch_block": "0x4ac3e2",
+      "local_calls": [
+        {
+          "site": "0x4ac3e2",
+          "target": "0x4ad4a0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 24,
+      "dispatch_block": "0x4ac3ec",
+      "local_calls": [
+        {
+          "site": "0x4ac3ec",
+          "target": "0x4ae1a0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 25,
+      "dispatch_block": "0x4ac3f6",
+      "local_calls": [
+        {
+          "site": "0x4ac3f6",
+          "target": "0x4ae220",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac3fb",
+          "target": "0x4ae7f0",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac400",
+          "target": "0x4f19a0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 26,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 27,
+      "dispatch_block": "0x4ac40a",
+      "local_calls": [
+        {
+          "site": "0x4ac40a",
+          "target": "0x5253a0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 28,
+      "dispatch_block": "0x4ac414",
+      "local_calls": [
+        {
+          "site": "0x4ac414",
+          "target": "0x4ace30",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 29,
+      "dispatch_block": "0x4ac41e",
+      "local_calls": [
+        {
+          "site": "0x4ac420",
+          "target": "0x54c6f0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 30,
+      "dispatch_block": "0x4ac42d",
+      "local_calls": [],
+      "local_flag_store": true,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 31,
+      "dispatch_block": "0x4ac43c",
+      "local_calls": [
+        {
+          "site": "0x4ac43c",
+          "target": "0x416d20",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 32,
+      "dispatch_block": "0x4ac446",
+      "local_calls": [
+        {
+          "site": "0x4ac446",
+          "target": "0x5dbcc0",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac44b",
+          "target": "0x4b02a0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 33,
+      "dispatch_block": "0x4ac452",
+      "local_calls": [
+        {
+          "site": "0x4ac452",
+          "target": "0x4af230",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac457",
+          "target": "0x4af2d0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 34,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 35,
+      "dispatch_block": "0x4ac45e",
+      "local_calls": [
+        {
+          "site": "0x4ac45e",
+          "target": "0x5177b0",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac465",
+          "target": "0x517b40",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 36,
+      "dispatch_block": "0x4ac46c",
+      "local_calls": [
+        {
+          "site": "0x4ac46c",
+          "target": "0x5177b0",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac473",
+          "target": "0x517ad0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 37,
+      "dispatch_block": "0x4ac47a",
+      "local_calls": [
+        {
+          "site": "0x4ac47a",
+          "target": "0x53c870",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac481",
+          "target": "0x44f1d0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 38,
+      "dispatch_block": "0x4ac488",
+      "local_calls": [
+        {
+          "site": "0x4ac488",
+          "target": "0x4acd10",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 39,
+      "dispatch_block": "0x4ac48f",
+      "local_calls": [
+        {
+          "site": "0x4ac48f",
+          "target": "0x519120",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 40,
+      "dispatch_block": "0x4ac496",
+      "local_calls": [
+        {
+          "site": "0x4ac496",
+          "target": "0x4acc40",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 41,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 42,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 43,
+      "dispatch_block": "0x4ac49d",
+      "local_calls": [
+        {
+          "site": "0x4ac49d",
+          "target": "0x4af9b0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 44,
+      "dispatch_block": "0x4ac4a4",
+      "local_calls": [
+        {
+          "site": "0x4ac4a4",
+          "target": "0x4af5d0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 45,
+      "dispatch_block": "0x4ac4ab",
+      "local_calls": [
+        {
+          "site": "0x4ac4b0",
+          "target": "0x5f02c0",
+          "conditional": false,
+          "runtime_bound": false
+        },
+        {
+          "site": "0x4ac4b5",
+          "target": "0x4b94a0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 46,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 47,
+      "dispatch_block": "0x4ac4bc",
+      "local_calls": [
+        {
+          "site": "0x4ac4bc",
+          "target": "0x4afd20",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 48,
+      "dispatch_block": "0x4ac4c3",
+      "local_calls": [
+        {
+          "site": "0x4ac4c3",
+          "target": "0x4ae8b0",
+          "conditional": false,
+          "runtime_bound": false
+        }
+      ],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 49,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": false,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    },
+    {
+      "phase": 50,
+      "dispatch_block": "0x4ac4c8",
+      "local_calls": [],
+      "local_flag_store": false,
+      "wrap_after_normal_advance": true,
+      "local_completion": "normal return of selected local chain then reload/increment current phase; exception/reentrancy/later writes unresolved",
+      "conversion_status": "current imported source archive has no verified converted artifact; historical coverage not proved"
+    }
+  ],
+  "normal_empty_phase_values": [
+    0,
+    2,
+    14,
+    15,
+    19,
+    26,
+    34,
+    41,
+    42,
+    46,
+    49,
+    50
+  ],
+  "precheck_hold": "408ac0 returns10bc348->4fae50(O+10 !=0); then55bcb0 returns12a4ba8->55b540 AL; then55ce80 returns12a3d70->55cee0 signedbyte10de044 EAX; allthree nonzero leadearlyRET without selectedphaseadvance; guardhas sideeffects/indirects",
+  "outer_quota": {
+    "clock_import": "timeGetTime IAT7a9534",
+    "previous": "115f540",
+    "signed_negative_elapsed_substitute": 10000,
+    "speed_index": "signed32bits(100-load32(10de0dc))/10 towardzero; index>=10 rejects, lowernegative clamp0 beforetable",
+    "table_ms": [
+      0,
+      20,
+      35,
+      55,
+      80,
+      110,
+      160,
+      240,
+      350,
+      500
+    ],
+    "threshold_extra_ms": 2,
+    "block_flags": [
+      "byte10de0d0 nonzero",
+      "load32(88ebd8) nonzero",
+      "load32(10de038) nonzero"
+    ],
+    "mode_allow_values": [
+      1,
+      6,
+      18,
+      35,
+      39,
+      72,
+      73,
+      86
+    ],
+    "special_mode_18_or35_requires": "load32(10be9dc)==1",
+    "positive_result": 10000,
+    "zero_result": 0,
+    "update_previous_only_on_positive": true
+  },
+  "outer_loop": "initial quota positive calls5371a0; iteration counter115f550 is notphaseadvance count; continuebyte10de3f4==0 orselectedmessage cancelleads quota=0 afterone; calls535770 then incrementsloopindex; snapshots1156decclock atrefreshentry; selectedstate transitioncanrecursively536b20(0)",
+  "tail_counters": {
+    "total": "c82ef4 increment32bits onceattailentry",
+    "subcycle": "c82ef0 increment; signed>15 entersperiodicbranch; temporarily15 then0",
+    "outer_cycle": "c82eec incrementonperiodicbranch; signed>11 then0",
+    "stop_after_counter_updates": "byte10de044!=0 returnafter593090, doesnotrollbackcounters",
+    "all_direct_calls_in_saved_address_order": [
+      {
+        "site": "0x4ac657",
+        "target": "0x408ac0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac67a",
+        "target": "0x590d40",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac67f",
+        "target": "0x468160",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac686",
+        "target": "0x468210",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac692",
+        "target": "0x468160",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac699",
+        "target": "0x468350",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac69e",
+        "target": "0x468160",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac6a5",
+        "target": "0x4684a0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac6b3",
+        "target": "0x42da70",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac6f4",
+        "target": "0x4bfdb0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac6fb",
+        "target": "0x4bff20",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac700",
+        "target": "0x4bfdb0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac707",
+        "target": "0x4bfe10",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac73b",
+        "target": "0x592060",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac740",
+        "target": "0x590db0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac745",
+        "target": "0x4ae900",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac74a",
+        "target": "0x4ae950",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac74f",
+        "target": "0x4ac5b0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac754",
+        "target": "0x5930b0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac759",
+        "target": "0x5177b0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac760",
+        "target": "0x518690",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac765",
+        "target": "0x55af70",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac76a",
+        "target": "0x591db0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac76f",
+        "target": "0x426a60",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac776",
+        "target": "0x5a8620",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac77b",
+        "target": "0x547670",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac780",
+        "target": "0x4b6d00",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac785",
+        "target": "0x5ad8f0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac78a",
+        "target": "0x547440",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac78f",
+        "target": "0x4eb850",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac7b5",
+        "target": "0x592360",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac7bb",
+        "target": "0x480740",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac7c2",
+        "target": "0x481f10",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac7c9",
+        "target": "0x445130",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac7d0",
+        "target": "0x4f8d50",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac7ea",
+        "target": "0x523740",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac7f4",
+        "target": "0x491cf0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac804",
+        "target": "0x5ef190",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac80b",
+        "target": "0x408e20",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac810",
+        "target": "0x590de0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac815",
+        "target": "0x4ae910",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac830",
+        "target": "0x4ae990",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac835",
+        "target": "0x4ae9b0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac83a",
+        "target": "0x4ae9e0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac83f",
+        "target": "0x4aea00",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac844",
+        "target": "0x4aea70",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac849",
+        "target": "0x4aea20",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac84e",
+        "target": "0x4aea40",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac853",
+        "target": "0x4aea50",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac858",
+        "target": "0x4aeb10",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac85d",
+        "target": "0x481960",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac862",
+        "target": "0x4ace50",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac869",
+        "target": "0x4aff80",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac871",
+        "target": "0x4f1a90",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac87a",
+        "target": "0x4aff80",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac897",
+        "target": "0x408ac0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac8a0",
+        "target": "0x4fae50",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac8ad",
+        "target": "0x4ff020",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac8ce",
+        "target": "0x5006a0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac8d5",
+        "target": "0x500540",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac8da",
+        "target": "0x591c50",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac8df",
+        "target": "0x55ce80",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac8e6",
+        "target": "0x55cee0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac8fd",
+        "target": "0x48df30",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac904",
+        "target": "0x48eb90",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac922",
+        "target": "0x4a5910",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac92d",
+        "target": "0x4fae50",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac938",
+        "target": "0x4fae60",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac950",
+        "target": "0x52fd90",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac95a",
+        "target": "0x766da0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac987",
+        "target": "0x4fec80",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac9b6",
+        "target": "0x55ce80",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac9bd",
+        "target": "0x55cee0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac9c7",
+        "target": "0x593090",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4ac9f5",
+        "target": "0x492210",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4aca02",
+        "target": "0x4a0c60",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4aca0d",
+        "target": "0x4a0d30",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4aca18",
+        "target": "0x4a0d30",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4aca21",
+        "target": "0x49daf0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4aca2f",
+        "target": "0x445470",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4aca3d",
+        "target": "0x445470",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4aca43",
+        "target": "0x522ae0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4aca5f",
+        "target": "0x492210",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4aca9a",
+        "target": "0x54f6e0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acabc",
+        "target": "0x592690",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acad9",
+        "target": "0x5929a0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acae4",
+        "target": "0x480740",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acaeb",
+        "target": "0x481f40",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acafe",
+        "target": "0x591200",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb14",
+        "target": "0x53bb30",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb26",
+        "target": "0x4fae50",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb2f",
+        "target": "0x586620",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb36",
+        "target": "0x5866f0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb3f",
+        "target": "0x586620",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb46",
+        "target": "0x586720",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb5e",
+        "target": "0x592360",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb64",
+        "target": "0x480740",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb6b",
+        "target": "0x481f10",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb74",
+        "target": "0x442890",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb8b",
+        "target": "0x4a5840",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acb99",
+        "target": "0x4a8ed0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acba7",
+        "target": "0x4a58b0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acbc0",
+        "target": "0x548b70",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acbe4",
+        "target": "0x5920a0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acc05",
+        "target": "0x4a90a0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acc12",
+        "target": "0x4a58e0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acc17",
+        "target": "0x40fc20",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acc1c",
+        "target": "0x40fc20",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acc21",
+        "target": "0x4bfdb0",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      },
+      {
+        "site": "0x4acc28",
+        "target": "0x4c0570",
+        "order": "address order only; conditional control flow must be retained",
+        "runtime_bound": false
+      }
+    ],
+    "calendar_business_names_proved": false
+  },
+  "conversion_coverage": {
+    "source_sha256": {
+      "legacy/INDEX.md": "7a3e8d98e3016744ae8a7d3f20697a2906648a9bbc29bf9733c2edb95189088c",
+      "legacy/import-manifest.json": "0f816d3d6c7ee64cde44fded19d8954ae48f849593bc7ea20e49dc46d8990031",
+      "legacy/static-dependencies.json": "5eaf6fe693681d12a4e091081b036320e0049a9519f6dd6f9691da53a82084c5",
+      "legacy/src/stage82/tools/native_driver.c": "3292196714acfa395054990dfa3bb5f46f078dd03cfed62a9f4faf51667142f3",
+      "legacy/src/stage82/tools/build_drivers.py": "0074ce1bd22b36a0ebc87d42ce958f7403d901d0bb11ccfc96d25936f1b4e0e1",
+      "legacy/src/stage82/tools/blockers.py": "4a7ffcd766e30bf24def38a9e69d8150c41b5000fcbe3eeb91997f13cbd4455d",
+      "legacy/src/stage82/tools/prepare.py": "e05285b8ea2e72e88cab67c1c146e26d1dc0368126640235eed55567f126e956",
+      "legacy/src/stage80/tools/runtime.c": "7b53125b94dd2c52614ee982fb141e1e2eabb4eacd2ff058b4e2d20a8e93d414",
+      "legacy/src/stage82/tools/runtime.h": "86c4522d06f8d82f4d1a48067246634442217bb63520a1129d849af6004d5648"
+    },
+    "referenced_dependencies_absent_from_current_archive": {
+      "legacy/src/stage81/builds/full-separated-v5/game.ll": true,
+      "legacy/src/stage82/configs/original.json": true,
+      "legacy/src/stage82/builds/original-v3/native-driver": true,
+      "legacy/src/stage82/tools/build_scope.h": true,
+      "legacy/src/stage82/tools/domains.c": true
+    },
+    "historical_full_game_ir_claim": "build_drivers.py reads stage81/builds/full-separated-v5/game.ll, expects structural targets2020; source text only, actual function set/IR not present or read",
+    "current_compiled_original_function_coverage": "unverified for every scheduler/tail function; cannot infer historically unconverted merely from absent imported artifact",
+    "original_or_derived_binaries_inspected_or_executed": false,
+    "build_scripts_imported_or_executed": false
+  },
+  "native_interface": "oabi_validate_scheduler_declaration;51immutable integer phase descriptors; allbindingdenied/cycleproofzero; fullcycleclaimrejected; no guest reads/phase transitions/executed target",
+  "runtime_binding_created": false,
+  "target_execution_performed": false,
+  "new_semantics_independently_reviewed": false
+}

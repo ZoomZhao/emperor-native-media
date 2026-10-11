@@ -1,5 +1,5 @@
 {
-  "schema_version": 9,
+  "schema_version": 10,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -473,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-load-identity-20261011",
+  "latest_source_batch": "rea-static-full-scheduler-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -1487,6 +1487,21 @@
       "exit_code": 0,
       "temp_empty": true,
       "official_module_pairs": 18
+    },
+    {
+      "batch": "rea-static-full-scheduler-20261011",
+      "operations": 47,
+      "successful_Evidence": 47,
+      "saved_query_errors": 0,
+      "new_address_requests": 17,
+      "queried_functions": 20,
+      "reused_existing_procedure_subjects": 3,
+      "elapsed_seconds": 543.984,
+      "selected_read_bytes": 592,
+      "session_ok": true,
+      "exit_code": 0,
+      "temp_empty": true,
+      "official_module_pairs": 18
     }
   ],
   "review_corrections_300a5a7": {
@@ -2003,5 +2018,16 @@
         "evidence_id": "ev_11c77523f33582c64b930e85ce498a48ab269528a1651be2eaaa2cf99a2d8c8b"
       }
     ]
+  },
+  "full_scheduler_contract": {
+    "document": "ORIGINAL_SCHEDULER_CONTRACT.md",
+    "manifest": "original-scheduler-contract.json",
+    "normal_phase_count": 51,
+    "phase8_is_whole_tick": false,
+    "source_conversion_coverage_verified": false,
+    "self_owned_interface": "scheduler_shape.h: oabi_validate_scheduler_declaration",
+    "runtime_binding_created": false,
+    "execution_allowed": false,
+    "new_semantics_independently_reviewed": false
   }
 }
