@@ -201,6 +201,31 @@ public:
         if (x >= kMapSize || y >= kMapSize || buildingAt(x,y) != BuildingType::Warehouse) return 0;
         return warehouseStocks_[y*kMapSize+x];
     }
+    bool transferWarehouseStock(uint32_t sx, uint32_t sy, uint32_t dx, uint32_t dy,
+                                int64_t amount, std::string& message) {
+        if (ruleset_ != CityRuleset::RoadWarehouses) {
+            message = "搬粮仅适用于仓储城；现有城市保持"; return false;
+        }
+        if (sx >= kMapSize || sy >= kMapSize || dx >= kMapSize || dy >= kMapSize ||
+            (sx == dx && sy == dy) || buildingAt(sx,sy) != BuildingType::Warehouse ||
+            buildingAt(dx,dy) != BuildingType::Warehouse) {
+            message = "请选择两座不同的官仓；库存保持"; return false;
+        }
+        const size_t source = sy*kMapSize+sx, target = dy*kMapSize+dx;
+        if (amount <= 0 || amount > warehouseStocks_[source] ||
+            amount > CityWarehouseRules::capacity - warehouseStocks_[target]) {
+            message = "数量须为正整数，且不超过源仓存粮和目标余量；库存保持"; return false;
+        }
+        const std::string result = "已从(" + std::to_string(sx) + "," + std::to_string(sy) +
+            ")搬" + std::to_string(amount) + "担到(" + std::to_string(dx) + "," +
+            std::to_string(dy) + ")；全城存粮保持" + std::to_string(stats_.foodSupply) + "担";
+        auto candidate = *this;
+        candidate.warehouseStocks_[source] -= int(amount);
+        candidate.warehouseStocks_[target] += int(amount);
+        candidate.addEvent(result);
+        *this = std::move(candidate); message = result;
+        return true;
+    }
     bool farmHasWarehouseRoute(uint32_t x, uint32_t y) const {
         if (ruleset_ != CityRuleset::RoadWarehouses || buildingAt(x,y) != BuildingType::Farm) return false;
         const auto network = roadNetwork();
@@ -306,7 +331,7 @@ public:
             return false;
         }
         if (buildings_[idx] == BuildingType::Warehouse && warehouseStocks_[idx] != 0) {
-            message = "仓库仍有 " + std::to_string(warehouseStocks_[idx]) + " 担存粮，请用空后再拆；库存与资金保持";
+            message = "仓库仍有 " + std::to_string(warehouseStocks_[idx]) + " 担存粮，请搬空或用空后再拆；库存与资金保持";
             return false;
         }
         constexpr int demolishCost = 2;

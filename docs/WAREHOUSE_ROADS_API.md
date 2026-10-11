@@ -61,3 +61,7 @@ Release/UBSan独立造图验证无仓/无工、斜角、直邻无路、绕路/�
 测试线程可基于这些公开API独立造图并复核；冻结源码及绝对候选路径已在API-FROZEN.json给出，月账上界与查询返回值补全未改变源码哈希。独立线程准备的参考算法手算和语法通过，不等于已运行候选实现。ang若继续，本阶段只准备`docs/WAREHOUSE_ROADS_PLAYTEST.md`的确定操作与期望，不编辑实际核心、App或操作UI/Git；主线继续实现，不等待该说明。
 
 冻结核心SHA-256：`d60e45ade98531edacfbfb4ac1e3ad3e03dd8e8ae1a08cdd811b97a6a1502ce0`。完整来源及候选路径见本任务API-FROZEN.json。Release/UBSan各663仓储检查、各1039三关集成检查及4/7/9月可达回归通过。文件范围另包括scripts/city_goal_feedback_runner.py，增加当前共用核心指纹白名单，未改变旧规则选择。
+
+## 手动库存搬迁增量
+
+新增`bool transferWarehouseStock(uint32_t sx,uint32_t sy,uint32_t dx,uint32_t dy,int64_t amount,std::string& message)`。仅不同v4官仓、正数且不超源存粮/目标600担余量；完整候选提交，错误不改字节/事件，成功总粮/国库/日期/历史月账保持。没有道路、费用或自动分摊要求；暂存UI不进入既有v4布局。具体交互与验收见[WAREHOUSE_INVENTORY_TRANSFER.md](WAREHOUSE_INVENTORY_TRANSFER.md)。

@@ -12,6 +12,7 @@
 #include "../city_state_io.hpp"
 #include "city_goal_feedback_adapter.hpp"
 #include "../city_game_state.hpp"
+#include "city_warehouse_transfer.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -121,6 +122,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTimer* _simTimer;
     NSTextField* _cityHUDLabel;
     NSTextField* _cityEventLabel;
+    game_lab::CityWarehouseTransferSelection _warehouseTransfer;
+    NSButton* _warehouseTransferBegin;
+    NSButton* _warehouseTransferConfirm;
+    NSButton* _warehouseTransferCancel;
+    NSTextField* _warehouseTransferAmount;
+    NSTextField* _warehouseTransferStatus;
     NSSegmentedControl* _speedControl;
     NSSegmentedControl* _buildToolControl;
     NSArray<NSString*>* _mapFiles;
@@ -536,7 +543,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_mapView addSubview:_buildToolControl];
 
     // Leave room for the wrapped HUD; track the content height when macOS fits the window to the screen.
-    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 532, cityHeight - 216)];
+    _mapCanvasView = [[InteractiveMapView alloc] initWithFrame:NSMakeRect(360, 52, 532, cityHeight - 252)];
     _mapCanvasView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _mapCanvasView.imageScaling = NSImageScaleAxesIndependently;
     _mapCanvasView.wantsLayer = YES;
@@ -558,6 +565,27 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _mapInfoLabel.font = [NSFont systemFontOfSize:12];
     _mapInfoLabel.textColor = [NSColor colorWithCalibratedWhite:0.8 alpha:1.0];
     [_mapView addSubview:_mapInfoLabel];
+
+    _warehouseTransferBegin = [NSButton buttonWithTitle:@"搬到另一仓" target:self action:@selector(onBeginWarehouseTransfer:)];
+    _warehouseTransferBegin.frame = NSMakeRect(286, cityHeight-186, 116, 26);
+    _warehouseTransferBegin.autoresizingMask = NSViewMinYMargin;
+    [_mapView addSubview:_warehouseTransferBegin];
+    NSTextField* amountLabel = [NSTextField labelWithString:@"数量(担)"];
+    amountLabel.frame=NSMakeRect(410,cityHeight-181,62,18);amountLabel.autoresizingMask=NSViewMinYMargin;[_mapView addSubview:amountLabel];
+    _warehouseTransferAmount = [[NSTextField alloc] initWithFrame:NSMakeRect(478,cityHeight-186,68,26)];
+    _warehouseTransferAmount.placeholderString=@"1–600";
+    _warehouseTransferAmount.accessibilityIdentifier=@"warehouse-transfer-amount";
+    _warehouseTransferAmount.autoresizingMask=NSViewMinYMargin;[_mapView addSubview:_warehouseTransferAmount];
+    _warehouseTransferConfirm=[NSButton buttonWithTitle:@"搬粮" target:self action:@selector(onCommitWarehouseTransfer:)];
+    _warehouseTransferCancel=[NSButton buttonWithTitle:@"取消搬粮" target:self action:@selector(onCancelWarehouseTransfer:)];
+    _warehouseTransferConfirm.frame=NSMakeRect(554,cityHeight-186,64,26);
+    _warehouseTransferCancel.frame=NSMakeRect(624,cityHeight-186,84,26);
+    _warehouseTransferConfirm.autoresizingMask=NSViewMinYMargin;_warehouseTransferCancel.autoresizingMask=NSViewMinYMargin;
+    [_mapView addSubview:_warehouseTransferConfirm];[_mapView addSubview:_warehouseTransferCancel];
+    _warehouseTransferStatus=[NSTextField labelWithString:@"先勘查有粮官仓"];
+    _warehouseTransferStatus.frame=NSMakeRect(714,cityHeight-182,294,20);
+    _warehouseTransferStatus.font=[NSFont systemFontOfSize:11];
+    _warehouseTransferStatus.autoresizingMask=NSViewMinYMargin|NSViewWidthSizable;[_mapView addSubview:_warehouseTransferStatus];
 
     // Bottom: Event Log / Status
     _cityEventLabel = [NSTextField wrappingLabelWithString:@"📜 帝都政务记录"];
@@ -599,6 +627,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         _citySim.ruleset() == game_lab::CityRuleset::StaffedServices ?
         game_lab::CityHarvestRule::StaffedServicesV1 : game_lab::CityHarvestRule::LaborLimitedIntegerV1;
     [_buildToolControl setEnabled:warehouses forSegment:8];
+    [self updateWarehouseTransferControls];
     const auto goal = game_lab::evaluateCityGoals(game_lab::makeCityFeedbackSnapshot(_citySim, rule), _cityGoalConfig, _cityGoalMemory);
     _cityGoalMemory = goal.nextMemory;
     const bool training = _cityScenario.active() && game_lab::isCityWarehouseTrainingSpec(_cityScenario.checkpoint().spec);
@@ -676,6 +705,37 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     }
 }
 
+- (void)updateWarehouseTransferControls {
+    const bool warehouseCity=_citySim.ruleset()==game_lab::CityRuleset::RoadWarehouses;
+    const bool source=warehouseCity && _selectedCursorX>=0 && _selectedCursorY>=0 &&
+        _citySim.buildingAt(_selectedCursorX,_selectedCursorY)==game_lab::BuildingType::Warehouse &&
+        _citySim.warehouseStockAt(_selectedCursorX,_selectedCursorY)>0;
+    _warehouseTransferBegin.enabled=source && !_warehouseTransfer.active();
+    _warehouseTransferAmount.enabled=_warehouseTransfer.ready();
+    _warehouseTransferConfirm.enabled=_warehouseTransfer.ready() && _warehouseTransfer.maximum(_citySim)>0;
+    _warehouseTransferCancel.enabled=_warehouseTransfer.active();
+    if (_warehouseTransfer.ready())
+        _warehouseTransferStatus.stringValue=[NSString stringWithFormat:@"(%u,%u)→(%u,%u)，最多%d担",_warehouseTransfer.sourceX(),_warehouseTransfer.sourceY(),_warehouseTransfer.targetX(),_warehouseTransfer.targetY(),_warehouseTransfer.maximum(_citySim)];
+    else _warehouseTransferStatus.stringValue=_warehouseTransfer.active()?@"请选择另一座官仓":(warehouseCity?@"先勘查有粮官仓":@"搬粮须使用仓储城");
+}
+- (void)onBeginWarehouseTransfer:(id)sender {
+    (void)sender;std::string message;
+    if (_selectedCursorX<0 || _selectedCursorY<0) message="请先勘查一座有粮的官仓";
+    else _warehouseTransfer.begin(_citySim,_selectedCursorX,_selectedCursorY,message);
+    _warehouseTransferAmount.stringValue=@"";[self updateWarehouseTransferControls];
+    _cityEventLabel.stringValue=[NSString stringWithUTF8String:message.c_str()];
+}
+- (void)onCancelWarehouseTransfer:(id)sender {
+    (void)sender;_warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
+    [self updateWarehouseTransferControls];_cityEventLabel.stringValue=@"已取消搬粮，库存与城市保持";
+}
+- (void)onCommitWarehouseTransfer:(id)sender {
+    (void)sender;std::string message;
+    NSString* input=[_warehouseTransferAmount.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    const bool moved=_warehouseTransfer.commit(_citySim,input.UTF8String?input.UTF8String:"",message);
+    if(moved) {[self updateCityHUD];[self renderCityGrid];_warehouseTransferAmount.stringValue=@"";}
+    [self updateWarehouseTransferControls];_cityEventLabel.stringValue=[NSString stringWithUTF8String:message.c_str()];
+}
 - (void)renderCityGrid {
     const auto pixels = _citySim.renderGridPixels(_selectedCursorX, _selectedCursorY);
     if (!presentPixels(_mapCanvasView, 128, 128, pixels)) {
@@ -708,6 +768,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)onBuildToolChanged:(NSSegmentedControl*)sender {
+    _warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
     switch (sender.selectedSegment) {
         case 0: _activeBuildTool = game_lab::BuildingType::None; break;
         case 1: _activeBuildTool = game_lab::BuildingType::Road; break;
@@ -721,15 +782,23 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         case 9: _activeBuildTool = static_cast<game_lab::BuildingType>(99); break; // Demolish
         default: _activeBuildTool = game_lab::BuildingType::None; break;
     }
+    [self updateWarehouseTransferControls];
 }
 
 - (void)handleTileClickAtX:(int)x y:(int)y {
     _selectedCursorX = x;
     _selectedCursorY = y;
 
-    if (_activeBuildTool == game_lab::BuildingType::None) {
+    if (_warehouseTransfer.active()) {
+        std::string message;
+        if(_warehouseTransfer.choose(_citySim,x,y,message))
+            _warehouseTransferAmount.stringValue=[NSString stringWithFormat:@"%d",_warehouseTransfer.maximum(_citySim)];
+        [self updateWarehouseTransferControls];
+        _cityEventLabel.stringValue=[NSString stringWithUTF8String:message.c_str()];
+    } else if (_activeBuildTool == game_lab::BuildingType::None) {
         const std::string info = _citySim.inspectTile(x, y);
         _cityEventLabel.stringValue = [NSString stringWithUTF8String:info.c_str()];
+        [self updateWarehouseTransferControls];
     } else {
         std::string msg;
         if (static_cast<int>(_activeBuildTool) == 99) {
@@ -756,6 +825,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)onResetCity:(id)sender {
     (void)sender;
     _citySim.reset(game_lab::CityRuleset::StaffedServices);
+    _warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
     _cityScenario.disable();
     _cityGoalConfig = {};
     _cityGoalMemory = {};
@@ -770,6 +840,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)onNewWarehouseCity:(id)sender {
     (void)sender;
     _citySim.reset(game_lab::CityRuleset::RoadWarehouses); _citySim.setSpeed(0);
+    _warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
     _cityScenario.disable(); _cityGoalConfig = {}; _cityGoalMemory = {};
     _selectedCursorX = _selectedCursorY = -1; _activeBuildTool = game_lab::BuildingType::None;
     _buildToolControl.selectedSegment = 0; _speedControl.selectedSegment = 0;
@@ -813,6 +884,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const auto begun = training ? game_lab::beginCityWarehouseTraining(challenge,candidate,runId,_cityScenarioReceipts) :
         challenge.begin(definition.spec,runId,{candidate.stats().year,candidate.stats().month},_cityScenarioReceipts);
     if (!begun.ok) { _cityEventLabel.stringValue = [NSString stringWithUTF8String:begun.message.c_str()]; return; }
+    _warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
     _citySim = std::move(candidate); _cityScenario = std::move(challenge);
     _cityGoalConfig = definition.spec.goals; _cityGoalMemory = {};
     _selectedCursorX = _selectedCursorY = -1; _activeBuildTool = game_lab::BuildingType::None;
@@ -847,6 +919,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         _cityEventLabel.stringValue = [NSString stringWithUTF8String:error.c_str()];
         return;
     }
+    _warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
     _cityGoalConfig = _cityScenario.active() ? _cityScenario.checkpoint().spec.goals : game_lab::CityGoalConfig{};
     _cityGoalMemory = {};
     _selectedCursorX = _selectedCursorY = -1;
@@ -885,6 +958,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         return;
     }
     _citySim = std::move(freshCity);
+    _warehouseTransfer.cancel();_warehouseTransferAmount.stringValue=@"";
     _cityScenario.disable();
     _cityGoalConfig = {};
     _cityGoalMemory = {};
