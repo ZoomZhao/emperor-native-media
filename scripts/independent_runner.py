@@ -26,7 +26,8 @@ MEDIA = [
 ]
 APP = [
     'LICENSE', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
-    'game_lab/app/main.mm', 'game_lab/app/build.sh', 'game_lab/app/build_provenance.py',
+    'game_lab/app/main.mm', 'game_lab/app/city_goal_feedback.hpp', 'game_lab/app/city_goal_feedback_adapter.hpp',
+    'game_lab/app/build.sh', 'game_lab/app/build_provenance.py',
     'game_lab/app/Info.plist', 'game_lab/app/av_audio_backend.hpp', 'game_lab/app/av_audio_backend.mm',
     'game_lab/app_media.hpp', 'game_lab/app_media.cpp',
     'game_lab/movie_session.hpp', 'game_lab/movie_session.mm',

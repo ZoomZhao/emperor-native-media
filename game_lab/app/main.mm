@@ -10,6 +10,7 @@
 #include "../map_geometry.hpp"
 #include "../city_simulation.hpp"
 #include "../city_state_io.hpp"
+#include "city_goal_feedback_adapter.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -106,6 +107,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     
     // Maps & Simulation
     game_lab::CitySimulation _citySim;
+    game_lab::CityGoalConfig _cityGoalConfig;
+    game_lab::CityGoalMemory _cityGoalMemory;
+    NSTextField* _cityGoalLabel;
     game_lab::BuildingType _activeBuildTool;
     int _selectedCursorX;
     int _selectedCursorY;
@@ -456,7 +460,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     
     // Left: Table of maps (width 260)
     const CGFloat cityHeight = _mapView.bounds.size.height;
-    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(16, 108, 260, cityHeight - 124)];
+    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(16, 360, 260, cityHeight - 376)];
     scroll.autoresizingMask = NSViewHeightSizable;
     _mapTableView = [[NSTableView alloc] initWithFrame:scroll.bounds];
     NSTableColumn* col = [[NSTableColumn alloc] initWithIdentifier:@"MapName"];
@@ -468,6 +472,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     scroll.documentView = _mapTableView;
     [_mapView addSubview:scroll];
     
+    _cityGoalLabel = [NSTextField wrappingLabelWithString:@"自写经营目标"];
+    _cityGoalLabel.frame = NSMakeRect(16, 108, 260, 238);
+    _cityGoalLabel.maximumNumberOfLines = 18;
+    _cityGoalLabel.font = [NSFont systemFontOfSize:11];
+    _cityGoalLabel.textColor = [NSColor colorWithCalibratedWhite:0.9 alpha:1.0];
+    [_mapView addSubview:_cityGoalLabel];
+
     // Right Top: City HUD Status (Width 730)
     _cityHUDLabel = [NSTextField wrappingLabelWithString:@"📅 城市模拟已就绪"];
     _cityHUDLabel.frame = NSMakeRect(286, cityHeight - 66, 722, 50);
@@ -527,8 +538,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_mapView addSubview:_mapInfoLabel];
 
     // Bottom: Event Log / Status
-    _cityEventLabel = [NSTextField labelWithString:@"📜 帝都政务记录"];
+    _cityEventLabel = [NSTextField wrappingLabelWithString:@"📜 帝都政务记录"];
     _cityEventLabel.frame = NSMakeRect(286, 12, 722, 34);
+    _cityEventLabel.maximumNumberOfLines = 2;
+    _cityEventLabel.autoresizingMask = NSViewWidthSizable;
     _cityEventLabel.font = [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
     _cityEventLabel.textColor = [NSColor colorWithCalibratedWhite:0.85 alpha:1.0];
     [_mapView addSubview:_cityEventLabel];
@@ -552,6 +565,33 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)updateCityHUD {
     const auto& s = _citySim.stats();
+    const auto goal = game_lab::evaluateCityGoals(game_lab::makeCityFeedbackSnapshot(_citySim, game_lab::CityHarvestRule::LaborLimitedIntegerV1), _cityGoalConfig, _cityGoalMemory);
+    _cityGoalMemory = goal.nextMemory;
+    std::string goalText = "自写经营目标（可继续经营）\n" + goal.status;
+    if (goal.valid) {
+        const char* labels[] = {"人口", "存粮", "国库", "人口月度收支"};
+        for (size_t i = 0; i < goal.goals.size(); ++i) {
+            const auto& item = goal.goals[i];
+            goalText += "\n" + std::string(labels[i]) + ": " + std::to_string(item.current) + "/" + std::to_string(item.target);
+            if (!item.met) goalText += "（差 " + std::to_string(item.remaining) + "）";
+        }
+        if (goal.nextMonth.known) {
+            const auto& p = goal.nextMonth;
+            goalText += "\n下月" + std::to_string(p.month) + "月：新粮" + std::to_string(p.harvest) + " / 耗粮" + std::to_string(p.consumption) +
+                        "\n余粮" + std::to_string(p.foodAfter) + " / 迁入" + std::to_string(p.incoming) +
+                        "\n税" + std::to_string(p.tax) + " − 维护" + std::to_string(p.upkeep) + " = " + std::to_string(p.balance);
+        }
+        const game_lab::CityFeedbackIssue* primary = nullptr;
+        auto priority = [](game_lab::CityFeedbackSeverity level) { return level == game_lab::CityFeedbackSeverity::Critical ? 3 : level == game_lab::CityFeedbackSeverity::Warning ? 2 : level == game_lab::CityFeedbackSeverity::Info ? 1 : 0; };
+        std::string details = goal.rulesNote + "\n" + goal.progressText + "\n" + goal.previewText;
+        for (const auto& issue : goal.issues) {
+            if (priority(issue.severity) > 0) details += "\n" + issue.message;
+            if (!primary || priority(issue.severity) > priority(primary->severity)) primary = &issue;
+        }
+        if (primary && priority(primary->severity) > 0) goalText += "\n" + primary->message;
+        _cityGoalLabel.toolTip = [NSString stringWithUTF8String:details.c_str()];
+    }
+    _cityGoalLabel.stringValue = [NSString stringWithUTF8String:goalText.c_str()];
     NSString* yearStr = s.year < 0 ? [NSString stringWithFormat:@"公元前 %lld 年", -static_cast<long long>(s.year)] : [NSString stringWithFormat:@"公元 %d 年", s.year];
     _cityHUDLabel.stringValue = [NSString stringWithFormat:@"📅 %@ %d月 [%@]  |  💰 国库: %d贯  |  👥 户籍: %d人 (容积: %d)  |  🛠 就业: %d%% (%d/%d工)  |  🌾 存粮: %d担  |  🕊 繁荣: %d%%",
                                  yearStr, s.month, [NSString stringWithUTF8String:s.rankTitle.c_str()], s.treasury, s.population, s.housingCapacity, s.employmentPercent, s.availableWorkers, s.neededWorkers, s.foodSupply, s.favor];
@@ -611,10 +651,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _selectedCursorY = y;
 
     if (_activeBuildTool == game_lab::BuildingType::None) {
-        const auto b = _citySim.buildingAt(x, y);
-        const char* name = game_lab::BuildingCost::name(b);
-        _cityEventLabel.stringValue = [NSString stringWithFormat:@"🔍 勘查地块 (%d, %d): 地形=%@ · 建筑=%@",
-                                       x, y, _citySim.isWaterTile(x, y) ? @"河湖水域" : @"陆地平原", [NSString stringWithUTF8String:name]];
+        const std::string info = _citySim.inspectTile(x, y);
+        _cityEventLabel.stringValue = [NSString stringWithUTF8String:info.c_str()];
     } else {
         std::string msg;
         if (static_cast<int>(_activeBuildTool) == 99) {
@@ -641,6 +679,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)onResetCity:(id)sender {
     (void)sender;
     _citySim.reset();
+    _cityGoalMemory = {};
     _selectedCursorX = _selectedCursorY = -1;
     _activeBuildTool = game_lab::BuildingType::None;
     _buildToolControl.selectedSegment = 0;
@@ -673,6 +712,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         _cityEventLabel.stringValue = [NSString stringWithUTF8String:error.c_str()];
         return;
     }
+    _cityGoalMemory = {};
     _selectedCursorX = _selectedCursorY = -1;
     _activeBuildTool = game_lab::BuildingType::None;
     _buildToolControl.selectedSegment = 0;
@@ -703,6 +743,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     }
     
     _citySim.loadFromMap(cityMap);
+    _cityGoalMemory = {};
     _mapInfoLabel.stringValue = [NSString stringWithFormat:@"地图: %@ · 128×128 地块已载入 · ⚠️ 自写城市营建", filename];
     [self updateCityHUD];
     [self renderCityGrid];

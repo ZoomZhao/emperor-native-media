@@ -73,6 +73,14 @@ struct BuildingLabor {
     }
 };
 
+// Self-authored, compile-time tuning values; no original-game equivalence claim.
+struct FarmProductionRules {
+    static constexpr int regularYield = 5;
+    static constexpr int autumnBonus = 30;
+    static constexpr int firstAutumnMonth = 8;
+    static constexpr int lastAutumnMonth = 10;
+};
+
 struct CityStats {
     int treasury = 5000;       // 初始资金（贯/铜钱）
     int population = 0;        // 当前人口
@@ -220,6 +228,22 @@ public:
         }
     }
 
+    double laborRatio() const {
+        if (stats_.neededWorkers == 0) return 1.0;
+        return std::clamp(static_cast<double>(stats_.availableWorkers) / stats_.neededWorkers, 0.0, 1.0);
+    }
+
+    // Pooled city yield; each component is truncated once using exact integer ratios.
+    int farmYieldForMonth(int month) const {
+        if (month < 1 || month > 12 || stats_.totalFarms <= 0 ||
+            stats_.neededWorkers <= 0 || stats_.availableWorkers <= 0) return 0;
+        const int64_t filled = std::min(stats_.availableWorkers, stats_.neededWorkers);
+        const int64_t regular = int64_t(stats_.totalFarms) * FarmProductionRules::regularYield * filled / stats_.neededWorkers;
+        const bool autumn = month >= FarmProductionRules::firstAutumnMonth && month <= FarmProductionRules::lastAutumnMonth;
+        const int64_t bonus = autumn ? int64_t(stats_.totalFarms) * FarmProductionRules::autumnBonus * filled / stats_.neededWorkers : 0;
+        return boundedInt(regular + bonus);
+    }
+
     void advanceMonth() {
         stats_.month++;
         if (stats_.month > 12) {
@@ -227,15 +251,16 @@ public:
             stats_.year = boundedInt(int64_t(stats_.year) + 1);
         }
 
-        // 1. 农田丰收周期（每月基础收成 + 秋季大收成）
+        // 1. 农田丰收周期（每月基础收成 + 秋季大收成，受劳动力满足率严格约束）
+        updateLabor();
         if (stats_.totalFarms > 0) {
-            int harvest = stats_.totalFarms * 5;
-            if (stats_.month >= 8 && stats_.month <= 10) {
-                const double eff = stats_.neededWorkers > 0 ? (std::max(30, stats_.employmentPercent) / 100.0) : 1.0;
-                harvest += static_cast<int>(stats_.totalFarms * 30 * eff);
-            }
+            const int harvest = farmYieldForMonth(stats_.month);
             stats_.foodSupply = boundedInt(int64_t(stats_.foodSupply) + harvest);
-            addEvent("庄园耕作，新粮入仓 " + std::to_string(harvest) + " 担。");
+            if (harvest == 0) {
+                addEvent("农庄严重缺工，当月颗粒无收。");
+            } else {
+                addEvent("庄园耕作，新粮入仓 " + std::to_string(harvest) + " 担。");
+            }
         }
 
         // 2. 粮食消费：每 10 人每月食用 1 担粮食
@@ -354,8 +379,7 @@ public:
         if (stats_.neededWorkers == 0) {
             stats_.employmentPercent = 100;
         } else {
-            const double ratio = static_cast<double>(stats_.availableWorkers) / stats_.neededWorkers;
-            stats_.employmentPercent = std::clamp(static_cast<int>(ratio * 100.0), 0, 100);
+            stats_.employmentPercent = static_cast<int>(std::min<int64_t>(100, int64_t(stats_.availableWorkers) * 100 / stats_.neededWorkers));
         }
     }
 
@@ -495,6 +519,91 @@ public:
         candidate.addEvent("已读取自写城邑存档。");
         *this = std::move(candidate);
         return true;
+    }
+
+    static int houseCapacityForLevel(int level, bool nearRoad = true) {
+        if (level == 4) return 48;
+        if (level == 3) return 32;
+        if (level == 2) return 20;
+        if (level == 1) return nearRoad ? 8 : 4;
+        return 0;
+    }
+
+    int houseCapacityAt(uint32_t x, uint32_t y) const {
+        if (x >= kMapSize || y >= kMapSize) return 0;
+        const size_t idx = y * kMapSize + x;
+        if (buildings_[idx] != BuildingType::House) return 0;
+        return houseCapacityForLevel(houseLevels_[idx], hasNeighbor(x, y, BuildingType::Road, 1));
+    }
+
+    std::string inspectTile(uint32_t x, uint32_t y) const {
+        if (x >= kMapSize || y >= kMapSize) {
+            return "坐标超出疆界";
+        }
+        const size_t idx = y * kMapSize + x;
+        const auto b = buildings_[idx];
+        const bool water = isWaterTile(x, y);
+        const std::string terrainName = water ? "河湖水域" : "陆地平原";
+
+        if (b == BuildingType::None) {
+            if (water) {
+                return "🔍 勘查地块 (" + std::to_string(x) + ", " + std::to_string(y) + "): 地形=河湖水域 · 建筑=无 · 天然水泽阻隔，不可营建陆上建筑";
+            }
+            return "🔍 勘查地块 (" + std::to_string(x) + ", " + std::to_string(y) + "): 地形=陆地平原 · 建筑=无 · 天然旷野，可供营建";
+        }
+
+        if (b == BuildingType::Farm) {
+            const int nextMonth = stats_.month == 12 ? 1 : stats_.month + 1;
+            const bool autumn = nextMonth >= FarmProductionRules::firstAutumnMonth && nextMonth <= FarmProductionRules::lastAutumnMonth;
+            const std::string reason = stats_.availableWorkers == 0 ? "严重缺工停产" :
+                stats_.availableWorkers < stats_.neededWorkers ? "缺工折减" :
+                autumn ? "满员满产，秋收丰收季" : "满员满产";
+            return "🔍 农庄 (" + std::to_string(x) + ", " + std::to_string(y) +
+                   ") · 需工 " + std::to_string(BuildingLabor::workersRequired(b)) +
+                   " 人 · 全城岗位满足率: " + std::to_string(stats_.employmentPercent) +
+                   "% (" + std::to_string(stats_.availableWorkers) + "/" + std::to_string(stats_.neededWorkers) + "工)\n" +
+                   "预计" + std::to_string(nextMonth) + "月全城新粮: " + std::to_string(farmYieldForMonth(nextMonth)) +
+                   " 担 · 原因: " + reason;
+        }
+
+        if (b == BuildingType::House) {
+            const uint8_t lvl = houseLevels_[idx];
+            const bool nearRoad = hasNeighbor(x, y, BuildingType::Road, 1);
+            const int cap = houseCapacityForLevel(lvl, nearRoad);
+            std::string levelName = "闭塞小屋";
+            if (lvl == 4) levelName = "朱门华堂";
+            else if (lvl == 3) levelName = "深宅雅舍";
+            else if (lvl == 2) levelName = "平民木屋";
+            else if (lvl == 1) levelName = nearRoad ? "郊野茅舍" : "闭塞小屋";
+
+            return "🔍 勘查地块 (" + std::to_string(x) + ", " + std::to_string(y) + "): 地形=" + terrainName +
+                   " · 建筑=民居 · 等级: " + std::to_string(lvl) + " (" + levelName +
+                   ") · 容量: " + std::to_string(cap) + " 人 · 全城人口: " +
+                   std::to_string(stats_.population) + "/" + std::to_string(stats_.housingCapacity);
+        }
+
+        const int workers = BuildingLabor::workersRequired(b);
+        const char* name = BuildingCost::name(b);
+        std::string roleDesc;
+        switch (b) {
+            case BuildingType::Road: roleDesc = "邻近 1 格民居可提升基础容量"; break;
+            case BuildingType::Well: roleDesc = "滋养周边民居 (半径 3 格)"; break;
+            case BuildingType::Temple: roleDesc = "祈福民心，每月提升朝廷好感"; break;
+            case BuildingType::Market: roleDesc = "升级周边民居 (半径 4 格)，尚无供粮配送"; break;
+            case BuildingType::Watchtower: roleDesc = "人口达到 40 人时，全城民心每月提升 1 点"; break;
+            default: break;
+        }
+
+        std::string res = "🔍 勘查地块 (" + std::to_string(x) + ", " + std::to_string(y) + "): 地形=" + terrainName +
+                          " · 建筑=" + name + " · 需工 " + std::to_string(workers) + " 人";
+        if (workers > 0) {
+            res += " · 全城岗位满足率: " + std::to_string(stats_.employmentPercent) + "% (" +
+                   std::to_string(stats_.availableWorkers) + "/" + std::to_string(stats_.neededWorkers) + "工)";
+        }
+        if (!roleDesc.empty()) {
+            res += " · " + roleDesc;
+        }
+        return res;
     }
 
     // 将整个 128x128 城市模拟网格渲染为 BGRA8 图像
