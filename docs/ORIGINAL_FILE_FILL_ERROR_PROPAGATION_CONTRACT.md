@@ -6,13 +6,13 @@
 
 匹配构造根7ac7d4+60的候选447d30已取75个完整正常局部native节点（旧8+新67），两个RET在447dcc/447dff；六处直接CALL77c2c1和一处CALL5f8070。正常边仅在callee正常返回/原ABI有效时成立，当前F/root、输入、存储/计数/alias和异常仍未绑定。
 
-Fbyte+1e=0或byte+1f非零时直接退，不生产新的available；不能把该flag直接命名为“本次已观测EOF”。其余路径先读4字节至预置零的local。只有该次返回量为4且tag等于F+14才进入transform分支；否则再比较tag与F+18，可能进入原样分支。字段14/18初始化常量不是所有当前对象值的证明。
+Fbyte+1e=0或byte+1f非零时直接退，不生产新的available；不能把该flag直接命名为“本次已观测EOF”。其余路径先读4字节至独立tag槽，本函数没有直接预置零该槽。447d36清零入口E−4；PUSH EDI后的447d55/64使用E−8。E−4对应后续447d80指向的额外四字节读取，不能从该清零推出首tag短读后未覆盖字节为零。这里只核对原ABI常数偏移，不执行guest状态。只有该次返回量为4且tag等于F+14才进入transform分支；否则再比较tag与F+18，可能进入原样分支。字段14/18初始化常量不是所有当前对象值的证明。
 
 | 局部路径 | 保存源的实际行为与边界 |
 |---|---|
 | tag匹配F+14 | 后续读4到F+11a8c、另4到local，再读F+11a8c字节到F+8d58；三次返回量未在fill核对。将F+11a88预置0x8d30（36144），调用四参数5f8070，然后忽略状态码，设置F+20=F+28、byte+1d=0。 |
 | tag匹配F+18 | 读4到F+11a88，按该值请求payload到F+28；两次实际返回量都未核对。随后设置byte+1d=1、F+20=F+28，**没有将available直接缩至实际payload返回量**。 |
-| 不匹配或首tag短读后未被接受 | 没有新的available直接store。结合447e00先清available、有效存储/非alias正常callee等条件，remaining>0时可返回已累计短量；不能据此证明发生真实EOF。 |
+| 最终tag未被两个marker接受（首count短不足以证明该条件） | count!=4仍进入F+18的tag比较，未覆盖字节Unknown；不能仅由短count排除原样分支。最终tag不被接受时没有新的available直接store。结合447e00先清available、有效存储/非alias正常callee等条件，remaining>0时可返回已累计短量；不能据此证明发生真实EOF。 |
 
 buffered等量/零可用量仍先fill后看remaining，原138节点合同不改；raw零请求的提前返回不能消除这个副作用。后续循环正相等也先fill，不把末段`remaining<=available` guard推广到所有派发。没有消费GameData或补造长度、字节内容、文件模式。
 
@@ -44,8 +44,15 @@ wrapper只在step结果为1时，5f80fc显式写`*out-count=local stream+14`，�
 
 138请求/138Evidence/0NoProcedure，13procedure参数地址、117新native锚点、32选定data字节；官方exit0/775.37秒，固定目标与18组选定官方模块指纹不变/tmp空/0活动会话。四完整正常native图共130节点（旧24+新106：fill75、handler24、raw22、mapper9）；transform52Listing/10native、Raise24Listing/1native、bulk109Listing、strict22Listing及codec398Listing均单独计，不混成全部native或传递闭包。
 
-e950895已二方46/0，9aac717已二方44/0，原失败和partial快照保留。旧静态拒绝已解除，只作历史记录；本批新语义仅作者来源/文档一致性检查通过，**待独立复核**。runtime schema1与全部候选对象/执行DENIED保持，没有游戏/派生/arm64游戏执行、转换、组件测试、目标OS API调用、联网/上传/安装或UI/设备操作；不用旧Swift或城市仿真解释。
+e950895已二方46/0，9aac717已二方44/0，原失败和partial快照保留。旧静态拒绝已解除，只作历史记录；f9d56f8独立审核为**56组通过、1组失败（FIRST-TAG-ZERO-01）**；首tag预置零断言及派生短读假设已按来源纠正，原失败收据保留，纠正后的语义仍待独立复核。runtime schema1与全部候选对象/执行DENIED保持，没有游戏/派生/arm64游戏执行、转换、组件测试、目标OS API调用、联网/上传/安装或UI/设备操作；不用旧Swift或城市仿真解释。
 
 下一可验证缺口：①按当前load/open原来源建立F标记、两个长度与实际out-count的有效域和缓冲范围，保留本文所有未检查return；②将codec wrapper的out-count/store与内层case/默认alloc/free正常/错误效果分别闭合，不能以398条库存代替证明；③source限定的window callback/alias及RaiseException catch/frame/lifetime。实际文件、首tick或完整游戏通过仍需相应合格运行证据，不能由本批静态结果推出。
 
 仅本地提交。push仍独立待用户精确目的地/载荷授权，旧5587fb5八文档审批不覆盖新HEAD；没有推送重试或替代上传。
+
+
+## FIRST-TAG-ZERO-01修正账目
+
+以入口SP为E，SUB8、PUSH ESI后声明SP=E−12，因此447d36的[SP+8]是E−4；PUSH EDI后SP=E−16，447d55/64的[SP+8]是E−8；PUSH EBP后SP=E−20，raw的两参数由正常RET8清理，447d80的[SP+16]是E−4。零store与首tag相差4字节。
+
+独立审核的最小反例核对八条保存native指令及77c2f8 RET8，来源SHA绑定保留在JSON修正记录。首count!=4时仍跳447dcd比较F+18，实际tag与分支未知；仅在最终tag不被接受且原有存储/非alias/正常callee前提成立时，才可使用未生产available的短返回结论。没有执行游戏、原指令或组件测试；这次来源错误不能以查询全部成功来消除。

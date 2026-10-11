@@ -6843,6 +6843,23 @@
       "scope": "saved original source conditional contracts only; not runtime",
       "historical_partial_and_failure_snapshots_retained": true,
       "this_new_fill_batch_reviewed": false
+    },
+    "fill_error_f9d56f8": {
+      "failure_id": "FIRST-TAG-ZERO-01",
+      "reviewed_commit": "f9d56f82c513cff6ea7736d5bcdf752ba47fc647",
+      "passed_groups": 56,
+      "failed_groups": 1,
+      "accepted": false,
+      "minimum_reproduction_sha256": "2874f0ee91c2a4f2e051a79cc77b57c74eb0bfcb9f69be668caa64844b546635",
+      "review_sha256": "e44b56ca8885e501ae3b3dad1cef91228c6a074defbad1015a5a298a49690cb8",
+      "suggested_patch_sha256": "507736ea5dcd8543eade2577c862f6e07d7f09711c3fcc25bc57fc90cf94e6ff",
+      "source_graph_sha256": "b0aa9ffcfd79c2ddc764bb48415c784abb13f6e9182135b80eac12d5d40b49d1",
+      "scope": "saved original Listing/native tokens and constant ABI offsets only; no guest state interpreter/execution",
+      "correction": "zero E-4 isextraWord;firsttag E-8 hasnodirectzerostore. Count!=4canstilltestfield18,unreadtagbytesUnknown.",
+      "original_failure_retained": true,
+      "corrected_semantics_independently_reviewed": false,
+      "source_only": true,
+      "first_tag_corrected_locally": true
     }
   },
   "original_callback_lifetime_evidence": {
@@ -7713,11 +7730,29 @@
       "closed_normal_local_graph": true,
       "transitive_exception_or_runtime_closed": false,
       "guard": "Fbyte1e zero ORFbyte1f nonzero ->earlyRET,no directavailablewrite",
-      "first_tag": "rawread4 intozero-initializedlocal;onlyfirstcallactualcount4 plusfield14 equality selects transformbranch;otherwisefield18 equality mayselectrawbranch",
+      "first_tag": "rawread4 intoa separate taglocal notdirectlyzero-initializedhere;447d36 clearsentryE-4 forlater447d80read,while447d55/64tagusesE-8 afterPUSHEDI. Onlyfirstcallactualcount4 plusfield14 equality selects transformbranch;otherwisefield18 equality mayselectrawbranch. Ifcount!=4 unreadtagbytesUnknown;no forcedzero orrawbranch-exclusion inference.",
       "transform_marker_branch": "read4 intoF11a8c;readanother4intoalocal;readF11a8c bytesintoF8d58. Noneoftheserawreturncountstested here. SetF11a88=8d30;CALL5f8070(F28,&F11a88,F8d58,F11a8c),ignorestatus,resetF20=F28,byte1d=0",
       "raw_marker_branch": "read4 intoF11a88 thenrequestthatmanybytesintoF28;bothactualoutcountsignored. Byte1d=1,F20=F28;availablehasnodirectshrinktoactualpayloadcount",
-      "unmatched_or_initial_short_tag": "noexplicitavailableproduction;under447e00preclearedavailable0 andvalidnonaliasnormalcallees,remaining>0 returnsaccumulatedshortcount. Fflag1f isnotsetasEOFbythisfunction",
-      "no_actual_EOF_or_failure_demonstrated": true
+      "unmatched_or_initial_short_tag": "Onlywhenresultingtagisnotacceptedbytransformorrawmarker: noexplicitavailableproduction;under447e00preclearedavailable0 andvalidnonaliasnormalcallees,remaining>0 returnsaccumulatedshortcount. Firstcount!=4alone doesnotproveunmatchedtag:field18comparisonremainsandunreadtagbytesUnknown. Fflag1f isnotsetasEOFbythisfunction.",
+      "no_actual_EOF_or_failure_demonstrated": true,
+      "first_tag_frame_correction": {
+        "failure_id": "FIRST-TAG-ZERO-01",
+        "original_reviewed_commit": "f9d56f82c513cff6ea7736d5bcdf752ba47fc647",
+        "original_review_passed_groups": 56,
+        "original_review_failed_groups": 1,
+        "review_sha256": "e44b56ca8885e501ae3b3dad1cef91228c6a074defbad1015a5a298a49690cb8",
+        "minimum_reproduction_sha256": "2874f0ee91c2a4f2e051a79cc77b57c74eb0bfcb9f69be668caa64844b546635",
+        "original_failure_receipt_preserved": true,
+        "source_graph_sha256": "b0aa9ffcfd79c2ddc764bb48415c784abb13f6e9182135b80eac12d5d40b49d1",
+        "scope": "declarative originalx86 ABI offsets,notguestexecution",
+        "zero_store": "447d36:[entryE-c+8]=E-4",
+        "first_tag": "447d54PUSHEDI ->447d55/64:[entryE-10h+8]=E-8;nodirectinitialzerostore proved",
+        "extra_word": "447d6fPUSHEBP,rawRET8 ->447d80:[entryE-14h+10h]=E-4,previouslyzeroed",
+        "short_tag": "count!=4 skipscompressedbranch butstillcomparestagwithF18. UnreadbytesUnknown;rawmarkerbranchcannotbeexcludedfromshortcount alone.",
+        "corrected_semantics_independently_reviewed": false,
+        "local_ledger_ref": "local-evidence:rea-static-first-tag-frame-correction-20261011/source-frame-correction.json",
+        "local_ledger_sha256": "9b3dd50e6386e281dfef6367417a80793857af0b09565a7e7ac1ec3286054f55"
+      }
     },
     "transform_wrapper": {
       "entry": "5f8070",
@@ -7910,6 +7945,7 @@
       "status": "specified only;notimplemented or executed",
       "supported_valid_domain": [
         "selectedFmarker+14 compressedbranch,currentvalidroot and storage",
+        "firstmarkerreadmustprovideall4bytes;shortfirsttagunreadbytesareUnknown,notzero",
         "exactLE32lengthword,exactopaque4-byteword,exactdeclaredNpayload",
         "N<=36144 before readinginto fixednominalinputbuffer;destinationallocated36144;checked arithmetic anddistinctinitializedbuffers",
         "one zlib-wrapped DEFLATE stream,window<=15,validAdler,withoutrequired externaldictionary",
@@ -7948,12 +7984,30 @@
       "nativehostdecodercompatibility/testevidence"
     ],
     "modal_indirect_alias_static_limit_retained": true,
-    "previous_f9d56f8_independent_review_status": "submitted; no completed current report consumed bythisbatch",
+    "previous_f9d56f8_independent_review_status": "56passed/1failed FIRST-TAG-ZERO-01;originalfailure preserved;localframecorrectionawaitingindependentreview",
     "new_semantics_independently_reviewed": false,
     "runtime_binding_created": false,
     "target_or_derived_execution_performed": false,
     "execution_allowed": false,
-    "publication": "localincrementonly;staticapproved,no currentstaticblocker;pushindependentlypending,no retries"
+    "publication": "localincrementonly;staticapproved,no currentstaticblocker;pushindependentlypending,no retries",
+    "input_prefix_correction": {
+      "failure_id": "FIRST-TAG-ZERO-01",
+      "original_reviewed_commit": "f9d56f82c513cff6ea7736d5bcdf752ba47fc647",
+      "original_review_passed_groups": 56,
+      "original_review_failed_groups": 1,
+      "review_sha256": "e44b56ca8885e501ae3b3dad1cef91228c6a074defbad1015a5a298a49690cb8",
+      "minimum_reproduction_sha256": "2874f0ee91c2a4f2e051a79cc77b57c74eb0bfcb9f69be668caa64844b546635",
+      "original_failure_receipt_preserved": true,
+      "source_graph_sha256": "b0aa9ffcfd79c2ddc764bb48415c784abb13f6e9182135b80eac12d5d40b49d1",
+      "scope": "declarative originalx86 ABI offsets,notguestexecution",
+      "zero_store": "447d36:[entryE-c+8]=E-4",
+      "first_tag": "447d54PUSHEDI ->447d55/64:[entryE-10h+8]=E-8;nodirectinitialzerostore proved",
+      "extra_word": "447d6fPUSHEBP,rawRET8 ->447d80:[entryE-14h+10h]=E-4,previouslyzeroed",
+      "short_tag": "count!=4 skipscompressedbranch butstillcomparestagwithF18. UnreadbytesUnknown;rawmarkerbranchcannotbeexcludedfromshortcount alone.",
+      "corrected_semantics_independently_reviewed": false,
+      "local_ledger_ref": "local-evidence:rea-static-first-tag-frame-correction-20261011/source-frame-correction.json",
+      "local_ledger_sha256": "9b3dd50e6386e281dfef6367417a80793857af0b09565a7e7ac1ec3286054f55"
+    }
   },
   "original_selected_codec_file_evidence": {
     "manifest": "docs/original-selected-codec-file-evidence.json",

@@ -36,7 +36,7 @@ checksum在block输出之后才最终比较，因此来源允许“已输出前�
 
 ## 可实现契约与损坏输入政策
 
-这是**实现前规格，尚未落代码或运行验收**。支持域限当前压缩marker路径、有资格的F/root/存储和正常ABI。Native读取器先完整读取长度word、未知word与N个payload字节，使用检查过的长度/算术，固定buffer模式下在读取前要求N<=36144，准备独立可写36144目标。以host标准zlib的+15模式识别zlib包装，要求完整stream结束、有效Adler、无需外部字典及产量<=36144；成功后仅将actual produced发布为available。零产量和payload尾随部分按上文原契约处理，不用第三word猜产量。
+这是**实现前规格，尚未落代码或运行验收**。支持域限当前压缩marker路径、有资格的F/root/存储和正常ABI。Native读取器先完整读取首marker、长度word、未知word与N个payload字节，使用检查过的长度/算术，固定buffer模式下在读取前要求N<=36144，准备独立可写36144目标。以host标准zlib的+15模式识别zlib包装，要求完整stream结束、有效Adler、无需外部字典及产量<=36144；成功后仅将actual produced发布为available。零产量和payload尾随部分按上文原契约处理，不用第三word猜产量。
 
 短header/短payload、超长N、需要字典、codec错误等应返回明确失败，丢弃部分输出并发布零available。这是建议的Native边界政策，**明确区别于原实现对损坏输入的未检查传播**；不能宣称两者在坏文件上完全等价，也不能为“忠实”复制越界读写或假造有效产量。
 
@@ -52,4 +52,7 @@ checksum在block输出之后才最终比较，因此来源允许“已输出前�
 
 FunctionManager的5f8070 caller列表只列583ca0，遗漏已有native447db4；447d30没有完整function metadata，因此该列表不能用作调用者穷尽或否定证据。没有扩查583ca0、所有CRT或Windows回调。模态间接alias继续作为静态极限。
 
-f9d56f8已提交独立审核，本批尚未消费其完成报告；新增codec语义仅作者来源及文档一致性检查通过，待独立复核。runtime schema1、全部候选对象及执行DENIED保持，研究schema24→25。仅本地增量；push独立待用户，旧发布审批不覆盖新HEAD，无重试或替代上传。
+codec提交bc10de8后收到f9d56f8独立56/1报告，FIRST-TAG-ZERO-01首tag槽错误已优先本地纠正，原失败收据保留、纠正仍待二方；新增codec语义仅作者来源及文档一致性检查通过，待独立复核。runtime schema1、全部候选对象及执行DENIED保持，研究schema24→25。仅本地增量；push独立待用户，旧发布审批不覆盖新HEAD，无重试或替代上传。
+
+
+首marker输入补充：447d36预置零的是E−4未知word，首tag位于E−8，无直接清零资格。短首tag仍可能进入F+18比较，未覆盖字节Unknown。上述Native支持域要求完整首marker，损坏输入拒绝政策因此不依赖“首tag默认零”；codec格式、flush边界和状态忽略来源未受此栈槽修正改变。
