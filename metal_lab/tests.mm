@@ -74,7 +74,9 @@ void formats(Backend& gpu){for(auto sf:{Format::RGB565LE,Format::BGRA8,Format::R
     const size_t last555=127*dd555.stride+255*4;CHECK(out555[last555]==255&&out555[last555+1]==255&&out555[last555+2]==255);
     CHECK(Backend::callbackCount(t555)==1);++callbacks;++cases;bytes+=out555.size();
 }
-void randomPixels(Backend& gpu){for(int n=0;n<512;++n){const auto sf=below(2)?Format::BGRA8:Format::RGB565LE,df=below(2)?Format::BGRA8:Format::RGB565LE;
+void randomPixels(Backend& gpu){for(int n=0;n<512;++n){
+    const Format formats[] = {Format::RGB565LE, Format::BGRA8, Format::RGB555LE};
+    const auto sf = formats[below(3)], df = formats[below(3)];
     const int sw=1+below(25),sh=1+below(20),dw=1+below(25),dh=1+below(20);const bool scale=below(2);
     Desc sd{sw,sh,size_t(sw*(sf==Format::BGRA8?4:2)+1+below(9)),sf},dd{dw,dh,size_t(dw*(df==Format::BGRA8?4:2)+1+below(9)),df};
     SurfaceRect sr{-5+below(sw+10),-5+below(sh+10),1+below(28),1+below(23)},dr{-5+below(dw+10),-5+below(dh+10),1+below(28),1+below(23)};
@@ -107,6 +109,36 @@ void lifecycle(Backend& gpu){Store store;Desc d{7,5,31,Format::BGRA8};SurfaceHan
         CHECK(gpu.submit(store,dests[i],s,{0,0,7,5},{0,0,7,5},false,pending[i])==Status::Ok);}
     const auto freshExpected=scalar_oracle::expected(original,d,std::vector<uint8_t>(d.stride*5,0),d,{0,0,7,5},{0,0,7,5});
     for(auto& job:pending){CHECK(Backend::finish(store,job,&v)==Status::Ok);CHECK(v==freshExpected);CHECK(Backend::callbackCount(job)==1);++callbacks;}
+
+    // RGB555LE lifecycle with non-compact stride on GPU
+    Desc d555{7,5,23,Format::RGB555LE}; SurfaceHandle s555=0, h555=0;
+    CHECK(store.create(d555,s555)==surface_lab::Status::Ok); CHECK(store.create(d555,h555)==surface_lab::Status::Ok);
+    const auto in555=pattern(d555,7), orig555=pattern(d555,19);
+    CHECK(store.replaceBytes(s555,in555)==surface_lab::Status::Ok); CHECK(store.replaceBytes(h555,orig555)==surface_lab::Status::Ok);
+    Ticket t555;
+    CHECK(gpu.submit(store,h555,s555,{0,0,7,5},{0,0,7,5},false,t555)==Status::Ok);
+    CHECK(store.destroy(h555)==surface_lab::Status::Ok);
+    SurfaceHandle fresh555=0; CHECK(store.create(d555,fresh555)==surface_lab::Status::Ok); CHECK(fresh555!=h555);
+    CHECK(Backend::finish(store,t555)==Status::SurfaceRejected); CHECK(Backend::callbackCount(t555)==1); ++callbacks;
+    h555=fresh555;
+    CHECK(gpu.submit(store,h555,s555,{0,0,7,5},{0,0,7,5},false,t555)==Status::Ok);
+    CHECK(store.lose(h555)==surface_lab::Status::Ok);
+    CHECK(Backend::finish(store,t555)==Status::SurfaceRejected); CHECK(Backend::callbackCount(t555)==1); ++callbacks;
+    CHECK(store.restore(h555)==surface_lab::Status::Ok);
+    CHECK(gpu.submit(store,h555,s555,{0,0,7,5},{0,0,7,5},false,t555)==Status::Ok);
+    CHECK(store.replaceBytes(h555,orig555)==surface_lab::Status::Ok);
+    CHECK(Backend::finish(store,t555)==Status::ChangedDestination); CHECK(Backend::callbackCount(t555)==1); ++callbacks;
+    const auto imm555=scalar_oracle::expected(in555,d555,orig555,d555,{0,0,7,5},{0,0,7,5});
+    CHECK(gpu.submit(store,h555,s555,{0,0,7,5},{0,0,7,5},false,t555)==Status::Ok);
+    CHECK(store.replaceBytes(s555,orig555)==surface_lab::Status::Ok);
+    std::vector<uint8_t> v555; CHECK(Backend::finish(store,t555,&v555)==Status::Ok);
+    CHECK(v555==imm555); CHECK(Backend::callbackCount(t555)==1); ++callbacks;
+    std::vector<Ticket> pending555(8); std::vector<SurfaceHandle> dests555(8);
+    for(size_t i=0;i<pending555.size();++i){CHECK(store.create(d555,dests555[i])==surface_lab::Status::Ok);
+        CHECK(gpu.submit(store,dests555[i],s555,{0,0,7,5},{0,0,7,5},false,pending555[i])==Status::Ok);}
+    const auto fresh555Exp=scalar_oracle::expected(orig555,d555,std::vector<uint8_t>(d555.stride*5,0),d555,{0,0,7,5},{0,0,7,5});
+    for(auto& job:pending555){CHECK(Backend::finish(store,job,&v555)==Status::Ok);CHECK(v555==fresh555Exp);CHECK(Backend::callbackCount(job)==1);++callbacks;}
+
 }
 void summary(bool pass,bool available,NSString* reason,NSString* device){NSDictionary* dict=@{@"passed":@(pass),@"available":@(available),@"reason":reason,
     @"device":device,@"assertions":@(assertions),@"pixel_cases":@(cases),@"bytes_compared":@(bytes),@"completion_callbacks":@(callbacks),

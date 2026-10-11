@@ -340,14 +340,15 @@ void lifecycle() {
 
 void randomizedPixels() {
     Random rng{pixelSeed};
+    const Format formats[] = {Format::RGB565LE, Format::BGRA8, Format::RGB555LE};
     for(int index=0;index<1024;++index) {
         const bool alias=rng.below(5)==0, scale=rng.below(2)==0;
-        const Format sf=rng.below(2)==0?Format::RGB565LE:Format::BGRA8;
+        const Format sf=formats[rng.below(3)];
         const int sw=1+rng.below(33), sh=1+rng.below(25), sp=rng.below(8);
         const Desc sd=description(sw,sh,sf,sp);
         Desc dd=sd;
         if(!alias){const int dw=1+rng.below(33),dh=1+rng.below(25);
-            const Format df=rng.below(2)==0?Format::RGB565LE:Format::BGRA8;
+            const Format df=formats[rng.below(3)];
             const int dp=rng.below(8);dd=description(dw,dh,df,dp);}
         std::vector<uint8_t> source(sd.stride*size_t(sd.height)), destination(dd.stride*size_t(dd.height));
         for(auto& byte:source) byte=uint8_t(rng.next());
@@ -366,12 +367,13 @@ void randomizedPixels() {
 void randomizedLifecycle() {
     struct Model { Handle handle; bool live,lost; Desc desc; std::vector<uint8_t> bytes; };
     Store store(8,4096);Random rng{lifeSeed};std::vector<Model> history;
+    const Format formats[] = {Format::RGB565LE, Format::BGRA8, Format::RGB555LE};
     for(int event=0;event<2048;++event) {
         const int operation=history.empty()?0:rng.below(6);
         size_t live=0;for(const auto& m:history)if(m.live)++live;
         if(operation==0) {
             const int width=1+rng.below(5),height=1+rng.below(5);
-            const Format format=rng.below(2)==0?Format::RGB565LE:Format::BGRA8;
+            const Format format=formats[rng.below(3)];
             const int padding=rng.below(5);const Desc d=description(width,height,format,padding);
             Handle out=0;status(store.create(d,out),live==8?Status::Capacity:Status::Ok);
             if(live<8){auto bytes=pattern(d,unsigned(event));status(store.replaceBytes(out,bytes),Status::Ok);

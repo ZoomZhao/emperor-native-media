@@ -48,7 +48,12 @@ APP = [
 CITY = ['game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
         'game_lab/city_simulation_tests.cpp', 'game_lab/emperor_assets.hpp',
         'game_lab/asset_limits.hpp', 'game_lab/map_geometry.hpp']
-SUITES = {'city': CITY, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
+SURFACE = ['surface_lab/surface.hpp', 'surface_lab/surface.cpp',
+           'surface_lab/oracle.hpp', 'surface_lab/oracle.cpp', 'surface_lab/tests.cpp']
+METAL = [name for name in SURFACE if name != 'surface_lab/tests.cpp'] + [
+    'metal_lab/backend.hpp', 'metal_lab/backend.mm', 'metal_lab/tests.mm']
+SUITES = {'surface': SURFACE, 'metal': METAL,
+          'city': CITY, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
           'movie-async': APP + ['game_lab/movie_session_async_tests.mm'],
           'movie-termination': APP + ['game_lab/movie_termination_tests.mm']}
 
@@ -161,7 +166,23 @@ def run(suite, mode, output):
     flags = ['-O2'] if mode == 'release' else ['-O1', '-g', '-fsanitize=undefined', '-fno-sanitize-recover=all']
     try:
         command('compiler-version', ['/usr/bin/clang++', '--version'])
-        if suite == 'city':
+        if suite in ('surface', 'metal'):
+            compiled = ['surface_lab/surface.cpp', 'surface_lab/oracle.cpp']
+            extra = []
+            if suite == 'surface':
+                compiled.append('surface_lab/tests.cpp')
+            else:
+                compiled += ['metal_lab/backend.mm', 'metal_lab/tests.mm']
+                extra = ['-fobjc-arc', '-fno-modules', '-framework', 'Metal', '-framework', 'Foundation']
+            command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
+                                     *flags, *extra, *[snapshot / name for name in compiled],
+                                     '-o', report / 'graphics-tests'])
+            binaries = {'graphics-tests': sha(report / 'graphics-tests')}
+            fixtures = report / 'graphics-fixtures'
+            fixtures.mkdir()
+            command('graphics-test', [report / 'graphics-tests', fixtures])
+            results = {suite: read(fixtures / 'summary.json')}
+        elif suite == 'city':
             command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
                                      *flags, '-I', snapshot, snapshot / 'game_lab/city_simulation_tests.cpp',
                                      '-o', report / 'city-tests'])
@@ -232,7 +253,7 @@ def run(suite, mode, output):
     except Exception as caught:
         error = str(caught)
     inputs = {}
-    for name in ['fixtures', 'self-root', 'async-fixtures', 'city-fixtures']:
+    for name in ['fixtures', 'self-root', 'async-fixtures', 'city-fixtures', 'graphics-fixtures']:
         if (report / name).exists():
             for path in (report / name).rglob('*'):
                 key = path.relative_to(report).as_posix()
