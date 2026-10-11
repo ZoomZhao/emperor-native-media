@@ -1,0 +1,146 @@
+{
+  "schema": "EMPEROR_NATIVE_MEDIA_REPORT_AUDIT_V2",
+  "utc": "2026-10-11T17:44:38.166910+00:00",
+  "baseline_commit": "3a15dc7b8c4b96e55da975210a86f0c1bedd2497",
+  "records": [
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage23-native-surface-bridge.md",
+      "sha256": "12632e9da1c71f1185364915d05e2b014445eb49a5db0d296506c30f36cd5bcd",
+      "bytes": 8713,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage36-audio-handoff.md",
+      "sha256": "b6ec59d598ec56423053f1dd319d4f06c16deff993a8f93ce19f77e3be4abf63",
+      "bytes": 2846,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage37-audio-module.md",
+      "sha256": "0d203ed2ca04731da29f4056cecbf1558963c9a475e55f5fbb1381e4900aa448",
+      "bytes": 5838,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage42-missing-movie-startup.md",
+      "sha256": "ddad8b17b6f58745077600414445c1706db2c6ff114da23f4946da8bb697b4bf",
+      "bytes": 7453,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage23-result.json",
+      "sha256": "b29d180876620cd8b8c1c991be14738ecb6384c96e9a27784e60edc7069d1239",
+      "bytes": 2506,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage37-integrated-fixed.result.json",
+      "sha256": "85ea1327b137cd56b5e896a1f7127206ba5fee481a0193acb7948f44efab894b",
+      "bytes": 212,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage37-independent-restore.json",
+      "sha256": "047eb666a7f61519087c5274f56bc3dfb2187cdb404d94f12b05d837b4825f0b",
+      "bytes": 3531,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "docs/PLATFORM_AUDIT.md",
+      "sha256": "0c0da2430a11b926ee2bed80e0600f2539a090c2acc834df98ac911a2707080c",
+      "bytes": 8655,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "VALIDATION.md",
+      "sha256": "c0c50ed5bd30ef73f3b759785dbf291935f5d399a1547c577fc4fd4db39da5e0",
+      "bytes": 11118,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "docs/audit-evidence.json",
+      "sha256": "76f9148324f630197d95f7303b78d1d1bec1abca5fc04d5790667734ef869f7f",
+      "bytes": 6594,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "docs/APP_MOVIE_PLAYBACK.md",
+      "sha256": "d54a8865b4dd3db6f3bc0a88a5c868bc219d246a338d3f4ece313518ffdfbb41",
+      "bytes": 5318,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "docs/APP_MOVIE_ASYNC.md",
+      "sha256": "2914817f2c66063fa7e86c863c2085deebad3f7333cc68a43a5afed4e91da35b",
+      "bytes": 4569,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "docs/APP_TERMINATION.md",
+      "sha256": "9f3ad2b377be00043f043c6c7ebafddb07747f7b7357f8335a353c1631e2d060",
+      "bytes": 3934,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "docs/WINDOW_ACCEPTANCE.md",
+      "sha256": "f5b2e8ab598bcb03252a4bd4aee15b7936655504499241b95152168a4dac33d4",
+      "bytes": 4241,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "audio_lab/audio.hpp",
+      "sha256": "e366de20530c68c6effb9324c57705c7bc7e6ad228a48f644b59426fd2e49b7a",
+      "bytes": 2791,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_WORKTREE",
+      "relative_path": "audio_lab/audio.cpp",
+      "sha256": "31fe1ac489822c97ceda2f6fd935cf50482eff292a82366390ada396fad02dd3",
+      "bytes": 7350,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_TASK",
+      "relative_path": "surface_lab/RESULTS.md",
+      "sha256": "04dcea1e7a1a76e0e3c050fb202c358fc604f8a5a13dcb79e45483a8c87f4182",
+      "bytes": 3774,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_TASK",
+      "relative_path": "audio_lab/RESULTS.md",
+      "sha256": "de83845e07a673c81fdd48a70414b258999f45d86edd6379c969d50f3ffc7030",
+      "bytes": 3007,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    },
+    {
+      "origin_alias": "CURRENT_TASK",
+      "relative_path": "video_lab/RESULTS.md",
+      "sha256": "7d2c4a6c33c2a8f0af842a6e9ce3b056b92d2b0e6f0b130b9a4835d04b4e1ed9",
+      "bytes": 3016,
+      "scope": "existing report/result or own audio interface; read-only; no execution"
+    }
+  ],
+  "method": "Read existing reports/results and own audio declarations; no tests, original binary analysis, device/UI operation or GameData access in this turn. SHA binds reviewed evidence, not current runtime behavior.",
+  "historical_execution_authorizations_reused": false,
+  "new_component_behavior_verified": false,
+  "proposed_tasks_passed": false,
+  "gpu_readback_is_full_game_acceptance": false,
+  "offline_pcm_is_auditory_acceptance": false
+}
