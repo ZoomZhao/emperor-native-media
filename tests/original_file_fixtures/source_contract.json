@@ -1,0 +1,83 @@
+{
+  "schema": "EMPEROR_SYNTHETIC_FILE_FIXTURE_SOURCE_V1",
+  "baseline_commit": "79726e882de14e6195816a806cef93b5aedb5ac1",
+  "published_subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+  "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+  "sources": [
+    {
+      "path": "docs/ORIGINAL_SELECTED_CODEC_FILE_CONTRACT.md",
+      "sha256": "c4557c45794f220d33638aff5992e5895c1fbadf277a6c6ba84c820633a50504",
+      "bytes": 8265
+    },
+    {
+      "path": "docs/ORIGINAL_FILE_FILL_ERROR_PROPAGATION_CONTRACT.md",
+      "sha256": "486456e12e5c25fd989d6dfd9e3be63d04df1f0482be9ba16f57aa6f854d44db",
+      "bytes": 9078
+    },
+    {
+      "path": "docs/ORIGINAL_MODAL_SOURCE_BUFFERED_READ_CONTRACT.md",
+      "sha256": "ea5633d8f56de74d665fa48e1a9050521c49a3b61c02c0a162e5fdcb9611a356",
+      "bytes": 6034
+    },
+    {
+      "path": "docs/ORIGINAL_VERSIONED_CITY_LOAD_CONTRACT.md",
+      "sha256": "74b7c26005863ee8b3c5e9564753451c5cde4ba14ca5bd9240a632568e0c0fe1",
+      "bytes": 8768
+    },
+    {
+      "path": "docs/original-selected-codec-file-evidence.json",
+      "sha256": "446565753e72b139f292365fff9449ad084a022483e6a80371fbe4815a320656",
+      "bytes": 73075
+    },
+    {
+      "path": "docs/original-file-fill-error-propagation-evidence.json",
+      "sha256": "0a9ac1adfa03cadd7faaf45434a6f1467269043cad256b9d0eb4007737a78e95",
+      "bytes": 97858
+    },
+    {
+      "path": "docs/original-modal-source-buffered-read-evidence.json",
+      "sha256": "b2e28f0b7608e25199d440116d3c6b63bdc90216dd4dfb0998d7fd03dc49f11d",
+      "bytes": 124639
+    }
+  ],
+  "basis_map": {
+    "proposed_native_boundary_in_published_contract": "ORIGINAL_SELECTED_CODEC_FILE_CONTRACT.md / 可实现契约与损坏输入政策; boundary proposal, not original bad-file equivalence",
+    "modern_raw_block_strict_policy_proposal": "Raw framing source in ORIGINAL_FILE_FILL_ERROR_PROPAGATION_CONTRACT.md; strict reject/publish boundary is an independent modern proposal",
+    "modern_configured_limit_proposal": "Independent configured-output-limit test proposal; not an original file rule",
+    "awaiting_source_or_native_api_policy": "79726e8 does not close termination marker/multiblock/zero-request/new API transaction semantics"
+  },
+  "known_rule_fragments": {
+    "compressed_frame": "marker4, LE32 N, opaque4, N payload bytes",
+    "raw_frame": "marker4, LE32 N, N raw bytes; raw is not raw-DEFLATE",
+    "nominal_single_block_capacity": 36144,
+    "opaque_word_meaning": "Unknown; do not compare to actual output",
+    "valid_codec_domain": "one +15 zlib-wrapped DEFLATE stream, terminal, valid Adler, no required external dictionary",
+    "tail_inside_declared_payload": "No avail_in==0 requirement in original wrapper; do not reject solely because of tail",
+    "modern_failure_policy": "Reject incomplete framing/payload, overlimit, dictionary or codec error; discard partial output, publish zero available"
+  },
+  "pending_rules": [
+    "actual current F14/F18 marker values",
+    "outer-file physical offset/position restoration",
+    "full marker termination protocol",
+    "multiblock requests, prefetch and empty-block progress",
+    "zero request effects in new native API",
+    "aggregate budgets, counter context and prefix/rollback transaction semantics"
+  ],
+  "standard_references": [
+    {
+      "url": "https://docs.python.org/3/library/zlib.html",
+      "role": "trusted reference API, bounded max_length/eof/unused_data and codec generation options"
+    },
+    {
+      "url": "https://www.rfc-editor.org/info/rfc1950/",
+      "role": "standard zlib wrapper only, not original game format"
+    },
+    {
+      "url": "https://www.rfc-editor.org/info/rfc1951/",
+      "role": "standard DEFLATE block types only, not original game rules"
+    }
+  ],
+  "original_save_compatibility": "not_claimed",
+  "mainline_implementation_read_or_copied": false,
+  "target_or_derived_execution_performed": false
+}
