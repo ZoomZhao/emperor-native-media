@@ -1,5 +1,5 @@
 {
-  "schema_version": 6,
+  "schema_version": 7,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -473,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-record-consumption-20261011",
+  "latest_source_batch": "rea-static-record-unwind-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -1445,6 +1445,20 @@
       "official_module_pairs": 18,
       "session_ok": true,
       "exit_code": 0
+    },
+    {
+      "batch": "rea-static-record-unwind-20261011",
+      "operations": 15,
+      "successful_Evidence": 15,
+      "saved_query_errors": 0,
+      "new_address_requests": 3,
+      "elapsed_seconds": 579.597,
+      "selected_read_bytes": 96,
+      "saved_output_count_bytes": 122758,
+      "session_ok": true,
+      "exit_code": 0,
+      "temp_empty": true,
+      "official_module_pairs": 18
     }
   ],
   "review_corrections_300a5a7": {
@@ -1550,7 +1564,7 @@
     "vector_cell_cleanup": "5c6230 stride4 ->4eeea0 ->4e1c20 RET; no pointed R deletion in this selected chain",
     "backing_free": "4f8020 ->4eee90(buffer,count) RET8 ->77bb31; then begin/end/cap=0; allocator mode/heap unknown",
     "exceptions_closed": false,
-    "vector_erase_move_leaf_closed": false,
+    "vector_erase_move_leaf_closed": true,
     "runtime_bound": false,
     "execution_allowed": false,
     "provenance": [
@@ -1608,8 +1622,20 @@
         "local_evidence_file": "rea-static-record-consumption-20261011/vector-erase-range-assembly.evidence.json",
         "evidence_id": "ev_0fe4fd5f455578d92cc341698501416213257d891cce87d5456c22016efae7f4",
         "sha256": "5faef16be94a355024a9b51f54359244419881397a8a5204c7487de1682486d0"
+      },
+      {
+        "local_evidence_file": "rea-static-record-unwind-20261011/record-vector-move-leaf-assembly.evidence.json",
+        "sha256": "f63faf1117b8ea11bd28b62fea7f0b4baa99f8b97c1e4f8c5057cbdb80027a7f",
+        "evidence_id": "ev_e20417537598a8fde0ed5601f8921e911c7feb2999ab5c8339cc19e175f34ea0"
+      },
+      {
+        "local_evidence_file": "rea-static-record-unwind-20261011/record-vector-move-leaf-references.evidence.json",
+        "sha256": "279f7fb264f6450a3a25a67c3b544c62ae4b0e75433783eed3ed2618c2f3a5f6",
+        "evidence_id": "ev_388ee5a11e17c4bf46fa15bc182cb030b2c0a0d9046899dbc628e62bedc40d70"
       }
-    ]
+    ],
+    "vector_erase_stated_scope": "490c80(C+4) passesbegin/end;561930 calls4eeed0(end,end,begin); empty source returnsbegin; normal end becomesbegin; no backing free here",
+    "forward_copy_semantics": "4eeed0 copies4byte slots forward in nonempty range; do not substitute overlap-safe memmove or extend empty-call conclusion to arbitrary callers"
   },
   "record_load_and_exception_frontier": {
     "record_stream_word": {
@@ -1626,7 +1652,7 @@
       "0x6996b0"
     ],
     "manager_EH_stub": "78784f MOVEAX7ea648;787854 decodedJMP764cc1, not a new return frame",
-    "observed_EH_type": "FuncInfo typedef ->/_s_FuncInfo,28bytes; child fields/unwind actions not yet checked",
+    "observed_EH_type": "FuncInfo->_s_FuncInfo28bytes maxState@4,pUnwindMap@8; observed maxState2 and two8byte entries at7ea668",
     "exception_semantics_proved": false,
     "execution_allowed": false,
     "provenance": [
@@ -1669,8 +1695,55 @@
         "local_evidence_file": "rea-static-record-consumption-20261011/manager-eh-info-type.evidence.json",
         "evidence_id": "ev_6d633726557e0eb18fe35609b78e558fd3782917bbf8f39dedae098f9abc165b",
         "sha256": "52401c500b4f3df173a63318521dbeee076807c4e8d5c1f21ac04a1a0d2fd2cb"
+      },
+      {
+        "local_evidence_file": "rea-static-record-unwind-20261011/manager-eh-info-structure.evidence.json",
+        "sha256": "3ca7ef53652d35ad5cbe43421d10da24c6943c195fb1caf6ba866871441cb5b2",
+        "evidence_id": "ev_8273fe09ae29ce63243a680b1486fcbf7d8abe1799b9277c6f0d75376a6dc545"
+      },
+      {
+        "local_evidence_file": "rea-static-record-unwind-20261011/manager-unwind-entry-type.evidence.json",
+        "sha256": "d7b1821c2795fb065b635bece573c6c3f4d3494dc6915dd1a0539a0c1526b1e4",
+        "evidence_id": "ev_e67cacd758b5e3aaf51fa67e2c6bbaaa7bb1afb7726f29ab60e205b9fef61f2b"
+      },
+      {
+        "local_evidence_file": "rea-static-record-unwind-20261011/manager-unwind-entry-structure.evidence.json",
+        "sha256": "3c3a4422c705abf9c5250d7a3f79c1528c6a9ed85068ebd948ed1b1d61f58231",
+        "evidence_id": "ev_195a0f1a0585024895330199f3313cba8ec32aca2eccd2379c2b5f6141339d04"
+      },
+      {
+        "local_evidence_file": "rea-static-record-unwind-20261011/manager-unwind-map-bytes.evidence.json",
+        "sha256": "b9a6dae13c8978ed73e82cb92c1b38bec04d4c5975e89ed2233ed40b4ef98bb3",
+        "evidence_id": "ev_d91d26a19b0f88fe14a94e3aa767fa5636765e655f2cfdb74eb5b79ee0510380"
+      },
+      {
+        "local_evidence_file": "rea-static-record-unwind-20261011/manager-unwind-state-zero-body-assembly.evidence.json",
+        "sha256": "3e647921d4eebfff39512cda0927694b98d08ebc0321d394ee5f266785c29ccf",
+        "evidence_id": "ev_a6c4f480b525565158d5d1380e2aa870773317aa12d92330c1427b68bd2a4e3c"
+      },
+      {
+        "local_evidence_file": "rea-static-record-unwind-20261011/manager-unwind-state-one-body-assembly.evidence.json",
+        "sha256": "4158cd7c1c313ae951a44114565bf3546c77f6ff257d5d15f22a35762197cb43",
+        "evidence_id": "ev_314945758724134c9e8957c0a7dd1f9df45d3dad8bec3ed430362e7c349edd33"
       }
-    ]
+    ],
+    "selected_unwind_action_bodies_closed": true,
+    "unwind_entries": [
+      {
+        "entry_index": 0,
+        "toState": -1,
+        "action": "0x787820",
+        "observed_body": "Q=load32(EBP-0x10);ECX=Q?Q+4:0;tailJMP4f8020"
+      },
+      {
+        "entry_index": 1,
+        "toState": 0,
+        "action": "0x787847",
+        "observed_body": "ECX=load32(EBP-0x10);tailJMP4e1c20(RET)"
+      }
+    ],
+    "special_EBP_frame_input_bound_to_current_C": false,
+    "normal_ECX_method_ABI_applicable_to_action": false
   },
   "native_implementation_split": {
     "directly_usable": [
@@ -1678,11 +1751,13 @@
       "exact low16/signextension operations",
       "verified caller parameter order/width/cleanup and AL versus EAX return use",
       "matched setter stores low8, not unconditional disable",
-      "preserve normal delete-return-before-slot-zero and unsupported/unknown failures"
+      "preserve normal delete-return-before-slot-zero and unsupported/unknown failures",
+      "for verified full-vector erase normal path: empty source range returnsbegin, setsend=begin, backing retained until subsequent teardown"
     ],
     "conditional_only": [
       "a selected method ABI can inform interface declaration; actual object/vptr/allocator binding remains absent",
-      "self-owned data structures and pure validators are allowed work, distinct from executing original/converted target instructions"
+      "self-owned data structures and pure validators are allowed work, distinct from executing original/converted target instructions",
+      "unwind action Q uses special EBP frame input; source observations may inform explicit native resource cleanup contracts after context binding, not ordinaryECX callback registration"
     ],
     "needs_dynamic_or_equally_direct_instance_evidence": [
       "current R/Osrc/Olookup and pool backing identity",

@@ -291,3 +291,20 @@ R表+8的真实字为0x5069b0，procedure三次查询失败，containing为not_i
 可直接用于自有原版接口源码的是明确位宽/LE偏移、checked view、有符号扩展、已核对参数顺序/清栈/AL或EAX返回，以及正常先删除返回再清槽的顺序。候选callee的ABI可写成接口声明；注册当前O/R/vptr/allocator目标仍需直接实例来源。自有数据结构、纯校验与其自造buffer测试不等于原/转换指令执行，不应笼统禁止；本批未改接口源码，独立工作负责候选补丁。当前实例身份、后来字段/线程/别名效果、真实异常和自然完整tick仍须动态或等价直接证据。不得重试具体被拒的执行/转换动作，不提供成功stub。
 
 本批20个新地址请求（包含两处误抄并排除合同），66操作/59份Evidence/7份invalid-procedure错误、590.468秒exit0正常close，临时根为空；3个Listing锚点、216字节显式数据读。固定身份/SHA与18份选定官方模块成对一致；verified-consumption校验保存内容和本节合同。schema6执行与运行绑定保持关闭，实际phase8 targets为空；没有原指令/目标执行、GameData/旧Swift读取或设备/UI操作。下一批仅追4eeed0和C的unwind元数据，调查继续。
+
+## 记录容器清空叶子与析构unwind动作
+
+2026-10-11，基线241bc51。只补上一批直接前沿：0x490c80把begin/end传给0x561930，后者调用0x4eeed0(end,end,begin)。0x4eeed0在源起点等于终点时直接返回第三参数，所以该完整erase的正常路径end变begin，backing继续保留，随后C析构的0x4f8020才释放backing。非空路径按4字节前向复制；不能无条件换成memmove，也不能把本空区间结论扩展到任意erase调用。记录删除和槽清空仍发生在前一阶段，向量元素叶子不额外删除指向的R。
+
+Ghidra数据库的FuncInfo实际child结构为28字节，maxState在+4、pUnwindMap在+8；保存值为2和0x7ea668。UnwindMapEntry实际child大小8、toState位于+0、action位于+4；两项保存值与动作体已核对：
+
+| 观察项 | toState / action | 动作体的准确输入与效果 |
+| --- | --- | --- |
+| index0 | -1 / 0x787820 | Q=[EBP-10h]；ECX=Q非零时Q+4，否则0；通过局部[EBP-14h]后JMP4f8020 |
+| index1 | 0 / 0x787847 | ECX=[EBP-10h]，JMP4e1c20；已保存的目标叶子是RET |
+
+这是两条由元数据指向的局部cleanup动作，不证明所有异常路径。动作依赖特殊EBP帧，不是普通ECX receiver方法；common handler的实际分派、EBP值与当前C的绑定、抛出时状态和资源存活仍未证明。index0的null分支仍尾跳清理helper，不能编成“null成功空操作”。数据型是analysis-database观察而非原debug/source权威，不将Windows异常帧规则直接等价为macOS异常语义。
+
+可用于自有接口的是已核对的空区间清空、end更新/backing保留和显式资源状态合同；cleanup动作可以作为后续资源转移的来源证据，但在frame/context绑定前不能注册或以原ABI调用。R的真实载入槽5069b0仍只有字节、没有procedure/Listing解码，本增补不改变该缺口。实际R/O/vptr、allocator归属、异常到达和完整tick继续未知。
+
+该有界批次只请求3个新函数地址，15操作全部保存Evidence，579.597秒exit0、官方正常close、临时根为空；两个Listing入口地址、96字节显式数据读、18份选定官方模块实际成对SHA一致，输入身份不变。verified-unwind是自有保存内容/选定合同核对，本新增动作尚无独立语义复核。schema7全部执行/运行绑定仍关闭，phase8 targets为空。已继续沿ID主链调查P的初始化/替换与索引域，而非展开其他城市规则或重试被拒的原执行/转换。
