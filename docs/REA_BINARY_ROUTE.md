@@ -284,3 +284,7 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 
 
 [原对象工厂到实际池消费](ORIGINAL_OBJECT_FACTORY_ROUTE.md)新增原CRT初始化表与固定selector a1来源关系；[handoff](ORIGINAL_ROUTE_HANDOFF.md)明确下一步428aa0完整Listing/虚调用所有权/registry/版本化载入。控制脚本站点预算失败、NoProcedure、历史审批拒绝分开，原静态工作未穷尽。
+
+## 后续静态证据增量
+
+research schema16追加[完整注册Listing与嵌套消费](ORIGINAL_POSTREGISTRATION_CONTRACT.md)：140查询137Evidence/3NoProcedure，exit0/清理完成。原动态绑定未生成；上轮exit1保留。

@@ -17,3 +17,7 @@
 本批部分完成：85成功Evidence、4保存NoProcedure错误；89请求实际送达provider，90为harness尝试计数。最后追加resolve_native_call_targets(address42d736)在送达REA前触发自定10站点限额，会话exit1/718.770秒；这是控制脚本范围错误，非审批/平台安全拒绝。未重写为全通过、未改官方guard、未重试该请求。输入身份与18对选定模块SHA不变，退出后临时根空。原代码、转换代码未执行、原产物未上传，运行绑定与完整周期证明仍无。新语义未独立复核。
 
 下一步继续原静态主线：[handoff](ORIGINAL_ROUTE_HANDOFF.md)列出428aa0完整Listing、virtual+130/+4、cleanup registry及版本化载入等具体入口。静态工作没有穷尽，当前不转去自写媒体回归。
+
+## 后续静态证据增量
+
+上文是c0bbdff时点的部分结果；后续完整428aa0 Listing及+90/子对象/同池嵌套消费已补到[注册合同](ORIGINAL_POSTREGISTRATION_CONTRACT.md)。旧预算exit1不被覆盖；transitiveeffects与实际实例仍未证。

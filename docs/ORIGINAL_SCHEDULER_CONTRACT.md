@@ -139,3 +139,7 @@ phase45：caller置ECX1e535f8调用5f02c0，后CALL4b94a0；两者正常出口�
 ## 原池构造/登记/消费来源
 
 [固定调用者的构造关系](ORIGINAL_OBJECT_FACTORY_ROUTE.md)补到CRT启动、加载版本站点、selector a1构造/登记与立即同池消费；phase37同源池可静态连接，真实vptr/存活和+94 transitive effects未闭合。具体原路线后续见[handoff](ORIGINAL_ROUTE_HANDOFF.md)，不转去声明/媒体回归。
+
+## 后续静态证据增量
+
+[注册方法与嵌套池消费](ORIGINAL_POSTREGISTRATION_CONTRACT.md)补完+94正常ABI及+90/子对象/+1fc链；phase37的实际实例、后续副作用与生命周期仍未证。41组独立复核限定453bfc4/dbe5e60/19c4939，本轮语义未覆盖。

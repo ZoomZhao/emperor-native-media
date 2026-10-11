@@ -66,3 +66,7 @@
 ## 原入口与实际对象来源增量
 
 [对象工厂/登记/消费路线](ORIGINAL_OBJECT_FACTORY_ROUTE.md)补上CRT初始化表消费8c7630，以及固定selector a1的51c9a0构造、同池登记和按返回索引立即消费；载入版本站点与phase37共用主池。+94仍有完整Listing与transitive effects缺口，不能默认构造表稳定。批次因自定站点预算exit1，保存85Evidence/4NoProcedure及未执行请求，未标全通过。具体后续入口与精确阻碍见[原版handoff](ORIGINAL_ROUTE_HANDOFF.md)。静态工作未穷尽，原完整运行/动态绑定未通过，不转用自写媒体成果代替。
+
+## 后续静态证据增量
+
+[注册合同](ORIGINAL_POSTREGISTRATION_CONTRACT.md)已关闭428aa0本地Listing缺口，并连到注册期间的同池索引消费。新缺口具体是5268d0/418e80 transitiveeffects、766b16/88a3d4分配回调、旧对象销毁、registry与版本载入；静态工作未穷尽，实际实例/生命周期/完整运行没有通过。
