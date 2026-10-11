@@ -2,7 +2,7 @@
 
 2026-10-11，扩链基线 `6a5c2475ada69d27f56bdd379703bde2e9236558`。固定原PE的入口已通过七条typed引用/解码CALL连到主循环、调度及phase8；累计30个唯一相关函数、8个关键站点，在共享20分钟预算内714.653秒完成并正常清理。新证据说明phase8的容器/对象/虚表槽、worker的引用释放路径，以及DirectDraw/Miles/Bink的原调用来源。虚表目标及完整原tick仍未知；目标SHA/身份未变，没有执行原程序。
 
-当前重点已转到完整原版调度：[51阶段、门控/时钟/额度/周期尾合同](ORIGINAL_SCHEDULER_CONTRACT.md)和[机器依赖顺序](original-scheduler-contract.json)已梳理；phase8是单个阶段，phase归零与tail返回分开。当前归档没有可核验的原函数转换覆盖；新增自有scheduler声明校验拒绝完整周期/运行绑定claim。schema10保留所有既有ABI更正和Unknown。
+当前重点已转到完整原版调度：[51阶段、门控/时钟/额度/周期尾合同](ORIGINAL_SCHEDULER_CONTRACT.md)和[机器依赖顺序](original-scheduler-contract.json)已梳理；phase8是单个阶段，phase归零与tail返回分开。当前归档没有可核验的原函数转换覆盖；新增自有scheduler声明校验拒绝完整周期/运行绑定claim。schema11保留所有既有ABI更正和Unknown。
 
 加载身份前沿已连接：候选554f00前缀→5d4890→51ce00→427430；O+b4请求32位序列化字段，O+62按版本有16位与byte零扩展差异，底层可短读且caller不核返回数。[字段来源与短读](REA_ABI_CONTRACTS.md#加载字段来源与短读返回的边界)仍保留实际槽身份/目标/完整子类副作用未知；自有[ABI preflight](ORIGINAL_ABI_PREFLIGHT.md)已独立复核整合，schema9不授权运行。
 
@@ -273,3 +273,5 @@ resolved-indirect是Ghidra对IAT外部符号的静态引用解析，与未知对
 - `rea-static-final-source-20261011/`：索引槽、四条构造表/RTTI、基础AsyncOp条件生产者、表范围限制及0x428aa0失败凭据；verified-sources、最终来源图/未知表、schema2候选清单和发布凭据，原始分析仅本地保存。
 
 最后一批对象来源发布选择此文档、ABI合同附录和声明式allowlist候选清单。原EXE/依赖树/工具包/原始分析输出不入Git，GameData不读取/上传，既有工程草稿与授权接口来源指纹保持原字节。
+
+后续尾部核对已补入完整调度合同：phase1尾跳链最终普通RET，phase5/29原caller清4及创建wrapper双层清参，phase44循环重读end并经实际未绑定虚调用；局部RET与循环界限不证明完整阶段完成。只补文档；自有校验器和preflight没有改变或重跑。

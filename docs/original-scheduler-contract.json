@@ -1553,5 +1553,285 @@
   "native_interface": "oabi_validate_scheduler_declaration;51immutable integer phase descriptors; allbindingdenied/cycleproofzero; fullcycleclaimrejected; no guest reads/phase transitions/executed target",
   "runtime_binding_created": false,
   "target_execution_performed": false,
-  "new_semantics_independently_reviewed": false
+  "new_semantics_independently_reviewed": false,
+  "selected_tail_return_contracts": {
+    "phase1": {
+      "phases": [
+        1
+      ],
+      "tail_chain": [
+        "0x4f1560",
+        "0x4affa0",
+        "0x44bab0",
+        "0x44ba30"
+      ],
+      "tail_edges": "JMP preserves current return frame; 44bab0 CALL44b9b0 then JMP44ba30",
+      "normal_return_instruction": "0x44baa1",
+      "argument_cleanup_bytes": 0,
+      "local_table_visits_per_leaf": 7,
+      "leaf_local_loops_bounded": true,
+      "whole_handler_effects_closed": false,
+      "prior_direct_children_still_require_contracts": true
+    },
+    "phase5_29": {
+      "phases": [
+        5,
+        29
+      ],
+      "tail_edge": {
+        "site": "0x54c726",
+        "target": "0x4ea8e0",
+        "kind": "JMP"
+      },
+      "normal_return_instruction": "0x4eac49",
+      "callee_argument_cleanup_bytes": 0,
+      "caller_argument_cleanup_bytes": 4,
+      "gate": "load32[0x88ec38]==1 skips local scan",
+      "local_outer_visits": 99,
+      "local_inner_attempts_max_per_selected_search": 16,
+      "local_scan_bounds_not_transitive_completion_proof": true,
+      "subcall_stack": {
+        "wrapper": "0x4ea050",
+        "stack_arguments32": 7,
+        "callee": "0x4e1420",
+        "callee_RET_bytes": 28,
+        "wrapper_RET_bytes": 0,
+        "caller_cleans_wrapper_arguments": true
+      },
+      "remaining_frontiers": [
+        "4e1420 constructor-selection and allocator effects",
+        "4e1420 virtual offsets +4/+18/+e8/+ec",
+        "FS:[0] exception frame and handler0x78614a",
+        "other directly called helper contracts"
+      ],
+      "runtime_class_bound": false
+    },
+    "phase44": {
+      "phases": [
+        44
+      ],
+      "owner_literal": "0x8c7630",
+      "tail_target": "0x42d9a0",
+      "normal_return_instruction": "0x42da05",
+      "explicit_stack_arguments": 0,
+      "skip_gate": "load32[0xd62408]==1",
+      "unguarded_signed_divisor": "load32[0x817748]",
+      "slot_begin": "load32[owner+8] via 4f8210(ECX=owner+4)",
+      "slot_end": "load32[owner+12] via 4f8200(ECX=owner+4), reread each iteration",
+      "indirect_call": {
+        "site": "0x42d9e0",
+        "vtable_offset": 48,
+        "receiver": "load32[current slot]",
+        "push_order": [
+          "0",
+          "0",
+          "signed division remainder"
+        ],
+        "actual_callee_and_parameter_cleanup": "unbound; expected balanced call is not a proved RET12 target"
+      },
+      "followup_when_OR_of_return_AL_nonzero": [
+        "0x5ad8f0",
+        "0x5ad960 -> JMP0x522810"
+      ],
+      "followup_stack": {
+        "5ad8f0_to_5ad440": "five32-bit arguments, callerADD20; selected5ad440 plainRET",
+        "522810_to_5223b0": "four32-bit arguments, callerADD16; selected5223b0 plainRET"
+      },
+      "transitive_indirect_offsets": {
+        "5ad440": [
+          "0xcc",
+          "0x264",
+          "0x270"
+        ],
+        "5223b0": [
+          "0x1ec",
+          "0xcc"
+        ]
+      },
+      "loop_convergence_proved": false,
+      "actual_container_or_targets_bound": false,
+      "asynchronous_or_blocking_completion_proved": false
+    }
+  },
+  "tail_return_evidence": {
+    "batch": "rea-static-scheduler-return-20261011",
+    "operations": 31,
+    "successful_evidence": 31,
+    "selected_procedures": 14,
+    "elapsed_seconds": 357.91,
+    "exit_code": 0,
+    "temp_empty": true,
+    "explicit_read_bytes": 0,
+    "selected_official_module_pairs": 18,
+    "evidence": {
+      "phase-one-tail-assembly": {
+        "evidence_id": "ev_21bf600e86fd0f16cb423796d13e639ba6bffec9539f0a3c545b4292ab5ba7c7",
+        "sha256": "6a8ca4922036bc860ae5a6729829eabb9c5ca0c0a92eefc53996c588212eff96",
+        "local_file": "phase-one-tail-assembly.evidence.json"
+      },
+      "phase-one-tail-pseudo": {
+        "evidence_id": "ev_550d611bdb0e89acd0cebb633374b780141dc1c06adfb83a9da997b3ca1eb84e",
+        "sha256": "f11240d9ebacf9211faba87ca4e7126df31bfb13965977d6fa072bf623292322",
+        "local_file": "phase-one-tail-pseudo.evidence.json"
+      },
+      "phase-one-tail-references": {
+        "evidence_id": "ev_b03e099cfe39fb9f36dd081d6511bf98b40e8ead732ce3587b476ffd61c69746",
+        "sha256": "a3267cc486d22d126be2c75ce62c5b952a118e817d8ee72b8ea7204c8ecab847",
+        "local_file": "phase-one-tail-references.evidence.json"
+      },
+      "phase-five-twenty-nine-tail-assembly": {
+        "evidence_id": "ev_6abdacf4efea00977d59fdc6a13cefc5140272ac0f4bdc81bda52cddf575442c",
+        "sha256": "7f1f448a3539f9cbcd1ea37662e558b2a6fbf6f9490172f41226ddebe7ac43ea",
+        "local_file": "phase-five-twenty-nine-tail-assembly.evidence.json"
+      },
+      "phase-five-twenty-nine-tail-pseudo": {
+        "evidence_id": "ev_6dcb0293c5666738e74a466a6de717fe316bfc67f1d3ee30afaeaca18ae3a689",
+        "sha256": "75b109f83c71a95f807239aa36348cabfee528285ad8324c467667040503a6c9",
+        "local_file": "phase-five-twenty-nine-tail-pseudo.evidence.json"
+      },
+      "phase-five-twenty-nine-tail-references": {
+        "evidence_id": "ev_9e8c8edfcacf3869cd0f5f5f652ca321c03e5a1ad9037c8083046b3de7921175",
+        "sha256": "49e0782c1f252039b6acd525e48ba3ab2b365fcf1fc088875f9741a9844f1f1a",
+        "local_file": "phase-five-twenty-nine-tail-references.evidence.json"
+      },
+      "phase-forty-four-tail-assembly": {
+        "evidence_id": "ev_4335043b088970fc42269bd62396b5fb8da408347bd44daba7df0706dd8af173",
+        "sha256": "92e1b18db257921227d7119572a8cb4d8914b1ab45a330ee4ce002497ed8815d",
+        "local_file": "phase-forty-four-tail-assembly.evidence.json"
+      },
+      "phase-forty-four-tail-pseudo": {
+        "evidence_id": "ev_8a176e77dc3c3ec8c29a0f51d1a29a0f3b4689f5e43533c9c1575d505cb51c26",
+        "sha256": "f195b6efb3c3f40bab790fcc6a4a3c5bb3a8f363de150b618fe24d802abc979a",
+        "local_file": "phase-forty-four-tail-pseudo.evidence.json"
+      },
+      "phase-forty-four-tail-references": {
+        "evidence_id": "ev_0bd417c7b6a972962fdb93e85f5e8fd66d518e49080ef3a3af8f00dc14aa8e77",
+        "sha256": "b129ca19679b2b4c22f4cb25236e570e7e5e2da88f4dece8f3bd80993d79dcd1",
+        "local_file": "phase-forty-four-tail-references.evidence.json"
+      },
+      "phase-one-final-body-assembly": {
+        "evidence_id": "ev_7a25839da0dd42a9ace664f56ded07a898bbd198e9175c23a2c1c432904d2377",
+        "sha256": "aab06f3d526b3ef9cc70d586a5e6ec3d547d461698532d0dbbce57a33b14ef42",
+        "local_file": "phase-one-final-body-assembly.evidence.json"
+      },
+      "phase-one-final-body-pseudo": {
+        "evidence_id": "ev_d6faa3b2a9c81aa7b88e5597992ad3d54dd87562cccfe2b9f7b2b9e46f28db1e",
+        "sha256": "6bc50b1095372d44385c23de676dd1b3e91b1b2241434ef3d922becfd02640bc",
+        "local_file": "phase-one-final-body-pseudo.evidence.json"
+      },
+      "phase-one-first-helper-assembly": {
+        "evidence_id": "ev_b54e69efada0f66115fe8864eebe11fa9914ea8597ca1aeed7c3df312b31b3a2",
+        "sha256": "ad46bb882b26e3d95415374dd918d54b5f301fd0ba73f3f9f969ab9c4c636887",
+        "local_file": "phase-one-first-helper-assembly.evidence.json"
+      },
+      "phase-one-first-helper-pseudo": {
+        "evidence_id": "ev_c810df040b331c73f208dacf917d72ee8c2d3ee15220f008fd1a6982f07ce468",
+        "sha256": "bb1e2a88f093c549e1b3ece7c1e23d56c5c08eda618bfbb5a6e04c2bb5fa8630",
+        "local_file": "phase-one-first-helper-pseudo.evidence.json"
+      },
+      "phase-one-final-helper-assembly": {
+        "evidence_id": "ev_c9617fce2c68a864b78480c739c1aaddc6dc29b52e635c8b82d4224d3c7699a5",
+        "sha256": "64f55f28b647cc87f8ac085cfeac167bec09363d95aae1a7b81640ddb28cd813",
+        "local_file": "phase-one-final-helper-assembly.evidence.json"
+      },
+      "phase-one-final-helper-pseudo": {
+        "evidence_id": "ev_a9f5b9b065cb87439eb970e2dad873c51e97e47305777df5a7d40cb4f4395392",
+        "sha256": "72d5d8e1cfd73b29fea714f56171707f2599ca3e9da9ea1c88075efc837b2972",
+        "local_file": "phase-one-final-helper-pseudo.evidence.json"
+      },
+      "phase-forty-four-followup-first-assembly": {
+        "evidence_id": "ev_cf8c956a82bae66c72801786af12aa7cc923aa0a025a0f088806103318594636",
+        "sha256": "db00e4a1c17c17d8cdacea1c788f86d11de6114d521c04858d09ef9573e8bb51",
+        "local_file": "phase-forty-four-followup-first-assembly.evidence.json"
+      },
+      "phase-forty-four-followup-first-pseudo": {
+        "evidence_id": "ev_a1800effdb8a7085169ae589478d39eb8082acdfbaf706f63a639b5d1647c837",
+        "sha256": "68502cb3e2fd4c141ca1c14091ccda055f58f6103eb7014924804c0971eeab43",
+        "local_file": "phase-forty-four-followup-first-pseudo.evidence.json"
+      },
+      "phase-forty-four-followup-thunk-assembly": {
+        "evidence_id": "ev_a12741baf2fe407e6f68e63bfd11cb8c9e6ade3c3e06892e4a3f2927f9383180",
+        "sha256": "9632c4ac62cd6f905a45a792a14136356ade4f2c9546cd14980cb23f5cbc62d5",
+        "local_file": "phase-forty-four-followup-thunk-assembly.evidence.json"
+      },
+      "phase-forty-four-followup-thunk-pseudo": {
+        "evidence_id": "ev_bf9662802b4658b3b89ae75f2a5d47dafe27c72bbe0cfbc78e94fbe29ee1c558",
+        "sha256": "1b124daff159c0ead26c7c3035cc1242e68097c8d9bf12fe3e2b056a56f9b7cc",
+        "local_file": "phase-forty-four-followup-thunk-pseudo.evidence.json"
+      },
+      "phase-forty-four-followup-final-assembly": {
+        "evidence_id": "ev_f5919ef1dd2eea9cd81edb29c2955e3ad5bbc71865f8273fcdfc5bfa97a36a9b",
+        "sha256": "fa5d5d108644f69bd32200ad94a07d1f7bf4e744a7a04391986d7febe9e0546e",
+        "local_file": "phase-forty-four-followup-final-assembly.evidence.json"
+      },
+      "phase-forty-four-followup-final-pseudo": {
+        "evidence_id": "ev_39d6cf6cc461ce295d75ad7a8834b4fc3a3ff704acf838d2e6172bbcbf8d6108",
+        "sha256": "53bdf974ed334cebb026eee8731f11f5fd1fa9ae4a3b82347793679240ca0d8b",
+        "local_file": "phase-forty-four-followup-final-pseudo.evidence.json"
+      },
+      "phase-forty-four-reset-helper-assembly": {
+        "evidence_id": "ev_8b86d661c7d7e7d72d3e45732ae25150b045bc8da7e1b9810db1211b1ab90a86",
+        "sha256": "1fcdbc472871723757e7e49ebd564c3634522196c34503d79d53a29e3e3a0fc3",
+        "local_file": "phase-forty-four-reset-helper-assembly.evidence.json"
+      },
+      "phase-forty-four-reset-helper-pseudo": {
+        "evidence_id": "ev_979ce26e1649f553748c580ee0c966ced3d5e47632d499e0228470cc84cd4c17",
+        "sha256": "09d8fcc61c6d73fb542e9eb4ee9fa4cccacfb2abbfbd8460dadddb509488a341",
+        "local_file": "phase-forty-four-reset-helper-pseudo.evidence.json"
+      },
+      "phase-forty-four-first-followup-child-assembly": {
+        "evidence_id": "ev_2629bb0ea977c584f72fc455557fbeac59e9a6ed044acfc6320c77f18e80b2e4",
+        "sha256": "083dc7c4e95b8c5ad3969401517135c6b3643dcafb18ba50a65a545a9c5e266c",
+        "local_file": "phase-forty-four-first-followup-child-assembly.evidence.json"
+      },
+      "phase-forty-four-first-followup-child-pseudo": {
+        "evidence_id": "ev_f08b1545b1aa6d877fe7ef446b0b23edf505aefe6def81155d46bf64adbf2377",
+        "sha256": "f552efb3fc708dd35bdeae20ee60e477a6f24ebfe3adfe78be170702fd30d38c",
+        "local_file": "phase-forty-four-first-followup-child-pseudo.evidence.json"
+      },
+      "phase-forty-four-final-followup-child-assembly": {
+        "evidence_id": "ev_9c6a405d9b04c09b8ca551e978ac7c710ff587a2e9672d7052ae3cdf227c543b",
+        "sha256": "19abad1ce85d31bf377eb03532d8a659e31bda9cea3705414b8caf224a5c403c",
+        "local_file": "phase-forty-four-final-followup-child-assembly.evidence.json"
+      },
+      "phase-forty-four-final-followup-child-pseudo": {
+        "evidence_id": "ev_d460dc7921876307c94c9330a972764a68376a048f06f940377f2326b389843a",
+        "sha256": "fa63ab241ae316d87aa9063086723bd83b30ad0cbcbc6bc0b0159d4b13ad945f",
+        "local_file": "phase-forty-four-final-followup-child-pseudo.evidence.json"
+      },
+      "phase-five-twenty-nine-creation-boundary-assembly": {
+        "evidence_id": "ev_909126e8e63394407231dc9bc45e76e78351a0f2c17809922b9b059e01d30341",
+        "sha256": "c7fccd5c3c4c085dd93d65dc42c736fa7797a683fd044399731a0e465e514555",
+        "local_file": "phase-five-twenty-nine-creation-boundary-assembly.evidence.json"
+      },
+      "phase-five-twenty-nine-creation-boundary-pseudo": {
+        "evidence_id": "ev_bbe05e38b74be798bae31a88e762cdf452f94153bc4fdc7da1625cd767e30045",
+        "sha256": "0db6fb0d901c4254fc11f911c30bd133b8921b60249c8aa02debe0e0ccf786ce",
+        "local_file": "phase-five-twenty-nine-creation-boundary-pseudo.evidence.json"
+      },
+      "phase-five-twenty-nine-creation-callee-assembly": {
+        "evidence_id": "ev_7889ad31f0b9ccdf7919e0091fcdfe7bb3f1b727d1eb5b1d7a91b27caf0209f0",
+        "sha256": "caf32066ce25e4667654f9df76afbf071bd6cf374e42f056f9206c248c6bb8b3",
+        "local_file": "phase-five-twenty-nine-creation-callee-assembly.evidence.json"
+      },
+      "phase-five-twenty-nine-creation-callee-pseudo": {
+        "evidence_id": "ev_135ddcb4b8fc7eb4652d8f4da1d719e0e5e187adb5fa14bf589698e14340e38f",
+        "sha256": "e88a32c1e2cc81e97e878281f8bdecaa1fdffb39877f176b3f0b7987299398bd",
+        "local_file": "phase-five-twenty-nine-creation-callee-pseudo.evidence.json"
+      }
+    },
+    "reused_vector_getter_evidence": [
+      {
+        "address": "0x4f8210",
+        "evidence_id": "ev_e366e7bfdc6b347527286d4962b6ecfafca8d66af0fa7596a1436875d3586e68",
+        "sha256": "c8726a545b7bebb65cc562e0b35801ce8ec48b34526bc859f1bb78fbfd95f7ac"
+      },
+      {
+        "address": "0x4f8200",
+        "evidence_id": "ev_8664280034fd57632f76f5bed665324d27a0b4adb06ef45e9c496828612aef5a",
+        "sha256": "14d6be3ce6d4e70e60722d0894b9d164f4318d50fbd3ea3d58ac9dc1333edbe7"
+      }
+    ],
+    "new_semantics_independently_reviewed": false
+  }
 }
