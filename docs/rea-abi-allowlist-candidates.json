@@ -1,5 +1,5 @@
 {
-  "schema_version": 5,
+  "schema_version": 6,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -473,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-init-effects-20261011",
+  "latest_source_batch": "rea-static-record-consumption-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -1084,7 +1084,8 @@
             "evidence_id": "ev_8664280034fd57632f76f5bed665324d27a0b4adb06ef45e9c496828612aef5a",
             "sha256": "14d6be3ce6d4e70e60722d0894b9d164f4318d50fbd3ea3d58ac9dc1333edbe7"
           }
-        ]
+        ],
+        "span_formula": "load32(O+0x154) + (index32<<4), modulo2^32; not embedded array"
       }
     }
   },
@@ -1114,10 +1115,10 @@
     ]
   },
   "record_link_contract": {
-    "source": "0x5451a0 conditional ->4afe60 ->506610 receiver10bc910",
-    "input": "32bit O+b4 pool index; same input sent to47f1b0 receiver8c7634 and506610",
+    "source": "0x5451a0 flag is arg5 low8;RET24 pops6args ->4afe60 ->506610 receiver10bc910",
+    "input": "32bit Osrc+b4; same bitpattern used for47f1b0 receiver8c7634 and506610, current Osrc/Olookup identity not proved",
     "writes": "record+8 low16(input), record+c=1 after506920 reset; reuse or allocation branch",
-    "return": "32bit record vector index ->O+62 low16; original O virtual+d4(recordIndex)",
+    "return": "recordIndex32 ->computed virtual+d4 on Olookup fetched from pool; outer5451a0 stores low16 to Osrc+62",
     "full_index_roundtrip_proved": false,
     "later_record_writes_excluded": false,
     "runtime_instance_bound": false,
@@ -1147,7 +1148,16 @@
         "evidence_id": "ev_4ebb456c672b000ee8d0972ba1f661ef99592ab46adfb4e25c51e0ec78832741",
         "sha256": "86e94aef120f4fe2c10d2967cea4ec48dcc9f027c63860ec457bc04bedcb89e0"
       }
-    ]
+    ],
+    "flag_argument_ordinal": 5,
+    "flag_argument_total_stack_arguments": 6,
+    "prepush_order": [
+      "CALL5dc860",
+      "PUSHindex",
+      "CALL506240(noargs)",
+      "CALL506610(ECX=C,index;RET4)"
+    ],
+    "source_and_lookup_receiver_identity_proved": false
   },
   "init_pointer_registration_contract": {
     "source": "5d47f0 prepushO ->5d2b60 returnsGaddress1e4ee30 ->5d7960 receiverG",
@@ -1420,6 +1430,266 @@
       "error": null,
       "normal_cleanup_empty_temp": true,
       "selected_official_module_pairs": 18
+    },
+    {
+      "batch": "rea-static-record-consumption-20261011",
+      "operations": 66,
+      "successful_Evidence": 59,
+      "saved_query_errors": 7,
+      "new_address_requests": 20,
+      "elapsed_seconds": 590.468,
+      "selected_read_bytes": 216,
+      "saved_output_count_bytes": 769102,
+      "normal_close": true,
+      "temp_empty": true,
+      "official_module_pairs": 18,
+      "session_ok": true,
+      "exit_code": 0
     }
-  ]
+  ],
+  "review_corrections_300a5a7": {
+    "fifth_argument": {
+      "entry_ESP_read_offset": 20,
+      "ordinal": 5,
+      "total_popped_arguments": 6
+    },
+    "span_pointer": "load32(O+0x154) + (index32<<4), modulo2^32",
+    "prepush_order": [
+      "CALL5dc860",
+      "PUSHindex",
+      "CALL506240(noargs)",
+      "CALL506610(ECX=C,index;RET4)"
+    ],
+    "review_original_failures_preserved": true,
+    "source_verified": true,
+    "original_review_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/rea-record-link-300a5a7-review/REVIEW.zh-CN.md",
+    "original_result": "19groups:16pass/3fail retained; corrective own checks are not a rerun of frozen independent review",
+    "provenance": [
+      {
+        "local_evidence_file": "rea-static-record-link-20261011/record-link-source-assembly.evidence.json",
+        "evidence_id": "ev_4434090a3965832137f540fad02b028f2f4eac097814257025ca276a70d0861f",
+        "sha256": "2f28163eec8e7fd80f6c76b64bfae575492f8e8a2b5f79ca7540f5c5428b464a"
+      },
+      {
+        "local_evidence_file": "rea-static-record-link-20261011/record-link-caller-assembly.evidence.json",
+        "evidence_id": "ev_a7e54df1cd9ec92e5d7b5105bcf80df6e093678c48da8ce106ad1f921bd26265",
+        "sha256": "5791a1e4ec2d04809c1586397309305cfe2e0ed58f93c1ff0e44b789952c27c7"
+      },
+      {
+        "local_evidence_file": "rea-static-storage-contract-20261011/span-546c44.evidence.json",
+        "evidence_id": "ev_d1339b9827961ea528e49b7852ca2972b0dad6f3d1f5ed7f98f504538d8581c0",
+        "sha256": "f35884d438dfee0e4c06a0dc72b190b50caa4ea0eebc6b3110abfb149c2a31c5"
+      }
+    ]
+  },
+  "record_reenable_consumer_contract": {
+    "id": "record.match-and-enable",
+    "source": "4bc220 after computed virtual+100 and ALtrue5d36e0 ->5064c0 receiverC, stack Olate",
+    "search": "records from index1; compare signed16(R+8) to full32 Olate+b4, first match only; no enabled precheck",
+    "matched_action": "506c00 ECX=R,stack32=1 ->R+c=low8(arg); then Olate+62=low16(recordIndex)",
+    "setter_ABI": {
+      "receiver": "ECX R",
+      "stack_argument_bits": [
+        32
+      ],
+      "callee_pop_bytes": 4
+    },
+    "consumer": "4aeeb0: R+c!=0, signed16 R+8!=0 ->47f1b0 receiverP=8c7634 ->Olookup ->filters/computed methods",
+    "later_virtual100_method_word": "0x5566c0",
+    "later_virtual100_body_resolved": false,
+    "index_identity_proved": false,
+    "runtime_bound": false,
+    "execution_allowed": false,
+    "provenance": [
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-disable-source-assembly.evidence.json",
+        "evidence_id": "ev_1fb957cdfbb06fd79fa7942fd4268afa42f582275ffa2c4b68347101bac3b9c6",
+        "sha256": "02107d5f313355b48ced98b417de8b34690a53517e8a43514e5797a02ff5a94e"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-disable-assembly.evidence.json",
+        "evidence_id": "ev_1912d477e1c80fde40d51577d61a7081a3caae9658d54fd3d43fe4febfba53be",
+        "sha256": "29ef8a2cd26e32ded86fc14068fdcc16937bf72b440d395d47da4fa7c419e74e"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-enable-setter-assembly.evidence.json",
+        "evidence_id": "ev_e173c936aa45eaeff770b005fe3f61e2258c1e5bff990cc0c485099af5a412fc",
+        "sha256": "8e90d96a6d37e7f242c01cca010dd22a73b549869c40f5d500fe8dd853ebf058"
+      },
+      {
+        "local_evidence_file": "rea-static-init-slots-20261011/phase8-receiver-assembly.evidence.json",
+        "evidence_id": "ev_9cc84457c2e88d361e2e040a3e1546e0a43b71327edcb053a86ad4aa835e12e0",
+        "sha256": "ccc71dbcb1d05bc4118cc855d4c5dfcfaab76b8d5ad0cd801c4779476ccc9c8b"
+      }
+    ]
+  },
+  "record_truncation_contract": {
+    "storage": "low16(poolIndex32)",
+    "consume": "signed16 ->int32",
+    "mathematical_nonzero_positive_roundtrip_domain": "1..32767 for nonnegative32 index",
+    "original_pool_upper_bound_proved": false,
+    "examples": {
+      "32768": "-32768",
+      "65536": "0 skipped",
+      "65537": "1 alias"
+    },
+    "native_validation_policy": "may reject unsupported index/extent before using self-owned views; not an original gameplay rule or actual instance binding",
+    "runtime_bound": false,
+    "execution_allowed": false
+  },
+  "record_normal_disposal_contract": {
+    "clear": "506480 traverses vector slots; nonnull R ->computed+4(flags32=1), then slot=0 after normal return",
+    "constructed_record_word": {
+      "table": "0x7b431c",
+      "offset": "0x4",
+      "target": "0x559150",
+      "actual_instance_bound": false
+    },
+    "wrapper": "559150 ->4ed150 decodedJMP4e1c20 RET; if flags lowbit1 ->40ae70 RET4 ->77bb31;EAX original pointer bits;wrapperRET4",
+    "manager": "5062e0 resets vptr7b430c ->506350(1) clear/erase ->4e1c20 ->4f8020 vector teardown",
+    "vector_cell_cleanup": "5c6230 stride4 ->4eeea0 ->4e1c20 RET; no pointed R deletion in this selected chain",
+    "backing_free": "4f8020 ->4eee90(buffer,count) RET8 ->77bb31; then begin/end/cap=0; allocator mode/heap unknown",
+    "exceptions_closed": false,
+    "vector_erase_move_leaf_closed": false,
+    "runtime_bound": false,
+    "execution_allowed": false,
+    "provenance": [
+      {
+        "local_evidence_file": "rea-static-binding-20261011/record-clear-assembly.evidence.json",
+        "evidence_id": "ev_5e6ff89ef6a50e47a491ace18e12c676b86ea23b73ef17e9b78240e5a67d510d",
+        "sha256": "0259de40815aceab3ccef47962ab6e648256c429feced9d7506eb6a1ce325a16"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-delete-wrapper-assembly.evidence.json",
+        "evidence_id": "ev_55d7c7372fef097e42da0a12d72ac866f554e5a43469ffc3042c26d49875fb25",
+        "sha256": "dc3064e4bab2092316b344cc7ff7a8ec656a13ef225e26ffaea876e542b29b0d"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-base-destructor-assembly.evidence.json",
+        "evidence_id": "ev_df5ce4527cabe68046e529128e2f22c90234e96d80aeb58413f1ecdab39ea6fd",
+        "sha256": "8d1575c9486e353bf6949115bd9e7e51f199a77c030f63169942a92bc0fd1b53"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-destructor-return-leaf-assembly.evidence.json",
+        "evidence_id": "ev_956a7084a570f601dabbe466f268bd792cb7b33d32508aa44dcf270e20cf19ab",
+        "sha256": "5cbce218d87474c0dde66d6902b53efa2a965e45b6e0b7344e05f4109eac055f"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-allocation-release-assembly.evidence.json",
+        "evidence_id": "ev_f619db8d8c09a33c2815457c85e2f46aab00ba31395baa4eb8574334ccdc2914",
+        "sha256": "16624d94ca68258405a2a014d95a8d26c707af3a1b20c5179ee0a2bf901e1618"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-manager-destructor-assembly.evidence.json",
+        "evidence_id": "ev_1577a0ad8a3cbb50237daf327ade2f972013d93fa5114d1d89fe2bed48b70bb1",
+        "sha256": "28a14b410f01629ced7566480f1a6cf9d52e67132f6ddb9e980f79863fc37607"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-vector-free-assembly.evidence.json",
+        "evidence_id": "ev_91f2c7f78b2ec939f6431097957c6049e0467c7d78246a6f5c0feeb0024f1a1e",
+        "sha256": "874ee6bfdb02743134877dfff1b22022c4f4152c508273661021f65e3edeceb4"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/vector-element-range-release-assembly.evidence.json",
+        "evidence_id": "ev_f28861adf62456119bebada080dd3a09ef08cf91aec444acfc1acdea43ad224c",
+        "sha256": "b6bbc759284f97588f1aa2936f506a8e8598fe46e05bff134c40c399a4aa3a1a"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/vector-cell-destructor-assembly.evidence.json",
+        "evidence_id": "ev_69110f3752be81828f5069097c60850ece8883210882a39c567413919e129083",
+        "sha256": "bb0e4e1d903b91521c06294d6f5d27bdf1ab446aa526809be68390c7126402ef"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/vector-buffer-free-assembly.evidence.json",
+        "evidence_id": "ev_430ea2cf43e88c0e8a3d2bbcf2d12611eb57b255a66314f4462cf04812f25aac",
+        "sha256": "7e3833a9286b9180a964abac3b808681d402122ee55d735be3ce00e776ab56e2"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/vector-erase-range-assembly.evidence.json",
+        "evidence_id": "ev_0fe4fd5f455578d92cc341698501416213257d891cce87d5456c22016efae7f4",
+        "sha256": "5faef16be94a355024a9b51f54359244419881397a8a5204c7487de1682486d0"
+      }
+    ]
+  },
+  "record_load_and_exception_frontier": {
+    "record_stream_word": {
+      "table": "0x7b431c",
+      "offset": "0x8",
+      "target": "0x5069b0"
+    },
+    "stream_procedure_exists": false,
+    "entry_Listing_decoded": false,
+    "raw_bytes_present": true,
+    "stream_effects_closed": false,
+    "mistyped_request_addresses_excluded": [
+      "0x5096b0",
+      "0x6996b0"
+    ],
+    "manager_EH_stub": "78784f MOVEAX7ea648;787854 decodedJMP764cc1, not a new return frame",
+    "observed_EH_type": "FuncInfo typedef ->/_s_FuncInfo,28bytes; child fields/unwind actions not yet checked",
+    "exception_semantics_proved": false,
+    "execution_allowed": false,
+    "provenance": [
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-manager-vtable-prefix.evidence.json",
+        "evidence_id": "ev_d712cfba37f69c6ddbe585c79845230996e94fbc41336292afcfe28b2709a2e7",
+        "sha256": "6ee8ac9049fa35351f7d768d4dd7e988c09317e8d929538f425ef65ee5b8bdfa"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-stream-entry-listing.evidence.json",
+        "evidence_id": "ev_61307853422f0aa30bb07a700a53b450380aa8bef7a0143dbdf14f5fbea08a15",
+        "sha256": "0d28a32923e7c318909bf59b73422955b925a4aa53d3642eaa8ba557d68e8daa"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-stream-context.evidence.json",
+        "evidence_id": "ev_c72c9457b184b4b174d9a5439a35602743f4cef61772f32b0bf41a365a47152a",
+        "sha256": "4dcdc16ef094b3308346a15d2627b230e4b1ba76a83c6ca8a8c38ba2db1a2ef9"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/record-stream-containing.evidence.json",
+        "evidence_id": "ev_3b5eecc6e37d48678cd93209bf6bac7130c36910f5bc727fb802c01dda53d002",
+        "sha256": "6276cb2d224c2fc766e063d2f91fc4801e4673b09956bdbcfbeac545957d89f0"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/manager-eh-handler-entry.evidence.json",
+        "evidence_id": "ev_cae924285e4e9c35eeaddce18548f9b954e2ca9be87310f36230aaefbcf4c47b",
+        "sha256": "4313e7a71e3375e1545fffb8f1b5193ab453a2f7530789cd3d9310923064cf33"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/manager-eh-handler-tail.evidence.json",
+        "evidence_id": "ev_7297a59e6d830f8832ef5dda8350968fddb664d4d5b143e7eb5d538cdd764fef",
+        "sha256": "be86061ea8126f0fdb08239bec111fdf7a0df21a428fc725cf7799b2589e0821"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/manager-eh-info-bytes.evidence.json",
+        "evidence_id": "ev_e3b06bfed7317fd8e7f63c85cf751e9f4091534941e6c8294ff85df43b41c4a2",
+        "sha256": "b8979b636f5c7a3cdea7de5ac44cdc289a8cdeefd58962a3cd0ad9fb73443081"
+      },
+      {
+        "local_evidence_file": "rea-static-record-consumption-20261011/manager-eh-info-type.evidence.json",
+        "evidence_id": "ev_6d633726557e0eb18fe35609b78e558fd3782917bbf8f39dedae098f9abc165b",
+        "sha256": "52401c500b4f3df173a63318521dbeee076807c4e8d5c1f21ac04a1a0d2fd2cb"
+      }
+    ]
+  },
+  "native_implementation_split": {
+    "directly_usable": [
+      "explicit LE uint32/int16/uint8 views and checked extents",
+      "exact low16/signextension operations",
+      "verified caller parameter order/width/cleanup and AL versus EAX return use",
+      "matched setter stores low8, not unconditional disable",
+      "preserve normal delete-return-before-slot-zero and unsupported/unknown failures"
+    ],
+    "conditional_only": [
+      "a selected method ABI can inform interface declaration; actual object/vptr/allocator binding remains absent",
+      "self-owned data structures and pure validators are allowed work, distinct from executing original/converted target instructions"
+    ],
+    "needs_dynamic_or_equally_direct_instance_evidence": [
+      "current R/Osrc/Olookup and pool backing identity",
+      "later write/call order and actual virtual target",
+      "thread/alias effects, exception paths, final lifetime and natural full tick"
+    ],
+    "must_not_retry": "specifically rejected original execution/conversion actions or safety-guard changes",
+    "runtime_binding_created": false
+  }
 }
