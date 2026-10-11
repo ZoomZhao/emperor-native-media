@@ -1,0 +1,149 @@
+{
+  "schema": "EMPEROR_SELECTED_ORIGINAL_OUTER_FILE_PROFILE_V1",
+  "source_subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+  "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+  "component_baseline_commit": "16b4c8c8489b9003db8b31e1a66f9275bf52e91b",
+  "profile_id": "fresh447b70_constructor_flags0_complete_header_matched_path",
+  "status": "source-bound conditional profile candidate; new source review pending; no real file accepted",
+  "constructor": {
+    "entry": "0x447b70",
+    "root_store": "0x447b9c",
+    "root": "0x7ac7d4",
+    "initializer_call": "0x447ba2",
+    "initializer": "0x447be0",
+    "initial_F1c_F1d_F1e_F1f": 0
+  },
+  "marker_parameters": {
+    "container_marker": {
+      "value_u32": 4275878570,
+      "hex": "0xfedcbaaa",
+      "bytes_le_hex": "aabadcfe",
+      "field": "F+0x10",
+      "store": "0x447be2"
+    },
+    "compressed_marker": {
+      "value_u32": 2882400255,
+      "hex": "0xabcdefff",
+      "bytes_le_hex": "ffefcdab",
+      "field": "F+0x14",
+      "store": "0x447bf7"
+    },
+    "raw_marker": {
+      "value_u32": 2863386095,
+      "hex": "0xaaabcdef",
+      "bytes_le_hex": "efcdabaa",
+      "field": "F+0x18",
+      "store": "0x447bfe"
+    }
+  },
+  "required_premises": [
+    "Fixed source build; freshly constructed F and selected7ac7d4 root; normal ABI and qualified writable storage.",
+    "Constructor stores are not current values for every live F or every file; no alias/callback overwrite on chosen path must be qualified.",
+    "Caller supplies span at selected physical header; complete four matching bytes and normal raw cursor advance.",
+    "Native requires complete fields/payload; original header and downstream counts remain unchecked."
+  ],
+  "selected_read_creation": {
+    "caller": "0x534a30",
+    "F_constructor_call": "0x534a8f",
+    "open_call": "0x534aaf",
+    "open_flags": 0,
+    "error_pointer": 0,
+    "archive_constructor_call": "0x534b04",
+    "archive_mode": 1,
+    "archive_requested_buffer_bytes": 4096,
+    "archive_supplied_buffer_pointer": 0,
+    "archive_constructor": "0x7803c1",
+    "mode_field": "S+0x14",
+    "size_field": "S+0x1c",
+    "generic_signed_minimum_buffer_bytes": 128,
+    "unexpanded_constructor_virtual_call": "file root+0x18; normal sideeffects not fully closed"
+  },
+  "selected_write_creation": {
+    "caller": "0x534880",
+    "open_flags": 4097,
+    "archive_constructor_call": "0x5349a9",
+    "archive_mode": 0,
+    "archive_requested_buffer_bytes": 4096,
+    "archive_supplied_buffer_pointer": 0,
+    "not_a_read_mode_call": true
+  },
+  "fixed_mode": {
+    "reset": "0x447c70",
+    "cursor": "F+0x28",
+    "logical_buffer_end": "F+0x8028",
+    "logical_span_bytes": 32768,
+    "reset_available_F11a88_and_input_length_F11a8c": 0,
+    "reset_directly_changes_markers": false,
+    "nominal_output_interval": [
+      "F+0x28",
+      "F+0x8d58"
+    ],
+    "nominal_input_interval": [
+      "F+0x8d58",
+      "F+0x11a88"
+    ],
+    "each_nominal_region_bytes": 36144,
+    "native_fixed_max_encoded_block": 36144,
+    "native_fixed_max_decoded_block": 36144,
+    "original_fill_bounds_N": false,
+    "native_limits_role": "new safety policy for nominal fixed buffers; not old damaged-input equivalence",
+    "writer_cursor_guard": "F28 < F20 <= F24; pending-count/cursor coherence remains a premise"
+  },
+  "generic_native_configuration": {
+    "API": "FrameProfile and emfr_decode_limits",
+    "production_sources_hardcode_original_marker_or_36144": false,
+    "per_block_sizes_are_caller_parameters": true,
+    "larger_limits": "extend native owned-buffer support, not original fixed-buffer compatibility",
+    "aggregate_budgets": "trusted caller must choose total input/output and block count; no original defaults proved",
+    "roles_are_distinct": [
+      "archive4096",
+      "logicalspan32768",
+      "zlibwindow32768",
+      "nominalcodec36144"
+    ]
+  },
+  "header_and_position": {
+    "read_call": "0x447cf5",
+    "requested_bytes": 4,
+    "original_actual_count_checked": false,
+    "matched_action": "F1e=1;root+60fill immediately",
+    "first_frame_offset_if_complete_normal_header_consumption": 4,
+    "unmatched_action": "448280 ->root+28=4481f0 ->root+48=4481c0 ->77c346(offset0,origin0);thenF1e0 passthrough",
+    "base_seek_and_OS_success_proved": false,
+    "native_unmatched_policy": "reject; raw-file passthrough not implemented"
+  },
+  "frame_sequence": {
+    "compressed": [
+      "LE32 F14 marker",
+      "LE32 N(F11a8c)",
+      "opaque4 fromwriterF11a88",
+      "N payload"
+    ],
+    "raw": [
+      "LE32 F18 marker",
+      "LE32 N(F11a88)",
+      "N rawbytes"
+    ],
+    "writer": "0x447f80 root+64",
+    "default_F1c0_branch": "compressed",
+    "compression_request": "613970(dstF8d58,&F11a8c,srcF28,F11a88); initial dstcapacity36144; status ignored",
+    "codec_613970_implementation_queried": false,
+    "raw_policy_setter": "448150 flush/baseflush thenF1c1;root+68",
+    "setter_caller_metadata_empty_is_not_exhaustive": true,
+    "opaque_source_role": "F11a88 is passed as compression source count then written as thirdword, under normal/nonalias/coherent-count premises",
+    "reader_opaque_role": "consume only; no output-count equality gate",
+    "flush": "4481c0 root+48 conditionally emits+64 in writeflags, then resets; writeflags request77c39e",
+    "close": "448250 root+4c calls+48,77c3bf,clearsF1e,thenreset",
+    "distinct_end_magic_in_selected_local_methods": false,
+    "all_transitive_footer_or_actual_EOF_proved": false,
+    "adjacent_frames": "saved447e00 copy-clear-fill loop;447d30 fresh stream per compressed frame",
+    "internal_payload_tail": "first terminal tail stays inside declaredN, not a second frame",
+    "empty_output": "modern Frame event; not original EOF proof"
+  },
+  "implementation_profile_or_runtime_binding_installed": false,
+  "real_file_or_GameData_consumed": false,
+  "original_or_derived_game_executed": false,
+  "new_source_independently_accepted": false,
+  "component_independent_review_pending": true,
+  "byte_request_API_expanded": false
+}
