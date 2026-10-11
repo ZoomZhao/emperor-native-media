@@ -1,0 +1,247 @@
+{
+  "schema": "NATIVE_READER_LIFETIME_CONTRACT_V1",
+  "base_HEAD": "4ac4fc861fffa9d4f63e330f8c8df951b453c41e",
+  "reviewed_component_SHA": "16b4c8c8489b9003db8b31e1a66f9275bf52e91b",
+  "independent_review": {
+    "baseline_commit": "16b4c8c8489b9003db8b31e1a66f9275bf52e91b",
+    "review_manifest_sha256": "c00e9c1eb37ece578c549131a6e67d8cd469fc1f4a85da46b040193982a0debc",
+    "independent_two_modes": {
+      "fixture_checks_each": 1215,
+      "own_checks_each": 44
+    },
+    "finding": "READER-BORROWED-ALIAS-01",
+    "finding_severity": "P2 interface lifetime precondition",
+    "actual_expired_read": false,
+    "ASan_available": false,
+    "ASan_empty_main_init_failure": "asan_init_is_running",
+    "two_core_CPP_unchanged": true,
+    "patches_applied_in_isolated_candidate": true
+  },
+  "P2_finding": "READER-BORROWED-ALIAS-01",
+  "resolution": "Explicit borrowed source/storage lifetime anddisjoint-output contract; new owned-input headerwrapper avoids source/output vector ownershipalias",
+  "borrowed_alias_supported": false,
+  "actual_expired_read": false,
+  "direct_adapter_slice_overlap_independently_passed": true,
+  "two_core_CPP_unchanged": true,
+  "core_acceptance_current_source": [
+    {
+      "mode": "release",
+      "passed_checks": 1215,
+      "failed_checks": 0,
+      "single_block_runs": 1057,
+      "independent_case_count": 151,
+      "report_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/reader-lifetime-contract-20261011/acceptance-release/results.json",
+      "report_sha256": "67b04cd943cc90ef53d8fe0f9cfd701bb1f1d9f11065428ea0f0945e6cfc9a5d",
+      "fixture_manifest_sha256": "4eda6958059011e3bf556ace1b7e1b67c61fc4d5b07f862dcb7e1b3ca4ea41b6",
+      "source_hashes": [
+        {
+          "path": "file_io/README.md",
+          "sha256": "b549d25df9801385e0be7844e5f849c912ed1c3deeb09c6d07befdf0b154337c"
+        },
+        {
+          "path": "file_io/build_driver.sh",
+          "sha256": "a67889a8d151453a97141538eb15fff5bffe012ef4d59ca541dae9480d725fdd"
+        },
+        {
+          "path": "file_io/include/framed_reader.hpp",
+          "sha256": "d3d21e07110f57a19cd37d7e1fa61a922203a4c2ccb7c4988f60cb2e543abbd9"
+        },
+        {
+          "path": "file_io/include/owned_reader.hpp",
+          "sha256": "c7d3f5ada30ddddd748c429f61f7bb4525504bccf0cc6d016325b8e60a13e937"
+        },
+        {
+          "path": "file_io/include/strict_zlib.h",
+          "sha256": "8884a8a9bc6d8222320d93023d088cd18430017e479a282ca698f102c3eaf7a4"
+        },
+        {
+          "path": "file_io/run_acceptance.py",
+          "sha256": "5ac59c655d2bd4163badfe37c8f556dde9aee3c90e316b9efbafa41d1f0889fb"
+        },
+        {
+          "path": "file_io/run_independent_review.py",
+          "sha256": "a1063aad82da6d1c352c9f16483841155426be77c62f611f2599ee0321bc4f1a"
+        },
+        {
+          "path": "file_io/run_owned_review.py",
+          "sha256": "3cb3576e0e32d5b2aa8cf05e62a37170800639f543edba38430dd57c937421da"
+        },
+        {
+          "path": "file_io/src/framed_reader.cpp",
+          "sha256": "648bb362ff03f96afa0596cc5c84e628b1b666d78325d41099a70181eab5d68b"
+        },
+        {
+          "path": "file_io/src/strict_zlib.cpp",
+          "sha256": "1c13bf06ba9721a85000105f4b18763f88bfadf71626f2cae1127288c6fb2f0e"
+        },
+        {
+          "path": "file_io/tests/asan_smoke.cpp",
+          "sha256": "86ef2a0e73626c280af7ade8a255249737ffed461e6e584fded4bb41104a9875"
+        },
+        {
+          "path": "file_io/tests/codec_probe.cpp",
+          "sha256": "8ebd18be213ccbe3bf28993b87b29e0b3d58293e75f1596fb41e0e741cfacd92"
+        },
+        {
+          "path": "file_io/tests/fixture_driver.cpp",
+          "sha256": "ac84cce1f6f0360dda20a1fa4fb82592bbde14e7670efb081e8c51d1a8a37ea1"
+        },
+        {
+          "path": "file_io/tests/independent_reader_tests.cpp",
+          "sha256": "f42e4495b928de298c5d4e72b129e6e01fdab05851184f293b8cc5750875ce6d"
+        },
+        {
+          "path": "file_io/tests/owned_reader_tests.cpp",
+          "sha256": "b2fd8868d4168af94173fbb28a3830673d9602b923351ad110fa33d9e8b410b0"
+        },
+        {
+          "path": "file_io/tests/stream_alias_lifetime_probe.cpp",
+          "sha256": "413d0544883671ff78f785209c8ec6472399c6840ee1c5f77b3f62d4cac33e8c"
+        }
+      ]
+    },
+    {
+      "mode": "undefined",
+      "passed_checks": 1215,
+      "failed_checks": 0,
+      "single_block_runs": 1057,
+      "independent_case_count": 151,
+      "report_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/reader-lifetime-contract-20261011/acceptance-undefined/results.json",
+      "report_sha256": "9d531999702f320b1671ab582abf5941bf154698c70da8609955d48ff2dd387e",
+      "fixture_manifest_sha256": "4eda6958059011e3bf556ace1b7e1b67c61fc4d5b07f862dcb7e1b3ca4ea41b6",
+      "source_hashes": [
+        {
+          "path": "file_io/README.md",
+          "sha256": "b549d25df9801385e0be7844e5f849c912ed1c3deeb09c6d07befdf0b154337c"
+        },
+        {
+          "path": "file_io/build_driver.sh",
+          "sha256": "a67889a8d151453a97141538eb15fff5bffe012ef4d59ca541dae9480d725fdd"
+        },
+        {
+          "path": "file_io/include/framed_reader.hpp",
+          "sha256": "d3d21e07110f57a19cd37d7e1fa61a922203a4c2ccb7c4988f60cb2e543abbd9"
+        },
+        {
+          "path": "file_io/include/owned_reader.hpp",
+          "sha256": "c7d3f5ada30ddddd748c429f61f7bb4525504bccf0cc6d016325b8e60a13e937"
+        },
+        {
+          "path": "file_io/include/strict_zlib.h",
+          "sha256": "8884a8a9bc6d8222320d93023d088cd18430017e479a282ca698f102c3eaf7a4"
+        },
+        {
+          "path": "file_io/run_acceptance.py",
+          "sha256": "5ac59c655d2bd4163badfe37c8f556dde9aee3c90e316b9efbafa41d1f0889fb"
+        },
+        {
+          "path": "file_io/run_independent_review.py",
+          "sha256": "a1063aad82da6d1c352c9f16483841155426be77c62f611f2599ee0321bc4f1a"
+        },
+        {
+          "path": "file_io/run_owned_review.py",
+          "sha256": "3cb3576e0e32d5b2aa8cf05e62a37170800639f543edba38430dd57c937421da"
+        },
+        {
+          "path": "file_io/src/framed_reader.cpp",
+          "sha256": "648bb362ff03f96afa0596cc5c84e628b1b666d78325d41099a70181eab5d68b"
+        },
+        {
+          "path": "file_io/src/strict_zlib.cpp",
+          "sha256": "1c13bf06ba9721a85000105f4b18763f88bfadf71626f2cae1127288c6fb2f0e"
+        },
+        {
+          "path": "file_io/tests/asan_smoke.cpp",
+          "sha256": "86ef2a0e73626c280af7ade8a255249737ffed461e6e584fded4bb41104a9875"
+        },
+        {
+          "path": "file_io/tests/codec_probe.cpp",
+          "sha256": "8ebd18be213ccbe3bf28993b87b29e0b3d58293e75f1596fb41e0e741cfacd92"
+        },
+        {
+          "path": "file_io/tests/fixture_driver.cpp",
+          "sha256": "ac84cce1f6f0360dda20a1fa4fb82592bbde14e7670efb081e8c51d1a8a37ea1"
+        },
+        {
+          "path": "file_io/tests/independent_reader_tests.cpp",
+          "sha256": "f42e4495b928de298c5d4e72b129e6e01fdab05851184f293b8cc5750875ce6d"
+        },
+        {
+          "path": "file_io/tests/owned_reader_tests.cpp",
+          "sha256": "b2fd8868d4168af94173fbb28a3830673d9602b923351ad110fa33d9e8b410b0"
+        },
+        {
+          "path": "file_io/tests/stream_alias_lifetime_probe.cpp",
+          "sha256": "413d0544883671ff78f785209c8ec6472399c6840ee1c5f77b3f62d4cac33e8c"
+        }
+      ]
+    }
+  ],
+  "independent_44_tests_merged_and_rerun": {
+    "eachmode_passed": 44,
+    "eachmode_failed": 0,
+    "report_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/reader-lifetime-contract-20261011/independent-regressions-final/results.json",
+    "report_sha256": "64c6c6093327ff6344ef87e15e74eb21c20a13bbea63e7cc6889802d711d07b9",
+    "source_hashes": [
+      {
+        "path": "tests/independent_reader_tests.cpp",
+        "sha256": "f42e4495b928de298c5d4e72b129e6e01fdab05851184f293b8cc5750875ce6d"
+      },
+      {
+        "path": "tests/stream_alias_lifetime_probe.cpp",
+        "sha256": "413d0544883671ff78f785209c8ec6472399c6840ee1c5f77b3f62d4cac33e8c"
+      },
+      {
+        "path": "run_independent_review.py",
+        "sha256": "a1063aad82da6d1c352c9f16483841155426be77c62f611f2599ee0321bc4f1a"
+      },
+      {
+        "path": "tests/asan_smoke.cpp",
+        "sha256": "86ef2a0e73626c280af7ade8a255249737ffed461e6e584fded4bb41104a9875"
+      }
+    ]
+  },
+  "owned_wrapper_author_tests": {
+    "eachmode_passed": 6,
+    "eachmode_failed": 0,
+    "report_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/reader-lifetime-contract-20261011/owned-validation/results.json",
+    "report_sha256": "d0fd22a0ed6a4ec6272b1f754bd47f132d2444d944bdb0157e707f164025b223",
+    "source_hashes": {
+      "include/owned_reader.hpp": "c7d3f5ada30ddddd748c429f61f7bb4525504bccf0cc6d016325b8e60a13e937",
+      "include/framed_reader.hpp": "d3d21e07110f57a19cd37d7e1fa61a922203a4c2ccb7c4988f60cb2e543abbd9",
+      "tests/owned_reader_tests.cpp": "b2fd8868d4168af94173fbb28a3830673d9602b923351ad110fa33d9e8b410b0",
+      "src/strict_zlib.cpp": "1c13bf06ba9721a85000105f4b18763f88bfadf71626f2cae1127288c6fb2f0e",
+      "src/framed_reader.cpp": "648bb362ff03f96afa0596cc5c84e628b1b666d78325d41099a70181eab5d68b",
+      "run_owned_review.py": "3cb3576e0e32d5b2aa8cf05e62a37170800639f543edba38430dd57c937421da"
+    },
+    "new_wrapper_independently_reviewed": false
+  },
+  "unsupported_borrowed_alias_probe": {
+    "classification": "conditional FramedReader borrowed-source/output-storage alias lifetime hazard; direct adapter overlap separately passes",
+    "exit_code": 0,
+    "deallocation_and_prevented_expired_read": {
+      "borrowed_storage_freed_after_first": true,
+      "expired_read_prevented": true,
+      "second_status": "io_error"
+    },
+    "actual_expired_memory_read": false,
+    "stderr": "run-stream-alias.stderr",
+    "source_precondition_required": "stream backing storage must stay alive and disjoint from the output vector modified bynext(); this is now explicit in public header/README; negativeprobe deliberately exercises unsupported pattern",
+    "qualified_disjoint_input_regression_failed": false,
+    "binary_sha256": "dc6071bb9d4f57ab078c59dd893be89a181911b64ada8511329c76505a6e3f20"
+  },
+  "ASan": {
+    "smoke_exit_code": -6,
+    "available": false,
+    "stderr": "run-asan-smoke.stderr",
+    "initialization_check_failure": true,
+    "reader_or_codec_linked": false
+  },
+  "ASan_pass_claimed": false,
+  "aggregate_limits_are_total_heap_limits": false,
+  "byte_request_API_expanded": false,
+  "original_file_or_EXE_GameData_read": false,
+  "original_or_derived_execution": false,
+  "new_REA_queries": 0,
+  "network_or_push": false
+}

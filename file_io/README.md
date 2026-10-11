@@ -16,6 +16,19 @@
 - 块成功后才交换调用者 output。后块失败不会撤销已经返回的前块；失败和 End 均保留调用者 output，终止结果可重复且不继续读。
 - `input_offset` 是已确认交付的字节计数；I/O 异常时底层可能先消费部分字节，不能把该诊断值当可恢复的物理 seek 位置。
 
+调用者须保证 source 及其 backing storage 在 reader 生命周期内有效，且不与任何 next(output) 的 output vector 共享存储。成功交换 output 会释放其旧 buffer；若 streambuf 借用同一 vector 的旧数据，下一次读取将引用过期存储。这种流存储 alias 不受支持。底层阻塞读取和上述生命周期由调用者保证；直接 emfr_decode_zlib 的重叠 slice 已另行验证，不能推广到 FramedReader 的流存储所有权。
+
+`include/owned_reader.hpp` 的 `OwnedFramedReader(bytes, profile, start)` 拥有输入：传 lvalue 复制，传 `std::move(bytes)` 转移。调用者可以将原 vector（包括 moved-from vector）复用为 output；内部源 storage 与 output 独立，原 source vector 修改/销毁不影响复制版本。实例禁止复制和移动，保持内部 stream/reference/get-area 地址稳定；用 `std::unique_ptr` 交接对象即可。输入物化/参数复制可能在构造前抛 bad_alloc，调用者须先限制输入的物化规模；parser 的单块/累计产量限额不是 encoded+decoded+scratch+hostwindow 等整个进程的 heap 上限。
+
+拥有输入入口复用同一个 FramedReader，不增加格式或字节请求政策。生命周期验收分别使用独立 reviewer 的44项/释放监测负例，以及作者六项 ownedcopy/move/源销毁/后块失败/预算/EOF 检查：
+
+```sh
+python3 -B file_io/run_independent_review.py --output /tmp/emperor-reader-independent-NEW
+python3 -B file_io/run_owned_review.py --output /tmp/emperor-reader-owned-NEW
+```
+
+独立 runner 保留原固定16b4c8c两核心CPP哈希，适用于本轮未改变的核心；其负例验证的是明确不支持的 borrowed alias，并在过期读取前拦截。ASan 环境诊断与组件测试分列，空 main 初始化失败不算 ASan 通过，也不算本组件 UAF 报告。新增 owned wrapper 的验证由实现作者执行，仍待独立复审。
+
 原 wrapper 错误数字和 advertised length 的未检查传播没有被复制；这里的失败隔离是新的修复政策。没有按请求字节数读取的 API，因此零请求、恰请求量后的原预读与外部 near-U64 counter 注入仍未实现。
 
 验收命令（输出目录必须是尚不存在的绝对目录）：
@@ -27,4 +40,4 @@ python3 -B file_io/run_acceptance.py --output /tmp/emperor-file-io-undefined-NEW
 
 命令只构建本组件与夹具驱动，调用另一线程提供的生成器构造全部合成数据，不运行根 Makefile 或游戏/media 目标。七种交付分片（完整、1/2/3/4/7/4096）由测试 streambuf 实现；注入 I/O 异常覆盖默认和抛异常的 istream。测试专用 symbol indirection 记录实际 codec 调用次数，不改变生产源码逻辑。
 
-151 个单块预期的原始夹具与 15 个 pending 条目保持原样；11 个流案例另按本组件明确的现代政策验证，四项字节请求/外部计数语义继续 pending。具体运行证据与限制见 [验收记录](../docs/NATIVE_FILE_READER_ACCEPTANCE.md)。夹具作者独立于实现；当前组件验证由实现作者执行，尚待独立代码/运行复审。
+151 个单块预期的原始夹具与 15 个 pending 条目保持原样；11 个流案例另按本组件明确的现代政策验证，四项字节请求/外部计数语义继续 pending。具体运行证据与限制见 [验收记录](../docs/NATIVE_FILE_READER_ACCEPTANCE.md)。夹具作者独立于实现；16b4c8c核心在独立source/output存储前提下已独立复跑1215/0与44/0各两构建。新增owned入口目前是作者六项/构建验证，仍待独立复审。

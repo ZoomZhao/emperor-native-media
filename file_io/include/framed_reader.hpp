@@ -41,6 +41,9 @@ struct FrameResult {
 // Strict framing policy supplied explicitly by caller; no original profile here.
 // Native EOF is recognized only at a complete frame boundary. An empty frame is
 // a Frame event, not End. Failures are sticky and never modify caller output.
+// The source and its backing storage must outlive this reader and remain valid
+// across every next() call. Backing storage must not alias any output vector
+// passed to next(): a successful output swap can free that vector old storage.
 class FramedReader {
 public:
     FramedReader(std::istream &source, FrameProfile profile,

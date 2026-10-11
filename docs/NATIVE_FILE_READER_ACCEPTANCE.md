@@ -28,3 +28,8 @@
 3. **若需要，再设计字节请求 API**：先明确零请求、恰边界预读、空块进展、后块失败时累计产量与事务范围；通过标准是独立定义 policy 后才关闭四项 pending，用自造源验证计数上限/无进展/错误隔离，不能声称等价于原 unchecked 行为。
 
 本轮只有本地实现与提交；远端具体载荷审批仍独立待定，旧审批不自动覆盖本轮 HEAD。
+
+
+## 后续独审与生命周期约束
+
+固定16b4c8c核心在独立有效source/output存储前提下已独立复跑Release/UBSan各1215/0及44/0；READER-BORROWED-ALIAS-01指出公开borrowed存储前提缺口，已补header/README。新增OwnedFramedReader提供复制或转移输入的入口，原vector可复用作output；作者每构建6/0，wrapper待独立复核。借用同storage模式仍不支持，安全释放guard负例保留；ASan空main初始化失败，未通过ASan验收。详见[生命周期合同](READER_LIFETIME_CONTRACT.md)。四项API及真实原文件验收没有因此关闭。
