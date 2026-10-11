@@ -300,3 +300,7 @@ research schema17补[生命周期与退出数组](ORIGINAL_LIFETIME_AND_EXIT_CON
 ## 明确版本文件到调度字段（2026-10-11）
 
 [版本19条件载入](ORIGINAL_VERSIONED_CITY_LOAD_CONTRACT.md)区分真实mode1/参数0读入、写出和仅前部读取；连上四种版本来源、类cache→+8→主池→条件+c0，以及流直接读入c82ef8 phase和三周期字段。原字段输入不证明post-load保持、实际tick或完整文件通过。447e00 raw条件子图22节点闭合，90条方法partial（含22条raw子图）及4缺失边保留；135查询/134Evidence/1NoProcedure、会话exit0/源与18模块不变/临时空。697c4b0已独立48/0复核，本批新增未复核，binding仍DENIED。
+
+## 读后处理与首次可分派路径
+
+[读后合同](ORIGINAL_POSTLOAD_SCHEDULER_ENTRY_CONTRACT.md)核42da10的精确1/3/6筛选、基类+1c8 no-op、534bf0直接phase8 helper消费、条件reset0/0/0/1及gate/quota/mode写来源。七图95原native节点正常局部闭合，140/140/0、exit0/输入与18模块不变/临时空；传递作用、实际存活/时钟/异常仍Unknown，binding DENIED。本批只本地保留，未再尝试待批push。

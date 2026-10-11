@@ -1,0 +1,1356 @@
+{
+  "schema_version": 1,
+  "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+  "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+  "base_HEAD": "5587fb54d5f0be4e68c03620c9261e04338bd312",
+  "provenance_scope": "filtered conditional source contracts and evidence metadata; no complete Listing or binary",
+  "contract": {
+    "document": "docs/ORIGINAL_POSTLOAD_SCHEDULER_ENTRY_CONTRACT.md",
+    "manifest": "docs/original-postload-scheduler-entry-evidence.json",
+    "proof_class": "Original source-only post-load object/global hooks and conditional subsequent scheduler admission; no actual loaded state bound",
+    "baseline_load": "534a30 ->mode1/arg0 archive ->city19/pool1/Building schema0/base fields5; prior contract conditions retained",
+    "mainpool_hook": {
+      "entry": "42da10(W8c7630),36-node normal local graph",
+      "cursor": "413b40(W,1) returns begin+4 under source conditions; may resize through413b70 if count<=1; initialcursor capture is not unconditional read-only walk",
+      "indices": "EBP starts1; unsignedcount>1 guard; rawEDI increments4; count554c00 reread after eachiteration; no visit toslot0 under stablecontainer",
+      "selected_admission": "426d10(O,0) accepts exactbyte1/3; otherwise explicitO4==6 also admits; notbit0 andnotanynonzero",
+      "effect": "currentO vptr+1c8(), return ignored; stable base7ab59c slot+1c8=413a00(XOR AL,AL;RET) doesnotwriteO fields",
+      "two_sites": "534bf0 inner535024 then534a30 outer534b80; interveningcalls canchangeobjects/root/count, nottwoidenticalruntime passes proved",
+      "serialized_b4_equals_slot_proved": false,
+      "actual_derived_1c8_binding_and_effects_closed": false,
+      "raw_cursor_object_lifetime_and_reallocation_safe_proved": false
+    },
+    "global_postload_hook": {
+      "entry": "534bf0,explicit Listing and directcallee list captured; notalltransitiveeffects closed",
+      "phase8_helper": "directCALL4aeeb0@534ec4; same helper asphase8 dispatcher; conditional loaded record/mainpool consumer, no phaseincrement implied",
+      "speed_write": "if408ac0 owner+10 predicate4fae50 zero,534c8c loads10de120 and534c91 writes10de0dc; actual value/currentowner conditions unknown",
+      "quota_byte_write": "534f1a storesbyte10de0d0=0;28 laterCALLsites retained as coverage frontier; zeroatwrite doesnotprovezeroatfirsttick",
+      "literal_phase_reset_call_in_this_function": false,
+      "computed_f8": "10315dc record lookup andcurrentvirtual+f8 testedAL; rawreceiver/currenttarget/lifetime unbound",
+      "other_selected_object_calls": "4acfc0 conditionalcurrent+84;4acc40 current+98;5636b0 current+1ec; actualtarget effects unknown",
+      "post_write_value_persistence_proved": false
+    },
+    "phase_reset": {
+      "entry": "4ac240 normal24 nodes, complete selected helpers4f8d50(2),4afd40(12)",
+      "normal_return_values": {
+        "c82ef8_phase": 0,
+        "c82ef4_total": 0,
+        "c82ef0_subcycle": 0,
+        "c82eec_outer_cycle": 1
+      },
+      "conditions": "valid disjoint flat storage,DF0,selected originalnormalhelpers,normalreturn; not actualOS/runtime observation",
+      "reset_is_every_load_policy_proved": false,
+      "direct_callers": [
+        "42e6a0",
+        "4fb530",
+        "5d1400"
+      ],
+      "selected_other_caller": "4fb530 initialEBP34!=0 chooses534a30@4fb73a; laterEBP34==0 guard@4fb7d5 reachesreset@4fb862; interveningcalls mean guardstability notproved",
+      "initial_later_owner34_equal_proved": false
+    },
+    "gate_and_mode_writers": {
+      "selected_outer": "536b20 stores10c6f60=0 before42e430;436560 fixedgetter no statewrite;switchcase0@42e473 writes88ec38=0, then5a6980 andoutercalls mayoverwrite",
+      "switch_other_case": "fixed42e59c index2->42e4ec reaches42e508 store88ec38=1; cannotblanketdescribehelperasgateclear",
+      "other_load": "4fb530@4fb60c writes88ec38=0 before branch; normalreadbranch4fb753 storesmode10de045=1; commonjoin4fb779 storesspeed10de0dc=70",
+      "selected_outer_after_load": "536dff stores10de045=1 thenreturns536e2a; currentloop5371a0@536bc0 isbeforeloader@536d37",
+      "loader_return_ignored": "534a30 openfailEAX1,normalreadpathEAX0;536d37 and4fb73a callers do notcheckloaderEAX; laterALtestafter536d37 comesfrom40ff40",
+      "mode1_implies_successful_load_proved": false
+    },
+    "first_possible_next_dispatch": {
+      "outer_source": "next536fe0->536b20(1),orotherauthorizedcurrententry; caller475b00 identified,actualtrigger notbound",
+      "quota": "53a130 timeGetTime/currentprevious115f540,speedindex/threshold/mode/pauseguards; positive10000 allowsloop5371a0,notnumberofphaseadvances",
+      "speed70_example": "if later70 persists,index3 andtable55+2=57ms; signedclocknegative substitution/otherguardconditions retained; no measuredclock claimed",
+      "first_inner_gate": "5371a0 calls4189b0/529990/5ef190/5eff20 beforetestingcurrent88ec38; currentzero at5371b6 allowsCALL4ac2b0@5371bf",
+      "phase_hold": "4ac2b0 originalowner/flag/signedhold prechecks mayearlyreturn; loadedphase readconsumption requiresthoseprechecks pass",
+      "tail_gate": "afterphaseand466e90/4e27e0,88ec38 reread@5371d3; ifzero actualJMP564b50@5371dc,noextraCALLframe despiteproviderCALL_TERMINATOR",
+      "actual_first_new_state_tick_observed": false,
+      "all_transitive_gate_effects_or_complete_load_closed": false
+    },
+    "post_write_unclosed_calls": [
+      {
+        "site": "0x534f21",
+        "assembly": "CALL 0x004eb850",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f26",
+        "assembly": "CALL 0x0054f070",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f31",
+        "assembly": "CALL 0x00480740",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f3a",
+        "assembly": "CALL 0x00480d30",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f41",
+        "assembly": "CALL 0x00480d90",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f46",
+        "assembly": "CALL 0x0040e630",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f5f",
+        "assembly": "CALL 0x005dc860",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f64",
+        "assembly": "CALL 0x004aeb30",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f6a",
+        "assembly": "CALL 0x00480740",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f71",
+        "assembly": "CALL 0x00480b40",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f91",
+        "assembly": "CALL 0x0053c510",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f98",
+        "assembly": "CALL 0x0053c550",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fa3",
+        "assembly": "CALL 0x0053ab40",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fb3",
+        "assembly": "CALL 0x00449260",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fbf",
+        "assembly": "CALL 0x005c3460",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fcc",
+        "assembly": "CALL 0x00495610",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fda",
+        "assembly": "CALL 0x0055f120",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fe2",
+        "assembly": "CALL 0x0055d1c0",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fe7",
+        "assembly": "CALL 0x00480740",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fee",
+        "assembly": "CALL 0x00481ed0",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534ff8",
+        "assembly": "CALL 0x00535960",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534ffd",
+        "assembly": "CALL 0x005d3cb0",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x535002",
+        "assembly": "CALL 0x004acc40",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x535008",
+        "assembly": "CALL 0x00447680",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x535024",
+        "assembly": "CALL 0x0042da10",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x535029",
+        "assembly": "CALL 0x005253a0",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x53503e",
+        "assembly": "CALL 0x005aca50",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x535045",
+        "assembly": "CALL 0x005acb80",
+        "transitive_effects_closed": false
+      }
+    ],
+    "previous_independent_review": {
+      "commit": "5587fb54d5f0be4e68c03620c9261e04338bd312",
+      "passed_groups": 37,
+      "failed_new_semantics_groups": 0,
+      "status_reminders": 2,
+      "review_sha256": "70a1655ec729e10dc95a07bde798246576b6274be5b9d9c15dc54a78ee323b4e",
+      "publication_patch_sha256": "2ba9c4d5b5e9c5012fa5207148c5db73b0c6cdb4226d2bc72e584eee381d971a",
+      "current_postload_reviewed": false
+    },
+    "source_proof_checks": "seven normal local graphs95 nodes matchofficial nativeListing and edges; originalcalls treatedasconditionalnormalreturns,looptermination/OS exceptions unknown",
+    "runtime_binding_created": false,
+    "target_execution_performed": false,
+    "execution_allowed": false,
+    "publication": "localincrementonly;5587fb5 exacteight-doc push awaits human destination/payload approval;thisbatch has no network/push retry;newrange not automatically covered"
+  },
+  "normal_graph_proofs": [
+    {
+      "procedure": "0x42da10",
+      "instruction_count": 36,
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-42da10.json",
+      "sha256": "9ff5a0a2ef1b532e2ea8201288efe85c60577e0cb69cb711fced0b240148941f",
+      "normal_local_control_graph_closed": true,
+      "exits": [
+        {
+          "site": "0x42da64",
+          "kind": "RET",
+          "assembly": "RET"
+        }
+      ],
+      "all_nodes_match_official_native_decoder": true
+    },
+    {
+      "procedure": "0x5371a0",
+      "instruction_count": 17,
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-5371a0.json",
+      "sha256": "ab62a9aa8ed7d6390026822fe890dda4cb2519e2682441fcb17e07ae2238b247",
+      "normal_local_control_graph_closed": true,
+      "exits": [
+        {
+          "site": "0x5371dc",
+          "kind": "external tail JMP",
+          "destination": "0x564b50",
+          "callee_normal_return_proved": false
+        },
+        {
+          "site": "0x5371e1",
+          "kind": "RET",
+          "assembly": "RET"
+        }
+      ],
+      "all_nodes_match_official_native_decoder": true
+    },
+    {
+      "procedure": "0x4ac240",
+      "instruction_count": 24,
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-4ac240.json",
+      "sha256": "0355cf0432f56ccb6dcb80525047b0cdab09e0c5f35401c477aae8556616713a",
+      "normal_local_control_graph_closed": true,
+      "exits": [
+        {
+          "site": "0x4ac2a7",
+          "kind": "RET",
+          "assembly": "RET"
+        }
+      ],
+      "all_nodes_match_official_native_decoder": true
+    },
+    {
+      "procedure": "0x4f8d50",
+      "instruction_count": 2,
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-4f8d50.json",
+      "sha256": "0b3d93d55912987865945a66835ba0ab5521899311cf9feb71696e933331382a",
+      "normal_local_control_graph_closed": true,
+      "exits": [
+        {
+          "site": "0x4f8d55",
+          "kind": "RET",
+          "assembly": "RET"
+        }
+      ],
+      "all_nodes_match_official_native_decoder": true
+    },
+    {
+      "procedure": "0x413a00",
+      "instruction_count": 2,
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-413a00.json",
+      "sha256": "ef80b90351daf82a4897de0ef4890090d4d472715c7c0f506fdfea29d0ae3edf",
+      "normal_local_control_graph_closed": true,
+      "exits": [
+        {
+          "site": "0x413a02",
+          "kind": "RET",
+          "assembly": "RET"
+        }
+      ],
+      "all_nodes_match_official_native_decoder": true
+    },
+    {
+      "procedure": "0x4afd40",
+      "instruction_count": 12,
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-4afd40.json",
+      "sha256": "8ff6edbefbdacb662eb72968feb0fef0f7b9680aa1e3b8e7f907f53546a55e5c",
+      "normal_local_control_graph_closed": true,
+      "exits": [
+        {
+          "site": "0x4afd74",
+          "kind": "RET",
+          "assembly": "RET"
+        }
+      ],
+      "all_nodes_match_official_native_decoder": true
+    },
+    {
+      "procedure": "0x436560",
+      "instruction_count": 2,
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-436560.json",
+      "sha256": "cce9d481211fd70e76608cf3921bcc9d20b1e0cc26fc70d0afba5752c2f9dcfe",
+      "normal_local_control_graph_closed": true,
+      "exits": [
+        {
+          "site": "0x436565",
+          "kind": "RET",
+          "assembly": "RET"
+        }
+      ],
+      "all_nodes_match_official_native_decoder": true
+    }
+  ],
+  "batch_outcome": {
+    "batch": "rea-static-postload-scheduler-gates-20261011",
+    "provider_requests": 140,
+    "successful_Evidence": 140,
+    "provider_errors": 0,
+    "queried_procedure_addresses": 24,
+    "native_anchors": 107,
+    "selected_read_bytes": 32,
+    "exit_code": 0,
+    "elapsed_seconds": 670.969,
+    "input_identity_unchanged": true,
+    "official_module_pairs": 18,
+    "temporary_entries_after": [],
+    "normal_local_graphs": 7,
+    "normal_local_graph_nodes": 95,
+    "original_or_derived_game_executed": false,
+    "runtime_binding_created": false,
+    "new_semantics_independently_reviewed": false,
+    "push_attempts_this_batch": 0
+  },
+  "sources": [
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-global-hook-assembly.evidence.json",
+      "sha256": "3cd2c1e81cf60bdbedce745dd7b8e292e557750e15ddbf7fc38a37ba6b0f68fa",
+      "evidence_id": "ev_13029404b2babe549e9bf6fd6be9f7813078a484153a1f794e82edc3b2fae8a3",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-global-hook-callees.evidence.json",
+      "sha256": "92f009fc6621172b3403ef4f203f8a7c963ba0a59789d02a12ece151f653921b",
+      "evidence_id": "ev_93b5e4365b2e0e6562520b0c688289eb9260d6c097bf38203f7606219a00bcca",
+      "operation": "procedure_callees"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-global-hook-callers.evidence.json",
+      "sha256": "58a8c166a7dab3a5e6e11326535d9318c84a73f2638ed09885154e56bca516f1",
+      "evidence_id": "ev_4bba5c03a800f6447d79d1307b6f0ad18a2660dc03f3d0ac0731035448b823bd",
+      "operation": "procedure_callers"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-mainpool-hook-assembly.evidence.json",
+      "sha256": "afe99465006ef4bc379764ebf488d18978de9c9ae9ac2c5b227c15339794623e",
+      "evidence_id": "ev_494a1fa4e1a314eeae0e5a73bffbeb11f9b53dfed8597123860241cb52750bba",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-mainpool-hook-callees.evidence.json",
+      "sha256": "e28af4f2c306be252cbe0c752389e8aa8783f535d1e8dab35dcc0214c04826e4",
+      "evidence_id": "ev_b2ddc0234573c3557a33239e81ea0cd9e2aded97fde9524af644fa2e22f2fc73",
+      "operation": "procedure_callees"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/full-file-load-original-callers.evidence.json",
+      "sha256": "ab6aea982a897df09ba3cb9ea91c86c8de4f8e3bcd4e6b0aed14923f97b140ee",
+      "evidence_id": "ev_f91e0809a40b389e0ac7f0470070bfeef5fdc87272c0ea0a75b4c5febd8e0010",
+      "operation": "procedure_callers"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/scheduler-release-gate-xrefs.evidence.json",
+      "sha256": "372cd91c41dc2690ea2aa9f550438589873990e259f173f7ff77b5fff87e998c",
+      "evidence_id": "ev_df6c6ae585ce2b4eae4cdd8fb0d252f80687395b597bfea89e4958e374ed3c63",
+      "operation": "xrefs"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/scheduler-phase-xrefs.evidence.json",
+      "sha256": "113fc6f34b869cc58aececed8d1f450276af2082fde788e771f2024e28bee673",
+      "evidence_id": "ev_9b1464849b739bdb70e6ade3d6cc30a06299007bc8d770aee7df40ba298a5d3b",
+      "operation": "xrefs"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/outer-tick-gate-assembly.evidence.json",
+      "sha256": "4f312ca939abd7da3bccc136c3ad556d027e72a7f0929d507d4319a53cef4bc2",
+      "evidence_id": "ev_1e99ee8932b3c2cc6fbe243b978bd032a9897b8ac8b8924d0c4cf05ac88055d0",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/outer-tick-gate-callees.evidence.json",
+      "sha256": "dd7205d94c7b4a0f9c4ba89df1333c45430299615c2c363f44112fed6376ee30",
+      "evidence_id": "ev_027ae4104ad3a35a0fb3ad7500ae2c035f2d759854777cc60671277110dd4fe2",
+      "operation": "procedure_callees"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/outer-entry-original-callers.evidence.json",
+      "sha256": "52304320575e618a49f7a9d82680d86e6dd753774b05f287b7287e1ca6277e82",
+      "evidence_id": "ev_e7d8280cbf0cff2d5c0d4a1a0847426ddbccdccd7db0624d6931ff1b5ca994f1",
+      "operation": "procedure_callers"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/scheduler-release-path-callers.evidence.json",
+      "sha256": "767345280c19c4e1b2b6bd69019ccf00aa6ace7629775b2976d14301b0e85a87",
+      "evidence_id": "ev_2e959d6f67620f127e319376eaac4e27fb2c2e8ba970e8ed966b064049d58a6d",
+      "operation": "procedure_callers"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-reset-gate-helper-assembly.evidence.json",
+      "sha256": "2d819103860313528b90757183c8cef5cd33f7940e238b65442ac37f7022c862",
+      "evidence_id": "ev_4dab1bf6277af0faa54505de6d2b6b54a0bd0aa8ae15dccb4c761ded238205c0",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-selected-object-gate-write-assembly.evidence.json",
+      "sha256": "3248a37a4fe84e9ee7288367291abfa28a20dcbd52b0f4e6692ee3c46be47be2",
+      "evidence_id": "ev_4c1c657fa33703a98b7b6abe68fa8458c4cfee7c0ae60e08a41a4a2006756bd4",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-owner-gate-write-assembly.evidence.json",
+      "sha256": "4d4051fc10ec5c9e37c0e3f9331bfe72855bf1baf2271eeea4aff300d0367a0f",
+      "evidence_id": "ev_3f859f55adf5bd85e5042b520af068fdb31c8b8f9533eceecab2ab413af84dda",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-wide-hook-gate-write-assembly.evidence.json",
+      "sha256": "13a40816dc0f6cb3a66e21c95d62b0c9f06b4f1cf5f1db355613af4df81211c1",
+      "evidence_id": "ev_09b0c8b933512b032ef02f3ca491c5c2b10874fc7de9eb96f10886771e7f7b6e",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-second-hook-gate-write-assembly.evidence.json",
+      "sha256": "9f2c06e576270e4115b1b4b9dc4d9b3067b8bbca9990d6ebb269e715f2dc9ca3",
+      "evidence_id": "ev_ccbd24cb3d20836d2667c0c6a7e59f639495a5d6ca9d0e8d708bf25e5d430fa4",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-first-small-gate-write-assembly.evidence.json",
+      "sha256": "c3856a5c2b867c22d09316094419bec492e6a628b3e9921b48d20084a5d7273a",
+      "evidence_id": "ev_a78b7eaa695952fdc1791401e651f5bd83351241569d732eb98c17d0b4f9f1b0",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-second-small-gate-write-assembly.evidence.json",
+      "sha256": "ad627614a30ed810bb63f063313d31fddfae64867c8955c0cc9e05c8a19514da",
+      "evidence_id": "ev_cbb67a0f2c47104d84a83f16655cf3fda63b6a210ec1e41626104f948dc5bda2",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/scheduler-phase-reset-helper-assembly.evidence.json",
+      "sha256": "8617d5714bf4577bb9a7fcb3d3274ee5468facc7ebbadb0299c2b20b8ccced00",
+      "evidence_id": "ev_63639e8bd4b2e28644d41df196ae504109cf5e1290006a659ffb91341cc9b5ca",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-4acc40-effect-assembly.evidence.json",
+      "sha256": "6ebde3257ce8b32433bc07740e824b0da5cc073044c0dbcd9a3509adfdec669d",
+      "evidence_id": "ev_6a8ad4d9748d167e483c920b827d5b457fc42786fd9940da53a15a2980774731",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-4acfc0-effect-assembly.evidence.json",
+      "sha256": "563b25732adc542be73814997dfc46d30f0868d7d5544a3287fbe98aa1c8f055",
+      "evidence_id": "ev_929b3d4794aef12ee7197e4ca0ffbbb40d59eeadb4a8745689c1cab6e693eeb2",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-first-initializer-assembly.evidence.json",
+      "sha256": "2482204476a2bb6e633b07fbf70389a66c02968d9eaa797fe8ce96d65fc0f67f",
+      "evidence_id": "ev_a9f8a9ed9417a26f8933c55c768bc0fa8265562dfb4a6533851410bad34f095a",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/scheduler-phase-reset-callers.evidence.json",
+      "sha256": "01e3ca126cca285e21f1e09a0b09e37e087192fe02dc9f6af23498fc696acddd",
+      "evidence_id": "ev_990c59096800343666e3b276faf725b191929e7dbcf79b95dc9ec10df7aa8a80",
+      "operation": "procedure_callers"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/base-postload1c8-selected-slot-word.evidence.json",
+      "sha256": "5b0b2ca23dbcdc28d96c57a9c90b389983dc9abf26d3ff86aff1c5cf6bd9d0ef",
+      "evidence_id": "ev_067d02bb10cce0807ff5fc20824312e566501e25bc20d1cf57050621e3a428f7",
+      "operation": "read_bytes"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/outer-before-load-gate-helper-assembly.evidence.json",
+      "sha256": "84de69fa3dc8120edb7973f605b433017679c15003f8c871ed741008302ed004",
+      "evidence_id": "ev_30133d1284bf558a937850d0f4be2378a924e9f95b985921c93354134fa5f8c7",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/other-full-load-gate-caller-assembly.evidence.json",
+      "sha256": "fd873f592b3bf870b4cb3bb8a1d8e3ceccc4a2ccb464034527dd0f3369e9e361",
+      "evidence_id": "ev_64279d85dd5e942b753550e83ab2f11468be056471a668057ec8c51032b318a8",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/reset-cycle-seed-helper-assembly.evidence.json",
+      "sha256": "833684933ca03626c6d9099c206917e377f6bd26a512d3b496578c0286a2a112",
+      "evidence_id": "ev_f5ffde5fdbd4016f9b10ee9e9f1cef8bf991e7287552a97051668066d32d2126",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-late-state-helper-assembly.evidence.json",
+      "sha256": "8a5a60002388864631fad0a69c60ed9a5b996a27172efb5656d9232eb44ab056",
+      "evidence_id": "ev_3acf23e04af42d547942955756b7d8b4e54f1faec8103b1e1efff87c3f773fb6",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/outer-tick-gate-first-instruction.evidence.json",
+      "sha256": "fe9edbbf904a99cafdb6ae7304294b7cb0b167492ded6dc435e552f524fdd9f0",
+      "evidence_id": "ev_bd08e149adc50f426c31a6e6b419f093d4ae2d96984dce6829b2328d65398378",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/outer-tick-phase-call.evidence.json",
+      "sha256": "719649d530650999afbbf72b8b72302d2ed1454d8a27341d5a0815fcc31a70f4",
+      "evidence_id": "ev_c28774100667387991bdb768b1f68e8d00acd33a254c844911939861833b1ae8",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/outer-tick-tail-jmp.evidence.json",
+      "sha256": "187c565eaea7e343e73b38ef4f6008cf3b8ea5d7a7ae7f4c7ec64ced8527a422",
+      "evidence_id": "ev_527453d0740f91b6bbf10c2ddb73d97efe4fe8739a80eb4dc6ee5837ea20b1a8",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/mainpool-postload1c8-virtual-site.evidence.json",
+      "sha256": "cfaa6ad005ada007b20fc7f8816672ea95b5f552972265d53a98ea8e41cb462b",
+      "evidence_id": "ev_ea66419a3b4c75bdf8a0de7e9952625b4685ee1ecc89783363b5793c7c547c0a",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/global-hook-direct-phase8-call.evidence.json",
+      "sha256": "7bc382e887dfcfcbb9f40246da41eb45ce2bb8b72c3ba068ddbc64ee95dfe0ef",
+      "evidence_id": "ev_fa36c64b3727dde15a78e40dc41f2f7711859742f57f5cc5a85b7916c8ca1668",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/global-hook-inner-mainpool-pass.evidence.json",
+      "sha256": "9d8f44b517ba0b7542784fd54fabfcbc5c781a0f7c0d293f58426fae932dfda4",
+      "evidence_id": "ev_973b1231b017d33a00a1b19fd3dbc5dab773b728d325e001043e3094c3238754",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/global-hook-clear-quota-byte.evidence.json",
+      "sha256": "e036d2180d21f1b36c9c5735f5ed47700122dc50bf60ad6393ca60857c710cd1",
+      "evidence_id": "ev_c1597a6a13e308f75ab2690a555d91757dde1a470faaa41bcf8882a9ad3c724b",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/global-hook-speed-restore.evidence.json",
+      "sha256": "784ce7821507568b8a3b502509caf432d14f147b9354d7d0c2f14f4ea89edcff",
+      "evidence_id": "ev_bcd0502114452055c12454557e5954eb687d2f3328e9bdee36e27d06e5317c91",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-413a00.evidence.json",
+      "sha256": "e3502abf4c2e0f5abb491259879dd70cfaeca6a0359b10002a83a2816b0291f9",
+      "evidence_id": "ev_39b425e27c834ee507634976dc0483a33bc20fcdff14c272610969305a300d3b",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-413a02.evidence.json",
+      "sha256": "0a4305d5680733d728ab4f9c9dfe458b1fcafb5be509fe4cc2d4eaee68ec0efe",
+      "evidence_id": "ev_7a909cc6df128f33213950db542e58bc223d308817b40e61d9d8bf3fb456824b",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da10.evidence.json",
+      "sha256": "57a95b840f4eb0936de4c9c9520ed3fcf5200899d5fc791ee8791e93671ef687",
+      "evidence_id": "ev_f297b16805b39f6fce66081de0bc7dd931c56eec9f5e206b9ddbbd62da884cc0",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da11.evidence.json",
+      "sha256": "79269c28962dae2f7b1955f9bfdc9b4e15cef807f1e9bf3f1cd96f6c33ce2abd",
+      "evidence_id": "ev_02ec9e2d9d49c7fb2ab6f72263a3aff8c2c877985b9f12f0022563875fa6016f",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da12.evidence.json",
+      "sha256": "0a5cb5a06be521a40050c028928b299b9ec7a62def6ecc7a595e495ac71c6d41",
+      "evidence_id": "ev_d4218b684e6020121a8f9bb6eb8f1109f141be34adb438d41849efeb2a58bc7b",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da13.evidence.json",
+      "sha256": "f32b4657b2bad557de61d9f75f611bac15c9b8f72a6e04a7f46b98ac9601ba06",
+      "evidence_id": "ev_9fcf5755aaec48631718210fc0a86ad233570a69e24d3a0c7bbb6934a7f89789",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da14.evidence.json",
+      "sha256": "db8425c3e0a9f9c63c78c887bf2eb7c94c5ff16bb9ce95eee2fecccf0c2ee03c",
+      "evidence_id": "ev_b60f7b74baf61e54467dec7a310aafa273c2c6c98e87843ee181095e54ef5e4f",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da16.evidence.json",
+      "sha256": "549d7acdb85093c1ddfaeff1a971dee49a12c55af2c894fe28c3ea5556dd5889",
+      "evidence_id": "ev_7ecd19d7690a516b2d9fb44725fffe7b52085344b0e62264356eb1fe0fafc551",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da18.evidence.json",
+      "sha256": "a5f67a7d9e77b9e530d597283048329e2f5e13e5ab076089022b10792d8989aa",
+      "evidence_id": "ev_3f4a4c174ce2a8a3ece26b527ce39defe00abc487ffc9a759d85094054e56a95",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da1d.evidence.json",
+      "sha256": "61c42df7602601c12fa983a8265907bfb3b5b799ddc6cee41cc6198223d1765b",
+      "evidence_id": "ev_0a8a768ad11b2a04db20ffa82548998f28a6cb193d1f9c678233c623134ba369",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da20.evidence.json",
+      "sha256": "8641e84c86fd0273b859d28a28402e23f34aa17a70fd68328f6a002495ba3ab6",
+      "evidence_id": "ev_9fa9fff725e778b98187753d8a75c8a7b23d992ee50f0df0c8fde5809745d692",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da22.evidence.json",
+      "sha256": "f4b52db1529c74a6abc555040eb6b30dc97276822391a9525915d5fc6f5012de",
+      "evidence_id": "ev_09a2e681c0ca3b7539b4f8ed708dc835b665263c5df7479c3b95a28fd37689fb",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da24.evidence.json",
+      "sha256": "08a0cb2f0f68a0ba6ac7ac290b7fbe11fda189f9058993d48cb2982616b6aabd",
+      "evidence_id": "ev_6dd847eb29eb749581a7e1e092c560070a66f87c4a63906cd0e844fed68eafeb",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da29.evidence.json",
+      "sha256": "e063fdaa2ef7627325c46c680068711602906064338ccd1fd73320aad6fbd9ec",
+      "evidence_id": "ev_b763d108f705cbf1147b7c75ee1ec2b2ba48d1e47db3a33e8383fe0644e623eb",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da2e.evidence.json",
+      "sha256": "1bb25cdd337dcb8753b3623b83dd93d3edc3401c7f9ad62e9befedd41fc87e77",
+      "evidence_id": "ev_7c1310e7c993938696bbeb5e575ff688d795b9c4045229093f157c83ba947496",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da30.evidence.json",
+      "sha256": "761db35b16389c920fccf900c486904ce15aba102c83d159d17672744e6961ff",
+      "evidence_id": "ev_9ad7e647baa4d45c2e75f318a1bec9b5cfb2872d9e8abf8ced6cc75202105b3e",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da32.evidence.json",
+      "sha256": "a770ef50e9d17ffd5704b103de238e81f6d0f0bd505c2ea0f96c48dc9c6fc8fb",
+      "evidence_id": "ev_11b16cd9f84022cb3be3ed579f8eefcd00fe4e69db64d0aa16e4c58a6b3e2799",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da34.evidence.json",
+      "sha256": "513aaf4333241cf65696734cf0c82325727852496ad95bc87f88666f28005fd1",
+      "evidence_id": "ev_6c86049e1e9adee1cc904cc7fe8fbd848c39eecd1b3e0d13f8c6484eba7c2026",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da36.evidence.json",
+      "sha256": "0490948ea47924de66a394e8f945052d608ea0d97038185d6eea30beb1623475",
+      "evidence_id": "ev_087cb7127b46e057a4ed43dca6cf9a06694acc384011f2bbcc140906d9adcf85",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da38.evidence.json",
+      "sha256": "a42e3d957b34bd5aad0ee6641eaa030b9658677f140a7e92d68be0773fbb617c",
+      "evidence_id": "ev_62931b53288ef168761d64c441a08506b527cdb7d235a7ac0920bd83411d059e",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da3d.evidence.json",
+      "sha256": "bf3625e7b39f96fd46e25c5ab3fb768cc5349bffb7f0fd588eb1a5cee483b9fa",
+      "evidence_id": "ev_c3e7af3a137b50a5e10b9ea207c9c5c04946e9d54368a9c99b690235f9fdc01b",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da3f.evidence.json",
+      "sha256": "f4c7c8a1e62745f6bd3b035a96e2e4603388a370edcd9d0ce944736d49dfadd4",
+      "evidence_id": "ev_44a81b9dc309806d7d745807f75279adab7be40ec3a052fb0c855564bb4836bd",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da41.evidence.json",
+      "sha256": "96f926897c386c3511aa12837662937e18537384d8616a4cf64428b0989a61de",
+      "evidence_id": "ev_96889297536a6fade7817aeb7723830a328ea94a624250a26b8b26f7054d59ab",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da45.evidence.json",
+      "sha256": "2b09c4aa42454b0b365402d765200da31d5dfc29aaa7f137771501a81e3065d2",
+      "evidence_id": "ev_71990c2d068ef1a1777b905b32b79403dc754f0a30f308be47f4d76279e31c9c",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da47.evidence.json",
+      "sha256": "2561c65ad8bf2e685695bfd18f55af80de4fb3dca7b0a39e4d631ea702404096",
+      "evidence_id": "ev_7e788ed6f0c4742cde076dd63e4c7d245c1325d692ac2f237fc07d56339f41ab",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da49.evidence.json",
+      "sha256": "ab4fa9e2be45e67f4ca917097c9b2b9b94d632401e0f6ccd864a2ed29b0f13a5",
+      "evidence_id": "ev_c1cae9e97aef9653c05da0138bc9f3eb1ec60e39f6451ca94d0313c3ee7e5cdf",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da51.evidence.json",
+      "sha256": "56b33f8730f386a591304c4e17dcec85083b32697d68b3eb6c22583746f770ce",
+      "evidence_id": "ev_407ccceab127a1e751a5ae5407dde96235fdfd6483fb20ca756cae6b2ed2a171",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da53.evidence.json",
+      "sha256": "ab6c69db03fc02c474d2895ed04c5a0ade4f9addc27911c5d0e935b8757cdc15",
+      "evidence_id": "ev_8365dbd3d1d0104f3ad4c94f5ea315a378e5f5dccabd5b6d712492c1182136a2",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da54.evidence.json",
+      "sha256": "f0b89642964cf3c9fbe931161dba8820ba2e4b8f96901306bed77f692f9971bc",
+      "evidence_id": "ev_966b2cea6ce5c569cbc9c43067c3d1eee57cef28b43fa8b8a783e88c268e695a",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da57.evidence.json",
+      "sha256": "291b61ba2accbb16e41f68ca2679f465c8070b2e76b5cf3659a8fb177392293a",
+      "evidence_id": "ev_979d2e2663ae7c2c62c67578d9986bd53f69a92a3b9576871b79e526dec00db0",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da5c.evidence.json",
+      "sha256": "6e1dbb447b3b9638f610c2589c896d6c41062f6e1fcf295318c15b74f97ebb2e",
+      "evidence_id": "ev_feb143006e3d4cab4317fe16ea1ba5bba3170103d3b48d8f835293d1cf4a1776",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da5e.evidence.json",
+      "sha256": "86990e279522efa8edb4238f7b2577bba2e47ec644c4fa35ab76bbd448244b99",
+      "evidence_id": "ev_5b64f1e59a6f58fd94a8976048a9601dee44280c3268f94d60247af61e03a30d",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da60.evidence.json",
+      "sha256": "76aa25db07c328fc82f344a8ce263fe59c83805aa76f67ec0acf1e3339659b31",
+      "evidence_id": "ev_8729233b9a669d4fed129e00803019f39d430c8f1c071cf57ce16af3d21888b6",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da61.evidence.json",
+      "sha256": "81c994b89ce19f7c0cb637ba8e53cd3a71e6e22b110b1c4097f5140ab29247f2",
+      "evidence_id": "ev_d86de533b77423565203f627b9e3c9637cd5e74e7266959172e8e07d231e4ad4",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da62.evidence.json",
+      "sha256": "b971ec41007c670e3b3cf3719223ffb6f441c0855174b9167fdf7e79d0a5cb1a",
+      "evidence_id": "ev_dcf19ab51028324b04bb9108db5e152c6bcbb520a0901044575dd19a66e7758c",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da63.evidence.json",
+      "sha256": "d6d86d33270b14996fc111976c93cd5b954eb8d577ff15b7c374c8701522ab05",
+      "evidence_id": "ev_3d9a2d3c42d5a6b098997c8b5c4a347f4ea019b12760c6f2ee00c3590d18cef2",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-42da64.evidence.json",
+      "sha256": "6ed44065abba34d0fad05403ae188e438baebf01671913d3300c789482de9c9b",
+      "evidence_id": "ev_7a0bfcbe21c13c260c2ee8aa050f4610e8565acb044e760f9a72af249af927de",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac240.evidence.json",
+      "sha256": "1096b03b72b41c0786e8abd31aef74ab0e37c313b57db8d0582040e78de21fae",
+      "evidence_id": "ev_86e6ba6dca1ccd7c6cace318c1d02a31a92c5e6b3917fb2e4c587cd444f66538",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac241.evidence.json",
+      "sha256": "c538d336856919b6df35ce844b6e9709b9b1c2c41ef88d9c1c00e9e7041f4175",
+      "evidence_id": "ev_460541e07b560fff4f57a2872c2ca0c511ef9d4d8989dc7b70a0f3207b7af073",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac243.evidence.json",
+      "sha256": "071b0027bb7460e08803471573ec4af5a3bd4b766c339fbc8d8a784384bedec6",
+      "evidence_id": "ev_19892f4d569a075f4387fe7b48fdc0863e9303cf14e9e03b4d3feaf0a41e38f6",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac244.evidence.json",
+      "sha256": "17fddc1ee601614eb70bef8868dd308a80e4945c737f3ec87afc2b000338fa1a",
+      "evidence_id": "ev_058cf3b45d9979b8366b773c481e10d0d894dec1d1027ecc561900f3ab2930df",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac24a.evidence.json",
+      "sha256": "5daedf4176a360ab9c41a8001643e04cc3fc4fad7a36c34e5383b2db8c01a27a",
+      "evidence_id": "ev_bd9ce869d8e4b2744da157201109327752ccf28a7a31df3847b1905156fd468b",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac250.evidence.json",
+      "sha256": "63386e8d60d33317e61aa50d0deeb3993530a30c7a3d26da0eb614e79cd2d1e7",
+      "evidence_id": "ev_ebaa39324630a793adf31bd46dbf31d9408e9985a50f4da1d872af4588c8dd95",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac256.evidence.json",
+      "sha256": "606dd24d9ccfcbb6694da2f67a5b9393156df7d25fc0d00d9fcfd6d0c5c419af",
+      "evidence_id": "ev_41079a9b6e8e3fa8ad87a261a73856291ee0f61fa64eceb02babed617f65a483",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac25b.evidence.json",
+      "sha256": "329eb56ceca8eddcab763310f8017b368b8c2d08873a204ceaa422d8bf168d0e",
+      "evidence_id": "ev_ff1cf800cfac82e06daf050a58ad019bcecc6179336906a099018f57eabdb63e",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac260.evidence.json",
+      "sha256": "bbf5d9505510b13789c546f9791c1e10105869d870c0cd63c8e4ad9ffa7672e7",
+      "evidence_id": "ev_009c92093e45087f6d87618b8b4c93b3d241f6989d68f1a7f70f5ab490235894",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac26a.evidence.json",
+      "sha256": "4e8910078098c23625b1311b52a4b837496a7c0f3e65af30c9e686825f8e5fe5",
+      "evidence_id": "ev_2ea6eb4ca087a8323f13358e8442358717337b0e37da742289337315f3fedd0f",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac270.evidence.json",
+      "sha256": "37b20cc64afd72be736d091550d3d174b55d493561c0f9ab3b3483d16c302979",
+      "evidence_id": "ev_9654d8040c0c3e65fd18c5dd42eda9cb86e72390a186dc9212f7e782587095c7",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac276.evidence.json",
+      "sha256": "9a7ea08608e4476e112f72673d2383f82be7bfde807c798eeae5be878ca2cc24",
+      "evidence_id": "ev_426700d606bbeffda2efaac31bcceaa06a6eb0c45d3729f9c15bd01d4094855a",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac27c.evidence.json",
+      "sha256": "371b20d50f4c4fe180c59cf0ea3c90f918c8ed491dab0a0a237a355f9906b746",
+      "evidence_id": "ev_9876301d5b9889b2c38bc4f85b7299cee1456a7cb715fc965af86a82be1b2125",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac281.evidence.json",
+      "sha256": "0fbe37d722458cb65b8d7c45428f385d2c1f68e9f6c9050b146b6c043b3f7d32",
+      "evidence_id": "ev_b933933d17b30c353289f6a427ccecfa7ed86a9c42d3cc97d5506c758408b73a",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac286.evidence.json",
+      "sha256": "dd3ef0f97612bc8d6d1b586f111ae5ed6e7ad0bc43b0575fb1e75a7532499a63",
+      "evidence_id": "ev_d10a49448129598e1e8d2bd74dd172db2c8d1bda7f3e9b76ce102a46291a01c5",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac288.evidence.json",
+      "sha256": "c02ab80bf69916735fb42077cc23ae9acad1853c4512f49ade86405aa7d7253e",
+      "evidence_id": "ev_d2eaf43242ba6cab6e878b9e3c7aff4ecbb40bb3e056d0c26ceb46a8a6ea4412",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac28d.evidence.json",
+      "sha256": "f50fe31330ad5ee15aacfce91e18591c6b417e57c64767f779322cafda460a8b",
+      "evidence_id": "ev_5e1b6baaca26a69b0fe300e6734892ec16232f3ee8de0fcb1cdb3dab713b90a4",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac297.evidence.json",
+      "sha256": "5fe6a62d953e25dde3d260e4f29991eb54a0804e3586411fd7457246c2b5b1e1",
+      "evidence_id": "ev_ae75e8802b4f353b8d73782d78abafea1f455573534586db76152f1a337fb47b",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac299.evidence.json",
+      "sha256": "32493cc5e41cc69603ca4d18ad6254c9b348c3c2fa93d78ea0ce985c4709ee4d",
+      "evidence_id": "ev_7639062df6e8872eeb6fc7f9bf7bdaf6a3c9169e7805fc84343de8a57b2ec464",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac29e.evidence.json",
+      "sha256": "54bf31b73a7d2a996e4e1b12bbf03444ac3b8859ce2b659cb8a564248ed73562",
+      "evidence_id": "ev_4fb1e36acdde3ad8ccdf5adcc9b652e81f1c38cd2a8de59de4e640052dd17d6e",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac2a3.evidence.json",
+      "sha256": "ae983500da7a0a205b3b2996066b6cb906532db78c870c2721144315f50202a6",
+      "evidence_id": "ev_6db74a551cd4e77991ba09efaabb27f47fcd97e45505dcf8cfd9e23a2d6dc785",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac2a5.evidence.json",
+      "sha256": "74cfa898a3175173e3b1180c2f12c87aef3878755c88e61406330c19f486c56d",
+      "evidence_id": "ev_51b25b449fc954685b05b4728c1ee3568c0b2ba7cf4a003bcf6805b24aa5df2f",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac2a6.evidence.json",
+      "sha256": "26c56a1bd63481c1fc8cbadf3ca5f74c33cd29086407c970a15522d05cacf822",
+      "evidence_id": "ev_7f37d5355c648a26e2a37ead06a6c0a31a2a49d3747da45c9ea088d814a450e4",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4ac2a7.evidence.json",
+      "sha256": "c9bbdeaf2f03825b19df44370cebd28d168ec8b002aca524aa177b645a7e6aea",
+      "evidence_id": "ev_405c9235504334003abd8c01a27e2b2d069bfd5dc6ce29fb64e83e4de17f2290",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4f8d50.evidence.json",
+      "sha256": "bd343a2f7d014bb31a82bb1ca36acce274ded7e565a0a0296dd3d52e70d53b21",
+      "evidence_id": "ev_a7e7d325cf572a17a7bb8e7d2f0af46dda13284e289f238a7527bf24e80bb455",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-4f8d55.evidence.json",
+      "sha256": "1021f8a0c9decb135e9f5c3fddc70c1f2ff003006305c189f3f02f0c332f8741",
+      "evidence_id": "ev_f5024f66d028850f235740620cfd4dc39057f0f506e0b232361b19f409aa368b",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371a5.evidence.json",
+      "sha256": "8046b4b7d8175cbc9fcecc3c5c4b057201dc21e2c8e745fed03c4163a7f8481c",
+      "evidence_id": "ev_587124ab2d1d732810189a54455f32f95bb60ac0830dd75d762a2a987bbfd8da",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371aa.evidence.json",
+      "sha256": "3034cb2cec52e5026f8d0d0cc6fc435adb8cdecb221ecdc28e47a106919507db",
+      "evidence_id": "ev_ec611cfd1bd502ce406e0cb7929b1edc2e16ea0378735cf224b051744b030719",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371af.evidence.json",
+      "sha256": "6233cc030fe342ef8aeb7353dca5c4efcda6e2ac6bbf353fcce1a46a7864f3c4",
+      "evidence_id": "ev_3dd3dabfa8d0208eff095f6f5f296392644d9a9f61d09e097d1736bd3a116532",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371b1.evidence.json",
+      "sha256": "935e1988f82a8009278072efe531b01c12fec011933df9bc7236f513cf3aa2cc",
+      "evidence_id": "ev_994c2101dee831eadcaa32389300051cf732aa84a0b5077071d1f2d47ea51e37",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371b6.evidence.json",
+      "sha256": "7462eb5965a7e5499a13d615e46018b2a4ba74858020f2a7e12639115164a7bb",
+      "evidence_id": "ev_7288152a6946747ee454a4fca40d139c6d040cdd263ef7a122160df1b319f222",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371bb.evidence.json",
+      "sha256": "084eda4fefcb9e3d56974c7d796cbd413dc785f58d593742c4e720ecaa1e4622",
+      "evidence_id": "ev_23f5b6442150de71d200187931060447a1695f7e876a5086f736251ca6175ba4",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371bd.evidence.json",
+      "sha256": "eb12b90fde6d5da52a22337602ee9735f41569a99ea439e595680a84a9d5552e",
+      "evidence_id": "ev_1a0ba54168b1db4dc17658eeb47e6c4748218b1d7f47b1fe826547afd8a4d0f4",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371c4.evidence.json",
+      "sha256": "1bf13130f5ebe8fcc5f87e11f425f0da5cba1b73b09a21d9cea89b5fbb0df4ab",
+      "evidence_id": "ev_af81f7074ee46cf370eec774bc4558bfff6ef16a5bb7446f23feb06b88d5de28",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371c9.evidence.json",
+      "sha256": "816712acdd79b76c09abbdfe2f96e3cfa876bcf538620fffe22b2dc7a29efc58",
+      "evidence_id": "ev_45d5ead196d43bdd67ef5608453ee0856204382287dc2394cc1b1b0de077416d",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371ce.evidence.json",
+      "sha256": "5575152345a645170a2314df2e7fb9aa6c6a89f7e4d97a7310125b5c35c31b72",
+      "evidence_id": "ev_bcf3fd3b193ae5235b0285de5c2456fbef02366127e0824e60e41cfb1930d89b",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371d3.evidence.json",
+      "sha256": "3aa751c4d2cb895a72973643e8418f49c8e42e40548ae26913715c169a26e4fe",
+      "evidence_id": "ev_5ff3386badc85d465b3c45ded8f21ac844c66653ee4b489312282b7838142a26",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371d8.evidence.json",
+      "sha256": "a9d85adb0decd41e8c4f8a47d2e3cd859c710ccee24d0c89a53a5e0c89e01297",
+      "evidence_id": "ev_64eabf6535186f24c1449d4b0310011f53df9289e0e8f371db6cbcdfdb7ca83a",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371da.evidence.json",
+      "sha256": "d5997be637fa2eeb475c092b711ac018c6adf6e59804f25c2972e79276960cd8",
+      "evidence_id": "ev_2fadcbee4ff606482a1130a225e92d92f3514d62e3d4d94f344c546ae922774d",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-graph-native-5371e1.evidence.json",
+      "sha256": "37bffe56999d5ba5173f775c820ef4a642ba3a9af8db9f3f5db70290eb7ac97a",
+      "evidence_id": "ev_5c62ae9be7bf41f6fa1cf336f32bf41957d85dc77b57c7461ff574e7c37eb130",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/selected-before-load-mode-switch-table.evidence.json",
+      "sha256": "ca5bb7c459a2e7c49a526e31cb302bbfefc591be45366a561389aa94a59fdad1",
+      "evidence_id": "ev_a462335005b195ade53ea571f3662214f399bde981382ae7c42a5e86bb262ea1",
+      "operation": "read_bytes"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/other-load-post-read-reconciliation-assembly.evidence.json",
+      "sha256": "31cfd2bd5882eb9e5d158ad643e8e43cc75c9c392f50cd2fa5e74a941048ea0f",
+      "evidence_id": "ev_863d4087aa0245d0c172be71331694713fb62e1f54d69b5365e874f5bb8db35c",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/reset-followup-local-effect-assembly.evidence.json",
+      "sha256": "fef3f8a298911d8771e64169fe4c3bed137e26a72d4ce80aa8978267d3ebb78a",
+      "evidence_id": "ev_6522a9fe617580274b2c373fbb475db93e0302534a086cd41c5acfbd53465337",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/before-load-owner-getter-assembly.evidence.json",
+      "sha256": "8f5cdcb4b7a359ba674e37f85c5ce7690528c5891052c30ab7be72a15306748a",
+      "evidence_id": "ev_c0546c6edca31199203f0e80ab57625352958c1bc801de62a9486b3bc2aa8246",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd40.evidence.json",
+      "sha256": "4009f6699a1ac03482441ef5a95200c5c1d9148ffc8b72ad666941c7c1c86974",
+      "evidence_id": "ev_3625162d05908cf28df54a54768874a65e92fa54d0837638eab270798de6bf8a",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd42.evidence.json",
+      "sha256": "514b86a3b4bea7a713d2cdd74ab9bf4e84fbc230a62a48b67da05af4ff69755c",
+      "evidence_id": "ev_5b9ad0bf8f8ef3589612ef016d61ffdd8b5ce8c99a5ad4800bc28c2de068adcd",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd47.evidence.json",
+      "sha256": "f707e65dd9b2fbc1e0ddda334f6e3012b03db9b5c6de237be682b0e6a2fdce64",
+      "evidence_id": "ev_03592fa44b07a421260d629b676dff33d2e9224452de40dc09500c5f34887991",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd4c.evidence.json",
+      "sha256": "f07e86b10f87aa100b41e7ae9b09da0e7d9b11a9efb70069c1a342106349a94a",
+      "evidence_id": "ev_f4537871587fdc8c87c21c4099d04a495aaaf16d50a1a76f6a798bdd64f64d59",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd51.evidence.json",
+      "sha256": "6dd518523cb0781ef729513ff1c60d1c9f1d3cc85bf44f7e26e034bbe7939f6d",
+      "evidence_id": "ev_89a6d0c77d4c21dc2dd439d56db4303789ec9a55b09952114f27f4c81c2084bf",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd56.evidence.json",
+      "sha256": "16ac95168973d319280bb24e0f1a17776d3e91d307f22b048b5cfe1f2079a9de",
+      "evidence_id": "ev_9364417a36677327531fcf9c9c3a5f6e43c52fc17270e912dfede76c8b32c76a",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd5b.evidence.json",
+      "sha256": "59980e4244a04703240dfd2468dc247947164eb2cc328e61e36a8d612a5c42d3",
+      "evidence_id": "ev_2c536715e27fdd9a196a3ec4aff89a7ad1f6983090e7a1ad8be88522dcfe70f7",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd60.evidence.json",
+      "sha256": "26b9126321ccc02217d69dd902ea6c9e9eff2d47c0a7742616cea29a5ed07cf6",
+      "evidence_id": "ev_c2df15a643198b5488532690dc31fede9357699e099c984099c16294683c4139",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd65.evidence.json",
+      "sha256": "5088f12cdc24c0277703a42c332232a678474d055e92cd70c23efa8a3ef3ea6d",
+      "evidence_id": "ev_3fabcd0ee224ce92b270aef0b15d894bf48cfa5c203bd8e27fcefd75cedb72cb",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd6a.evidence.json",
+      "sha256": "209d83803d7f3f4d696ac7431f0711c83e90dcf3056ed5d2f742724d4f85c1d8",
+      "evidence_id": "ev_a6f7fe89047d7c0c687d35267e68cda6a0b0744a5cb823308c29629b44a0d855",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd6f.evidence.json",
+      "sha256": "00ddfafb551c115e7d5250b9c351c02e3e95da3e654a6cf13a7487c50ae0a4ef",
+      "evidence_id": "ev_dfb56f97447c09e8b34a7ce45196ad20d5ada5160d91cf1b380f8b89ca8ae32c",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-4afd74.evidence.json",
+      "sha256": "2aa72a8e329783fc7422ac54382e3b8eea16eb0914225ae3fa5d80366bfe648c",
+      "evidence_id": "ev_5d64126ad87e7171df109727d2af645935035bed32e1ccb0beaba01aa807dba0",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-436560.evidence.json",
+      "sha256": "3ac07a2fb7d5b375bc23d1893e3cf5aa57ac89049088235f5a2c23a2ff60e959",
+      "evidence_id": "ev_7ac3182e24942f6c6a6d50c25c8ab4c5c00fda04188854936e4897d7d00cb4c4",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/postload-final-native-436565.evidence.json",
+      "sha256": "9c85c2e3bf0762e623a68f4d81c41cbc11df86f1a864300bb772304f3c11413a",
+      "evidence_id": "ev_0f832d803c5a9a6a559bc5672813103bbee123e03b2fcf046c5c2021ea59c1ce",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/before-load-mode0-gate-zero-store.evidence.json",
+      "sha256": "f176141b40a36eacdc19cb64012b1ba18ac2a8ba1c918220f36f180069c0ded2",
+      "evidence_id": "ev_f933ad77fcbac9bbc2e0f8593006687da5f2a56495eab57bbb49ee2bedc29c7e",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/before-load-other-mode-gate-one-store.evidence.json",
+      "sha256": "a9c0399ba7f41af7c64e6176db0ebbbc46c0bc2a2a6e969ce09c18b828ac8037",
+      "evidence_id": "ev_81603a27241827a0de98b30aefed65cdbb5097037f4ce740d68213353abf239c",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/other-load-gate-zero-store.evidence.json",
+      "sha256": "0d1b1d475a59ffa2d660002152d5a6e8b2c93704216643e7c5fef5c2ebeee16c",
+      "evidence_id": "ev_488d91452493f9666db4208e23fef255a74548100a3b98034419832ed7bfb73f",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/other-load-initial-owner34-guard.evidence.json",
+      "sha256": "d9f1eaa43cdd0856d2e3bae6db8c09948434a4f6304c8f910bd9035c558fadb9",
+      "evidence_id": "ev_5efd9dc9aeaf0dbd013afb6042eb4869f1bde5e9e8c15e8626b8b26c444fdd3d",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/other-load-later-owner34-guard.evidence.json",
+      "sha256": "a0a774168d78d331eb12bf3de84475fc8be4ccb5c7d63fc24bcafca540daf336",
+      "evidence_id": "ev_738979c7cce42cf18b6038f8b58f364de0db547be09b572a556a807733cb0af8",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/other-load-conditional-phase-reset-call.evidence.json",
+      "sha256": "3114fdefad74a853483cd98b16577bab53bf0225475a4ac131dff9bf44509ef2",
+      "evidence_id": "ev_0241326f036027779b3fa071f72a0e41e9461eb794090cdbe7ca2aca23eaf49f",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/other-load-after-read-mode-one-store.evidence.json",
+      "sha256": "ff19e081e920d019c5524df6d87fe268156642e0f07a3bd6a057b62202bf824b",
+      "evidence_id": "ev_1e3fd8714633bd7c8a50072bb5a0fefbe3d37944371872bd614a0fb5b63b725e",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/selected-outer-after-load-mode-one-store.evidence.json",
+      "sha256": "ef892b9ebc39064844b137e282776c148818e02613ae5ff09d81b2c37c62f46f",
+      "evidence_id": "ev_03301ec75012d830163b3e03cd640dcb7fec627a43d69383643b4ef500289759",
+      "operation": "inspect_native_instruction"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-full-scheduler-20261011/outer-loop-entry-assembly.evidence.json",
+      "sha256": "b61772306c39695d3dff615bd45cf525f3338a7beac8d00fd754b79b103dbcfb",
+      "evidence_id": "ev_40a8e290c0b2612038cdd06540be01c2efdcbb6288c7e19c44eccfb8b74234f0",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-full-scheduler-20261011/outer-refresh-budget-assembly.evidence.json",
+      "sha256": "86bacdad106d0c7e9e75fcbea3f33bf69d793ac283805965a015dffec71eab55",
+      "evidence_id": "ev_f956118e2ef74c1fd60fda3965767b4959a674ae5f02c2f648ebc6db76e57306",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-full-scheduler-20261011/outer-mode-block-check-assembly.evidence.json",
+      "sha256": "6f07300dd62d435d411718bc0214980dafedb381e333188a28f124440c3617d8",
+      "evidence_id": "ev_91f6b4b65bb78b3a6ae0935785113d87c26df29bea1ac86dd3f722ec34215aa8",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-versioned-city-load-20261011/city-file-load-caller-assembly.evidence.json",
+      "sha256": "502661e66d7e4069ae363be0e11b7719698442f5a70fcf410b3c8a876be4e671",
+      "evidence_id": "ev_c55723e44c18cf3d8c4c1c1b9184852f15d31326b8a67dfa1d01e89114539058",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-versioned-city-load-20261011/city-full-read-file-caller-assembly.evidence.json",
+      "sha256": "bd45e1ed817afa413a3aedd1b8efa340bdcbd68756225f80a8bff7f97cccc47b",
+      "evidence_id": "ev_cfe705197dc1e082f756b292a722860725aace1ddf265bb4f7c565295f423c75",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-full-scheduler-20261011/outer-step-quota-assembly.evidence.json",
+      "sha256": "dfe7ee0a01259f5ef63c0d43a2316ff69e69bde9611be5a74e902fd105a50206",
+      "evidence_id": "ev_5208d578f622fb144461e847157f8c264f9998aa9c0307eec8eac0b1e007c09d",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-full-scheduler-20261011/outer-iteration-followup-assembly.evidence.json",
+      "sha256": "2a9b106c8ea7d55de62052d3f3afcf4844e9157dad69e1cf35b26d0d645c3ef2",
+      "evidence_id": "ev_816372712bb86c38642db31c52258e400057185b3e420616df5d03f4a8b7ee4d",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-final-source-20261011/pool-index-slot-assembly.evidence.json",
+      "sha256": "e5b318aa77514657ab9331b9b7c0099621390316585c42784475e2a92f87a47e",
+      "evidence_id": "ev_73652e466973ed0361ccecfd139bc81098eacd6298b3346be65551385ae2f201",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-init-slots-20261011/phase8-receiver-assembly.evidence.json",
+      "sha256": "ccc71dbcb1d05bc4118cc855d4c5dfcfaab76b8d5ad0cd801c4779476ccc9c8b",
+      "evidence_id": "ev_9cc84457c2e88d361e2e040a3e1546e0a43b71327edcb053a86ad4aa835e12e0",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-abi-20261011/container-size-assembly.evidence.json",
+      "sha256": "530735a156d511f0c582058bb161ccb2251bc7639f0b87661ba783f78bf7fdc9",
+      "evidence_id": "ev_f23a7d078169f6744b9fc04bd125bd046d4521b9244805e9e0061eac8955d1c4",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-full-scheduler-20261011/scheduler-empty-phase-nine-assembly.evidence.json",
+      "sha256": "a8a750fc6bc6f6beb49110cc6696b7e0c3511324d02155b10dfa7883e59810a1",
+      "evidence_id": "ev_3ad024cb10ffbc23c1c48e1697e7a5f66c4e3517dc9911d29cb61dd1ee90d102",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postregistration-listing-20261011/selected-virtual90-related-413a00-assembly.evidence.json",
+      "sha256": "d1a03752134424f3d11adf2b0d8d06cd8b9a5607227ef2463f988c9d27c77bd4",
+      "evidence_id": "ev_7e4628d553eb060d431e6e1adb2675c07fce50a38a64f7b1c55f0baa37842b96",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-final-source-20261011/pool-index-failure-assembly.evidence.json",
+      "sha256": "76b789ba878265a2047a1b5cfd4448658fecd054b86ad3994691732f6b585610",
+      "evidence_id": "ev_b0dff412e328e9ea38d523974490e53207584794c571d7c82a48d9cb4ed6e59e",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-abi-20261011/container-data-assembly.evidence.json",
+      "sha256": "c8726a545b7bebb65cc562e0b35801ce8ec48b34526bc859f1bb78fbfd95f7ac",
+      "evidence_id": "ev_e366e7bfdc6b347527286d4962b6ecfafca8d66af0fa7596a1436875d3586e68",
+      "operation": "procedure_assembly"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-full-scheduler-20261011/outer-time-threshold-table.evidence.json",
+      "sha256": "f6cc9680620f139be38c4e1287b7d34e0e7e7dd4ab9ac2830cf722d05042b2d8",
+      "evidence_id": "ev_91a1ca511166db6cdafd4e823c6b287d8adab455f820abba9217089d4d0921aa",
+      "operation": "read_bytes"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/source-closure-checks.json",
+      "sha256": "93e35209869fe011bc72410528aebdb4b1c50a20d883eaeeaf9f34b1ef6d013f"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/session-result.json",
+      "sha256": "5c2a950b3a3efa3a24110c88c2606ba1b622cce43f10370fca19aa215c859b90"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/session-status.json",
+      "sha256": "57fec7ffa394997d6aa76dd52607080de957475546509050471a8a5598485c42"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/load-return-and-refresh-order-contract.json",
+      "sha256": "8a60b65e102bf915a758835e67b36a4ca26ff0bec2722e5383009f75dc757d10"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/selected-normal-graph-query-plan.json",
+      "sha256": "3ed361675f0155bc56aea1ab5225a17bf83e93c1b9d91bbf9804b920e3ba9576"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/final-selected-helper-query-plan.json",
+      "sha256": "8b020652cff2b0b9ebd359c61ff19822ae9912412bc045f3e6554d2f885caf1d"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/configuration-review.json",
+      "sha256": "796569303e71b918b13429638bd189cc35e8292b7681fe04f9990594c4bb4353"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/independent-review-update.json",
+      "sha256": "2ebc308b4a3c1c5db835b5507ed88646d9a37ec9b2fd80cd1c7bcd7dcfc8bc13"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-42da10.json",
+      "sha256": "9ff5a0a2ef1b532e2ea8201288efe85c60577e0cb69cb711fced0b240148941f"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-5371a0.json",
+      "sha256": "ab62a9aa8ed7d6390026822fe890dda4cb2519e2682441fcb17e07ae2238b247"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-4ac240.json",
+      "sha256": "0355cf0432f56ccb6dcb80525047b0cdab09e0c5f35401c477aae8556616713a"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-4f8d50.json",
+      "sha256": "0b3d93d55912987865945a66835ba0ab5521899311cf9feb71696e933331382a"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-413a00.json",
+      "sha256": "ef80b90351daf82a4897de0ef4890090d4d472715c7c0f506fdfea29d0ae3edf"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-4afd40.json",
+      "sha256": "8ff6edbefbdacb662eb72968feb0fef0f7b9680aa1e3b8e7f907f53546a55e5c"
+    },
+    {
+      "local_evidence_ref": "local-evidence:rea-static-postload-scheduler-gates-20261011/normal-cfg-436560.json",
+      "sha256": "cce9d481211fd70e76608cf3921bcc9d20b1e0cc26fc70d0afba5752c2f9dcfe"
+    }
+  ],
+  "runtime_binding_created": false,
+  "target_execution_performed": false,
+  "execution_allowed": false,
+  "new_semantics_independently_reviewed": false,
+  "publication_authorized_for_this_increment": false
+}

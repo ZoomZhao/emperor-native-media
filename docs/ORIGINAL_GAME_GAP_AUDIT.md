@@ -82,3 +82,7 @@
 ## 文件成为局部可调度状态的来源（2026-10-11）
 
 [版本载入合同](ORIGINAL_VERSIONED_CITY_LOAD_CONTRACT.md)补534a30实际文件读入口、城市19/池1/类schema0/基类字段5、构造默认值被输入覆盖及主池追加/条件hook。版本19读取调度phase和周期计数，不能无依据从0重新开始；serialized Ob4与slot对应仍未证明。下一步是534bf0/42da10读后作用、文件逻辑位置/buffered及双编号/append失败，见[handoff](ORIGINAL_ROUTE_HANDOFF.md)。这是获准原源纯静态证据，未执行原或派生游戏、未读GameData，不由自写测试替代实际加载或调度启用。
+
+## 载入返回不等于新状态已调度
+
+[读后原源](ORIGINAL_POSTLOAD_SCHEDULER_ENTRY_CONTRACT.md)表明534bf0已经直接消费4aeeb0并执行主池postload；下一次真正分派另需quota与gate/hold条件。42da10实际flag筛选1/3/6，phase reset外层周期为1，且reset有独立分支。写后传递覆盖、derived方法/槽存活、owner34两次guard仍缺；loaderEAX被忽略，mode1也不证明输入成功。当前为本地可复核增量，5587fb5精确八文档推送待批，不扩大运行范围或发布授权。

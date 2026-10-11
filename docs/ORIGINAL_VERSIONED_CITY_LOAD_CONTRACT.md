@@ -65,4 +65,8 @@
 
 会话135请求/134 Evidence/1 NoProcedure，30个procedure地址、91个native锚点、131选定数据字节；exit0/866.267秒，输入身份和18对官方模块SHA不变，临时项目空。自写reader因事先90指令限额exit1，未请求第91条；保留partial后抽取既有22条raw条件子图，未扩大限额或强建函数。NoProcedure/reader上限不是审批安全拒绝，也不是游戏测试失败或通过。
 
-697c4b0独立复核48组通过、0项新增语义失败；此前36627d9普通推送经标准复审成功解除，当前无待审批。**本报告新增语义未独立复核**。[证据索引](original-versioned-city-load-evidence.json)列固定SHA/ID与条件，不上传原文件、完整汇编或工具。不读GameData/旧Swift，不运行原/派生游戏、SR/Unicorn/Wine或历史被拒执行/转换；全部运行绑定继续DENIED。
+697c4b0独立复核48组通过、0项新增语义失败；此前36627d9普通推送经标准复审成功解除。5587fb54提交后的普通push两次预执行自动复审拒绝、均未执行，仍待用户明确目的地与载荷授权；本地未发布。版本载入语义已独立37组通过/0新增矛盾，原提交待复核字段保留为当时快照；本次新增读后合同尚未独立复核。[证据索引](original-versioned-city-load-evidence.json)列固定SHA/ID与条件，不上传原文件、完整汇编或工具。不读GameData/旧Swift，不运行原/派生游戏、SR/Unicorn/Wine或历史被拒执行/转换；全部运行绑定继续DENIED。
+
+## 后续读后闭包补充
+
+[读后与首次分派条件](ORIGINAL_POSTLOAD_SCHEDULER_ENTRY_CONTRACT.md)补534bf0直接消费4aeeb0、内外两处42da10/+1c8及gate/quota/mode写站点。4ac240的正常reset是三个零加外层周期1，限另一明确分支；未证明每个版本19读入后均reset或保持输入phase。载入返回值被外层忽略，首次新状态分派仍取下一次入口/配额/门控。当前推送状态见[handoff](ORIGINAL_ROUTE_HANDOFF.md)：5587fb5精确八文档发布请求待人类审批，新增范围未包含。本段不把静态源读取当真实加载通过。

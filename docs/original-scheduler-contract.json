@@ -6791,7 +6791,16 @@
     "review_sha256": "ce5515cb1f5ad0e10b62e8ccfc6c76dfd82592e336b9680d282bd9a74f7e3090",
     "normal_cfg_nodes": 383,
     "historical_review_receipts_preserved": true,
-    "current_city_load_contract_reviewed": false
+    "current_city_load_contract_reviewed": true,
+    "versioned_city_load_5587fb5": {
+      "commit": "5587fb54d5f0be4e68c03620c9261e04338bd312",
+      "passed_groups": 37,
+      "failed_new_semantics_groups": 0,
+      "status_reminders": 2,
+      "review_sha256": "70a1655ec729e10dc95a07bde798246576b6274be5b9d9c15dc54a78ee323b4e",
+      "publication_patch_sha256": "2ba9c4d5b5e9c5012fa5207148c5db73b0c6cdb4226d2bc72e584eee381d971a",
+      "current_postload_reviewed": false
+    }
   },
   "original_callback_lifetime_evidence": {
     "manifest": "docs/original-callback-lifetime-evidence.json",
@@ -7014,6 +7023,248 @@
       "original_or_derived_game_executed": false,
       "runtime_binding_created": false,
       "new_semantics_independently_reviewed": false
+    }
+  },
+  "original_postload_scheduler_entry_contract": {
+    "document": "docs/ORIGINAL_POSTLOAD_SCHEDULER_ENTRY_CONTRACT.md",
+    "manifest": "docs/original-postload-scheduler-entry-evidence.json",
+    "proof_class": "Original source-only post-load object/global hooks and conditional subsequent scheduler admission; no actual loaded state bound",
+    "baseline_load": "534a30 ->mode1/arg0 archive ->city19/pool1/Building schema0/base fields5; prior contract conditions retained",
+    "mainpool_hook": {
+      "entry": "42da10(W8c7630),36-node normal local graph",
+      "cursor": "413b40(W,1) returns begin+4 under source conditions; may resize through413b70 if count<=1; initialcursor capture is not unconditional read-only walk",
+      "indices": "EBP starts1; unsignedcount>1 guard; rawEDI increments4; count554c00 reread after eachiteration; no visit toslot0 under stablecontainer",
+      "selected_admission": "426d10(O,0) accepts exactbyte1/3; otherwise explicitO4==6 also admits; notbit0 andnotanynonzero",
+      "effect": "currentO vptr+1c8(), return ignored; stable base7ab59c slot+1c8=413a00(XOR AL,AL;RET) doesnotwriteO fields",
+      "two_sites": "534bf0 inner535024 then534a30 outer534b80; interveningcalls canchangeobjects/root/count, nottwoidenticalruntime passes proved",
+      "serialized_b4_equals_slot_proved": false,
+      "actual_derived_1c8_binding_and_effects_closed": false,
+      "raw_cursor_object_lifetime_and_reallocation_safe_proved": false
+    },
+    "global_postload_hook": {
+      "entry": "534bf0,explicit Listing and directcallee list captured; notalltransitiveeffects closed",
+      "phase8_helper": "directCALL4aeeb0@534ec4; same helper asphase8 dispatcher; conditional loaded record/mainpool consumer, no phaseincrement implied",
+      "speed_write": "if408ac0 owner+10 predicate4fae50 zero,534c8c loads10de120 and534c91 writes10de0dc; actual value/currentowner conditions unknown",
+      "quota_byte_write": "534f1a storesbyte10de0d0=0;28 laterCALLsites retained as coverage frontier; zeroatwrite doesnotprovezeroatfirsttick",
+      "literal_phase_reset_call_in_this_function": false,
+      "computed_f8": "10315dc record lookup andcurrentvirtual+f8 testedAL; rawreceiver/currenttarget/lifetime unbound",
+      "other_selected_object_calls": "4acfc0 conditionalcurrent+84;4acc40 current+98;5636b0 current+1ec; actualtarget effects unknown",
+      "post_write_value_persistence_proved": false
+    },
+    "phase_reset": {
+      "entry": "4ac240 normal24 nodes, complete selected helpers4f8d50(2),4afd40(12)",
+      "normal_return_values": {
+        "c82ef8_phase": 0,
+        "c82ef4_total": 0,
+        "c82ef0_subcycle": 0,
+        "c82eec_outer_cycle": 1
+      },
+      "conditions": "valid disjoint flat storage,DF0,selected originalnormalhelpers,normalreturn; not actualOS/runtime observation",
+      "reset_is_every_load_policy_proved": false,
+      "direct_callers": [
+        "42e6a0",
+        "4fb530",
+        "5d1400"
+      ],
+      "selected_other_caller": "4fb530 initialEBP34!=0 chooses534a30@4fb73a; laterEBP34==0 guard@4fb7d5 reachesreset@4fb862; interveningcalls mean guardstability notproved",
+      "initial_later_owner34_equal_proved": false
+    },
+    "gate_and_mode_writers": {
+      "selected_outer": "536b20 stores10c6f60=0 before42e430;436560 fixedgetter no statewrite;switchcase0@42e473 writes88ec38=0, then5a6980 andoutercalls mayoverwrite",
+      "switch_other_case": "fixed42e59c index2->42e4ec reaches42e508 store88ec38=1; cannotblanketdescribehelperasgateclear",
+      "other_load": "4fb530@4fb60c writes88ec38=0 before branch; normalreadbranch4fb753 storesmode10de045=1; commonjoin4fb779 storesspeed10de0dc=70",
+      "selected_outer_after_load": "536dff stores10de045=1 thenreturns536e2a; currentloop5371a0@536bc0 isbeforeloader@536d37",
+      "loader_return_ignored": "534a30 openfailEAX1,normalreadpathEAX0;536d37 and4fb73a callers do notcheckloaderEAX; laterALtestafter536d37 comesfrom40ff40",
+      "mode1_implies_successful_load_proved": false
+    },
+    "first_possible_next_dispatch": {
+      "outer_source": "next536fe0->536b20(1),orotherauthorizedcurrententry; caller475b00 identified,actualtrigger notbound",
+      "quota": "53a130 timeGetTime/currentprevious115f540,speedindex/threshold/mode/pauseguards; positive10000 allowsloop5371a0,notnumberofphaseadvances",
+      "speed70_example": "if later70 persists,index3 andtable55+2=57ms; signedclocknegative substitution/otherguardconditions retained; no measuredclock claimed",
+      "first_inner_gate": "5371a0 calls4189b0/529990/5ef190/5eff20 beforetestingcurrent88ec38; currentzero at5371b6 allowsCALL4ac2b0@5371bf",
+      "phase_hold": "4ac2b0 originalowner/flag/signedhold prechecks mayearlyreturn; loadedphase readconsumption requiresthoseprechecks pass",
+      "tail_gate": "afterphaseand466e90/4e27e0,88ec38 reread@5371d3; ifzero actualJMP564b50@5371dc,noextraCALLframe despiteproviderCALL_TERMINATOR",
+      "actual_first_new_state_tick_observed": false,
+      "all_transitive_gate_effects_or_complete_load_closed": false
+    },
+    "post_write_unclosed_calls": [
+      {
+        "site": "0x534f21",
+        "assembly": "CALL 0x004eb850",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f26",
+        "assembly": "CALL 0x0054f070",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f31",
+        "assembly": "CALL 0x00480740",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f3a",
+        "assembly": "CALL 0x00480d30",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f41",
+        "assembly": "CALL 0x00480d90",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f46",
+        "assembly": "CALL 0x0040e630",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f5f",
+        "assembly": "CALL 0x005dc860",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f64",
+        "assembly": "CALL 0x004aeb30",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f6a",
+        "assembly": "CALL 0x00480740",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f71",
+        "assembly": "CALL 0x00480b40",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f91",
+        "assembly": "CALL 0x0053c510",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534f98",
+        "assembly": "CALL 0x0053c550",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fa3",
+        "assembly": "CALL 0x0053ab40",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fb3",
+        "assembly": "CALL 0x00449260",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fbf",
+        "assembly": "CALL 0x005c3460",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fcc",
+        "assembly": "CALL 0x00495610",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fda",
+        "assembly": "CALL 0x0055f120",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fe2",
+        "assembly": "CALL 0x0055d1c0",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fe7",
+        "assembly": "CALL 0x00480740",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534fee",
+        "assembly": "CALL 0x00481ed0",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534ff8",
+        "assembly": "CALL 0x00535960",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x534ffd",
+        "assembly": "CALL 0x005d3cb0",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x535002",
+        "assembly": "CALL 0x004acc40",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x535008",
+        "assembly": "CALL 0x00447680",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x535024",
+        "assembly": "CALL 0x0042da10",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x535029",
+        "assembly": "CALL 0x005253a0",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x53503e",
+        "assembly": "CALL 0x005aca50",
+        "transitive_effects_closed": false
+      },
+      {
+        "site": "0x535045",
+        "assembly": "CALL 0x005acb80",
+        "transitive_effects_closed": false
+      }
+    ],
+    "previous_independent_review": {
+      "commit": "5587fb54d5f0be4e68c03620c9261e04338bd312",
+      "passed_groups": 37,
+      "failed_new_semantics_groups": 0,
+      "status_reminders": 2,
+      "review_sha256": "70a1655ec729e10dc95a07bde798246576b6274be5b9d9c15dc54a78ee323b4e",
+      "publication_patch_sha256": "2ba9c4d5b5e9c5012fa5207148c5db73b0c6cdb4226d2bc72e584eee381d971a",
+      "current_postload_reviewed": false
+    },
+    "source_proof_checks": "seven normal local graphs95 nodes matchofficial nativeListing and edges; originalcalls treatedasconditionalnormalreturns,looptermination/OS exceptions unknown",
+    "runtime_binding_created": false,
+    "target_execution_performed": false,
+    "execution_allowed": false,
+    "publication": "localincrementonly;5587fb5 exacteight-doc push awaits human destination/payload approval;thisbatch has no network/push retry;newrange not automatically covered"
+  },
+  "original_postload_scheduler_entry_evidence": {
+    "manifest": "docs/original-postload-scheduler-entry-evidence.json",
+    "batch_outcome": {
+      "batch": "rea-static-postload-scheduler-gates-20261011",
+      "provider_requests": 140,
+      "successful_Evidence": 140,
+      "provider_errors": 0,
+      "queried_procedure_addresses": 24,
+      "native_anchors": 107,
+      "selected_read_bytes": 32,
+      "exit_code": 0,
+      "elapsed_seconds": 670.969,
+      "input_identity_unchanged": true,
+      "official_module_pairs": 18,
+      "temporary_entries_after": [],
+      "normal_local_graphs": 7,
+      "normal_local_graph_nodes": 95,
+      "original_or_derived_game_executed": false,
+      "runtime_binding_created": false,
+      "new_semantics_independently_reviewed": false,
+      "push_attempts_this_batch": 0
     }
   }
 }

@@ -1,17 +1,17 @@
-# 完整原版路线 handoff
+# 原版静态路线 handoff
 
-本批出版基线697c4b09031e92b2dfb140f44006743db6d10e1a；该提交独立复核48组通过、0项新增语义失败，8份正常CFG383节点来源/边被核。旧3a44/0及c0/c82历史失败收据保留。当前版本载入合同尚未独立复核。
+本批在本地5587fb54d5f0be4e68c03620c9261e04338bd312基础上补[读后与调度条件](ORIGINAL_POSTLOAD_SCHEDULER_ENTRY_CONTRACT.md)。5587fb5的八份静态文档push两次在执行前被自动审批拒绝，已向用户请求精确origin/main与载荷授权；本批不再次push或换渠道。最后获准只读远端核实为697c4b0，先前366/697成功收据保留。新本地增量未自动包含在5587fb5的审批请求内。
 
-[版本化城市载入](ORIGINAL_VERSIONED_CITY_LOAD_CONTRACT.md)已经找到534a30真正读文件→mode1流→533f20强制第二参数0→52fda0版本19→主池42d790的源链，分开城市段19/池段1/选定Building schema0/基类字段段5。534880是写出；4fc040读文件但参数1只走前部；52e7c0的主池站点也属于写出，不能混作主池加载入口。
+版本19流读入的phase/计数来源合同仍在[版本载入](ORIGINAL_VERSIONED_CITY_LOAD_CONTRACT.md)。534bf0读后直接CALL4aeeb0并内调42da10，534a30外层再调42da10；+1c8筛选为flag精确1/3/6，选定稳定基类callee仅AL0/RET。派生callee、raw cursor/对象存活、Ob4与slot关系仍未闭合。
 
-类tag/名字长度校验、构造→流cache先登记→virtual+8字段读入→主池append→条件+c0的顺序已连上。字段版本5有83个请求，包括flags/type/51/62/b4/GUID；Ob4仍来自输入，不等于循环slot的证明。选定基类+c0通过+150AL0跳过另一索引集合，不是设置flag。版本19还直接从S读入c82eec/c82ef8/c82ef0/c82ef4，连接到phase/周期消费者；没有“统一从phase0开始”的原源依据。
+新原源显示速度/配额byte/gate/mode明确写站点，4ac240正常reset为phase/累计/子周期0而外层周期1；但4fb530两次owner+34 guard间存在callee，不可假定稳定或所有读入都reset。所选外层loaderEAX被忽略、当次tick在载入之前；首次新状态分派须下一次quota>0和当前gate0，原hold guard仍可阻止phase消费。
 
-原文件读取方法447e00未登记procedure；保存错误后以90条有界Listing补证，F1e0的22条raw子图闭合到ReadFile，buffered另有4条缺失边。self-reader到声明限额exit1；官方会话135/134/1、exit0、输入与18对模块不变、临时根空。上限/NoProcedure不称安全拒绝，查询数不称游戏通过数。
+七份正常局部图95节点（42da10=36,5371a0=17,4ac240=24,4f8d50=2,413a00=2,4afd40=12,436560=2）逐条匹配官方native Listing，CALL只视正常返回、5371dc真实tail JMP不当CALL。140/140/0查询/Evidence/错误，exit0/源与18对模块不变/临时空。当前新增未独立复核，5587fb5已独立37/0、两处发布状态提醒已核实并在本地增量修正；697c4b0独立48/0保持。
 
-下一步沿一个具体原源闭包继续，不重做声明校验或媒体验收：
+接下来优先一个明确原源闭包：
 
-1. **读后hook→调度门控**：534a30读后534bf0、42da10(8c7630)，核它们是否改写Ob4/slot/root/flags及c82ef8/counters，连接536b20/5371a0门控生产来源。通过标准：正常/异常边、ABI、写集合及实际存储/消费者具固定Evidence，保持未绑定的live实例/时钟/当前gate条件。
-2. **文件包装位置与buffered闭包**：447c90的448280、root+58/+60候选447c70/447d30及447e00剩余447e93/447e59/447f2b/447eca，从已有90条补缺；核4字节头部后的逻辑流位置、短读及缓存生命周期。通过标准：不混物理file offset和逻辑S cursor、全部选定路径/错误出口和buffer写来源明确，未展开解码保持Unknown。
-3. **对象/主池双编号与append失败**：流cache77b37e及主池5c1670 allocation/copy helpers；选一派生类完整+8/+c0，核序列化Ob4是否另被post-load改写。通过标准：计数/缓存ID/实际slot与字段关系逐项有证，不能用类名、初始4000或缓存fresh假设补绑定。
+1. **后续覆盖到首次门控**：534f1a后的28 CALL、5371a0前四helper及JMP564b50。通过标准：phase/quota/gate/clock写入和当前读取之间的传递副作用、ABI/异常边有固定证据；未绑定实际时钟/入口475b00/live状态仍Unknown。
+2. **选定派生postload方法**：+1c8、+84/+98/+1ec的一个实际候选类，核slot/Ob4/flag/root/重定位。通过标准：明确receiver/root来源及写集合，不能把基类no-op推广到派生对象或以局部无free当保活。
+3. **owner34与reset时序**：4fbcc0传递callee及4fb530两个guard间写来源；补normal/exception路径。通过标准：每次guard值来源及reset触发独立证明，不能从同一字段名假设它未变。
 
-先前[回调生命周期合同](ORIGINAL_CALLBACK_LIFETIME_CONTRACT.md)保持：5ad440仅缺存活证明，不称free/UAF；Q+274/+cc及P150写、特殊heap、OS异常/handler/退出重入仍Unknown。当前无新审批项；36627d9普通push原阻碍经相同命令标准复审一次成功解除，697亦已成功普通push。运行范围不扩大：不执行原/派生游戏或转换、SR/Unicorn/Wine，不恢复历史具体被拒差分路线，不读GameData/旧Swift、不操作UI/声音设备。当前合法静态工作仍有明确入口，原版完整自然运行/graphics/audio/video消费仍未通过。
+先前文件buffered四缺边、双编号/append失败、回调Q+274/+cc/P150、OS异常/handler/退出重入仍保留。所有运行binding DENIED，不运行原或派生游戏、转换、SR/Unicorn/Wine或此前具体被拒差分路线；不读GameData/旧Swift，不操作UI/音频设备。媒体局部结果不能替代原版真实消费、完整周期或可玩证明。
