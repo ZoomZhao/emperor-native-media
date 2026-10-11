@@ -230,3 +230,15 @@ secondary的前五个选定返回来源已展开；其内部成功构造条件�
 本批20个新增函数请求，94项操作全部保存Evidence；独立地址是2个虚call-site和4个非call入口/写入/返回锚点。586.404秒、exit0，官方正常close，自有临时根为空；读取8968字节选定数据，保存计数1,373,923字节，单项≤8MiB。固定输入身份/SHA、18份选定官方模块成对指纹及受保护草稿/源码未变。自有verified-slots核对ID/subject/profile/内容SHA和选定合同，不能代替独立语义认证。所有运行绑定仍关闭，完整原tick未验证。
 
 本地 `rea-static-init-slots-20261011/` 保存原始输出、范围/清理/指纹、verified-slots及发布凭据；Git只发布本筛选增补、主文档摘要和schema3候选记录。没有执行原/派生游戏、转换原指令、恢复城市动态对照、读GameData/旧Swift、下载或设备/UI操作。达到本批新函数上限后已继续下一有界静态批次，调查没有在文档交付处停止。
+
+## 只读Listing控制流与实际工厂分支
+
+2026-10-11，基线 `f3f91060996a803cadae160b8abaf4a3d8f751d7`。在不强建function、不修改官方provider/guard及不执行指令的条件下，逐项查询Ghidra Listing并遍历正常静态控制流，得到0x428aa0入口到0x428c01 RET12的114条可达指令；两侧分支均保留，所有选定正常边落入已解码节点。**这是入口到返回的语法控制流闭合，不证明callees实际返回、异常路径或全部副作用，数据库仍没有该procedure。** 自有init-listing-cfg保存每条Evidence ID/内容SHA、边和范围，不生成原指令执行器。
+
+ESI=入口ECX，首个32位栈参数低16位写O+0x14，另外两个参数低16位写O+0xa/+0xc；本体没有显式根vptr再写，末尾RET12与登记三个32位入栈参数相符。不能从没有显式首word写入推断callee/别名也不写：+0x90候选0x428c10引出虚槽+0x150，industrial候选0x51cad0还引出+0x1fc；直接helper和这些动态callee的影响仍分级未知。0x416b50仍未识别为procedure，但两条独立Listing解码完整覆盖候选LEA EAX,[ECX+c8];RET，没有额外栈参数，返回指针位型；它不是全局都可替换的成功stub。
+
+secondary前八组selector判断现已补全，0x48b540只匹配0x47/0x4b，排除0x35；后续0x42b730只匹配0x82，0x5418d0选定switch也不含0x35，0x5d36e0含selector35的case0。因此literal32位selector35通向0x5d3580。该工厂首谓词0x543d90只匹配0x3b/0x3c，后续第二谓词0x5ddaf0及其结果分支是下一批入口；本批没有假设它已执行或选择任何constructor。short截断别名、后续type写入和实际实例依旧不由这条路径排除。
+
+本批20个新地址请求，19个取得procedure视图；0x416b50三项procedure查询错误保留。178项操作保存175份成功Evidence和3份invalid-procedure错误；116个Listing指令地址包含上述114条CFG及2条短候选，独立call-resolver站点为0，不能把全部指令数叫调用点。560.339秒、exit0，正常close后自有临时根为空；192字节显式选定数据读取、1,668,925字节保存计数，单项≤8MiB。固定输入身份/SHA及18份选定官方模块成对相同，草稿/选定源码未变。自有verified-cfg核对保存内容与图，原始输出仅在rea-static-init-cfg-20261011/本地；schema4清单保持运行绑定关闭、实际phase8 targets为空。
+
+已沿确定的工厂前沿启动下一有界静态批次，未在文档处停下。当前实例/vptr、R-ID/enable、后续字段写入、表范围/虚方法ABI和interprocedural影响仍需继续；没有原/派生游戏执行、转换执行、城市动态对照、GameData/旧Swift读取或设备/UI操作，完整原tick仍无通过证据。
