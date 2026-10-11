@@ -25,3 +25,9 @@
 [新静态合同](ORIGINAL_MODAL_SOURCE_BUFFERED_READ_CONTRACT.md)：1e551e4的29准确xref为28读/1store；4faca0分配1a0→6c4530→618670发布this，匹配派生root7c82fc+4=6c4930；16native前缀有条件self+fc零写，缺6c4956/6c4971。不是live绑定，owner34非零/guard相等仍未闭合。
 
 447e00复用90+补48得138native正常局部图，四RET8；N>=A先fill后看remaining，包含buffered零请求，而raw零请求提前返0；fill后A0可返回累计短量。当前virtual60候选447d30仅8native、缺447d4c/447dfb，底层格式/OS/异常与存活Unknown。138/135/3总查询证据及元数据结果，继续官方exit0/688.393秒，源/18模块不变、临时空。原label错误/初次拒绝保留，附具体用户REA原文同命令标准复审一次获准；护栏/权限不改，无执行/转换/网络/上传/测试。新语义待独立复核，push待批不变。
+
+## 最新fill/短读/错误传播与handler闭合
+
+[新原静态合同](ORIGINAL_FILE_FILL_ERROR_PROPAGATION_CONTRACT.md)：fill447d30正常native75、handler6c4930正常native24闭合；首tag之外若干raw实际量及transform状态未检查，原样branch未缩available至payload短量。52Listing/10native的transform仅step1直接写outcount，失败不保证cap8d30成为有效量。raw22/mapper9完整native；bulk780533可返回短量，strict41fcb0为word2，经78074e不足走78090e/76501e请求RaiseException。异常模板e06d7363/flags1/3参数，实际catch/unwind/lifetime未证明。
+
+handler零清selfFC、非零Translate/DispatchMessage，没有直接owner34非零store；实际WndProc/message/alias/root仍Unknown。四完整正常native图130与各Listing/锚点层级分开，codec398库存非传递闭包。138/138/0、exit0/775.37秒、源/18模块不变/tmp空/0活动会话，无目标或组件执行/转换/网络/上传/UI/设备。e95046/0、9aac44/0已二方，原失败保留、旧静态阻碍解除；本批新增待复核，仅本地，push待批不变。

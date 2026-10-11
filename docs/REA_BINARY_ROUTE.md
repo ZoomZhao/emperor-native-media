@@ -318,3 +318,9 @@ research schema17补[生命周期与退出数组](ORIGINAL_LIFETIME_AND_EXIT_CON
 [modal/buffered原源合同](ORIGINAL_MODAL_SOURCE_BUFFERED_READ_CONTRACT.md)收敛唯一直接global writer618856、1a0构造链与root+4候选6c4930，16native handler有条件fc0写但非live/完整handler；owner34生产仍Unknown。447e00正常图138=90旧+48新，四RET8与三callee保持条件；buffered零/等量先fill，fill后A0短返回累计量；候选fill447d30只8native，异常和运行输入未闭合。
 
 合计138请求/135Evidence/3NoProcedure（元数据非机器码不存在），11procedure/107native/16bytes，继续exit0/688.393秒/目标与18模块不变/tmp空。原自写label大写导致失败保留；授权上下文初拒后，补具体用户REA原文，同一python3 run_session.py标准复审一次获准，不改变官方护栏或权限。没有原/派生/arm64/组件/UI/OS执行或转换、新联网/上传，新增待独立审阅。只本地增量，精确push审批不变。
+
+## 最新fill/短读/错误传播与handler闭合
+
+[新原静态合同](ORIGINAL_FILE_FILL_ERROR_PROPAGATION_CONTRACT.md)：fill447d30正常native75、handler6c4930正常native24闭合；首tag之外若干raw实际量及transform状态未检查，原样branch未缩available至payload短量。52Listing/10native的transform仅step1直接写outcount，失败不保证cap8d30成为有效量。raw22/mapper9完整native；bulk780533可返回短量，strict41fcb0为word2，经78074e不足走78090e/76501e请求RaiseException。异常模板e06d7363/flags1/3参数，实际catch/unwind/lifetime未证明。
+
+handler零清selfFC、非零Translate/DispatchMessage，没有直接owner34非零store；实际WndProc/message/alias/root仍Unknown。四完整正常native图130与各Listing/锚点层级分开，codec398库存非传递闭包。138/138/0、exit0/775.37秒、源/18模块不变/tmp空/0活动会话，无目标或组件执行/转换/网络/上传/UI/设备。e95046/0、9aac44/0已二方，原失败保留、旧静态阻碍解除；本批新增待复核，仅本地，push待批不变。

@@ -1,5 +1,5 @@
 {
-  "schema_version": 23,
+  "schema_version": 24,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -473,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-modal-source-and-buffered-read-20261011",
+  "latest_source_batch": "rea-static-file-fill-and-read-propagation-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -1779,6 +1779,34 @@
       "component_tests_run": false,
       "new_semantics_independently_reviewed": false,
       "push_attempts_this_batch": 0
+    },
+    {
+      "batch": "rea-static-file-fill-and-read-propagation-20261011",
+      "queries": 138,
+      "Evidence": 138,
+      "NoProcedure_errors": 0,
+      "procedure_parameters": 13,
+      "native_anchors": 117,
+      "selected_read_bytes": 32,
+      "exit_code": 0,
+      "seconds": 775.37,
+      "full_normal_native_graphs": 4,
+      "full_normal_native_nodes": 130,
+      "new_nodes_in_full_graphs": 106,
+      "reused_native_nodes": 24,
+      "transform_wrapper_Listing_nodes": 52,
+      "transform_wrapper_native_anchors": 10,
+      "other_RaiseException_native_anchors": 1,
+      "codec_step_Listing_nodes": 398,
+      "codec_step_full_native_or_transitive_closed": false,
+      "target_identity_unchanged": true,
+      "selected_official_module_pairs": 18,
+      "temporary_empty": true,
+      "active_analysis_sessions": 0,
+      "component_or_game_or_arm64_executed": false,
+      "runtime_binding_created": false,
+      "new_semantics_independently_reviewed": false,
+      "push_attempts": 0
     }
   ],
   "review_corrections_300a5a7": {
@@ -2482,6 +2510,25 @@
       "previous_failure_receipt_preserved": true,
       "descriptor_size_explicit": "0x928 =2344bytes",
       "this_new_batch_reviewed": false
+    },
+    "preselection_derived100_e950895": {
+      "commit": "e95089523665cf2bdd94a258a35b90d59a88ec08",
+      "passed_groups": 46,
+      "failed_groups": 0,
+      "review_sha256": "0c07da2e74c949321a45ca4075892877b3ef5e6086496e2c570c4467a9400299",
+      "scope": "saved original source conditional contracts only; not runtime",
+      "historical_partial_and_failure_snapshots_retained": true,
+      "this_new_fill_batch_reviewed": false
+    },
+    "modal_buffered_9aac717": {
+      "commit": "9aac717848261bdf9aea326e0aa83170863509c5",
+      "passed_groups": 44,
+      "failed_groups": 0,
+      "review_sha256": "7efe12567decbf5a526ae76949c50af11f3e4d21d921f0d50baef6d393169bb7",
+      "oldpartialandfailure_receipts_retained": true,
+      "scope": "saved original source conditional contracts only; not runtime",
+      "historical_partial_and_failure_snapshots_retained": true,
+      "this_new_fill_batch_reviewed": false
     }
   },
   "original_versioned_city_load_contract": {
@@ -3251,6 +3298,145 @@
       "component_tests_run": false,
       "new_semantics_independently_reviewed": false,
       "push_attempts_this_batch": 0
+    },
+    "new_semantics_independently_reviewed": false
+  },
+  "original_file_fill_error_propagation_contract": {
+    "document": "docs/ORIGINAL_FILE_FILL_ERROR_PROPAGATION_CONTRACT.md",
+    "manifest": "docs/original-file-fill-error-propagation-evidence.json",
+    "proof_class": "Originalx86 source-only ordinarylocalread/fill/error transport andselectedmodalcontract;notlivebinding",
+    "fill": {
+      "entry": "447d30 conditionalcurrentroot7ac7d4+60candidate",
+      "normal_native_nodes": 75,
+      "reused_old_nodes": 8,
+      "new_nodes": 67,
+      "ordinary_RET_exits": [
+        "447dcc",
+        "447dff"
+      ],
+      "closed_normal_local_graph": true,
+      "transitive_exception_or_runtime_closed": false,
+      "guard": "Fbyte1e zero ORFbyte1f nonzero ->earlyRET,no directavailablewrite",
+      "first_tag": "rawread4 intozero-initializedlocal;onlyfirstcallactualcount4 plusfield14 equality selects transformbranch;otherwisefield18 equality mayselectrawbranch",
+      "transform_marker_branch": "read4 intoF11a8c;readanother4intoalocal;readF11a8c bytesintoF8d58. Noneoftheserawreturncountstested here. SetF11a88=8d30;CALL5f8070(F28,&F11a88,F8d58,F11a8c),ignorestatus,resetF20=F28,byte1d=0",
+      "raw_marker_branch": "read4 intoF11a88 thenrequestthatmanybytesintoF28;bothactualoutcountsignored. Byte1d=1,F20=F28;availablehasnodirectshrinktoactualpayloadcount",
+      "unmatched_or_initial_short_tag": "noexplicitavailableproduction;under447e00preclearedavailable0 andvalidnonaliasnormalcallees,remaining>0 returnsaccumulatedshortcount. Fflag1f isnotsetasEOFbythisfunction",
+      "no_actual_EOF_or_failure_demonstrated": true
+    },
+    "transform_wrapper": {
+      "entry": "5f8070",
+      "whole_Listing_nodes": 52,
+      "native_anchors": 10,
+      "all52_native_proved": false,
+      "ABI": "fourcdeclparameters dest/countpointer/src/srclength;twoRETnoparamcleanup;447db9 ADD10clearscallerargs",
+      "initializer": "5f89e0->5f88d0 usesversionprefix/sizeof38/windowargf;ordinarynegativecodes -6/-2/-4 present. Defaultzeroalloc/freefieldsbecome5fa020/5fa040;wrappersdirectto7675ee/7656df,allocatorlifetimesunclosed",
+      "step": "5f8a00 calledwith4;398Listingnodescaptured,notwhole-native/typedcomputedcase/recursivecalleeclosure",
+      "count_write": "onlystepresult1 branch5f80fc directlywrites*outCount=localstream14;thenreturns5f8880cleanupresult. Initnonzeroerrorreturnsinitstatus;otherstepresults cleanupthenreturn-5for0orelsereturnstepstatus",
+      "fill_status_ignored": "447d30doesnotcheckwrapperEAX;sourcecannotguaranteeadvertisedavailableisactualvalidoutputonerror. No currentbadinput/outputorfullnonaliasproof supplied"
+    },
+    "raw_read_and_errors": {
+      "raw_native_nodes": 22,
+      "error_mapper_native_nodes": 9,
+      "both_normal_local_graphs_closed": true,
+      "raw": "77c2c1 N0 returns0 beforeReadFile;OSsuccessreturnsactualoutcountslot. No fullrequested-count guarantee",
+      "failure": "ReadFilefalse->GetLastError->77caa3(errorCode,0);code0 ordinaryRET8thenoutcountreturn;nonzeroerrmappedby77cbcfRET4,then77cb64(mappedCause,errorCode,0)",
+      "request_transport": "77cb64alloc14 and78090ealloc10 constructdistincterrorrecords;bothCALL76501e;24Listing/1nativeRaiseExceptioncallanchor",
+      "exception_template": {
+        "code": "e06d7363",
+        "flags": 1,
+        "argument_count": 3,
+        "parameters": [
+          "19930520",
+          "passedobject/pointerslotaddress",
+          "passeddescriptoraddress"
+        ]
+      },
+      "complete_OS_exception_capture_unwind_or_resume_proved": false
+    },
+    "archive_consumers": {
+      "bulk_entry": "queried780625 isinsideactual780533,body271bytes/109Listingnodes;RET8",
+      "bulk_behavior": "copiesmincurrentavailable,trieswholebufferunderlyingvirtual34withactualcounts,canstoponzero/insufficienttotalandreturnrequested-minusremaining. S8nonzero alternatecurrentvirtual50 mapping stillconditional. ExactN0 earlyreturn0;positivefullchunkpathmayprefetchevenafterremaining0",
+      "strict_word": "41fcb0 has22Listingnodes;needs2bytes,refill78074e withmissingamountthenreadword/advancecursor2,RET4. Querylabelsingle-byteisnotsemantic",
+      "strict_short": "78074e available<needed ->78090e(3,0)->76501e->RaiseExceptionrequest. Bulkshortreturnandstrictmissingwordarenotthesamecontract",
+      "premises": [
+        "validstorage/DF0/nonnegativeboundedcounts",
+        "bulkS1c nonzero beforeDIV",
+        "validcurrentF/Sroots andnormalcalleeABI",
+        "noalias/reentry/concurrentinvalidation",
+        "actualpayloadlengthandcodecoutputsqualifiedseparately"
+      ],
+      "actual_allfiles_or_loader_success_proved": false
+    },
+    "modal_handler": {
+      "entry": "selectedroot7c82fc+4candidate6c4930",
+      "normal_native_nodes": 24,
+      "old_reused": 16,
+      "new": 8,
+      "two_RET_exits": [
+        "6c4965",
+        "6c4974"
+      ],
+      "normal_local_graph_closed": true,
+      "calls": [
+        "GetMessageA",
+        "TranslateMessage",
+        "DispatchMessageA"
+      ],
+      "branches": "TESTEAXonlyzero/nonzero;zero writesselfFC0 andreturns;nonzeroTranslate/Dispatch thenreturns;no separate signednegative errorbranch",
+      "direct_nonzero_owner34_store_identified": false,
+      "actualwindowprocedure_message_or_alias_writer_closed": false,
+      "current_root_lifetime_or_modaltermination_proved": false
+    },
+    "review_updates": [
+      {
+        "commit": "e95089523665cf2bdd94a258a35b90d59a88ec08",
+        "passed_groups": 46,
+        "failed_groups": 0,
+        "review_sha256": "0c07da2e74c949321a45ca4075892877b3ef5e6086496e2c570c4467a9400299"
+      },
+      {
+        "commit": "9aac717848261bdf9aea326e0aa83170863509c5",
+        "passed_groups": 44,
+        "failed_groups": 0,
+        "review_sha256": "7efe12567decbf5a526ae76949c50af11f3e4d21d921f0d50baef6d393169bb7",
+        "oldpartialandfailure_receipts_retained": true
+      }
+    ],
+    "runtime_binding_created": false,
+    "target_execution_performed": false,
+    "execution_allowed": false,
+    "new_semantics_independently_reviewed": false,
+    "publication": "localonly;currentstaticblockresolved,historicalreceiptsretained;pushpendingindependent,no retries"
+  },
+  "original_file_fill_error_propagation_evidence": {
+    "manifest": "docs/original-file-fill-error-propagation-evidence.json",
+    "outcome": {
+      "batch": "rea-static-file-fill-and-read-propagation-20261011",
+      "queries": 138,
+      "Evidence": 138,
+      "NoProcedure_errors": 0,
+      "procedure_parameters": 13,
+      "native_anchors": 117,
+      "selected_read_bytes": 32,
+      "exit_code": 0,
+      "seconds": 775.37,
+      "full_normal_native_graphs": 4,
+      "full_normal_native_nodes": 130,
+      "new_nodes_in_full_graphs": 106,
+      "reused_native_nodes": 24,
+      "transform_wrapper_Listing_nodes": 52,
+      "transform_wrapper_native_anchors": 10,
+      "other_RaiseException_native_anchors": 1,
+      "codec_step_Listing_nodes": 398,
+      "codec_step_full_native_or_transitive_closed": false,
+      "target_identity_unchanged": true,
+      "selected_official_module_pairs": 18,
+      "temporary_empty": true,
+      "active_analysis_sessions": 0,
+      "component_or_game_or_arm64_executed": false,
+      "runtime_binding_created": false,
+      "new_semantics_independently_reviewed": false,
+      "push_attempts": 0
     },
     "new_semantics_independently_reviewed": false
   }
