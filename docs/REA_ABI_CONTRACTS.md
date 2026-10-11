@@ -214,3 +214,19 @@ parent清理 `0x60c6d0`、listener构造 `0x610fb0` 及callback `0x60c780` 未�
 输入SHA/设备/inode/mtime前后一致，18份选定官方ownership/config/session模块有实际成对相同SHA；未修改官方guard，未提供全部安装文件认证或跨进程cache-hit证明。`verified-sources.json` 核对Evidence ID/subject/profile/内容SHA、构造写入/RTTI、索引关系、直接调用与失败记录；它是自有一致性核对，不是独立语义认证。保留原有decompiler警告，候选/未知以本节限制为准。
 
 本地目录 `/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-final-source-20261011/` 保存原始Evidence/错误/日志、控制与复核脚本、范围/输入/清理结果及发布凭据。Git只发布筛选后的本文、主文档及声明式候选清单，不发布原始反汇编/伪代码、原PE/工具/资源。未执行目标或派生游戏库，没有恢复旧二进制转换/城市动态对照，没有读GameData/旧游戏Swift或新增下载/权限/UI/设备操作；完整51步序自然tick及原状态/有序写/事件/连续恢复没有通过证据。
+
+## 初始化入口与selector筛选继续收敛
+
+2026-10-11，基线 `9056ba7adaa3937322e02c035d075a697be5f6e4`。本批不是原行为运行：同一固定PE/profile的94份静态Evidence补清共同候选函数 `0x427180`：ECX receiver的signed16字段+0x14与一个32位栈参数比较，AL返回相等结果，`RET 4`。phase8参数是0x35，不能把高24位EAX当规范bool返回，也不能从short比较反推完整32位selector值。
+
+登记+0x94的字地址 `0x428aa0` 在数据库中名为LAB，仍没有procedure。独立Listing解码确认入口读首个栈参数、`0x428aaa` 写 `[ESI+0x14]=AX`、`0x428aae` 写byte+4=3，及 `0x428c01 RET 0xc`。这里只闭合入口/写入/返回锚点，完整正常控制流尚未逐指令核清；`0x428b25` 的虚槽+0x90和 `0x428b9a` 的虚槽+0x1e8仍computed。不能以找到RET就宣称全部副作用或最终vptr闭合；下一批继续用只读Listing恢复控制流，不强建函数，不执行字节。
+
+外层选择谓词已展开：primary为2..0x11；fill为0x5e；monument helper以selector-0x4c的unsigned值检查≤0xc0，0x35直接走AL=0路径。结合secondary对0/1及这些类别的排除，**完整32位selector恰为0x35时进入0x51c660**，四个先前构造候选不适用这个工厂入口值。这里不是认定它们永远不能被改字段后消费；short截断别名、后续type/vptr写入和实际实例仍未知。
+
+secondary的前五个选定返回来源已展开；其内部成功构造条件均不含0x35，不能从这些分支得到合法的非空selector35构造。后续第六组filter0x4142e0排除0x35，第七组0x48a7e0仍委托0x48b540，第八组0x5b3af0只匹配0x7c/0x7f。下一静态入口是0x48b540及0x48a800，再按结果追后续谓词/工厂；不把未知predicate的执行结果编成已发生。
+
+另两条secondary构造候选的写表/RTTI已补：`0x51c9a0 → 0x7b65e4` 对应 `cIndustrialBldg`，`0x5da3d0 → 0x7be544` 对应 `cTower`；均不代表selector35已选择它们。选定偏移读数用于下一批定位+0x90候选0x51cad0和+0x1e8候选0x416b50，槽范围和实际消费表仍需确认。四个旧表的+0x264越过近端连续代码指针段，且default/primary紧邻表有各自构造写入xref；这些是归属限制线索，不能据此造完整数组长度或已绑定目标。
+
+本批20个新增函数请求，94项操作全部保存Evidence；独立地址是2个虚call-site和4个非call入口/写入/返回锚点。586.404秒、exit0，官方正常close，自有临时根为空；读取8968字节选定数据，保存计数1,373,923字节，单项≤8MiB。固定输入身份/SHA、18份选定官方模块成对指纹及受保护草稿/源码未变。自有verified-slots核对ID/subject/profile/内容SHA和选定合同，不能代替独立语义认证。所有运行绑定仍关闭，完整原tick未验证。
+
+本地 `rea-static-init-slots-20261011/` 保存原始输出、范围/清理/指纹、verified-slots及发布凭据；Git只发布本筛选增补、主文档摘要和schema3候选记录。没有执行原/派生游戏、转换原指令、恢复城市动态对照、读GameData/旧Swift、下载或设备/UI操作。达到本批新函数上限后已继续下一有界静态批次，调查没有在文档交付处停止。

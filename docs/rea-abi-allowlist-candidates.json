@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -37,7 +37,9 @@
         "Final O vptr / callee not sourced",
         "Callee cleanup, lifetime or side effects unknown",
         "Construction vptr candidates do not prove current instance or post-init vptr",
-        "Offset word observations do not prove table extent or method membership"
+        "Offset word observations do not prove table extent or method membership",
+        "Signed16 type equality does not prove full32bit selector identity",
+        "Init normal control flow and nested virtual effects are not yet closed"
       ],
       "execution_allowed": false,
       "construction_candidate_refs": [
@@ -45,7 +47,23 @@
         "primary",
         "tertiary",
         "fourth"
-      ]
+      ],
+      "base_matching_word_candidate": {
+        "address": "0x427180",
+        "receiver": "ECX",
+        "value_source": "signed16 [ECX+0x14]",
+        "argument": "32bit [ESP+4]",
+        "caller_return_used": "AL equality",
+        "callee_stack_pop_bytes": 4,
+        "actual_phase8_target_bound": false,
+        "provenance": [
+          {
+            "local_evidence_file": "rea-static-init-slots-20261011/phase8-base-predicate-assembly.evidence.json",
+            "evidence_id": "ev_a8d37150cb902243da065364e55d21cc56f7e33da8a234eda04ca69e615aa54d",
+            "sha256": "7b120a268e6c2e47991dfc73fae4ddd8f8d11cc03dff190420cc5b5a9a668902"
+          }
+        ]
+      }
     },
     {
       "id": "phase8.aggregate",
@@ -453,7 +471,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-final-source-20261011",
+  "latest_source_batch": "rea-static-init-slots-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -738,5 +756,102 @@
         "sha256": "6d9063d17817368ed02c4a0b9185a7549c70f93a97d0332d438d535ea0871dda"
       }
     ]
+  },
+  "init_and_selector_frontier": {
+    "base_predicate_candidate": {
+      "address": "0x427180",
+      "receiver": "ECX",
+      "value_source": "signed16 [ECX+0x14]",
+      "argument": "32bit [ESP+4]",
+      "caller_return_used": "AL equality",
+      "callee_stack_pop_bytes": 4,
+      "actual_phase8_target_bound": false,
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-init-slots-20261011/phase8-base-predicate-assembly.evidence.json",
+          "evidence_id": "ev_a8d37150cb902243da065364e55d21cc56f7e33da8a234eda04ca69e615aa54d",
+          "sha256": "7b120a268e6c2e47991dfc73fae4ddd8f8d11cc03dff190420cc5b5a9a668902"
+        }
+      ]
+    },
+    "init_label": {
+      "address": "0x428aa0",
+      "database_procedure_recognized": false,
+      "entry_and_write_and_return_anchors_decoded": true,
+      "complete_CFG_verified": false,
+      "effects_closed": false,
+      "type_write": "word O+0x14 <- low16 first32bit stack arg; receiver copy still needs complete Listing CFG",
+      "state_write": "byte O+4 <-3",
+      "observed_return": "0x428c01 RET12",
+      "nested_virtual_sites": {
+        "0x428b25": "vptr+0x90",
+        "0x428b9a": "vptr+0x1e8"
+      },
+      "provenance": [
+        {
+          "local_evidence_file": "rea-static-init-slots-20261011/init-entry-instruction.evidence.json",
+          "evidence_id": "ev_594cebd494b9aebe264e188a4969e8038b845cb28f340270a68edf7e1f865268",
+          "sha256": "2880c3383607590fdf4f769d3ffc27ea03864adb49f481b8dbe86af8bdd467d7"
+        },
+        {
+          "local_evidence_file": "rea-static-init-slots-20261011/init-type-word-write-instruction.evidence.json",
+          "evidence_id": "ev_5cf48543978eccc30d8af882963625a9e2f958b1fb5dc7b430365bf4c575b5ef",
+          "sha256": "3b5bb201ae9bb3f03d9f20ad3800177acd7585320a1025c7df9af0202d6e17f1"
+        },
+        {
+          "local_evidence_file": "rea-static-init-slots-20261011/init-state-byte-write-instruction.evidence.json",
+          "evidence_id": "ev_99d99f4220801bf1ee22337f07d0665c453a66b0caa1db99ac8980e04c484978",
+          "sha256": "6e39b2b09cb314327475419c57defc06aa371acdbeaf1838d44c0d6632a7f069"
+        },
+        {
+          "local_evidence_file": "rea-static-init-slots-20261011/init-return-boundary-instruction.evidence.json",
+          "evidence_id": "ev_5f52b2fba903a40185799f24a0a63c02ebe96c808ea75ce58fe7c1cc6c23cfb6",
+          "sha256": "6dab03855542cc7b7a5a844a3dc3a221f5a50d41635e131620fa4151c5e6d12a"
+        }
+      ]
+    },
+    "selector35_scope": {
+      "exact_selector": "0x35",
+      "outer_branch": "0x51c660 secondary",
+      "construction_vptr_unique": false,
+      "short_truncation_aliases_and_later_field_writes_excluded": false,
+      "selector_core_provenance": [
+        {
+          "local_evidence_file": "rea-static-init-slots-20261011/primary-selector-predicate-assembly.evidence.json",
+          "evidence_id": "ev_adf918d3f21a1dde2215228fb2d573e7a96093d5d61a3764c7190b7366bc2c3c",
+          "sha256": "2b78a761ca6dfbe987303946b5e15609b0e9bd121b7fd1c3f8f0d0a93348239a"
+        },
+        {
+          "local_evidence_file": "rea-static-init-slots-20261011/secondary-selector-predicate-assembly.evidence.json",
+          "evidence_id": "ev_a784678b61a21dc2357b63596faaf176722a458453c3dea04b7f3982da6d69e9",
+          "sha256": "186012daeec3e4a58d75c9ba88e5dfeb55345df1bfc23d4dd3630cac7c292a18"
+        },
+        {
+          "local_evidence_file": "rea-static-init-slots-20261011/tertiary-selector-predicate-assembly.evidence.json",
+          "evidence_id": "ev_9dce4dbb7402919d86b90e380a3f38ab939cfd09b5bdad093664a14944e86d6a",
+          "sha256": "40e249edc0bcaeec0b9f66036955aa79b2c175f35e93ff5211ed21e8ef6d52ae"
+        },
+        {
+          "local_evidence_file": "rea-static-init-slots-20261011/tertiary-selector-core-assembly.evidence.json",
+          "evidence_id": "ev_351dc270441a556b3a8fdbfad57b9c939c812188eb0567bcc2b6045ef55df99a",
+          "sha256": "3ab5ffe67490fe79b5ef4d7c3706757705ec347f9ef7460092783866f567d1e5"
+        },
+        {
+          "local_evidence_file": "rea-static-init-slots-20261011/fourth-selector-predicate-assembly.evidence.json",
+          "evidence_id": "ev_5ae387b38532f71df908b17e2d41059d35b5afc6cfe9ecd022772f2a811a21f6",
+          "sha256": "e6fa6dc6d75f403cf87f9606673a3f98ca66ce38427d3b0593ede86d1f04d0ef"
+        }
+      ]
+    },
+    "next_static_edges": [
+      "0x48b540 (0x48a7e0 fallback predicate)",
+      "0x48a800 (secondary seventh source)",
+      "0x428c10/0x518b70/0x51cad0 (vptr+0x90 candidates)",
+      "0x416b50 (industrial vptr+0x1e8 candidate)",
+      "complete read-only Listing CFG of0x428aa0, without adding a function or executing instructions",
+      "later secondary predicates/return sources if selector35 remains unresolved",
+      "R-ID/enable writes and later type/vptr mutation sources"
+    ],
+    "all_runtime_bindings_disabled": true
   }
 }
