@@ -78,3 +78,7 @@
 ## 回调及异常退出缺口更新（2026-10-11）
 
 [新原源合同](ORIGINAL_CALLBACK_LIFETIME_CONTRACT.md)已补齐选定+130、d2+264/+270/+278的正常局部路径，以及备用块handler和所选异常free action。真正待证的是live O/P/Q、当前根/slot、Q+274与其它间接回调、特殊heap模式、OS异常和退出重入。不能把缺pin直接记为UAF，也不能把局部没有free记为全部callee安全。3a15dc7独立复核44/0，新增语义未复核；自然游戏graphics/audio/video及完整周期仍未通过。
+
+## 文件成为局部可调度状态的来源（2026-10-11）
+
+[版本载入合同](ORIGINAL_VERSIONED_CITY_LOAD_CONTRACT.md)补534a30实际文件读入口、城市19/池1/类schema0/基类字段5、构造默认值被输入覆盖及主池追加/条件hook。版本19读取调度phase和周期计数，不能无依据从0重新开始；serialized Ob4与slot对应仍未证明。下一步是534bf0/42da10读后作用、文件逻辑位置/buffered及双编号/append失败，见[handoff](ORIGINAL_ROUTE_HANDOFF.md)。这是获准原源纯静态证据，未执行原或派生游戏、未读GameData，不由自写测试替代实际加载或调度启用。

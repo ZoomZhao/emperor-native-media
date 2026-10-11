@@ -1,5 +1,5 @@
 {
-  "schema_version": 18,
+  "schema_version": 19,
   "purpose": "Filtered static research candidates; no runtime dispatch registration",
   "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
   "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
@@ -473,7 +473,7 @@
       "execution_allowed": false
     }
   ],
-  "latest_source_batch": "rea-static-callback-closure-20261011",
+  "latest_source_batch": "rea-static-versioned-city-load-20261011",
   "construction_candidates": [
     {
       "id": "default",
@@ -1659,6 +1659,26 @@
       "runtime_binding_created": false,
       "new_semantics_independently_reviewed": false,
       "approval_rejection": false
+    },
+    {
+      "batch": "rea-static-versioned-city-load-20261011",
+      "provider_requests": 135,
+      "successful_Evidence": 134,
+      "NoProcedure_errors": 1,
+      "queried_procedure_addresses": 30,
+      "native_anchors": 91,
+      "selected_read_bytes": 131,
+      "exit_code": 0,
+      "elapsed_seconds": 866.267,
+      "temp_empty": true,
+      "input_identity_unchanged": true,
+      "official_module_pairs": 18,
+      "reader_exit_code": 1,
+      "reader_stop": "own90-instruction limit before request91; partial preserved",
+      "reader_stop_is_approval_rejection": false,
+      "original_or_derived_game_executed": false,
+      "runtime_binding_created": false,
+      "new_semantics_independently_reviewed": false
     }
   ],
   "review_corrections_300a5a7": {
@@ -2197,7 +2217,9 @@
     "lifetime_and_exit_document": "ORIGINAL_LIFETIME_AND_EXIT_CONTRACT.md",
     "filter_correction_document": "ORIGINAL_FILTER_CONTRACT_CORRECTION.md",
     "callback_lifetime_document": "docs/ORIGINAL_CALLBACK_LIFETIME_CONTRACT.md",
-    "callback_lifetime_manifest": "docs/original-callback-lifetime-evidence.json"
+    "callback_lifetime_manifest": "docs/original-callback-lifetime-evidence.json",
+    "versioned_city_load_document": "docs/ORIGINAL_VERSIONED_CITY_LOAD_CONTRACT.md",
+    "versioned_city_load_manifest": "docs/original-versioned-city-load-evidence.json"
   },
   "original_callback_lifetime_contract": {
     "document": "docs/ORIGINAL_CALLBACK_LIFETIME_CONTRACT.md",
@@ -2319,11 +2341,153 @@
     ]
   },
   "independent_review_updates": {
-    "reviewed_commit": "3a15dc7b8c4b96e55da975210a86f0c1bedd2497",
-    "passed_groups": 44,
+    "reviewed_commit": "697c4b09031e92b2dfb140f44006743db6d10e1a",
+    "passed_groups": 48,
     "failed_new_groups": 0,
-    "review_sha256": "9f13014902dfd9efe2b9ad5de172b39e3a6bac9d5426875020dd2d4681bcc215",
-    "historical_c0_c82_receipts_preserved": true,
-    "current_callback_contract_reviewed": false
+    "review_sha256": "ce5515cb1f5ad0e10b62e8ccfc6c76dfd82592e336b9680d282bd9a74f7e3090",
+    "normal_cfg_nodes": 383,
+    "historical_review_receipts_preserved": true,
+    "current_city_load_contract_reviewed": false
+  },
+  "original_versioned_city_load_contract": {
+    "document": "docs/ORIGINAL_VERSIONED_CITY_LOAD_CONTRACT.md",
+    "manifest": "docs/original-versioned-city-load-evidence.json",
+    "proof_class": "one conditional original city19/pool1/Building-schema0/base-field5 read slice; local raw-file branch only",
+    "file_entry": {
+      "selected": "0x534a30",
+      "file_path_source": "arg1 supplied by caller; no path bytes or data files read",
+      "file_open": "447b70 creates candidate root7ac7d4;447c90(path,flags0,null)->77c1a4",
+      "os_open": "IAT7a9190 namedCreateFileA; selectedflags0 mapsGENERIC_READ0x80000000/OPEN_EXISTING3; actualAPI outcome unknown",
+      "wrapper_header": "447be0 sets F10=fedcbaaa;447c90 requests4 rawbytes and compares; match setsF1e1/calls+60, mismatch calls448280 andsetsF1e0; fileposition/helper effects remainunknown",
+      "archive": "7803c1(S,F,mode1,size4096,null);S20=F,S14=1,S34/S38=0;buffer setup/+50 effects conditional",
+      "full_read_wrapper": "533f20 sets115d5041 andcalls52fda0(S,0); parameter0 bypassesheader-only guard",
+      "negative_controls": [
+        "534880 usesarchive mode0 andwrites; not a full-load proof",
+        "4fc040 usesmode1 butcalls52fda0(S,1), skippingpool inselectedcase19",
+        "52e7c0 mainpool42d790@52e961 iswritebranch; readbranchclearsmainpool andloadsseparate115d4f0"
+      ]
+    },
+    "file_read": {
+      "candidate_slot": "root7ac7d4+34->447e00",
+      "raw_condition": "F byte+1e==0; constructor/root/validmemory andnormalcalls preserved",
+      "normal_raw_cfg_instructions": 22,
+      "callee": "77c2c1->IAT7a92e8 namedReadFile;returnsactualbytecount,RET8",
+      "archive_fill": "78074e usesF+34 whenS8==0;canloopreads; scalar2/4 readers refill andinvokeerrorhelper3 ifinsufficient",
+      "buffered_full_method_closed": false,
+      "whole_method_partial_instructions": 90,
+      "raw_subset_instructions": 22,
+      "input_bytes_or_io_observed": false
+    },
+    "version_levels": [
+      {
+        "owner": "0x1158df0",
+        "source": "41fc10 read16 intoowner+4;41fbf0 returnsAXonly",
+        "selected_value": 19,
+        "effect": "MOVSX BX -13;unsigned<=6;fixed533eb0 index6->5305d4"
+      },
+      {
+        "owner": "0x8c7648",
+        "source": "same read16 section protocol",
+        "selected_value": 1,
+        "effect": "42d790 readbranch clearsandloadsNslots;normal41fc00writes1"
+      },
+      {
+        "owner": "runtimeclass descriptor/currentS+c",
+        "source": "newclass7802fe readsuint16 schema;77ffc8 checksdescriptor+8 andhandschema to77fd90",
+        "selected_value": 0,
+        "effect": "ifresolveddescriptor817890 Building schema0;newfactory42d050;S+c temporarily0 during+8"
+      },
+      {
+        "owner": "0x8c7620",
+        "source": "427430 ownsectionread16 via41fc10;independent ofclassschema",
+        "selected_value": 5,
+        "effect": "selected83 fieldreadrequests;normal41fc00writes5"
+      }
+    ],
+    "fixed_initial_section_words": {
+      "city1158df4": 0,
+      "pool8c764c": 0,
+      "base8c7624": 0,
+      "meaning": "on-disk initial words only; not current initialized values or loaded versions"
+    },
+    "archive_object_protocol": {
+      "tag": "readword41fcb0;word7fff readsfull32 tag42dc20;otherwise low15 tagbits plus originalbit15 liftedtobit31",
+      "cached_object": "tagbit31clear:77ffc8 returns0/outindex;77fd90 readsstreamcache array, expectedbase compatibility, no+8 deserialization",
+      "new_class": "tagwordffff readsuint16 schema/nameLen;nameLen<64 andreturnedbytes==nameLen,appendsNUL;7802fe searchescurrentregisteredclasslist vialstrcmpA; duplicate/currentlist membership unknown",
+      "class_reference": "classbit31set/nonffff usesmaskedcacheindex;schema override map ordescriptor+8;expectedbasecheckedthrough77bbc0",
+      "error_calls": "invalidreference/expectedclass/schema invoke78090e codes5/6/7;error helper enters76501e exception path, actualOS/unwind unknown",
+      "new_object_order": "77bb54 callsdescriptor+c factory;77fcfd isindex-limitcheck(<3ffffffe),NOTcachecreate;77b497 registersobject beforecomputed+8(S)",
+      "cache_setup": "77fe3f mode1 creates20-byte pointerarray ifneeded,slot0=0,nextindex1;suballocation/API outcomes remainconditional",
+      "schema_scope": "77fd90 savesoldS+c,storesresolvedschema,invokescurrentO+8,restoresoldS+c onlyonnormalreturn",
+      "cache_object_ids_equal_main_pool_slots": false,
+      "possible_cached_aliases": "samecachedO maybeappendedmorethanonce; actualinput/lifetime unknown"
+    },
+    "selected_building": {
+      "descriptor": "817890:name8178a8=Building,sizeofc8=200,schema0,factory42d050,base7cd140",
+      "condition": "classresolver yields exact817890 and selectedconstructor/root/memory contracts hold;name alone doesnotbindactualclass",
+      "construction": "42d050->426c90/426e60:root7ab59c,zero4..b7,field90=1,b4=ffffffff,GUIDatb8",
+      "deserialization": "root7ab59c+8=427430;ownsectionword5 gives83 requests;4/14/51/62/b4/b8 widths1/2/1/2/4/16",
+      "return_completeness": "427430 ignores780533 returnedcount;fullread/notaliasing andcallee effects areconditions,notprovedvalidation",
+      "loaded_fields_equal_constructed_defaults": false
+    },
+    "pool_and_postload": {
+      "owner": "W8c7630;vectorP=W+4",
+      "count": "42dc20(S,&N32) returnsS,notN;42d790 signedN>0 loops42d0e0/77fd90 then42b590(P,&O)",
+      "append": "42b590->5f01f0->5c1670;insertpointer/count1 atpriorend,mayreallocate/copy;normalwritesbegin/end/capacity;allocator/copy helpers notallclosed",
+      "serialized_b4_equals_loop_index_proved": false,
+      "b4_counter_rewrite_in_selected_append": false,
+      "hook": "ifloadedO4!=0,42d910 invokescurrentO+c0(0);notblanketenable",
+      "selected_base_hook": "7ab59c+c0=4271b0;asks+150=413a00(AL0);understablebase root no10bc950append andnoflagrewrite",
+      "derived_hook": "nonzero+150AL routes42b6b0()->10bc950 then42b580/42b590;actualderivedtarget/effects remainunknown",
+      "padding": "0<=N<4000 normalappendsfill4000-N emptybaseobjects;no4000/32767upperbound here;negativeNnotexplicitlyrejected",
+      "post_file_hooks": "534a30 later534bf0 and42da10(W),plusother52fda0 componentserializers;canstillaffectstate,notclosed"
+    },
+    "scheduler_data_sources": {
+      "loaded_global_fields": [
+        {
+          "global": "0xc82eec",
+          "requested_bytes": 4,
+          "callsite": "0x5306ba",
+          "consumer": "periodic outer-cycle counter in4ac650",
+          "read_return_count_checked_here": false
+        },
+        {
+          "global": "0xc82ef8",
+          "requested_bytes": 4,
+          "callsite": "0x530832",
+          "consumer": "phase dispatcher4ac2b0",
+          "read_return_count_checked_here": false
+        },
+        {
+          "global": "0xc82ef0",
+          "requested_bytes": 4,
+          "callsite": "0x530840",
+          "consumer": "subcycle counter in4ac650",
+          "read_return_count_checked_here": false
+        },
+        {
+          "global": "0xc82ef4",
+          "requested_bytes": 4,
+          "callsite": "0x53084e",
+          "consumer": "total counter in4ac650",
+          "read_return_count_checked_here": false
+        }
+      ],
+      "phase_contract": "priororiginal4ac2b0 reads32bitc82ef8;knownnormaldomain0..50,dispatch1..48;phase8->4aeeb0; no loaderphase-rangecheckobserved atreadsite",
+      "field_admission": "loadedO4 supplies exact1/3 filter426d10;selectedroot+c8=427180 comparesigned16loadedO14 againstphase8 arg0x35 andcallerusesAL",
+      "default_phase_zero_after_load_proved": false,
+      "global_scheduling_gates": "88ec38, quota/clock/mode/holdflags andpostload hooks remainunbound;sourcefields arenot proof that scheduler runs",
+      "state_persists_from_read_to_actual_tick_proved": false
+    },
+    "runtime_binding_created": false,
+    "target_execution_performed": false,
+    "execution_allowed": false,
+    "prior_review": {
+      "commit": "697c4b09031e92b2dfb140f44006743db6d10e1a",
+      "passed_groups": 48,
+      "failed_new_groups": 0,
+      "review_sha256": "ce5515cb1f5ad0e10b62e8ccfc6c76dfd82592e336b9680d282bd9a74f7e3090"
+    },
+    "new_semantics_independently_reviewed": false
   }
 }

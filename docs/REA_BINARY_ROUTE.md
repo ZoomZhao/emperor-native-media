@@ -296,3 +296,7 @@ research schema17补[生命周期与退出数组](ORIGINAL_LIFETIME_AND_EXIT_CON
 ## +130、d2作用与异常handler后续（2026-10-11）
 
 [回调与生命周期合同](ORIGINAL_CALLBACK_LIFETIME_CONTRACT.md)及[证据索引](original-callback-lifetime-evidence.json)补齐42a98087条、4c6d30含switch102条、4c6e8021条、76b70a116条正常Listing。原源证明与自写组件测试分开；5ad440保活不足是待证缺口，非已证释放/UAF。3a15dc7已独立44/0复核，本轮新增未复核。三个会话exit0、源身份和18对官方模块不变、临时项目为空，未执行原/派生游戏或产生绑定。继续入口见[handoff](ORIGINAL_ROUTE_HANDOFF.md)。
+
+## 明确版本文件到调度字段（2026-10-11）
+
+[版本19条件载入](ORIGINAL_VERSIONED_CITY_LOAD_CONTRACT.md)区分真实mode1/参数0读入、写出和仅前部读取；连上四种版本来源、类cache→+8→主池→条件+c0，以及流直接读入c82ef8 phase和三周期字段。原字段输入不证明post-load保持、实际tick或完整文件通过。447e00 raw条件子图22节点闭合，90条方法partial（含22条raw子图）及4缺失边保留；135查询/134Evidence/1NoProcedure、会话exit0/源与18模块不变/临时空。697c4b0已独立48/0复核，本批新增未复核，binding仍DENIED。
