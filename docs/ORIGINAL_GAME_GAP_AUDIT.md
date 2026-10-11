@@ -86,3 +86,7 @@
 ## 载入返回不等于新状态已调度
 
 [读后原源](ORIGINAL_POSTLOAD_SCHEDULER_ENTRY_CONTRACT.md)表明534bf0已经直接消费4aeeb0并执行主池postload；下一次真正分派另需quota与gate/hold条件。42da10实际flag筛选1/3/6，phase reset外层周期为1，且reset有独立分支。写后传递覆盖、derived方法/槽存活、owner34两次guard仍缺；loaderEAX被忽略，mode1也不证明输入成功。当前为本地可复核增量，5587fb5精确八文档推送待批，不扩大运行范围或发布授权。
+
+## 派生读后并非统一no-op，owner字段稳定仍缺
+
+[owner34及派生源](ORIGINAL_OWNER34_DERIVED_POSTLOAD_CONTRACT.md)明确4fd600前置清零，第一guard前的非零生产依赖及两次guard间传递/alias仍Unknown。选定4f0150读O7/a/c/14并virtual+100，固定root候选4c69a0尚未展开；AL1与完整返回值、正常局部图与callee效果均不能混用。具体记录/字符串/观察状态写和新分配空结果解引用边已保留；不以无直接owner34 store证明全局不变。上一批nullowner速度分支遗漏已本地修正，原独立38/1保留、新增待复核。

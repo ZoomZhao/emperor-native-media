@@ -6800,6 +6800,19 @@
       "review_sha256": "70a1655ec729e10dc95a07bde798246576b6274be5b9d9c15dc54a78ee323b4e",
       "publication_patch_sha256": "2ba9c4d5b5e9c5012fa5207148c5db73b0c6cdb4226d2bc72e584eee381d971a",
       "current_postload_reviewed": false
+    },
+    "postload_scheduler_b2b6ab1": {
+      "b2b6ab1": {
+        "passed_groups": 38,
+        "failed_groups": 1,
+        "failure": "speedwrite nullowner branch omitted",
+        "review_sha256": "d7b254f64a934a33dd7e3a9fa909dd9f4962488de66fd7c197267bd52b798ee0"
+      },
+      "corrected_commit": "9beed2216f084b64c9e81966224349a59e72b255",
+      "corrected_scope": "threeindependentreviewlocations plusduplicatedallowlist speed_write;fourdocs,exactone-line each",
+      "corrected_speed_condition": "408ac0 returnsnull OR nonnullowner predicate4fae50==0;534c7f nullbranch skipspredicate,534c8a nonzeropredicate skipsspeedwrite",
+      "correction_independently_reviewed": false,
+      "new_current_owner34_derived_semantics_independently_reviewed": false
     }
   },
   "original_callback_lifetime_evidence": {
@@ -7261,6 +7274,186 @@
       "temporary_entries_after": [],
       "normal_local_graphs": 7,
       "normal_local_graph_nodes": 95,
+      "original_or_derived_game_executed": false,
+      "runtime_binding_created": false,
+      "new_semantics_independently_reviewed": false,
+      "push_attempts_this_batch": 0
+    }
+  },
+  "original_owner34_derived_postload_contract": {
+    "document": "docs/ORIGINAL_OWNER34_DERIVED_POSTLOAD_CONTRACT.md",
+    "manifest": "docs/original-owner34-derived-postload-evidence.json",
+    "proof_class": "Fixed source-only selected owner guard dependencies and one derived postload normal local method; transitive/alias/live binding unclosed",
+    "owner34": {
+      "owner_source": "4fb539 EBP=entryECX;4fb54f CALL4fd600(EBP) before bothguards",
+      "explicit_zero_writes": [
+        "4fd613 [ESI+34]=EDI0",
+        "4fd681 [ESI+34]=EDI0"
+      ],
+      "reset_helper_normal_tail": "after4fd681 onlyowner+14/+38 writes,callee-saved pops andRET; normalreturn+34zero conditional on validstorage andnormalcallee ABI keepingESI/EDI, notlive observation",
+      "pre_first_guard": "500400/5003a0/413a40 then4fb8c0;ALfalse earlyreturns0. ALtrue route also passesotherhelpers beforefirstguard; owner34persistence andnonnullproducer notclosed",
+      "pre_selection_flow": "4fb8c0 localListing doesnotdirectstoreowner34;successfulALtrue path observesowner8nonnull at4fb9ac then5032c0/62e7f0 andothercallbacks maywrite/alias. Sourcequery labels header-validation donotprove fileheaderparsing",
+      "initial_guard": "4fb63d CMP[EBP+34],EBX0;4fb640 JNZ4fb6d7 chooses534a30@4fb73a. Zero choosesother42e680 branch",
+      "second_guard": "4fb7d5 rereads[EBP+34],4fb7d8 JNZ4fb87d skipsreset;zero branchreaches4fb862 CALL4ac240 ifinterveningnormalhelpers return",
+      "between_guards_selected_nonzero_path_calls": [
+        "0x4fb6e0",
+        "0x4fb6e8",
+        "0x4fb6f8",
+        "0x4fb700",
+        "0x4fb705",
+        "0x4fb728",
+        "0x4fb73a",
+        "0x4fb744",
+        "0x4fb74e",
+        "0x4fb783",
+        "0x4fb791",
+        "0x4fb79f",
+        "0x4fb7a3",
+        "0x4fb7ae",
+        "0x4fb7b5",
+        "0x4fb7c1",
+        "0x4fb7d0"
+      ],
+      "initial_and_second_values_equal_proved": false,
+      "all_loads_reset_policy_proved": false,
+      "explicit_intervening_owner34_store_identified": false,
+      "factory_callbacks": "4fafe0 installs4fb280/4fb2e0 and4fb340/4fb3a0/4fb400/4fb460;selectedfirstfour areallocation/constructor factories,notidentified owner34writers. UI/event runtime notexecuted",
+      "alias_transitive_or_async_coverage_closed": false
+    },
+    "between_guard_concrete_effects": {
+      "linked_getters": "4fc450/460/4c0 readowner8;nullreturn-1/0/-1;otherwise tail503190/1a0/1e0 readlinked+17c/+118/+2c4. 4fbb50 null0 else5032b0 readslinked+2ec;4fae60->4fca10 returnsowner10&1",
+      "post_read_reconcile": "4fbcc0 owner8nonnull ->503300 linked+314;480740/481f10 chosenrecords get+3bf8 ID and+3bf4 value;rawpool iteration maywriteotherrecords and4452d0 stringstate;targets/aliases andlookuphelpers remainunbound",
+      "string_update": "4452d0 nullarg writesreceiver+3af3=0;nonnull zeroes128bytes at+3af4 then766310 with0x7f boundand arglength predicate. Currentreceiver/source spanandcopycallee effects notclosed",
+      "fixed_state_write": "4fc840 setsreceiver+263c toarg1;4fbdaa receiver130f960;actualaliaswithowner notproved",
+      "observer": "408de0 calls408e00(-1),callerADD ESP4 then408e10(-1),RET4callee;directglobal875aa4=-1 andreceiver+1060=-1,callerreceiver1e511b8",
+      "message_boundary": "7a941c resolvesPTR_PostMessageA;three commonjoin calls postsmsg7/6/18, API delivery/timing/handler effects notbound andnosystem API called bythisaudit",
+      "new_object_admission": "linked+2ec nonzero andowner10&1 nonzero ->4ff650(owner,-2,1). malloc77bb08 size1ebc;nonnullconstruct4faa60;nullEAX0->4ff6ab reads[EAX+10]. Allocation/constructors/exception outcome unknown",
+      "registration": "4ff590 readsowner8,notdirectowner8 replacement;nonnull flag0->58ee60(new,field10). 58ee60 alloc18/construct58f450,56ff00 container callandOS synchronization sites;actualwrites/transitiveeffects andfailurehandling unclosed",
+      "complete_callee_write_set_proved": false,
+      "raw_cursor_or_object_lifetime_proved": false
+    },
+    "selected_derived1c8": {
+      "constructor_root": "prior4c5dc0 sourcewritesO vptr7afbd8,staticroot+1c8 word7afda0=4f0150;actualpool/currentvptr notbound",
+      "other_sampled_roots": {
+        "scope": "fixed selected words, currentvptr notobserved",
+        "roots": [
+          {
+            "constructor": "51c9a0",
+            "slot": "0x7b67ac",
+            "target": "0x413a00",
+            "file": "derived-51c9a0-postload1c8-word.evidence.json",
+            "sha256": "aa755df2f30e74b559b60484c2e7139ccb8aacc2cf0f62cc5eafead1575ee8bd",
+            "evidence_id": "ev_531a44066ce04ca7829f65b80c413deaf13d872ca3bf502e426c0e380e85892e"
+          },
+          {
+            "constructor": "4c5dc0",
+            "slot": "0x7afda0",
+            "target": "0x4f0150",
+            "file": "derived-4c5dc0-postload1c8-word.evidence.json",
+            "sha256": "496de709b8d78b4d849bc69b0b23e19fee824f7e3b72433f655915222d418c18",
+            "evidence_id": "ev_c11cdf4ec5a63a9a4a8fff2d40806143251e069c65fde11d7a37a3971dd5ff12"
+          },
+          {
+            "constructor": "540770",
+            "slot": "0x7b6e24",
+            "target": "0x413a00",
+            "file": "derived-540770-postload1c8-word.evidence.json",
+            "sha256": "a3cc8b11891f5387cbd13e9bd2cdb4d79a72f17ace22226aedd6c217479e1973",
+            "evidence_id": "ev_517ed82c2419e00e6ee38191f5433467314e7c4ba205d4d7f1f9e482e2e45453"
+          },
+          {
+            "constructor": "51e5e0",
+            "slot": "0x7b6a0c",
+            "target": "0x414b50",
+            "file": "derived-51e5e0-postload1c8-word.evidence.json",
+            "sha256": "11077b12145c4ddcca7adfeae6cc76e23e77bd38b5f9048456458dca61762b16",
+            "evidence_id": "ev_e802771d90ddb2eb266116ea4fba7c321150eb812acac1d2c032bd3a2a2a5257"
+          },
+          {
+            "constructor": "4f8e30",
+            "slot": "0x7b40e8",
+            "target": "0x4f0150",
+            "file": "derived-4f8e30-postload1c8-word.evidence.json",
+            "sha256": "6f193c33f10d409ce7dbc05d7787036e0e183cc73666caecc429992826dec39c",
+            "evidence_id": "ev_2d2409265122edbf48751743266faf234031b2288d4534db41eed9ab6872394a"
+          },
+          {
+            "constructor": "5da3d0",
+            "slot": "0x7be70c",
+            "target": "0x413a00",
+            "file": "derived-5da3d0-postload1c8-word.evidence.json",
+            "sha256": "a952d173010b19e8269704d68dd02044f156ce49d7faa2b9ace38c84df619cce",
+            "evidence_id": "ev_e49d060f7a5fc9286d89c88926eacf8e64368c34e0007918fea34dc56491af0e"
+          }
+        ],
+        "selected_constructor": "0x4c5dc0",
+        "selected_root": "0x7afbd8",
+        "selected_target": "0x4f0150",
+        "unexpanded_other_nonbase_target": "0x414b50"
+      },
+      "ghidra_metadata": "4f0150 procedure_assembly/callees NoProcedure;resolve_containing notfound. NativeListing decoded15instructions withoutcreatingfunctionorpatchingmetadata",
+      "normal_local_read_fields": {
+        "O7": "unsignedbyte,zeroextendedEDX",
+        "Oa": "signedword",
+        "Oc": "signedword",
+        "O14": "signedword"
+      },
+      "callee": "4f016b CALL[currentO vptr+100],ECX=O,source pushes sixargs;arg order(signedO14,signedOa,signedOc,unsignedO7,0,0)",
+      "normal_return": "4f0171 MOV AL1 thenRET;fullEAX1 notproved,caller42da10 ignoresreturn. Callee mustrestorecallerstackconsistentwith24pushedbytes fornormalRET; actualcallee/ABI andexception/lifetime remainunbound",
+      "direct_local_object_store": false,
+      "transitive_object_or_global_writes_closed": false,
+      "static100_word": "samefixedroot7afbd8+100@7afcd8=4c69a0,notactualruntimebinding;ReferenceManagercomputedcall unresolvedwithnotargets",
+      "descriptor": "root0=4c5d90;two nativeinstructionsreturn84ca08. Descriptor20bytes fieldsnamepointer84ca40,size928,schema0,factory4c5d30,parent854438;names/factoryeffects notexpanded",
+      "raw_cursor_relocation_or_instance_lifetime_proved": false,
+      "one_class_method_effect_generalizes_to_all_derived": false
+    },
+    "previous_review_and_fix": {
+      "b2b6ab1": {
+        "passed_groups": 38,
+        "failed_groups": 1,
+        "failure": "speedwrite nullowner branch omitted",
+        "review_sha256": "d7b254f64a934a33dd7e3a9fa909dd9f4962488de66fd7c197267bd52b798ee0"
+      },
+      "corrected_commit": "9beed2216f084b64c9e81966224349a59e72b255",
+      "corrected_scope": "threeindependentreviewlocations plusduplicatedallowlist speed_write;fourdocs,exactone-line each",
+      "corrected_speed_condition": "408ac0 returnsnull OR nonnullowner predicate4fae50==0;534c7f nullbranch skipspredicate,534c8a nonzeropredicate skipsspeedwrite",
+      "correction_independently_reviewed": false,
+      "new_current_owner34_derived_semantics_independently_reviewed": false
+    },
+    "source_checks": {
+      "full_normal_graphs": 4,
+      "full_normal_graph_nodes": 65,
+      "partial_factory_nodes": 13,
+      "callee_effects_or_exception_graph_closed": false,
+      "NoProcedure_errors": 3
+    },
+    "runtime_binding_created": false,
+    "target_execution_performed": false,
+    "execution_allowed": false,
+    "publication": "localonly;no pushretry. Humanapprovalpending for5587fb5 exacteightdocs;newHEAD notcovered bythatrequest"
+  },
+  "original_owner34_derived_postload_evidence": {
+    "manifest": "docs/original-owner34-derived-postload-evidence.json",
+    "batch_outcome": {
+      "batch": "rea-static-owner34-and-derived-postload-20261011",
+      "provider_requests": 140,
+      "successful_Evidence": 137,
+      "NoProcedure_metadata_errors": 3,
+      "queried_procedure_addresses": 30,
+      "native_anchors": 96,
+      "selected_read_bytes": 60,
+      "exit_code": 0,
+      "elapsed_seconds": 680.46,
+      "input_identity_unchanged": true,
+      "official_module_pairs": 18,
+      "temporary_entries_after": [],
+      "full_normal_graphs": 4,
+      "full_normal_graph_nodes": 65,
+      "partial_normal_graph_nodes": 13,
+      "partial_graphs": [
+        "4fb400 stopped at declared75-new-native-reader limit",
+        "4fb460 not expanded"
+      ],
       "original_or_derived_game_executed": false,
       "runtime_binding_created": false,
       "new_semantics_independently_reviewed": false,

@@ -304,3 +304,7 @@ research schema17补[生命周期与退出数组](ORIGINAL_LIFETIME_AND_EXIT_CON
 ## 读后处理与首次可分派路径
 
 [读后合同](ORIGINAL_POSTLOAD_SCHEDULER_ENTRY_CONTRACT.md)核42da10的精确1/3/6筛选、基类+1c8 no-op、534bf0直接phase8 helper消费、条件reset0/0/0/1及gate/quota/mode写来源。七图95原native节点正常局部闭合，140/140/0、exit0/输入与18模块不变/临时空；传递作用、实际存活/时钟/异常仍Unknown，binding DENIED。本批只本地保留，未再尝试待批push。
+
+## owner字段重读与选定派生读后依赖
+
+[owner34/派生合同](ORIGINAL_OWNER34_DERIVED_POSTLOAD_CONTRACT.md)追原源前置清零、两次当前读取与conditional reset；明确记录/字符串/观察状态写及新对象分配失败边，保留传递/alias未闭合。选定派生4f0150的15指令正常图会调用当前virtual+100，静态root候选4c69a0而actualcallee未解析；AL1不代表完整EAX1。140/137/3、exit0/源与18模块不变/临时空；四正常图65节点及另13节点partial分别计，未运行原/派生/组件。9beed221修正b2的空owner速度遗漏，新增待独立复核/仅本地。

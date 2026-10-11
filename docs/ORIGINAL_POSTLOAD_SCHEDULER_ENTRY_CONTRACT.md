@@ -42,3 +42,7 @@
 下一批最有用：①沿534f1a之后的28个CALL补gate/quota/phase实际写集合，核tick前四helper及5371dc tail；②选一已识别派生类+1c8及+84/+98/+1ec，核槽/Ob4/flag与raw cursor覆盖；③追4fbcc0传递helper和owner+34写来源，把两次guard与reset先后关系闭合。通过标准均为固定源SHA/ID、ABI/正常与异常边、确切写入及后续覆盖；actual live实例/时钟/OS条件保留Unknown。
 
 本批仅本地增量。5587fb5八份文档的GitHub push已被自动审批复审拒绝，等待用户精确目的地/载荷授权；本批没有再次push、网络、安装、替代通道或上传。新提交范围须另列清单，不能自动扩成已有八份的审批。见[筛选证据索引](original-postload-scheduler-entry-evidence.json)与[handoff](ORIGINAL_ROUTE_HANDOFF.md)。
+
+## owner34与派生方法补充
+
+[后续局部合同](ORIGINAL_OWNER34_DERIVED_POSTLOAD_CONTRACT.md)补4fd600两处前置owner34清零及未闭合非零来源；4fbcc0等具体记录/观察状态写，不能据偏移不同排除alias。4c5dc0根的+1c8=4f0150正常15节点读取字段并调用当前+100，返回仅AL1；固定root+100=4c69a0尚未展开，无live binding。b2独立38通过1项速度条件遗漏已本地9beed221修正；三处及allowlist重复表述均包含nullowner OR nonnullpredicatezero。原失败收据保留，修正与本批待独立复核。
