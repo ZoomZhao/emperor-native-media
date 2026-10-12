@@ -1,0 +1,76 @@
+{
+  "finding": "QUALIFIER-UNPARSED-N-01",
+  "reviewed_commit": "ca8956c0f9a8e663d58c2928a03cba909c0a3416",
+  "current_base": "47dd940cc750b6571ed4d637a9caac40bb279eca",
+  "fix": "N defaults null; emit only recognized marker and at least eight consumed bytes",
+  "review_failure_receipt": {
+    "suggested_patch_sha256": "9bb5355abe0eec6bf9305d529c9840b1c0a88dd075c2ca108581aead9a57d061",
+    "review_original_result_sha256": "5f9f6c4a91102bcb403a9711b6dad5ea177a08d2bce8f7b02d58ef2ee06940a1",
+    "review_original_counts": {
+      "passed": 42,
+      "failed": 10
+    },
+    "Python_wrapper_already_fixed_in_47dd940_preserved": true,
+    "production_five_sources_unchanged": true
+  },
+  "synthetic_rerun": {
+    "passed": 52,
+    "failed": 0,
+    "mode_counts": {
+      "release": {
+        "passed": 24,
+        "failed": 0
+      },
+      "ubsan": {
+        "passed": 24,
+        "failed": 0
+      }
+    },
+    "result_sha256": "5782385562f7b60435bbb28b3f627983e4158da4059423f4db166471001b436f"
+  },
+  "startup_regression": {
+    "methods": 6,
+    "discrete_cases": 13,
+    "failed": 0
+  },
+  "actual_rerun": {
+    "source_sha256": "67c7b4f19c34ca8d8d0707b629eb880c8df90ef8429e25f4172ba9a2b589bbeb",
+    "two_files": [
+      {
+        "path": "actual-first-map",
+        "statistics_sha256": "13e23552c400b9f82a9f6af44b31d69fea2b51b25367b5980760be06a0097068",
+        "current": {
+          "input_bytes": 5224,
+          "input_sha256": "60a66d61a51d5f4daf44d0355d9af372afc0afff767dc90899cfa1815e3068b8",
+          "validated_blocks": 15,
+          "validated_output_bytes": 471164,
+          "validated_output_prefix_sha256": "8794a3b2bef2babb7638323e6b4ce7b9e1647244670c8f42fa468094c079b2fb",
+          "unconsumed_file_bytes": 0,
+          "termination": "end"
+        },
+        "all_prior_valid_frame_counts_hashes_preserved": true,
+        "EOF_N_now_null": true
+      },
+      {
+        "path": "actual-second-dat",
+        "statistics_sha256": "f268f3ecd2b9f3dc329cb6196a99f0eaff8172cf19209c25dd1e129a5854f63b",
+        "current": {
+          "input_bytes": 7147,
+          "input_sha256": "36a8193f09a51b5fe84e32746ac756f0d7e9b20920fafb5fc35221c73b1c040c",
+          "validated_blocks": 14,
+          "validated_output_bytes": 430024,
+          "validated_output_prefix_sha256": "707edc805e54587988283807b7312eae6813ca2221734800f009180f9176a0fc",
+          "unconsumed_file_bytes": 0,
+          "termination": "end"
+        },
+        "all_prior_valid_frame_counts_hashes_preserved": true,
+        "EOF_N_now_null": true
+      }
+    ],
+    "no_input_writeback": true,
+    "original_program_executed": false
+  },
+  "production_reader_codec_and_profile_unchanged": true,
+  "Python_wrapper_preserves_prior_optimization_guard_and_explicit_conditions": true,
+  "network_or_push": false
+}

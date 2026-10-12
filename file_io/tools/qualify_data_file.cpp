@@ -108,14 +108,22 @@ int main(int argc, char **argv) {
             if (result.input_offset>input.size()) throw std::runtime_error("invalid source consumption diagnostic");
             if (comma) std::cout<<','; comma=true;
             uint32_t N=0;
-            if (result.frame_start<=input.size() && input.size()-result.frame_start>=8)
-                N=le32(input.data()+static_cast<size_t>(result.frame_start)+4);
+            bool N_present=false;
+            if (result.frame_start<=result.input_offset && result.input_offset-result.frame_start>=8 &&
+                result.frame_start<=input.size() && input.size()-result.frame_start>=8) {
+                const auto *start=input.data()+static_cast<size_t>(result.frame_start);
+                const uint32_t marker=le32(start);
+                if (marker==profile.compressed_marker || marker==profile.raw_marker) {
+                    N=le32(start+4);
+                    N_present=true;
+                }
+            }
             const bool frame=result.status==ReadStatus::Frame;
             if (frame && !output.empty()) CC_SHA256_Update(&cumulative,output.data(),static_cast<CC_LONG>(output.size()));
             std::cout<<"{\"status\":\""<<read_status_name(result.status)<<"\",\"compressed\":"<<result.compressed
                 <<",\"frame_start\":"<<result.frame_start<<",\"input_offset\":"<<result.input_offset
                 <<",\"framing_bytes_consumed\":"<<(result.input_offset-result.frame_start)
-                <<",\"declared_payload_N\":"<<N<<",\"opaque_word\":"<<result.opaque_word
+                <<",\"declared_payload_N\":"<<(N_present?std::to_string(N):std::string("null"))<<",\"opaque_word\":"<<result.opaque_word
                 <<",\"blocks_completed\":"<<result.blocks_completed<<",\"total_validated_output\":"<<result.total_output
                 <<",\"published_output_bytes\":"<<result.output_available
                 <<",\"output_sha256\":"<<std::quoted(frame?digest(output.data(),output.size()):std::string())
