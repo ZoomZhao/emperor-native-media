@@ -1,3 +1,7 @@
+# 历史cFlood缺口：已由官方函数种子恢复
+
+此前d4f71e6记录的是默认分析副本中的NoProcedure/undecodable。当前已通过安装版REA官方seed功能恢复同一入口，cFlood与cFestival连续解析到55822，未修改原PE或原工具。详见 [恢复报告](CITY19_FLOOD_FESTIVAL_SEEDED_READERS.md)。下面保留旧诊断快照，不能作为当前阻塞状态。
+
 # 3736 后首个消费者 cFlood：对象来源已定位，读取布局未闭合
 
 本轮没有新增实际字节解释。此前十成员终点仍为3736，已核11项结构记录、五种goal类型；未读取3736后的版本、长度、字段或对象tag。新增结果是把首个未知消费者从“调用方下一reader”定位为固定对象10af4e0的cFlood、Serialize槽4edda0，并核对它位于主池之前的同流顺序。
