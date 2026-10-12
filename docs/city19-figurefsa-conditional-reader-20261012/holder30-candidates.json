@@ -1,0 +1,39 @@
+{
+  "schema": "HOLDER30_MINIMUM_REMAINING_CANDIDATES_20261012",
+  "getter": "5122c0 return[receiver+30], nocalls/stores",
+  "callsite": "51208b;512090/512092 NULLguard;onlynonnull51209d virtual+8",
+  "presence_flag_is_pointerproof": false,
+  "source_construction_chain": [
+    "510d30",
+    "512230 allocation0x2d8",
+    "514500 nominalroot7b5bc8",
+    "512291 storesresulttoholder+30"
+  ],
+  "candidates_under_named_valid_construction_path": [
+    {
+      "kind": "null",
+      "reason": "allocationfailure/destroy/clear path; reader call skipped"
+    },
+    {
+      "kind": "live selected constructed object",
+      "root": "0x7b5bc8",
+      "reader_slot8": "0x4dad10",
+      "conditions": "sameholderidentity andlifetime/rootpreservation tocallpoint"
+    }
+  ],
+  "unresolved_not_invented_as_additional_root": [
+    {
+      "kind": "legalreplacement/reconstruction/otherdynamicroot",
+      "reason": "applicationcallbackreachability/writes notclosed; cannotenumerateexactreplacementroot yet"
+    },
+    {
+      "kind": "invalid/destroyedpointer",
+      "reason": "lifetimeconditionnotestablished; notaclasscandidate"
+    }
+  ],
+  "application_dependency": "512a20/512630 callers/callbacks thatreceive/reachholder orchild; legitimatewrites notexcludedbyordinarylibraryassumptions",
+  "byte_contract_gap": "newclass/newobjectpayloadserializerbinding andfullcatalog; cachedbranch only moderncomponent",
+  "root_schema_or_word_is_not_identity": true,
+  "actual_binding_proven": false,
+  "actual_frontier": 1991913
+}

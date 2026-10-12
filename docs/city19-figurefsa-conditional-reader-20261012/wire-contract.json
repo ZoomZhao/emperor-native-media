@@ -1,0 +1,321 @@
+{
+  "schema": "FIGUREFSA_SELECTED_WIRE_CONTRACT_20261012",
+  "baseline": "aa9f7664ff63dc81cbd61198af821e35d74ff4a6",
+  "root": "0x7b5bc8",
+  "slot8_address": "0x7b5bd0",
+  "reader": "0x4dad10",
+  "base_reader": "0x4f4480",
+  "root_base40cf80_bytes": 0,
+  "base_supported_versions": [
+    1,
+    2
+  ],
+  "own_supported_versions": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "string_wire": "int32length followedexactlylengthbytes; hostNULnotwire; modernboundednonnegative8KiBsubset",
+  "reference_expected_families": {
+    "0x850230": "FSAState",
+    "0x850248": "FSATransition",
+    "0x8502c0": "FSAActionContext"
+  },
+  "reference_wire": "word16;7fffescapeDWORD;highbitclass/newobject,ffffdeclaration;selectedmodelonlyNULL/cachedtypedobjectreferences",
+  "new_class_or_object_payload_supported": false,
+  "base2": "name,byte,3StateRefs,signed32count,StateRefsLoop",
+  "base1": "name,byte,TransitionList,TransitionList,TransitionRef,TransitionList,TransitionList,ActionContextList,ActionContextList,StateList,3StateRefs,StateList",
+  "nonpositive_counts": "sourceJLEskipsloops; modernsigned32storedandzeroiterations",
+  "own2": "3embeddedreaders+onebyteflag each",
+  "own3": "presence,optionalname,count+names,3embedded+flags",
+  "own4": "presence,optionalname,3embedded+flags",
+  "own5": "presence,optionalname,count+names,3embedded+flags",
+  "embedded": {
+    "constructor_callback": "0x4d7460 ->0x4f8930",
+    "root": "0x7b3ee0",
+    "slot8": "0x4f8ca0",
+    "memory_stride": 20,
+    "selected_own_version": 1,
+    "wire": "word2+4dwords=18,thenouterflag1",
+    "own1_raw_calls": [
+      "0x4f8d0f",
+      "0x4f8d1a",
+      "0x4f8d25",
+      "0x4f8d30"
+    ],
+    "source_other_version": "skipsfourDWORDs; modernrejectsasoutofselectedsubset, notoriginalversionrejection",
+    "reset": "4f89b0 onlywrites+4/+8/+c/+10, preservesroot0"
+  },
+  "normal_contracts": [
+    "validlifetime/storage/frame andnormalcales",
+    "ordinaryownedbuffers/allocations",
+    "write regionsdonotcoverprotectedroot/holderfields; duplicatepointee referencesallowed",
+    "mode0 and explicitcandidatecached-reference contract; suppliedcachemetadatacorrectforfamilyrelation"
+  ],
+  "instance_verified": false,
+  "complete_supported_cached_reference_branch": true,
+  "complete_arbitrary_dynamic_payloads": false,
+  "actual_frontier": 1991913,
+  "new_real_bytes": 0,
+  "source_stages": [
+    {
+      "local_stage": "rea-static-city19-figurefsa-wire-20261012",
+      "artifacts": [
+        {
+          "phase": "figurefsa-base4f4480-wire-source",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f4480"
+          },
+          "evidence_id": "ev_658380ea11a16598aeb96fa008e8ad52b7c44e9f6815fc2600fb07d0f12114a6",
+          "file": "figurefsa-base4f4480-wire-source.evidence.json",
+          "bytes": 23815,
+          "sha256": "68773f634b5ff18d7ec0b4a386cc561af0a909cedf4db7c47e7c173e84108d7d"
+        },
+        {
+          "phase": "figurefsa-string4f2480-wire-source",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f2480"
+          },
+          "evidence_id": "ev_24f6a8e6117fc1e196bcd99052b58c62351ace922cf3020f9079878de3589bef",
+          "file": "figurefsa-string4f2480-wire-source.evidence.json",
+          "bytes": 6275,
+          "sha256": "bd58b24bb8ed6b98d50242c009d0d21a0db210a2b0fa82cca1eb444409834ece"
+        },
+        {
+          "phase": "figurefsa-embedded-ctor4d7460-root",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4d7460"
+          },
+          "evidence_id": "ev_2c913102170b0d8d9cacabed7def3061c2153bf353b2e89ad9f0ba176e36d32a",
+          "file": "figurefsa-embedded-ctor4d7460-root.evidence.json",
+          "bytes": 4923,
+          "sha256": "fa1fa7e6a30ab520732be7f6db3a546ad47cee2409ee9cfb1837a4a8f513b805"
+        },
+        {
+          "phase": "figurefsa-nominal-root7b5bc8-slot8",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x7b5bd0",
+            "length": 4
+          },
+          "evidence_id": "ev_f9cf1c676e25d13640735205e054375873d46c80dcb0bad6f76ce79b2e783aae",
+          "file": "figurefsa-nominal-root7b5bc8-slot8.evidence.json",
+          "bytes": 4915,
+          "sha256": "fc7e2ea6fe79b6c697e6452894c91b8b39adea8389242c37b7481f20f5a44d9a"
+        },
+        {
+          "phase": "figurefsa-rootbase40cf80-wire-source",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x40cf80"
+          },
+          "evidence_id": "ev_a30e29862f8f7ec407cc899656c1bcdd4511d02677edf59bff18b82c7189194d",
+          "file": "figurefsa-rootbase40cf80-wire-source.evidence.json",
+          "bytes": 4661,
+          "sha256": "3de569577883d6dcd31c03e8523811e7030452f93ee7c3362c94c672cc1254fe"
+        },
+        {
+          "phase": "figurefsa-reference4f1d60-cache-wire-source",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f1d60"
+          },
+          "evidence_id": "ev_6add767209a6fb07d4f175c3dd8ecef309468a6eeb6422d7c351c4592416565f",
+          "file": "figurefsa-reference4f1d60-cache-wire-source.evidence.json",
+          "bytes": 5179,
+          "sha256": "5ff1dc22f6b79ec81396cbd88cf9065db898be4b71426f436c6aa4ad04df3bf5"
+        },
+        {
+          "phase": "figurefsa-legacy-reference4f1e60-wire-source",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f1e60"
+          },
+          "evidence_id": "ev_5b30d88bca2f899b0465c8d82f708d061cce1166c0c4b158b08298b4c788ad57",
+          "file": "figurefsa-legacy-reference4f1e60-wire-source.evidence.json",
+          "bytes": 5179,
+          "sha256": "8f1094fb8479d27279b7e78bb3a05efeead74625c9433796395effb3e439a842"
+        },
+        {
+          "phase": "figurefsa-legacy-reference4f2320-wire-source",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f2320"
+          },
+          "evidence_id": "ev_ab6b47f138d21cd99d98d0a628307ecf3942bdb3db37b8123dfa18306517d7d5",
+          "file": "figurefsa-legacy-reference4f2320-wire-source.evidence.json",
+          "bytes": 5179,
+          "sha256": "0cbb568b28f08d2d1a05415cfbf7344bba080b62fc301c4ad10dc72e3e41ac78"
+        },
+        {
+          "phase": "figurefsa-embedded4f8930-constructor-root",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f8930"
+          },
+          "evidence_id": "ev_d41027a9a1c99cc9b97baa4b89f666ff263a5e6acdce2f3f38b7d2c610f6f910",
+          "file": "figurefsa-embedded4f8930-constructor-root.evidence.json",
+          "bytes": 6269,
+          "sha256": "11bfb52beb79d903533a9cfb485d2f5f03b7f8fc14508a95f65ab056d2504d4d"
+        },
+        {
+          "phase": "figurefsa-embedded-root7b3ee0-slot8",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x7b3ee8",
+            "length": 4
+          },
+          "evidence_id": "ev_f19f747d720ba3649151c59609ffdfce412bdfa17787e61ddd58b50be8276460",
+          "file": "figurefsa-embedded-root7b3ee0-slot8.evidence.json",
+          "bytes": 4915,
+          "sha256": "3441dd80105fdd292b222b7adf7bc3259b9199386caf01c5b471b178cb9e86f9"
+        },
+        {
+          "phase": "figurefsa-runtimeclass-state-descriptor",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x850230",
+            "length": 24
+          },
+          "evidence_id": "ev_abac0630c8e953cbc989bba47cffcdc9acd8d99e4e7425c59ac025e1afb465db",
+          "file": "figurefsa-runtimeclass-state-descriptor.evidence.json",
+          "bytes": 5000,
+          "sha256": "087a29536f5d180a5a277d371be2e7a4231d81c05e8ad0e521a81e5bbcf4a59b"
+        },
+        {
+          "phase": "figurefsa-runtimeclass-legacy-one-descriptor",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x850248",
+            "length": 24
+          },
+          "evidence_id": "ev_150a04950252dec251546ed669e19b4bdb9bf2e3db67a3c80e880e43aff3f09a",
+          "file": "figurefsa-runtimeclass-legacy-one-descriptor.evidence.json",
+          "bytes": 5000,
+          "sha256": "7e0a8c045d68e0f74a40ca1178768d0970859ae3e1ae3f18d5d29c0a42400c06"
+        },
+        {
+          "phase": "figurefsa-runtimeclass-legacy-two-descriptor",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x8502c0",
+            "length": 24
+          },
+          "evidence_id": "ev_7f241a22ff95cf33958206bb0ac23762c1c42ecbd6b9cdebc0892129e1eed73f",
+          "file": "figurefsa-runtimeclass-legacy-two-descriptor.evidence.json",
+          "bytes": 5000,
+          "sha256": "85730338df3cdb1a19d2c25be4b2691e33afae84f916b5c1362c7f81ec76bc48"
+        }
+      ],
+      "result_sha256": "abd5f7e0af633fc9e4a3429387a514eb61984d0a205f9668571e964fa2556d59",
+      "status_sha256": "fa060b9f27d60982505ac23f6c1835a8c4c611a6a32c6ced226742c0fc2158b5",
+      "config_sha256": "2172a3a710cf771088b720037d13d899bd2d0e93dad6631c0bc109daf8923ba4",
+      "seed_sha256": "c7c254685ea94768b8f6bc1b529d8cceadd6d4e83d0f10d624eff0f98d3068f7",
+      "exit_code": 0,
+      "elapsed_seconds": 554.392,
+      "temporary_entries_after": [],
+      "input_identity_unchanged": true,
+      "selected_tool_SHA_unchanged": true,
+      "target_executed": false
+    },
+    {
+      "local_stage": "rea-static-city19-figurefsa-subreaders-20261012",
+      "artifacts": [
+        {
+          "phase": "figurefsa-embedded4f8ca0-full-wire-source",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f8ca0"
+          },
+          "evidence_id": "ev_aaeac624740dab84795d7368ed7a8c303e077868ed72dc5e1b307562f7c6be41",
+          "file": "figurefsa-embedded4f8ca0-full-wire-source.evidence.json",
+          "bytes": 7819,
+          "sha256": "52319f0e6bc82aa1355e85df6ac51ee2e90a30a19ed7d8775619efcb2e4fb6a1"
+        },
+        {
+          "phase": "figurefsa-cache77fd90-wire-source",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x77fd90"
+          },
+          "evidence_id": "ev_3a76d9f20bfea9fbf214d20a41e1f1ba0003d075d0800dd7e018f97fa34f9cd9",
+          "file": "figurefsa-cache77fd90-wire-source.evidence.json",
+          "bytes": 8737,
+          "sha256": "2a27dfe2192a3ef1ac51ab8fba4b01a48a52f3bff54b91d9ff8d70b38871d566"
+        },
+        {
+          "phase": "figurefsa-embedded4f89b0-reset-root-effects",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f89b0"
+          },
+          "evidence_id": "ev_1c86d653fd52138be08526fce5b0c80859f1aec9c30feaa500559a732ebe834f",
+          "file": "figurefsa-embedded4f89b0-reset-root-effects.evidence.json",
+          "bytes": 6077,
+          "sha256": "c0f8fbde15790eb232be81e01a297cbe60955def77930c655d599be8cca19a81"
+        },
+        {
+          "phase": "figurefsa-state-name",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x850360",
+            "length": 32
+          },
+          "evidence_id": "ev_5a35a8bc96c8b4acef56c260d664bbb22262bc9f854af127c0e5a1dfb89e5e79",
+          "file": "figurefsa-state-name.evidence.json",
+          "bytes": 5050,
+          "sha256": "7a2c515fad107798983b5dd135ffa7a797a4b4721c6989e0461b7b86947ac66b"
+        },
+        {
+          "phase": "figurefsa-legacy-one-name",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x850350",
+            "length": 32
+          },
+          "evidence_id": "ev_0c2e57ec61d438942368b4963f3dc1332bb14084eddce150df8088709da9e9c4",
+          "file": "figurefsa-legacy-one-name.evidence.json",
+          "bytes": 5050,
+          "sha256": "02ce797e166238d06eb235b1ee64b4a9a078407d6618a0ba811017a7f27539ff"
+        },
+        {
+          "phase": "figurefsa-legacy-two-name",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x8502fc",
+            "length": 32
+          },
+          "evidence_id": "ev_5368c640d321175c55bd8031dcb9940b39900f6c98d84cd7b20e68978cfa99a1",
+          "file": "figurefsa-legacy-two-name.evidence.json",
+          "bytes": 5050,
+          "sha256": "21f43666850e2a4f76128ae8d813aa9f36c683c55d97efd7dc3036cf7074b1e3"
+        },
+        {
+          "phase": "figurefsa-tag77ffc8-cached-and-new-wire-grammar",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x77ffc8"
+          },
+          "evidence_id": "ev_631906eeaac2c0150e0a6739145a8c709778d08f9969c1f70eacf41e0ea48550",
+          "file": "figurefsa-tag77ffc8-cached-and-new-wire-grammar.evidence.json",
+          "bytes": 14465,
+          "sha256": "597059b135afa4d4d1437a42f6b08d1bdb26157ffd6c6f1909405f290ddf2b06"
+        }
+      ],
+      "result_sha256": "c280e6a385e29d37e09c3e24a7dfd91c870f3c4fad1f6076bdef863f6456cbb3",
+      "status_sha256": "52cd3158003174112ff2048626049c40d835c57710fd864a0bf8e67ac48a03e0",
+      "config_sha256": "31d7d3ee59a698a28976ff63746e09e887e6fae499467ff108fea890d179451e",
+      "seed_sha256": "22f74db5d56c13183ff5275c3349e58bc196d4a25b55a58322e7c7e3a4cb76c3",
+      "exit_code": 0,
+      "elapsed_seconds": 977.52,
+      "temporary_entries_after": [],
+      "input_identity_unchanged": true,
+      "selected_tool_SHA_unchanged": true,
+      "target_executed": false
+    }
+  ]
+}
