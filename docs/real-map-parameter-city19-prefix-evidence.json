@@ -1,0 +1,745 @@
+{
+  "new_original_source": [
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/aggregate-init-constructor-call-native.evidence.json",
+      "sha256": "9e5354cd63e7dac6b7cfe4775fec8b51fb1814d9c8a12916b9e1b4ba0ac3609e",
+      "evidence_id": "ev_3b580a734d1f2a77a6df29c191fcd180a243c2a5160b5e1779dee0901b038964",
+      "operation": "resolve_native_call_targets",
+      "parameters": {
+        "address": "0x40a7d6"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/aggregate-init-global-native.evidence.json",
+      "sha256": "94384fef79b225d54b0ea0f2ef2829b8458ca45bd11cee48b04eb2af2aa8525e",
+      "evidence_id": "ev_29704923045fc8a67528f692cc9e64cc8fb5ead56b475bda510107469ae9053e",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x40a7d1"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/aggregate-static-initializer-callee-assembly.evidence.json",
+      "sha256": "932322e1983174958bc18528f7fbb361e006de8977b5bf077ca3f9a2d778145c",
+      "evidence_id": "ev_1d6a87d0947fefdc2d4486dabd6e0c70125482f2c24ed98e34bc42224876250a",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x408c90"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/map-aggregate-constructor-owner.evidence.json",
+      "sha256": "cd23bc895f1ec3ce2b5fd850c495b81bcd339107302ccc663895a1eab918314f",
+      "evidence_id": "ev_c3daeaa904aed68e11ddcd1f4657fab8a95da62bdbcdde5b5efe6cb700a5a222",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x40a7d1"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/map-aggregate-defaults-assembly.evidence.json",
+      "sha256": "cf2a7177a09a521706d7c6eb994dde3f9ae0542073496d589f945eee43620f72",
+      "evidence_id": "ev_e6d13a12cd3cfba52202f3042fba3fc92b5b6cd24d372b76226fea796458a1cf",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52cb80"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/map-aggregate-nested-reader-member-xrefs.evidence.json",
+      "sha256": "e49498724a8958b28e7a0edb533dc191660b50244b4f2fa4a82df9970fd184fa",
+      "evidence_id": "ev_2bb55ca906444b6cebb26cec8c88a2ab96463aacc7ba5a56ca793c71afbe7f2f",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0xc5d0a4"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/map-nested-reader-current-constructor-assembly.evidence.json",
+      "sha256": "8ff55cdfa8c35ab7b4b97ca2670eb1738a896ecb0e061dd7b8e730b60298ef92",
+      "evidence_id": "ev_73b14768364dd29511483a3ec6d6d737d74ac1e64ea3c1df06584466eee6cc36",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x509c70"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/map-section-aggregate-global-xrefs.evidence.json",
+      "sha256": "0542b1191918aac657a4f5ac082fd69dd06c9c9e3a10cad6d87f3f1c6fbb986c",
+      "evidence_id": "ev_b2b114aa4d1b359da48778d1a7d4bcb7a90eb216b251a8c891a89b1a1f80a13b",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0xc5cae0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/map-section-boundary-helper-assembly.evidence.json",
+      "sha256": "a2e633e0e630f6345aae7db71acd66763e83c04fa79e8bb8b8c48288eaae7da1",
+      "evidence_id": "ev_e76ee463372b471448a4fdbccd02a907f71dc3fe322d1314bf7c1bba3880c2a0",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52c9c0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/map-section-scope-helper-assembly.evidence.json",
+      "sha256": "74c953d2db1be8127329b17ebacd7243d68f481fa70db27557233b58774929e5",
+      "evidence_id": "ev_e8d8d410fada8f25742409af750c75e168336fb49a55146a3b2a4f458ed1d8ef",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52ebb0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/next-map-section-reader-assembly.evidence.json",
+      "sha256": "962fa4f7e975a05d4efbae04a78b100172b7158e78682305a3631d339d63fe1e",
+      "evidence_id": "ev_4e7fa1c06063fdd4a7f484c3b97d5d8c21da2cf5240775922e2c3df2c45a7557",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52cd90"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/next-map-section-reader-callers.evidence.json",
+      "sha256": "4c1bde9d4c16320ba93c4dd9ee63b9031d116bf122b43819687bf3b12316d674",
+      "evidence_id": "ev_5d98981b2afdba530893e8b9a5241174f65cf7341ec01d0153c684d522e80307",
+      "operation": "procedure_callers",
+      "parameters": {
+        "procedure": "0x52cd90"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/next-section-descriptor-name.evidence.json",
+      "sha256": "1c10f9065edb65e1930d9694f1970595a1184f45915f465fe211d4de21dcf10a",
+      "evidence_id": "ev_9baf4359d23f403bcfedfb4b79953f3915d139e9c1b63cb78a098646bdd778c3",
+      "operation": "address_name",
+      "parameters": {
+        "address": "0x1158dc8"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/next-section-v6-read-cases-native.evidence.json",
+      "sha256": "43d91ed305ff76d42a6b1db52da50854f9b245a990be695df290a5c064c8a82b",
+      "evidence_id": "ev_7b3dfbc899166bd6d63a9800454a4ab332666da866f72ab0ae7917a91e0bd927",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x52d1fc"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/next-section-version-case-table.evidence.json",
+      "sha256": "9f0c087b0b43b404092a2df6446a58cb92673b9c127f2dd77ec8277e64efbbfe",
+      "evidence_id": "ev_cbbce18500dbdfdd5b15a915bf1882e225811ba3434267864a1c420c865805d7",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x52e424",
+        "length": 16
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/next-section-version-dispatch-native.evidence.json",
+      "sha256": "b1c05d4ecc215f5888ed52de2fcec93f0789b5187d7288d2486b583ad9f41aba",
+      "evidence_id": "ev_28478c214e197e980be23088db7a056084522cd02e7503c644fb3f161b23e0b9",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x52d1f5"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/next-section-version-init-52c580-assembly.evidence.json",
+      "sha256": "9c61583652ad1cb2d92783a86e6901873a2af3ccf5b41d60140348fa3b5815ec",
+      "evidence_id": "ev_07e0728122aee82ed883d494227ddbbdecc2780384ff81c1c04815d6ddd5955e",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52c580"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/next-section-version-initializer-owner.evidence.json",
+      "sha256": "79f76d348d4a84c54c15411209d87c86fedfabf7b47a335c93aa1181539c9c11",
+      "evidence_id": "ev_86ec21cf9d1c8b01524d79b88d4e7011c6d5bfbf72b27ded4fa87381eabd10cd",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x52c582"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/next-section-version-object-xrefs.evidence.json",
+      "sha256": "a7313676f37ee8e4961c2091e085f7284d5bb462ac305d5512132a01428a7850",
+      "evidence_id": "ev_1fc4e9bbfa9e6a52e69ba26d333f2e3038f249565e1541364200b509ea3a896b",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x1158dc8"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/next-section-version-second-reference-owner.evidence.json",
+      "sha256": "732019001f239e084f059888d24797f607725adb00c821b6014b329983494a20",
+      "evidence_id": "ev_73a1a68d10a3a0eb0bc11403106ff0aacd771b14484e06d99e6c7f8b9c9481aa",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x52c5b4"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/section-version-descriptor-constructor-assembly.evidence.json",
+      "sha256": "7a7e4e9e87c0548a8d2ac4080e357bc1bd8f1a5946990eecf3ede617384b166d",
+      "evidence_id": "ev_e892b69c28fa2a93bd3aaeec51e20571d36facb106ae4bfce9f7812ba6bd2b1a",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x41fbc0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-next-section-20261012/version-descriptor-init-call-native.evidence.json",
+      "sha256": "0ace22860aa19671b0e279d0d0fc113810dcd246da2ad01235f8989e95a3fdab",
+      "evidence_id": "ev_d6afd727c4b611d40c40ce724e08478b8b1265349cf3925e95e4f45fe6a0691d",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x52c587"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-loader-resolution-20261012/alternative-map-file-wrapper-assembly.evidence.json",
+      "sha256": "0b6913e3a3972c83a3dc5c036c951a852591302e52489cff733dfe2900a1e231",
+      "evidence_id": "ev_875c232d8661b8bc192325154f5590198dde803565a51afa20a88067bdfdb5b1",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x535060"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-loader-resolution-20261012/alternative-map-layout-reader-assembly.evidence.json",
+      "sha256": "43240e8e5cc854ee7ec4df651a93371d49560daa81e5a6b9097871614c418120",
+      "evidence_id": "ev_cfac541027dc1cdcffb69f24ffce1b6d98e71a480d3f98f55ed3bad5e480d4c4",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52f4d0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-loader-resolution-20261012/alternative-map-layout-reader-callers.evidence.json",
+      "sha256": "dc419797e3960f9c252413febb7201e5c2b44a32c71961de7df7ebb2dfd3c5ae",
+      "evidence_id": "ev_357309428160951be98324a744231f966946ea6279afa2d0961cbd1aa1db13e6",
+      "operation": "procedure_callers",
+      "parameters": {
+        "procedure": "0x52f4d0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-loader-resolution-20261012/alternative-map-path-caller-assembly.evidence.json",
+      "sha256": "35e00e96eca0f1d36396f93cddf5742f1ba15f5325cf03d4b6f0e214970c35a6",
+      "evidence_id": "ev_30a8cc9aa424f68fe0fd15a0ceea0c86ad30a2ff8a038798b95406c29f083332",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x43abf0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-loader-resolution-20261012/nested-byte-member-getter-xrefs.evidence.json",
+      "sha256": "4b34509755fab15f7e84145e4018dd9dcd54d27cc4ad9f18cede2cf89c837e79",
+      "evidence_id": "ev_c496b75c82b6747a0655381a8c7b4aea6adebb44f80252d5d3b9be264e9c39cc",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x509c70"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-loader-resolution-20261012/nested-member-nearby-method-names.evidence.json",
+      "sha256": "a2136ec71e345868b759876f52de055b7d0b256ee15659219c998ecc24b1ff4a",
+      "evidence_id": "ev_3075e10497ff08386691fb46e4dec8aeaf4f23c7dc0ce508d14ced492adf3df8",
+      "operation": "search_procedures",
+      "parameters": {
+        "pattern": "FUN_00509c",
+        "mode": "literal",
+        "case_sensitive": false
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/alternative-map-load-wrapper-assembly.evidence.json",
+      "sha256": "9d331e66e7da665af0f789f959c37a0049cc0d89741e00818d77835fa03b1c5f",
+      "evidence_id": "ev_f802d473b659999a55bffd4b737a72ade2b9a66ee8f52c8491a3fcce260e8f3a",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5351e0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/nested-byte-member-constructor-assembly.evidence.json",
+      "sha256": "c143f0d9e6ec2c50b4373e4c8500766a3110d5027d9657312577d341cc47da13",
+      "evidence_id": "ev_34acbc92583c08ab2e1e252e4cd54016313609d9968cea8a25a3b397344e3faa",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x509c80"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/nested-byte-member-constructor-before-getter-assembly.evidence.json",
+      "sha256": "1db2ca7ab493040c990c77522b556a69875a99b574ea8216d4402a7c6419bae6",
+      "evidence_id": "ev_153695d057126f552296983d4edfbe147ee8bf7ff524b69a6f1f7a5f1e58133f",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x509b70"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/nested-byte-member-preceding-method-names.evidence.json",
+      "sha256": "6f53ab24384e3f4e3bb29bdc8217ff43a41fbf96bcf1bd904f1d278945fde12c",
+      "evidence_id": "ev_65eb7767204f38e6f0bee8f14f3b32ec5c20a1e2470d8f9167be6ee6eeb98ab2",
+      "operation": "search_procedures",
+      "parameters": {
+        "pattern": "FUN_00509b",
+        "mode": "literal",
+        "case_sensitive": false
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/nested-byte-member-real-constructor-xrefs.evidence.json",
+      "sha256": "40233774f2788a70f8b5746bf9d92ce806868c1218f7d516c53680750d964e89",
+      "evidence_id": "ev_cde6196fda959863a0b6610ceac23b34022ae53503f1ef63a8b928f4c1118189",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x509b70"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/nested-byte-member-serialize-before-getter-assembly.evidence.json",
+      "sha256": "c05cf57ad207f988f7fa991dfa3e75e5a071d1869ef1003e18a18fc27ee33340",
+      "evidence_id": "ev_ed6df6d3105fe977adf97c59b39f5d632b0f08719c3bbb1959df3ceb32b7d2d6",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x509ba0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/nested-byte-member-serializer-assembly.evidence.json",
+      "sha256": "94ca9ca9b83f8f9a3567c9c2734797baca69dbb7029d0f16ae58657d54d16a6d",
+      "evidence_id": "ev_564140b078d651fd658f30169588cfa252c72bdf6899e6a86b59c39bb05ad2f9",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x509cc0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/nested-byte-member-slot0-native-entry.evidence.json",
+      "sha256": "60e2983570f63b4e18ea80a0ffb47d96315ccba069990495fe903c1d8fbade98",
+      "evidence_id": "ev_0498b0d07de736a5450a8dd2ff1d7792dad189b4c01f133e91d0c91d0ffca959",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5072a0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/nested-byte-member-vtable-construction-xrefs.evidence.json",
+      "sha256": "18a6a8fd7438a45b77c2d0ef8567cbcc7af7f81a4da653f3931aef0c3219197c",
+      "evidence_id": "ev_790e5b5d09ea602861ccdffd9c985c7701083453b2d53ef41ec1e8c7c9a5a4bb",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x7b4d34"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/nested-byte-member-vtable-entries.evidence.json",
+      "sha256": "37ad573716f92c72906e4da5b84b8358d2f76bab63f58e4fcc66f5b909929913",
+      "evidence_id": "ev_c57d92e8da8f40f829be6bcb42eb7237028aa4a91c1ae7e3fca93e0797804863",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7b4d34",
+        "length": 16
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/parameter-owner-construction-layout-assembly.evidence.json",
+      "sha256": "6a7b8c1096f8a29ad87854b641ff9770c14c4505a6e1fcffce445c3c70f4739d",
+      "evidence_id": "ev_a084e7bb5a06a9e5578216d238f45c27e688a264acc3d84747d022455a61ad2a",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x508560"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/parameter-owner-construction-site-owner.evidence.json",
+      "sha256": "acbf74f089cf988d87b28a5f748aa05ab54e46fb707b4d277e59dee75715d40f",
+      "evidence_id": "ev_93f3877798510be13c417832688caa12e9126cc822abce2d5d0bd2b10ae9b50b",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x508591"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/parameter-owning-type-nearby-construction-names.evidence.json",
+      "sha256": "24adf73324496aa053ff234a1624cdaa3bb76145d746990325cc6ead598329bb",
+      "evidence_id": "ev_2a136a87188536793b38d191af93adfe1f13953030ef8e06cc4bf091db7594f1",
+      "operation": "search_procedures",
+      "parameters": {
+        "pattern": "FUN_0052c6",
+        "mode": "literal",
+        "case_sensitive": false
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-map-v2-member-width-20261012/rejected-candidate-slot0-return-native.evidence.json",
+      "sha256": "87045f602bd3f7c2d6a3f6f5e738b12a456ebff2de8f82802a2f4db519a68e18",
+      "evidence_id": "ev_9ee317da880182ab7c77aa8850c85ca4c3f46050a4935867e1b6f14e16ee6cd3",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5072a5"
+      }
+    }
+  ],
+  "map_fixed_parameter_prefix": {
+    "input_sha256": "60a66d61a51d5f4daf44d0355d9af372afc0afff767dc90899cfa1815e3068b8",
+    "decoded_sha256": "8794a3b2bef2babb7638323e6b4ce7b9e1647244670c8f42fa468094c079b2fb",
+    "decoded_bytes": 471164,
+    "validated_blocks": 15,
+    "outer_version": 2,
+    "parameter_version": 6,
+    "parameter_version_offset": 2,
+    "fixed_fields_begin": 4,
+    "fixed_fields_end": 1463,
+    "fixed_fields_requested_bytes": 1459,
+    "fixed_field_requests": 66,
+    "fixed_fields_sha256": "5472f995f266d371667cf43b8d0937614eb201aa7bda1dcdeaa63a25ba6a1834",
+    "next_nested_member_offset": 1463,
+    "next_nested_member_type_closed": false,
+    "remaining_uninterpreted_bytes": 469701,
+    "read_only": true,
+    "input_metadata_unchanged": true,
+    "raw_or_decoded_bytes_exported": false,
+    "original_game_or_callback_executed": false,
+    "whole_map_accepted": false
+  },
+  "map_tool_source_sha256": "d0a986ddc8712a5cf06c0859e5a6b81c9fd1315724236e3606c759240bd0d627",
+  "map_tool_executable_sha256": "9b1387abf2f948f0cd90e27a08a72fe350ee7a4a6f4f0cd0d6d2de775826f1e7",
+  "map_source_widths": {
+    "source_range": [
+      "0x52d1fc",
+      "0x52d5e9"
+    ],
+    "requests": [
+      {
+        "site": "0x52d201",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d20e",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d21b",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d228",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d235",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d242",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d24f",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d25c",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d269",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d276",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d283",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d290",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d29d",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d2aa",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d2b7",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d2c4",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d2d1",
+        "bytes": 64
+      },
+      {
+        "site": "0x52d2e1",
+        "bytes": 522
+      },
+      {
+        "site": "0x52d2f1",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d301",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d311",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d321",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d331",
+        "bytes": 16
+      },
+      {
+        "site": "0x52d341",
+        "bytes": 16
+      },
+      {
+        "site": "0x52d351",
+        "bytes": 16
+      },
+      {
+        "site": "0x52d361",
+        "bytes": 16
+      },
+      {
+        "site": "0x52d371",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d381",
+        "bytes": 32
+      },
+      {
+        "site": "0x52d391",
+        "bytes": 32
+      },
+      {
+        "site": "0x52d3a1",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d3b1",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d3c1",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d3d1",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d3e1",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d3f1",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d401",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d411",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d421",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d431",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d441",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d451",
+        "bytes": 16
+      },
+      {
+        "site": "0x52d461",
+        "bytes": 16
+      },
+      {
+        "site": "0x52d471",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d481",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d491",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d4a1",
+        "bytes": 2
+      },
+      {
+        "site": "0x52d4b1",
+        "bytes": 1
+      },
+      {
+        "site": "0x52d4c1",
+        "bytes": 1
+      },
+      {
+        "site": "0x52d4d1",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d4e1",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d4f1",
+        "bytes": 1
+      },
+      {
+        "site": "0x52d501",
+        "bytes": 16
+      },
+      {
+        "site": "0x52d511",
+        "bytes": 16
+      },
+      {
+        "site": "0x52d521",
+        "bytes": 118
+      },
+      {
+        "site": "0x52d531",
+        "bytes": 8
+      },
+      {
+        "site": "0x52d541",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d551",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d564",
+        "bytes": 356
+      },
+      {
+        "site": "0x52d574",
+        "bytes": 30
+      },
+      {
+        "site": "0x52d584",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d594",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d5a4",
+        "bytes": 36
+      },
+      {
+        "site": "0x52d5b4",
+        "bytes": 4
+      },
+      {
+        "site": "0x52d5c4",
+        "bytes": 6
+      },
+      {
+        "site": "0x52d5d4",
+        "bytes": 1
+      },
+      {
+        "site": "0x52d5e4",
+        "bytes": 1
+      }
+    ],
+    "total_explicit_requested_bytes": 1459,
+    "conditional_start": "alternative52f4d0 atdecodedoffset2 reads sectionversion6 then fixedfields startoffset4",
+    "virtual_frontier": "0x52d5f6 receiver+0x5c4"
+  },
+  "map_next_nested_type_accepted": false,
+  "rejected_candidate_vptr": "0x7b4d34",
+  "candidate_city19_prefix": {
+    "argv": [
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/map-v2-next-section-20261012/qualify-candidate-prefix",
+      "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+      "165223",
+      "4275878570",
+      "2882400255",
+      "2863386095"
+    ],
+    "exit_code": 0,
+    "stdout_sha256": "96378c00c6ac0478e25690c4b97a085d0ee9e854ef2fcff943041a7e58aba66b",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tool_source_sha256": "bc2642dd32cf39fa46845fdd494a8971c5aa0692e89a7777aaf9857af4160649",
+    "tool_executable_sha256": "1f5f5ce3fe3c84a5a9adf9aec2fa7619a17e86309bfa0f0dedbe3bbceb764fcd",
+    "metadata_before": {
+      "path": "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+      "bytes": 165223,
+      "device": 16777231,
+      "inode": 32737957,
+      "mtime_ns": 1785166409329159260,
+      "format_not_guessed_from_suffix": true,
+      "prefix_qualification_yet": false
+    },
+    "result": {
+      "canonical_path": "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+      "file_bytes": 165223,
+      "prefix_bytes_read": 323,
+      "prefix_sha256": "75d5c012e53eabf8fe17851fc7c1ab467f15e6f96d654aa765b8987ebafab56e",
+      "first_block_decoded_bytes": 32768,
+      "first_block_decoded_sha256": "d44f819d58901ea80ea562b7d61aae9c18c1c57f2abd9103d58c663f4d7e91b0",
+      "observed_first_le16": 19,
+      "matches_selected_city19_word": true,
+      "remaining_file_bytes_not_read": 164900,
+      "input_metadata_unchanged": true,
+      "read_only": true,
+      "whole_input_sha_computed": false,
+      "whole_container_end_checked": false,
+      "decoded_bytes_saved": false,
+      "objects_deserialized": false,
+      "original_game_or_codec_executed": false,
+      "whole_city_archive_accepted": false
+    },
+    "only_first_complete_block_read": true,
+    "no_full_input_hash_or_game_execution": true,
+    "metadata_after_receipt_stable": true,
+    "prefix_word_support_only": "first version19 matches selected city13..19 dispatch; does not prove full archive type,main object deserialization or whole city compatibility"
+  },
+  "static_all_temporary_cleanup_verified": true,
+  "official_module_hashes_unchanged": true,
+  "original_or_derived_game_executed": false,
+  "raw_or_decoded_data_files_saved": false,
+  "research_publication_performed": false,
+  "approved_fixed_push_receipt": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/approved-5587fb5-push-20261012/push-and-preservation-receipt.json",
+  "known_own_harness_label_failure_receipt": "second-static-pass-receipt.json"
+}

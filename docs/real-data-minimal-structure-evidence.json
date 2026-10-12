@@ -363,5 +363,23 @@
     "decoded_block": 36144
   },
   "installed_sdk": "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
-  "qualification_code_origin": "Self-authored modern reader and explicit bounded scalar extraction; no copied original implementation or original callback execution"
+  "qualification_code_origin": "Self-authored modern reader and explicit bounded scalar extraction; no copied original implementation or original callback execution",
+  "reused_map_source": {
+    "source": [
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-object-factory-consumption-20261011/pool-load-first-caller-assembly.evidence.json",
+        "sha256": "ff26e5724b4ff53bb3c7d8e88ed06b85f54def3bac827125e80f45f8077d9765",
+        "evidence_id": "ev_6b8c5418424f32cde4ead7bf60e8ea2f49e1ed6e4f279013b9b3a31ef145cd25",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x52e7c0"
+        },
+        "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+        "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2"
+      }
+    ],
+    "scope": "Saved native Listing only; version2 explicit requests 2+4+4 bytes under ordinary no-same-stream-alias side-effect premise; no original execution or complete loader acceptance."
+  },
+  "map_10_byte_route_scope_note": "52e7c0 requests are conditional source sequence, not proved membership of UNTITLEDP.map in that complete format. Later52f4d0 outer2/52cd90 parameter6 is a more matching candidate; preserve original numeric observations without business interpretation.",
+  "later_matching_map_prefix_reference": "docs/real-map-parameter-city19-prefix-evidence.json"
 }
