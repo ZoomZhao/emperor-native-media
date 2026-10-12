@@ -1,0 +1,531 @@
+{
+  "schema": "FIGUREFSA_OBJECTS_INDEPENDENT_EXPECTATIONS_V1",
+  "baselines": [
+    "c1c75e40f3da71746fa62f1f90305de90c40a4d4",
+    "b40718a44dea33a54a11e87c90f99ccbb30800bb"
+  ],
+  "source_fingerprints": [
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-state-factory4f1cd0.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-state-factory4f1cd0.evidence.json",
+      "sha256": "c424ca2f83fed03f67d2b39ce2d3cfc4ece3c9c454182a22a049ec3a122f6447",
+      "expected_sha256": "c424ca2f83fed03f67d2b39ce2d3cfc4ece3c9c454182a22a049ec3a122f6447",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-transition-factory4f1dd0.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-transition-factory4f1dd0.evidence.json",
+      "sha256": "eda47adba698fc7122cc39ea0e75c41ea06024b9f007f284005087661db75090",
+      "expected_sha256": "eda47adba698fc7122cc39ea0e75c41ea06024b9f007f284005087661db75090",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-context-factory4f2290.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-context-factory4f2290.evidence.json",
+      "sha256": "b8d0cd984d75802490aec66e917254143e98d563315fc8b746ed70a907ee5d0f",
+      "expected_sha256": "b8d0cd984d75802490aec66e917254143e98d563315fc8b746ed70a907ee5d0f",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-state-constructor4f5270.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-state-constructor4f5270.evidence.json",
+      "sha256": "cca132d7626665b24741db81cbe3b4da833babac38462af32c2800c4ce8dbb7c",
+      "expected_sha256": "cca132d7626665b24741db81cbe3b4da833babac38462af32c2800c4ce8dbb7c",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-transition-constructor4f5b30.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-transition-constructor4f5b30.evidence.json",
+      "sha256": "60d7f5ec6584bc1e82cf1d6e3a7ab44e55f554029ea1981387450fd49cb05d7c",
+      "expected_sha256": "60d7f5ec6584bc1e82cf1d6e3a7ab44e55f554029ea1981387450fd49cb05d7c",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-context-constructor4f7970.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-context-constructor4f7970.evidence.json",
+      "sha256": "071475a7bf0257c9c95e301cfd0c4e0a6b16c115c9c617076d10c7aedff098c3",
+      "expected_sha256": "071475a7bf0257c9c95e301cfd0c4e0a6b16c115c9c617076d10c7aedff098c3",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-state-root-slot8.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-state-root-slot8.evidence.json",
+      "sha256": "29392ce1e2851519a08fd7f8175da426c83cae26f38be649d105125f39077206",
+      "expected_sha256": "29392ce1e2851519a08fd7f8175da426c83cae26f38be649d105125f39077206",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-transition-root-slot8.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-transition-root-slot8.evidence.json",
+      "sha256": "90a258d702b8c23e8a8a8feec3784e8d90930d9c4f058233f2da9e1fc4db2626",
+      "expected_sha256": "90a258d702b8c23e8a8a8feec3784e8d90930d9c4f058233f2da9e1fc4db2626",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-context-root-slot8.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-context-root-slot8.evidence.json",
+      "sha256": "000a6a2f6e7d02faa837b2826e57589bad011485774d663f5e88a52a1811d5b2",
+      "expected_sha256": "000a6a2f6e7d02faa837b2826e57589bad011485774d663f5e88a52a1811d5b2",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-state-reader4f5630.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/fsa-state-reader4f5630.evidence.json",
+      "sha256": "b5dcaf8863194043553563e0381c0193d13e02863438ff503d3bb10ba34e80ff",
+      "expected_sha256": "b5dcaf8863194043553563e0381c0193d13e02863438ff503d3bb10ba34e80ff",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/session-status.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/session-status.json",
+      "sha256": "446de3855b34e5ceca33e63ebd2deeef7c42781c281b505e72b638b6a202cc35",
+      "expected_sha256": "446de3855b34e5ceca33e63ebd2deeef7c42781c281b505e72b638b6a202cc35",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/session-result.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/session-result.json",
+      "sha256": "2cfe8e9ba38cc5a4d4336bf48fb5325c62a51c291798885feec695cf193469db",
+      "expected_sha256": "2cfe8e9ba38cc5a4d4336bf48fb5325c62a51c291798885feec695cf193469db",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/configuration-review.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/configuration-review.json",
+      "sha256": "18559572f0946f93737fe45497b92b7e9ac9f713c439b9b36e02b74a79480896",
+      "expected_sha256": null,
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-factories-fixed-20261012/seeds.tsv",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-factories-fixed-20261012/seeds.tsv",
+      "sha256": "3638c565a1bfb7b136df0d3bcd9e4cdfd8782b9ab74f6896bd510a4d72f2a353",
+      "expected_sha256": null,
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-context-reader4f7ae0-seeded.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-context-reader4f7ae0-seeded.evidence.json",
+      "sha256": "fad3a71cf957ca6c60c5b0f257a3017c626a235a34e43a83fa6a1ff984369c41",
+      "expected_sha256": "fad3a71cf957ca6c60c5b0f257a3017c626a235a34e43a83fa6a1ff984369c41",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-transition-reader4f6890.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-transition-reader4f6890.evidence.json",
+      "sha256": "15396321c62f952afc76ad6d1f7b062f33faf5634c86d5bb9dfa042cfcffe174",
+      "expected_sha256": "15396321c62f952afc76ad6d1f7b062f33faf5634c86d5bb9dfa042cfcffe174",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-context-nested-action4f2120.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-context-nested-action4f2120.evidence.json",
+      "sha256": "0d3d89e6f33c771935ac1f3851b6fab16e5ea669c415df2252393944dfdcde16",
+      "expected_sha256": "0d3d89e6f33c771935ac1f3851b6fab16e5ea669c415df2252393944dfdcde16",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-context-nested-parameter4f2220.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-context-nested-parameter4f2220.evidence.json",
+      "sha256": "fc4083354c38c5f0c49ebf5af8ec2aed0cc03f3e1fd30da8cfb02dcfe19152b7",
+      "expected_sha256": "fc4083354c38c5f0c49ebf5af8ec2aed0cc03f3e1fd30da8cfb02dcfe19152b7",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-transition-nested-predicate4f2420.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-transition-nested-predicate4f2420.evidence.json",
+      "sha256": "b5e75186dafd2bb818082569ba498483ed4b34e3f7a8ac2935ea9d3d1eff4a11",
+      "expected_sha256": "b5e75186dafd2bb818082569ba498483ed4b34e3f7a8ac2935ea9d3d1eff4a11",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-transition-byte503d50.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-transition-byte503d50.evidence.json",
+      "sha256": "f6bd8b2cae633d278ef50f9d99c9e1983ff36a122937c131fa5f3ef6ce63df92",
+      "expected_sha256": "f6bd8b2cae633d278ef50f9d99c9e1983ff36a122937c131fa5f3ef6ce63df92",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-transition-eight-byte4f6b00.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-transition-eight-byte4f6b00.evidence.json",
+      "sha256": "32ef0411d1153e512795094705b77e9234b35448dde693723248aed577d1c04f",
+      "expected_sha256": "32ef0411d1153e512795094705b77e9234b35448dde693723248aed577d1c04f",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-action-descriptor.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-action-descriptor.evidence.json",
+      "sha256": "015c0866e2aae00cb118b5dc4ada21a7142fa5bb2e0968a83be48bf064b4cf49",
+      "expected_sha256": "015c0866e2aae00cb118b5dc4ada21a7142fa5bb2e0968a83be48bf064b4cf49",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-parameter-descriptor.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-parameter-descriptor.evidence.json",
+      "sha256": "77bc7a1af08f0384b48d556bc5a2bf3d69be7b49143fa521a046a785022a96f7",
+      "expected_sha256": "77bc7a1af08f0384b48d556bc5a2bf3d69be7b49143fa521a046a785022a96f7",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-predicate-descriptor.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-predicate-descriptor.evidence.json",
+      "sha256": "60580647c9725b38fd08d7bf1a5f6f7d833e16162d083cc6e767ddd9cd284459",
+      "expected_sha256": "60580647c9725b38fd08d7bf1a5f6f7d833e16162d083cc6e767ddd9cd284459",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-action-name.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-action-name.evidence.json",
+      "sha256": "cf1adbb2f974209d9133f81c4508f55c41caa335a9b2e201dca0d533710a7e9d",
+      "expected_sha256": "cf1adbb2f974209d9133f81c4508f55c41caa335a9b2e201dca0d533710a7e9d",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-parameter-name.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-parameter-name.evidence.json",
+      "sha256": "af36e4d1e39c0cdd0decd378deab0198fd6e8d74a805c50ed30b2f821ace7350",
+      "expected_sha256": "af36e4d1e39c0cdd0decd378deab0198fd6e8d74a805c50ed30b2f821ace7350",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-predicate-name.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-nested-predicate-name.evidence.json",
+      "sha256": "e9c9ced534120bc56b11a7db1d90bf814a03bfa7e5a3175071335d14b6c49435",
+      "expected_sha256": "e9c9ced534120bc56b11a7db1d90bf814a03bfa7e5a3175071335d14b6c49435",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/fsa-scalar-byte4c95f0.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/fsa-scalar-byte4c95f0.evidence.json",
+      "sha256": "8862a0a6cfa348b3337dd08ecbd592aaa7cec4b4f417489a2c3a37a5ad50742a",
+      "expected_sha256": "8862a0a6cfa348b3337dd08ecbd592aaa7cec4b4f417489a2c3a37a5ad50742a",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/session-status.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/session-status.json",
+      "sha256": "d4457951d559270e77c7470c78eaceb0c93847fb34f997d7b58568a3130a42f2",
+      "expected_sha256": "d4457951d559270e77c7470c78eaceb0c93847fb34f997d7b58568a3130a42f2",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/session-result.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/session-result.json",
+      "sha256": "d77874353b174d44246678d70a577aabc72eab9682575a4ec645c8b9905ec840",
+      "expected_sha256": "d77874353b174d44246678d70a577aabc72eab9682575a4ec645c8b9905ec840",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/configuration-review.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/configuration-review.json",
+      "sha256": "9d06b83ea04a3b2f517917d5aa40fcd108550e3e9210f08722c1eba816e3b4c9",
+      "expected_sha256": null,
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-object-readers-20261012/seeds.tsv",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-object-readers-20261012/seeds.tsv",
+      "sha256": "f621764dc879fbaca77cd0dc101719ca995315337f3f85ca15d71d7972554b1f",
+      "expected_sha256": null,
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-action-factory4f2090.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-action-factory4f2090.evidence.json",
+      "sha256": "f82d3cdff927ae31eaa396685b75afe0b5b824bc7b54b0ffc3c3afac28c5177a",
+      "expected_sha256": "f82d3cdff927ae31eaa396685b75afe0b5b824bc7b54b0ffc3c3afac28c5177a",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-context8-factory4f2190.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-context8-factory4f2190.evidence.json",
+      "sha256": "4275bdda246cbc3a5ec2a974117d22a670158124a8043e3c972b95e52d9b3163",
+      "expected_sha256": "4275bdda246cbc3a5ec2a974117d22a670158124a8043e3c972b95e52d9b3163",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-match-factory4f2390.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-match-factory4f2390.evidence.json",
+      "sha256": "e1ef72437a762b05276f5b6755faeef6812ac0819de1fa868eb470da135619c0",
+      "expected_sha256": "e1ef72437a762b05276f5b6755faeef6812ac0819de1fa868eb470da135619c0",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-action-constructor4f7670.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-action-constructor4f7670.evidence.json",
+      "sha256": "994032f7fbe88f39c883135ad76e80c04ab9fc78ff1f890e911727caee34f6e5",
+      "expected_sha256": "994032f7fbe88f39c883135ad76e80c04ab9fc78ff1f890e911727caee34f6e5",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-context8-constructor4f7540.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-context8-constructor4f7540.evidence.json",
+      "sha256": "85c374c1bdf57ecd1dd65a236fccf87f67a93c9b689f161ef35de3d0d8bbe997",
+      "expected_sha256": "85c374c1bdf57ecd1dd65a236fccf87f67a93c9b689f161ef35de3d0d8bbe997",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-match-constructor4f7b90.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-match-constructor4f7b90.evidence.json",
+      "sha256": "3d1289d115cd7f25f9d8054e3f5a8521ca685d8b89276f1195e111f84e035ab6",
+      "expected_sha256": "3d1289d115cd7f25f9d8054e3f5a8521ca685d8b89276f1195e111f84e035ab6",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-action-root-slot8.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-action-root-slot8.evidence.json",
+      "sha256": "6583d3af76b498b98876ce9970c5c3ff50e9224377ae8236a7b1d150ad917a3b",
+      "expected_sha256": "6583d3af76b498b98876ce9970c5c3ff50e9224377ae8236a7b1d150ad917a3b",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-context8-root-slot8.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-context8-root-slot8.evidence.json",
+      "sha256": "d26e869a38212c5dd2d6a7f08bc7d01a8f3d601e46bfdb4d8ef13a2068a8a841",
+      "expected_sha256": "d26e869a38212c5dd2d6a7f08bc7d01a8f3d601e46bfdb4d8ef13a2068a8a841",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-match-root-slot8.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-match-root-slot8.evidence.json",
+      "sha256": "766f9c8cb0f38c21971005ce1c4c887f83702d10d04409892a52f2c33487d6df",
+      "expected_sha256": "766f9c8cb0f38c21971005ce1c4c887f83702d10d04409892a52f2c33487d6df",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-action-reader4f78a0.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-action-reader4f78a0.evidence.json",
+      "sha256": "5724adb9b62c6ccaa24fa076b47b4d87c12fa83fd60c6ce60be236593a9e2d3f",
+      "expected_sha256": "5724adb9b62c6ccaa24fa076b47b4d87c12fa83fd60c6ce60be236593a9e2d3f",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/fsa-context8-reader4f75b0.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/fsa-context8-reader4f75b0.evidence.json",
+      "sha256": "3f106afe0633d30331560775e2a009750d48d8292b3f58509be2331cb2b67a3b",
+      "expected_sha256": "3f106afe0633d30331560775e2a009750d48d8292b3f58509be2331cb2b67a3b",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/session-status.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/session-status.json",
+      "sha256": "8502425b7f669bdaa8f6dec8708ff0dd6903db917cebc2cdd3f653e0fc379d29",
+      "expected_sha256": "8502425b7f669bdaa8f6dec8708ff0dd6903db917cebc2cdd3f653e0fc379d29",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/session-result.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/session-result.json",
+      "sha256": "5691147355da315d926772ef876051f30f3a41eac279db10641015d9dfbab13f",
+      "expected_sha256": "5691147355da315d926772ef876051f30f3a41eac279db10641015d9dfbab13f",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/configuration-review.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/configuration-review.json",
+      "sha256": "aa619d7b2421be3ddd8710ffb04eca43abd5d5874a5bc21b8a9e75dad7699106",
+      "expected_sha256": null,
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-nested-factories-20261012/seeds.tsv",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-nested-factories-20261012/seeds.tsv",
+      "sha256": "e3afccb69d7d77c9d8defaf4ae972cbde1371634b1fbb672478f158a447b72e4",
+      "expected_sha256": null,
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-match-reader-20261012/fsa-match-reader4f7d00.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-match-reader-20261012/fsa-match-reader4f7d00.evidence.json",
+      "sha256": "9625906c08584103fb7debfba561ed0273704b69510047ed42d6bca9a4747fa5",
+      "expected_sha256": "9625906c08584103fb7debfba561ed0273704b69510047ed42d6bca9a4747fa5",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-match-reader-20261012/session-status.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-match-reader-20261012/session-status.json",
+      "sha256": "f5717b21aed80fb00126e62141b8427e7a6c3155babcf706ed4fa42559a7723e",
+      "expected_sha256": "f5717b21aed80fb00126e62141b8427e7a6c3155babcf706ed4fa42559a7723e",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-match-reader-20261012/session-result.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-match-reader-20261012/session-result.json",
+      "sha256": "e8b3888d80f5f3e156f9afff8f4b67ea292e07217b1de9a3f1223ff10184f882",
+      "expected_sha256": "e8b3888d80f5f3e156f9afff8f4b67ea292e07217b1de9a3f1223ff10184f882",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-match-reader-20261012/configuration-review.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-match-reader-20261012/configuration-review.json",
+      "sha256": "212cade0ec8d5ce61480b9de9cf03efbd295774525d0b0e8f9bc7ee77b8f217e",
+      "expected_sha256": null,
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-match-reader-20261012/seeds.tsv",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-match-reader-20261012/seeds.tsv",
+      "sha256": "ca32ac0cbbcd96214c8b00fcc07c9183d9c49698439956099e05a48f439db964",
+      "expected_sha256": null,
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-wire-helper-readers-20261012/figure-signed-byte-helper.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-wire-helper-readers-20261012/figure-signed-byte-helper.evidence.json",
+      "sha256": "fd94bbe3174acb6434ebfedb84648a065bd4c918e761538d91431c91e759b3af",
+      "expected_sha256": "fd94bbe3174acb6434ebfedb84648a065bd4c918e761538d91431c91e759b3af",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-wire-20261012/figurefsa-rootbase40cf80-wire-source.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-wire-20261012/figurefsa-rootbase40cf80-wire-source.evidence.json",
+      "sha256": "3de569577883d6dcd31c03e8523811e7030452f93ee7c3362c94c672cc1254fe",
+      "expected_sha256": "3de569577883d6dcd31c03e8523811e7030452f93ee7c3362c94c672cc1254fe",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-wire-20261012/figurefsa-base4f4480-wire-source.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-wire-20261012/figurefsa-base4f4480-wire-source.evidence.json",
+      "sha256": "68773f634b5ff18d7ec0b4a386cc561af0a909cedf4db7c47e7c173e84108d7d",
+      "expected_sha256": "68773f634b5ff18d7ec0b4a386cc561af0a909cedf4db7c47e7c173e84108d7d",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-hero-child-reader-20261012/child-vptr8-reader-assembly.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-hero-child-reader-20261012/child-vptr8-reader-assembly.evidence.json",
+      "sha256": "c83cb5c59512c5be737b35a2e2400e98851346e6edf781ff7f19fde2bd2632ae",
+      "expected_sha256": "c83cb5c59512c5be737b35a2e2400e98851346e6edf781ff7f19fde2bd2632ae",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-wire-20261012/figurefsa-runtimeclass-state-descriptor.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-wire-20261012/figurefsa-runtimeclass-state-descriptor.evidence.json",
+      "sha256": "087a29536f5d180a5a277d371be2e7a4231d81c05e8ad0e521a81e5bbcf4a59b",
+      "expected_sha256": "087a29536f5d180a5a277d371be2e7a4231d81c05e8ad0e521a81e5bbcf4a59b",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-wire-20261012/figurefsa-runtimeclass-legacy-one-descriptor.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-wire-20261012/figurefsa-runtimeclass-legacy-one-descriptor.evidence.json",
+      "sha256": "7e0a8c045d68e0f74a40ca1178768d0970859ae3e1ae3f18d5d29c0a42400c06",
+      "expected_sha256": "7e0a8c045d68e0f74a40ca1178768d0970859ae3e1ae3f18d5d29c0a42400c06",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-figurefsa-wire-20261012/figurefsa-runtimeclass-legacy-two-descriptor.evidence.json",
+      "snapshot_path": "saved/rea-static-city19-figurefsa-wire-20261012/figurefsa-runtimeclass-legacy-two-descriptor.evidence.json",
+      "sha256": "85730338df3cdb1a19d2c25be4b2691e33afae84f916b5c1362c7f81ec76bc48",
+      "expected_sha256": "85730338df3cdb1a19d2c25be4b2691e33afae84f916b5c1362c7f81ec76bc48",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsa-46893b8-review/saved/rea-static-city19-figurefsa-subreaders-20261012/figurefsa-cache77fd90-wire-source.evidence.json",
+      "snapshot_path": "saved/previous/figurefsa-cache77fd90-wire-source.evidence.json",
+      "sha256": "2a27dfe2192a3ef1ac51ab8fba4b01a48a52f3bff54b91d9ff8d70b38871d566",
+      "expected_sha256": "2a27dfe2192a3ef1ac51ab8fba4b01a48a52f3bff54b91d9ff8d70b38871d566",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsa-46893b8-review/saved/rea-static-city19-figurefsa-subreaders-20261012/figurefsa-tag77ffc8-cached-and-new-wire-grammar.evidence.json",
+      "snapshot_path": "saved/previous/figurefsa-tag77ffc8-cached-and-new-wire-grammar.evidence.json",
+      "sha256": "597059b135afa4d4d1437a42f6b08d1bdb26157ffd6c6f1909405f290ddf2b06",
+      "expected_sha256": "597059b135afa4d4d1437a42f6b08d1bdb26157ffd6c6f1909405f290ddf2b06",
+      "matches": true
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-versioned-city-load-20261011/archive-new-class-name-assembly.evidence.json",
+      "snapshot_path": "saved/previous/archive-new-class-name-assembly.evidence.json",
+      "sha256": "e42cc99969b36c10711c9d20fb2819b0276693c177313c1f780188cc2bee09f3"
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsa-46893b8-review/saved/rea-static-city19-figurefsa-subreaders-20261012/figurefsa-state-name.evidence.json",
+      "snapshot_path": "saved/previous/figurefsa-state-name.evidence.json",
+      "sha256": "7a2c515fad107798983b5dd135ffa7a797a4b4721c6989e0461b7b86947ac66b"
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsa-46893b8-review/saved/rea-static-city19-figurefsa-subreaders-20261012/figurefsa-legacy-one-name.evidence.json",
+      "snapshot_path": "saved/previous/figurefsa-legacy-one-name.evidence.json",
+      "sha256": "02ce797e166238d06eb235b1ee64b4a9a078407d6618a0ba811017a7f27539ff"
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsa-46893b8-review/saved/rea-static-city19-figurefsa-subreaders-20261012/figurefsa-legacy-two-name.evidence.json",
+      "snapshot_path": "saved/previous/figurefsa-legacy-two-name.evidence.json",
+      "sha256": "21f43666850e2a4f76128ae8d813aa9f36c683c55d97efd7dc3036cf7074b1e3"
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsa-46893b8-review/saved/rea-static-city19-figurefsa-wire-20261012/figurefsa-reference4f1d60-cache-wire-source.evidence.json",
+      "snapshot_path": "saved/previous/figurefsa-reference4f1d60-cache-wire-source.evidence.json",
+      "sha256": "5ff1dc22f6b79ec81396cbd88cf9065db898be4b71426f436c6aa4ad04df3bf5"
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsa-46893b8-review/saved/rea-static-city19-figurefsa-wire-20261012/figurefsa-legacy-reference4f1e60-wire-source.evidence.json",
+      "snapshot_path": "saved/previous/figurefsa-legacy-reference4f1e60-wire-source.evidence.json",
+      "sha256": "8f1094fb8479d27279b7e78bb3a05efeead74625c9433796395effb3e439a842"
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsa-46893b8-review/saved/rea-static-city19-figurefsa-wire-20261012/figurefsa-legacy-reference4f2320-wire-source.evidence.json",
+      "snapshot_path": "saved/previous/figurefsa-legacy-reference4f2320-wire-source.evidence.json",
+      "sha256": "0cbb568b28f08d2d1a05415cfbf7344bba080b62fc301c4ad10dc72e3e41ac78"
+    },
+    {
+      "source_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsa-46893b8-review/saved/rea-static-city19-figurefsa-wire-20261012/figurefsa-string4f2480-wire-source.evidence.json",
+      "snapshot_path": "saved/previous/figurefsa-string4f2480-wire-source.evidence.json",
+      "sha256": "bd58b24bb8ed6b98d50242c009d0d21a0db210a2b0fa82cca1eb444409834ece"
+    }
+  ],
+  "cases": [
+    {
+      "id": "six_source_minimum_widths_and_raw_calls",
+      "source": "Six saved own1 readers plus40cf80 RET4",
+      "expectation": "Widths20/33/6/6/6/10 are synthetic NULL/empty minimums; Transition fields4+8+8, Context/Match DWORD calls."
+    },
+    {
+      "id": "declaration_class_object_registration_ledger",
+      "source": "Saved7802fe,77ffc8 and77fd90 registration order",
+      "expectation": "Six exact names/schema0 declarations create class then object IDs before own1 payload; metadata indices, not pointers."
+    },
+    {
+      "id": "depth16_17_and_in_progress_cycle",
+      "source": "Modern max_depth16; saved77fe1d registration before77fe30 virtual8",
+      "expectation": "16-level State/Transition chain closes to in-progress root;17 fails; backrefs do not increment depth. Modern cap, not original limit."
+    },
+    {
+      "id": "new_object128_129_and_exact_cache_budget",
+      "source": "Modern max_objects128 and max_cache; initial cache7 catalog slots",
+      "expectation": "128 new flattenedState payloads success,129 reject; initial7+128=135 exact cache cap;134 fails. Modern policy."
+    },
+    {
+      "id": "reachable_name_count386_385",
+      "source": "Six saved readers have at most one name per new object; modern max_objects128 and outer name count256",
+      "expectation": "Maximum reachable raw names=128+outer base1+current1+list256=386; lowered386 cap passes,385 fails. Default1024 cannot be reached with other caps; not falsely tested as inclusive."
+    },
+    {
+      "id": "global_refs_include_nested_payloads1024_1025",
+      "source": "Modern cumulative max_refs1024; saved legacyTransition lists and each State directTransition",
+      "expectation": "764 legacyNULL refs+4 mandatory outer+128 newState tags+128 nestedNULL refs=1024;one extra legacyNULL=1025. Each list<=256."
+    },
+    {
+      "id": "unknown_alias_schema_and_version_rejections",
+      "source": "Modern exact-name/schema0/own1 subset; saved7802fe name length<64 and readers skip fields for own!=1",
+      "expectation": "Unknown/derived/NUL-suffixed names, schema1, own0/2/0100/ffff and len0/64/ffff reject. This does not claim original rejects all those inputs."
+    },
+    {
+      "id": "all_output_retained_after_late_graph_failure",
+      "source": "Local ObjectReader/result/cache; const invocation inputs; C++ assignment RHS completes first",
+      "expectation": "Late last-byte truncation and thirdembedded badversion preserve all caller output metadata and initial cache; subsequent invocation succeeds."
+    },
+    {
+      "id": "last_cache_slot_new_then_back_reference",
+      "source": "Modern cache cap1024 plus cached/class tag grammar77ffc8",
+      "expectation": "Initial1023 slots, lastClass1022 create objectID1023 then backrefID1023; compact and extended class tags. A cap1023 rejects new append."
+    },
+    {
+      "id": "complete_graph_wire_partition_and_laminar_payloads",
+      "source": "Six saved readers/decl wire grammar plus modern ranges",
+      "expectation": "All consumed bytes partition exactly; payload intervals nest or are disjoint; trailing bytes do not trigger registration."
+    }
+  ],
+  "actual_input_read": false,
+  "original_executed": false,
+  "new_actual_bytes": 0
+}

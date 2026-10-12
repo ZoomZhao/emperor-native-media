@@ -1,0 +1,55 @@
+{
+  "schema": "FIGUREFSA_PREFIX_INDEPENDENT_V1",
+  "baseline": "fe09b158e410c232b6820932a6d9dc878d11a976",
+  "actual_input_read": false,
+  "new_actual_bytes": 0,
+  "cases": [
+    {
+      "id": "initial_cache_appended1024_1025_must_be_checked",
+      "expectation_source": "fe09 README total8192/FSA appended1024 policy; append() tracks size relative to original prefix",
+      "expectation": "Initial typed entries beyond original prefix cannot bypass1024 policy by performing no append. Deliberate regression expected to fail baseline."
+    },
+    {
+      "id": "prefix_all_fields_preserved_and_global6020_6021",
+      "expectation_source": "Modern result_.cache=cache; append global size; saved77ffc8/77fd90 registration sources",
+      "expectation": "All prefix metadata copied exactly; new class6020/object6021 followed by repeated ref6021."
+    },
+    {
+      "id": "same_view_next_record_reuses_global_cache",
+      "expectation_source": "New API takes prior result cache and unchanged original prefix count6020",
+      "expectation": "One shared view, next start=end, same global IDs and no repeated payload."
+    },
+    {
+      "id": "persistent_append_budget_four_records_then_fifth",
+      "expectation_source": "Modern maxobjects128 per invocation and accumulated1024 cache cap",
+      "expectation": "Four calls each128 new classes+objects yield1024; fifth append rejects while NULL-only record at cap succeeds."
+    },
+    {
+      "id": "opaque_prefix_does_not_become_fsa",
+      "expectation_source": "OpaquePrefix is allowed only below original prefix count; FSA references explicitly stop",
+      "expectation": "Opaque Class/Object references reject; opaque entry beyond prefix rejects instead of being relabeled FSA."
+    },
+    {
+      "id": "self_authored_unknown_name_diagnostic_no_payload",
+      "expectation_source": "PrefixFailure and six-name exact declaration catalog",
+      "expectation": "Synthetic demo! base name yields tag12/name18/end32 with unsupported14-byte FigureFSAState/schema0. Poison payload unread. These are fixture offsets, not actual input observations."
+    },
+    {
+      "id": "late_unknown_and_truncation_preserve_full_output",
+      "expectation_source": "Wrapper owns local reader, result and cache; converts failures to diagnostics",
+      "expectation": "Unknown after a known locally parsed object cannot publish partial cache or replace prior complete output; late truncation is also atomic."
+    },
+    {
+      "id": "initial_object_class_relation_checks",
+      "expectation_source": "Constructor kind/ClassID/family validation",
+      "expectation": "Object-to-Object class relation, out of range classID and nonzero NULL cache slot reject."
+    }
+  ],
+  "integration_fixture_adjustment": {
+    "original_negative_identifier": "FigureFSAState",
+    "new_negative_identifier": "UnknownFSAType",
+    "equal_length_bytes": 14,
+    "reason": "Existing0736 directory recognizes old negative name; preserve unknown-class test scope using a name outside existing directory. This does not review or approve0736 source/real experiment.",
+    "original_test_failures_preserved": "old-budget-independent-repro/results.json"
+  }
+}

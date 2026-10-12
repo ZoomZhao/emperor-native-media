@@ -181,6 +181,7 @@ public:
            limits.max_string>8192||limits.max_items>256||limits.max_refs>1024||
            !limits.max_cache||limits.max_cache>(prefix_entries?8192u:1024u)||
            (prefix_entries&&(prefix_entries<1||prefix_entries>8192||prefix_entries>cache.size()))||
+           (prefix_entries&&prefix_entries<=cache.size()&&cache.size()-prefix_entries>1024)||
            !limits.max_objects||limits.max_objects>128||
            !limits.max_depth||limits.max_depth>16||!limits.max_strings||limits.max_strings>1024||
            cache.empty()||cache.size()>limits.max_cache||cache[0].kind!=FigureFsaCacheKind::Null)

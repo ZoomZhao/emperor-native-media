@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Bounded self-authored FigureFSA tests; no original inputs or executables."""
-import argparse,datetime,hashlib,json,os,shlex,subprocess,time
+import argparse,datetime,hashlib,json,os,subprocess,time
 from pathlib import Path
 
 ap=argparse.ArgumentParser()
@@ -24,6 +24,27 @@ def run(argv,label,timeout):
     records.append({'argv':argv,'label':label,'exit_code':p.returncode,'seconds':time.monotonic()-t,
         'stdout_sha256':hashlib.sha256(p.stdout).hexdigest(),'stderr_sha256':hashlib.sha256(p.stderr).hexdigest()})
     return p
+def clang_dep_paths(path):
+    # Clang -MT fixes the target. Dependency tokens use Make escaping;
+    # quotes are literal filename characters, not shell quotation.
+    deptext=path.read_text().replace('\\\n',' ')
+    target,separator,body=deptext.partition(':')
+    if not separator or target.strip()!='figurefsa-test':
+        raise ValueError('unexpected Clang dependency target')
+    words=[];word=[];i=0
+    while i<len(body):
+        c=body[i]
+        if c=='\\' and i+1<len(body):
+            word.append(body[i+1]);i+=2;continue
+        if c=='$' and i+1<len(body) and body[i+1]=='$':
+            word.append('$');i+=2;continue
+        if c.isspace():
+            if word:words.append(''.join(word));word=[]
+        else:word.append(c)
+        i+=1
+    if word:words.append(''.join(word))
+    return [Path(p).resolve() for p in words]
+
 sdk=run(['/usr/bin/xcrun','--sdk','macosx','--show-sdk-path'],'sdk',10)
 if sdk.returncode:raise SystemExit('SDK lookup failed; saved logs')
 for mode,flags in [('release',['-O2']),('ubsan',['-O1','-g','-fsanitize=undefined','-fno-sanitize-recover=undefined'])]:
@@ -31,11 +52,10 @@ for mode,flags in [('release',['-O2']),('ubsan',['-O1','-g','-fsanitize=undefine
     deps=output/(mode+'.d')
     command=['/usr/bin/clang++','-std=c++17','-Wall','-Wextra','-Werror',*flags,
         '-isysroot',sdk.stdout.decode().strip(),'-I',str(root/'file_io/include'),
-        '-I',str(dependency/'file_io/include'),'-MMD','-MF',str(deps),str(source),'-o',str(exe)]
+        '-I',str(dependency/'file_io/include'),'-MMD','-MF',str(deps),'-MT','figurefsa-test',str(source),'-o',str(exe)]
     build=run(command,mode+'-compile',40)
     if build.returncode:results.append({'mode':mode,'compile_exit':build.returncode});continue
-    deptext=deps.read_text().replace('\\\n',' ')
-    selected=[Path(p).resolve() for p in shlex.split(deptext.split(':',1)[1])]
+    selected=clang_dep_paths(deps)
     compiled_dependencies.update(selected)
     test=run([str(exe)],mode+'-test',20)
     results.append({'mode':mode,'compile_exit':0,'exit_code':test.returncode,

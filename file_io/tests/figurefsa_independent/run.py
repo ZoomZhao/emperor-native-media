@@ -38,6 +38,27 @@ def run(argv, label, cap):
                         stderr_sha256=hashlib.sha256(stderr).hexdigest()))
     return code, stdout, stderr
 
+def clang_dep_paths(path):
+    # Clang -MT fixes the target. Dependency tokens use Make escaping;
+    # quotes are literal filename characters, not shell quotation.
+    deptext=path.read_text().replace('\\\n',' ')
+    target,separator,body=deptext.partition(':')
+    if not separator or target.strip()!='figurefsa-test':
+        raise ValueError('unexpected Clang dependency target')
+    words=[];word=[];i=0
+    while i<len(body):
+        c=body[i]
+        if c=='\\' and i+1<len(body):
+            word.append(body[i+1]);i+=2;continue
+        if c=='$' and i+1<len(body) and body[i+1]=='$':
+            word.append('$');i+=2;continue
+        if c.isspace():
+            if word:words.append(''.join(word));word=[]
+        else:word.append(c)
+        i+=1
+    if word:words.append(''.join(word))
+    return [pathlib.Path(p).resolve() for p in words]
+
 failure = None
 try:
     code, sdk, _ = run(['/usr/bin/xcrun', '--sdk', 'macosx', '--show-sdk-path'], 'sdk', 10)
@@ -48,7 +69,7 @@ try:
         exe, deps = out / ('properties-' + mode), out / (mode + '.d')
         cmd = ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
                *modes[mode], '-isysroot', sdk.decode().strip(),
-               '-I', str(root / 'file_io/include'), '-MMD', '-MF', str(deps),
+               '-I', str(root / 'file_io/include'), '-MMD', '-MF', str(deps), '-MT', 'figurefsa-test',
                str(source), '-o', str(exe)]
         code, _, _ = run(cmd, mode + '-compile', 60)
         result = dict(mode=mode, compile_exit=code)
@@ -57,9 +78,7 @@ try:
             continue
         # Parse our generated depfile, including Clang's escaped spaces, and hash
         # the exact headers selected by quoted includes and search precedence.
-        import shlex
-        deptext = deps.read_text().replace('\\\n', ' ')
-        paths = [pathlib.Path(x).resolve() for x in shlex.split(deptext.split(':', 1)[1])]
+        paths = clang_dep_paths(deps)
         result['compiled_dependency_sha256'] = {str(p): sha(p) for p in paths}
         code, stdout, stderr = run([str(exe)], mode + '-test', 10)
         result.update(exit_code=code, stderr_empty=not stderr)
