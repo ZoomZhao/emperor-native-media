@@ -1,0 +1,1045 @@
+{
+  "scope": "Complete same-stream Figure list2000 with exact Figure7 and cPheasant2-before-Figure7 layouts; no activity or game semantics",
+  "base": "5a9a23d167c1618e91b1e42d095fa3d826891cb8",
+  "old_frontier": 792570,
+  "new_frontier": 1592210,
+  "new_qualified_bytes": 799640,
+  "total_Figure_list_bytes_from792136": 800074,
+  "remaining_uninterpreted_decoded_bytes": 2838785,
+  "input_sha256": "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+  "decoded_sha256": "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+  "input_bytes": 165223,
+  "decoded_bytes": 4430995,
+  "blocks": 136,
+  "list": {
+    "start": 792136,
+    "end": 1592210,
+    "version": 1,
+    "count": 2000,
+    "processed": 2000,
+    "figures_complete": true,
+    "cache_start": 4018,
+    "cache_next": 6020,
+    "stop_reason": "Figure_list_complete_next_consumer_unqualified",
+    "pending_class": null,
+    "pending_extension": null
+  },
+  "class_records": {
+    "Figure": {
+      "class_model_id": 4018,
+      "payload_count": 1979,
+      "wire_payload": 398
+    },
+    "cPheasantFig": {
+      "class_model_id": 4020,
+      "payload_count": 21,
+      "wire_payload": 400
+    }
+  },
+  "class_declarations": 2,
+  "class_references": 1998,
+  "object_references": 0,
+  "first_Pheasant": {
+    "ordinal": 1,
+    "tag_offset": 792552,
+    "class_model_id": 4020,
+    "object_model_id": 4021,
+    "object_reference": false,
+    "payload_offset": 792570,
+    "payload_bytes": 400,
+    "payload_sha256": "472a3f106e42504512087dcd3c68ecfee4a4b2488039adaaaeba5b1cdca55adf"
+  },
+  "last_item": {
+    "ordinal": 1999,
+    "tag_offset": 1591810,
+    "class_model_id": 4018,
+    "object_model_id": 6019,
+    "object_reference": false,
+    "payload_offset": 1591812,
+    "payload_bytes": 398,
+    "payload_sha256": "a15ee3bd68b9792cbf0863a3982c089d9e1a9e7c75f2cd8745cfa34ffa667e45"
+  },
+  "source_class": {
+    "literal": "cPheasantFig",
+    "name_address": "85d1b8",
+    "descriptor": "85d1a0",
+    "schema": 0,
+    "sizeof412_not_wire": true,
+    "base_chain": [
+      "85d0c8 cAnimalFig",
+      "84dea8 Figure",
+      "7cd140"
+    ],
+    "factory": "5a0bc0",
+    "constructor": "5a0c50",
+    "base_constructor": "59d7d0",
+    "selected_root": "7bbdb0",
+    "getter_slot0": "5a0c20",
+    "reader_slot8": "5a0c70",
+    "own_record": "13128d0",
+    "selected_own_section": 2,
+    "wire_order": [
+      "cPheasant ownword2",
+      "Figure word7",
+      "161 requests395B",
+      "optional presence1B"
+    ],
+    "wire_bytes_without_extension": 400,
+    "direct_base_read_call": "5a0cb4->4c75c0",
+    "animal_descriptor_parent_not_serialization_callee": true,
+    "other_original_own_versions_skip_parent_not_explicitly_reject": true
+  },
+  "source_evidence": [
+    {
+      "saved_evidence": "rea-static-city19-goods-empire-fields-20261012/twelve-byte-static-class-literals.evidence.json",
+      "sha256": "cc0fc740234ccff4b21c5a9f33fa965b916463408a383bccc78df28e94b9e739",
+      "evidence_id": "ev_851b34584bab803e09c1fbd17e8177fbb3113f3fa796a22b6d6e4ffa61738fc7",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]{11}$",
+        "mode": "regex",
+        "case_sensitive": true
+      },
+      "analysis_profile_digest": "181eb6583277062b671aa5ea96e1cc79293233f263994afabf78b7b04a1f72a2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-goods-empire-fields-20261012/pheasant-literal-descriptor-xrefs.evidence.json",
+      "sha256": "7f9ef001b81df1bc3f3faa8a6d6e776408b021085050ef3bbe09c2047e5ba864",
+      "evidence_id": "ev_9b602320130e99b3c7dea43eca8fea76f81a137fe9ec4bad8986d61da0830036",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x85d1b8"
+      },
+      "analysis_profile_digest": "181eb6583277062b671aa5ea96e1cc79293233f263994afabf78b7b04a1f72a2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-class-source-20261012/pheasant-class-descriptor.evidence.json",
+      "sha256": "e3fd6ceeec1fa18804d92c96077fd8d164c379bcb291a6e2146cc0fd5b7e917e",
+      "evidence_id": "ev_d2ac4045b0fd9611ada01b009cc73c121a8d124eff9f7d35cd3acd1c9c7d4d05",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x85d1a0",
+        "length": 24
+      },
+      "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-class-source-20261012/pheasant-immediate-base-descriptor.evidence.json",
+      "sha256": "0a060ee35aa6b9ef2b2462f7dadc48152308aec799245624b44d1967075c0a91",
+      "evidence_id": "ev_5c93b8de2e4acbd0bbeb0ab26fb6c8c614f3a7f04f8ffc13e7cfd0a91f8dd8fa",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x85d0c8",
+        "length": 24
+      },
+      "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-class-source-20261012/pheasant-base-class-name.evidence.json",
+      "sha256": "6a45b51f41d46e293a350ba63695f8bfa2957edf3cf55c6edf0c98d1834c3c4c",
+      "evidence_id": "ev_6434723274f61a493a6d29268c4db521394ab4f9cbb12257a6e2b25c9fd13e1a",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x85d23c",
+        "length": 32
+      },
+      "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-class-source-20261012/pheasant-factory-assembly.evidence.json",
+      "sha256": "64f74a1ea134c65f5c67d9fa786bd10e70cc6d1e8aa00c63068455500502b4da",
+      "evidence_id": "ev_76c8e593d317fa1cb6c9a55fa4575c821fe3b8706ca90c504064187b9478fb1d",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x5a0bc0"
+      },
+      "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-class-source-20261012/pheasant-constructor-assembly.evidence.json",
+      "sha256": "bbe841a86955e903dbb809e3246523f5091a8866604dac5cde574117d2b8ba2d",
+      "evidence_id": "ev_aa7d92dd372c6d10fa3210ca98d134fb9e1c16c071eaacd2469845d3731b447a",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x5a0c50"
+      },
+      "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-class-source-20261012/pheasant-root-first-slots.evidence.json",
+      "sha256": "b438e3594d3ec46c5cbce4d483a97f347ecd61c3fc672239b1646f5ce9264aaa",
+      "evidence_id": "ev_20d446dec4651cbb364e55a72fb1296db15bda4252c4de1e3f578fabe8028a85",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x7bbdb0",
+        "length": 12
+      },
+      "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-class-source-20261012/pheasant-class-getter-native.evidence.json",
+      "sha256": "ead31c47d808a26d43ebcaa9edbf3343d2cbdbfece9c5a135f945f29fb709d01",
+      "evidence_id": "ev_b5f425dc8b1225c33c8c15e229b6af7e5ce994f617b553202ae9e98ad1990146",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x5a0c20"
+      },
+      "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-class-source-20261012/pheasant-class-getter-return.evidence.json",
+      "sha256": "225f99357d263ec6baa7a4df7b6ac2c5cc272064432137acb93be642ef12fe67",
+      "evidence_id": "ev_5edb751813a62c5dd1cb18ed4e7011d52b44b9fd663c76eff3f195b88693e75d",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x5a0c25"
+      },
+      "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-class-source-20261012/animal-base-constructor.evidence.json",
+      "sha256": "8f16b8e79646e6841fe79fe7f7dd15a96190bb416460ee617a75145b682eef11",
+      "evidence_id": "ev_cc532eaa02fd23491b9b2b76cf9f2e7e4daeefc9db113dcb72377bfc7480e2e2",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x59d7d0"
+      },
+      "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-reader-seeded-20261012/pheasant-seeded-reader-info.evidence.json",
+      "sha256": "d7566896561901d08f429720bc49734eccb3526f5014efa47b71a5397a427920",
+      "evidence_id": "ev_d5795301fd43f0f5feb6deb83997682c0d841553f918f26328a8e04280648296",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x5a0c70"
+      },
+      "analysis_profile_digest": "b5bb992384809cf0c103c71e62ab1f77b703820ed51270813d6fc6bb0a1bf1c0",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-reader-seeded-20261012/pheasant-seeded-reader-assembly.evidence.json",
+      "sha256": "f01b013560784bf14d3b700149a92b3c49ea31b30f39b6452d1303d46e94d008",
+      "evidence_id": "ev_31c39ea2a6fef5ad68637a51d6c23b0a8b9318872588613f540f926b29b818ad",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x5a0c70"
+      },
+      "analysis_profile_digest": "b5bb992384809cf0c103c71e62ab1f77b703820ed51270813d6fc6bb0a1bf1c0",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-reader-seeded-20261012/pheasant-parent-read-call-native.evidence.json",
+      "sha256": "64be749a43ad9684611b7743ade84e0eddd7ae90cb28bb2f0b3a3fbcdd49398c",
+      "evidence_id": "ev_2161309fa17d91ffee9ea9e5da27889e1c8a2abfe0a37d1a85187ddd925a1ef6",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x5a0cb4"
+      },
+      "analysis_profile_digest": "b5bb992384809cf0c103c71e62ab1f77b703820ed51270813d6fc6bb0a1bf1c0",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-pheasant-reader-seeded-20261012/pheasant-own-version-branch-native.evidence.json",
+      "sha256": "b07fecdf16c446ddcfdef8ef8b09bdb22009df9ba554d7fafd67d83f7825cd01",
+      "evidence_id": "ev_08efb6ee139069ddc5c7a5c5a230b892b2ce1dd38e3cf9425e337e3a38937f1f",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x5a0cac"
+      },
+      "analysis_profile_digest": "b5bb992384809cf0c103c71e62ab1f77b703820ed51270813d6fc6bb0a1bf1c0",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    }
+  ],
+  "source_sessions": [
+    {
+      "batch": "rea-static-city19-pheasant-class-source-20261012",
+      "exit_code": 0,
+      "seconds": 652.944,
+      "input_unchanged": true,
+      "official_selected_modules_unchanged": true,
+      "selected_module_pairs": 23,
+      "temporary_empty": true,
+      "procedure_parameters": 4,
+      "operations": 13,
+      "native_sites": 3,
+      "selected_bytes": 92
+    },
+    {
+      "batch": "rea-static-city19-pheasant-reader-seeded-20261012",
+      "exit_code": 0,
+      "seconds": 744.495,
+      "input_unchanged": true,
+      "official_selected_modules_unchanged": true,
+      "selected_module_pairs": 23,
+      "temporary_empty": true,
+      "procedure_parameters": 1,
+      "operations": 7,
+      "native_sites": 3,
+      "selected_bytes": 12
+    }
+  ],
+  "official_single_function_seed": {
+    "entry": "5a0c70",
+    "scope": "taskcopy only",
+    "caller_assertion_not_discovery": true,
+    "from_root": "7bbdb0+8",
+    "ordinary_NoProcedure_2_records_retained": true,
+    "original_PE_or_prior_database_mutated": false
+  },
+  "source_runtime_conditions": [
+    "selected registry binding/root and compatible original live objects if original were run",
+    "valid original storage and complete reads",
+    "normal callees and no same-stream alias effects",
+    "DF0 for previously qualified resets"
+  ],
+  "modern_scope": {
+    "defaults_preserve_old_Figure_only": true,
+    "feature_enabled_explicit_in_newCLI": true,
+    "prefix_max": 4915584,
+    "count_max": 16384,
+    "items_max": 8192,
+    "cache_max": 32768,
+    "count_limits_not_original_upper_bounds": true,
+    "cached_class_to_concrete_layout_preserved": true,
+    "kind_ascii_nonnull_complete_read_policy_not_original_explicit_checks": true,
+    "unsupported_extensions_stop_before_payload": true
+  },
+  "source_previous_version_contract": "docs/city19-first-Figure7-evidence.json",
+  "actual_commands": [
+    {
+      "argv": [
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/figure-variants-release",
+        "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+        "165223",
+        "262144",
+        "4915584",
+        "136",
+        "4275878570",
+        "2882400255",
+        "2863386095",
+        "36144",
+        "36144",
+        "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+        "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+        "4096",
+        "8192",
+        "0"
+      ],
+      "exit_code": 0,
+      "seconds": 0.018250792000000002,
+      "exe_sha256": "fe5045daf382639f8945bd5d913ef554ca4314e28e6ae0095299331887a3a641",
+      "stdout_sha256": "7bfabe80d37d8b94443d86dbced33ae9d738d6c6b94951cc3f52961449d44eda",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_game_or_callbacks_executed": false,
+      "raw_original_or_decoded_bytes_saved": false
+    },
+    {
+      "argv": [
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/figure-variants-release",
+        "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+        "165223",
+        "262144",
+        "4915584",
+        "136",
+        "4275878570",
+        "2882400255",
+        "2863386095",
+        "36144",
+        "36144",
+        "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+        "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+        "4096",
+        "8192",
+        "1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.02140724999999999,
+      "exe_sha256": "fe5045daf382639f8945bd5d913ef554ca4314e28e6ae0095299331887a3a641",
+      "stdout_sha256": "f29d624b59003c792cb9ee6607a39937ff38f1633106d61b81f8539077806917",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_game_or_callbacks_executed": false,
+      "raw_original_or_decoded_bytes_saved": false
+    }
+  ],
+  "property_tests": {
+    "passed": 46,
+    "failed": 0,
+    "execution_failed": false,
+    "results": [
+      {
+        "mode": "release",
+        "exit_code": 0,
+        "stderr_empty": true,
+        "report": {
+          "checks": [
+            {
+              "name": "Pheasant own2 precedes Figure7,400 wire bytes",
+              "passed": true
+            },
+            {
+              "name": "disabled scope stops before own version without cache append",
+              "passed": true
+            },
+            {
+              "name": "default API remains Figure-only",
+              "passed": true
+            },
+            {
+              "name": "old Figure-only subtree identical with feature disabled",
+              "passed": true
+            },
+            {
+              "name": "mixed Figure then Pheasant retains distinct class layouts",
+              "passed": true
+            },
+            {
+              "name": "Pheasant class reference keeps prefix2",
+              "passed": true
+            },
+            {
+              "name": "Pheasant object reference consumes only tag",
+              "passed": true
+            },
+            {
+              "name": "extended class and object tags preserve layout and IDs",
+              "passed": true
+            },
+            {
+              "name": "duplicate declarations receive separate class IDs",
+              "passed": true
+            },
+            {
+              "name": "parent-first serialization order rejects",
+              "passed": true
+            },
+            {
+              "name": "wrong concrete layout cannot cross cached class",
+              "passed": true
+            },
+            {
+              "name": "own version source2 subset excludes0,1,3,ffff",
+              "passed": true
+            },
+            {
+              "name": "schema0 distinct from own2 and parent7",
+              "passed": true
+            },
+            {
+              "name": "all400 proper payload prefixes reject truncated",
+              "passed": true
+            },
+            {
+              "name": "nonzero optional presence stops before unknown extension",
+              "passed": true
+            },
+            {
+              "name": "opaque activity bits do not filter records",
+              "passed": true
+            },
+            {
+              "name": "unknown sibling stops at declaration",
+              "passed": true
+            },
+            {
+              "name": "checkpoint before next missing tag",
+              "passed": true
+            },
+            {
+              "name": "cache exact5 accepts while4 rejects object append",
+              "passed": true
+            },
+            {
+              "name": "Building class and object remain incompatible",
+              "passed": true
+            },
+            {
+              "name": "modern kind gate rejects class-as-object/object-as-class",
+              "passed": true
+            },
+            {
+              "name": "zero and signed count extremes preserve modern policy",
+              "passed": true
+            },
+            {
+              "name": "2000 synthetic Pheasant records complete without runtime",
+              "passed": true
+            }
+          ],
+          "passed": 23,
+          "failed": 0
+        }
+      },
+      {
+        "mode": "ubsan",
+        "exit_code": 0,
+        "stderr_empty": true,
+        "report": {
+          "checks": [
+            {
+              "name": "Pheasant own2 precedes Figure7,400 wire bytes",
+              "passed": true
+            },
+            {
+              "name": "disabled scope stops before own version without cache append",
+              "passed": true
+            },
+            {
+              "name": "default API remains Figure-only",
+              "passed": true
+            },
+            {
+              "name": "old Figure-only subtree identical with feature disabled",
+              "passed": true
+            },
+            {
+              "name": "mixed Figure then Pheasant retains distinct class layouts",
+              "passed": true
+            },
+            {
+              "name": "Pheasant class reference keeps prefix2",
+              "passed": true
+            },
+            {
+              "name": "Pheasant object reference consumes only tag",
+              "passed": true
+            },
+            {
+              "name": "extended class and object tags preserve layout and IDs",
+              "passed": true
+            },
+            {
+              "name": "duplicate declarations receive separate class IDs",
+              "passed": true
+            },
+            {
+              "name": "parent-first serialization order rejects",
+              "passed": true
+            },
+            {
+              "name": "wrong concrete layout cannot cross cached class",
+              "passed": true
+            },
+            {
+              "name": "own version source2 subset excludes0,1,3,ffff",
+              "passed": true
+            },
+            {
+              "name": "schema0 distinct from own2 and parent7",
+              "passed": true
+            },
+            {
+              "name": "all400 proper payload prefixes reject truncated",
+              "passed": true
+            },
+            {
+              "name": "nonzero optional presence stops before unknown extension",
+              "passed": true
+            },
+            {
+              "name": "opaque activity bits do not filter records",
+              "passed": true
+            },
+            {
+              "name": "unknown sibling stops at declaration",
+              "passed": true
+            },
+            {
+              "name": "checkpoint before next missing tag",
+              "passed": true
+            },
+            {
+              "name": "cache exact5 accepts while4 rejects object append",
+              "passed": true
+            },
+            {
+              "name": "Building class and object remain incompatible",
+              "passed": true
+            },
+            {
+              "name": "modern kind gate rejects class-as-object/object-as-class",
+              "passed": true
+            },
+            {
+              "name": "zero and signed count extremes preserve modern policy",
+              "passed": true
+            },
+            {
+              "name": "2000 synthetic Pheasant records complete without runtime",
+              "passed": true
+            }
+          ],
+          "passed": 23,
+          "failed": 0
+        }
+      }
+    ],
+    "commands": [
+      {
+        "argv": [
+          "/usr/bin/xcrun",
+          "--sdk",
+          "macosx",
+          "--show-sdk-path"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "2bd5dc92a04fd174d35e7dccde7bf53f6b37c4bb92ce8685a4959e9015c200bc",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O2",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/tests/pheasant_properties.cpp",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/new-class-checks/pheasant-properties-release"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/new-class-checks/pheasant-properties-release"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "f6a74801fda05508f332a958e498d3c5e0868c8550b990b2abd0bbee49497504",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O1",
+          "-g",
+          "-fsanitize=undefined",
+          "-fno-sanitize-recover=undefined",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/tests/pheasant_properties.cpp",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/new-class-checks/pheasant-properties-ubsan"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/new-class-checks/pheasant-properties-ubsan"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "f6a74801fda05508f332a958e498d3c5e0868c8550b990b2abd0bbee49497504",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "component_sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099",
+    "goal_component_sha256": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b",
+    "building_layout_sha256": "853b8f19ff821e3cb0ac4c7d60303a9667de11fc7336b83203eed813b66a4ed4",
+    "driver_sha256": "08a93ef1c6b3d969e0d920c9912b9a8fcb54cdd2d9f2cabf7c4bb2f44a5f5044",
+    "test_sha256": "e46aa612fe56cfb8d0f059dfc0336f40f7aa6babc6029e2a17d63cb82a4b76c0",
+    "elapsed_seconds": 7.3061936670000005,
+    "total_budget_seconds": 180,
+    "original_payload_or_EXE_read": false,
+    "original_or_derived_game_executed": false,
+    "new_REA_query": false,
+    "main_written": false,
+    "pushed": false
+  },
+  "CLI_tests": {
+    "results": [
+      {
+        "mode": "release",
+        "enabled": 0,
+        "passed": true
+      },
+      {
+        "mode": "release",
+        "enabled": 1,
+        "passed": true
+      },
+      {
+        "mode": "release",
+        "invalid_feature": 2,
+        "passed": true
+      },
+      {
+        "mode": "ubsan",
+        "enabled": 0,
+        "passed": true
+      },
+      {
+        "mode": "ubsan",
+        "enabled": 1,
+        "passed": true
+      },
+      {
+        "mode": "ubsan",
+        "invalid_feature": 2,
+        "passed": true
+      }
+    ],
+    "commands": [
+      {
+        "argv": [
+          "/usr/bin/xcrun",
+          "--sdk",
+          "macosx",
+          "--show-sdk-path"
+        ],
+        "exit_code": 0,
+        "seconds": 0.009694749999999999,
+        "stdout_sha256": "2bd5dc92a04fd174d35e7dccde7bf53f6b37c4bb92ce8685a4959e9015c200bc",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O2",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/src/strict_zlib.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/src/framed_reader.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/tools/qualify_city19_figure_variants.cpp",
+          "-lz",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/figure-variants-release"
+        ],
+        "exit_code": 0,
+        "seconds": 1.5816112500000001,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/figure-variants-release",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/self-authored-Pheasant.bin",
+          "56443",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "0d685d39c8d357af2560529c7ce1f952015847d8f3e86a215c4ca133090d6f48",
+          "74af4f8f8313dbe6702bd2443ae4d1474645884627b375d5d11ba505ef9f6b5a",
+          "4096",
+          "8192",
+          "0"
+        ],
+        "exit_code": 0,
+        "seconds": 1.7928171249999998,
+        "stdout_sha256": "4529a05b2ae2c47431e51de4bc54f5d596128b44bb3e7d6246058ca3d94fcb99",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/figure-variants-release",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/self-authored-Pheasant.bin",
+          "56443",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "0d685d39c8d357af2560529c7ce1f952015847d8f3e86a215c4ca133090d6f48",
+          "74af4f8f8313dbe6702bd2443ae4d1474645884627b375d5d11ba505ef9f6b5a",
+          "4096",
+          "8192",
+          "1"
+        ],
+        "exit_code": 0,
+        "seconds": 0.0033823749999997155,
+        "stdout_sha256": "33ba99db23a0714e60c8a77a58f1dc862712f0b9fe3206d41391440cc939c150",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/figure-variants-release",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/self-authored-Pheasant.bin",
+          "56443",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "0d685d39c8d357af2560529c7ce1f952015847d8f3e86a215c4ca133090d6f48",
+          "74af4f8f8313dbe6702bd2443ae4d1474645884627b375d5d11ba505ef9f6b5a",
+          "4096",
+          "8192",
+          "2"
+        ],
+        "exit_code": 2,
+        "seconds": 0.0029092920000000078,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "250c084af6aceac6dbaebbfca7238bed815dcf91c92f1621e2d347c13c165fe6"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O1",
+          "-g",
+          "-fsanitize=undefined",
+          "-fno-sanitize-recover=undefined",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/src/strict_zlib.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/src/framed_reader.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/candidate/file_io/tools/qualify_city19_figure_variants.cpp",
+          "-lz",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/figure-variants-ubsan"
+        ],
+        "exit_code": 0,
+        "seconds": 2.191132333,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/figure-variants-ubsan",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/self-authored-Pheasant.bin",
+          "56443",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "0d685d39c8d357af2560529c7ce1f952015847d8f3e86a215c4ca133090d6f48",
+          "74af4f8f8313dbe6702bd2443ae4d1474645884627b375d5d11ba505ef9f6b5a",
+          "4096",
+          "8192",
+          "0"
+        ],
+        "exit_code": 0,
+        "seconds": 0.42781470800000054,
+        "stdout_sha256": "4529a05b2ae2c47431e51de4bc54f5d596128b44bb3e7d6246058ca3d94fcb99",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/figure-variants-ubsan",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/self-authored-Pheasant.bin",
+          "56443",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "0d685d39c8d357af2560529c7ce1f952015847d8f3e86a215c4ca133090d6f48",
+          "74af4f8f8313dbe6702bd2443ae4d1474645884627b375d5d11ba505ef9f6b5a",
+          "4096",
+          "8192",
+          "1"
+        ],
+        "exit_code": 0,
+        "seconds": 0.011036707999999784,
+        "stdout_sha256": "33ba99db23a0714e60c8a77a58f1dc862712f0b9fe3206d41391440cc939c150",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/figure-variants-ubsan",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-pheasant-branch-walk-20261012/cli-checks/self-authored-Pheasant.bin",
+          "56443",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "0d685d39c8d357af2560529c7ce1f952015847d8f3e86a215c4ca133090d6f48",
+          "74af4f8f8313dbe6702bd2443ae4d1474645884627b375d5d11ba505ef9f6b5a",
+          "4096",
+          "8192",
+          "2"
+        ],
+        "exit_code": 2,
+        "seconds": 0.011640959000000173,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "250c084af6aceac6dbaebbfca7238bed815dcf91c92f1621e2d347c13c165fe6"
+      }
+    ],
+    "passed": 6,
+    "failed": 0,
+    "original_payload_or_game_used": false,
+    "variant_header_sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099",
+    "new_tool_sha256": "1b2b73b80ea7a7a5ad8fed36e344f0e106a07327a6fd148e242c91bd9be08266",
+    "self_authored_fixture_sha256": "0d685d39c8d357af2560529c7ce1f952015847d8f3e86a215c4ca133090d6f48"
+  },
+  "regression": {
+    "checks": {
+      "input_sha256": true,
+      "decoded_sha256": true,
+      "input_bytes": true,
+      "decoded_bytes": true,
+      "validated_blocks": true,
+      "items": true,
+      "member_headers": true,
+      "known_items": true,
+      "completed_members": true,
+      "goal_parsed_end": true,
+      "postgoal_sections": true,
+      "postgoal_parsed_end": true,
+      "religion": true,
+      "commerce": true,
+      "pool": true,
+      "old_first_Figure_same": true,
+      "feature_disabled_actual_whole_json_same": true,
+      "completed2000": true,
+      "no_objectrefs_or_pending": true,
+      "cache6020": true,
+      "end1592210": true,
+      "old_core_and_CLI_unchanged": true,
+      "seven_prior_headers_unchanged": true
+    },
+    "passed": 23,
+    "failed": 0,
+    "old_full_suites_not_rerun": true
+  },
+  "record_vs_activity": {
+    "Building_count4000_sample_records_only": true,
+    "Figure_count2000_sample_records_only": true,
+    "active_states_or_counts_interpreted": false,
+    "actual_original_instance_cache_vptr_lifetime_postload_or_city_pass_proved": false
+  },
+  "next_consumer": {
+    "offset": 1592210,
+    "getter": "506240",
+    "receiver": "10bc910",
+    "root": "7b430c",
+    "reader": "506710",
+    "static_name": "cGoodsControlList",
+    "actual_word_count_or_records_not_read": true
+  },
+  "new_increment_independent_review_pending": true,
+  "raw_original_decoded_field_GUID_values_binaries_credentials_or_user_drafts_uploaded": false,
+  "original_game_or_codec_ctor_hooks_executed": false
+}
