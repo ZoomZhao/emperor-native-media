@@ -1,0 +1,94 @@
+{
+  "child14": {
+    "initial_clear": "0x4f2852 in4f2830",
+    "later_actual_assignment": "0x4d9c91 ->4f2d00 writes argument to child+14",
+    "argument_origin": "allocation80 then0x4d9c61 ->4f5c30; success EBP=result, failure EBP=0",
+    "selected_ctor_root": "0x7b3d8c",
+    "virtual30": "0x4f5de0",
+    "virtual30_body": "reads own vptr;calls own virtual10 at4f5de2;RET4 at4f5de5",
+    "own_virtual10": "0x4f5e50",
+    "own_virtual10_complete_body_unresolved": true,
+    "child_stack_argument_not_directly_forwarded_by_this_wrapper": true,
+    "stored_reference_and_global_effects_not_excluded": true,
+    "selected_candidates": [
+      "null on allocation failure",
+      "constructed4f5c30/root7b3d8c if allocation/construction/preservation conditions hold",
+      "later replacements or aliases outside selected path unresolved, no invented root list"
+    ]
+  },
+  "node14": {
+    "receiver_distinct_from_child14": true,
+    "clear_site": "0x4f53d2",
+    "initial_zero": true,
+    "later_preservation_unproven": true
+  },
+  "initial_containers": {
+    "constructor": "0x554bc0",
+    "begin_end_capacity_offsets": [
+      4,
+      8,
+      12
+    ],
+    "initial_all_zero": true,
+    "begin_getter": "0x4f8210 reads+4 thenRET",
+    "end_getter": "0x4f8200 reads+8 thenRET"
+  },
+  "necessary_base_initialization": {
+    "active_base_root_before_owner_setup": "0x7affe8",
+    "virtual34": "0x4d78d0",
+    "direct_static_call_counts": {
+      "0x004db900": 19,
+      "0x004f2aa0": 13,
+      "0x004f5500": 14,
+      "0x004f5520": 24
+    },
+    "counts_are_not_live_or_unique_entities": true,
+    "registers_nodes_and_populates_node_relations_before_first_reset": true,
+    "invokes_virtual2c_at": "0x4da93c",
+    "empty_or_singleton18_assumption_rejected": true
+  },
+  "selected18_root_candidates": [
+    "constructed4db900/root7b0034 registered by base4d78d0",
+    "derived5149c0 constructed4db900/root7b0034 if its registration branch inserts",
+    "post-initialization substitution/alias membership unresolved"
+  ],
+  "recursion": {
+    "target18_virtual1c": "0x4f5490",
+    "child_reentry": "4f2ff0",
+    "foreign_node4_and_node14_virtual30_targets_unresolved": true,
+    "finite_constructor_entry_sources_observed": true,
+    "closed_runtime_membership_or_write_set_not_proven": true,
+    "cannot_skip_actual_base_registered_callbacks": true
+  },
+  "container_insert": {
+    "chain": [
+      "5f01f0",
+      "5c1670",
+      "5c6260",
+      "525890",
+      "5258d0",
+      "42b5b0"
+    ],
+    "placement42b5b0_returns_supplied_destination": true,
+    "leaf5258d0_copies_one_source_dword_to_destination": true,
+    "leaf_no_pointee_virtual_call": true,
+    "remaining_allocator_copy_remove_contracts_and_aliases_unresolved": true
+  },
+  "type_proof_requirements": [
+    "holder+30 and child root at selected read entry",
+    "selected child14 assignment and callback target effects",
+    "base/derived registered membership and actual child/reference write paths",
+    "constructor arrival, lifetime, valid storage and normal returns",
+    "full FigureFSA base/version/string/embedded read contract"
+  ],
+  "out_of_scope_for_this_proof": [
+    "all subsequent game states or all possible program paths",
+    "purpose of game rules/predicates",
+    "values of ordinary payload fields",
+    "full execution and gameplay correctness"
+  ],
+  "most_informative_remaining_gap": "complete4f5e50 body and its accesses to stored child/owner/holder references under selected4f5c30 instance",
+  "current_unique_type_not_proven": true,
+  "actual_frontier": 1991913,
+  "actual_delta_bytes": 0
+}

@@ -1,0 +1,14 @@
+{
+  "review_targets": [
+    {
+      "commit": "40f0977e2587188f647591af4947aa34159764e5",
+      "report": "/Users/zoomzhao/Workspace/emperor-native-media/docs/city19-root-effects-and-embedded-20261012/README.zh-CN.md"
+    },
+    {
+      "commit": "78f1b7ec4d141cb2008f8633a29b1fe083338dc5",
+      "report": "/Users/zoomzhao/Workspace/emperor-native-media/docs/city19-owner-reset-and-node-callback-20261012/README.zh-CN.md"
+    }
+  ],
+  "actual_frontier": 1991913,
+  "actual_delta_bytes": 0
+}

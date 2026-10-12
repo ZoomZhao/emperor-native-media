@@ -1,0 +1,37 @@
+{
+  "caller": "0x5306ff in selected outer version19 path",
+  "receiver": "0xc75090",
+  "main_second_argument": 1,
+  "read_mode": 0,
+  "version_record": "0xc75070",
+  "word_bytes": 2,
+  "selected_order": [
+    "own version word",
+    "embedded receiver+4 virtual4 at493fab",
+    "flag1 branches494027",
+    "sets internal own3 thenreturns"
+  ],
+  "optional_flag0_tail": {
+    "raw_requests": [
+      4,
+      4,
+      1,
+      1,
+      1
+    ],
+    "raw_bytes": 11,
+    "embedded_virtual8": "0x494013 atreceiver+9d20",
+    "own2_only_extra": "0x494022 ->491760"
+  },
+  "main_flag1_skips_all_optional_tail": true,
+  "original_input_version_not_modern_subset_validation": true,
+  "inner_current_root_and_wire_contract_unbound": true,
+  "no_literal_whole_record_length_assumed": true,
+  "inner_reference_source": "439ee1 setsECX=c75094;439ee6 pushesEDX;439ee7 calls491890 (use point, not proven constructor)",
+  "next_exact_dependency": "491890 method/source root and constructor ofreceiver+4",
+  "actual_consumer_unreached": true,
+  "modern_reader_implementation_added": false,
+  "actual_frontier": 1991913,
+  "actual_delta_bytes": 0,
+  "source_sha256": "53ebdfb2065aaa6f4a222235000de85bdf00086193bac96cf2a095d6ac857da7"
+}
