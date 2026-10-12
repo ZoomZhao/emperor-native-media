@@ -34,4 +34,4 @@ python3 file_io/tests/run_goodscontrol_properties.py --source-root "$PWD" --outp
 
 输出目录须不存在。新CLI沿用外框参数，可选末尾`MAX_POOL_ITEMS MAX_FIGURE_ITEMS ENABLE_PHEASANT MAX_GOODS_ITEMS`，默认4096/8192/1/8192。
 
-下一实际消费者1646216：getter480740→receiverc058d0，选定根7acd58/+8 reader480800(cEmpire)。其静态三版本分支、内联对象及36次后续调用已有来源，实际word/count/payload未读，不能按sizeof32、默认200或grid stride3c00跳过。后续state/phase/gate/quota、原生命周期和完整更新仍未证明，无审批等待。
+下一实际消费者1646216：getter480740→receiverc058d0，选定根7acd58/+8 reader480800(cEmpire)。其静态三版本分支、内联对象及22次后续调用已有来源，实际word/count/payload未读，不能按sizeof32、默认200或grid stride3c00跳过。后续state/phase/gate/quota、原生命周期和完整更新仍未证明，无审批等待。

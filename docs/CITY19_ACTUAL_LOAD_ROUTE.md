@@ -1,6 +1,6 @@
 # v19 真实候选的结构载入路线
 
-最新结构解释终点为1646216。完整外框已经现代组件核验：165223输入字节、136块、4430995解码字节；这些数字表示外框与解码资格，不表示所有城市内容已解释。
+最新结构解释终点为1653822。完整外框已经现代组件核验：165223输入字节、136块、4430995解码字节。剩余2777173字节未解释；完整城市载入、字段业务值及原游戏运行未验证。
 
 | 解码区间 | 实际已验证内容 |
 |---|---|
@@ -9,26 +9,24 @@
 | `[45,95)` | owner1158e18节2与48字节字段 |
 | `[95,3355)` | 外层helper节3、直接owner节4、3256字节固定字段 |
 | `[3355,3736)` | 十个成员全部完成，11项结构记录；Housing/Homage/Trading/Yearly/Population五种源映射 |
-| `[3736,55739)` | cFlood/source1，52003字节，完整固定请求 |
+| `[3736,55739)` | cFlood/source1，52003字节 |
 | `[55739,55822)` | cFestival/source4及嵌入source1，83字节 |
 | `[55822,56116)` | cReligion/source1，四个source3子对象及12个source2嵌入成员，294字节 |
 | `[56116,56118)` | cCommerce/source1，2字节版本节、无字段载荷 |
-| `[56118,792136)` | 主池source1/count4000；Building schema0、字段段5，4000条182字节载荷，新增736018字节 |
-| `[792136,1592210)` | Figure list1/count2000全完成：1979条Figure7/398B，21条cPheasant own2→Figure7/400B，两类schema0 |
-| `[1592210,1646216)` | cGoodsControlList source1/count200；200个内联cGoodsControl source1，各270B |
-| `[1646216,4430995)` | 尚未解释；2784779字节 |
+| `[56118,792136)` | 主池source1/count4000；Building schema0、字段段5，4000条182字节载荷 |
+| `[792136,1592210)` | Figure list1/count2000：1979条Figure7/398B，21条cPheasant own2→Figure7/400B |
+| `[1592210,1646216)` | cGoodsControlList source1/count200；200条内联source1，各270B |
+| `[1646216,1653822)` | cEmpire source3/count190；190条EmpireObject own2，各40B，仅内联前缀完成 |
+| `[1653822,4430995)` | 首个43e370 grid及后续尚未解释 |
 
-实际主池声明一个Building类、3999次缓存class引用，没有object引用；现代条件cache沿同一S从next17连续到4018。83个字段请求的180字节加自身word2构成182，未用sizeof200推宽度。源码4000是默认补空阈值，未见池计数拒绝上限；现代计数8192/批4096/cache8192/前缀1048576是独立资源政策。
+主池声明一个Building类、3999次缓存class引用，无object引用；同一S的现代条件cache从next17至4018。随后Figure/Pheasant两类声明、1998次class引用、无object引用，至next6020。GoodsControl与Empire内联读取不增加archive标签或编号。以上计数都是样本结构记录，不能当活跃建筑、人物数量或唯一原实例。
 
-当前首个未知实际消费者是1646216的cEmpire（getter480740、receiverc058d0、选定root7acd58/+8 reader480800、caller530686）。实际word/count/payload尚未资格化。Building4000、Figure列表2000及GoodsControl200均为本样本结构记录数，活动状态/数量和记录业务值未解释。shared archive条件cache保持next6020，不是原运行cache证明。
+各流宽度来自准确请求：Building word2+180=182，Figure word2+395+presence1=398，Pheasant自身word2后直接调用Figure=400，GoodsControl word2+268=270，EmpireObject自身word2+21请求38=40。descriptor schema、对象自身版本、内存sizeof、目的步长、cache编号、池槽号和+b4字段分别保留；不互相代替。
 
-后续依赖按顺序是：
+当前首个未知实际消费者是1653822的43e370，首receiverc07b80；父source3静态接收者循环为22次，随后还有父self+4/raw4。grid版本与载荷尚未消费，3c00目的步长不作为流长度。未知布局或来源缺口停止，不跨过未知长度。详见 [Empire内联前缀](CITY19_EMPIRE_INLINE_PREFIX.md) 及 [机器证据](city19-empire-inline-prefix-evidence.json)。
 
-1. 主池4000条结构载荷已全部完成；4e1e40/list1的2000项及两种具体布局已闭合，cGoodsControlList200项亦完整闭合，接下来核cEmpire与内联/后续层级的准确请求。未知布局或来源缺口停止，不跳未知长度。
-2. 原当前registry、vptr、活cache、factory、分配、alias、生命周期及读后hook仍未实测。条件静态链与现代编号不能当原实例证明；字段+b4、cache编号与池槽号不能等同。
-3. 完成后续state消费者，取得实际phase/周期字段。已知source中c82ef8、c82eec、c82ef0、c82ef4来自流，不能以构造或另一reset默认值替代本次字节。
-4. 连接完整载入结果、生命周期及读后处理，再核实际更新入口gate/quota/clock与current state。既有条件静态调度合同只给来源关系；结构尚未到达这些消费者，不能据主池完成宣称一次城市更新通过。
+父1/2/3与子explicit2是当前现代选定范围；子legacy1虽有raw40来源，本实现不资格化。负数、其它版本、kind及预算拒绝是现代独立政策，不表示原游戏已有对应校验。valid原存储、完整读、正常返回、reset的DF0及分配/销毁/读后处理没有同一S或跨元素别名改写等条件保留。当前registry、vptr、活cache、factory、生命周期与postload未实测。
 
-新增Pheasant Release/UBSan各23属性组及CLI共6项通过，23项连续性检查通过；此前Figure456及主池独立20项每模式通过的证据保留。旧前缀、五个核心、旧CLI及三个前序头文件保持一致；d596187主池独审通过，本GoodsControl增量尚待独审。见 [GoodsControl报告](CITY19_GOODSCONTROL_COMPLETE.md)、[完整列表报告](CITY19_PHEASANT_FIGURE_LIST_COMPLETE.md)、[Figure报告](CITY19_FIRST_FIGURE7_FRONTIER.md)、[主池报告](CITY19_MAINPOOL_BUILDING_BATCH.md) 和 [Religion/Commerce报告](CITY19_RELIGION_COMMERCE_TO_MAINPOOL.md)。
+本增量最终头文件Release/UBSan各18/0，早期CLI共6项及2个预算拒绝；最终Release重构建smoke和实际190条通过。20项前序身份、统计、源码与布局连续性通过。115e138独审已通过，并原样采用五个测试文件；其属性每模式18/0、CLI每模式7/0、来源22/0。该独审不覆盖当前Empire增量，当前增量仍待独审。
 
-本段来源会话均已关闭并完成清理；后续来源不改变此验收边界。原游戏/codec/构造补空/hook未执行；剩余2784779字节及当前原运行状态保持未证明。
+后续先逐段闭合grid与父尾，再抵达state/phase字段及更新gate/quota/clock消费者。条件静态合同只给来源关系；原完整载入、一次城市更新及游戏通过仍未证明。当前来源会话均已关闭并清理，无后台分析器或审批等待。原游戏/codec/构造/销毁/hook未执行。前序报告保留历史检查点；[GoodsControl报告](CITY19_GOODSCONTROL_COMPLETE.md) 中36次的计算错误已更正为22次。

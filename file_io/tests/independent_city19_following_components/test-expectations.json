@@ -1,0 +1,541 @@
+{
+  "commit": "115e13860b14f65d6a3010e661bfef72387886fa",
+  "tests": [
+    {
+      "suite": "independent_component",
+      "name": "qualified whole prefix keeps mixed concrete layouts and shared IDs",
+      "expectation_kind": "conditional_shared_archive",
+      "expected": "Carry prior qualified Goal/Building IDs; concrete Figure/Pheasant class selects398/400, classref adds object payload/ID, objectref only tag, repeated declarations retain new IDs; Goods inline keeps cache unchanged.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-after-mainpool-retry-20261012/next-direct-reader-assembly.evidence.json",
+          "sha256": "78385e8c6372413e1dc0a8bbdb878639a874dbaa97f3d6eb5d301320d80bcb90"
+        },
+        {
+          "path": "saved/source/rea-static-city19-pheasant-reader-seeded-20261012/pheasant-seeded-reader-assembly.evidence.json",
+          "sha256": "f01b013560784bf14d3b700149a92b3c49ea31b30f39b6452d1303d46e94d008"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/figure-reader-assembly.evidence.json",
+          "sha256": "eaad4ef73b091a4b59af2c509219a828e4d4a296a32d4da403dc57d59486d4c4"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/second-reader-assembly.evidence.json",
+          "sha256": "fa03fe9eec31b4ab55edc1a4e48e693d6c0ee480eca32265b188988c6f7f178a"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Goods inline records preserve cache after mixed class and object refs",
+      "expectation_kind": "conditional_shared_archive",
+      "expected": "Carry prior qualified Goal/Building IDs; concrete Figure/Pheasant class selects398/400, classref adds object payload/ID, objectref only tag, repeated declarations retain new IDs; Goods inline keeps cache unchanged.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-after-mainpool-retry-20261012/next-direct-reader-assembly.evidence.json",
+          "sha256": "78385e8c6372413e1dc0a8bbdb878639a874dbaa97f3d6eb5d301320d80bcb90"
+        },
+        {
+          "path": "saved/source/rea-static-city19-pheasant-reader-seeded-20261012/pheasant-seeded-reader-assembly.evidence.json",
+          "sha256": "f01b013560784bf14d3b700149a92b3c49ea31b30f39b6452d1303d46e94d008"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/figure-reader-assembly.evidence.json",
+          "sha256": "eaad4ef73b091a4b59af2c509219a828e4d4a296a32d4da403dc57d59486d4c4"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/second-reader-assembly.evidence.json",
+          "sha256": "fa03fe9eec31b4ab55edc1a4e48e693d6c0ee480eca32265b188988c6f7f178a"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "word enum high bytes remain opaque before zero presence",
+      "expectation_kind": "source_optional_and_modern_frontier",
+      "expected": "Any nonzero optional byte is true; stop after flag before4d72f0, object incomplete and not a completed item; Goods cannot cross incomplete/pending predecessor.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/figure-reader-assembly.evidence.json",
+          "sha256": "eaad4ef73b091a4b59af2c509219a828e4d4a296a32d4da403dc57d59486d4c4"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/figure-presence-helper.evidence.json",
+          "sha256": "f1d00da6bdf611ff555439014c794cd73bfee259c9bf2c86a2c2d87aeda4ae2e"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "nonzero presence for both classes stops without crossing Goods",
+      "expectation_kind": "source_optional_and_modern_frontier",
+      "expected": "Any nonzero optional byte is true; stop after flag before4d72f0, object incomplete and not a completed item; Goods cannot cross incomplete/pending predecessor.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/figure-reader-assembly.evidence.json",
+          "sha256": "eaad4ef73b091a4b59af2c509219a828e4d4a296a32d4da403dc57d59486d4c4"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/figure-presence-helper.evidence.json",
+          "sha256": "f1d00da6bdf611ff555439014c794cd73bfee259c9bf2c86a2c2d87aeda4ae2e"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "second incomplete object does not enter completed sequence",
+      "expectation_kind": "source_optional_and_modern_frontier",
+      "expected": "Any nonzero optional byte is true; stop after flag before4d72f0, object incomplete and not a completed item; Goods cannot cross incomplete/pending predecessor.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/figure-reader-assembly.evidence.json",
+          "sha256": "eaad4ef73b091a4b59af2c509219a828e4d4a296a32d4da403dc57d59486d4c4"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/figure-presence-helper.evidence.json",
+          "sha256": "f1d00da6bdf611ff555439014c794cd73bfee259c9bf2c86a2c2d87aeda4ae2e"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "disabled concrete scope leaves own2 and following Goods unread",
+      "expectation_kind": "modern_feature_scope",
+      "expected": "Pheasant disabled/default Figure-only: stop after unknown concrete declaration, before own2 and payload; no new cache entries. Figure-only behavior matches existing subtree.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-pheasant-reader-seeded-20261012/pheasant-seeded-reader-assembly.evidence.json",
+          "sha256": "f01b013560784bf14d3b700149a92b3c49ea31b30f39b6452d1303d46e94d008"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "reversed Pheasant parent order rejects before Goods",
+      "expectation_kind": "source_concrete_order_and_modern_gate",
+      "expected": "Pheasant own2 precedes Figure7 and concrete class determines prefix. Wrong order/body rejects; descriptor Animal parent is not an additional serialized base.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-pheasant-reader-seeded-20261012/pheasant-seeded-reader-assembly.evidence.json",
+          "sha256": "f01b013560784bf14d3b700149a92b3c49ea31b30f39b6452d1303d46e94d008"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/figure-reader-assembly.evidence.json",
+          "sha256": "eaad4ef73b091a4b59af2c509219a828e4d4a296a32d4da403dc57d59486d4c4"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "concrete class reference refuses ordinary Figure body",
+      "expectation_kind": "source_concrete_order_and_modern_gate",
+      "expected": "Pheasant own2 precedes Figure7 and concrete class determines prefix. Wrong order/body rejects; descriptor Animal parent is not an additional serialized base.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-pheasant-reader-seeded-20261012/pheasant-seeded-reader-assembly.evidence.json",
+          "sha256": "f01b013560784bf14d3b700149a92b3c49ea31b30f39b6452d1303d46e94d008"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/figure-reader-assembly.evidence.json",
+          "sha256": "eaad4ef73b091a4b59af2c509219a828e4d4a296a32d4da403dc57d59486d4c4"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "unknown Figure sibling blocks Goods without cache append",
+      "expectation_kind": "modern_policy",
+      "expected": "Unknown Figure sibling consumes declaration only, no payload/cache append; cannot proceed to Goods.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "all398 ordinary and400 concrete payload cuts reject",
+      "expectation_kind": "selected_static_layout_and_modern_precondition",
+      "expected": "Pheasant2 precedes Figure7 and consumes400, ordinary Figure398; Goods inline270 with complete preceding Figure context; offsets/cache/end match self-authored bytes.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-pheasant-reader-seeded-20261012/pheasant-seeded-reader-assembly.evidence.json",
+          "sha256": "f01b013560784bf14d3b700149a92b3c49ea31b30f39b6452d1303d46e94d008"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/figure-reader-assembly.evidence.json",
+          "sha256": "eaad4ef73b091a4b59af2c509219a828e4d4a296a32d4da403dc57d59486d4c4"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/goods-seeded-reader.evidence.json",
+          "sha256": "a8d90b293bbb6777e6b986a798df7cf0d55ff0c6de8c8609919136d07d4de6e3"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Goods retains next Empire-looking word count and poison",
+      "expectation_kind": "modern_unqualified_frontier",
+      "expected": "Goods stops after last270B inline record, preserves complete future word/count/poison bytes and labels Empire unqualified.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/goods-seeded-reader.evidence.json",
+          "sha256": "a8d90b293bbb6777e6b986a798df7cf0d55ff0c6de8c8609919136d07d4de6e3"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/second-reader-assembly.evidence.json",
+          "sha256": "fa03fe9eec31b4ab55edc1a4e48e693d6c0ee480eca32265b188988c6f7f178a"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Goods record tags do not consume or append archive IDs",
+      "expectation_kind": "conditional_shared_archive",
+      "expected": "Carry prior qualified Goal/Building IDs; concrete Figure/Pheasant class selects398/400, classref adds object payload/ID, objectref only tag, repeated declarations retain new IDs; Goods inline keeps cache unchanged.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-after-mainpool-retry-20261012/next-direct-reader-assembly.evidence.json",
+          "sha256": "78385e8c6372413e1dc0a8bbdb878639a874dbaa97f3d6eb5d301320d80bcb90"
+        },
+        {
+          "path": "saved/source/rea-static-city19-pheasant-reader-seeded-20261012/pheasant-seeded-reader-assembly.evidence.json",
+          "sha256": "f01b013560784bf14d3b700149a92b3c49ea31b30f39b6452d1303d46e94d008"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/figure-reader-assembly.evidence.json",
+          "sha256": "eaad4ef73b091a4b59af2c509219a828e4d4a296a32d4da403dc57d59486d4c4"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/second-reader-assembly.evidence.json",
+          "sha256": "fa03fe9eec31b4ab55edc1a4e48e693d6c0ee480eca32265b188988c6f7f178a"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "201 Goods records cross constructor default200 without padding",
+      "expectation_kind": "source_inline_and_modern_budget",
+      "expected": "Explicit200/201 inline Goods records consume6+count*270; constructor default200 is not a stream count rejection ceiling, no class/object ID append.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/second-reader-assembly.evidence.json",
+          "sha256": "fa03fe9eec31b4ab55edc1a4e48e693d6c0ee480eca32265b188988c6f7f178a"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/goods-seeded-reader.evidence.json",
+          "sha256": "a8d90b293bbb6777e6b986a798df7cf0d55ff0c6de8c8609919136d07d4de6e3"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Figure2001 is a finite record count not activity upper bound",
+      "expectation_kind": "source_sequence_and_modern_budget",
+      "expected": "2000/2001 self-authored sequence records complete within current finite policies; these counts do not imply activity or original global upper bound.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-after-mainpool-retry-20261012/next-direct-reader-assembly.evidence.json",
+          "sha256": "78385e8c6372413e1dc0a8bbdb878639a874dbaa97f3d6eb5d301320d80bcb90"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "all270 Goods payload cuts reject with real complete predecessor",
+      "expectation_kind": "selected_static_layout_and_modern_precondition",
+      "expected": "Pheasant2 precedes Figure7 and consumes400, ordinary Figure398; Goods inline270 with complete preceding Figure context; offsets/cache/end match self-authored bytes.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-pheasant-reader-seeded-20261012/pheasant-seeded-reader-assembly.evidence.json",
+          "sha256": "f01b013560784bf14d3b700149a92b3c49ea31b30f39b6452d1303d46e94d008"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/figure-reader-assembly.evidence.json",
+          "sha256": "eaad4ef73b091a4b59af2c509219a828e4d4a296a32d4da403dc57d59486d4c4"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/goods-seeded-reader.evidence.json",
+          "sha256": "a8d90b293bbb6777e6b986a798df7cf0d55ff0c6de8c8609919136d07d4de6e3"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Goods checkpoint occurs before missing next word",
+      "expectation_kind": "modern_policy",
+      "expected": "Stop at the next record/tag boundary before attempting missing unqualified bytes; preserve partial count and completed entries.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Goods count signed extremes reject before record allocation",
+      "expectation_kind": "modern_policy",
+      "expected": "Enforce current modern count/prefix/cache/kind/nonnegative policy with checked finite bounds; distinguish original pointer cache/locally unchecked counts.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-after-mainpool-retry-20261012/next-direct-reader-assembly.evidence.json",
+          "sha256": "78385e8c6372413e1dc0a8bbdb878639a874dbaa97f3d6eb5d301320d80bcb90"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/second-reader-assembly.evidence.json",
+          "sha256": "fa03fe9eec31b4ab55edc1a4e48e693d6c0ee480eca32265b188988c6f7f178a"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Figure cache exact complete boundary rejects one missing slot",
+      "expectation_kind": "modern_policy",
+      "expected": "Enforce current modern count/prefix/cache/kind/nonnegative policy with checked finite bounds; distinguish original pointer cache/locally unchecked counts.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "saved/source/rea-static-city19-after-mainpool-retry-20261012/next-direct-reader-assembly.evidence.json",
+          "sha256": "78385e8c6372413e1dc0a8bbdb878639a874dbaa97f3d6eb5d301320d80bcb90"
+        },
+        {
+          "path": "saved/source/rea-static-city19-figure-and-followers-20261012/second-reader-assembly.evidence.json",
+          "sha256": "fa03fe9eec31b4ab55edc1a4e48e693d6c0ee480eca32265b188988c6f7f178a"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "goods-mixed-complete",
+      "expectation_kind": "modern_pipeline_and_framing",
+      "expected": "Complete mixed398/400 and2x270; end57379, cache7, future40B unread.",
+      "sources": [
+        {
+          "path": "frozen/file_io/tools/qualify_city19_goodscontrol.cpp",
+          "sha256": "7ac7d07afdfca98866a59dc2d794cf97aa2e5fac4a5d9d4349c4dc12b45a1630"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_figure_variants.cpp",
+          "sha256": "1b2b73b80ea7a7a5ad8fed36e344f0e106a07327a6fd148e242c91bd9be08266"
+        },
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "frozen/file_io/include/city19_goodscontrol_archive.hpp",
+          "sha256": "12b0468ab39f6ca7c43051f80fc5b89a7757d2767d391760e78233c0d885deeb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "goods-split-words",
+      "expectation_kind": "modern_pipeline_and_framing",
+      "expected": "Same metadata/end as complete case, wrapped framing split inside version/word bytes; complete decoded SHA includes tail.",
+      "sources": [
+        {
+          "path": "frozen/file_io/tools/qualify_city19_goodscontrol.cpp",
+          "sha256": "7ac7d07afdfca98866a59dc2d794cf97aa2e5fac4a5d9d4349c4dc12b45a1630"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_figure_variants.cpp",
+          "sha256": "1b2b73b80ea7a7a5ad8fed36e344f0e106a07327a6fd148e242c91bd9be08266"
+        },
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "frozen/file_io/include/city19_goodscontrol_archive.hpp",
+          "sha256": "12b0468ab39f6ca7c43051f80fc5b89a7757d2767d391760e78233c0d885deeb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "goods-checkpoint1",
+      "expectation_kind": "modern_pipeline_and_framing",
+      "expected": "After first Goods270 stop57109, incomplete count2, cache7; remaining310B untouched structurally.",
+      "sources": [
+        {
+          "path": "frozen/file_io/tools/qualify_city19_goodscontrol.cpp",
+          "sha256": "7ac7d07afdfca98866a59dc2d794cf97aa2e5fac4a5d9d4349c4dc12b45a1630"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_figure_variants.cpp",
+          "sha256": "1b2b73b80ea7a7a5ad8fed36e344f0e106a07327a6fd148e242c91bd9be08266"
+        },
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "frozen/file_io/include/city19_goodscontrol_archive.hpp",
+          "sha256": "12b0468ab39f6ca7c43051f80fc5b89a7757d2767d391760e78233c0d885deeb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "goods-extension-blocked",
+      "expectation_kind": "modern_pipeline_and_framing",
+      "expected": "Nonzero first Figure optional flag prevents Goods continuation, fail preceding context without success JSON.",
+      "sources": [
+        {
+          "path": "frozen/file_io/tools/qualify_city19_goodscontrol.cpp",
+          "sha256": "7ac7d07afdfca98866a59dc2d794cf97aa2e5fac4a5d9d4349c4dc12b45a1630"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_figure_variants.cpp",
+          "sha256": "1b2b73b80ea7a7a5ad8fed36e344f0e106a07327a6fd148e242c91bd9be08266"
+        },
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "frozen/file_io/include/city19_goodscontrol_archive.hpp",
+          "sha256": "12b0468ab39f6ca7c43051f80fc5b89a7757d2767d391760e78233c0d885deeb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "variants-disabled",
+      "expectation_kind": "modern_pipeline_and_framing",
+      "expected": "Read one ordinary Figure then Pheasant declaration, stop56433 before own2, cache5.",
+      "sources": [
+        {
+          "path": "frozen/file_io/tools/qualify_city19_goodscontrol.cpp",
+          "sha256": "7ac7d07afdfca98866a59dc2d794cf97aa2e5fac4a5d9d4349c4dc12b45a1630"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_figure_variants.cpp",
+          "sha256": "1b2b73b80ea7a7a5ad8fed36e344f0e106a07327a6fd148e242c91bd9be08266"
+        },
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "frozen/file_io/include/city19_goodscontrol_archive.hpp",
+          "sha256": "12b0468ab39f6ca7c43051f80fc5b89a7757d2767d391760e78233c0d885deeb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "variants-enabled",
+      "expectation_kind": "modern_pipeline_and_framing",
+      "expected": "Read mixed concrete widths to56833/cache7, Goods and future tail remain unread.",
+      "sources": [
+        {
+          "path": "frozen/file_io/tools/qualify_city19_goodscontrol.cpp",
+          "sha256": "7ac7d07afdfca98866a59dc2d794cf97aa2e5fac4a5d9d4349c4dc12b45a1630"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_figure_variants.cpp",
+          "sha256": "1b2b73b80ea7a7a5ad8fed36e344f0e106a07327a6fd148e242c91bd9be08266"
+        },
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "frozen/file_io/include/city19_goodscontrol_archive.hpp",
+          "sha256": "12b0468ab39f6ca7c43051f80fc5b89a7757d2767d391760e78233c0d885deeb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "goods-zero-budget",
+      "expectation_kind": "modern_pipeline_and_framing",
+      "expected": "Zero MAX_GOODS_ITEMS rejects modern context/budget, no success JSON.",
+      "sources": [
+        {
+          "path": "frozen/file_io/tools/qualify_city19_goodscontrol.cpp",
+          "sha256": "7ac7d07afdfca98866a59dc2d794cf97aa2e5fac4a5d9d4349c4dc12b45a1630"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_figure_variants.cpp",
+          "sha256": "1b2b73b80ea7a7a5ad8fed36e344f0e106a07327a6fd148e242c91bd9be08266"
+        },
+        {
+          "path": "frozen/file_io/include/city19_figure_variants_archive.hpp",
+          "sha256": "5205670aede11a3c3918b17060564e0b4c234fa488d31ee089e531e713026099"
+        },
+        {
+          "path": "frozen/file_io/include/city19_goodscontrol_archive.hpp",
+          "sha256": "12b0468ab39f6ca7c43051f80fc5b89a7757d2767d391760e78233c0d885deeb"
+        }
+      ]
+    }
+  ]
+}

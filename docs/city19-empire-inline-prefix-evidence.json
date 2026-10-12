@@ -1,0 +1,1395 @@
+{
+  "scope": "cEmpire actual3/raw-count190 with190 explicit EmpireObject source2/40B inline records;stop beforefirst43e370;not wholeparent complete",
+  "base": "115e13860b14f65d6a3010e661bfef72387886fa",
+  "old_frontier": 1646216,
+  "new_frontier": 1653822,
+  "new_qualified_bytes": 7606,
+  "remaining_uninterpreted_decoded_bytes": 2777173,
+  "input_sha256": "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+  "decoded_sha256": "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+  "input_bytes": 165223,
+  "decoded_bytes": 4430995,
+  "blocks": 136,
+  "empire": {
+    "start": 1646216,
+    "end": 1653822,
+    "version": 3,
+    "count": 190,
+    "processed": 190,
+    "inline_complete": true,
+    "grids_required": true,
+    "parent4_required": true,
+    "conditional_cache_next": 6020,
+    "stop_reason": "Empire_inline_complete_before_first43e370_grid",
+    "values_interpreted": false,
+    "full_Empire_complete": false
+  },
+  "first_inline": {
+    "ordinal": 0,
+    "start": 1646222,
+    "end": 1646262,
+    "version": 2,
+    "wire_bytes": 40,
+    "sha256": "81a12ced466288b85614830c185484d5bdd24e46a65f51a00c5e99d9f28865e4"
+  },
+  "last_inline": {
+    "ordinal": 189,
+    "start": 1653782,
+    "end": 1653822,
+    "version": 2,
+    "wire_bytes": 40,
+    "sha256": "e80a1fef7cc3366d4ca8f86f447f2fa4d08c99434ff62511ce20478372425423"
+  },
+  "parent_source": {
+    "getter": "480740",
+    "receiver": "c058d0",
+    "descriptor": "82b790",
+    "selected_root": "7acd58",
+    "reader": "480800",
+    "record": "c5d0c0",
+    "source1": "word/count/inline thenpostload, no22callbacks orparent4",
+    "source2": "word/count/inline then22callbacks, no parent4",
+    "source3": "word/count/inline then22callbacks thenparent4",
+    "raw_count4_not_checked_return": "4808dd->780533(local[esp10])",
+    "signed_loop_by_TEST_JLE": true,
+    "not_default200_or_global_upperbound": true
+  },
+  "inline_source": {
+    "descriptor": "82b778",
+    "schema": 0,
+    "memory_size44_not_wire40": true,
+    "prototype_ctor": "4801c0",
+    "root": "7acd40",
+    "reset": "480270 offsets5/1c only",
+    "reader": "480320",
+    "record": "c5d0d0",
+    "source2_field_requests": 21,
+    "source2_field_bytes": 38,
+    "wire_record_bytes": 40,
+    "shared_tail": "480587->48059b/48059d request4,self28",
+    "source1_legacy": "5a71a0 self4 and517270 size40,42B withword;outsidemodernexplicit2 scope",
+    "other_versions_skip_fields_then_set2_not_explicit_error": true
+  },
+  "copy_root_source": {
+    "empty_vector": "581fa0->554bc0 zeroesbegin/end/capacity",
+    "resize": "4820a0",
+    "insert": "482180->4823f0 or4823b0",
+    "construct": "482450->482550",
+    "placement_addr": "4825a0 returns supplieddest",
+    "copy_ctor": "480210 writesroot7acd40 thenreset480270 thenassign480280",
+    "assignment": "480280 writes4..28 only,root0 preserved",
+    "element_lookup": "4080a0 begin+44*index",
+    "44_memory_stride_not_read_width": true,
+    "remaining_lifecycle_effects_unproved": "482440->482540 and allocation/destruction actualstate/aliases not executed or fully proved",
+    "conditional_default200_to_sample190_shrink": "482340 withtailrange,482470 emptycopy whenlast==oldend,482380 destroysdest190..199",
+    "original_default200_storage_or_shrink_executed": false
+  },
+  "source_runtime_conditions": [
+    "valid original allocated storage and prototype/copy roots",
+    "normal callee returns and distinct valid elementranges",
+    "no same-archive or cross-element aliases through allocation/destruction/postload",
+    "DF0 where old resets useREP"
+  ],
+  "source_evidence": [
+    {
+      "saved_evidence": "rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+      "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73",
+      "evidence_id": "ev_5d8e2658aac9e0059b1e8a97e6f67b12b9e57c416cb85406496fc018d1276856",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x480800"
+      },
+      "profile_digest": "48738550fcfeaabcb125e8ea502d3349773fd302b513d1c98523d13a7194be84",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-figure-and-followers-20261012/third-ctor-assembly.evidence.json",
+      "sha256": "e97d630a031349b34b8833ff7237c21da63511cc24f63a0942c8db3521c7be01",
+      "evidence_id": "ev_834f20f02f1481de9112c6ffdcb40dcf215a374001ba997194ad165175df4107",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x480750"
+      },
+      "profile_digest": "f2edebd92826244635b51fd9e0bc3e19ff13944ad1380e7dce55dac43a0b6721",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-figure-and-followers-20261012/third-root-bytes.evidence.json",
+      "sha256": "0682fcea63a37f1d4822ee820b550ba7882f4905146aedf100b0455dd24b863e",
+      "evidence_id": "ev_4e763dadf357fbfb70531f20108e3c5df73c31ea5139da5c3014768ff79a67f8",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x7acd58",
+        "length": 12
+      },
+      "profile_digest": "f2edebd92826244635b51fd9e0bc3e19ff13944ad1380e7dce55dac43a0b6721",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+      "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d",
+      "evidence_id": "ev_fd4d7cf2c48e6f0921ccc42cfea8ed6ee524519a909574e0b028f0387c4e9e86",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x480320"
+      },
+      "profile_digest": "181eb6583277062b671aa5ea96e1cc79293233f263994afabf78b7b04a1f72a2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-goods-empire-fields-20261012/empire-value-ctor.evidence.json",
+      "sha256": "715e0280030b418fcd914db42c308bdfcb2c883e547d7c97842872f939498552",
+      "evidence_id": "ev_7b736a65f100dfde74b520285b3102fe7e287a9923d16edca66fba5d7a4b2b23",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x4801c0"
+      },
+      "profile_digest": "181eb6583277062b671aa5ea96e1cc79293233f263994afabf78b7b04a1f72a2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-goods-empire-fields-20261012/empire-inline-root-bytes.evidence.json",
+      "sha256": "b3527be3ed0ed240659098ec15353cd396263cb81e0780c898cb13b31c6d4f3e",
+      "evidence_id": "ev_bdb61a97dcbe0a85c79b9c344908ce38c6c37ed1a851e0a17ed9fed05daaa9db",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x7acd40",
+        "length": 12
+      },
+      "profile_digest": "181eb6583277062b671aa5ea96e1cc79293233f263994afabf78b7b04a1f72a2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-goods-empire-fields-20261012/empire-inline-reset.evidence.json",
+      "sha256": "8b6ad069c5506fb22720e188a7fe1ec88e056a464cd319f9d6b6fecc3a6aaa8e",
+      "evidence_id": "ev_3e7088deecad95814a31946d25b3ef12891f5e2bb5ed107174f9a87c0cc13ebe",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x480270"
+      },
+      "profile_digest": "181eb6583277062b671aa5ea96e1cc79293233f263994afabf78b7b04a1f72a2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-resize-copy-assembly.evidence.json",
+      "sha256": "697ed73725d177d35b2e45bc84b9621621d18e1ac671d228b8128c937b00a80e",
+      "evidence_id": "ev_4b8f8ed1e55ae3cfba9ae92e410325509389ea66707f6d0088f4bc90522868fa",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x4820a0"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-inline-addressing-assembly.evidence.json",
+      "sha256": "9c03f3f12124048e2582098286cac8f72a57f967c52e4f481e53a470ae32447e",
+      "evidence_id": "ev_fc023c84706f8342737d6e51f6bbee353ed5fdbb907517c0d73b4c2faa72433d",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x4080a0"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-object-descriptor-bytes.evidence.json",
+      "sha256": "6e4f81719e68c877a4e373532c5d3df49c99c13c501f7dc9861e7cbc77fcff6c",
+      "evidence_id": "ev_ee750eefb49f62fb9498700a2339a1d82cb56884832a7c064edad02372dede50",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x82b778",
+        "length": 24
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-object-getclass-native.evidence.json",
+      "sha256": "6ecd65d5fdf0a184e7359e21f3b11259cf2b5569b0833a9d1cd276c13cc67b08",
+      "evidence_id": "ev_83eb1c084e56452bffc60667f5ffbc583b0ab9f8724fd29547adfaa1e3a782ce",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x47ff30"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-object-getclass-ret.evidence.json",
+      "sha256": "bfaeba7286c3c0c3ee1a372ac1e2e7f1e624d7ecac66f3b4279b1f0d47e86d79",
+      "evidence_id": "ev_013e14c4ae8cccbc502de30fa14ad764df68f9542e9bbfb38ae70a355ecd2e73",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x47ff35"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-legacy1-size-getter.evidence.json",
+      "sha256": "fc131cf349ac6ea150dfc86e7408f205c531610c7924ed7b93012024c0b97b6f",
+      "evidence_id": "ev_0beff336909acdb078a52a4ec10dc922733f1a22b5689d224566cde95a5c2bb9",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x517270"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-vector-insert-copy.evidence.json",
+      "sha256": "87f786427440108211841a8675661d524b2dd02c519a9f332e613eed316a3256",
+      "evidence_id": "ev_9af0ef0128a6afe736f668bae762c13a57b4a78dd92162f3cd3e6341ba66d033",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x482180"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-vector-empty-constructor.evidence.json",
+      "sha256": "45a5c0d6a15d63c9e693322eac5ceeecfa22a5cb01983be5e88fd9044bc91302",
+      "evidence_id": "ev_cdc036f8f3ed4144aefbe09d75e4b284a6e556d85f233d1573898c41155d8d4d",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x581fa0"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-prototype-fill.evidence.json",
+      "sha256": "1bf1e565e0f3fe9831e760f0b58098c015f15d1568a5847cfdbf3582ce45bf39",
+      "evidence_id": "ev_457b47b532170f15b42fdb31e0497aaae9a488227167a1c6751e215d9b8a1d1e",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x4823f0"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-range-copy.evidence.json",
+      "sha256": "836cb4a3fee2ac32cacf74405002b9b2de9a1dce3ad90b263fe3eeec315f74f7",
+      "evidence_id": "ev_7bb08111b03034b264e7fb1fd6dc2f6312dbc1fb714d9b02576dc41233e96979",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x4823b0"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-inline-context-20261012/empire-empty-vector-init.evidence.json",
+      "sha256": "558d463e73e1f3861137dc931518fe79b8c0f6aa02737e3c4dfd33f21fd92530",
+      "evidence_id": "ev_cbf110677719eb426ab24637b26eb795b39a53882b5d95a1651d975354752d8e",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x554bc0"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-copy-assignment-20261012/empire-copyconstructor-complete.evidence.json",
+      "sha256": "87041d0dd8167a23ff586603523cc923afc23c1e9a69e545a5eb6563c295b5dd",
+      "evidence_id": "ev_6c787ea7b51866c51e3139e15fdeab43ec8e901e03915e694fea9f2dacdf970f",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x480210"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-copy-assignment-20261012/empire-copy-assignment-complete.evidence.json",
+      "sha256": "cf071d9aa549cfc22911f172a7601f84c7ba2c8997abe84e0a9e5a2fec4a6162",
+      "evidence_id": "ev_2a245ca36ed6b998039836e7dbe8a59a65c5bdcdff5556047585216c37edf18b",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x480280"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-copy-assignment-20261012/empire-shrink-erase.evidence.json",
+      "sha256": "be3eefb7e83677b5e6ba578aca567383d8f7734214057f98b4fbae1a6ae17e7a",
+      "evidence_id": "ev_8bc4c6b1af4f033be6b43619d0a5b72f2d09555bdf2b9ebe774291b060dcc338",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x482340"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-copy-assignment-20261012/empire-placement-address-helper.evidence.json",
+      "sha256": "fb6d0f1d9b0ca5968fafd06f3982a63bcda362271200f9e78a585e0d9c839cca",
+      "evidence_id": "ev_fea07d4c4913e0a71de56ca6f91ffaa8116a2f2fc10731eaeee33359514e1c06",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x4825a0"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-copy-assignment-20261012/empire-construct-wrapper-complete.evidence.json",
+      "sha256": "eccb3faa9a237ebfc2cc4f11268001c06c525cce9b2a418d61d5e41deb48f0ec",
+      "evidence_id": "ev_2bb542adcbffa997109aeb95ee196d517b7eebbd3b1e43eb033492429c82ecc1",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x482550"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-copy-assignment-20261012/empire-erase-tail-copy.evidence.json",
+      "sha256": "62807fd18acc739bc0f5a1fde9a89905b0c30561f963277de56f4dd019783ee7",
+      "evidence_id": "ev_dfe8adfb6d322245a3c676869f8b12b5ba9b52fe7fff6812802f1166cf1bc1f7",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x482470"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-copy-assignment-20261012/empire-tail-destroy.evidence.json",
+      "sha256": "cf52fe201b907c0493c17eef498eef62b122a99950263a9e9bf68a368122dea5",
+      "evidence_id": "ev_fc2fd22ab71b376bc284a641ef1f58d95f26afd64572531664f8e88d76276d99",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x482380"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-empire-copy-assignment-20261012/empire-tail-destruction-wrapper.evidence.json",
+      "sha256": "28e29dcf9b7b1ddb231b164882541c895a7ac60ea8098cab3724c52938cc0763",
+      "evidence_id": "ev_bdc4da5e144101ff5710bbea6556049eef079d99c7087be11d19ef5334e8f33d",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x482440"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    }
+  ],
+  "source_sessions": [
+    {
+      "batch": "rea-static-city19-empire-inline-context-20261012",
+      "exit_code": 1,
+      "seconds": 1171.566,
+      "error": {
+        "name": "Error",
+        "message": "1170-second analysis deadline; 30 seconds reserved for cleanup"
+      },
+      "PE_unchanged": true,
+      "selected23_modules_unchanged": true,
+      "temporary_empty": true,
+      "procedures": 8,
+      "native_sites": 48,
+      "operations": 57,
+      "selected_bytes": 24
+    },
+    {
+      "batch": "rea-static-city19-empire-copy-assignment-20261012",
+      "exit_code": 0,
+      "seconds": 418.197,
+      "error": null,
+      "PE_unchanged": true,
+      "selected23_modules_unchanged": true,
+      "temporary_empty": true,
+      "procedures": 8,
+      "native_sites": 0,
+      "operations": 8,
+      "selected_bytes": 0
+    }
+  ],
+  "exact_fields": [
+    {
+      "receiver_offset": 4,
+      "bytes": 1,
+      "source_call": "0x480485"
+    },
+    {
+      "receiver_offset": 5,
+      "bytes": 1,
+      "source_call": "0x480492"
+    },
+    {
+      "receiver_offset": 6,
+      "bytes": 1,
+      "source_call": "0x48049f"
+    },
+    {
+      "receiver_offset": 7,
+      "bytes": 1,
+      "source_call": "0x4804ac"
+    },
+    {
+      "receiver_offset": 8,
+      "bytes": 2,
+      "source_call": "0x4804b9"
+    },
+    {
+      "receiver_offset": 10,
+      "bytes": 2,
+      "source_call": "0x4804c6"
+    },
+    {
+      "receiver_offset": 12,
+      "bytes": 2,
+      "source_call": "0x4804d3"
+    },
+    {
+      "receiver_offset": 14,
+      "bytes": 2,
+      "source_call": "0x4804e0"
+    },
+    {
+      "receiver_offset": 16,
+      "bytes": 2,
+      "source_call": "0x4804ed"
+    },
+    {
+      "receiver_offset": 18,
+      "bytes": 2,
+      "source_call": "0x4804fa"
+    },
+    {
+      "receiver_offset": 20,
+      "bytes": 1,
+      "source_call": "0x480507"
+    },
+    {
+      "receiver_offset": 21,
+      "bytes": 1,
+      "source_call": "0x480514"
+    },
+    {
+      "receiver_offset": 22,
+      "bytes": 1,
+      "source_call": "0x480521"
+    },
+    {
+      "receiver_offset": 23,
+      "bytes": 1,
+      "source_call": "0x48052e"
+    },
+    {
+      "receiver_offset": 24,
+      "bytes": 2,
+      "source_call": "0x48053b"
+    },
+    {
+      "receiver_offset": 26,
+      "bytes": 2,
+      "source_call": "0x480548"
+    },
+    {
+      "receiver_offset": 28,
+      "bytes": 1,
+      "source_call": "0x480555"
+    },
+    {
+      "receiver_offset": 29,
+      "bytes": 1,
+      "source_call": "0x480562"
+    },
+    {
+      "receiver_offset": 32,
+      "bytes": 4,
+      "source_call": "0x48056f"
+    },
+    {
+      "receiver_offset": 36,
+      "bytes": 4,
+      "source_call": "0x48057c"
+    },
+    {
+      "receiver_offset": 40,
+      "bytes": 4,
+      "source_call": "0x48059d",
+      "branch_from": "0x480587"
+    }
+  ],
+  "modern_scope": {
+    "prefix4915584": true,
+    "count8192": true,
+    "items8192": true,
+    "parent1_2_3": true,
+    "child_explicit2_only": true,
+    "header_only_checkpoint": true,
+    "policies_and_fullreads_not_original_validation": true,
+    "no_new_class_object_tags_or_cacheIDs": true
+  },
+  "same_archive_cache6020_unchanged": true,
+  "next_continuation": {
+    "offset": 1653822,
+    "callee": "43e370",
+    "first_receiver": "c07b80",
+    "next_receiver_stride3c00_not_wire": true,
+    "exclusive_receiver_limit": "c5a380",
+    "call_count": 22,
+    "version_or_payload_unconsumed": true,
+    "parent4_after_all22_required_by_source3_unconsumed": true
+  },
+  "prior_callback_count_correction": {
+    "previous_text36_wrong": true,
+    "formula": "(c5a380-c07b80)/3c00",
+    "correct22": true,
+    "no_effect_on_prior_read_bytes": true
+  },
+  "actual_command": {
+    "argv": [
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/final-CLI/empire-inline-release",
+      "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+      "165223",
+      "262144",
+      "4915584",
+      "136",
+      "4275878570",
+      "2882400255",
+      "2863386095",
+      "36144",
+      "36144",
+      "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+      "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+      "4096",
+      "8192",
+      "1",
+      "8192",
+      "8192"
+    ],
+    "exit_code": 0,
+    "seconds": 0.020903958000000004,
+    "exe_sha256": "74f5cf46fb02fdf93e2d31aa9dfeaca7d74ecb1d321e8435bbb7e3fa87f32348",
+    "stdout_sha256": "4095e274db43695df34433c872aa9233fa8477c332c888d250c7b109d282ebce",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_ctor_dtor_or_game_executed": false,
+    "raw_original_or_decoded_bytes_saved": false
+  },
+  "header_checkpoint": {
+    "argv": [
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/empire-header-probe",
+      "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+      "165223",
+      "262144",
+      "4915584",
+      "136",
+      "4275878570",
+      "2882400255",
+      "2863386095",
+      "36144",
+      "36144",
+      "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+      "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+      "4096",
+      "8192",
+      "1",
+      "8192",
+      "8192"
+    ],
+    "exit_code": 0,
+    "seconds": 0.46216866599999973,
+    "exe_sha256": "0a79c30136ffd359e263336c4828c14bf0bbc4fd0c8082d28b222e424ad5d4d5",
+    "header_sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727",
+    "stdout_sha256": "00ee0a01a59d5fcf82622ed048ded74fd4a44bce4ccf84ea56cbedd9c8fd3c56",
+    "original_or_derived_game_executed": false,
+    "raw_original_bytes_saved": false
+  },
+  "new_properties": {
+    "passed": 36,
+    "failed": 0,
+    "execution_failed": false,
+    "results": [
+      {
+        "mode": "release",
+        "exit_code": 0,
+        "stderr_empty": true,
+        "report": {
+          "checks": [
+            {
+              "name": "21 requests38 with shared tail4,not destination size",
+              "passed": true
+            },
+            {
+              "name": "source3 prefix one explicit object2 consumes40",
+              "passed": true
+            },
+            {
+              "name": "source1 stops after inline,without grids or parent4",
+              "passed": true
+            },
+            {
+              "name": "source2 follows grids but has no parent4",
+              "passed": true
+            },
+            {
+              "name": "all three zero counts consume6 only",
+              "passed": true
+            },
+            {
+              "name": "200 explicit records exact without archive IDs",
+              "passed": true
+            },
+            {
+              "name": "201 records no inferred default200 upperbound",
+              "passed": true
+            },
+            {
+              "name": "all40 proper object prefixes reject truncated",
+              "passed": true
+            },
+            {
+              "name": "all6 parent header prefixes reject truncated",
+              "passed": true
+            },
+            {
+              "name": "unsupported parent0,4,ffff outside static selected branches",
+              "passed": true
+            },
+            {
+              "name": "legacy object1 raw getter remains outside explicit2 subset",
+              "passed": true
+            },
+            {
+              "name": "negative count and modern8193 refuse",
+              "passed": true
+            },
+            {
+              "name": "checkpoint before missing next object",
+              "passed": true
+            },
+            {
+              "name": "unqualified first grid header and payload stay unread",
+              "passed": true
+            },
+            {
+              "name": "incomplete previousGoods refuses",
+              "passed": true
+            },
+            {
+              "name": "mismatched preceding count refuses",
+              "passed": true
+            },
+            {
+              "name": "zero or overhard modern limits refuse",
+              "passed": true
+            },
+            {
+              "name": "header-only checkpoint does not inspect unsupported child",
+              "passed": true
+            }
+          ],
+          "passed": 18,
+          "failed": 0
+        }
+      },
+      {
+        "mode": "ubsan",
+        "exit_code": 0,
+        "stderr_empty": true,
+        "report": {
+          "checks": [
+            {
+              "name": "21 requests38 with shared tail4,not destination size",
+              "passed": true
+            },
+            {
+              "name": "source3 prefix one explicit object2 consumes40",
+              "passed": true
+            },
+            {
+              "name": "source1 stops after inline,without grids or parent4",
+              "passed": true
+            },
+            {
+              "name": "source2 follows grids but has no parent4",
+              "passed": true
+            },
+            {
+              "name": "all three zero counts consume6 only",
+              "passed": true
+            },
+            {
+              "name": "200 explicit records exact without archive IDs",
+              "passed": true
+            },
+            {
+              "name": "201 records no inferred default200 upperbound",
+              "passed": true
+            },
+            {
+              "name": "all40 proper object prefixes reject truncated",
+              "passed": true
+            },
+            {
+              "name": "all6 parent header prefixes reject truncated",
+              "passed": true
+            },
+            {
+              "name": "unsupported parent0,4,ffff outside static selected branches",
+              "passed": true
+            },
+            {
+              "name": "legacy object1 raw getter remains outside explicit2 subset",
+              "passed": true
+            },
+            {
+              "name": "negative count and modern8193 refuse",
+              "passed": true
+            },
+            {
+              "name": "checkpoint before missing next object",
+              "passed": true
+            },
+            {
+              "name": "unqualified first grid header and payload stay unread",
+              "passed": true
+            },
+            {
+              "name": "incomplete previousGoods refuses",
+              "passed": true
+            },
+            {
+              "name": "mismatched preceding count refuses",
+              "passed": true
+            },
+            {
+              "name": "zero or overhard modern limits refuse",
+              "passed": true
+            },
+            {
+              "name": "header-only checkpoint does not inspect unsupported child",
+              "passed": true
+            }
+          ],
+          "passed": 18,
+          "failed": 0
+        }
+      }
+    ],
+    "commands": [
+      {
+        "argv": [
+          "/usr/bin/xcrun",
+          "--sdk",
+          "macosx",
+          "--show-sdk-path"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "2bd5dc92a04fd174d35e7dccde7bf53f6b37c4bb92ce8685a4959e9015c200bc",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O2",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/tests/empire_inline_properties.cpp",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/header-checks/empire-inline-properties-release"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/header-checks/empire-inline-properties-release"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "92f3b279840c12d045fb1a3ccfde050b1644ad3d65dec13fec71c59522704c71",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O1",
+          "-g",
+          "-fsanitize=undefined",
+          "-fno-sanitize-recover=undefined",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/tests/empire_inline_properties.cpp",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/header-checks/empire-inline-properties-ubsan"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/header-checks/empire-inline-properties-ubsan"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "92f3b279840c12d045fb1a3ccfde050b1644ad3d65dec13fec71c59522704c71",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "component_sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727",
+    "goal_component_sha256": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b",
+    "building_layout_sha256": "853b8f19ff821e3cb0ac4c7d60303a9667de11fc7336b83203eed813b66a4ed4",
+    "driver_sha256": "a47fc75d05bbba97da1479116c5052e99cbe13e09060c40efcb12055730dae58",
+    "test_sha256": "a19992a7b850b9371c6aaa19f0f232b6aad24a1df7cbe58ef4d8fa811e64cea6",
+    "elapsed_seconds": 5.576158416,
+    "total_budget_seconds": 180,
+    "original_payload_or_EXE_read": false,
+    "original_or_derived_game_executed": false,
+    "new_REA_query": false,
+    "main_written": false,
+    "pushed": false
+  },
+  "CLI_tests": {
+    "results": [
+      {
+        "mode": "release",
+        "version": 1,
+        "passed": true
+      },
+      {
+        "mode": "release",
+        "version": 2,
+        "passed": true
+      },
+      {
+        "mode": "release",
+        "version": 3,
+        "passed": true
+      },
+      {
+        "mode": "ubsan",
+        "version": 1,
+        "passed": true
+      },
+      {
+        "mode": "ubsan",
+        "version": 2,
+        "passed": true
+      },
+      {
+        "mode": "ubsan",
+        "version": 3,
+        "passed": true
+      }
+    ],
+    "passed": 6,
+    "failed": 0,
+    "negative_budget_modes": 2,
+    "commands": [
+      {
+        "argv": [
+          "/usr/bin/xcrun",
+          "--sdk",
+          "macosx",
+          "--show-sdk-path"
+        ],
+        "exit_code": 0,
+        "seconds": 0.009587584000000003,
+        "stdout_sha256": "2bd5dc92a04fd174d35e7dccde7bf53f6b37c4bb92ce8685a4959e9015c200bc",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O2",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/src/strict_zlib.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/src/framed_reader.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/tools/qualify_city19_empire_inline.cpp",
+          "-lz",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/empire-inline-release"
+        ],
+        "exit_code": 0,
+        "seconds": 1.6547919999999998,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/empire-inline-release",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/self-authored-Empire1.bin",
+          "56816",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "991bc35ceefedf1ce7b4e405fccd2a09170cbe6b821b45df5db60b00ac129e02",
+          "92ba73a484f73037431c1fbeb0c61fe27d98561eab55ed2dde30320f442630d3",
+          "4096",
+          "8192",
+          "1",
+          "8192",
+          "8192"
+        ],
+        "exit_code": 0,
+        "seconds": 1.331728375,
+        "stdout_sha256": "c7133446c59c2720471ec7cf9184a0379c371f61b4341e8f25a98e32c6732f7e",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/empire-inline-release",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/self-authored-Empire2.bin",
+          "56816",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "c7e3be3fc778a2ed40fa9443244a346b2baa12bbf5c220f6ff22b93bef9cc2b1",
+          "4a9b32822a22e3b1dc09703be0ae3c1e4d66fead5ace8aaaeda762a1a1e8cae9",
+          "4096",
+          "8192",
+          "1",
+          "8192",
+          "8192"
+        ],
+        "exit_code": 0,
+        "seconds": 0.007003791000000259,
+        "stdout_sha256": "8b17a3f0d4233850758381d6e0f37c4dc64174eec8758c60d58df57bbf5c6076",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/empire-inline-release",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/self-authored-Empire3.bin",
+          "56816",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "5cb46358b3ca9e3f5329946479d0349d29f49ad069134f8c1e92ef652a839488",
+          "52906bd2a8185de3e9a60206d0b47450343fc7b3faf68fc0dfa495aacf6834ea",
+          "4096",
+          "8192",
+          "1",
+          "8192",
+          "8192"
+        ],
+        "exit_code": 0,
+        "seconds": 0.0035505420000001564,
+        "stdout_sha256": "037ded977e996339d98de66220ba3aa7db37fb1076e4adfbda1bd366397bc33e",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/empire-inline-release",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/self-authored-Empire3.bin",
+          "56816",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "5cb46358b3ca9e3f5329946479d0349d29f49ad069134f8c1e92ef652a839488",
+          "52906bd2a8185de3e9a60206d0b47450343fc7b3faf68fc0dfa495aacf6834ea",
+          "4096",
+          "8192",
+          "1",
+          "8192",
+          "0"
+        ],
+        "exit_code": 2,
+        "seconds": 0.003913499999999903,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "4b30da52c9729120f239f27452e60726458f534f5a98613965c86618ff78fb69"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O1",
+          "-g",
+          "-fsanitize=undefined",
+          "-fno-sanitize-recover=undefined",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/src/strict_zlib.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/src/framed_reader.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/tools/qualify_city19_empire_inline.cpp",
+          "-lz",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/empire-inline-ubsan"
+        ],
+        "exit_code": 0,
+        "seconds": 2.33604625,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/empire-inline-ubsan",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/self-authored-Empire1.bin",
+          "56816",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "991bc35ceefedf1ce7b4e405fccd2a09170cbe6b821b45df5db60b00ac129e02",
+          "92ba73a484f73037431c1fbeb0c61fe27d98561eab55ed2dde30320f442630d3",
+          "4096",
+          "8192",
+          "1",
+          "8192",
+          "8192"
+        ],
+        "exit_code": 0,
+        "seconds": 0.5227783749999997,
+        "stdout_sha256": "c7133446c59c2720471ec7cf9184a0379c371f61b4341e8f25a98e32c6732f7e",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/empire-inline-ubsan",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/self-authored-Empire2.bin",
+          "56816",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "c7e3be3fc778a2ed40fa9443244a346b2baa12bbf5c220f6ff22b93bef9cc2b1",
+          "4a9b32822a22e3b1dc09703be0ae3c1e4d66fead5ace8aaaeda762a1a1e8cae9",
+          "4096",
+          "8192",
+          "1",
+          "8192",
+          "8192"
+        ],
+        "exit_code": 0,
+        "seconds": 0.06086820800000048,
+        "stdout_sha256": "8b17a3f0d4233850758381d6e0f37c4dc64174eec8758c60d58df57bbf5c6076",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/empire-inline-ubsan",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/self-authored-Empire3.bin",
+          "56816",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "5cb46358b3ca9e3f5329946479d0349d29f49ad069134f8c1e92ef652a839488",
+          "52906bd2a8185de3e9a60206d0b47450343fc7b3faf68fc0dfa495aacf6834ea",
+          "4096",
+          "8192",
+          "1",
+          "8192",
+          "8192"
+        ],
+        "exit_code": 0,
+        "seconds": 0.008251124999999249,
+        "stdout_sha256": "037ded977e996339d98de66220ba3aa7db37fb1076e4adfbda1bd366397bc33e",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/empire-inline-ubsan",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/cli-checks/self-authored-Empire3.bin",
+          "56816",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "5cb46358b3ca9e3f5329946479d0349d29f49ad069134f8c1e92ef652a839488",
+          "52906bd2a8185de3e9a60206d0b47450343fc7b3faf68fc0dfa495aacf6834ea",
+          "4096",
+          "8192",
+          "1",
+          "8192",
+          "0"
+        ],
+        "exit_code": 2,
+        "seconds": 0.01675529099999995,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "4b30da52c9729120f239f27452e60726458f534f5a98613965c86618ff78fb69"
+      }
+    ],
+    "original_payload_or_game_used": false,
+    "tool_sha256": "6b2c4363a1f3efd66b39bd8098ca43b8983662ed80828d7b29af1a2976887673",
+    "header_sha256": "746f54971ed27ad85b83ff9cb784b98bf045e5f892ad1459fee25f2a92179651"
+  },
+  "final_build": {
+    "argv": [
+      "/usr/bin/clang++",
+      "-std=c++17",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-O2",
+      "-isysroot",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+      "-I",
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/include",
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/src/strict_zlib.cpp",
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/src/framed_reader.cpp",
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/candidate/file_io/tools/qualify_city19_empire_inline.cpp",
+      "-lz",
+      "-o",
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-empire-inline-prefix-20261012/final-CLI/empire-inline-release"
+    ],
+    "exit_code": 0,
+    "header_sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727",
+    "tool_sha256": "6b2c4363a1f3efd66b39bd8098ca43b8983662ed80828d7b29af1a2976887673",
+    "exe_sha256": "74f5cf46fb02fdf93e2d31aa9dfeaca7d74ecb1d321e8435bbb7e3fa87f32348",
+    "selfauthored_post_header_change_smoke_passed": true
+  },
+  "regression": {
+    "checks": {
+      "input_sha256": true,
+      "decoded_sha256": true,
+      "input_bytes": true,
+      "decoded_bytes": true,
+      "validated_blocks": true,
+      "items": true,
+      "member_headers": true,
+      "known_items": true,
+      "completed_members": true,
+      "goal_parsed_end": true,
+      "postgoal_sections": true,
+      "postgoal_parsed_end": true,
+      "religion": true,
+      "commerce": true,
+      "pool": true,
+      "afterpool": true,
+      "goods": true,
+      "conditional_cache_next_id": true
+    },
+    "passed": 20,
+    "failed": 0,
+    "old_complete_suites_not_rerun": true,
+    "old_ten_headers_core_and_all_CLI_unchanged": true,
+    "source_layout21_matches38_bytes": true
+  },
+  "independent115e_adoption": {
+    "review_base": "115e13860b14f65d6a3010e661bfef72387886fa",
+    "patch_sha256": "249aca59906d42ccb6793c5afaf826e53031084673df8a4640d1628c209d61a5",
+    "five_files_exact_sha256": {
+      "file_io/tests/independent_city19_following_components/README.md": "325e59d15d459eba76478d41a066d7d754287a0b2705e4322116fd49fccf8226",
+      "file_io/tests/independent_city19_following_components/following_properties.cpp": "c8e351b2738cca6d1bccfd8c64b6798a2f34309ea5363c29035b3262c0f3459c",
+      "file_io/tests/independent_city19_following_components/run_properties.py": "d98c4036d0ed64b0a6f0a59f479ce13bd13b0397e23a6fc703b137bd29401fb2",
+      "file_io/tests/independent_city19_following_components/run_cli_checks.py": "12234e8cdedc23a29ae501b2b7a17b7ef2b477758ff44d51afa328b993fdf839",
+      "file_io/tests/independent_city19_following_components/test-expectations.json": "425ff6c935e67ea291f11966ef91c80817e0d32aa205b832223bfcd1bc2ad1df"
+    },
+    "no_patch_changes": true,
+    "review_source_audit": 22,
+    "review_report": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-goodscontrol-115e138-review/RESULTS.zh-CN.md",
+    "prior_production_unchanged": true
+  },
+  "adopted_properties": {
+    "passed": 36,
+    "failed": 0,
+    "execution_failed": false
+  },
+  "adopted_CLI": {
+    "passed": 14,
+    "failed": 0,
+    "cases_per_mode": 7
+  },
+  "new_prefix_independent_review_pending": true,
+  "record_values_activity_logic_originalruntime_registry_cache_vptr_lifetime_fullcity_proved": false,
+  "original_game_codec_ctor_dtor_hooks_executed": false,
+  "raw_original_decoded_fields_GUIDs_listing_binaries_credentials_userwork_uploaded": false,
+  "CLI_test_version_binding": {
+    "early_release_and_ubsan_before_header_only_addition": true,
+    "final_release_rebuilt_smoke_and_actual": true,
+    "final_header_release_and_ubsan_properties": true,
+    "final_CLI_ubsan_rebuild_claimed": false
+  }
+}
