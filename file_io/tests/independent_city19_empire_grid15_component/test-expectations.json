@@ -1,0 +1,301 @@
+{
+  "commit": "3c17a26645f70b463879d6a4073da46e118151d3",
+  "tests": [
+    {
+      "suite": "independent_component",
+      "name": "complete true predecessor plus22 grids preserves cache and input",
+      "expectation_kind": "selected_static_full_batch",
+      "expected": "22x15366 + parent3raw4 =338056, no new archive IDs, unchanged input/cache. Complete byte requests do not execute480f60.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "all484 child offsets have629 wire width and exact nesting",
+      "expectation_kind": "selected_static_nested_width",
+      "expected": "30pre1192,24child627,28post334; child2+627=629, grid2+1192+22*629+334=15366, all484 child offsets startgrid+1194+j*629. Destination628/15360 not wire.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "15360 and628 destination strides cannot set wire boundaries",
+      "expectation_kind": "selected_static_nested_width",
+      "expected": "30pre1192,24child627,28post334; child2+627=629, grid2+1192+22*629+334=15366, all484 child offsets startgrid+1194+j*629. Destination628/15360 not wire.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "unknown last outer version stops after its word with21 complete",
+      "expectation_kind": "modern_version_scope_and_pending",
+      "expected": "Unsupported grid/child versions stop immediately after their own2B word without payload skip; retain completed outer grids. Header-only leaves all raw fields unread even for known15.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "unknown last nested version stops before627 bytes and parent tail",
+      "expectation_kind": "modern_version_scope_and_pending",
+      "expected": "Unsupported grid/child versions stop immediately after their own2B word without payload skip; retain completed outer grids. Header-only leaves all raw fields unread even for known15.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "second header checkpoint does not even peek unknown version",
+      "expectation_kind": "modern_version_scope_and_pending",
+      "expected": "Unsupported grid/child versions stop immediately after their own2B word without payload skip; retain completed outer grids. Header-only leaves all raw fields unread even for known15.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "known and unknown first header-only stops before all raw requests",
+      "expectation_kind": "modern_version_scope_and_pending",
+      "expected": "Unsupported grid/child versions stop immediately after their own2B word without payload skip; retain completed outer grids. Header-only leaves all raw fields unread even for known15.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "source1 consumes no grid despite unknown future bytes",
+      "expectation_kind": "modern_version_scope_and_pending",
+      "expected": "Unsupported grid/child versions stop immediately after their own2B word without payload skip; retain completed outer grids. Header-only leaves all raw fields unread even for known15.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "source2 never consumes poison parent3 tail",
+      "expectation_kind": "selected_static_parent_branch",
+      "expected": "Parent2 reads22 grids and consumes no parent3 raw4; preserve poison tail.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "source3 missing parent tail can checkpoint but cannot complete",
+      "expectation_kind": "modern_tail_checkpoint",
+      "expected": "After22 complete grids stop_before_parent_tail permits checkpoint without4B; grids complete but parent_tail/byte requests incomplete; normal path rejects missing4.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "all four proper final parent tail prefixes reject",
+      "expectation_kind": "source_width_and_modern_bounds",
+      "expected": "Every named proper15366 grid cut or4B parent-tail cut rejects truncated; no partial accepted known record.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "selected bulk shared-tail and last-child cutpoints reject",
+      "expectation_kind": "selected_static_shared_paths_and_modern_bounds",
+      "expected": "Keep child raw78 and264/268 shared tails and all bulk bytes; specified proper cuts fail truncated; no omitted request due to jump/nonmonotonic offset.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "complete source3 leaves next consumer word and payload untouched",
+      "expectation_kind": "modern_unqualified_frontier",
+      "expected": "After22 grids and source3 raw4, leave following word/payload poison untouched, values/input unchanged; parent selected byte requests complete not runtime pass.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "exact4915584 prefix accepts unknown tail one extra rejects",
+      "expectation_kind": "modern_version_scope_and_pending",
+      "expected": "Unsupported grid/child versions stop immediately after their own2B word without payload skip; retain completed outer grids. Header-only leaves all raw fields unread even for known15.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-reader.evidence.json",
+          "sha256": "62edf43bfd530af7bf4d489af6b16d1a4ec5a55bc1208af90ec55f133f0e8319"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-grid-child-reader.evidence.json",
+          "sha256": "8e884d0eb70d16b63fd100adb55c6f63b4a30fcf427e0b8a81ff0fae2a6e7a67"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "incomplete inline checkpoint is rejected before grid header",
+      "expectation_kind": "modern_batch_checkpoint",
+      "expected": "max_grids bound applies before next header; never inspect unknown next word; retain completed grids but do not claim parent byte completion.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_grids_archive.hpp",
+          "sha256": "76c79ebb06fb8280446afe6280ff10a827c0c681cdd4ffc18a66056aa805977d"
+        }
+      ]
+    }
+  ]
+}
