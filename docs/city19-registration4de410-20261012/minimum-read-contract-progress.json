@@ -1,0 +1,119 @@
+{
+  "schema": "SELECTED_POINTER_RELEVANT_READ_CONTRACT_PROGRESS_20261012",
+  "utc": "2026-10-12T17:39:10.983862+00:00",
+  "baseline": "3687bde2a658fd92fd2cccc497703e4fa071215b",
+  "actual_frontier": 1991913,
+  "new_real_bytes": 0,
+  "nominal_owner6_full_record_bytes": 1479,
+  "nominal_contract_is_actual_instance": false,
+  "new_reader_or_runtime_executed": false,
+  "zero_one_branch_condition": {
+    "location": "0x4f5ec3 call0x554c00",
+    "requires": "valid actualcontainer atquery, aligned/ordered begin/end, normalcallee/frame, relevantnoalias assumptions",
+    "excluded_body_virtual1c_sites": [
+      "0x4f5f15",
+      "0x4f5f5e",
+      "0x4f5f9d",
+      "0x4f5fb4",
+      "0x4f6013",
+      "0x4f60c5",
+      "0x4f60fc",
+      "0x4f6113",
+      "0x4f6196",
+      "0x4f61cd",
+      "0x4f61e4",
+      "0x4f61fb",
+      "0x4f626b",
+      "0x4f62c8"
+    ],
+    "not_callback_entry_empty_proof": true,
+    "not_own34_zero_condition": true,
+    "not_helper_purity_proof": true,
+    "output_own24_empty_not_implied": true,
+    "prelude_and_helpers_not_automatically_pure": true
+  },
+  "output_range_clear": {
+    "range_copy": "0x4eeed0 copieseachdword storage value; equalbegin/end returnsdestinationwithoutcopy",
+    "range_destroy": "0x5c6230 -> 0x4eeea0 -> 0x4e1c20 RET",
+    "pointee_dereference_or_callback_in_element_chain": false,
+    "direct_write": "0x56195f tooutputvector.end; for4f5e50 receiverown+0x24 givesown+0x2c",
+    "normal_storage_and_noalias_still_required": true
+  },
+  "temp_zero_one_path": {
+    "construct": "0x4f80c0 -> 0x4f8230",
+    "fields_zero_after_normal_ctor": "temp+4/+8/+c/+10",
+    "byte_initializer": "4f85b0 onlywritesreceiverbyte0; 4f8230 subsequentlyzeros+4/+8/+c/+10",
+    "empty": "0x4f8270 -> 0x4f8260 reads+0x10",
+    "zero_one_body_pushes_into_temp": false,
+    "cleanup": "0x4f6390 ->0x4f8130 ->0x4f83d0",
+    "element_pop4f8380_reached_on_selected_zero_one_path": false,
+    "release": "4f8450 ->4eee90 ->77bb31 ->7656df; nullpathoflastcallee unresolved",
+    "normal_deallocation_ownership_noalias_required": true
+  },
+  "registration_partial": {
+    "conditional_relevant_write_scope_closed": true,
+    "registered_key_is_opaque_pointer_value": true,
+    "tree_getter_node_offsets": [
+      0,
+      4,
+      8,
+      20,
+      21
+    ],
+    "key_value_address_offset": 12,
+    "key_copy_storage_bytes": 8,
+    "caller_status_byte_offset": 16,
+    "node_allocation_bytes": 24,
+    "container_counter_offset": 16,
+    "selected_container_receiver": "child+0x268",
+    "counter_owner_offset": 632,
+    "ordinary_allocator_still_assumed": "47cdd0 ->408a70(size24,flag0); freshindependenttree-ownedallocation",
+    "tree_and_iterator_bodies_have_pointee_callbacks": false,
+    "no_alias_is_verified_actual_runtime_fact": false,
+    "actual_root_lifetime_proven": false,
+    "all_storage_widths_are_wire_widths": false,
+    "requires_tree_and_newnodes_disjoint_from_selected_object": true
+  },
+  "base_phase_virtual2c": {
+    "root_store": "0x4d7598 =0x7affe8",
+    "slot": "0x7b0014",
+    "target": "0x4f28e0",
+    "actual_root_preservation_proven": false
+  },
+  "independent_review_adopted": {
+    "commit": "3687bde2a658fd92fd2cccc497703e4fa071215b",
+    "finite_checks19_0": true,
+    "compiled_nominal18_0_saved_not_rerun": true,
+    "README_sha256": "9648e778ae6807b05cfb212b125e56d1fb5aa39c26cd1b1b9464fd036065f902",
+    "results_sha256": "67fd3ff70f5067ab6155f275f2e711608480cd3265c525e4172890f076dfccf3",
+    "paths_sha256": "8b095f6d9b5420945dcf5dfed42c8917a4137660f48a37db695f786198803f58"
+  },
+  "do_not_promote": [
+    "actual4f5ec3 inputcount",
+    "uniqueactualvirtual reader",
+    "actualroot/lifetime/alias preservation",
+    "completeFigureFSA wirewidth",
+    "fullgamecompatibility"
+  ],
+  "global_prelude": {
+    "base4e07c0": "returnECX; no stores/callees",
+    "temp_byte4f85b0": "onebyte receiverstoreonly",
+    "global_receiver": "0x10bc088",
+    "global_ctor4f7b90_direct_stores": [
+      "root=0x7b3ea4",
+      "own+0x14=callerargument4"
+    ],
+    "string_init": "47b3b0 ->408690 unresolved",
+    "string_assign": "47f140 ->408640 unresolved",
+    "no_global_pointee_effect_unconditionally_proven": false
+  },
+  "remaining_precise_dependencies": [
+    "0x7656df null-argument release path after77bb31",
+    "0x408690 globalstring initialization",
+    "0x408640 globalstring assignment",
+    "ordinaryallocator408a70 relevantownership guarantees ifneeded",
+    "actual4f5ec3 count androot/lifetime/aliases; othercallbacks/typeeffects andcompleteFigureFSA readcontract"
+  ],
+  "static_query_rejections": [],
+  "saved_sessions_all_closed": true
+}
