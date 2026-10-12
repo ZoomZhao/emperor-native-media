@@ -1,11 +1,11 @@
 {
-  "paused_review_baseline": "0736f440728cd479026fd9548d03a993e3b27c20",
-  "independent_review_completed": false,
-  "reason": "Parent reports tool review stopped.",
+  "reviewed_baseline": "0736f440728cd479026fd9548d03a993e3b27c20",
+  "independent_review_completed": true,
+  "review_deliverable": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsastate-0736f44-review/README.zh-CN.md",
   "kept_conditional_frontier_from_previous_author_receipt": 1992063,
   "unconditional_frontier": 1991913,
   "these_frontiers_are_new_verification": false,
-  "active_scope": "Only already confirmed self-authored initial append-budget P2 and Make depfile parser fix with synthetic regressions",
+  "active_scope": "FigureFSAState inheritance, schema0 catalog binding, versions 1..5 wire layout, and conditional experiment audit independently verified; initial append budget P2 and Make parser fix closed in 5d49",
   "holder12_artifacts_preserved": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-holder12-conditional-chain-20261012",
   "new_original_source_or_actual_input_experiments_allowed_in_this_turn": false
 }
