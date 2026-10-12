@@ -2,7 +2,7 @@
 #include "city19_figurefsa_archive.hpp"
 
 namespace emperor::file_io::research {
-enum class FigureFsaWireType { State, Transition, ActionContext, Action, Context, Match };
+enum class FigureFsaWireType { State, Transition, ActionContext, Action, Context, Match, OpaquePrefix };
 struct FigureFsaWireCacheEntry {
     FigureFsaCacheKind kind=FigureFsaCacheKind::Null;
     FigureFsaWireType family=FigureFsaWireType::State;
@@ -48,6 +48,21 @@ struct FigureFsaObjectWalk {
     std::vector<FigureFsaClassDeclaration> declarations;
     std::vector<FigureFsaObjectPayload> payloads;
 };
+struct FigureFsaPrefixReadFailure : std::runtime_error {
+    size_t attempted_offset;
+    bool unknown_class=false;
+    size_t tag_offset=0,name_offset=0,name_bytes=0;
+    uint16_t schema=0;
+    FigureFsaPrefixReadFailure(size_t offset,const std::string&message)
+        :std::runtime_error(message),attempted_offset(offset) {}
+};
+struct FigureFsaUnknownClassFailure : std::runtime_error {
+    size_t tag_offset,name_offset,name_bytes;
+    uint16_t schema;
+    FigureFsaUnknownClassFailure(size_t tag,size_t name,size_t bytes,uint16_t version)
+        :std::runtime_error("FigureFSA unsupported concrete class declaration"),
+         tag_offset(tag),name_offset(name),name_bytes(bytes),schema(version) {}
+};
 
 namespace detail {
 // A local metadata graph, not original object construction or pointer validation.
@@ -55,6 +70,7 @@ class FigureFsaObjectReader {
     GoalCursor cursor_;
     FigureFsaObjectLimits limits_;
     FigureFsaObjectWalk result_;
+    size_t prefix_entries_=0;
     static bool family_valid(FigureFsaWireType f) {
         return f==FigureFsaWireType::State || f==FigureFsaWireType::Transition ||
                f==FigureFsaWireType::ActionContext || f==FigureFsaWireType::Action ||
@@ -63,6 +79,8 @@ class FigureFsaObjectReader {
     uint32_t append(FigureFsaWireCacheEntry entry) {
         if(result_.cache.size()>=limits_.max_cache)
             throw std::runtime_error("FigureFSA object cache budget");
+        if(prefix_entries_&&result_.cache.size()-prefix_entries_>=1024)
+            throw std::runtime_error("FigureFSA appended cache budget");
         const auto id=static_cast<uint32_t>(result_.cache.size());
         result_.cache.push_back(entry);return id;
     }
@@ -101,7 +119,7 @@ class FigureFsaObjectReader {
         else if(equal("FSAAction"))family=FigureFsaWireType::Action;
         else if(equal("FSAContext"))family=FigureFsaWireType::Context;
         else if(equal("FSAMatch"))family=FigureFsaWireType::Match;
-        else throw std::runtime_error("FigureFSA unsupported concrete class declaration");
+        else throw FigureFsaUnknownClassFailure(tag.offset,off,n,schema);
         if(schema!=0)throw std::runtime_error("FigureFSA exact class schema mismatch");
         const auto id=append({FigureFsaCacheKind::Class,family,0,schema});
         result_.declarations.push_back({tag.offset,off,n,id,schema,family});return id;
@@ -117,10 +135,14 @@ class FigureFsaObjectReader {
             if(!class_id||class_id>=result_.cache.size()||
                result_.cache[class_id].kind!=FigureFsaCacheKind::Class)
                 throw std::runtime_error("FigureFSA class reference kind/range");
+            if(result_.cache[class_id].family==FigureFsaWireType::OpaquePrefix)
+                throw std::runtime_error("FigureFSA reference to unsupported opaque prefix class");
         } else {
             object_id=tag.value;
             if(object_id>=result_.cache.size())
                 throw std::runtime_error("FigureFSA object reference range");
+            if(object_id&&result_.cache[object_id].family==FigureFsaWireType::OpaquePrefix)
+                throw std::runtime_error("FigureFSA reference to unsupported opaque prefix object");
             if(object_id&&(result_.cache[object_id].kind!=FigureFsaCacheKind::Object||
                           result_.cache[object_id].family!=expected))
                 throw std::runtime_error("FigureFSA object reference kind/family");
@@ -146,17 +168,20 @@ class FigureFsaObjectReader {
     void outer();
 public:
     FigureFsaObjectReader(GoalBytes bytes,const std::vector<FigureFsaWireCacheEntry>&cache,
-                         size_t start,FigureFsaObjectLimits limits)
-        :cursor_(bytes,start),limits_(limits) {
+                         size_t start,FigureFsaObjectLimits limits,size_t prefix_entries=0)
+        :cursor_(bytes,start),limits_(limits),prefix_entries_(prefix_entries) {
         if(!bytes.data||!limits.max_bytes||limits.max_bytes>65536||bytes.size>limits.max_bytes||
            limits.max_string>8192||limits.max_items>256||limits.max_refs>1024||
-           !limits.max_cache||limits.max_cache>1024||!limits.max_objects||limits.max_objects>128||
+           !limits.max_cache||limits.max_cache>(prefix_entries?8192u:1024u)||
+           (prefix_entries&&(prefix_entries<1||prefix_entries>8192||prefix_entries>cache.size()))||
+           !limits.max_objects||limits.max_objects>128||
            !limits.max_depth||limits.max_depth>16||!limits.max_strings||limits.max_strings>1024||
            cache.empty()||cache.size()>limits.max_cache||cache[0].kind!=FigureFsaCacheKind::Null)
             throw std::runtime_error("FigureFSA object view/cache/budget argument");
         for(size_t i=1;i<cache.size();++i) {
             const auto&e=cache[i];
-            if(!family_valid(e.family)||e.schema!=0||
+            const bool opaque=i<prefix_entries&&e.family==FigureFsaWireType::OpaquePrefix;
+            if((!opaque&&(!family_valid(e.family)||e.schema!=0))||
                (e.kind!=FigureFsaCacheKind::Class&&e.kind!=FigureFsaCacheKind::Object))
                 throw std::runtime_error("FigureFSA exact initial cache metadata");
             if(e.kind==FigureFsaCacheKind::Object&&(!e.class_id||e.class_id>=cache.size()||
@@ -166,6 +191,7 @@ public:
         result_.cache=cache;result_.start=start;
     }
     FigureFsaObjectWalk read() {outer();result_.end=cursor_.position();return std::move(result_);}
+    size_t position() const {return cursor_.position();}
 };
 inline void FigureFsaObjectReader::payload(size_t index,size_t depth) {
     const auto type=result_.payloads[index].family;
@@ -264,5 +290,23 @@ inline FigureFsaObjectWalk walk_city19_figurefsa_exact_objects(
     if(contract!=FigureFsaObjectContract::exact_fsa_classes_root7b5bc8_reader4dad10)
         throw std::runtime_error("FigureFSA object unsupported explicit contract");
     return detail::FigureFsaObjectReader(bytes,cache,start,limits).read();
+}
+// Explicit archive continuation. Prefix entries preserve global IDs and kinds;
+// their unmodeled types are never accepted as one of the six exact FSA classes.
+inline FigureFsaObjectWalk walk_city19_figurefsa_with_archive_prefix(
+    GoalBytes bytes,FigureFsaObjectContract contract,
+    const std::vector<FigureFsaWireCacheEntry>&cache,size_t prefix_entries,
+    size_t start=0,FigureFsaObjectLimits limits={}) {
+    if(contract!=FigureFsaObjectContract::exact_fsa_classes_root7b5bc8_reader4dad10||!prefix_entries)
+        throw std::runtime_error("FigureFSA prefix unsupported explicit contract");
+    detail::FigureFsaObjectReader reader(bytes,cache,start,limits,prefix_entries);
+    try {return reader.read();}
+    catch(const FigureFsaUnknownClassFailure&e) {
+        FigureFsaPrefixReadFailure failure(reader.position(),e.what());
+        failure.unknown_class=true;failure.tag_offset=e.tag_offset;
+        failure.name_offset=e.name_offset;failure.name_bytes=e.name_bytes;failure.schema=e.schema;
+        throw failure;
+    }
+    catch(const std::runtime_error&e) {throw FigureFsaPrefixReadFailure(reader.position(),e.what());}
 }
 } // namespace emperor::file_io::research

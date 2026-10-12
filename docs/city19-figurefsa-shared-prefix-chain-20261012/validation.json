@@ -1,0 +1,439 @@
+{
+  "self_authored_suites": [
+    {
+      "suite": "synthetic-prefix-chain-diagnostics",
+      "results": [
+        {
+          "mode": "release",
+          "compile_exit": 0,
+          "exit_code": 0,
+          "stderr_empty": true,
+          "compiled_dependency_sha256": {
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/tests/figurefsa_prefix_chain/properties.cpp": "c62edccfd38f7481ca144bf44d335a88ed80e15b9bb03fd37176b2585a8ceb0a",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/include/city19_figurefsa_objects.hpp": "4627a398fe14d3541cd994908b8c485f9c7c2607f11ea6cdf8caf6500df05fd6",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+          },
+          "report": {
+            "checks": [
+              {
+                "id": "global_6020_class_then_object_and_back_references",
+                "passed": true
+              },
+              {
+                "id": "same_cache_continues_into_following_record",
+                "passed": true
+              },
+              {
+                "id": "opaque_prefix_reference_stops_without_guessing",
+                "passed": true
+              },
+              {
+                "id": "late_failure_preserves_complete_prior_output_and_prefix",
+                "passed": true
+              },
+              {
+                "id": "prefix_budget_and_nested_budget_remain_bounded",
+                "passed": true
+              },
+              {
+                "id": "unknown_class_diagnostic_range_without_partial_cache",
+                "passed": true
+              },
+              {
+                "id": "state_declaration_cached_class_all_outer_versions",
+                "passed": true
+              },
+              {
+                "id": "cached_branch_agrees_with_preserved_component",
+                "passed": true
+              },
+              {
+                "id": "three_primary_classes_new_payloads_and_back_reference_cycle",
+                "passed": true
+              },
+              {
+                "id": "six_concrete_classes_declared_and_cached_new_instances",
+                "passed": true
+              },
+              {
+                "id": "all_six_preloaded_classes_support_small_and_extended_tags",
+                "passed": true
+              },
+              {
+                "id": "every_six_class_graph_truncation_rejected",
+                "passed": true
+              },
+              {
+                "id": "all_six_own_version_subsets_reject_unsupported",
+                "passed": true
+              },
+              {
+                "id": "every_recursive_graph_truncation_rejected",
+                "passed": true
+              },
+              {
+                "id": "depth_budget_checks_new_payload_only_not_back_reference",
+                "passed": true
+              },
+              {
+                "id": "every_state_fixture_truncation_rejected",
+                "passed": true
+              },
+              {
+                "id": "signed_counts_preserved_and_nonpositive_skip",
+                "passed": true
+              },
+              {
+                "id": "class_schema_separate_from_object_own_version",
+                "passed": true
+              },
+              {
+                "id": "unknown_class_and_name_length_rejected",
+                "passed": true
+              },
+              {
+                "id": "unsupported_own_version_and_endian_rejected",
+                "passed": true
+              },
+              {
+                "id": "object_cache_and_string_budgets",
+                "passed": true
+              },
+              {
+                "id": "class_and_object_tags_kind_zero_range_and_family",
+                "passed": true
+              },
+              {
+                "id": "duplicate_class_declarations_keep_separate_ids",
+                "passed": true
+              },
+              {
+                "id": "positive_list_and_input_view_budgets",
+                "passed": true
+              },
+              {
+                "id": "translated_prefix_and_unconsumed_trailing_bytes",
+                "passed": true
+              },
+              {
+                "id": "failures_are_readonly_and_later_invocation_clean",
+                "passed": true
+              },
+              {
+                "id": "explicit_contract_argument_and_initial_cache_validation",
+                "passed": true
+              },
+              {
+                "id": "readonly_exact_record_guard_page",
+                "passed": true
+              }
+            ],
+            "passed": 28,
+            "failed": 0
+          }
+        },
+        {
+          "mode": "ubsan",
+          "compile_exit": 0,
+          "exit_code": 0,
+          "stderr_empty": true,
+          "compiled_dependency_sha256": {
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/tests/figurefsa_prefix_chain/properties.cpp": "c62edccfd38f7481ca144bf44d335a88ed80e15b9bb03fd37176b2585a8ceb0a",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/include/city19_figurefsa_objects.hpp": "4627a398fe14d3541cd994908b8c485f9c7c2607f11ea6cdf8caf6500df05fd6",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+          },
+          "report": {
+            "checks": [
+              {
+                "id": "global_6020_class_then_object_and_back_references",
+                "passed": true
+              },
+              {
+                "id": "same_cache_continues_into_following_record",
+                "passed": true
+              },
+              {
+                "id": "opaque_prefix_reference_stops_without_guessing",
+                "passed": true
+              },
+              {
+                "id": "late_failure_preserves_complete_prior_output_and_prefix",
+                "passed": true
+              },
+              {
+                "id": "prefix_budget_and_nested_budget_remain_bounded",
+                "passed": true
+              },
+              {
+                "id": "unknown_class_diagnostic_range_without_partial_cache",
+                "passed": true
+              },
+              {
+                "id": "state_declaration_cached_class_all_outer_versions",
+                "passed": true
+              },
+              {
+                "id": "cached_branch_agrees_with_preserved_component",
+                "passed": true
+              },
+              {
+                "id": "three_primary_classes_new_payloads_and_back_reference_cycle",
+                "passed": true
+              },
+              {
+                "id": "six_concrete_classes_declared_and_cached_new_instances",
+                "passed": true
+              },
+              {
+                "id": "all_six_preloaded_classes_support_small_and_extended_tags",
+                "passed": true
+              },
+              {
+                "id": "every_six_class_graph_truncation_rejected",
+                "passed": true
+              },
+              {
+                "id": "all_six_own_version_subsets_reject_unsupported",
+                "passed": true
+              },
+              {
+                "id": "every_recursive_graph_truncation_rejected",
+                "passed": true
+              },
+              {
+                "id": "depth_budget_checks_new_payload_only_not_back_reference",
+                "passed": true
+              },
+              {
+                "id": "every_state_fixture_truncation_rejected",
+                "passed": true
+              },
+              {
+                "id": "signed_counts_preserved_and_nonpositive_skip",
+                "passed": true
+              },
+              {
+                "id": "class_schema_separate_from_object_own_version",
+                "passed": true
+              },
+              {
+                "id": "unknown_class_and_name_length_rejected",
+                "passed": true
+              },
+              {
+                "id": "unsupported_own_version_and_endian_rejected",
+                "passed": true
+              },
+              {
+                "id": "object_cache_and_string_budgets",
+                "passed": true
+              },
+              {
+                "id": "class_and_object_tags_kind_zero_range_and_family",
+                "passed": true
+              },
+              {
+                "id": "duplicate_class_declarations_keep_separate_ids",
+                "passed": true
+              },
+              {
+                "id": "positive_list_and_input_view_budgets",
+                "passed": true
+              },
+              {
+                "id": "translated_prefix_and_unconsumed_trailing_bytes",
+                "passed": true
+              },
+              {
+                "id": "failures_are_readonly_and_later_invocation_clean",
+                "passed": true
+              },
+              {
+                "id": "explicit_contract_argument_and_initial_cache_validation",
+                "passed": true
+              },
+              {
+                "id": "readonly_exact_record_guard_page",
+                "passed": true
+              }
+            ],
+            "passed": 28,
+            "failed": 0
+          }
+        }
+      ],
+      "result_sha256": "a1b5745feb546ae1316c6722e6ec1deb8b18bbf37b26bad1a7cf6694cca4f540",
+      "passed": 56,
+      "failed": 0,
+      "actual_dependency_hashes_match": true
+    },
+    {
+      "suite": "original-cached-api-regression",
+      "results": [
+        {
+          "mode": "release",
+          "compile_exit": 0,
+          "exit_code": 0,
+          "stderr_empty": true,
+          "compiled_dependency_sha256": {
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/tests/figurefsa_conditional/properties.cpp": "e9373a82ad50f8b3800f2bf8c04e38cb282f3fca7b7f015a8f09848ed36272c9",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+          },
+          "report": {
+            "checks": [
+              {
+                "id": "all_base_own_branches_and_opaque_strings",
+                "passed": true
+              },
+              {
+                "id": "minimum_sizes_not_memory_strides",
+                "passed": true
+              },
+              {
+                "id": "every_truncation_rejected",
+                "passed": true
+              },
+              {
+                "id": "prefix_translation_and_trailing_bytes",
+                "passed": true
+              },
+              {
+                "id": "version_subsets_and_little_endian",
+                "passed": true
+              },
+              {
+                "id": "signed_nonpositive_counts_skip",
+                "passed": true
+              },
+              {
+                "id": "positive_count_and_string_budgets",
+                "passed": true
+              },
+              {
+                "id": "cache_null_repeated_and_extended_refs",
+                "passed": true
+              },
+              {
+                "id": "cache_kind_family_range_and_metadata",
+                "passed": true
+              },
+              {
+                "id": "new_object_and_class_decl_rejected_before_payload",
+                "passed": true
+              },
+              {
+                "id": "cache_schema_not_object_version",
+                "passed": true
+              },
+              {
+                "id": "failures_do_not_mutate_input_or_cache",
+                "passed": true
+              },
+              {
+                "id": "explicit_contract_and_view_budget",
+                "passed": true
+              },
+              {
+                "id": "readonly_record_at_guard_page",
+                "passed": true
+              }
+            ],
+            "passed": 14,
+            "failed": 0
+          }
+        },
+        {
+          "mode": "ubsan",
+          "compile_exit": 0,
+          "exit_code": 0,
+          "stderr_empty": true,
+          "compiled_dependency_sha256": {
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/tests/figurefsa_conditional/properties.cpp": "e9373a82ad50f8b3800f2bf8c04e38cb282f3fca7b7f015a8f09848ed36272c9",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-shared-prefix-chain-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+          },
+          "report": {
+            "checks": [
+              {
+                "id": "all_base_own_branches_and_opaque_strings",
+                "passed": true
+              },
+              {
+                "id": "minimum_sizes_not_memory_strides",
+                "passed": true
+              },
+              {
+                "id": "every_truncation_rejected",
+                "passed": true
+              },
+              {
+                "id": "prefix_translation_and_trailing_bytes",
+                "passed": true
+              },
+              {
+                "id": "version_subsets_and_little_endian",
+                "passed": true
+              },
+              {
+                "id": "signed_nonpositive_counts_skip",
+                "passed": true
+              },
+              {
+                "id": "positive_count_and_string_budgets",
+                "passed": true
+              },
+              {
+                "id": "cache_null_repeated_and_extended_refs",
+                "passed": true
+              },
+              {
+                "id": "cache_kind_family_range_and_metadata",
+                "passed": true
+              },
+              {
+                "id": "new_object_and_class_decl_rejected_before_payload",
+                "passed": true
+              },
+              {
+                "id": "cache_schema_not_object_version",
+                "passed": true
+              },
+              {
+                "id": "failures_do_not_mutate_input_or_cache",
+                "passed": true
+              },
+              {
+                "id": "explicit_contract_and_view_budget",
+                "passed": true
+              },
+              {
+                "id": "readonly_record_at_guard_page",
+                "passed": true
+              }
+            ],
+            "passed": 14,
+            "failed": 0
+          }
+        }
+      ],
+      "result_sha256": "23e727fe986de916841abf778e4f242134aa4dfc828e5fa8a247afb96bf39b58",
+      "passed": 28,
+      "failed": 0,
+      "actual_dependency_hashes_match": true
+    }
+  ],
+  "original_cached_header_sha256": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+  "original_header_and_API_unchanged": true,
+  "new_header_sha256": "4627a398fe14d3541cd994908b8c485f9c7c2607f11ea6cdf8caf6500df05fd6",
+  "conditional_experiment_is_normal_test_pass": false,
+  "conditional_real_frontier": 1991913,
+  "unconditional_real_frontier": 1991913,
+  "attempted_stop": 1991945,
+  "unknown_payload_not_read": true,
+  "actual_input_or_decoded_bytes_saved": false,
+  "original_instructions_or_conversion_outputs_executed": false,
+  "network_or_auth_attempted": false
+}

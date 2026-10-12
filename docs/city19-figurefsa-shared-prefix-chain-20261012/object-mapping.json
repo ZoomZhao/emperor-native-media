@@ -1,0 +1,161 @@
+{
+  "candidate_holder": "511ea0 first holder; +30 returned by5122c0, NULLguard512090/512092, virtual8at51209d",
+  "selected_child_root": "7b5bc8",
+  "selected_child_reader": "4dad10",
+  "selection_basis": "510d30->512230->514500->512291 named construction path; runtime identity/lifetime/root preservation not proved",
+  "classes": [
+    {
+      "name": "FSAState",
+      "descriptor": "0x850230",
+      "schema": 0,
+      "factory": "0x4f1cd0",
+      "constructor": "0x4f5270",
+      "selected_root": "0x7b3d5c",
+      "reader_slot8": "0x4f5630",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; string; ActionContext list; ActionContext list; Transition ref; Transition list",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 20,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "c424ca2f83fed03f67d2b39ce2d3cfc4ece3c9c454182a22a049ec3a122f6447",
+      "constructor_evidence": "cca132d7626665b24741db81cbe3b4da833babac38462af32c2800c4ce8dbb7c",
+      "slot_evidence": "29392ce1e2851519a08fd7f8175da426c83cae26f38be649d105125f39077206",
+      "reader_evidence": "b5dcaf8863194043553563e0381c0193d13e02863438ff503d3bb10ba34e80ff",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "087a29536f5d180a5a277d371be2e7a4231d81c05e8ad0e521a81e5bbcf4a59b",
+      "memory_object_bytes": 72,
+      "memory_size_used_as_wire_width": false
+    },
+    {
+      "name": "FSATransition",
+      "descriptor": "0x850248",
+      "schema": 0,
+      "factory": "0x4f1dd0",
+      "constructor": "0x4f5b30",
+      "selected_root": "0x7b3d8c",
+      "reader_slot8": "0x4f6890",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; Match list; byte; DWORD; raw8; raw8; State ref; ActionContext list",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 33,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "eda47adba698fc7122cc39ea0e75c41ea06024b9f007f284005087661db75090",
+      "constructor_evidence": "60d7f5ec6584bc1e82cf1d6e3a7ab44e55f554029ea1981387450fd49cb05d7c",
+      "slot_evidence": "90a258d702b8c23e8a8a8feec3784e8d90930d9c4f058233f2da9e1fc4db2626",
+      "reader_evidence": "15396321c62f952afc76ad6d1f7b062f33faf5634c86d5bb9dfa042cfcffe174",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "7e0a8c045d68e0f74a40ca1178768d0970859ae3e1ae3f18d5d29c0a42400c06",
+      "memory_object_bytes": 80,
+      "memory_size_used_as_wire_width": false
+    },
+    {
+      "name": "FSAActionContext",
+      "descriptor": "0x8502c0",
+      "schema": 0,
+      "factory": "0x4f2290",
+      "constructor": "0x4f7970",
+      "selected_root": "0x7b3e74",
+      "reader_slot8": "0x4f7ae0",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; Action ref; Context ref",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 6,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "b8d0cd984d75802490aec66e917254143e98d563315fc8b746ed70a907ee5d0f",
+      "constructor_evidence": "071475a7bf0257c9c95e301cfd0c4e0a6b16c115c9c617076d10c7aedff098c3",
+      "slot_evidence": "000a6a2f6e7d02faa837b2826e57589bad011485774d663f5e88a52a1811d5b2",
+      "reader_evidence": "fad3a71cf957ca6c60c5b0f257a3017c626a235a34e43a83fa6a1ff984369c41",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "85730338df3cdb1a19d2c25be4b2691e33afae84f916b5c1362c7f81ec76bc48",
+      "memory_object_bytes": 12,
+      "memory_size_used_as_wire_width": false
+    },
+    {
+      "name": "FSAAction",
+      "descriptor": "0x850290",
+      "schema": 0,
+      "factory": "0x4f2090",
+      "constructor": "0x4f7670",
+      "selected_root": "0x7b3e58",
+      "reader_slot8": "0x4f78a0",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; string",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 6,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "f82d3cdff927ae31eaa396685b75afe0b5b824bc7b54b0ffc3c3afac28c5177a",
+      "constructor_evidence": "994032f7fbe88f39c883135ad76e80c04ab9fc78ff1f890e911727caee34f6e5",
+      "slot_evidence": "6583d3af76b498b98876ce9970c5c3ff50e9224377ae8236a7b1d150ad917a3b",
+      "reader_evidence": "5724adb9b62c6ccaa24fa076b47b4d87c12fa83fd60c6ce60be236593a9e2d3f",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "015c0866e2aae00cb118b5dc4ada21a7142fa5bb2e0968a83be48bf064b4cf49",
+      "memory_object_bytes": 20,
+      "memory_size_used_as_wire_width": false
+    },
+    {
+      "name": "FSAContext",
+      "descriptor": "0x8502a8",
+      "schema": 0,
+      "factory": "0x4f2190",
+      "constructor": "0x4f7540",
+      "selected_root": "0x7b3e38",
+      "reader_slot8": "0x4f75b0",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; DWORD",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 6,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "4275bdda246cbc3a5ec2a974117d22a670158124a8043e3c972b95e52d9b3163",
+      "constructor_evidence": "85c374c1bdf57ecd1dd65a236fccf87f67a93c9b689f161ef35de3d0d8bbe997",
+      "slot_evidence": "d26e869a38212c5dd2d6a7f08bc7d01a8f3d601e46bfdb4d8ef13a2068a8a841",
+      "reader_evidence": "3f106afe0633d30331560775e2a009750d48d8292b3f58509be2331cb2b67a3b",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "77bc7a1af08f0384b48d556bc5a2bf3d69be7b49143fa521a046a785022a96f7",
+      "memory_object_bytes": 8,
+      "memory_size_used_as_wire_width": false
+    },
+    {
+      "name": "FSAMatch",
+      "descriptor": "0x8502d8",
+      "schema": 0,
+      "factory": "0x4f2390",
+      "constructor": "0x4f7b90",
+      "selected_root": "0x7b3ea4",
+      "reader_slot8": "0x4f7d00",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; string; DWORD",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 10,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "e1ef72437a762b05276f5b6755faeef6812ac0819de1fa868eb470da135619c0",
+      "constructor_evidence": "3d1289d115cd7f25f9d8054e3f5a8521ca685d8b89276f1195e111f84e035ab6",
+      "slot_evidence": "766f9c8cb0f38c21971005ce1c4c887f83702d10d04409892a52f2c33487d6df",
+      "reader_evidence": "9625906c08584103fb7debfba561ed0273704b69510047ed42d6bca9a4747fa5",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "60580647c9725b38fd08d7bf1a5f6f7d833e16162d083cc6e767ddd9cd284459",
+      "memory_object_bytes": 24,
+      "memory_size_used_as_wire_width": false
+    }
+  ],
+  "structural_receiver_edges": {
+    "FigureFSA+8/+10/+c/+88": "State refs/container",
+    "FSAState+14/+4": "Transition ref/list",
+    "FSAState+18/+28": "ActionContext lists",
+    "FSATransition+14": "Match list",
+    "FSATransition+34": "State ref",
+    "FSATransition+4": "ActionContext list",
+    "FSAActionContext+4": "Action ref",
+    "FSAActionContext+8": "Context ref"
+  },
+  "six_factory_receivers_are_actual_startup_instances": false,
+  "same_numeric_member_offset_is_same_object": false,
+  "new_static_queries": 0,
+  "unknown_conditional_name": "FigureFSAState",
+  "unknown_inheritance_or_reader_proved": false
+}
