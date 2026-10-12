@@ -15,13 +15,16 @@ struct GoalLimits {
     size_t max_items=128;
     size_t max_cache=256;
     size_t checkpoint_items=0;
+    bool enable_homage=false;
 };
 enum class GoalCacheKind { Null, Class, Object };
+enum class GoalClassType { Housing, Homage };
 struct GoalCacheEntry {
     GoalCacheKind kind;
     uint32_t class_id=0;
     uint16_t schema=0;
     size_t registered_at=0;
+    GoalClassType class_type=GoalClassType::Housing;
 };
 struct GoalPayload {
     size_t member=0, ordinal=0, tag_offset=0, payload_offset=0, payload_bytes=0;
@@ -71,6 +74,13 @@ inline void goal_housing_payload(GoalCursor &cursor) {
     if (cursor.u16()!=1) throw std::runtime_error("Housing goal version outside modern scope1");
     cursor.take(12);
 }
+inline void goal_homage_payload(GoalCursor &cursor) {
+    if (cursor.u16()!=1) throw std::runtime_error("base goal version outside modern scope1");
+    cursor.take(4);
+    if (cursor.u16()!=3) throw std::runtime_error("Homage goal version outside qualified source3 subset");
+    cursor.take(4); // Source 560aca: self+c precedes self+8.
+    cursor.take(4); // Source 560ae0: self+8.
+}
 // Conditional source model only. No original registry lookup, pointers, factory, callbacks or rules.
 // Errors never publish a partially mutated model: all state belongs to this invocation.
 inline GoalWalk walk_city19_housing_goals(GoalBytes bytes,GoalLimits limits={}) {
@@ -102,15 +112,18 @@ inline GoalWalk walk_city19_housing_goals(GoalBytes bytes,GoalLimits limits={}) 
                 if (!letter(name[0])||!std::all_of(name,name+length,[&](uint8_t c){return letter(c)||(c>='0'&&c<='9');}))
                     throw std::runtime_error("class name outside modern ASCII identifier scope");
                 constexpr char housing[]="cHousingGoal";
-                if (length!=sizeof(housing)-1 || std::memcmp(name,housing,length)) {
+                constexpr char homage[]="cHomageGoal";
+                const bool is_housing=length==sizeof(housing)-1&&!std::memcmp(name,housing,length);
+                const bool is_homage=limits.enable_homage&&length==sizeof(homage)-1&&!std::memcmp(name,homage,length);
+                if (!is_housing && !is_homage) {
                     result.pending={true,tag.offset,name_offset,length,member,ordinal,schema,
                         static_cast<uint32_t>(result.cache.size()),static_cast<uint32_t>(result.cache.size()+1)};
                     result.end=cursor.position();result.following_member=member;result.following_ordinal=ordinal;
                     result.stop_reason="unknown_class_declaration_before_lookup_and_payload";return result;
                 }
-                if (schema!=0) throw std::runtime_error("source mapped Housing schema mismatch");
+                if (schema!=0) throw std::runtime_error(is_housing?"source mapped Housing schema mismatch":"source mapped Homage schema mismatch");
                 // Class is registered before expected-type check in the selected normal source.
-                class_id=append({GoalCacheKind::Class,0,0,cursor.position()});
+                class_id=append({GoalCacheKind::Class,0,0,cursor.position(),is_housing?GoalClassType::Housing:GoalClassType::Homage});
             } else if (tag.value&0x80000000) {
                 class_id=tag.value&0x7fffffff;
                 if (!class_id) throw std::runtime_error("source class reference zero invalid");
@@ -126,8 +139,10 @@ inline GoalWalk walk_city19_housing_goals(GoalBytes bytes,GoalLimits limits={}) 
             const size_t payload_offset=cursor.position();
             if (!object_reference) {
                 // A new instance receives its metadata ID before its payload, never an original object.
-                object_id=append({GoalCacheKind::Object,class_id,result.cache[class_id].schema,cursor.position()});
-                goal_housing_payload(cursor);
+                const auto class_type=result.cache[class_id].class_type;
+                object_id=append({GoalCacheKind::Object,class_id,result.cache[class_id].schema,cursor.position(),class_type});
+                if (class_type==GoalClassType::Housing) goal_housing_payload(cursor);
+                else goal_homage_payload(cursor);
             }
             result.items.push_back({member,ordinal,tag.offset,payload_offset,cursor.position()-payload_offset,
                 object_id,class_id,object_reference});
