@@ -1,0 +1,1456 @@
+{
+  "version": 19,
+  "caller": "0x52fda0",
+  "source_sha256": "8976b4d79c15d9bd52dfab1f1f1afa182e6c29d700384087777c45ed50297dda",
+  "graph_scope": "complete outer selected normal version19 path including shared tails; nested callees are not a complete graph",
+  "selected_blocks": [
+    {
+      "start": "0x5305d4",
+      "end_exclusive": "0x530bd6",
+      "name": "version19_case"
+    },
+    {
+      "start": "0x5317d7",
+      "end_exclusive": "0x5319c4",
+      "name": "shared_consumer_tail"
+    },
+    {
+      "start": "0x533e6a",
+      "end_exclusive": "0x533e93",
+      "name": "shared_state_tail"
+    },
+    {
+      "start": "0x533e93",
+      "end_exclusive": "0x533ead",
+      "name": "return_tail"
+    }
+  ],
+  "path": [
+    "0x5305d4",
+    "0x530bd1 -> 0x5317d7",
+    "0x5319bf -> 0x533e6a",
+    "0x533e93 -> return 0x533eac"
+  ],
+  "early_exit": "0x5305ea conditional branch to 0x533e93; preview flag/source route required",
+  "callsites": [
+    {
+      "call": "0x5305d5",
+      "block": "version19_case",
+      "target": "0x52fd90",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x5305dc",
+      "block": "version19_case",
+      "target": "0x52fa30",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x5305f0",
+      "block": "version19_case",
+      "target": "0x52fd90",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x5305fd",
+      "block": "version19_case",
+      "target": "0x52fd90",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x530606",
+      "block": "version19_case",
+      "target": "0x52c110",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53060e",
+      "block": "version19_case",
+      "target": "0x52e7b0",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x530618",
+      "block": "version19_case",
+      "target": null,
+      "dispatch": "virtual",
+      "actual_reached": true,
+      "virtual_slot": 0,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53061d",
+      "block": "version19_case",
+      "target": "0x55a430",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x530625",
+      "block": "version19_case",
+      "target": "0x425260",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53062f",
+      "block": "version19_case",
+      "target": null,
+      "dispatch": "virtual",
+      "actual_reached": true,
+      "virtual_slot": 8,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x530632",
+      "block": "version19_case",
+      "target": "0x48df30",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53063c",
+      "block": "version19_case",
+      "target": null,
+      "dispatch": "virtual",
+      "actual_reached": true,
+      "virtual_slot": 8,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53063f",
+      "block": "version19_case",
+      "target": "0x426a60",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x530649",
+      "block": "version19_case",
+      "target": null,
+      "dispatch": "virtual",
+      "actual_reached": true,
+      "virtual_slot": 8,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53064c",
+      "block": "version19_case",
+      "target": "0x4081f0",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x530656",
+      "block": "version19_case",
+      "target": null,
+      "dispatch": "virtual",
+      "actual_reached": true,
+      "virtual_slot": 8,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53065f",
+      "block": "version19_case",
+      "target": "0x42d790",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53066a",
+      "block": "version19_case",
+      "target": "0x4e1e40",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53066f",
+      "block": "version19_case",
+      "target": "0x506240",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x530679",
+      "block": "version19_case",
+      "target": null,
+      "dispatch": "virtual",
+      "actual_reached": true,
+      "virtual_slot": 8,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53067c",
+      "block": "version19_case",
+      "target": "0x480740",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x530686",
+      "block": "version19_case",
+      "target": null,
+      "dispatch": "virtual",
+      "actual_reached": true,
+      "virtual_slot": 8,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x53068a",
+      "block": "version19_case",
+      "target": "0x510e60",
+      "dispatch": "direct",
+      "actual_reached": true,
+      "scope": "prior conditional prefix qualification; this batch reads no actual bytes"
+    },
+    {
+      "call": "0x530690",
+      "block": "version19_case",
+      "target": "0x564e30",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x53069e",
+      "block": "version19_case",
+      "target": "0x593140",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x5306ac",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5306ba",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5306cb",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 144
+    },
+    {
+      "call": "0x5306d6",
+      "block": "version19_case",
+      "target": "0x52cd90",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x5306e4",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 1
+    },
+    {
+      "call": "0x5306f2",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5306ff",
+      "block": "version19_case",
+      "target": "0x493f00",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x530710",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x530721",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 103968
+    },
+    {
+      "call": "0x530732",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 207936
+    },
+    {
+      "call": "0x530743",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 103968
+    },
+    {
+      "call": "0x530754",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x530765",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x530776",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x530787",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x530798",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x5307a9",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 103968
+    },
+    {
+      "call": "0x5307ba",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x5307cb",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x5307dc",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 2000
+    },
+    {
+      "call": "0x5307ed",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 500000
+    },
+    {
+      "call": "0x5307fa",
+      "block": "version19_case",
+      "target": "0x5501b0",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x530816",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 64
+    },
+    {
+      "call": "0x530824",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530832",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530840",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x53084e",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x53085c",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x53086a",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530878",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530886",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530894",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5308a2",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5308b0",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5308be",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5308cc",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5308dd",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 144
+    },
+    {
+      "call": "0x5308ee",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 144
+    },
+    {
+      "call": "0x5308fc",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x53090d",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 64000
+    },
+    {
+      "call": "0x53091b",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530929",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530937",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530945",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 10
+    },
+    {
+      "call": "0x530953",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 80
+    },
+    {
+      "call": "0x530961",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 80
+    },
+    {
+      "call": "0x53096f",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x53097d",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x53098b",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530999",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5309a7",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5309b8",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 8960
+    },
+    {
+      "call": "0x5309c9",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 8800
+    },
+    {
+      "call": "0x5309d7",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5309e8",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 1000
+    },
+    {
+      "call": "0x5309f9",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 1000
+    },
+    {
+      "call": "0x530a07",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530a15",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530a23",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530a31",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530a3f",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530a4d",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530a5b",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530a69",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530a77",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530a85",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530a93",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530aa1",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530aaf",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530abd",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530acb",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530ad9",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530ae7",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530af5",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 2
+    },
+    {
+      "call": "0x530b03",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530b11",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530b1f",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 65
+    },
+    {
+      "call": "0x530b2d",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 32
+    },
+    {
+      "call": "0x530b3b",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530b49",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x530b5a",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x530b68",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 16
+    },
+    {
+      "call": "0x530b74",
+      "block": "version19_case",
+      "target": "0x408c60",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x530b7b",
+      "block": "version19_case",
+      "target": "0x482680",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x530b88",
+      "block": "version19_case",
+      "target": "0x408c60",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x530b8f",
+      "block": "version19_case",
+      "target": "0x4825f0",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x530ba7",
+      "block": "version19_case",
+      "target": "0x4e07c0",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x530baf",
+      "block": "version19_case",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": null
+    },
+    {
+      "call": "0x530bbc",
+      "block": "version19_case",
+      "target": "0x408c60",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x530bc3",
+      "block": "version19_case",
+      "target": "0x482600",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x5317e3",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x5317f1",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 32
+    },
+    {
+      "call": "0x5317fd",
+      "block": "shared_consumer_tail",
+      "target": "0x408c70",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x531805",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": null
+    },
+    {
+      "call": "0x531816",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 207936
+    },
+    {
+      "call": "0x531824",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 26
+    },
+    {
+      "call": "0x531832",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 13
+    },
+    {
+      "call": "0x531843",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x531854",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x531862",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x531873",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x531884",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 51984
+    },
+    {
+      "call": "0x531895",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 1436
+    },
+    {
+      "call": "0x5318a3",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x5318b4",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 224
+    },
+    {
+      "call": "0x5318c5",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 3600
+    },
+    {
+      "call": "0x5318d6",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 624
+    },
+    {
+      "call": "0x5318e7",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 256
+    },
+    {
+      "call": "0x5318f8",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 224
+    },
+    {
+      "call": "0x531909",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 448
+    },
+    {
+      "call": "0x53191a",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 200
+    },
+    {
+      "call": "0x53192b",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 269
+    },
+    {
+      "call": "0x531939",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x53194a",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 448
+    },
+    {
+      "call": "0x531958",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x531969",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 32000
+    },
+    {
+      "call": "0x531977",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 4
+    },
+    {
+      "call": "0x531985",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 36
+    },
+    {
+      "call": "0x531993",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 1
+    },
+    {
+      "call": "0x5319a4",
+      "block": "shared_consumer_tail",
+      "target": "0x780533",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source raw request only, no destination values or runtime writes",
+      "literal_request_bytes": 207936
+    },
+    {
+      "call": "0x5319aa",
+      "block": "shared_consumer_tail",
+      "target": "0x5240c0",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x5319b2",
+      "block": "shared_consumer_tail",
+      "target": "0x586620",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x5319bc",
+      "block": "shared_consumer_tail",
+      "target": null,
+      "dispatch": "virtual",
+      "actual_reached": false,
+      "virtual_slot": 8,
+      "scope": "source only; nested reader/type/format not fully qualified"
+    },
+    {
+      "call": "0x533e6a",
+      "block": "shared_state_tail",
+      "target": "0x5177b0",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "state side effects not proven; any nested archive use remains unclassified"
+    },
+    {
+      "call": "0x533e71",
+      "block": "shared_state_tail",
+      "target": "0x517cc0",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "state side effects not proven; any nested archive use remains unclassified"
+    },
+    {
+      "call": "0x533e7b",
+      "block": "shared_state_tail",
+      "target": "0x426a60",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "state side effects not proven; any nested archive use remains unclassified"
+    },
+    {
+      "call": "0x533e82",
+      "block": "shared_state_tail",
+      "target": "0x5a7c40",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "state side effects not proven; any nested archive use remains unclassified"
+    },
+    {
+      "call": "0x533e8e",
+      "block": "shared_state_tail",
+      "target": "0x41fc00",
+      "dispatch": "direct",
+      "actual_reached": false,
+      "scope": "state side effects not proven; any nested archive use remains unclassified"
+    }
+  ],
+  "branch_edges": [
+    {
+      "at": "0x5305ea",
+      "mnemonic": "JNZ",
+      "target": "0x533e93"
+    },
+    {
+      "at": "0x53080b",
+      "mnemonic": "JL",
+      "target": "0x5307f7"
+    },
+    {
+      "at": "0x530b9b",
+      "mnemonic": "JL",
+      "target": "0x530b82"
+    },
+    {
+      "at": "0x530bcf",
+      "mnemonic": "JL",
+      "target": "0x530bb6"
+    },
+    {
+      "at": "0x530bd1",
+      "mnemonic": "JMP",
+      "target": "0x5317d7"
+    },
+    {
+      "at": "0x5319bf",
+      "mnemonic": "JMP",
+      "target": "0x533e6a"
+    }
+  ],
+  "version_entry_table_533eb0": {
+    "13": "0x532d98",
+    "14": "0x5325ce",
+    "15": "0x531fc4",
+    "16": "0x5319c4",
+    "17": "0x5311dc",
+    "18": "0x530bd6",
+    "19": "0x5305d4"
+  },
+  "loops": [
+    {
+      "call": "0x5307fa",
+      "callee": "0x5501b0",
+      "count": 100,
+      "storage_stride": 180,
+      "wire_stride_unproved": true
+    },
+    {
+      "calls": [
+        "0x530b88",
+        "0x530b8f"
+      ],
+      "count": 232,
+      "archive_use_in_nested_callee_unproved": true
+    },
+    {
+      "calls": [
+        "0x530bbc",
+        "0x530bc3"
+      ],
+      "count": 232,
+      "archive_use_in_nested_callee_unproved": true
+    }
+  ],
+  "later_named_or_nested_dependencies": [
+    "0x52cd90",
+    "0x493f00",
+    "0x5501b0",
+    "0x5240c0",
+    "getter0x586620 / virtual8"
+  ],
+  "other_versions": "entry mapping only; not accepted by the modern version19/source7 subset",
+  "actual_frontier": 1991913,
+  "actual_delta_bytes": 0,
+  "current_child_type_bound": false,
+  "storage_values_and_behavior_semantics_not_interpreted": true
+}

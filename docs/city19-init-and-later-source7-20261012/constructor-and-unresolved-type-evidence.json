@@ -1,0 +1,530 @@
+{
+  "sessions": [
+    {
+      "name": "rea-static-city19-version-init-path-20261012",
+      "exit_code": 0,
+      "elapsed_seconds": 758.594,
+      "temporary_entries_after": [],
+      "input_unchanged": true,
+      "installed_modules_unchanged": true,
+      "target_executed": false,
+      "operations": 20,
+      "related_functions": [
+        "0x510b50",
+        "0x510af0",
+        "0x765629",
+        "0x510d30",
+        "0x510de0",
+        "0x512230",
+        "0x5122b0",
+        "0x514500"
+      ],
+      "selected_read_bytes_total": 124,
+      "status_sha256": "efa3fba05e1ddd6bdd6567c61f32901c9b7185087722bb649be144c9e175827d",
+      "result_sha256": "e1d31c9c3a40a065e3f1d9766de553d8892413153665962e2e349e2147892d7b"
+    },
+    {
+      "name": "rea-static-city19-hero-child-reader-20261012",
+      "exit_code": 0,
+      "elapsed_seconds": 639.668,
+      "temporary_entries_after": [],
+      "input_unchanged": true,
+      "installed_modules_unchanged": true,
+      "target_executed": false,
+      "operations": 22,
+      "related_functions": [
+        "0x5149c0",
+        "0x4dad10",
+        "0x512a20"
+      ],
+      "selected_read_bytes_total": 116,
+      "status_sha256": "a66ad422686c26d1ef965b434ed4b63db44adc0660ec3911f84868854310fd8c",
+      "result_sha256": "f901e1b7023ff25f129af0001b174ccf40e45170e925b2d8d95a48d83f9af3b3"
+    }
+  ],
+  "evidence": [
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "array-nearby-init-site-containing.evidence.json",
+      "sha256": "cd84d7964117d3b18c85fcc49f62ea4d39a833bcc7d12764469c52068ff0feab",
+      "evidence_id": "ev_9f450778c0f016692a9cd3d20d337ab6889a469a443cebc20ae958432b9d4012",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x510afe"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "array-nearby-reset-site-containing.evidence.json",
+      "sha256": "9204bbeba1306e6b1d08bfb52278767ee8e0f11ad69c68dc5d2ef139fb3b7a67",
+      "evidence_id": "ev_59499b181acd40c857d5fbc44bf7636617e3a5deec0dd0ae069a05899be93b71",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x510b29"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "child-runtimeclass-getter-native.evidence.json",
+      "sha256": "1d481b08c8b166573796b2134334164e0fc8906bbaaa3b6a43635fa11c3ff001",
+      "evidence_id": "ev_e62d17c9764f74364eacf9d05c63812aba8bdacc97ff90456029126c10ed58b8",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x4d72c0"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "child-target-constructor.evidence.json",
+      "sha256": "69e8a69f6a7e4ab280ee97d71b61c5ec382ed9cbaac11827329149e3791c6d74",
+      "evidence_id": "ev_16a9074ecad1b403d6ac3762aac7dec729c0092cb6055186cb37c1aff7fd3d2a",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x514500"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "child-target-vtable-bytes.evidence.json",
+      "sha256": "fe788872150ee15dc98c2230ecfcd50311166ac231164774b088274c118ba5f9",
+      "evidence_id": "ev_fdded7ac707643a84c5d8a70a4711aed2736c9fb7f33ede40e9c987b836685a6",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7b5bc8",
+        "length": 12
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "maincaller-version13-through19-jump-table.evidence.json",
+      "sha256": "2e3ef45b8b407f71e6535b052af51a4c7fb96660c96fdf97102d90eebff01794",
+      "evidence_id": "ev_44866d84c54b6aaeb146c5bc52ba0a9799353b9389cd044da32dd7a921cf2669",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x533eb0",
+        "length": 28
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "new-version-init-reference-containing.evidence.json",
+      "sha256": "ab4c35684c8bb77dc8ccab2d928a68905bf8c0d6090ac29dedc22430d7715dc9",
+      "evidence_id": "ev_23804ef2d1246c48a166949329781cf3de11788615d4995c9360685b6d30c734",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x510b52"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "new-version-init-reference-native.evidence.json",
+      "sha256": "2c8bcdd021dccd0538ae3d9af3e07fd18df3d6175c76c6552c6316a15df13e6c",
+      "evidence_id": "ev_a7340b1e55f08dfc7ed3c193e889bc1f58a3e003bdbaed954c0b7d4b3dfe652c",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x510b52"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-array-static-initializer.evidence.json",
+      "sha256": "9c71b88eb10294012e0a2192a704b0190ae49cba5e652fbf2f6829f03c832aca",
+      "evidence_id": "ev_aeeade7aad0a3e510d610c831ee009c6c7b60cf3f40a735b10b01749a654e706",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x510af0"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-child-pointer-destroy.evidence.json",
+      "sha256": "0e48908b2a979746616bebc118e80a7c5f41a1d7f2248df04dfa047530dd7a20",
+      "evidence_id": "ev_abfeb74e0c203093502ee02ef2177f1809f499d8c72800290349459549359be2",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5122b0"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-child-pointer-init-factory.evidence.json",
+      "sha256": "be3a5f1d2e697f51ba62677e4bc5b85c6c2cf58e832e72fb9d54d924c36821b1",
+      "evidence_id": "ev_ad6aaa094ec612e8c5e86aae89e6a5be918d334e6236c10b0254f06a3bb6c51e",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x512230"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-class-static-name.evidence.json",
+      "sha256": "79c6e950ed88147132ac23ce0b85f56a2e96a081ae91ddd9e8ebc257b4e9a997",
+      "evidence_id": "ev_b8ec9467c08a8e997d906c39a387ba87568773bf7a74a7cb285d0dedeb5fbd25",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x853c64",
+        "length": 48
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-element-constructor.evidence.json",
+      "sha256": "3a84d3434ae8b53c3e6925cf6fd5ea296fbe6b6cc7ea56ff9421b6f0eb838fbb",
+      "evidence_id": "ev_7e43196a168700c7c758f3da5852bca65eebdae79561027463134ea03bac79f9",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x510d30"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-element-destructor.evidence.json",
+      "sha256": "6c7952cb0e8bb36c45ced0fa44d2222f589326162755610cc3c37c880df91645",
+      "evidence_id": "ev_329b87e888cde580f2172dc9b22206eab8bd76524553ab400018ff7428f59e7c",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x510de0"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-primary-vtable-bytes.evidence.json",
+      "sha256": "913f6327665bd9c7c6441c0317ae5d9ae03af4208a4061276a42f36ed68553ea",
+      "evidence_id": "ev_bc69ae422764dbacd9f7ad2171b1569093cd67f8fea50e0ff328775f5542d8d9",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7b5b20",
+        "length": 12
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-runtimeclass-descriptor-bytes.evidence.json",
+      "sha256": "bf4bf6795f2f32a917350abd1046cfc16fc08dcf7b0e1498760ab6364cab4c72",
+      "evidence_id": "ev_d42463cd5bb3a18c69f7760fddde4540e45070585d67a3ef8af21fd191b237a1",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x853c30",
+        "length": 24
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-type-getter-native.evidence.json",
+      "sha256": "c15066290d637f76beb9139dd0508fed52e95ce2cccbacead7adcd0981f628af",
+      "evidence_id": "ev_e81ba16f0f13eb70bfb102c9d57045531fe8cbc89e7480e8a6c33d282468a67e",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x510bf0"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-type-getter-return.evidence.json",
+      "sha256": "0d3eb7841f3f73ea8d8f79c296c7ec0a6230b04b6e4096b41e136c14ae067024",
+      "evidence_id": "ev_7e0ae82db8d49d09cef2db75c1e743f226e2e3e1fb656d12bca7fdfd185ef2ef",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x510bf5"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "receiver-vector-construction-iterator.evidence.json",
+      "sha256": "81bc07babb36d6bc8e620e667290a22a5b42bef8268037fa73a5b2a69c825b88",
+      "evidence_id": "ev_1c0e1403747d559f3b5036402f43eaa92b8b8d1c61cd15ca14ea4d87a2e534db",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x765629"
+      }
+    },
+    {
+      "session": "rea-static-city19-version-init-path-20261012",
+      "file": "shared-version-init-function.evidence.json",
+      "sha256": "b312d3d92a4a4945be2eeafc4cd869c8c44fc8adbed1644297ba1d2cef189b34",
+      "evidence_id": "ev_993e3844a89709f3c11e9ee546d90dc52d699b04c46c341054afefd2bfaee953",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x510b50"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "child-class-getter-return.evidence.json",
+      "sha256": "37fc856a255fd8e8d0b363d1345a9975be3151c8f0e0ca5812ab5fde76f01edf",
+      "evidence_id": "ev_ff670dabc556f5c23582e9500e9b2f1dee0693cdb642a5be4c66799dec0806f7",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x4d72c5"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "child-class-static-name.evidence.json",
+      "sha256": "ab5a7422a6cd3b4aeed7815fe51dab7d9889f1ea0224b31af0ae9616b5938c15",
+      "evidence_id": "ev_5d592f57032c2d0d3a1d9f4b6c970ac14e35fbc3bbf6e0a6c951198665613a6c",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x84d49c",
+        "length": 32
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "child-reader-sourceversions-table.evidence.json",
+      "sha256": "46e49f35ea0f50917a551aa4e2df89d002f192c18aca5579db5f06631639a619",
+      "evidence_id": "ev_30a3a15096c7b72ae35dc4c37c4b4775abd7b733a5bd2965a36f0b447c48e729",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x4db124",
+        "length": 16
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "child-root-reset-assembly.evidence.json",
+      "sha256": "07cee3603a0885c49a3852ef09bfac26a83f9634b76fdb25785ed306f5814d09",
+      "evidence_id": "ev_89ea5b1cd829b754736edf21261060b9555dce3739fd0afaac8aab538abec96d",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5149c0"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "child-runtimeclass-descriptor-bytes.evidence.json",
+      "sha256": "46a66f4fb80198fe0297c0f4fe73399c46708c37ffdeeff3e52d4d03416a21ac",
+      "evidence_id": "ev_f4513fb32adf1d95b5fe54c8e435df8f1e82102208b0e0a9290e0ee0febb19ec",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x84d2f8",
+        "length": 24
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "child-vptr8-reader-assembly.evidence.json",
+      "sha256": "c83cb5c59512c5be737b35a2e2400e98851346e6edf781ff7f19fde2bd2632ae",
+      "evidence_id": "ev_f7e9bfcc023c03f9c88dab618feb32141e8108bf5d09bc0d849757b23237485e",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4dad10"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-complete-primary-vtable-bytes.evidence.json",
+      "sha256": "f8367fb5ba9d3fa1b888d1bbb0d5f3950b77a28e8a6b3abce3ea1c1d5aac247a",
+      "evidence_id": "ev_ff20e19eb14d114a1d174465636b1a9e5aeca6ff64063dfa694977c48f20545a",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7b5b20",
+        "length": 44
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own-virtual24-containing.evidence.json",
+      "sha256": "635323f9cc03a49c6ff7aa5c992c6662be56c3cb917bdd1139b485a4629b634b",
+      "evidence_id": "ev_b1e8fb560fc9649029655213f0300ced0ffdeb23e2b021a7331630309350fba4",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x512a20"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own-virtual24-native-entry.evidence.json",
+      "sha256": "6e91840e5a19e11c91a768f8507f5a21c34ca6ed059b73ebd368db8d03fd2b49",
+      "evidence_id": "ev_78df080a214653e632c039a69407258a4ec3a93213611956f271f76dbabc414d",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a20"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-05.evidence.json",
+      "sha256": "8644b61e507ef6c289955880fb203a23f098cc4bc242eef9501be8b02d8f93da",
+      "evidence_id": "ev_38f25f923180f788b91cc1703d11c7687fc1029065e9c40f4401a1e9a4881d05",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a23"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-06.evidence.json",
+      "sha256": "038d964fc608506d85c265a5c3970bf1c7c84ed6a904ca4a2b62b74bb4c841c6",
+      "evidence_id": "ev_dae0a6dc65922871cb3b9c718bd7ea4af20d9730178f7ef64573776262196681",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a24"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-07.evidence.json",
+      "sha256": "63deba4265d183aa0b03b559c3d6f00a5752a53bf2832c7c27e4b11a23edd5a4",
+      "evidence_id": "ev_c86a9523b1cc9dc86031e248cfd3a7a22d319b4e8f391c00b4e66089316c99b6",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a25"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-08.evidence.json",
+      "sha256": "e616b11b5e68226d73febaab7509f3083e6555cf9fe66789db927f76ddef2167",
+      "evidence_id": "ev_852d89d8cb17c56f7cc1f532a38630fab71bb40f46b8ab4b0a0028e7fae3a33e",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a26"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-09.evidence.json",
+      "sha256": "73fb242f0540a1f6dcd3f11e761d59ae888277aa7cb5b1e5241ebab92bd0007c",
+      "evidence_id": "ev_39809d7804fc090cce4bbc2edde4e14d7f4c9c3772116013dac17ba0d347e4fb",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a2a"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-10.evidence.json",
+      "sha256": "a344c439c383cb341be2ded57d4065003107104c7374895331cc0974d80103ad",
+      "evidence_id": "ev_d8e4dadb52cc93c7453e6543c072e3b1999a16819e01e4b7dfe0c480802ae046",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a2c"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-11.evidence.json",
+      "sha256": "6d0867049670ba7f4e1971f7857c711c5e26fa36489c6e3830dcfbdfb4122d03",
+      "evidence_id": "ev_b83073dcfe597db8aa85509976508ecd4f734b22a25fd953255878fe9ec5b1e0",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a2d"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-12.evidence.json",
+      "sha256": "bfd895f394fa9e214f17d6f5c587438f4a1aaa47bb2b48e270a79150672fd116",
+      "evidence_id": "ev_7f578672c6ac4177e7e3ac2b57ecf8614f350a70d227b7dfe020e84a36ce68bd",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a2f"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-13.evidence.json",
+      "sha256": "0b075c360459a83c735c08980c8ba8fb2b8b7eba89c4b4baeabfb52c5226b40b",
+      "evidence_id": "ev_f4cbef33a2c69858830953d1496e16acada4a8b2dd6e9b71cbfe02a196ead951",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a31"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-14.evidence.json",
+      "sha256": "d15f1d6e7200c6a3777619cd9dd9cd9146a477b334ed224524083593c496519f",
+      "evidence_id": "ev_85949d858d96de86089a6d1a385e270992b983a614be1d2d981a3a01320565fb",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a34"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-15.evidence.json",
+      "sha256": "c2ed483a4ede716961594f445da87039e62edeb1c5d91c7f0efac3756587fe23",
+      "evidence_id": "ev_8baa5f04fc8934e3fc9e4a036a8609bea27075116273bc731e8c36f47aa8a9de",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a35"
+      }
+    },
+    {
+      "session": "rea-static-city19-hero-child-reader-20261012",
+      "file": "receiver-own24-native-16.evidence.json",
+      "sha256": "2d27cbbab7272f4f54e2e4fe53e4d501b39177a04316805a524f801f0edd8669",
+      "evidence_id": "ev_fdd03e59f211e50f95ad809bc74546c839d0f2b74a03611a4e17e0a94bf1bbbe",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x512a3a"
+      }
+    }
+  ],
+  "actual_frontier": 1991913,
+  "actual_delta_bytes": 0,
+  "real_data_read_this_batch": false,
+  "receiver_nominal_class": "cHero",
+  "receiver_storage_bytes": 56,
+  "receiver_direct_reader": "0x511ea0",
+  "receiver_direct_reader_prefix_bytes": 35,
+  "constructor_path": [
+    "0x510af0: 12 elements, storage stride0x38, constructor0x510d30, destructor0x510de0",
+    "0x510d69: receiver root0x7b5b20; 0x510d94 calls0x512230",
+    "0x512230: allocate0x2d8; successful allocation calls0x514500; 0x512291 writes returned pointer to self+0x30",
+    "0x51454b writes child root0x7b5bc8; 0x514551 calls reset0x5149c0"
+  ],
+  "child_nominal_metadata": {
+    "getter": "0x4d72c0",
+    "return_instruction": "0x4d72c5",
+    "descriptor": "0x84d2f8",
+    "static_name": "FigureFSA",
+    "schema": 0,
+    "descriptor_storage_bytes": 720,
+    "concrete_constructor_unique_class_not_proven": true
+  },
+  "child_nominal_virtual8": "0x4dad10",
+  "child_reader_dependencies": [
+    "base0x4f4480 precedes own version",
+    "own version record0x1031580",
+    "signed own versions2..5 mapped by0x4db124; other values reach shared tail in original source",
+    "optional string/name helper0x4f2480 and lookup0x4f2c50",
+    "versions3 and5 include signed count plus repeated string/name lookup0x4f2b60",
+    "three embedded receivers at+c8 with storage stride0x14 each invoke virtual+8; virtual roots unresolved"
+  ],
+  "reset_dependencies": [
+    "0x5149c0 has no direct observed store to root[0] in complete body",
+    "normal path includes many unverified callees and computed virtual+0x2c at0x515109",
+    "callee side effects, root preservation and successful allocations are not discharged"
+  ],
+  "reviewed_virtual24_clue": {
+    "receiver_slot": 36,
+    "nominal_target": "0x512a20",
+    "complete_procedure_unavailable": true,
+    "native_prefix_end_exclusive": "0x512a3f",
+    "outer_virtual_call": "0x512a31 uses outer virtual+0x30; outer type/return unresolved",
+    "following_direct_call": "0x512a3a -> 0x47f1b0",
+    "no_plus30_write_seen_in_inspected_prefix": true,
+    "remainder_not_inspected": true,
+    "setter_or_replacement_not_proven": true,
+    "load_order_or_reachability_not_proven": true
+  },
+  "binding_conditions": [
+    "successful initialization and normal returns",
+    "valid storage and pointer lifetime",
+    "reset/callees preserve child root",
+    "no later replacement or destruction",
+    "no same-stream or cross-element alias side effects"
+  ],
+  "unresolved_current_instance": [
+    "current+30 null/non-null return",
+    "current child root and unique applicable layout",
+    "constructor/reset/virtual24 side effects and load-order relation",
+    "nested reader roots/versions/string encodings"
+  ],
+  "static_zero_storage_is_not_current_null": true,
+  "nonzero_presence_is_not_type": true,
+  "cache_ids_are_not_runtime_pointers": true
+}
