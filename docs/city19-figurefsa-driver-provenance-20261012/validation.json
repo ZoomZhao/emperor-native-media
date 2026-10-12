@@ -1,0 +1,113 @@
+{
+  "baseline": "c1c75e40f3da71746fa62f1f90305de90c40a4d4",
+  "review_patch_sha256": "52d1030a2f73c5a5266ab586e6e653beaaa5d52b5410d7b5977c397583f70dea",
+  "new_driver_before_fix": {
+    "both_modes_passed_22_but_misattributed_fallback": true,
+    "actual_adjacent_goal_sha256": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b",
+    "incorrectly_recorded_goal_sha256": "6a0d244cae633f17d33901c9707493889c3ae8123d872c8ded5210527a291e7f",
+    "result_sha256": "65e6562d5c005c51999496ea4bd512e2de3e9c74a560205c7d4a6fb2c4fb41f2"
+  },
+  "fixed_runs": [
+    {
+      "suite": "fixed author results",
+      "mode": "release",
+      "passed": 14,
+      "failed": 0,
+      "selected_header_sha256": {
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+      },
+      "depfile_and_report_match": true,
+      "fallback_sentinels_not_reported_as_compiled": true
+    },
+    {
+      "suite": "fixed author results",
+      "mode": "ubsan",
+      "passed": 14,
+      "failed": 0,
+      "selected_header_sha256": {
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+      },
+      "depfile_and_report_match": true,
+      "fallback_sentinels_not_reported_as_compiled": true
+    },
+    {
+      "suite": "fixed objects results",
+      "mode": "release",
+      "passed": 22,
+      "failed": 0,
+      "selected_header_sha256": {
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_figurefsa_objects.hpp": "3d8eaf1eec323aede56f038e55f16a79e185720dd729028d390059d8d0122ffa",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+      },
+      "depfile_and_report_match": true,
+      "fallback_sentinels_not_reported_as_compiled": true
+    },
+    {
+      "suite": "fixed objects results",
+      "mode": "ubsan",
+      "passed": 22,
+      "failed": 0,
+      "selected_header_sha256": {
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_figurefsa_objects.hpp": "3d8eaf1eec323aede56f038e55f16a79e185720dd729028d390059d8d0122ffa",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+      },
+      "depfile_and_report_match": true,
+      "fallback_sentinels_not_reported_as_compiled": true
+    },
+    {
+      "suite": "independent results",
+      "mode": "release",
+      "passed": 12,
+      "failed": 0,
+      "selected_header_sha256": {
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+      },
+      "depfile_and_report_match": true,
+      "fallback_sentinels_not_reported_as_compiled": true
+    },
+    {
+      "suite": "independent results",
+      "mode": "ubsan",
+      "passed": 12,
+      "failed": 0,
+      "selected_header_sha256": {
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsa-driver-provenance-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+      },
+      "depfile_and_report_match": true,
+      "fallback_sentinels_not_reported_as_compiled": true
+    }
+  ],
+  "result_sha256": {
+    "fixed author results": "af4f8a0cbed9081c5dc7bde9df0321bfed4290399fce9a95f973575d18224d5d",
+    "fixed objects results": "00cd2920a71aa7f825c0f56cb99e45b9825e5a0708147adf4755bf5c1b7fe6c4",
+    "independent results": "3c9c4344044ed707dea4c1ca12167995934dba595232c7382069a41019bc5aa3"
+  },
+  "user_headers_unchanged": true,
+  "output_paths_with_spaces_verified": true,
+  "original_data_or_instructions_loaded": false,
+  "new_real_bytes": 0,
+  "actual_frontier": 1991913,
+  "source_tests_sha256": {
+    "file_io/tests/figurefsa_conditional/run.py": "0b3c1c985907326f119df52e90f694bd19f83e2202bb3e7a4f3246b373b605e9",
+    "file_io/tests/figurefsa_objects/run.py": "4c5ed0e81c2572fb6c817d259b4abedaa6151a4e59a2c9e4795f865c18a3834f",
+    "file_io/tests/figurefsa_independent/run.py": "774a89c7614640277baaaca62906045e2d2e71732b0aecf3d0c7e6f103d682e8",
+    "file_io/tests/figurefsa_independent/properties.cpp": "9673ee2809cf86d1ab05fb7dbbc2bfe18ec3bb0dfe6a31b5558d705bfbae3743",
+    "file_io/tests/figurefsa_independent/expectations.json": "7810909b9a8611ffddca3dc85c384c07cac3dd70a9368485ef1893e94dc00e9d"
+  },
+  "last_verified_remote": "78f1b7ec4d141cb2008f8633a29b1fe083338dc5",
+  "pending_chain_at_baseline": [
+    "d46f6ed4bbad300b6b720915ee4ae43059f88d90",
+    "42f215547d75781415071c772ce791d38069f398",
+    "3687bde2a658fd92fd2cccc497703e4fa071215b",
+    "e4ef565fe073c327c19cec6115c1131401b6aea4",
+    "aa9f7664ff63dc81cbd61198af821e35d74ff4a6",
+    "46893b8fa44a78fbc5e7a920ca03a2541a42b480",
+    "c1c75e40f3da71746fa62f1f90305de90c40a4d4"
+  ]
+}
