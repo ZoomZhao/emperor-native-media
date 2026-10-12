@@ -1,0 +1,1286 @@
+{
+  "baseline_commit": "36bd99090fe2e28e2ccd1aa42956bc0f8e82592d",
+  "golden_ledger_source": "a929b6f independent saved source7 operand audit, rechecked against saved modern-only source evidence in this review",
+  "golden_ledger_sha256": "d430341a6ca61049ddbf6f8e85cab39fcbe7293a39ea2ac37060df297a25cb49",
+  "raw_bytes": 12105,
+  "wire_bytes": 12107,
+  "requests": [
+    {
+      "source_call": "0x59410f",
+      "bytes": 1,
+      "offset": 2
+    },
+    {
+      "source_call": "0x59411c",
+      "bytes": 1,
+      "offset": 3
+    },
+    {
+      "source_call": "0x594129",
+      "bytes": 1,
+      "offset": 4
+    },
+    {
+      "source_call": "0x594136",
+      "bytes": 1,
+      "offset": 5
+    },
+    {
+      "source_call": "0x594143",
+      "bytes": 4,
+      "offset": 6
+    },
+    {
+      "source_call": "0x594150",
+      "bytes": 4,
+      "offset": 10
+    },
+    {
+      "source_call": "0x59415d",
+      "bytes": 4,
+      "offset": 14
+    },
+    {
+      "source_call": "0x59416a",
+      "bytes": 4,
+      "offset": 18
+    },
+    {
+      "source_call": "0x594177",
+      "bytes": 4,
+      "offset": 22
+    },
+    {
+      "source_call": "0x594184",
+      "bytes": 4,
+      "offset": 26
+    },
+    {
+      "source_call": "0x594191",
+      "bytes": 4,
+      "offset": 30
+    },
+    {
+      "source_call": "0x59419e",
+      "bytes": 4,
+      "offset": 34
+    },
+    {
+      "source_call": "0x5941ab",
+      "bytes": 4,
+      "offset": 38
+    },
+    {
+      "source_call": "0x5941b8",
+      "bytes": 4,
+      "offset": 42
+    },
+    {
+      "source_call": "0x5941c5",
+      "bytes": 4,
+      "offset": 46
+    },
+    {
+      "source_call": "0x5941d2",
+      "bytes": 4,
+      "offset": 50
+    },
+    {
+      "source_call": "0x5941df",
+      "bytes": 4,
+      "offset": 54
+    },
+    {
+      "source_call": "0x5941ef",
+      "bytes": 9600,
+      "offset": 58
+    },
+    {
+      "source_call": "0x5941ff",
+      "bytes": 4,
+      "offset": 9658
+    },
+    {
+      "source_call": "0x59420f",
+      "bytes": 4,
+      "offset": 9662
+    },
+    {
+      "source_call": "0x59421f",
+      "bytes": 80,
+      "offset": 9666
+    },
+    {
+      "source_call": "0x59422f",
+      "bytes": 4,
+      "offset": 9746
+    },
+    {
+      "source_call": "0x59423f",
+      "bytes": 4,
+      "offset": 9750
+    },
+    {
+      "source_call": "0x59424f",
+      "bytes": 4,
+      "offset": 9754
+    },
+    {
+      "source_call": "0x59425f",
+      "bytes": 4,
+      "offset": 9758
+    },
+    {
+      "source_call": "0x59426f",
+      "bytes": 4,
+      "offset": 9762
+    },
+    {
+      "source_call": "0x59427f",
+      "bytes": 4,
+      "offset": 9766
+    },
+    {
+      "source_call": "0x59428f",
+      "bytes": 4,
+      "offset": 9770
+    },
+    {
+      "source_call": "0x59429f",
+      "bytes": 4,
+      "offset": 9774
+    },
+    {
+      "source_call": "0x5942af",
+      "bytes": 4,
+      "offset": 9778
+    },
+    {
+      "source_call": "0x5942bf",
+      "bytes": 4,
+      "offset": 9782
+    },
+    {
+      "source_call": "0x5942cf",
+      "bytes": 4,
+      "offset": 9786
+    },
+    {
+      "source_call": "0x5942df",
+      "bytes": 4,
+      "offset": 9790
+    },
+    {
+      "source_call": "0x5942ef",
+      "bytes": 4,
+      "offset": 9794
+    },
+    {
+      "source_call": "0x5942ff",
+      "bytes": 4,
+      "offset": 9798
+    },
+    {
+      "source_call": "0x59430f",
+      "bytes": 2,
+      "offset": 9802
+    },
+    {
+      "source_call": "0x59431f",
+      "bytes": 2,
+      "offset": 9804
+    },
+    {
+      "source_call": "0x59432f",
+      "bytes": 4,
+      "offset": 9806
+    },
+    {
+      "source_call": "0x59433f",
+      "bytes": 4,
+      "offset": 9810
+    },
+    {
+      "source_call": "0x59434f",
+      "bytes": 4,
+      "offset": 9814
+    },
+    {
+      "source_call": "0x59435f",
+      "bytes": 4,
+      "offset": 9818
+    },
+    {
+      "source_call": "0x59436f",
+      "bytes": 4,
+      "offset": 9822
+    },
+    {
+      "source_call": "0x59437f",
+      "bytes": 4,
+      "offset": 9826
+    },
+    {
+      "source_call": "0x59438f",
+      "bytes": 4,
+      "offset": 9830
+    },
+    {
+      "source_call": "0x59439f",
+      "bytes": 4,
+      "offset": 9834
+    },
+    {
+      "source_call": "0x5943af",
+      "bytes": 4,
+      "offset": 9838
+    },
+    {
+      "source_call": "0x5943bf",
+      "bytes": 14,
+      "offset": 9842
+    },
+    {
+      "source_call": "0x5943cf",
+      "bytes": 2,
+      "offset": 9856
+    },
+    {
+      "source_call": "0x5943df",
+      "bytes": 4,
+      "offset": 9858
+    },
+    {
+      "source_call": "0x5943ef",
+      "bytes": 4,
+      "offset": 9862
+    },
+    {
+      "source_call": "0x5943ff",
+      "bytes": 4,
+      "offset": 9866
+    },
+    {
+      "source_call": "0x59440f",
+      "bytes": 4,
+      "offset": 9870
+    },
+    {
+      "source_call": "0x59441f",
+      "bytes": 4,
+      "offset": 9874
+    },
+    {
+      "source_call": "0x59442f",
+      "bytes": 4,
+      "offset": 9878
+    },
+    {
+      "source_call": "0x59443f",
+      "bytes": 4,
+      "offset": 9882
+    },
+    {
+      "source_call": "0x59444f",
+      "bytes": 2,
+      "offset": 9886
+    },
+    {
+      "source_call": "0x59445f",
+      "bytes": 2,
+      "offset": 9888
+    },
+    {
+      "source_call": "0x59446f",
+      "bytes": 2,
+      "offset": 9890
+    },
+    {
+      "source_call": "0x59447f",
+      "bytes": 2,
+      "offset": 9892
+    },
+    {
+      "source_call": "0x59448f",
+      "bytes": 2,
+      "offset": 9894
+    },
+    {
+      "source_call": "0x59449f",
+      "bytes": 4,
+      "offset": 9896
+    },
+    {
+      "source_call": "0x5944af",
+      "bytes": 4,
+      "offset": 9900
+    },
+    {
+      "source_call": "0x5944bf",
+      "bytes": 72,
+      "offset": 9904
+    },
+    {
+      "source_call": "0x5944cf",
+      "bytes": 4,
+      "offset": 9976
+    },
+    {
+      "source_call": "0x5944df",
+      "bytes": 4,
+      "offset": 9980
+    },
+    {
+      "source_call": "0x5944ef",
+      "bytes": 10,
+      "offset": 9984
+    },
+    {
+      "source_call": "0x5944ff",
+      "bytes": 36,
+      "offset": 9994
+    },
+    {
+      "source_call": "0x59450f",
+      "bytes": 4,
+      "offset": 10030
+    },
+    {
+      "source_call": "0x594522",
+      "bytes": 144,
+      "offset": 10034
+    },
+    {
+      "source_call": "0x594532",
+      "bytes": 4,
+      "offset": 10178
+    },
+    {
+      "source_call": "0x594542",
+      "bytes": 4,
+      "offset": 10182
+    },
+    {
+      "source_call": "0x594552",
+      "bytes": 4,
+      "offset": 10186
+    },
+    {
+      "source_call": "0x594562",
+      "bytes": 4,
+      "offset": 10190
+    },
+    {
+      "source_call": "0x594575",
+      "bytes": 200,
+      "offset": 10194
+    },
+    {
+      "source_call": "0x594585",
+      "bytes": 4,
+      "offset": 10394
+    },
+    {
+      "source_call": "0x594595",
+      "bytes": 4,
+      "offset": 10398
+    },
+    {
+      "source_call": "0x5945a5",
+      "bytes": 4,
+      "offset": 10402
+    },
+    {
+      "source_call": "0x5945b5",
+      "bytes": 4,
+      "offset": 10406
+    },
+    {
+      "source_call": "0x5945c5",
+      "bytes": 4,
+      "offset": 10410
+    },
+    {
+      "source_call": "0x5945d5",
+      "bytes": 4,
+      "offset": 10414
+    },
+    {
+      "source_call": "0x5945e5",
+      "bytes": 4,
+      "offset": 10418
+    },
+    {
+      "source_call": "0x5945f5",
+      "bytes": 4,
+      "offset": 10422
+    },
+    {
+      "source_call": "0x594605",
+      "bytes": 4,
+      "offset": 10426
+    },
+    {
+      "source_call": "0x594615",
+      "bytes": 4,
+      "offset": 10430
+    },
+    {
+      "source_call": "0x594625",
+      "bytes": 4,
+      "offset": 10434
+    },
+    {
+      "source_call": "0x594635",
+      "bytes": 4,
+      "offset": 10438
+    },
+    {
+      "source_call": "0x594645",
+      "bytes": 4,
+      "offset": 10442
+    },
+    {
+      "source_call": "0x594655",
+      "bytes": 4,
+      "offset": 10446
+    },
+    {
+      "source_call": "0x594665",
+      "bytes": 4,
+      "offset": 10450
+    },
+    {
+      "source_call": "0x594675",
+      "bytes": 4,
+      "offset": 10454
+    },
+    {
+      "source_call": "0x594685",
+      "bytes": 4,
+      "offset": 10458
+    },
+    {
+      "source_call": "0x594695",
+      "bytes": 4,
+      "offset": 10462
+    },
+    {
+      "source_call": "0x5946a5",
+      "bytes": 4,
+      "offset": 10466
+    },
+    {
+      "source_call": "0x5946b5",
+      "bytes": 4,
+      "offset": 10470
+    },
+    {
+      "source_call": "0x5946c5",
+      "bytes": 4,
+      "offset": 10474
+    },
+    {
+      "source_call": "0x5946d5",
+      "bytes": 4,
+      "offset": 10478
+    },
+    {
+      "source_call": "0x5946e5",
+      "bytes": 4,
+      "offset": 10482
+    },
+    {
+      "source_call": "0x5946f5",
+      "bytes": 4,
+      "offset": 10486
+    },
+    {
+      "source_call": "0x594705",
+      "bytes": 4,
+      "offset": 10490
+    },
+    {
+      "source_call": "0x594715",
+      "bytes": 4,
+      "offset": 10494
+    },
+    {
+      "source_call": "0x594725",
+      "bytes": 4,
+      "offset": 10498
+    },
+    {
+      "source_call": "0x594735",
+      "bytes": 4,
+      "offset": 10502
+    },
+    {
+      "source_call": "0x594745",
+      "bytes": 4,
+      "offset": 10506
+    },
+    {
+      "source_call": "0x594755",
+      "bytes": 4,
+      "offset": 10510
+    },
+    {
+      "source_call": "0x594765",
+      "bytes": 4,
+      "offset": 10514
+    },
+    {
+      "source_call": "0x594775",
+      "bytes": 4,
+      "offset": 10518
+    },
+    {
+      "source_call": "0x594785",
+      "bytes": 4,
+      "offset": 10522
+    },
+    {
+      "source_call": "0x594795",
+      "bytes": 4,
+      "offset": 10526
+    },
+    {
+      "source_call": "0x5947a5",
+      "bytes": 4,
+      "offset": 10530
+    },
+    {
+      "source_call": "0x5947b5",
+      "bytes": 4,
+      "offset": 10534
+    },
+    {
+      "source_call": "0x5947c5",
+      "bytes": 4,
+      "offset": 10538
+    },
+    {
+      "source_call": "0x5947d5",
+      "bytes": 4,
+      "offset": 10542
+    },
+    {
+      "source_call": "0x5947e5",
+      "bytes": 4,
+      "offset": 10546
+    },
+    {
+      "source_call": "0x5947f5",
+      "bytes": 4,
+      "offset": 10550
+    },
+    {
+      "source_call": "0x594805",
+      "bytes": 4,
+      "offset": 10554
+    },
+    {
+      "source_call": "0x594815",
+      "bytes": 4,
+      "offset": 10558
+    },
+    {
+      "source_call": "0x594825",
+      "bytes": 4,
+      "offset": 10562
+    },
+    {
+      "source_call": "0x594835",
+      "bytes": 4,
+      "offset": 10566
+    },
+    {
+      "source_call": "0x594845",
+      "bytes": 4,
+      "offset": 10570
+    },
+    {
+      "source_call": "0x594855",
+      "bytes": 4,
+      "offset": 10574
+    },
+    {
+      "source_call": "0x594868",
+      "bytes": 144,
+      "offset": 10578
+    },
+    {
+      "source_call": "0x59487b",
+      "bytes": 144,
+      "offset": 10722
+    },
+    {
+      "source_call": "0x59488e",
+      "bytes": 144,
+      "offset": 10866
+    },
+    {
+      "source_call": "0x59489e",
+      "bytes": 4,
+      "offset": 11010
+    },
+    {
+      "source_call": "0x5948ae",
+      "bytes": 4,
+      "offset": 11014
+    },
+    {
+      "source_call": "0x5948be",
+      "bytes": 4,
+      "offset": 11018
+    },
+    {
+      "source_call": "0x5948ce",
+      "bytes": 4,
+      "offset": 11022
+    },
+    {
+      "source_call": "0x5948de",
+      "bytes": 11,
+      "offset": 11026
+    },
+    {
+      "source_call": "0x5948ee",
+      "bytes": 4,
+      "offset": 11037
+    },
+    {
+      "source_call": "0x5948fe",
+      "bytes": 4,
+      "offset": 11041
+    },
+    {
+      "source_call": "0x59490e",
+      "bytes": 4,
+      "offset": 11045
+    },
+    {
+      "source_call": "0x59491e",
+      "bytes": 4,
+      "offset": 11049
+    },
+    {
+      "source_call": "0x59492e",
+      "bytes": 4,
+      "offset": 11053
+    },
+    {
+      "source_call": "0x59493e",
+      "bytes": 4,
+      "offset": 11057
+    },
+    {
+      "source_call": "0x59494e",
+      "bytes": 4,
+      "offset": 11061
+    },
+    {
+      "source_call": "0x59495e",
+      "bytes": 4,
+      "offset": 11065
+    },
+    {
+      "source_call": "0x59496e",
+      "bytes": 20,
+      "offset": 11069
+    },
+    {
+      "source_call": "0x59497e",
+      "bytes": 2,
+      "offset": 11089
+    },
+    {
+      "source_call": "0x59498e",
+      "bytes": 2,
+      "offset": 11091
+    },
+    {
+      "source_call": "0x59499e",
+      "bytes": 2,
+      "offset": 11093
+    },
+    {
+      "source_call": "0x5949ae",
+      "bytes": 2,
+      "offset": 11095
+    },
+    {
+      "source_call": "0x5949be",
+      "bytes": 2,
+      "offset": 11097
+    },
+    {
+      "source_call": "0x5949ce",
+      "bytes": 2,
+      "offset": 11099
+    },
+    {
+      "source_call": "0x5949de",
+      "bytes": 2,
+      "offset": 11101
+    },
+    {
+      "source_call": "0x5949ee",
+      "bytes": 2,
+      "offset": 11103
+    },
+    {
+      "source_call": "0x5949fe",
+      "bytes": 2,
+      "offset": 11105
+    },
+    {
+      "source_call": "0x594a0e",
+      "bytes": 2,
+      "offset": 11107
+    },
+    {
+      "source_call": "0x594a1e",
+      "bytes": 4,
+      "offset": 11109
+    },
+    {
+      "source_call": "0x594a2e",
+      "bytes": 4,
+      "offset": 11113
+    },
+    {
+      "source_call": "0x594a3e",
+      "bytes": 4,
+      "offset": 11117
+    },
+    {
+      "source_call": "0x594a4e",
+      "bytes": 4,
+      "offset": 11121
+    },
+    {
+      "source_call": "0x594a5e",
+      "bytes": 4,
+      "offset": 11125
+    },
+    {
+      "source_call": "0x594a6e",
+      "bytes": 4,
+      "offset": 11129
+    },
+    {
+      "source_call": "0x594a7e",
+      "bytes": 4,
+      "offset": 11133
+    },
+    {
+      "source_call": "0x594a8e",
+      "bytes": 4,
+      "offset": 11137
+    },
+    {
+      "source_call": "0x594a9e",
+      "bytes": 4,
+      "offset": 11141
+    },
+    {
+      "source_call": "0x594aae",
+      "bytes": 4,
+      "offset": 11145
+    },
+    {
+      "source_call": "0x594abe",
+      "bytes": 4,
+      "offset": 11149
+    },
+    {
+      "source_call": "0x594ace",
+      "bytes": 4,
+      "offset": 11153
+    },
+    {
+      "source_call": "0x594ad8",
+      "bytes": 4,
+      "offset": 11157
+    },
+    {
+      "source_call": "0x594ae8",
+      "bytes": 4,
+      "offset": 11161
+    },
+    {
+      "source_call": "0x594af8",
+      "bytes": 4,
+      "offset": 11165
+    },
+    {
+      "source_call": "0x594b08",
+      "bytes": 4,
+      "offset": 11169
+    },
+    {
+      "source_call": "0x594b18",
+      "bytes": 4,
+      "offset": 11173
+    },
+    {
+      "source_call": "0x594b28",
+      "bytes": 4,
+      "offset": 11177
+    },
+    {
+      "source_call": "0x594b38",
+      "bytes": 4,
+      "offset": 11181
+    },
+    {
+      "source_call": "0x594b48",
+      "bytes": 4,
+      "offset": 11185
+    },
+    {
+      "source_call": "0x594b58",
+      "bytes": 4,
+      "offset": 11189
+    },
+    {
+      "source_call": "0x594b68",
+      "bytes": 4,
+      "offset": 11193
+    },
+    {
+      "source_call": "0x594b78",
+      "bytes": 4,
+      "offset": 11197
+    },
+    {
+      "source_call": "0x594b88",
+      "bytes": 48,
+      "offset": 11201
+    },
+    {
+      "source_call": "0x594b98",
+      "bytes": 4,
+      "offset": 11249
+    },
+    {
+      "source_call": "0x594ba8",
+      "bytes": 1,
+      "offset": 11253
+    },
+    {
+      "source_call": "0x594bb8",
+      "bytes": 1,
+      "offset": 11254
+    },
+    {
+      "source_call": "0x594bc8",
+      "bytes": 1,
+      "offset": 11255
+    },
+    {
+      "source_call": "0x594bd8",
+      "bytes": 1,
+      "offset": 11256
+    },
+    {
+      "source_call": "0x594be8",
+      "bytes": 1,
+      "offset": 11257
+    },
+    {
+      "source_call": "0x594bf8",
+      "bytes": 1,
+      "offset": 11258
+    },
+    {
+      "source_call": "0x594c08",
+      "bytes": 1,
+      "offset": 11259
+    },
+    {
+      "source_call": "0x594c18",
+      "bytes": 1,
+      "offset": 11260
+    },
+    {
+      "source_call": "0x594c28",
+      "bytes": 4,
+      "offset": 11261
+    },
+    {
+      "source_call": "0x594c38",
+      "bytes": 1,
+      "offset": 11265
+    },
+    {
+      "source_call": "0x594c48",
+      "bytes": 1,
+      "offset": 11266
+    },
+    {
+      "source_call": "0x594c58",
+      "bytes": 4,
+      "offset": 11267
+    },
+    {
+      "source_call": "0x594c68",
+      "bytes": 4,
+      "offset": 11271
+    },
+    {
+      "source_call": "0x594c78",
+      "bytes": 4,
+      "offset": 11275
+    },
+    {
+      "source_call": "0x594c88",
+      "bytes": 1,
+      "offset": 11279
+    },
+    {
+      "source_call": "0x594c98",
+      "bytes": 80,
+      "offset": 11280
+    },
+    {
+      "source_call": "0x594ca8",
+      "bytes": 4,
+      "offset": 11360
+    },
+    {
+      "source_call": "0x594cb8",
+      "bytes": 4,
+      "offset": 11364
+    },
+    {
+      "source_call": "0x594cc8",
+      "bytes": 4,
+      "offset": 11368
+    },
+    {
+      "source_call": "0x594cd8",
+      "bytes": 4,
+      "offset": 11372
+    },
+    {
+      "source_call": "0x594ce2",
+      "bytes": 4,
+      "offset": 11376
+    },
+    {
+      "source_call": "0x594cf2",
+      "bytes": 4,
+      "offset": 11380
+    },
+    {
+      "source_call": "0x594d02",
+      "bytes": 4,
+      "offset": 11384
+    },
+    {
+      "source_call": "0x594d12",
+      "bytes": 4,
+      "offset": 11388
+    },
+    {
+      "source_call": "0x594d22",
+      "bytes": 4,
+      "offset": 11392
+    },
+    {
+      "source_call": "0x594d32",
+      "bytes": 4,
+      "offset": 11396
+    },
+    {
+      "source_call": "0x594d42",
+      "bytes": 4,
+      "offset": 11400
+    },
+    {
+      "source_call": "0x594d52",
+      "bytes": 4,
+      "offset": 11404
+    },
+    {
+      "source_call": "0x594d62",
+      "bytes": 4,
+      "offset": 11408
+    },
+    {
+      "source_call": "0x594d72",
+      "bytes": 4,
+      "offset": 11412
+    },
+    {
+      "source_call": "0x594d82",
+      "bytes": 4,
+      "offset": 11416
+    },
+    {
+      "source_call": "0x594d92",
+      "bytes": 4,
+      "offset": 11420
+    },
+    {
+      "source_call": "0x594da2",
+      "bytes": 4,
+      "offset": 11424
+    },
+    {
+      "source_call": "0x594db2",
+      "bytes": 4,
+      "offset": 11428
+    },
+    {
+      "source_call": "0x594dc2",
+      "bytes": 4,
+      "offset": 11432
+    },
+    {
+      "source_call": "0x594dd2",
+      "bytes": 4,
+      "offset": 11436
+    },
+    {
+      "source_call": "0x594de2",
+      "bytes": 4,
+      "offset": 11440
+    },
+    {
+      "source_call": "0x594df2",
+      "bytes": 4,
+      "offset": 11444
+    },
+    {
+      "source_call": "0x594e02",
+      "bytes": 4,
+      "offset": 11448
+    },
+    {
+      "source_call": "0x594e12",
+      "bytes": 40,
+      "offset": 11452
+    },
+    {
+      "source_call": "0x594e25",
+      "bytes": 144,
+      "offset": 11492
+    },
+    {
+      "source_call": "0x594e38",
+      "bytes": 144,
+      "offset": 11636
+    },
+    {
+      "source_call": "0x594e48",
+      "bytes": 4,
+      "offset": 11780
+    },
+    {
+      "source_call": "0x594e58",
+      "bytes": 4,
+      "offset": 11784
+    },
+    {
+      "source_call": "0x594e68",
+      "bytes": 1,
+      "offset": 11788
+    },
+    {
+      "source_call": "0x594e78",
+      "bytes": 16,
+      "offset": 11789
+    },
+    {
+      "source_call": "0x594e88",
+      "bytes": 16,
+      "offset": 11805
+    },
+    {
+      "source_call": "0x594e98",
+      "bytes": 4,
+      "offset": 11821
+    },
+    {
+      "source_call": "0x594ea8",
+      "bytes": 16,
+      "offset": 11825
+    },
+    {
+      "source_call": "0x594eb8",
+      "bytes": 16,
+      "offset": 11841
+    },
+    {
+      "source_call": "0x594ec8",
+      "bytes": 16,
+      "offset": 11857
+    },
+    {
+      "source_call": "0x594edb",
+      "bytes": 144,
+      "offset": 11873
+    },
+    {
+      "source_call": "0x594eeb",
+      "bytes": 4,
+      "offset": 12017
+    },
+    {
+      "source_call": "0x594efb",
+      "bytes": 1,
+      "offset": 12021
+    },
+    {
+      "source_call": "0x594f0b",
+      "bytes": 1,
+      "offset": 12022
+    },
+    {
+      "source_call": "0x594f1b",
+      "bytes": 4,
+      "offset": 12023
+    },
+    {
+      "source_call": "0x594f2b",
+      "bytes": 4,
+      "offset": 12027
+    },
+    {
+      "source_call": "0x594f3b",
+      "bytes": 4,
+      "offset": 12031
+    },
+    {
+      "source_call": "0x594f4b",
+      "bytes": 4,
+      "offset": 12035
+    },
+    {
+      "source_call": "0x594f5b",
+      "bytes": 4,
+      "offset": 12039
+    },
+    {
+      "source_call": "0x594f6b",
+      "bytes": 4,
+      "offset": 12043
+    },
+    {
+      "source_call": "0x594f7b",
+      "bytes": 4,
+      "offset": 12047
+    },
+    {
+      "source_call": "0x594f8b",
+      "bytes": 4,
+      "offset": 12051
+    },
+    {
+      "source_call": "0x594f9b",
+      "bytes": 4,
+      "offset": 12055
+    },
+    {
+      "source_call": "0x594fab",
+      "bytes": 4,
+      "offset": 12059
+    },
+    {
+      "source_call": "0x594fbb",
+      "bytes": 4,
+      "offset": 12063
+    },
+    {
+      "source_call": "0x594fcb",
+      "bytes": 4,
+      "offset": 12067
+    },
+    {
+      "source_call": "0x594fdb",
+      "bytes": 4,
+      "offset": 12071
+    },
+    {
+      "source_call": "0x594feb",
+      "bytes": 4,
+      "offset": 12075
+    },
+    {
+      "source_call": "0x594ffb",
+      "bytes": 4,
+      "offset": 12079
+    },
+    {
+      "source_call": "0x59500b",
+      "bytes": 16,
+      "offset": 12083
+    },
+    {
+      "source_call": "0x59501b",
+      "bytes": 4,
+      "offset": 12099
+    },
+    {
+      "source_call": "0x59a107",
+      "bytes": 4,
+      "offset": 12103
+    }
+  ],
+  "tests": [
+    {
+      "id": "golden245",
+      "expectation": "245 request source addresses, byte counts and stream offsets equal independently verified source7 ledger including shared tail59a107",
+      "source": "saved source7 procedure + previous independent operand audit; no original numerical game values"
+    },
+    {
+      "id": "translation",
+      "expectation": "vary prefix start and raw values: fields translate by start; same size/version and input unchanged",
+      "source": "immutable GoalBytes contract, source raw requests have no value-dependent branches in selected source7 path"
+    },
+    {
+      "id": "late_boundary",
+      "expectation": "start4277 ends exactly16384; start4278 at size16384 truncates; size16385 fails view budget",
+      "source": "modern max_prefix<=16384 and source wire12107"
+    },
+    {
+      "id": "whole_view_budget",
+      "expectation": "budget governs complete view including unread tail; exact length12107 accepted at equal budget",
+      "source": "explicit modern view guard, not original bounds"
+    },
+    {
+      "id": "empty_word",
+      "expectation": "nonnull zero view and 0/1 remaining bytes throw truncated, without reading storage",
+      "source": "GoalCursor u16 take2; modern nonnull guard distinguishes nullptr"
+    },
+    {
+      "id": "extreme_guard",
+      "expectation": "null/oversized view and SIZE_MAX start/budget reject bounded view before dereference",
+      "source": "modern guard order and maximum16384"
+    },
+    {
+      "id": "field_cuts",
+      "expectation": "at translated start257 all proper field boundary cuts reject truncation; exact record succeeds",
+      "source": "all245 positive raw counts in independent ledger and cursor take guard"
+    },
+    {
+      "id": "version_encoding",
+      "expectation": "little-endian7 accepted; big-endian7, near values andffff rejected selected subset",
+      "source": "GoalCursor u16 little endian + modern source7-only gate; not original rejection"
+    },
+    {
+      "id": "failure_recovery",
+      "expectation": "failed truncated/version calls do not alter subsequent independent instance results or input",
+      "source": "stateless function and immutable GoalBytes contract"
+    },
+    {
+      "id": "readonly_guard",
+      "expectation": "readonly own mapping ending at protected page yields complete12107 with no write or following-page read",
+      "source": "GoalBytes immutable contract + fixed12107 consumption, host synthetic memory only"
+    }
+  ]
+}

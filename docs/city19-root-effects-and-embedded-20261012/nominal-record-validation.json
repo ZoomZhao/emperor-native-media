@@ -1,0 +1,230 @@
+{
+  "passed": 28,
+  "failed": 0,
+  "execution_failed": false,
+  "results": [
+    {
+      "mode": "release",
+      "exit_code": 0,
+      "stderr_empty": true,
+      "report": {
+        "checks": [
+          {
+            "name": "selected parent6 embedded1 record consumes1479",
+            "passed": true
+          },
+          {
+            "name": "embedded word plus raw4 and12 are separate ranges",
+            "passed": true
+          },
+          {
+            "name": "prior prefix API still stops at1461 and remains pending",
+            "passed": true
+          },
+          {
+            "name": "all1479 insufficient selected record cuts fail",
+            "passed": true
+          },
+          {
+            "name": "prefix success cannot silently complete missing embedded record",
+            "passed": true
+          },
+          {
+            "name": "other embedded versions refused only by modern subset",
+            "passed": true
+          },
+          {
+            "name": "other parent versions refused only by modern subset",
+            "passed": true
+          },
+          {
+            "name": "unsupported source contract never guesses embedded reader",
+            "passed": true
+          },
+          {
+            "name": "nonzero start keeps parent and child offsets exact",
+            "passed": true
+          },
+          {
+            "name": "following bytes remain unread after selected record",
+            "passed": true
+          },
+          {
+            "name": "payload remains opaque and input immutable",
+            "passed": true
+          },
+          {
+            "name": "view4096 accepted and one extra rejected",
+            "passed": true
+          },
+          {
+            "name": "budget and integer extreme starts refuse without wrapping",
+            "passed": true
+          },
+          {
+            "name": "null nonempty input refuses before decoding",
+            "passed": true
+          }
+        ],
+        "passed": 14,
+        "failed": 0
+      }
+    },
+    {
+      "mode": "ubsan",
+      "exit_code": 0,
+      "stderr_empty": true,
+      "report": {
+        "checks": [
+          {
+            "name": "selected parent6 embedded1 record consumes1479",
+            "passed": true
+          },
+          {
+            "name": "embedded word plus raw4 and12 are separate ranges",
+            "passed": true
+          },
+          {
+            "name": "prior prefix API still stops at1461 and remains pending",
+            "passed": true
+          },
+          {
+            "name": "all1479 insufficient selected record cuts fail",
+            "passed": true
+          },
+          {
+            "name": "prefix success cannot silently complete missing embedded record",
+            "passed": true
+          },
+          {
+            "name": "other embedded versions refused only by modern subset",
+            "passed": true
+          },
+          {
+            "name": "other parent versions refused only by modern subset",
+            "passed": true
+          },
+          {
+            "name": "unsupported source contract never guesses embedded reader",
+            "passed": true
+          },
+          {
+            "name": "nonzero start keeps parent and child offsets exact",
+            "passed": true
+          },
+          {
+            "name": "following bytes remain unread after selected record",
+            "passed": true
+          },
+          {
+            "name": "payload remains opaque and input immutable",
+            "passed": true
+          },
+          {
+            "name": "view4096 accepted and one extra rejected",
+            "passed": true
+          },
+          {
+            "name": "budget and integer extreme starts refuse without wrapping",
+            "passed": true
+          },
+          {
+            "name": "null nonempty input refuses before decoding",
+            "passed": true
+          }
+        ],
+        "passed": 14,
+        "failed": 0
+      }
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/xcrun",
+        "--sdk",
+        "macosx",
+        "--show-sdk-path"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "2bd5dc92a04fd174d35e7dccde7bf53f6b37c4bb92ce8685a4959e9015c200bc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/bin/clang++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-isysroot",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+        "-I",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-root-effects-and-embedded-20261012/candidate/file_io/include",
+        "-I",
+        "/Users/zoomzhao/Workspace/emperor-native-media/file_io/include",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-root-effects-and-embedded-20261012/candidate/file_io/tests/next_owner6_nominal_record_properties.cpp",
+        "-o",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-root-effects-and-embedded-20261012/nominal-record-properties/next_owner6_nominal_record-properties-release"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-root-effects-and-embedded-20261012/nominal-record-properties/next_owner6_nominal_record-properties-release"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "728f1f7389133b914bd96072d91cb8f384efd17ed8d3803b32dae9ff60e1d3ba",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/usr/bin/clang++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O1",
+        "-g",
+        "-fsanitize=undefined",
+        "-fno-sanitize-recover=undefined",
+        "-isysroot",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+        "-I",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-root-effects-and-embedded-20261012/candidate/file_io/include",
+        "-I",
+        "/Users/zoomzhao/Workspace/emperor-native-media/file_io/include",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-root-effects-and-embedded-20261012/candidate/file_io/tests/next_owner6_nominal_record_properties.cpp",
+        "-o",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-root-effects-and-embedded-20261012/nominal-record-properties/next_owner6_nominal_record-properties-ubsan"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-root-effects-and-embedded-20261012/nominal-record-properties/next_owner6_nominal_record-properties-ubsan"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "728f1f7389133b914bd96072d91cb8f384efd17ed8d3803b32dae9ff60e1d3ba",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "component_sha256": "8065b7dfa3773f8223d849dd20de2503d4c9d8bd5db9b93f8ce37496d29d4ede",
+  "layout_sha256": "8703a02f44a765ea3c7af61417a013cefec75c87012d7bf8bbe0bd6bf09e39db",
+  "prefix_component_sha256": "6353ca992a90f428c009b339f5a8a18f5581ffbf046e6562f99ad14ef0812d1c",
+  "goal_component_sha256": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b",
+  "driver_sha256": "65a10fee4197f431ae3afdb32cba95d13866529e8da03849697c923ffa853c6d",
+  "test_sha256": "e45a6eff151c254fc18179e9a1b2a8dd791072e97a52dc954c60d75abf718929",
+  "elapsed_seconds": 5.203060666,
+  "total_budget_seconds": 180,
+  "original_payload_or_EXE_read": false,
+  "original_or_derived_game_executed": false,
+  "new_REA_query": false,
+  "main_written": false,
+  "pushed": false
+}

@@ -1,0 +1,391 @@
+{
+  "baseline_commit": "9b7e975accdb6567f045b0e38809cb18953fa455",
+  "golden_ledger_source": "independent extraction from saved52cd90 own6 selected prefix instruction operands; stops before unbound52d5f6",
+  "golden_ledger_sha256": "7eb353c5202f8b8e7ac9bb9fd76d038828d40e385e15d470989868f9a721d45a",
+  "raw_bytes": 1459,
+  "wire_bytes": 1461,
+  "requests": [
+    {
+      "source_call": "0x52d201",
+      "bytes": 2,
+      "offset": 2
+    },
+    {
+      "source_call": "0x52d20e",
+      "bytes": 2,
+      "offset": 4
+    },
+    {
+      "source_call": "0x52d21b",
+      "bytes": 2,
+      "offset": 6
+    },
+    {
+      "source_call": "0x52d228",
+      "bytes": 2,
+      "offset": 8
+    },
+    {
+      "source_call": "0x52d235",
+      "bytes": 2,
+      "offset": 10
+    },
+    {
+      "source_call": "0x52d242",
+      "bytes": 2,
+      "offset": 12
+    },
+    {
+      "source_call": "0x52d24f",
+      "bytes": 2,
+      "offset": 14
+    },
+    {
+      "source_call": "0x52d25c",
+      "bytes": 2,
+      "offset": 16
+    },
+    {
+      "source_call": "0x52d269",
+      "bytes": 4,
+      "offset": 18
+    },
+    {
+      "source_call": "0x52d276",
+      "bytes": 2,
+      "offset": 22
+    },
+    {
+      "source_call": "0x52d283",
+      "bytes": 2,
+      "offset": 24
+    },
+    {
+      "source_call": "0x52d290",
+      "bytes": 2,
+      "offset": 26
+    },
+    {
+      "source_call": "0x52d29d",
+      "bytes": 4,
+      "offset": 28
+    },
+    {
+      "source_call": "0x52d2aa",
+      "bytes": 4,
+      "offset": 32
+    },
+    {
+      "source_call": "0x52d2b7",
+      "bytes": 4,
+      "offset": 36
+    },
+    {
+      "source_call": "0x52d2c4",
+      "bytes": 4,
+      "offset": 40
+    },
+    {
+      "source_call": "0x52d2d1",
+      "bytes": 64,
+      "offset": 44
+    },
+    {
+      "source_call": "0x52d2e1",
+      "bytes": 522,
+      "offset": 108
+    },
+    {
+      "source_call": "0x52d2f1",
+      "bytes": 2,
+      "offset": 630
+    },
+    {
+      "source_call": "0x52d301",
+      "bytes": 2,
+      "offset": 632
+    },
+    {
+      "source_call": "0x52d311",
+      "bytes": 2,
+      "offset": 634
+    },
+    {
+      "source_call": "0x52d321",
+      "bytes": 4,
+      "offset": 636
+    },
+    {
+      "source_call": "0x52d331",
+      "bytes": 16,
+      "offset": 640
+    },
+    {
+      "source_call": "0x52d341",
+      "bytes": 16,
+      "offset": 656
+    },
+    {
+      "source_call": "0x52d351",
+      "bytes": 16,
+      "offset": 672
+    },
+    {
+      "source_call": "0x52d361",
+      "bytes": 16,
+      "offset": 688
+    },
+    {
+      "source_call": "0x52d371",
+      "bytes": 4,
+      "offset": 704
+    },
+    {
+      "source_call": "0x52d381",
+      "bytes": 32,
+      "offset": 708
+    },
+    {
+      "source_call": "0x52d391",
+      "bytes": 32,
+      "offset": 740
+    },
+    {
+      "source_call": "0x52d3a1",
+      "bytes": 2,
+      "offset": 772
+    },
+    {
+      "source_call": "0x52d3b1",
+      "bytes": 4,
+      "offset": 774
+    },
+    {
+      "source_call": "0x52d3c1",
+      "bytes": 4,
+      "offset": 778
+    },
+    {
+      "source_call": "0x52d3d1",
+      "bytes": 4,
+      "offset": 782
+    },
+    {
+      "source_call": "0x52d3e1",
+      "bytes": 4,
+      "offset": 786
+    },
+    {
+      "source_call": "0x52d3f1",
+      "bytes": 2,
+      "offset": 790
+    },
+    {
+      "source_call": "0x52d401",
+      "bytes": 2,
+      "offset": 792
+    },
+    {
+      "source_call": "0x52d411",
+      "bytes": 2,
+      "offset": 794
+    },
+    {
+      "source_call": "0x52d421",
+      "bytes": 2,
+      "offset": 796
+    },
+    {
+      "source_call": "0x52d431",
+      "bytes": 2,
+      "offset": 798
+    },
+    {
+      "source_call": "0x52d441",
+      "bytes": 2,
+      "offset": 800
+    },
+    {
+      "source_call": "0x52d451",
+      "bytes": 16,
+      "offset": 802
+    },
+    {
+      "source_call": "0x52d461",
+      "bytes": 16,
+      "offset": 818
+    },
+    {
+      "source_call": "0x52d471",
+      "bytes": 2,
+      "offset": 834
+    },
+    {
+      "source_call": "0x52d481",
+      "bytes": 2,
+      "offset": 836
+    },
+    {
+      "source_call": "0x52d491",
+      "bytes": 2,
+      "offset": 838
+    },
+    {
+      "source_call": "0x52d4a1",
+      "bytes": 2,
+      "offset": 840
+    },
+    {
+      "source_call": "0x52d4b1",
+      "bytes": 1,
+      "offset": 842
+    },
+    {
+      "source_call": "0x52d4c1",
+      "bytes": 1,
+      "offset": 843
+    },
+    {
+      "source_call": "0x52d4d1",
+      "bytes": 4,
+      "offset": 844
+    },
+    {
+      "source_call": "0x52d4e1",
+      "bytes": 4,
+      "offset": 848
+    },
+    {
+      "source_call": "0x52d4f1",
+      "bytes": 1,
+      "offset": 852
+    },
+    {
+      "source_call": "0x52d501",
+      "bytes": 16,
+      "offset": 853
+    },
+    {
+      "source_call": "0x52d511",
+      "bytes": 16,
+      "offset": 869
+    },
+    {
+      "source_call": "0x52d521",
+      "bytes": 118,
+      "offset": 885
+    },
+    {
+      "source_call": "0x52d531",
+      "bytes": 8,
+      "offset": 1003
+    },
+    {
+      "source_call": "0x52d541",
+      "bytes": 4,
+      "offset": 1011
+    },
+    {
+      "source_call": "0x52d551",
+      "bytes": 4,
+      "offset": 1015
+    },
+    {
+      "source_call": "0x52d564",
+      "bytes": 356,
+      "offset": 1019
+    },
+    {
+      "source_call": "0x52d574",
+      "bytes": 30,
+      "offset": 1375
+    },
+    {
+      "source_call": "0x52d584",
+      "bytes": 4,
+      "offset": 1405
+    },
+    {
+      "source_call": "0x52d594",
+      "bytes": 4,
+      "offset": 1409
+    },
+    {
+      "source_call": "0x52d5a4",
+      "bytes": 36,
+      "offset": 1413
+    },
+    {
+      "source_call": "0x52d5b4",
+      "bytes": 4,
+      "offset": 1449
+    },
+    {
+      "source_call": "0x52d5c4",
+      "bytes": 6,
+      "offset": 1453
+    },
+    {
+      "source_call": "0x52d5d4",
+      "bytes": 1,
+      "offset": 1459
+    },
+    {
+      "source_call": "0x52d5e4",
+      "bytes": 1,
+      "offset": 1460
+    }
+  ],
+  "tests": [
+    {
+      "id": "golden66_pending",
+      "expectation": "66 request source addresses, byte counts and stream offsets equal independently verified own6 ledger with embedded52d5f6 kept pending/zero consumption",
+      "source": "saved own6 procedure + current independent saved operand extraction; no original numerical game values"
+    },
+    {
+      "id": "translation",
+      "expectation": "vary prefix start and raw values: fields translate by start; same size/version and input unchanged",
+      "source": "immutable GoalBytes contract, source raw requests have no value-dependent branches in selected own6 path"
+    },
+    {
+      "id": "late_boundary",
+      "expectation": "start2635 ends exactly4096; start2636 at size4096 truncates; size4097 fails view budget",
+      "source": "modern max_prefix<=4096 and source wire1461"
+    },
+    {
+      "id": "whole_view_budget",
+      "expectation": "budget governs complete view including unread tail; exact length1461 accepted at equal budget",
+      "source": "explicit modern view guard, not original bounds"
+    },
+    {
+      "id": "empty_word",
+      "expectation": "nonnull zero view and 0/1 remaining bytes throw truncated, without reading storage",
+      "source": "GoalCursor u16 take2; modern nonnull guard distinguishes nullptr"
+    },
+    {
+      "id": "extreme_guard",
+      "expectation": "null/oversized view and SIZE_MAX start/budget reject bounded view before dereference",
+      "source": "modern guard order and maximum4096"
+    },
+    {
+      "id": "field_cuts",
+      "expectation": "at translated start257 all proper field boundary cuts reject truncation; exact record succeeds",
+      "source": "all66 positive raw counts in independent ledger and cursor take guard"
+    },
+    {
+      "id": "version_encoding",
+      "expectation": "little-endian6 accepted; big-endian6, near values andffff rejected selected subset",
+      "source": "GoalCursor u16 little endian + modern own6-only gate; not original rejection"
+    },
+    {
+      "id": "failure_recovery",
+      "expectation": "failed truncated/version calls do not alter subsequent independent instance results or input",
+      "source": "stateless function and immutable GoalBytes contract"
+    },
+    {
+      "id": "readonly_guard",
+      "expectation": "readonly own mapping ending at protected page yields complete1461 with no write or following-page read",
+      "source": "GoalBytes immutable contract + fixed1461 consumption, host synthetic memory only"
+    }
+  ]
+}
