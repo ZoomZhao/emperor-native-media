@@ -1,0 +1,367 @@
+{
+  "schema": "TWO_FIXED_DATA_MINIMAL_PREFIX_QUALIFICATION_V1",
+  "base_commit": "2d9d6d443979b94f52c30c7757d6c60ec8f17346",
+  "cases": {
+    "map": {
+      "input_sha256": "60a66d61a51d5f4daf44d0355d9af372afc0afff767dc90899cfa1815e3068b8",
+      "decoded_sha256": "8794a3b2bef2babb7638323e6b4ce7b9e1647244670c8f42fa468094c079b2fb",
+      "decoded_bytes": 471164,
+      "validated_blocks": 15,
+      "observed_first_le16": 2,
+      "read_only": true,
+      "input_metadata_unchanged": true,
+      "family": "map-v2-prefix",
+      "version_offset": 0,
+      "version_width": 2,
+      "qualified_prefix_end": 10,
+      "remaining_uninterpreted_bytes": 471154,
+      "compatibility_word_offset": 2,
+      "compatibility_word_width": 4,
+      "compatibility_word_u32": 4131127302,
+      "legacy_owner_plus8_offset": 6,
+      "legacy_owner_plus8_width": 4,
+      "legacy_owner_plus8_u32": 1200,
+      "decoded_byte_export": false,
+      "objects_deserialized": false,
+      "original_load_or_game_accepted": false,
+      "fixed_input_path": "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Campaigns/UNTITLED/UNTITLEDP.map"
+    },
+    "empireinfo": {
+      "input_sha256": "36a8193f09a51b5fe84e32746ac756f0d7e9b20920fafb5fc35221c73b1c040c",
+      "decoded_sha256": "707edc805e54587988283807b7312eae6813ca2221734800f009180f9176a0fc",
+      "decoded_bytes": 430024,
+      "validated_blocks": 14,
+      "observed_first_le16": 1,
+      "read_only": true,
+      "input_metadata_unchanged": true,
+      "family": "empireinfo-v1-prefix",
+      "version_offset": 0,
+      "version_width": 2,
+      "qualified_prefix_end": 2,
+      "remaining_uninterpreted_bytes": 430022,
+      "decoded_byte_export": false,
+      "objects_deserialized": false,
+      "original_load_or_game_accepted": false,
+      "fixed_input_path": "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/C02M00_empireinfo.dat"
+    }
+  },
+  "source": {
+    "source": [
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/empireinfo-filename-xrefs-owner-0.evidence.json",
+        "sha256": "2d676ba1620b18be8e3616af159ad2af07ac95ab024eae63dd78b265bc0bc8b8",
+        "evidence_id": "ev_b146630fbfae2e4dc9e48aa4803e081d8080e56e56f8bd869f031c438653c9fc",
+        "operation": "resolve_containing_procedure",
+        "parameters": {
+          "address": "0x434e5e"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/empireinfo-filename-xrefs-owner-1.evidence.json",
+        "sha256": "38dfdf23c6fec20a1200d6caadd72fb9f2229787706b999ccf6d6df7e9bccacb",
+        "evidence_id": "ev_b17911d332da368b8464f42bac77f9a63bbcfb0068eecc5273eb0f84dfa54add",
+        "operation": "resolve_containing_procedure",
+        "parameters": {
+          "address": "0x434fa6"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/empireinfo-filename-xrefs-owner-2.evidence.json",
+        "sha256": "81c22524b57297e977a9f571cc46fb00d859a353f50e9c36e9b3d3dbcd8a9001",
+        "evidence_id": "ev_4f0fc5200496e799958141fd09d50d95b86222aa13fe9947e79833e2bbc4cbea",
+        "operation": "resolve_containing_procedure",
+        "parameters": {
+          "address": "0x819bd0"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/empireinfo-filename-xrefs.evidence.json",
+        "sha256": "c981a1bcdf40a057997f5842e674a83213e294578b9bf78d8cc0478c268a6dbc",
+        "evidence_id": "ev_0c46500198029efacaec83aaf2e300856f5fbc6ac083d8f3361d74859db57fad",
+        "operation": "xrefs",
+        "parameters": {
+          "address": "0x81a108"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/empireinfo-loader-assembly.evidence.json",
+        "sha256": "44d49ca170b6e5732e593dd4523add4f01897d9c7fd9e8d75b37268aca4112ff",
+        "evidence_id": "ev_c6cfcec3a97395f7311f35d0fe888d50a02eaaf1854b0cb8c7fb430e73299bb8",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x434d30"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/empireinfo-section-serializer-assembly.evidence.json",
+        "sha256": "00c7569ebb8f3df08e199e272fe21e9e685d549a14c1fd387bb533ddcc132870",
+        "evidence_id": "ev_e3cc2db735eaddb8f65b224e0eb28358a5e09d3322969e38ff705cd9eac542df",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x52f2c0"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/filename-empireinfo-strings.evidence.json",
+        "sha256": "b423ad176ba1ac0ac26fbd0fa637a98ab8ecbf60520fa92ea2088a0d809e8ed0",
+        "evidence_id": "ev_aae1a141c013066cbcad5cccfae049f258714c97b4810e3c5dbd5762d28f0910",
+        "operation": "search_strings",
+        "parameters": {
+          "pattern": "empireinfo",
+          "mode": "literal",
+          "case_sensitive": false
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/filename-map-strings.evidence.json",
+        "sha256": "6941d1d0511b8d8ba37dd0f1d9f7c56541f76b7d8e6c0ca7d7ee0b9229b23687",
+        "evidence_id": "ev_05fa9c79ba54648a95a4b017aa815be4d1b2c8f25d95fd59202cb32f40f47beb",
+        "operation": "search_strings",
+        "parameters": {
+          "pattern": ".map",
+          "mode": "literal",
+          "case_sensitive": false
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/map-filename-builder-a-assembly.evidence.json",
+        "sha256": "c7ea8c34ecb2f648911fb398f36ccb1eca8334f3815dc642c088dd556603c107",
+        "evidence_id": "ev_37af05bfeeaa7a1e6f1774bd8b8a31b33462036e8dfc47634349de5a72ccb611",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x43aa90"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/map-filename-builder-a-callers.evidence.json",
+        "sha256": "23e176d8204effe20624c464a4b157a2b65f33297160e092f1d3d70486bd1a32",
+        "evidence_id": "ev_02e70a8abe7e02bb693fc94e6728bd0a125f9e36515ec65209ac5f5a08a1c403",
+        "operation": "procedure_callers",
+        "parameters": {
+          "procedure": "0x43aa90"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/map-filename-builder-b-assembly.evidence.json",
+        "sha256": "bc4d171a42b1ea8d37b681015140ae14c4b75ca11c71f883ae7881888f98cd32",
+        "evidence_id": "ev_57b51be2f4935d7a172e977539f36553057cfcb1e8a2a7223794ad297d41a0e6",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x43aac0"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/map-filename-builder-b-callers.evidence.json",
+        "sha256": "f3579922dd55f4c996b698f740cf7f55b78115c559811e231c196ef8be48931c",
+        "evidence_id": "ev_17678ce860418a3cd4ff92290452b6294588297c059069efb397a0e72e321637",
+        "operation": "procedure_callers",
+        "parameters": {
+          "procedure": "0x43aac0"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/map-format-filename-xrefs-owner-0.evidence.json",
+        "sha256": "3ce64b855cc9d2b921ae13d61eb4344b503bacd6d409c1b1b15cb19058d82121",
+        "evidence_id": "ev_19ce893d2dd192f51112d8ccdfd133bb280eb43ae0c7d25d3d65c45d5e855beb",
+        "operation": "resolve_containing_procedure",
+        "parameters": {
+          "address": "0x43aa9b"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/map-format-filename-xrefs-owner-1.evidence.json",
+        "sha256": "9d454e78efbfaa657495172e165879b1ab1758669b9eec126238c4e132d96a60",
+        "evidence_id": "ev_3561f414e305e7a2b97ce8c9e62bdf1d38ae1450268fb6937043f637d06afaf0",
+        "operation": "resolve_containing_procedure",
+        "parameters": {
+          "address": "0x43aaea"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/map-format-filename-xrefs.evidence.json",
+        "sha256": "0f9c956507506e8b3a40f361da5cce5c708dd47bfbe704f9946492aa7a82d933",
+        "evidence_id": "ev_c800b026e5f522d912722e2dbc7d97e9d0c4793dd448a5e18a5152e7f9201026",
+        "operation": "xrefs",
+        "parameters": {
+          "address": "0x81a280"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/map-path-loader-assembly.evidence.json",
+        "sha256": "6335c78d83e38f59b3393a70a5f1fd0962b751d517b837319b83f49e4313e430",
+        "evidence_id": "ev_e0d8ead4eb4c427674fba59262607bbe736f1db9e0f338a36c7e704935e97ec2",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x534660"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/map-path-section-adapter-assembly.evidence.json",
+        "sha256": "c4496f1950d8a386c0006fda90185c8af9d827e0b73b4f9cea3f91d3d376deef",
+        "evidence_id": "ev_5a29466a1d02f2261877ece3350c1d6818decee737086f4aa22a81b52909a4fd",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x534780"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/map-read-write-wrapper-assembly.evidence.json",
+        "sha256": "ffa02ccd157a483521731caca8d8da47d1e1ac0658abab5121a44b6dbb3ec8a9",
+        "evidence_id": "ev_a748fe2779bcf2ba54cc7c18ffbe6484eeb42c8fcb2e4874d680cd90f687a999",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x534510"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-real-data-minimal-header-20261011/other-map-loader-assembly.evidence.json",
+        "sha256": "72f5f1fa6431cb8e6235a8b7d86db67226e6b1d2e68218bef1ed528f80a7673c",
+        "evidence_id": "ev_3ba56baea548a7a5f37edbde316a2599d3c0a09631aa9cd44efce51763ad3784",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x500440"
+        }
+      }
+    ],
+    "session_status_sha256": "7b8724910fd6d7089e188d301e2a466e7d8ba6e83dec2ea812a6df59426275ff",
+    "session_result_sha256": "269cd0a5fe4ec14314baa364fedd1e766637dc32ff484c4ca013e5d7d48aba9d",
+    "all19_evidence_success": true,
+    "eight_procedures_only": true,
+    "original_input_unchanged": true,
+    "18_official_module_hashes_unchanged": true,
+    "ephemeral_cleanup_complete": true,
+    "original_code_not_executed": true,
+    "selected_raw_original_reads": 0,
+    "network_or_install": false
+  },
+  "reused_word_source": {
+    "source": [
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-versioned-city-load-20261011/archive-wrapper-helper-assembly.evidence.json",
+        "sha256": "ef1f5000424a3a9e676ab65c654ae6bcc752224954f0665176edd1c1ac311672",
+        "evidence_id": "ev_0652731ed155c5c1a283341e0c3770b88a8be6d0686cbe6a02f16c3e70877725",
+        "parameters": {
+          "procedure": "0x40cf80"
+        },
+        "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+        "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2"
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-versioned-city-load-20261011/archive-section-enter-assembly.evidence.json",
+        "sha256": "01664b26d5bf0b400b61804c6cefc26519e075c5b12ec60b199bd9065d540506",
+        "evidence_id": "ev_ce55ab75a3d7d8af155cd418bcc2505e7c1f5a3382d9c727de85cfd0259fd0a2",
+        "parameters": {
+          "procedure": "0x41fc10"
+        },
+        "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+        "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2"
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-versioned-city-load-20261011/archive-section-word-read-assembly.evidence.json",
+        "sha256": "e55137460cd8188a62ce4b647a3af1327c8c0e349d68fea85966d9d9b099f5e8",
+        "evidence_id": "ev_169017069a6a19adf2dd10aa26b61cfd6bada9f9a90f060e67abd2fe436016d1",
+        "parameters": {
+          "procedure": "0x41fca0"
+        },
+        "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+        "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2"
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-versioned-city-load-20261011/archive-tag-word-reader-assembly.evidence.json",
+        "sha256": "8b02014366180f4a6ab58b0fe224f076b4a6e90d48113868be7e008a86b4bf92",
+        "evidence_id": "ev_fb28afd444169dd1aea68b030eac3aed8201ad0ad621dd0830c75335ab5fb18f",
+        "parameters": {
+          "procedure": "0x41fcb0"
+        },
+        "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+        "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2"
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-versioned-city-load-20261011/archive-section-version-assembly.evidence.json",
+        "sha256": "40402a484175ce901578b6a066e44408a09aafc4dc85936628f54e28429e5922",
+        "evidence_id": "ev_5bf4ce55b49b61b544cdb0611601ac95825da74ebc5f18c9993c51f11cf5d20e",
+        "parameters": {
+          "procedure": "0x41fbf0"
+        },
+        "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+        "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2"
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-object-factory-consumption-20261011/pool-load-second-caller-assembly.evidence.json",
+        "sha256": "8976b4d79c15d9bd52dfab1f1f1afa182e6c29d700384087777c45ed50297dda",
+        "evidence_id": "ev_89f6bd8f1aef10050d837c4cea04adb851d25111c6ea4691662c8a7a3a294055",
+        "parameters": {
+          "procedure": "0x52fda0"
+        },
+        "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+        "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2"
+      }
+    ],
+    "read_order": "40cf80 RET4 consumes no bytes;41fc10 read branch->41fca0->41fcb0 performs native 2-byte read,41fbf0returnsAX",
+    "city_conditional_route": "52fda0 reads first sectionversion then read-mode signedversion13..19 dispatch; observed2/1 both outside range",
+    "classification_pending": true
+  },
+  "tools": [
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/real-data-minimal-structure-20261011/probe_header.cpp",
+      "sha256": "55af0eafeac25d626dd2e6113d2c62334a0b9387b5d94a348b22056959714d03"
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/real-data-minimal-structure-20261011/qualify_minimal_prefix.cpp",
+      "sha256": "6e67e3a69bc4899818a182a5f2d13be3872896f5363ecd35ef23e723b9f9b544"
+    }
+  ],
+  "synthetic_checks": [
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/real-data-minimal-structure-20261011/synthetic-first-word-results.json",
+      "sha256": "14093448aebcae863020b6b9f5a3a0dbd0a3c9a8166be73040f15304c1520dcb",
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/real-data-minimal-structure-20261011/synthetic-prefix-results.json",
+      "sha256": "cc9fe80babcf68a7744ed8b07231ea2d2001a16477ea22b83c362ce380764615",
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "map_version2_source_sites": {
+    "version": "0x52e7de",
+    "mode_read_branch": "0x52e97c",
+    "local_four_byte_request": "0x52e98b",
+    "legacy_owner_plus8_four_byte_request": "0x52e9a8",
+    "next_uninterpreted_consumer": "0x52e9d1"
+  },
+  "empireinfo_frontier": {
+    "version": "0x52f2d6",
+    "getter": "0x52f313",
+    "unclosed_virtual_consumer": "0x52f31d",
+    "slot_bytes": 8,
+    "semantic_stop_offset": 2
+  },
+  "map_local_u32_has_no_qualified_magic_equality_requirement": true,
+  "city19_parse_performed": false,
+  "original_load_or_game_accepted": false,
+  "decoded_data_files_saved": false,
+  "objects_deserialized": false,
+  "read_only_inputs": true,
+  "network_or_push": false,
+  "qualified_prefix_executable_sha256": "8b858cef4e2eb7a278a89f048ed423a18ee7c2c16c1bb990c2e101ca2f46ad06",
+  "source_profile_sha256": "0d6904422c510f7ae94985678efada2a41b03624aceb55a4f95edebbe8241de7",
+  "production_source_sha256": {
+    "file_io/include/owned_reader.hpp": "c7d3f5ada30ddddd748c429f61f7bb4525504bccf0cc6d016325b8e60a13e937",
+    "file_io/include/framed_reader.hpp": "d3d21e07110f57a19cd37d7e1fa61a922203a4c2ccb7c4988f60cb2e543abbd9",
+    "file_io/include/strict_zlib.h": "8884a8a9bc6d8222320d93023d088cd18430017e479a282ca698f102c3eaf7a4",
+    "file_io/src/framed_reader.cpp": "648bb362ff03f96afa0596cc5c84e628b1b666d78325d41099a70181eab5d68b",
+    "file_io/src/strict_zlib.cpp": "1c13bf06ba9721a85000105f4b18763f88bfadf71626f2cae1127288c6fb2f0e"
+  },
+  "decoder_budgets": {
+    "input": 8192,
+    "output": 1048576,
+    "blocks": 64,
+    "encoded_block": 36144,
+    "decoded_block": 36144
+  },
+  "installed_sdk": "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+  "qualification_code_origin": "Self-authored modern reader and explicit bounded scalar extraction; no copied original implementation or original callback execution"
+}
