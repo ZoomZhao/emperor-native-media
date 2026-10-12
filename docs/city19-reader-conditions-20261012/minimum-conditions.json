@@ -1,0 +1,140 @@
+{
+  "schema": "MINIMUM_SOURCE_FACTS_CONTRACTS_READER_GAPS_20261012",
+  "utc": "2026-10-12T18:39:28.997240+00:00",
+  "baseline": "e4ef565fe073c327c19cec6115c1131401b6aea4",
+  "rows": [
+    {
+      "category": "source_fact",
+      "condition": "7656df NULL path",
+      "evidence": "765705 TEST argument;765707 JZ7657b9; skips allcalls andheap paths, onlyframe/SEH setup andrestore",
+      "scope": "validnormalframe; doesnotproveotherfreepaths"
+    },
+    {
+      "category": "source_fact",
+      "condition": "408690 initialization flag0",
+      "evidence": "47b3b0 passes0;408699 goes4086df, clearsstringreceiver+4/+8/+c withoutcallees",
+      "scope": "stringreceiver=global10bc088+4, notprotectedheapobject"
+    },
+    {
+      "category": "source_fact",
+      "condition": "string length/copy/termination",
+      "evidence": "408660 byte-reading REPNE SCASB;408610 REP dword/bytecopy;4087d0 storesreceiver+8 and408800 copiesonezero byte tobuffer+n",
+      "scope": "observedlength/copy/terminalwrites only;408920 tail notverified, resizing/bufferownership explicitlyassumed normalCStringcontract"
+    },
+    {
+      "category": "source_fact",
+      "condition": "registry protected fields",
+      "evidence": "29function finitecallclosure; keyvaluecomparison/copy remainsopaque; storesinclude tree,node,iterator,outputtuple andstack regions",
+      "scope": "duplicate references tosamepointee permitted"
+    },
+    {
+      "category": "source_fact",
+      "condition": "outputclear neednotempty",
+      "evidence": "490c80 begin/end ->561930 gives4eeed0(end,end,begin);returnsbegin;5c6230->4eeea0->4e1c20 RET;updatesend",
+      "scope": "validcontainer/frame; noelementpointee callbacks"
+    },
+    {
+      "category": "source_fact",
+      "condition": "embedded selectedreader nominalroot",
+      "evidence": "52c990 owner+5c4->52c440;52c443 root7b6be0;bounded52c460/500/550 offsets4..19 preserve0; slot0->52c480",
+      "scope": "sourceorder/localwrites, notactualinstancearrival"
+    },
+    {
+      "category": "source_fact",
+      "condition": "selected wire requests",
+      "evidence": "52cd90 own6 prefix66raw1459 +word2;52c480 mode0 word2+raw4+raw12 =>1479 selectedcombined model",
+      "scope": "modernselectedversions6/1; childsource doesnotrejectotherincomingversions"
+    },
+    {
+      "category": "normal_contract_assumption",
+      "condition": "legalstorage/frames/lifetime andnormalreturns",
+      "evidence": "explicitlegitimateconstruction premise",
+      "scope": "notarbitrarycorruptedheap/forgedobject/exceptionproof"
+    },
+    {
+      "category": "normal_contract_assumption",
+      "condition": "ordinaryindependent ownedallocation andstringbuffer capacity",
+      "evidence": "standardlibrarycontract chosenexplicitly; normalbufferresize/deallocation onlyownedregions",
+      "scope": "408920 tail andgenericallocator notoriginalimplementationfullyverified"
+    },
+    {
+      "category": "normal_contract_assumption",
+      "condition": "write regions do notoverlap protectedholder+30/objectroot/neededfields",
+      "evidence": "storageseparation premise; keys maylegallyreference sameobject",
+      "scope": "doesnotexclude legitimateapplicationcallbackreplacement"
+    },
+    {
+      "category": "normal_contract_assumption",
+      "condition": "validNUL text,DF0,boundedrepresentablecopylength",
+      "evidence": "normalCString/REP contract",
+      "scope": "noarbitrarybadstrings/refcounts orfullCRTproof"
+    },
+    {
+      "category": "genuine_reader_unknown",
+      "condition": "holder+30 identity at51208b/51209d",
+      "evidence": "512291 initialinstall known;5122c0 at51208b queriedreturn mustsameconstructedobject atactualreadentry",
+      "scope": "normalallocator assumption cannotproveidentity"
+    },
+    {
+      "category": "genuine_reader_unknown",
+      "condition": "currentroot/lifetime andapplicationcallbacks writes",
+      "evidence": "512a20/512630 directself30 storesabsent;callbacks receiving/reachingholder/child stillneedfinitebinding",
+      "scope": "legalreplacement/reconstruction isnot abnormalalias"
+    },
+    {
+      "category": "genuine_reader_unknown",
+      "condition": "completeFigureFSA reader bytes",
+      "evidence": "base/ownversion/string/count/embedded flow notclosed;1479owner6 isnotfullFigureFSA",
+      "scope": "actualfrontier1991913 unchanged"
+    },
+    {
+      "category": "genuine_reader_unknown",
+      "condition": "count0/1 shortcut at4f5ec3",
+      "evidence": "conditionalbody14calls skipped onlyatquerycount0/1; actualqueryvalueunproved",
+      "scope": "shortcutoptional; +34initial0 notcondition"
+    }
+  ],
+  "ordinarylibrary_recursion_stopped": true,
+  "library_tail_cancelled_by_latest_parent": true,
+  "independent_review_adopted": {
+    "commit": "e4ef565fe073c327c19cec6115c1131401b6aea4",
+    "finite_checks": [
+      22,
+      0
+    ],
+    "README_sha256": "f1459c4d75ec95f2d7cf327d48586100b10c3641b1daa2234bb8f628def7c2ab",
+    "classification_sha256": "27a1d4d014b572ccb019230d64cd8cc53ee8802bfc5657af7a75a1517f4edc54"
+  },
+  "concrete_conditional_modern_reader": {
+    "parent_entry": "0x52cd90",
+    "embedded_dispatch": "0x52d5f6",
+    "required_receiver_root": "0x7b6be0",
+    "required_slot0_target": "0x52c480",
+    "mode": 0,
+    "modern_supported_versions": [
+      6,
+      1
+    ],
+    "model_bytes": 1479,
+    "API": "walk_city19_next_owner6_nominal_record",
+    "explicit_contract": "nominal_52c480",
+    "not_original_instance_proof": true,
+    "not_completeFigureFSA": true,
+    "saved_independent_validation": [
+      18,
+      0
+    ],
+    "new_tests_run": false
+  },
+  "actual_frontier": 1991913,
+  "new_real_bytes": 0,
+  "next_actual_type_dependency": "5122c0 holder+30 -> currentroot.slot8 at51209d; bindselectedapplicationcallback target writes, thencompleteFigureFSA bytes",
+  "classification_rule": "Noalias meanswrite regions do notcoverprotected fields; duplicatekey/pointee references allowed. Legalapplicationreplacement isgenuineunknown.",
+  "actual_reader_source": {
+    "getter": "5122c0 return[holder+30] no stores/callees",
+    "use": "511ea0 at51208b->getter;51209d virtual+8",
+    "nominal_v8_body": "4dad10 savedcomplete;includesbase4f4480 andwordversion2..5, strings/counts, threeembedded virtual+8 calls",
+    "fullFigureFSA_bytes_bound": false,
+    "1479_model_is_not_fullFigureFSA": true
+  }
+}

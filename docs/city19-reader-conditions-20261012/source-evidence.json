@@ -1,0 +1,179 @@
+{
+  "schema": "SOURCE_CONDITIONS_EVIDENCE_20261012",
+  "utc": "2026-10-12T18:45:32.297202+00:00",
+  "successful_stages": [
+    {
+      "local_stage": "rea-static-city19-release-and-string-helpers-20261012",
+      "result_sha256": "17640d3322a5265125dc57241168e451cffaf91240aa51ed807f51ff6792963e",
+      "status_sha256": "cf5394dfaf4a9d7bfb1d516debf5dc2301168bc26e55a0c6beb8742eb752cdac",
+      "config_sha256": "851e6e0131a49e607a1fdd243e651e45fd954cdc60864aae53b7441a21d1d5e9",
+      "seed_sha256": "32558650b37820514f9b21d2fa875efd337d5b80bfe16a8937bca7400db4a1f0",
+      "exit_code": 0,
+      "elapsed_seconds": 807.137,
+      "temporary_entries_after": [],
+      "input_identity_unchanged": true,
+      "selected_tool_SHA_unchanged": true,
+      "target_executed": false,
+      "artifacts": [
+        {
+          "phase": "temp-release7656df-selected-null-path",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x7656df"
+          },
+          "evidence_id": "ev_49956119b22382f597bacb15215cb7955a2408d632ff04a5c562045203015efb",
+          "file": "temp-release7656df-selected-null-path.evidence.json",
+          "bytes": 8791,
+          "sha256": "e10af6009968c8670488e3992523aceca42a60246029750e8f9c0cb4ba4bf5c1"
+        },
+        {
+          "phase": "global-string408690-initialization-writes",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x408690"
+          },
+          "evidence_id": "ev_4eb684757a77e8e88b31ae9775d88f5c38f182de8f720e089f994076864e091f",
+          "file": "global-string408690-initialization-writes.evidence.json",
+          "bytes": 6769,
+          "sha256": "27a3597a3846e1d788831ef32ae5a0dd97d6c3b76030bb190b7e91a499a6abb7"
+        },
+        {
+          "phase": "global-string408640-assignment-writes",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x408640"
+          },
+          "evidence_id": "ev_468e88fa695394f4ef9727b6873d5d8176357ceec91ac7b4c25686682038c3c2",
+          "file": "global-string408640-assignment-writes.evidence.json",
+          "bytes": 5309,
+          "sha256": "9f45c45247f5ce208f64f8be7f60262d6dd351acce8204943c879a0457294a47"
+        },
+        {
+          "phase": "global-string408660-source-length-scope",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x408660"
+          },
+          "evidence_id": "ev_5d23053b53da65c28e52e18c94d03835c85dc220b57bf9f79a7b734ec06c64f7",
+          "file": "global-string408660-source-length-scope.evidence.json",
+          "bytes": 5143,
+          "sha256": "ad57d6ae9d0aac0baae9e02d2967e525d3005850ad07b06a181c36ddb6d3019a"
+        },
+        {
+          "phase": "global-string408700-selected-empty-assignment-scope",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x408700"
+          },
+          "evidence_id": "ev_9cf4e2df9e7741034cb8142284f176f040ad850e576a67c8f54ad1d4707da00c",
+          "file": "global-string408700-selected-empty-assignment-scope.evidence.json",
+          "bytes": 5797,
+          "sha256": "e24612f0aed97ec12bfcda6c665d4457c463f52300a658ea6f98015a8d0c7e4b"
+        },
+        {
+          "phase": "global-string408810-buffer-write-domain",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x408810"
+          },
+          "evidence_id": "ev_504f87eaf023ed96346cc8adc162afd5ea6bfe432f7e077bf2b8d006f008c42e",
+          "file": "global-string408810-buffer-write-domain.evidence.json",
+          "bytes": 9247,
+          "sha256": "71f95cfb6a1cdb3686e99c4b3e7486d016f813f4800236925352a50cab313f80"
+        },
+        {
+          "phase": "global-string408610-byte-copy-domain",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x408610"
+          },
+          "evidence_id": "ev_9016c841691d62513d22a4e38a8d99ba493196c0110cc2aecfada808ebd79c00",
+          "file": "global-string408610-byte-copy-domain.evidence.json",
+          "bytes": 5517,
+          "sha256": "d6ac7b6d85c16049a911ab1fdaa0a13c776c801c5e6f1138f481f9901819ed08"
+        },
+        {
+          "phase": "global-string4087d0-length-termination-domain",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4087d0"
+          },
+          "evidence_id": "ev_cf293502090494378e561c022b94b49eb90ae4673484d3af5d2f01953d7eff0f",
+          "file": "global-string4087d0-length-termination-domain.evidence.json",
+          "bytes": 5365,
+          "sha256": "7101cbcfc6e82288b920fc485aff0143a39160f612dcc925f4cb462ca578ddcb"
+        }
+      ]
+    },
+    {
+      "local_stage": "rea-static-city19-string-write-domains-20261012",
+      "result_sha256": "6d8b5b3b77184d4de823888521505f15ad070361a15ab9352774d7418c0f003d",
+      "status_sha256": "20e0854f5a822b59d4e303decfd0a2280e3cafdbad2660322fbc12887874be96",
+      "config_sha256": "90378c12f1b24bf2e1cec9dc1b1fd9dbd12361f46ce133eb4fb183b238b03c0b",
+      "seed_sha256": "bf3408e37425d414f72f3145f1589a7023c5efdc62902e57b7e35a23649bf517",
+      "exit_code": 0,
+      "elapsed_seconds": 206.103,
+      "temporary_entries_after": [],
+      "input_identity_unchanged": true,
+      "selected_tool_SHA_unchanged": true,
+      "target_executed": false,
+      "artifacts": [
+        {
+          "phase": "global-string408920-buffer-pointer-write-scope",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x408920"
+          },
+          "evidence_id": "ev_b13f524a359b4f1a26d4cd64da676283f96a23ba6e7928853748f05e6abf2b5b",
+          "file": "global-string408920-buffer-pointer-write-scope.evidence.json",
+          "bytes": 6753,
+          "sha256": "1783d861b48170964856f48c6450948abf8b768591c7bceb8ab85892eb5a3525"
+        },
+        {
+          "phase": "global-string408800-terminal-byte-write-scope",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x408800"
+          },
+          "evidence_id": "ev_0db6547bad2a52e6dbc79b76e4e04b28d7ebea92206964444e8b65ed4bee8799",
+          "file": "global-string408800-terminal-byte-write-scope.evidence.json",
+          "bytes": 4975,
+          "sha256": "10bf8c7fcb03faa9277b0cfd7bde8d8e8ac01229578bb49fc3c231e426791c14"
+        },
+        {
+          "phase": "global-string408900-capacity-bound",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x408900"
+          },
+          "evidence_id": "ev_f49f5b8fab5dfca41b0c5393223d0182ff0354c8150052574a7fe8ffa3f5d311",
+          "file": "global-string408900-capacity-bound.evidence.json",
+          "bytes": 4951,
+          "sha256": "f8bc69ac7d794bcdf1fa1c1c047bbddae2385a5fbc8b6d2e9369a28356a7fcef"
+        }
+      ]
+    }
+  ],
+  "stopped_unnecessary_stage": {
+    "local_stage": "rea-static-city19-string-resize-tail-20261012",
+    "reason": "Explicit latestparentstopunnecessarylibraryexploration; intentionalofficialAbortSignal nottool/safetyrejection",
+    "result_sha256": "8ff9bc34835e393ce1e147af2be818eaed2cc104738126d1f75c9755b73e8f52",
+    "status_sha256": "bd58dea00b98f1cc5bd0e600b50cc61321e3e2483863ce1ebce2eeca2b23faa2",
+    "owned_cancel_receipt_sha256": "c1358ca61c40d12d9d58ad64f5e49f40e5baeee6964e3f24b6d2c5c5d3bf290a",
+    "exit_code": 1,
+    "temporary_entries_after": [],
+    "input_identity_unchanged": true,
+    "tool_SHA_unchanged": true,
+    "valid_source_artifacts": 0,
+    "target_executed": false
+  },
+  "source408920_whole_body_verified": false,
+  "ordinary_string_buffer_contract_is_assumption": true,
+  "query_or_auto_review_rejections": [],
+  "library_deepening_stopped": true,
+  "no_original_or_translated_execution": true,
+  "no_network_or_auth": true,
+  "raw_original_assembly_copied_to_repository": false,
+  "actual_frontier": 1991913,
+  "new_real_bytes": 0
+}
