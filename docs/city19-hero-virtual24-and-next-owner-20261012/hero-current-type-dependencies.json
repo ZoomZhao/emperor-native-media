@@ -1,0 +1,64 @@
+{
+  "actual_frontier": 1991913,
+  "actual_delta_bytes": 0,
+  "constructor_only_defaults_null": false,
+  "installer": "0x512230",
+  "allocation": "0x2d8",
+  "child_constructor": "0x514500",
+  "direct_pointer_write": "0x512291 writes constructor result to receiver+0x30; null when allocation fails",
+  "recognized_direct_install_callers": [
+    "0x510d30"
+  ],
+  "recognized_direct_destroy_callers": [
+    "0x510de0"
+  ],
+  "indirect_unrecognized_callers_not_excluded": true,
+  "virtual24_nominal_entry": "0x512a20",
+  "virtual24_normal_returns": [
+    "0x512ae1",
+    "0x51321d"
+  ],
+  "existing_child_read_at": "0x512aef reads receiver+0x30 then0x512afa ->4f2c40",
+  "direct_member_call": "0x512ce8 ->512630 with receiver ECX",
+  "checks": [
+    {
+      "entry": "0x512a20",
+      "self_register": "EBP",
+      "complete_saved_function_body": true,
+      "direct_self30_store_observed": false,
+      "direct_installer_destroyer_or_allocator_call_observed": false,
+      "callees_and_alias_effects_unresolved": true,
+      "source_sha256": "6f9b4742b8ba3dd4223879a703f8955bde74df21b459a9f71d9fa89ff9593a63"
+    },
+    {
+      "entry": "0x512630",
+      "self_register": "EDI",
+      "complete_saved_function_body": true,
+      "direct_self30_store_observed": false,
+      "direct_installer_destroyer_or_allocator_call_observed": false,
+      "callees_and_alias_effects_unresolved": true,
+      "source_sha256": "8d0f60fec96045803736ebdda980e772e67e98ea5ebad5f3142f69494aa38b38"
+    }
+  ],
+  "reset_nominal_virtual2c": "0x4f28e0 from selected root0x7b5bc8 slot+0x2c",
+  "reset_method_complete_function_unavailable": true,
+  "reset_native_prefix_end_exclusive": "0x4f28f9",
+  "reset_native_direct_call": "0x4f28f4 ->4f8060 with child subobject+0x78",
+  "reset_root_preservation_unproven": true,
+  "current_child_type_bound": false,
+  "no_proven_later_reinstaller_found_in_this_scope": true,
+  "required_conditions": [
+    "successful construction and allocations",
+    "root preservation across reset/callees",
+    "normal returns and valid storage/lifetime",
+    "absence of unrecognized replacement/destroy paths",
+    "no same-stream/cross-element/global aliases"
+  ],
+  "exact_remaining_dependencies": [
+    "complete4f28e0 and4f8060 side effects",
+    "remaining receiver/outer/global callees of512a20 and512630",
+    "current+30 return and root before51208b",
+    "nested FigureFSA reader base/own-version/string/embedded roots"
+  ],
+  "behavior_semantics_not_interpreted": true
+}

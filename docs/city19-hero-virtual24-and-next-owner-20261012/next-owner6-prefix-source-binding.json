@@ -1,0 +1,304 @@
+{
+  "caller": "0x5306d6 ->52cd90",
+  "receiver": "0xc5cae0",
+  "source_own_version_record": "0x1158dc8",
+  "mode_zero_read_path": true,
+  "source_version_entries": {
+    "3": "0x52d1fc",
+    "4": "0x52da0c",
+    "5": "0x52d5fd",
+    "6": "0x52d1fc"
+  },
+  "source_default_other_versions": "0x52de05 with further compatibility branches; original does not simply reject others",
+  "selected_modern_version": 6,
+  "selected_source_entry": "0x52d1fc",
+  "requests": [
+    {
+      "bytes": 2,
+      "source_call": "0x52d201"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d20e"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d21b"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d228"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d235"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d242"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d24f"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d25c"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d269"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d276"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d283"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d290"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d29d"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d2aa"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d2b7"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d2c4"
+    },
+    {
+      "bytes": 64,
+      "source_call": "0x52d2d1"
+    },
+    {
+      "bytes": 522,
+      "source_call": "0x52d2e1"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d2f1"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d301"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d311"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d321"
+    },
+    {
+      "bytes": 16,
+      "source_call": "0x52d331"
+    },
+    {
+      "bytes": 16,
+      "source_call": "0x52d341"
+    },
+    {
+      "bytes": 16,
+      "source_call": "0x52d351"
+    },
+    {
+      "bytes": 16,
+      "source_call": "0x52d361"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d371"
+    },
+    {
+      "bytes": 32,
+      "source_call": "0x52d381"
+    },
+    {
+      "bytes": 32,
+      "source_call": "0x52d391"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d3a1"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d3b1"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d3c1"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d3d1"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d3e1"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d3f1"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d401"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d411"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d421"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d431"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d441"
+    },
+    {
+      "bytes": 16,
+      "source_call": "0x52d451"
+    },
+    {
+      "bytes": 16,
+      "source_call": "0x52d461"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d471"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d481"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d491"
+    },
+    {
+      "bytes": 2,
+      "source_call": "0x52d4a1"
+    },
+    {
+      "bytes": 1,
+      "source_call": "0x52d4b1"
+    },
+    {
+      "bytes": 1,
+      "source_call": "0x52d4c1"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d4d1"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d4e1"
+    },
+    {
+      "bytes": 1,
+      "source_call": "0x52d4f1"
+    },
+    {
+      "bytes": 16,
+      "source_call": "0x52d501"
+    },
+    {
+      "bytes": 16,
+      "source_call": "0x52d511"
+    },
+    {
+      "bytes": 118,
+      "source_call": "0x52d521"
+    },
+    {
+      "bytes": 8,
+      "source_call": "0x52d531"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d541"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d551"
+    },
+    {
+      "bytes": 356,
+      "source_call": "0x52d564"
+    },
+    {
+      "bytes": 30,
+      "source_call": "0x52d574"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d584"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d594"
+    },
+    {
+      "bytes": 36,
+      "source_call": "0x52d5a4"
+    },
+    {
+      "bytes": 4,
+      "source_call": "0x52d5b4"
+    },
+    {
+      "bytes": 6,
+      "source_call": "0x52d5c4"
+    },
+    {
+      "bytes": 1,
+      "source_call": "0x52d5d4"
+    },
+    {
+      "bytes": 1,
+      "source_call": "0x52d5e4"
+    }
+  ],
+  "raw_request_bytes": 1459,
+  "word_plus_raw_prefix_bytes": 1461,
+  "layout_all_entries_match_source": true,
+  "selected_raw_prefix_contains_no_nested_calls_or_branches": true,
+  "next_call": "0x52d5f6 embedded receiver+0x5c4 virtual0",
+  "pending_embedded_reader": true,
+  "embedded_wire_layout_bound": false,
+  "component_complete_parent_record": false,
+  "after_embedded": "0x52d5f8 ->52e409; sets own version6 then return",
+  "reset": "0x52d1e1 ->52cb80; REP requires DF0 and callee/storage conditions",
+  "reset_root_init_not_proven": true,
+  "source_memory_offsets_not_wire_width": true,
+  "global_image_zero_root_slot_is_not_current_null": true,
+  "embedded_root_slot_xrefs": [
+    "0x42e921",
+    "0x42edfe"
+  ],
+  "embedded_root_slot_xrefs_are_argument_setup_not_root_writes": true,
+  "source_sha256": "456a2e34a9ff808069822446d6a5530cd481bb6b5e5042637640786b9484c721",
+  "actual_frontier": 1991913,
+  "actual_delta_bytes": 0,
+  "real_data_read_this_batch": false,
+  "modern_input_opaque": true
+}
