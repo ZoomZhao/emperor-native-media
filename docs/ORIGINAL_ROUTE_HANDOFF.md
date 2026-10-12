@@ -1,5 +1,15 @@
 # 原版静态路线 handoff
 
+## 最新范围：通用修复验收完成，原路线继续暂停
+
+固定修复 `5d49c1a322437acfe21324f2997a36962fdfcc4d` 的限定独审完成，两项问题可关闭。初始cache预算独立Release6/0、UBSan6/0，涵盖prefix1/6020追加1024与1025、完整output/cache/input失败不变；五driver的两模式10个通用探针确认单／双引号、空格、`#`、`$`路径和实际依赖SHA。[修复报告](city19-budget-and-make-depfile-fix-20261012/README.zh-CN.md)
+
+作者200/0未全套独立复跑，独审第五driver只用通用probe，没有运行其原FigureFSAState测试。该验收不覆盖0736来源、类型身份或真实条件实验。0736独审因已报告的工具安全检查 `possible cybersecurity risk` 未完成；后续原来源扩展、12项条件链和真实实验继续暂停，不改写同一请求或换工具／线程绕过。旧作者条件前沿1992063、无条件前沿1991913保留为原有标记，本次无新增实验或前沿。
+
+另一阻塞是GitHub认证，仍待用户恢复；不尝试认证、push或更换远端。现有本地提交及工作树改动保留。以下均为历史来源与计划，不自动授权恢复受阻路线。
+
+## 保留的历史handoff
+
 本地基线82d9cf50d00e887bbed8cfecb2aa8d7fee03c69a及父修正9beed221已独立38/0，旧b2 38/1收据保留、SPEED-NULL失败闭合；descriptor明确0x928=2344bytes。新[前置及派生100](ORIGINAL_PRESELECTION_DERIVED100_CONTRACT.md)待独立复核。旧[owner34/1c8](ORIGINAL_OWNER34_DERIVED_POSTLOAD_CONTRACT.md)、[读后调度](ORIGINAL_POSTLOAD_SCHEDULER_ENTRY_CONTRACT.md)、[版本载入](ORIGINAL_VERSIONED_CITY_LOAD_CONTRACT.md)前提保留。
 
 三个selectedcaller固定408ac0=10bc348；10bc37c空xref不是无store证明。前置500400/5003a0/413a40/5032c0确切写linked170/2c4、owner0及linked2e0，4fca20清owner10；生产owner34非零的store仍未找到。5003a0后的4ff170和conditional4ff760仍构造/登记到58ee60，空分配/异常不补造正常成功。

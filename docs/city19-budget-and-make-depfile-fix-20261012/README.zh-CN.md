@@ -2,6 +2,16 @@
 
 本批仅修复已确认的现代自写组件资源合同与测试来源记录。基线 `0736f440728cd479026fd9548d03a993e3b27c20`，没有查询原二进制来源、读取GameData或真实文件、运行原指令／转换产物、操作设备、联网、认证或push。12项新条件链与源链相关工作保存在任务目录并暂停。
 
+## 5d49限定独立验收：两个原问题关闭
+
+独审固定基线 `5d49c1a322437acfe21324f2997a36962fdfcc4d`，仅覆盖本笔diff的初始追加预算条件与五driver的Make解析。prefix1/6020追加1024接受、1025拒绝；完整output、cache各字段、输入在失败后不变。独立Release6/0、UBSan6/0，共12/0。
+
+五个原driver各在私有harness运行同一个独立通用probe，两模式10次全部成功；源码、头、输出目录含单／双引号、空格、`#`、`$`，实际编译依赖路径及SHA匹配。第五driver也只运行通用probe，没有运行其原FigureFSAState测试。**初始预算P2及所要求字符的Make路径问题在此范围内可关闭。**
+
+下文作者200/0未由独审全套复跑，不把通用probe的1/0冒称原suite通过。独审第一次预算夹具编译失败后只修正夹具，原错误保留；字面反斜杠路径额外实验显示本机Clang depfile生产端限制，不声称支持全部POSIX文件名。
+
+独审交付：`/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-budget-make-fix-5d49c1a-review/README.zh-CN.md`，详细命令、依赖核验和关闭判断见同目录`final-verification/results.json`、`closure.json`。本次只阅读该交付并更新文档，没有重跑测试。0736仍未完成独审，原来源与真实实验仍暂停，GitHub认证仍待用户。
+
 ## 初始追加预算
 
 原入口只在新append时检查FSA追加≤1024；因此初始prefix1/cache1026或prefix6020/cache7045，虽然已追加1025项，仍能读完一个不追加的76字节NULL记录。总8192上限依然有效，问题是已声明的累计追加合同没有在入参实施。
