@@ -1,0 +1,397 @@
+{
+  "commit": "c9daab7bb850c52ef7948dae4ad10f98daa15c0b",
+  "tests": [
+    {
+      "suite": "independent_component",
+      "name": "190 explicit40 records continue true Goods context without cache IDs",
+      "expectation_kind": "selected_inline_path_and_conditional_archive",
+      "expected": "190/200/201 self-authored explicit40 records complete as declared, no class/object tags or cache append. Default200 is not count bound; input unchanged.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "forty wire bytes keep back to back records independent of stride44",
+      "expectation_kind": "selected_static_width",
+      "expected": "Explicit child2 has21 requests38 plus version2=40;44 is destination stride. Shared tail DWORD atself28 included.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-empire-inline-context-20261012/empire-inline-addressing-assembly.evidence.json",
+          "sha256": "9c03f3f12124048e2582098286cac8f72a57f967c52e4f481e53a470ae32447e"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "source1 byte requests end without grids but postload unexecuted",
+      "expectation_kind": "selected_static_parent_branch",
+      "expected": "Parent1/2/3 consumes word+raw count+explicit children; source1 no grids/tail, source2 requires22 grids, source3 grids then parent4. Unknown following bytes preserved and postload not executed.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "source2 and3 stop before grid word and differ on parent4 obligation",
+      "expectation_kind": "selected_static_parent_branch",
+      "expected": "Parent1/2/3 consumes word+raw count+explicit children; source1 no grids/tail, source2 requires22 grids, source3 grids then parent4. Unknown following bytes preserved and postload not executed.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "all forty object and six parent header cuts reject",
+      "expectation_kind": "source_width_and_modern_bounds",
+      "expected": "All named proper prefixes of40B child or6B header fail truncated; final shared-tail byte mandatory; no partial success.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "last shared tail DWORD byte is mandatory",
+      "expectation_kind": "source_width_and_modern_bounds",
+      "expected": "All named proper prefixes of40B child or6B header fail truncated; final shared-tail byte mandatory; no partial success.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "legacy child1 raw40 alternative is not explicit child2",
+      "expectation_kind": "selected_static_path_and_modern_subset",
+      "expected": "Child1 raw40 alternative is42B withword, outside modern explicit2. Reject child0/1/3/FFFF without reclassifying original skipped-fields branches.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        },
+        {
+          "path": "saved/source/rea-static-city19-empire-inline-context-20261012/empire-legacy1-size-getter.evidence.json",
+          "sha256": "fc131cf349ac6ea150dfc86e7408f205c531610c7924ed7b93012024c0b97b6f"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "header only validates count without inspecting bad child",
+      "expectation_kind": "modern_header_checkpoint",
+      "expected": "Consume only6B parent header; validate signed/count limits, return empty records and inline_completefalse without peeking wrong child version; retain future-grid/tail obligations.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "header only still rejects signed and modern count extremes",
+      "expectation_kind": "modern_policy",
+      "expected": "Modern nonnegative count<=8192, positive item limit<=8192 and prefix<=4915584 enforced before unbounded record allocation; not original global bounds.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "first missing next record checkpoint keeps count and cache",
+      "expectation_kind": "modern_item_checkpoint",
+      "expected": "Stop after selected completed record(s), before missing next objectword; count/cache retained but inline incomplete.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "201 no default200 rejection or padding",
+      "expectation_kind": "selected_inline_path_and_conditional_archive",
+      "expected": "190/200/201 self-authored explicit40 records complete as declared, no class/object tags or cache append. Default200 is not count bound; input unchanged.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "zero count branches leave required grid tail unread",
+      "expectation_kind": "selected_static_parent_branch",
+      "expected": "Parent1/2/3 consumes word+raw count+explicit children; source1 no grids/tail, source2 requires22 grids, source3 grids then parent4. Unknown following bytes preserved and postload not executed.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "prefix4915584 accepts unknown tail and4915585 rejects",
+      "expectation_kind": "modern_prefix_budget",
+      "expected": "Exact4915584B bounded view accepts known40B record and preserves unknown tail; one extra rejects before parse.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Goods item checkpoint cannot masquerade as complete Empire context",
+      "expectation_kind": "modern_item_checkpoint",
+      "expected": "Stop after selected completed record(s), before missing next objectword; count/cache retained but inline incomplete.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "parent-1",
+      "expectation_kind": "current_final_pipeline_and_framing",
+      "expected": "Two explicit40B records, end57465/cache7, no grid or parent4 required; full_Empire_completefalse and64B future tail unread.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_empire_inline.cpp",
+          "sha256": "6b2c4363a1f3efd66b39bd8098ca43b8983662ed80828d7b29af1a2976887673"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "parent-2",
+      "expectation_kind": "current_final_pipeline_and_framing",
+      "expected": "End57465/cache7; grids required, parent4 not required; tail unread.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_empire_inline.cpp",
+          "sha256": "6b2c4363a1f3efd66b39bd8098ca43b8983662ed80828d7b29af1a2976887673"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "parent-3",
+      "expectation_kind": "current_final_pipeline_and_framing",
+      "expected": "Same end57465/cache7, grids andparent4 required; framing splits count/versionword while complete decoded SHA includes future tail.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_empire_inline.cpp",
+          "sha256": "6b2c4363a1f3efd66b39bd8098ca43b8983662ed80828d7b29af1a2976887673"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "checkpoint1",
+      "expectation_kind": "current_final_pipeline_and_framing",
+      "expected": "After one40B record stop57425, count2, processed1, inline incomplete and cache7 preserved.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_empire_inline.cpp",
+          "sha256": "6b2c4363a1f3efd66b39bd8098ca43b8983662ed80828d7b29af1a2976887673"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "legacy-child1",
+      "expectation_kind": "current_final_pipeline_and_framing",
+      "expected": "Fail explicit source2 subset before accepting42B legacy record, no success JSON.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_empire_inline.cpp",
+          "sha256": "6b2c4363a1f3efd66b39bd8098ca43b8983662ed80828d7b29af1a2976887673"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    },
+    {
+      "suite": "independent_cli",
+      "name": "zero-budget",
+      "expectation_kind": "current_final_pipeline_and_framing",
+      "expected": "MAX_EMPIRE_ITEMS0 rejects modern context/budget, no success JSON.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_empire_inline_archive.hpp",
+          "sha256": "d49eec947161aae92d391495d66688cf70a3ae0276a2bb79f14c35536d232727"
+        },
+        {
+          "path": "frozen/file_io/tools/qualify_city19_empire_inline.cpp",
+          "sha256": "6b2c4363a1f3efd66b39bd8098ca43b8983662ed80828d7b29af1a2976887673"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/third-seeded-reader.evidence.json",
+          "sha256": "4a6851c3d08a5e3c94c1703e13df536a78d2aece6798923a88263ba60bdeae73"
+        },
+        {
+          "path": "saved/source/rea-static-city19-goods-empire-fields-20261012/empire-inline-reader.evidence.json",
+          "sha256": "03d1b9627bf5792de9b04fb7483841f6b9c385b025d1a65b4aa8347ed43be06d"
+        }
+      ]
+    }
+  ]
+}
