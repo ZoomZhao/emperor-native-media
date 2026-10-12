@@ -6,6 +6,7 @@
 #include "../resource_root.hpp"
 #include "../audio_policy.hpp"
 #include "../image_presentation.hpp"
+#include "../cg_image_conversion.hpp"
 #include "../app_launch.hpp"
 #include "../map_geometry.hpp"
 #include "../map_viewport.hpp"
@@ -32,17 +33,7 @@
 
 
 static NSImage* imageFromPixels(uint32_t width, uint32_t height, const std::vector<uint32_t>& pixels) {
-    size_t count = 0;
-    if (!game_lab::imagePixelCount(width, height, count) || pixels.size() != count) return nil;
-    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
-    if (!space) return nil;
-    CGContextRef context = CGBitmapContextCreate(const_cast<uint32_t*>(pixels.data()), width, height,
-        8, static_cast<size_t>(width) * 4, space,
-        kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst);
-    CGColorSpaceRelease(space);
-    if (!context) return nil;
-    CGImageRef image = CGBitmapContextCreateImage(context);
-    CGContextRelease(context);
+    CGImageRef image = game_lab::createCGImageFromPremultipliedBGRA(width, height, pixels);
     if (!image) return nil;
     NSImage* result = [[NSImage alloc] initWithCGImage:image size:NSMakeSize(width, height)];
     CGImageRelease(image);
