@@ -18,9 +18,10 @@ struct GoalLimits {
     bool enable_homage=false;
     bool enable_trading=false;
     bool enable_yearly=false;
+    bool enable_population=false;
 };
 enum class GoalCacheKind { Null, Class, Object };
-enum class GoalClassType { Housing, Homage, Trading, Yearly };
+enum class GoalClassType { Housing, Homage, Trading, Yearly, Population };
 struct GoalCacheEntry {
     GoalCacheKind kind;
     uint32_t class_id=0;
@@ -92,10 +93,18 @@ inline void goal_homage_payload(GoalCursor &cursor) {
     cursor.take(4); // Source 560aca: self+c precedes self+8.
     cursor.take(4); // Source 560ae0: self+8.
 }
-inline void goal_trading_payload(GoalCursor &cursor) {
+inline void goal_one_dword_payload(GoalCursor &cursor,const char *version_error) {
     goal_base_payload(cursor);
-    if (cursor.u16()!=1) throw std::runtime_error("Trading goal version outside modern source1 subset");
-    cursor.take(4); // Source 560bd6: self+8, no nested count/container.
+    if (cursor.u16()!=1) throw std::runtime_error(version_error);
+    cursor.take(4);
+}
+inline void goal_trading_payload(GoalCursor &cursor) {
+    // Independent source560bd6: self+8, no nested count/container.
+    goal_one_dword_payload(cursor,"Trading goal version outside modern source1 subset");
+}
+inline void goal_population_payload(GoalCursor &cursor) {
+    // Independent source5602c6/record12a5a40: self+8, own record initialized1.
+    goal_one_dword_payload(cursor,"Population goal version outside modern source1 subset");
 }
 // Conditional source model only. No original registry lookup, pointers, factory, callbacks or rules.
 // Errors never publish a partially mutated model: all state belongs to this invocation.
@@ -131,19 +140,21 @@ inline GoalWalk walk_city19_housing_goals(GoalBytes bytes,GoalLimits limits={}) 
                 constexpr char homage[]="cHomageGoal";
                 constexpr char trading[]="cTradingPartnersGoal";
                 constexpr char yearly[]="cYearlyProductionGoal";
+                constexpr char population[]="cPopulationGoal";
                 const bool is_housing=length==sizeof(housing)-1&&!std::memcmp(name,housing,length);
                 const bool is_homage=limits.enable_homage&&length==sizeof(homage)-1&&!std::memcmp(name,homage,length);
                 const bool is_trading=limits.enable_trading&&length==sizeof(trading)-1&&!std::memcmp(name,trading,length);
                 const bool is_yearly=limits.enable_yearly&&length==sizeof(yearly)-1&&!std::memcmp(name,yearly,length);
-                if (!is_housing && !is_homage && !is_trading && !is_yearly) {
+                const bool is_population=limits.enable_population&&length==sizeof(population)-1&&!std::memcmp(name,population,length);
+                if (!is_housing && !is_homage && !is_trading && !is_yearly && !is_population) {
                     result.pending={true,tag.offset,name_offset,length,member,ordinal,schema,
                         static_cast<uint32_t>(result.cache.size()),static_cast<uint32_t>(result.cache.size()+1)};
                     result.end=cursor.position();result.following_member=member;result.following_ordinal=ordinal;
                     result.stop_reason="unknown_class_declaration_before_lookup_and_payload";return result;
                 }
-                if (schema!=0) throw std::runtime_error(is_housing?"source mapped Housing schema mismatch":is_homage?"source mapped Homage schema mismatch":is_trading?"source mapped Trading schema mismatch":"source mapped Yearly schema mismatch");
+                if (schema!=0) throw std::runtime_error(is_housing?"source mapped Housing schema mismatch":is_homage?"source mapped Homage schema mismatch":is_trading?"source mapped Trading schema mismatch":is_yearly?"source mapped Yearly schema mismatch":"source mapped Population schema mismatch");
                 // Class is registered before expected-type check in the selected normal source.
-                class_id=append({GoalCacheKind::Class,0,0,cursor.position(),is_housing?GoalClassType::Housing:is_homage?GoalClassType::Homage:is_trading?GoalClassType::Trading:GoalClassType::Yearly});
+                class_id=append({GoalCacheKind::Class,0,0,cursor.position(),is_housing?GoalClassType::Housing:is_homage?GoalClassType::Homage:is_trading?GoalClassType::Trading:is_yearly?GoalClassType::Yearly:GoalClassType::Population});
             } else if (tag.value&0x80000000) {
                 class_id=tag.value&0x7fffffff;
                 if (!class_id) throw std::runtime_error("source class reference zero invalid");
@@ -164,7 +175,8 @@ inline GoalWalk walk_city19_housing_goals(GoalBytes bytes,GoalLimits limits={}) 
                 if (class_type==GoalClassType::Housing) goal_housing_payload(cursor);
                 else if (class_type==GoalClassType::Homage) goal_homage_payload(cursor);
                 else if (class_type==GoalClassType::Trading) goal_trading_payload(cursor);
-                else goal_yearly_payload(cursor);
+                else if (class_type==GoalClassType::Yearly) goal_yearly_payload(cursor);
+                else goal_population_payload(cursor);
             }
             result.items.push_back({member,ordinal,tag.offset,payload_offset,cursor.position()-payload_offset,
                 object_id,class_id,object_reference});
