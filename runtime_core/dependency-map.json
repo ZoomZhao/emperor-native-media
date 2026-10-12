@@ -1,0 +1,218 @@
+{
+  "schema": "HISTORICAL_INCLUDE_CLASSIFICATION_V1",
+  "available_shared_header_occurrences": 23,
+  "missing_generated_binding_occurrences": 6,
+  "missing_third_party_abi_occurrences": 3,
+  "entries": [
+    {
+      "source": "legacy/src/samples/stage24_bridge.c",
+      "include": "stage24_generated.h",
+      "status": "missing_generated_binding"
+    },
+    {
+      "source": "legacy/src/samples/stage71_sr_abi_check.c",
+      "include": "llasm_cpu.h",
+      "status": "missing_third_party_abi"
+    },
+    {
+      "source": "legacy/src/samples/stage72_runtime.h",
+      "include": "llasm_cpu.h",
+      "status": "missing_third_party_abi"
+    },
+    {
+      "source": "legacy/src/samples/verify_stage5_native.c",
+      "include": "stage5_layout.h",
+      "status": "missing_generated_binding"
+    },
+    {
+      "source": "legacy/src/stage78/tools/abi_probe.c",
+      "include": "llasm_cpu.h",
+      "status": "missing_third_party_abi"
+    },
+    {
+      "source": "legacy/src/stage80/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage79/tools/thread_native.h",
+      "provider_sha256": "05a0388700c662706d7f68f60eb080d1b56f8aa1b7c4011091f27ad5794b6b39"
+    },
+    {
+      "source": "legacy/src/stage80/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage78/tools/guarded_helpers.h",
+      "provider_sha256": "271d6282854cfea918bb97bf34190d176b1a796c6d5e4e7c7d1765ff519cfc52"
+    },
+    {
+      "source": "legacy/src/stage80/tools/sparse_memory.h",
+      "include": "guest_memory.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage79/tools/guest_memory.h",
+      "provider_sha256": "498a899e93b85eb45274e5203e2e480df04b163596b2de0c4203dd23d7a46244"
+    },
+    {
+      "source": "legacy/src/stage81/tools/runtime.h",
+      "include": "sparse_memory.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage80/tools/sparse_memory.h",
+      "provider_sha256": "3c85cd9f9056880c34fda295ee804eb148cc9cc324a75ad8b295635c8db8cf12"
+    },
+    {
+      "source": "legacy/src/stage81/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage79/tools/thread_native.h",
+      "provider_sha256": "05a0388700c662706d7f68f60eb080d1b56f8aa1b7c4011091f27ad5794b6b39"
+    },
+    {
+      "source": "legacy/src/stage81/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage78/tools/guarded_helpers.h",
+      "provider_sha256": "271d6282854cfea918bb97bf34190d176b1a796c6d5e4e7c7d1765ff519cfc52"
+    },
+    {
+      "source": "legacy/src/stage81/tools/runtime.h",
+      "include": "heap_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage77/tools/heap_native.h",
+      "provider_sha256": "c85a1150a2d70704ed0c265aa8b7a6c175da6f33878adfd25dc608e0ba6689c4"
+    },
+    {
+      "source": "legacy/src/stage82/tools/native_driver.c",
+      "include": "build_scope.h",
+      "status": "missing_generated_binding"
+    },
+    {
+      "source": "legacy/src/stage82/tools/runtime.h",
+      "include": "sparse_memory.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage80/tools/sparse_memory.h",
+      "provider_sha256": "3c85cd9f9056880c34fda295ee804eb148cc9cc324a75ad8b295635c8db8cf12"
+    },
+    {
+      "source": "legacy/src/stage82/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage79/tools/thread_native.h",
+      "provider_sha256": "05a0388700c662706d7f68f60eb080d1b56f8aa1b7c4011091f27ad5794b6b39"
+    },
+    {
+      "source": "legacy/src/stage82/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage78/tools/guarded_helpers.h",
+      "provider_sha256": "271d6282854cfea918bb97bf34190d176b1a796c6d5e4e7c7d1765ff519cfc52"
+    },
+    {
+      "source": "legacy/src/stage82/tools/runtime.h",
+      "include": "heap_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage77/tools/heap_native.h",
+      "provider_sha256": "c85a1150a2d70704ed0c265aa8b7a6c175da6f33878adfd25dc608e0ba6689c4"
+    },
+    {
+      "source": "legacy/src/stage83/batch-v1/tools/native_driver.c",
+      "include": "build_scope.h",
+      "status": "missing_generated_binding"
+    },
+    {
+      "source": "legacy/src/stage83/batch-v1/tools/runtime.h",
+      "include": "sparse_memory.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage80/tools/sparse_memory.h",
+      "provider_sha256": "3c85cd9f9056880c34fda295ee804eb148cc9cc324a75ad8b295635c8db8cf12"
+    },
+    {
+      "source": "legacy/src/stage83/batch-v1/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage79/tools/thread_native.h",
+      "provider_sha256": "05a0388700c662706d7f68f60eb080d1b56f8aa1b7c4011091f27ad5794b6b39"
+    },
+    {
+      "source": "legacy/src/stage83/batch-v1/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage78/tools/guarded_helpers.h",
+      "provider_sha256": "271d6282854cfea918bb97bf34190d176b1a796c6d5e4e7c7d1765ff519cfc52"
+    },
+    {
+      "source": "legacy/src/stage83/batch-v1/tools/runtime.h",
+      "include": "heap_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage77/tools/heap_native.h",
+      "provider_sha256": "c85a1150a2d70704ed0c265aa8b7a6c175da6f33878adfd25dc608e0ba6689c4"
+    },
+    {
+      "source": "legacy/src/stage83/repair-v2/tools/native_driver.c",
+      "include": "build_scope.h",
+      "status": "missing_generated_binding"
+    },
+    {
+      "source": "legacy/src/stage83/repair-v2/tools/runtime.h",
+      "include": "sparse_memory.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage80/tools/sparse_memory.h",
+      "provider_sha256": "3c85cd9f9056880c34fda295ee804eb148cc9cc324a75ad8b295635c8db8cf12"
+    },
+    {
+      "source": "legacy/src/stage83/repair-v2/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage79/tools/thread_native.h",
+      "provider_sha256": "05a0388700c662706d7f68f60eb080d1b56f8aa1b7c4011091f27ad5794b6b39"
+    },
+    {
+      "source": "legacy/src/stage83/repair-v2/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage78/tools/guarded_helpers.h",
+      "provider_sha256": "271d6282854cfea918bb97bf34190d176b1a796c6d5e4e7c7d1765ff519cfc52"
+    },
+    {
+      "source": "legacy/src/stage83/repair-v2/tools/runtime.h",
+      "include": "heap_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage77/tools/heap_native.h",
+      "provider_sha256": "c85a1150a2d70704ed0c265aa8b7a6c175da6f33878adfd25dc608e0ba6689c4"
+    },
+    {
+      "source": "legacy/src/stage83/tools/native_driver.c",
+      "include": "build_scope.h",
+      "status": "missing_generated_binding"
+    },
+    {
+      "source": "legacy/src/stage83/tools/runtime.h",
+      "include": "sparse_memory.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage80/tools/sparse_memory.h",
+      "provider_sha256": "3c85cd9f9056880c34fda295ee804eb148cc9cc324a75ad8b295635c8db8cf12"
+    },
+    {
+      "source": "legacy/src/stage83/tools/runtime.h",
+      "include": "thread_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage79/tools/thread_native.h",
+      "provider_sha256": "05a0388700c662706d7f68f60eb080d1b56f8aa1b7c4011091f27ad5794b6b39"
+    },
+    {
+      "source": "legacy/src/stage83/tools/runtime.h",
+      "include": "guarded_helpers.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage78/tools/guarded_helpers.h",
+      "provider_sha256": "271d6282854cfea918bb97bf34190d176b1a796c6d5e4e7c7d1765ff519cfc52"
+    },
+    {
+      "source": "legacy/src/stage83/tools/runtime.h",
+      "include": "heap_native.h",
+      "status": "available_authored_shared_header",
+      "provider": "legacy/src/stage77/tools/heap_native.h",
+      "provider_sha256": "c85a1150a2d70704ed0c265aa8b7a6c175da6f33878adfd25dc608e0ba6689c4"
+    }
+  ],
+  "legacy_modified": false,
+  "legacy_pipeline_enabled": false,
+  "held_python_imports_remaining": 14,
+  "ambiguous_python_imports_remaining": 1
+}

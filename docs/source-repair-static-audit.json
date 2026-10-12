@@ -1,0 +1,269 @@
+{
+  "schema": "SOURCE_REPAIR_STATIC_AUDIT_V1",
+  "recorded_at_utc": "2026-10-09T23:39:44.461549+00:00",
+  "base_head": "2f3378a91fb0987288e00c61befa0ddeacbe50be",
+  "pushed_remote_main": "2f3378a91fb0987288e00c61befa0ddeacbe50be",
+  "remote_commit_url": "https://github.com/ZoomZhao/emperor-native-media/commit/2f3378a91fb0987288e00c61befa0ddeacbe50be",
+  "remote_private_verified": true,
+  "remote_verification_scope": "completed explicit push and immediate ls-remote verification before repairs",
+  "compiler": "Apple clang 15.0.0 (clang-1500.3.9.4), arm64-apple-darwin25.5.0",
+  "static_command_results": [
+    {
+      "argv": [
+        "/usr/bin/clang++",
+        "-std=c++17",
+        "-fobjc-arc",
+        "-fno-modules",
+        "-fsyntax-only",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-mmacosx-version-min=15.0",
+        "game_lab/app/main.mm",
+        "game_lab/emperor_assets.mm",
+        "game_lab/wav_pcm.cpp",
+        "game_lab/asset_pixels.cpp",
+        "game_lab/resource_root.cpp",
+        "game_lab/boundary_tests.mm",
+        "game_lab/tests.mm"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "tool_completion_chunk": "7d423d"
+    },
+    {
+      "argv": [
+        "/usr/bin/clang",
+        "-std=c11",
+        "-fsyntax-only",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I",
+        "runtime_core/include",
+        "runtime_core/src/heap_native.c"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "tool_completion_chunk": "a7bac1"
+    },
+    {
+      "argv": [
+        "/usr/bin/clang++",
+        "-std=c++17",
+        "-fsyntax-only",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I",
+        "runtime_core/include",
+        "runtime_core/tests/boundary_tests.cpp"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "tool_completion_chunk": "bc3cff"
+    },
+    {
+      "argv": [
+        "/bin/sh",
+        "-n",
+        "game_lab/app/build.sh"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "tool_completion_chunk": "9bf322"
+    },
+    {
+      "argv": [
+        "/bin/bash",
+        "-n",
+        "game_lab/run.sh",
+        "game_lab/run_boundaries.sh"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "tool_completion_chunk": "b771c8",
+      "note": "bash -n received run_boundaries.sh as a script argument; the latter was checked separately below"
+    },
+    {
+      "argv": [
+        "/bin/bash",
+        "-n",
+        "game_lab/run_boundaries.sh"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "tool_completion_chunk": "991666"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "tool_completion_chunk": "13e3cc"
+    }
+  ],
+  "source_sha256": {
+    "game_lab/asset_limits.hpp": "f9de7d0f9092c910b8d22dd755c0f2ae1c7db887f0df1b9b16aac08923d128c2",
+    "game_lab/asset_bytes.hpp": "cbff9db423ee6eddd83309345b20a5501a6d37baa45e2c1ebd4ab4f3b81ea1a0",
+    "game_lab/emperor_assets.hpp": "025cbe1b49860aae6e52e65ceda73f417347632ea8ad1655f27722a3979e0160",
+    "game_lab/emperor_assets.mm": "9529539d85b7ed212ce6d6d7869f27ad7763051cea8471143a8fb3b68aa1d5c3",
+    "game_lab/wav_pcm.cpp": "e0ed1cade3a1ced4bbe6d5c996e03b91834f27436b4b7aef0fcf3eb4431bb82d",
+    "game_lab/asset_pixels.cpp": "002697fa0052ca790e52994f570b9df741be9005d9bebc4d0e670bc689975ace",
+    "game_lab/resource_root.hpp": "d43a9447a1280206687d6f42e41a1e1113a58050b6d8e39c5584c4d25c551f55",
+    "game_lab/resource_root.cpp": "da8b4ecbfcd479cd104ddf43f383099a2a6c756ff7329dfce59b7cc9136e582b",
+    "game_lab/audio_policy.hpp": "4d78a6ef7129f6d3e44c786726763ec79ef89780d88fa91c0a9a1715d2d979e0",
+    "game_lab/boundary_tests.mm": "168e3386e2e2d78e19dbba52084c1e787c63891716f0c0463285393e66499e0c",
+    "game_lab/tests.mm": "b7f46ec5dd59f028e9f1e3ad323e13f6bf3e7951be98433624c4d769ae0435e1",
+    "game_lab/app/main.mm": "13151c8d422a79bb88ee4386d24131ea1edf27522a5fb70136623eb46afc35f6",
+    "game_lab/app/Info.plist": "14363adf7f596057f71048b87b4b0549d1bda5bb3c4c93ae4f17b638b1a17ffd",
+    "game_lab/app/build.sh": "b364acd5c0b23bcc315bcc809dd442c4ada96a250b2676b3a5efe0ef7a7b5db0",
+    "game_lab/run.sh": "9988665ef249dc1b431888927580a2b58db0d27dfa340948a0b07f286f62fdc5",
+    "game_lab/run_boundaries.sh": "0e654e38d375404ecc67eded2ad716a41f8ff51d41b7b4af4a5bc301d173f57e",
+    "Makefile": "1593a9d5b7c4f47042ebce6efbf61f5fb2629f81030b6d672f3cf512eee6cb7f",
+    "surface_lab/surface.hpp": "003653b9ea75f662e6ed3e06b8fa70d6f0e968031708983747773923a63b280b",
+    "surface_lab/surface.cpp": "2d0d0f79760b347d0d7451543d3aff0100f9f2892e382f6c3915ced88fd5dc79",
+    "runtime_core/include/heap_native.h": "16d0b23ae1cd08e79c50bf9ff26f06c0c67e85c05c62d493fc0c26b032aaf993",
+    "runtime_core/src/heap_native.c": "3238f2bec59f0d12bd88574a58c1b095911c7f515a9f893e5b724538bf186a55",
+    "runtime_core/include/memory.hpp": "f5d6213b9cfc2cc4b4e635991bfe68d27051ff18d1878bc0ef1dcd41a298ab96",
+    "runtime_core/include/thread_state.hpp": "1343463cadaa7678fac827d5a592713324293109985e6ee4f15a96a8972ced34",
+    "runtime_core/tests/boundary_tests.cpp": "30025b6000b8d02a5559ed9ea10ca01bda9c7e5f4c58a33252a5aa1258faba9f"
+  },
+  "quoted_include_resolution": [
+    {
+      "source": "game_lab/asset_bytes.hpp",
+      "include": "asset_limits.hpp",
+      "resolved": "game_lab/asset_limits.hpp"
+    },
+    {
+      "source": "game_lab/emperor_assets.hpp",
+      "include": "asset_limits.hpp",
+      "resolved": "game_lab/asset_limits.hpp"
+    },
+    {
+      "source": "game_lab/emperor_assets.mm",
+      "include": "emperor_assets.hpp",
+      "resolved": "game_lab/emperor_assets.hpp"
+    },
+    {
+      "source": "game_lab/emperor_assets.mm",
+      "include": "asset_bytes.hpp",
+      "resolved": "game_lab/asset_bytes.hpp"
+    },
+    {
+      "source": "game_lab/wav_pcm.cpp",
+      "include": "emperor_assets.hpp",
+      "resolved": "game_lab/emperor_assets.hpp"
+    },
+    {
+      "source": "game_lab/wav_pcm.cpp",
+      "include": "asset_bytes.hpp",
+      "resolved": "game_lab/asset_bytes.hpp"
+    },
+    {
+      "source": "game_lab/asset_pixels.cpp",
+      "include": "emperor_assets.hpp",
+      "resolved": "game_lab/emperor_assets.hpp"
+    },
+    {
+      "source": "game_lab/asset_pixels.cpp",
+      "include": "asset_bytes.hpp",
+      "resolved": "game_lab/asset_bytes.hpp"
+    },
+    {
+      "source": "game_lab/asset_pixels.cpp",
+      "include": "../surface_lab/surface.hpp",
+      "resolved": "surface_lab/surface.hpp"
+    },
+    {
+      "source": "game_lab/resource_root.cpp",
+      "include": "resource_root.hpp",
+      "resolved": "game_lab/resource_root.hpp"
+    },
+    {
+      "source": "game_lab/boundary_tests.mm",
+      "include": "emperor_assets.hpp",
+      "resolved": "game_lab/emperor_assets.hpp"
+    },
+    {
+      "source": "game_lab/boundary_tests.mm",
+      "include": "audio_policy.hpp",
+      "resolved": "game_lab/audio_policy.hpp"
+    },
+    {
+      "source": "game_lab/boundary_tests.mm",
+      "include": "resource_root.hpp",
+      "resolved": "game_lab/resource_root.hpp"
+    },
+    {
+      "source": "game_lab/tests.mm",
+      "include": "emperor_assets.hpp",
+      "resolved": "game_lab/emperor_assets.hpp"
+    },
+    {
+      "source": "game_lab/app/main.mm",
+      "include": "../emperor_assets.hpp",
+      "resolved": "game_lab/emperor_assets.hpp"
+    },
+    {
+      "source": "game_lab/app/main.mm",
+      "include": "../resource_root.hpp",
+      "resolved": "game_lab/resource_root.hpp"
+    },
+    {
+      "source": "game_lab/app/main.mm",
+      "include": "../audio_policy.hpp",
+      "resolved": "game_lab/audio_policy.hpp"
+    },
+    {
+      "source": "surface_lab/surface.cpp",
+      "include": "surface.hpp",
+      "resolved": "surface_lab/surface.hpp"
+    },
+    {
+      "source": "runtime_core/src/heap_native.c",
+      "include": "heap_native.h",
+      "resolved": "runtime_core/include/heap_native.h"
+    },
+    {
+      "source": "runtime_core/include/memory.hpp",
+      "include": "heap_native.h",
+      "resolved": "runtime_core/include/heap_native.h"
+    },
+    {
+      "source": "runtime_core/tests/boundary_tests.cpp",
+      "include": "memory.hpp",
+      "resolved": "runtime_core/include/memory.hpp"
+    },
+    {
+      "source": "runtime_core/tests/boundary_tests.cpp",
+      "include": "thread_state.hpp",
+      "resolved": "runtime_core/include/thread_state.hpp"
+    }
+  ],
+  "legacy_source_hashes_verified": 751,
+  "legacy_modified": false,
+  "shared_header_occurrences_located": 23,
+  "missing_generated_binding_occurrences": 6,
+  "missing_third_party_abi_occurrences": 3,
+  "held_python_imports_remaining": 14,
+  "ambiguous_python_imports_remaining": 1,
+  "game_data_tracked": false,
+  "game_data_contents_read": false,
+  "tests_executed": false,
+  "target_binaries_built_or_linked": false,
+  "app_started": false,
+  "ui_operated": false,
+  "audio_devices_used": false,
+  "new_repairs_committed": false,
+  "new_repairs_pushed": false,
+  "limitations": [
+    "compiler syntax checks do not verify linking or behavior",
+    "historical passes are not current repair test results",
+    "no original executable, generated game bindings, engine or checkpoint loader loaded",
+    "resource browser and finite data core do not provide a complete game engine"
+  ]
+}

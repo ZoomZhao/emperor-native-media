@@ -102,6 +102,249 @@ void fileCases(const std::filesystem::path& root) {
     check(!game_lab::saveCityState(city,root,error)&&!error.empty(),"save failure reports reason");
     check(game_lab::loadCityState(restored,file,error)&&restored.saveSnapshot()==snapshot,"failed save leaves existing file valid");
 }
+void checkInvariants(const game_lab::CitySimulation& c, const char* tag) {
+    (void)tag;
+    const auto& s = c.stats();
+    check(s.population >= 0, "invariant: population >= 0");
+    check(s.housingCapacity >= 0, "invariant: housingCapacity >= 0");
+    check(s.population <= s.housingCapacity, "invariant: population <= housingCapacity");
+    check(s.foodSupply >= 0, "invariant: foodSupply >= 0");
+    check(s.month >= 1 && s.month <= 12, "invariant: month in 1..12");
+    check(s.speed >= 0 && s.speed <= 3, "invariant: speed in 0..3");
+    check(s.favor >= 0 && s.favor <= 100, "invariant: favor in 0..100");
+    check(c.monthAccumulator() >= 0 && c.monthAccumulator() < game_lab::CitySimulation::kTicksPerMonth, "invariant: monthAccumulator in 0..9");
+
+    int roads = 0, houses = 0, farms = 0, wells = 0, temples = 0, markets = 0, watchtowers = 0;
+    for (uint32_t y = 0; y < game_lab::CitySimulation::kMapSize; ++y) {
+        for (uint32_t x = 0; x < game_lab::CitySimulation::kMapSize; ++x) {
+            const auto b = c.buildingAt(x, y);
+            if (b != game_lab::BuildingType::None) {
+                check(!c.isWaterTile(x, y), "invariant: building not on water");
+            }
+            switch (b) {
+                case game_lab::BuildingType::Road: ++roads; break;
+                case game_lab::BuildingType::House: ++houses; break;
+                case game_lab::BuildingType::Farm: ++farms; break;
+                case game_lab::BuildingType::Well: ++wells; break;
+                case game_lab::BuildingType::Temple: ++temples; break;
+                case game_lab::BuildingType::Market: ++markets; break;
+                case game_lab::BuildingType::Watchtower: ++watchtowers; break;
+                case game_lab::BuildingType::None: default: break;
+            }
+        }
+    }
+    check(roads == s.totalRoads, "invariant: totalRoads count match");
+    check(houses == s.totalHouses, "invariant: totalHouses count match");
+    check(farms == s.totalFarms, "invariant: totalFarms count match");
+    check(wells == s.totalWells, "invariant: totalWells count match");
+    check(temples == s.totalTemples, "invariant: totalTemples count match");
+    check(markets == s.totalMarkets, "invariant: totalMarkets count match");
+    check(watchtowers == s.totalWatchtowers, "invariant: totalWatchtowers count match");
+    check(s.availableWorkers == s.population / 2, "invariant: availableWorkers == pop / 2");
+    const int expectedNeeded = farms * 8 + wells * 2 + temples * 4 + markets * 4 + watchtowers * 2;
+    check(s.neededWorkers == expectedNeeded, "invariant: neededWorkers matches buildings");
+}
+void longSequenceAndPersistenceCases(const std::filesystem::path& root) {
+    std::filesystem::create_directories(root);
+    game_lab::CityMap map;
+    map.width = game_lab::CitySimulation::kMapSize;
+    map.height = game_lab::CitySimulation::kMapSize;
+    map.tiles.assign(game_lab::CitySimulation::kTotalTiles, 10);
+    for (uint32_t y = 0; y < 128; ++y) {
+        for (uint32_t x = 30; x <= 33; ++x) {
+            map.tiles[y * 128 + x] = 220;
+        }
+    }
+
+    game_lab::CitySimulation city;
+    std::string err;
+    check(city.loadFromMap(map), "rich synthetic map loaded");
+    checkInvariants(city, "init");
+
+    for (uint32_t y = 10; y <= 20; ++y) {
+        check(city.build(10, y, game_lab::BuildingType::Road, err), "build road segment");
+    }
+    check(city.build(9, 11, game_lab::BuildingType::House, err), "build house 1");
+    check(city.build(9, 13, game_lab::BuildingType::House, err), "build house 2");
+    check(city.build(9, 15, game_lab::BuildingType::House, err), "build house 3");
+    check(city.build(11, 11, game_lab::BuildingType::House, err), "build house 4");
+    check(city.build(11, 13, game_lab::BuildingType::House, err), "build house 5");
+    check(city.build(11, 15, game_lab::BuildingType::House, err), "build house 6");
+    check(city.build(12, 18, game_lab::BuildingType::Farm, err), "build farm 1");
+    check(city.build(12, 20, game_lab::BuildingType::Farm, err), "build farm 2");
+    check(city.build(8, 12, game_lab::BuildingType::Well, err), "build well");
+    check(city.stats().treasury == 5000 - 235, "month 1 treasury exact cost match");
+    checkInvariants(city, "month 1 post-build");
+
+    city.setSpeed(0);
+    for (int t = 0; t < 20; ++t) city.tick();
+    check(city.stats().month == 1 && city.monthAccumulator() == 0, "speed 0 paused time completely");
+    city.setSpeed(1);
+    for (int t = 0; t < 10; ++t) city.tick();
+    check(city.stats().month == 2, "advances to month 2 at speed 1");
+    checkInvariants(city, "month 2");
+
+    for (int t = 0; t < 10; ++t) city.tick();
+    check(city.stats().month == 3 && city.stats().population > 0, "month 3 population growing");
+    checkInvariants(city, "month 3");
+    const auto snap1 = city.saveSnapshot();
+    self_fixture::bytes("city-longseq-snap1", snap1);
+
+    const auto file1 = root / "checkpoint1.emp";
+    check(game_lab::saveCityState(city, file1, err), "save snap1 to file");
+    game_lab::CitySimulation fork1;
+    check(game_lab::loadCityState(fork1, file1, err), "load snap1 from file");
+    check(fork1.saveSnapshot() == snap1, "fork1 exact match snap1 bytes");
+
+    check(city.build(8, 14, game_lab::BuildingType::Market, err), "city build market");
+    check(fork1.build(8, 14, game_lab::BuildingType::Market, err), "fork1 build market");
+    for (int t = 0; t < 10; ++t) { city.tick(); fork1.tick(); }
+    check(city.saveSnapshot() == fork1.saveSnapshot(), "fork1 matches city exactly after identical ops");
+    check(city.stats().month == 4, "month 4 reached");
+
+    check(city.build(8, 16, game_lab::BuildingType::Temple, err), "build temple");
+    check(city.build(8, 18, game_lab::BuildingType::Watchtower, err), "build watchtower");
+    city.setSpeed(2);
+    for (int t = 0; t < 15; ++t) city.tick();
+    check(city.stats().month == 7, "month 7 reached at speed 2");
+    checkInvariants(city, "month 7");
+    const auto snap2 = city.saveSnapshot();
+    self_fixture::bytes("city-longseq-snap2", snap2);
+
+    const int foodBeforeAutumn = city.stats().foodSupply;
+    for (int t = 0; t < 15; ++t) city.tick();
+    check(city.stats().month == 10, "month 10 autumn passed");
+    check(city.stats().foodSupply > foodBeforeAutumn, "autumn harvest increased food supply");
+    checkInvariants(city, "month 10 autumn");
+
+    const int treasBeforeDemolish = city.stats().treasury;
+    check(city.demolish(9, 11, err), "demolish house at (9, 11)");
+    check(city.buildingAt(9, 11) == game_lab::BuildingType::None, "tile cleared to None");
+    check(city.stats().treasury == treasBeforeDemolish - 2, "demolish cost 2 deducted");
+    for (int t = 0; t < 15; ++t) city.tick();
+    check(city.stats().year == -1045 && city.stats().month == 1, "year advanced to -1045, month wrapped to 1");
+    checkInvariants(city, "year -1045 month 1");
+    const auto snap3 = city.saveSnapshot();
+    self_fixture::bytes("city-longseq-snap3", snap3);
+
+    const auto file3 = root / "checkpoint3.emp";
+    check(game_lab::saveCityState(city, file3, err), "save snap3 to file");
+    game_lab::CitySimulation fork3;
+    check(game_lab::loadCityState(fork3, file3, err), "load snap3 from file");
+    check(fork3.saveSnapshot() == snap3, "fork3 matches snap3 byte-for-byte");
+
+    city.setSpeed(3);
+    fork3.setSpeed(3);
+    for (int t = 0; t < 40; ++t) { city.tick(); fork3.tick(); }
+    check(city.stats().year == -1044 && city.stats().month == 1, "year advanced to -1044 at speed 3");
+    check(city.saveSnapshot() == fork3.saveSnapshot(), "fork3 matches city after speed 3 year progression");
+    checkInvariants(city, "year -1044 month 1");
+    const auto snap4 = city.saveSnapshot();
+    self_fixture::bytes("city-longseq-snap4", snap4);
+
+    city.setSpeed(1);
+    for (uint32_t x = 10; x <= 22; ++x) {
+        check(city.build(x, 6, game_lab::BuildingType::Road, err), "expand road y=6");
+    }
+    for (uint32_t x = 12; x <= 20; x += 2) {
+        check(city.build(x, 5, game_lab::BuildingType::House, err), "build suburb house north");
+        check(city.build(x, 7, game_lab::BuildingType::House, err), "build suburb house south");
+    }
+    check(city.build(11, 7, game_lab::BuildingType::Well, err), "build suburb well");
+    check(city.build(13, 7, game_lab::BuildingType::Market, err), "build suburb market");
+    check(city.build(15, 7, game_lab::BuildingType::Temple, err), "build suburb temple");
+    check(city.build(17, 7, game_lab::BuildingType::Watchtower, err), "build suburb watchtower");
+
+    city.setSpeed(2);
+    for (int t = 0; t < 60; ++t) city.tick();
+    check(city.stats().year == -1043 && city.stats().month == 1, "year -1043 reached");
+    check(city.stats().population >= 50, "population reached advanced tier");
+    check(city.stats().rankTitle != "西周 · 拓荒村邑", "rank title upgraded from frontier village");
+    checkInvariants(city, "year -1043 rank upgrade");
+    const auto snap5 = city.saveSnapshot();
+    self_fixture::bytes("city-longseq-snap5", snap5);
+
+    const auto activeBefore = city.saveSnapshot();
+    const auto activeEvents = city.events();
+
+    for (size_t len : {size_t(0), size_t(4), size_t(43), size_t(100), snap5.size() - 1}) {
+        std::vector<uint8_t> trunc(snap5.begin(), snap5.begin() + len);
+        check(!city.loadSnapshot(trunc), "truncated snapshot rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched after truncated load");
+    }
+
+    {
+        auto trail = snap5; trail.push_back(0);
+        check(!city.loadSnapshot(trail), "trailing byte rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched after trailing load");
+    }
+
+    {
+        auto badMagic = snap5; badMagic[0] = 'X'; badMagic[1] = 'M';
+        check(!city.loadSnapshot(badMagic), "bad magic rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched after bad magic");
+        auto badVer = snap5; set32(badVer, 4, 2);
+        check(!city.loadSnapshot(badVer), "bad version 2 rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched after bad version");
+    }
+
+    {
+        auto badMonth = snap5; set32(badMonth, 28, 13);
+        check(!city.loadSnapshot(badMonth), "month 13 rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched");
+
+        auto badSpeed = snap5; set32(badSpeed, 32, 5);
+        check(!city.loadSnapshot(badSpeed), "speed 5 rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched");
+
+        auto badFavor = snap5; set32(badFavor, 36, 120);
+        check(!city.loadSnapshot(badFavor), "favor 120 rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched");
+
+        auto badAcc = snap5; set32(badAcc, 40, 10);
+        check(!city.loadSnapshot(badAcc), "accumulator 10 rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched");
+
+        auto badPop = snap5;
+        const int cap = city.stats().housingCapacity;
+        set32(badPop, 12, cap + 50);
+        check(!city.loadSnapshot(badPop), "population > capacity rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched");
+    }
+
+    {
+        const size_t bOffset = 44 + game_lab::CitySimulation::kTotalTiles * 2;
+        auto badB = snap5; badB[bOffset + 50] = 99;
+        check(!city.loadSnapshot(badB), "illegal building enum rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched");
+
+        auto badWater = snap5; badWater[bOffset + 31 * 128 + 31] = static_cast<uint8_t>(game_lab::BuildingType::Road);
+        badWater[bOffset + game_lab::CitySimulation::kTotalTiles + 31 * 128 + 31] = 1;
+        check(!city.loadSnapshot(badWater), "building on water tile rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched");
+
+        auto badLvl = snap5;
+        badLvl[bOffset + game_lab::CitySimulation::kTotalTiles + 0] = 2;
+        check(!city.loadSnapshot(badLvl), "empty tile with level 2 rejected");
+        check(city.saveSnapshot() == activeBefore && city.events() == activeEvents, "active city untouched");
+    }
+
+    {
+        const auto corruptFile = root / "corrupted_test.emp";
+        std::vector<uint8_t> shortBytes(50, 'Z');
+        { std::ofstream out(corruptFile, std::ios::binary); out.write(reinterpret_cast<const char*>(shortBytes.data()), shortBytes.size()); }
+        check(!game_lab::loadCityState(city, corruptFile, err), "short disk file rejected");
+        check(!err.empty() && city.saveSnapshot() == activeBefore && city.events() == activeEvents, "city untouched after short disk file");
+    }
+
+    const auto file5 = root / "checkpoint5.emp";
+    check(game_lab::saveCityState(city, file5, err), "save snap5 to file");
+    game_lab::CitySimulation restoredFinal;
+    check(game_lab::loadCityState(restoredFinal, file5, err), "load snap5 from file");
+    check(restoredFinal.saveSnapshot() == activeBefore, "restoredFinal exactly matches activeBefore");
+    checkInvariants(restoredFinal, "final restored state");
+}
+
 void laborAndHarvestCases() {
     // 1. Zero workers: farm built, population == 0.
     // Food starts at 400. Zero workers must strictly produce 0 food in both regular and autumn months.
@@ -349,7 +592,10 @@ int main(int argc,char** argv) {
         knownCases();snapshotCases();
         laborAndHarvestCases();
         inspectionCases();
-        if(argc>1)fileCases(std::filesystem::path(argv[1]));
+        if(argc>1){
+            fileCases(std::filesystem::path(argv[1]));
+            longSequenceAndPersistenceCases(std::filesystem::path(argv[1]));
+        }
         extremeBudget();
         std::printf("{\"passed\":%s,\"checks\":%zu,\"self_authored_city\":true,\"UI\":false,\"audio_devices\":false,\"failures\":[",failures.empty()?"true":"false",checks);
         for(size_t i=0;i<failures.size();++i)std::printf("%s\"%s\"",i?",":"",failures[i].c_str());

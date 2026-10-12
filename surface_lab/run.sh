@@ -49,6 +49,12 @@ task_surface_build undefined -O1 -g -fsanitize=undefined -fno-omit-frame-pointer
 task_surface_run undefined
 /usr/bin/file "$task_surface_root/build/surface-tests-release" "$task_surface_root/build/surface-tests-undefined" \
     > "$task_surface_evidence/native-targets.txt"
+/usr/bin/shasum -a 256 "$task_surface_root/surface.hpp" "$task_surface_root/surface.cpp" \
+    "$task_surface_root/oracle.hpp" "$task_surface_root/oracle.cpp" \
+    "$task_surface_root/tests.cpp" "$task_surface_root/run.sh" \
+    "$task_surface_root/build/surface-tests-release" "$task_surface_root/build/surface-tests-undefined" \
+    "$task_surface_evidence/release/summary.json" "$task_surface_evidence/undefined/summary.json" \
+    > "$task_surface_evidence/source-and-result.sha256"
 
 # Optional diagnostic, kept separate because the installed ASAN runtime aborted
 # during initialization in the recorded run. Its failure must remain nonzero.

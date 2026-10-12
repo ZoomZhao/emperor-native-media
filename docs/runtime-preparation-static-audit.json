@@ -1,0 +1,139 @@
+{
+  "schema": "INDEPENDENT_DATA_PREPARATION_STATIC_V1",
+  "recorded_at_utc": "2026-10-09T23:56:11.379835+00:00",
+  "head_and_previously_pushed_main": "2f3378a91fb0987288e00c61befa0ddeacbe50be",
+  "new_repairs_committed": false,
+  "new_repairs_pushed": false,
+  "source_sha256": {
+    "runtime_core/include/heap_native.h": "91a78e4378906d38349c16e35e7a00c31a0c6b88f1f562add58811972d09d205",
+    "runtime_core/src/heap_native.c": "0fc37f1974a0b3dc229f9b9fd2ccb5ff2c454a7f4d49e8ef36745951ae9de6f5",
+    "runtime_core/include/memory.hpp": "b56d032f8927c035a1211b3e13f9c7570695ddaeaa62d4e367d90d515c36b672",
+    "runtime_core/include/thread_state.hpp": "1343463cadaa7678fac827d5a592713324293109985e6ee4f15a96a8972ced34",
+    "runtime_core/tests/boundary_tests.cpp": "b7a2e149bea92f3300d81ba67f7558d2eec2c3fcaf81770b4a6ecf86a4e3974c",
+    "runtime_core/state_codec.py": "b2c1c5c6f3d849fb3ee1d5d67172d6e525fbc948818995f538207de3fb341a7d",
+    "runtime_core/tests/state_codec_tests.py": "f2699bb5376282841f2e59b41b72ac49292cc363398899e71ca3b5c84af0e7b6",
+    "runtime_core/run_boundaries.sh": "7aad735261cd69ed1a44af06c5d74f6ef4369d300e552613c508b383dc21ae3d",
+    "Makefile": "f99b45e0cc6438a0ed2b696ccf61fba7e485292ce437aba2e553724b1417dc7f"
+  },
+  "quoted_include_resolution": [
+    {
+      "source": "runtime_core/src/heap_native.c",
+      "include": "heap_native.h",
+      "provider": "runtime_core/include/heap_native.h"
+    },
+    {
+      "source": "runtime_core/include/memory.hpp",
+      "include": "heap_native.h",
+      "provider": "runtime_core/include/heap_native.h"
+    },
+    {
+      "source": "runtime_core/tests/boundary_tests.cpp",
+      "include": "memory.hpp",
+      "provider": "runtime_core/include/memory.hpp"
+    },
+    {
+      "source": "runtime_core/tests/boundary_tests.cpp",
+      "include": "thread_state.hpp",
+      "provider": "runtime_core/include/thread_state.hpp"
+    }
+  ],
+  "tlv_imports": [
+    "array",
+    "collections",
+    "hashlib",
+    "struct",
+    "sys"
+  ],
+  "tlv_file_or_code_loading_calls_found": false,
+  "python_ast_parsed": [
+    "runtime_core/state_codec.py",
+    "runtime_core/tests/state_codec_tests.py"
+  ],
+  "checks": [
+    {
+      "argv": [
+        "/usr/bin/clang",
+        "-std=c11",
+        "-fsyntax-only",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I",
+        "runtime_core/include",
+        "runtime_core/src/heap_native.c"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "completion_chunk": "f3c881"
+    },
+    {
+      "argv": [
+        "/usr/bin/clang++",
+        "-std=c++17",
+        "-fsyntax-only",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I",
+        "runtime_core/include",
+        "runtime_core/tests/boundary_tests.cpp"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "completion_chunk": "23f62e"
+    },
+    {
+      "argv": [
+        "/bin/bash",
+        "-n",
+        "runtime_core/run_boundaries.sh"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "completion_chunk": "f2f944"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "output": ""
+    }
+  ],
+  "archive_preserved": true,
+  "archive_hash_entries_verified": 751,
+  "sources_updated_after_prior_static_snapshot": [
+    "Makefile",
+    "runtime_core/include/heap_native.h",
+    "runtime_core/src/heap_native.c",
+    "runtime_core/include/memory.hpp",
+    "runtime_core/tests/boundary_tests.cpp"
+  ],
+  "game_lab_sources_match_prior_static_snapshot": true,
+  "missing_generated_binding_occurrences": 6,
+  "missing_third_party_abi_occurrences": 3,
+  "shared_header_occurrences_located": 23,
+  "held_python_imports_remaining": 14,
+  "ambiguous_python_imports_remaining": 1,
+  "tests_executed": false,
+  "test_modules_imported": false,
+  "target_program_built_or_linked": false,
+  "original_engine_loaded": false,
+  "game_data_read": false,
+  "ui_used": false,
+  "audio_devices_used": false,
+  "execution_scope_report": "docs/EXECUTION_SCOPE.md",
+  "proposed_minimum_commands": [
+    "bash runtime_core/run_boundaries.sh release",
+    "bash runtime_core/run_boundaries.sh undefined"
+  ],
+  "limits": [
+    "static checks do not validate behavior or linking",
+    "minimum candidates are prepared and have not been executed",
+    "finite model heap retirement is not Windows HeapDestroy equivalence",
+    "TLV protocol tags do not prove all historical state compatibility",
+    "no original binary/engine/checkpoint input used or historical chain restored"
+  ]
+}

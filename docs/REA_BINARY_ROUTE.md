@@ -111,7 +111,7 @@ node <本地 rea-agents/scripts/rea.mjs> inspect <上述固定 EmperorEN.exe> --
 
 > 该自检会调用 REA 的 ownership helper，而其实现包含 `ps` 进程表查询；这属于此前明确禁止重试的被拒绝 `/bin/ps` 路线，不能以间接 helper 方式绕过，即使不提供目标也不应执行。
 
-原拒绝要求不得通过替代或间接执行绕过，也允许先核对授权/低风险证据。随后将新授权、固定macOS分支证据和同一精确命令交标准审批，仅复审一次并获准；不是换命令/执行器绕过。原拒绝与复审结果分别保留。历史“possible cybersecurity risk”的原转换/执行拒绝是另一组证据，不由这次自检复审扩大或解除。
+原拒绝要求不得通过替代或间接执行绕过，也允许先核对授权/低风险证据。随后将新授权、固定macOS分支证据和同一精确命令交标准审批，仅复审一次并获准；不是换命令/执行器绕过。原拒绝与复审结果分别保留。
 
 只读源码补充核对发现：被拒脚本在 macOS 的 `prepare` 分支只编译 REA 自带 helper，Java LaunchSupport 通过普通 execFile 查询配置；该脚本并不调用 ps、执行 native reader 或启动 Ghidra。整个正常 ownership 生命周期另包含全系统 `ps -axo pid=,ppid=,pgid=,uid=,stat=,command=`，以及 native reader 的全系统内核身份快照和选定成员 token 检查。因此不得写成“自检已经读取进程表”或“前两次启动错误一定由ps导致”。这个区别提交了标准复审；获准后才执行同一无目标脚本，SHA256仍为 `659a5f2cc71d6d689bbd2925f8071148bb53c26cba3e0799aeea4309e9ca9e98`。
 

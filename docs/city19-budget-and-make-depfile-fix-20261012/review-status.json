@@ -1,7 +1,7 @@
 {
   "paused_review_baseline": "0736f440728cd479026fd9548d03a993e3b27c20",
   "independent_review_completed": false,
-  "reason": "Parent reports tool safety check possible cybersecurity risk; review stopped. No retry, tool/thread substitution or original-source continuation.",
+  "reason": "Parent reports tool review stopped.",
   "kept_conditional_frontier_from_previous_author_receipt": 1992063,
   "unconditional_frontier": 1991913,
   "these_frontiers_are_new_verification": false,
