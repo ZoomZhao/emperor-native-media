@@ -1,0 +1,349 @@
+{
+  "commit": "d596187af815bbff1edc1cd73ed4a87dd3858246",
+  "tests": [
+    {
+      "suite": "independent_component",
+      "name": "carried Goal cache keeps IDs while Building extends shared archive",
+      "expectation_kind": "conditional_shared_archive",
+      "expected": "Prior Goal cache keeps null0/class1/object2; Building adds class3/object4 without reset.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/pool-owner-load-source-assembly.evidence.json",
+          "sha256": "812b52090ba65e73c54aea339f7559caa7a68c8a2d772fc7e5553881d4e03f9e"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/stream-object-reconstruct-assembly.evidence.json",
+          "sha256": "82460637581016a7d04b1add3e9436b6fca9f34073f7777823a045bc1033f0b3"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/stream-runtime-class-resolver-assembly.evidence.json",
+          "sha256": "85f144936ec6b78d8811190b46fbbf5bb3316607c78eb0bb701ea01c5d965ccb"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/pool-object-loader-assembly.evidence.json",
+          "sha256": "61031c2f68ad8794c151a9bf0f04a79b3f109c8cfe0ed75c47ebec933f7d4de1"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Building selected source5 consumes182 and leaves next consumer opaque",
+      "expectation_kind": "selected_static_width_and_modern_stop",
+      "expected": "182B Building ends after6+14+182;31B next-consumer-looking poison remains and source unchanged.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/base-building-load-fields-assembly.evidence.json",
+          "sha256": "b195aef9093187715812dac2a9a10c7cd672ea294c8cac8b5f497dfcc0906f58"
+        },
+        {
+          "path": "saved/source/rea-static-versioned-city-load-20261011/base-building-version5-field-requests.json",
+          "sha256": "0b580647b4c99c3acfed6964d8a287945fbc8448822b0fa0f653e7ee6b05b51b"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "inactive first slot still consumes full payload and retains ordinal",
+      "expectation_kind": "selected_static_path",
+      "expected": "Inactive O+4 affects post-read hook, not wire consumption or ordinal append; both records182B.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/pool-owner-load-source-assembly.evidence.json",
+          "sha256": "812b52090ba65e73c54aea339f7559caa7a68c8a2d772fc7e5553881d4e03f9e"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/base-building-load-fields-assembly.evidence.json",
+          "sha256": "b195aef9093187715812dac2a9a10c7cd672ea294c8cac8b5f497dfcc0906f58"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "duplicate declarations receive separate conditional class IDs",
+      "expectation_kind": "selected_static_path",
+      "expected": "Repeated explicit Building declarations receive separate class/object IDs.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/stream-runtime-class-resolver-assembly.evidence.json",
+          "sha256": "85f144936ec6b78d8811190b46fbbf5bb3316607c78eb0bb701ea01c5d965ccb"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/stream-object-reconstruct-assembly.evidence.json",
+          "sha256": "82460637581016a7d04b1add3e9436b6fca9f34073f7777823a045bc1033f0b3"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "duplicate object references consume tags only and allocate no IDs",
+      "expectation_kind": "selected_static_path",
+      "expected": "Two references to same object4 consume4B tags total; no payload/cache append; preserve repeated items.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/stream-object-reconstruct-assembly.evidence.json",
+          "sha256": "82460637581016a7d04b1add3e9436b6fca9f34073f7777823a045bc1033f0b3"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/stream-runtime-class-resolver-assembly.evidence.json",
+          "sha256": "85f144936ec6b78d8811190b46fbbf5bb3316607c78eb0bb701ea01c5d965ccb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "extended class and object tags preserve six byte widths",
+      "expectation_kind": "selected_static_tag",
+      "expected": "Extended class/object tags consume6B each; class adds182B, object adds zero payload.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/stream-object-reconstruct-assembly.evidence.json",
+          "sha256": "82460637581016a7d04b1add3e9436b6fca9f34073f7777823a045bc1033f0b3"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/stream-runtime-class-resolver-assembly.evidence.json",
+          "sha256": "85f144936ec6b78d8811190b46fbbf5bb3316607c78eb0bb701ea01c5d965ccb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "4001 complete records prove4000 is not a pool count limit",
+      "expectation_kind": "source_threshold_and_modern_scope",
+      "expected": "4001 explicit records are within modern batch4096/count8192; original4000 local comparison is padding threshold.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/pool-owner-load-source-assembly.evidence.json",
+          "sha256": "812b52090ba65e73c54aea339f7559caa7a68c8a2d772fc7e5553881d4e03f9e"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "zero count consumes header only and does not synthesize4000 payloads",
+      "expectation_kind": "selected_static_path",
+      "expected": "Zero count consumes6B header only; do not reproduce default allocations or consume hypothetical4000 payloads.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/pool-owner-load-source-assembly.evidence.json",
+          "sha256": "812b52090ba65e73c54aea339f7559caa7a68c8a2d772fc7e5553881d4e03f9e"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "batch checkpoint occurs before missing next tag",
+      "expectation_kind": "modern_checkpoint",
+      "expected": "max_items1 returns after first record before even a missing next tag; incomplete result.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "4096 processed references checkpoint before slot4096 tag",
+      "expectation_kind": "modern_checkpoint",
+      "expected": "4096 processed sequence references stop before slot4096 next tag with constant cache.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "unknown declaration stops before opaque payload without cache append",
+      "expectation_kind": "modern_unknown_class_stop",
+      "expected": "Unknown Granary stops after declaration, no cache append; conditional prospective IDs3/4, count8192 allowed.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/stream-runtime-class-resolver-assembly.evidence.json",
+          "sha256": "85f144936ec6b78d8811190b46fbbf5bb3316607c78eb0bb701ea01c5d965ccb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "signed extremes and modern count8193 reject before tags",
+      "expectation_kind": "modern_policy",
+      "expected": "Negative signed values and positiveINT_MAX/count8193 reject before tag; no count-induced unbounded loop/allocation.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/pool-owner-load-source-assembly.evidence.json",
+          "sha256": "812b52090ba65e73c54aea339f7559caa7a68c8a2d772fc7e5553881d4e03f9e"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "earlier Goal class and object cannot be reused as Building",
+      "expectation_kind": "conditional_static_type_compatibility",
+      "expected": "Goal class/object incompatible with expected Building despite sharing archive IDs.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/pool-object-loader-assembly.evidence.json",
+          "sha256": "61031c2f68ad8794c151a9bf0f04a79b3f109c8cfe0ed75c47ebec933f7d4de1"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/stream-object-reconstruct-assembly.evidence.json",
+          "sha256": "82460637581016a7d04b1add3e9436b6fca9f34073f7777823a045bc1033f0b3"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/stream-runtime-class-resolver-assembly.evidence.json",
+          "sha256": "85f144936ec6b78d8811190b46fbbf5bb3316607c78eb0bb701ea01c5d965ccb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "null and maximal extended tags do not wrap into valid IDs",
+      "expectation_kind": "modern_nonnull_and_source_tag",
+      "expected": "Null consumer rejects; extendedFFFFFFFF/80000000 must not overflow or resolve into valid cache ID.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/stream-runtime-class-resolver-assembly.evidence.json",
+          "sha256": "85f144936ec6b78d8811190b46fbbf5bb3316607c78eb0bb701ea01c5d965ccb"
+        },
+        {
+          "path": "saved/source/rea-static-pool-domain-20261011/stream-object-reconstruct-assembly.evidence.json",
+          "sha256": "82460637581016a7d04b1add3e9436b6fca9f34073f7777823a045bc1033f0b3"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "modern kind guards reject class as object and object as class",
+      "expectation_kind": "modern_kind_guard",
+      "expected": "Class pointer as object and object pointer as class reject; original cache itself is untyped.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "cache budget exact five succeeds and four rejects next object",
+      "expectation_kind": "modern_resource_budget",
+      "expected": "Exact carried3+newclass+newobject=5 succeeds;budget4 rejects next allocation.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "every proper prefix of first Building record fails truncated",
+      "expectation_kind": "source_width_and_modern_bounds",
+      "expected": "All182 proper prefixes of Building record reject truncated; full182 succeeds.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/base-building-load-fields-assembly.evidence.json",
+          "sha256": "b195aef9093187715812dac2a9a10c7cd672ea294c8cac8b5f497dfcc0906f58"
+        },
+        {
+          "path": "saved/source/rea-static-versioned-city-load-20261011/base-building-version5-field-requests.json",
+          "sha256": "0b580647b4c99c3acfed6964d8a287945fbc8448822b0fa0f653e7ee6b05b51b"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "extended tag payload cannot be partially read",
+      "expectation_kind": "source_tag_and_modern_bounds",
+      "expected": "Four partial extended-tag DWORD cuts reject; complete6B object tag succeeds.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        },
+        {
+          "path": "saved/source/rea-static-load-identity-20261011/stream-runtime-class-resolver-assembly.evidence.json",
+          "sha256": "85f144936ec6b78d8811190b46fbbf5bb3316607c78eb0bb701ea01c5d965ccb"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "modern prefix1048576 accepts and1048577 rejects",
+      "expectation_kind": "modern_prefix_budget",
+      "expected": "1048576B accepts known202B suffix and leaves tail;1048577B rejects.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "zero or over hard limits reject without widening scope",
+      "expectation_kind": "modern_policy",
+      "expected": "Zero count/item/cache limits and limits above8192/4096/1048576 hard caps reject before processing.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_mainpool_archive.hpp",
+          "sha256": "a473faf3e5f43c8297b377ef4d62120e7a5f2d39ce7436baf8c7b99b1c1bb6c8"
+        }
+      ]
+    }
+  ]
+}
