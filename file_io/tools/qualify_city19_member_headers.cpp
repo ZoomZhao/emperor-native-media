@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
         if (prefix.size()<4) throw std::runtime_error("root/section versions truncated");
         const auto u16=[&prefix](size_t p){return uint16_t(prefix[p]) | uint16_t(prefix[p+1])<<8;};
         if (u16(0)!=19 || u16(2)!=6) throw std::runtime_error("sourcecity19/section6 mismatch; no fallback");
-        if (prefix.size()<95) throw std::runtime_error("fixedsection6 fields truncated");
+        if (prefix.size()<95) throw std::runtime_error("fixed prefix through component2 truncated");
         if (u16(45)!=2) throw std::runtime_error("source componentversion2 mismatch; no fallback");
         if (prefix.size()<97) throw std::runtime_error("helper version truncated");
         if (u16(95)!=3) throw std::runtime_error("qualification helperversion3 mismatch; no fallback");

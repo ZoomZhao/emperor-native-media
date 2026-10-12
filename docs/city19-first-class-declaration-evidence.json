@@ -1,0 +1,713 @@
+{
+  "schema_version": 1,
+  "utc": "2026-10-12T03:21:29.706781+00:00",
+  "base_HEAD": "4fd605e7c1ada8f37ebf9abd8f56143f9ae61b88",
+  "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+  "analysis_profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+  "scope": "first declaration only; no object factory/payload reader or business logic execution",
+  "source_protocol_contract": {
+    "frontier": 3361,
+    "source_protocol": "77ffc8/7802fe complete saved Listing",
+    "tag": {
+      "width16": 2,
+      "extended_escape": "0x7fff followed by uint32",
+      "compact": "low15 plus bit15 lifted to bit31",
+      "new_class": "only original16==ffff; not any internal80007fff",
+      "object_reference": "internalbit31 clear; zero null under cache slot0-null; nonzero unresolved in first-object scope",
+      "class_reference": "internalbit31 set/nonffff; index masked31 nonzero and cache-resolved, unseeded cache refs fail closed here"
+    },
+    "declaration": {
+      "schema_uint16": true,
+      "name_length_uint16": true,
+      "source_name_length_less_than": 64,
+      "wire_name_has_no_automatic_NUL": true,
+      "modern_scope": "nonempty ASCII identifier without embeddedNUL; source uses appendedNUL and lstrcmpA, so restriction is modern scope",
+      "class_name_output": "digest and length only; actual class name can be reported only after match to static literal/descriptor"
+    },
+    "cache_source": "77fe3f selectedreadmode initializes slot0null/index1 ifS34 initiallynull; constructor/priorconsumer no-alias premises required",
+    "cache_model_not_runtime_proof": true,
+    "maximum_retained_prefix": 3430,
+    "first_positive_member_index_required": 0,
+    "halt": "after source-defined class declaration; no object factory/schema reader/payload execution",
+    "expected_descriptor": "8590d8 cGoalBase; never actual descriptor by default",
+    "actual_data_run_deferred_until_self_tests": true
+  },
+  "source_bindings": [
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "base-goal-own-version-record-xrefs.evidence.json",
+      "artifact_sha256": "1e8629a28d5bcad6d3dde853ca3edafaf887bc9321038c8689f91df436a5bcb0",
+      "evidence_id": "ev_4b20d69dd5bb75913c175a79c1b0d732bb351eac95c8bae5105b9ac354906643",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x12a5a48"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "base-goal-version-init-native-start.evidence.json",
+      "artifact_sha256": "07cbc20ebe0b08b65bd71b85bacb886dad8942d4642611fc63e92d0b50efae92",
+      "evidence_id": "ev_4c8670a04ed8c305a9f47957162f27d518cb4f7a6745a7fd69cfffd44b7a5213",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x559f90"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "declared-housing-runtime-descriptor.evidence.json",
+      "artifact_sha256": "d72aa54c1242222675dff25c816007bd93a0227e64bfbe49f2ed29298fe39651",
+      "evidence_id": "ev_1e2d1cf7729163ab28eb9a2794792124d1eee4f17bbefd6d9bb8a5ff416f77b4",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x859198",
+        "length": 24
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-factory-selected-constructor.evidence.json",
+      "artifact_sha256": "c38c861c1dde6a7b8a2a3b3ccf59c0708766f3da520340265aeceadbed259734",
+      "evidence_id": "ev_18e6896e0e0ae59c0a8148142ca94260efe49fc09da03945417b2fdf79017cae",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x559900"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-constructor-post-vptr-reset.evidence.json",
+      "artifact_sha256": "93bc044958c71c2472b43a2825e1d1316062b609b20eebdafeab99c3324657d1",
+      "evidence_id": "ev_4f704253a993bb784a1e2019d57e76cdc828ab82d325d990879534d4574ae33b",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x560e50"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-own-version-init-native-record.evidence.json",
+      "artifact_sha256": "0bbb4d43c5329e78c98326f2799cb71393a8f637e01c93fe74f3dfc8b79556b6",
+      "evidence_id": "ev_b9d409af3689e88a6533ed1c2ef26aa6a0ba9e7e7214bc04a70bca4a95d67670",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x55a2b2"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-registration-native-start.evidence.json",
+      "artifact_sha256": "cda357c981a827766f5296b3ff7c3679a75addc70eb7e2ccd6d4d84461d3372a",
+      "evidence_id": "ev_7cfd699183951071d4fa4829bf85d3c5f1403a517d5f6cb91fa2ddb97bebdbe6",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x559990"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "base-goal-version-init-native-record.evidence.json",
+      "artifact_sha256": "2e79af4ef7bc7701091cd0ce6231f4eaddb51a1a49edcfbdfae8abd5717b86a0",
+      "evidence_id": "ev_63b826961cc3077d557e7e1de423eca14736faf1970e21b52d33775e0a8f1271",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x559f92"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-own-version-init-native-start.evidence.json",
+      "artifact_sha256": "11f9c5eda30ed497b0697678a63976192a47107755d8529e2e527195bb9ec8d7",
+      "evidence_id": "ev_8ab482a4aa5de8d375f976fe1ca87d0214059829431cefd62614fe1565b52cea",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x55a2b0"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-registration-next-native.evidence.json",
+      "artifact_sha256": "30813bd77a2009141f742c35d30bb28c883de7682867d51baec5262b03cbc3d6",
+      "evidence_id": "ev_cc34f4f0cb5123cc6f60ad7f55a7a38bac36b707c8f4a6a954abdaf0cd153176",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x559995"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-runtime-class-getter-native.evidence.json",
+      "artifact_sha256": "bf03cce84065331bcfaa99b2053361abef093278570aa6c1ab3c2234d3a4dd6b",
+      "evidence_id": "ev_b3b8fc6b9c05ab0bf4441fe35e0ac6fcacd9edb5220b56a28cd7a06966228345",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x559970"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-vptr-first-three-slots.evidence.json",
+      "artifact_sha256": "3d4f86ea9491fefa57dac7dc9512d12d227239b44389c2f18cad90d37e44b1ff",
+      "evidence_id": "ev_1d2cd7af029cb007db66289863e4938262aa698387f27e85b082c6e5bcc030ea",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7b8350",
+        "length": 12
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "base-goal-version-init-native-ret.evidence.json",
+      "artifact_sha256": "dc50b53a1fa4d220aa1630106667837e081ad1dd02a19ef706927539f051e9d2",
+      "evidence_id": "ev_8dcdfdd413bb46153d95bfda29bf60117bb70efac3b79b840a9faa9686ac0872",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x559f9c"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-registration-return-native.evidence.json",
+      "artifact_sha256": "2709631dc4084acb112cdea538834b52d8bdd9067fedd2e0ecf14ab54126b7d1",
+      "evidence_id": "ev_be7df6c024b26148db5738e9f071e601ba5623e1c83e9e156008dc3363cad340",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x55999f"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-declared-class-factory.evidence.json",
+      "artifact_sha256": "218546e1b35decc7eb2d5fab66f7b7349717e317b89530e3b30353640bebbd12",
+      "evidence_id": "ev_9e03417b0652e4b8795b2ec5ce198f0839294c01a3704cdab4d9089a1929049a",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5598a0"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "expected-goal-family-class-name-literals.evidence.json",
+      "artifact_sha256": "bd7b8f9bc22dda7c5bd9fe91de68a4334888cfaea997295421317f2096690aad",
+      "evidence_id": "ev_67c5e79727c23bc4dc03498c205f7accecdc1cf3109aa3046cf204f9959f8c1a",
+      "operation": "search_strings",
+      "parameters": {
+        "pattern": "cGoal",
+        "mode": "literal",
+        "case_sensitive": true
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-own-version-init-native-call.evidence.json",
+      "artifact_sha256": "9569b1f6c4c87d2c8f10d94e521d1d996bf9283730b5eaf8d2672440f4f00c1e",
+      "evidence_id": "ev_d68fc8e12b7a36f66cc3b0fdf2719063d5803d43b855d06cadd115c28d49a30b",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x55a2b7"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-getter-native-ret.evidence.json",
+      "artifact_sha256": "b828dfec63ab75b25738fddb6c9a9c78f6797343a9202c061aaa62916963e407",
+      "evidence_id": "ev_d41b4c9c0028a3dc0cc1d66344cbad11a816806a41c165bb6fe201118b24dc32",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x559975"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "declared-housing-descriptor-xrefs.evidence.json",
+      "artifact_sha256": "0b467094ef673f869a8c012da450477f3ebe97ee3f54fd57198c93133c40105c",
+      "evidence_id": "ev_b23f91611a3dabab93df7d6f8f0cd9419307863b0b60f34d5028e3690cb854dc",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x859198"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "base-goal-version-init-native-call.evidence.json",
+      "artifact_sha256": "b0329dda9fcdad11f72e2de36468dfbe932d00d7cd42a22bac594dd32cf2e0f8",
+      "evidence_id": "ev_ccc26f6c850cda503bcce2b1fd088e2871a3c2f4ba273e082f5ca00fe429bf80",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x559f97"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-selected-schema-reader.evidence.json",
+      "artifact_sha256": "94b3e65300b200f47f07d7b77c7984753a3fe66f844867fc58762fb242c59328",
+      "evidence_id": "ev_7d2c25a9af96345b8b86a8bb2adc09fa31f4c56088e8a9468c7f4f7fb5fcb817",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x560ef0"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "declared-housing-class-name-xrefs.evidence.json",
+      "artifact_sha256": "7c6033d3c22ddfbd723c6d268beea94cb194e818e69a1a1fdb91eee2e8300449",
+      "evidence_id": "ev_8b833e53312134f7e51a0917d81ea1a1c74e116d72244cdb67d7ecbe6b012f14",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x859690"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-schema-base-reader.evidence.json",
+      "artifact_sha256": "ab79208ccda9c991d11a05b95c7722287c81a80dc5e940cb6b07e61172443094",
+      "evidence_id": "ev_cc0d46f39c037b1541ec4b23879f6a48cda0947b99dbe52fef53dc4c6c0d3246",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x55feb0"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-runtime-descriptor-registration-helper.evidence.json",
+      "artifact_sha256": "8b1ab5f504be0787238a453af99cd8d8f660484cc1ca27ca2b83c140b3ac879f",
+      "evidence_id": "ev_caa5089215f790dbfc8d90c2501badee7fa5dd4ffd4151485ab3f1ef47eba42f",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x40aa80"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-registration-call-native.evidence.json",
+      "artifact_sha256": "93871008210c7c0ffebd01f2193c31ee964eec30d69cd8db85fbac7b88c8e112",
+      "evidence_id": "ev_af105ac631b0a6b5f190bfaa369f95f565020f7dddfceba6c892100163997457",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x55999a"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-descriptor-registration-owner.evidence.json",
+      "artifact_sha256": "dca0d5787e157dd80c972fa0f5043a8b6c59f0d4e448ed2cb2cefdcafb2d607b",
+      "evidence_id": "ev_65c0dba1cca5b35385d139188ab33ef89839338f17901e6ff0a7b1176616c92f",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x559990"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "goal-base-selected-constructor.evidence.json",
+      "artifact_sha256": "6ed0b15a8cb100c497691e28f44aeee6a0f17438a9441b98349d3e49f90f368f",
+      "evidence_id": "ev_d69d1c784c4dcb28b19469a54c37f96f724e2530faa6d7419cad3390ac8d5a16",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x559120"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "goal-related-class-literals.evidence.json",
+      "artifact_sha256": "fe9089bfaa988e7a4bd4d9e14aee9ca5904b9660d9cb88c9312baf6c3a16b328",
+      "evidence_id": "ev_076e7e02796264495759f66b00e534a783c4ac8621eeeaf0d3401872983250bf",
+      "operation": "search_strings",
+      "parameters": {
+        "pattern": "Goal",
+        "mode": "literal",
+        "case_sensitive": false
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-own-version-record-xrefs.evidence.json",
+      "artifact_sha256": "a3084592869cdd037591d5199e0aa4a66565ef7c382b643d66e874d4eecd8711",
+      "evidence_id": "ev_609090ba54dea802d61aa5152142ce0a8554ca6c99262a449ff59837e366c2e7",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x12a59f0"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-city19-first-object-class-20261012",
+      "artifact": "housing-own-version-init-native-ret.evidence.json",
+      "artifact_sha256": "e0e2dbbf8409944e97b403f0050dd7c4f6a22ad9c154471fbf0ad98b164e497f",
+      "evidence_id": "ev_aa09b392d7e25fcfbf3c462664879f0393f0199d590104bb3d8a534adc8a62d0",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x55a2bc"
+      },
+      "complete_procedure_source": false,
+      "reused_old_complete_source": false
+    },
+    {
+      "session": "rea-static-pool-domain-20261011",
+      "artifact": "stream-object-reconstruct-assembly.evidence.json",
+      "artifact_sha256": "82460637581016a7d04b1add3e9436b6fca9f34073f7777823a045bc1033f0b3",
+      "evidence_id": "ev_1fd304716ab231f3cb4254d30f2d748af85deb8789af123cf3a4bd6e964723f4",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x77fd90"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": true
+    },
+    {
+      "session": "rea-static-load-identity-20261011",
+      "artifact": "stream-runtime-class-resolver-assembly.evidence.json",
+      "artifact_sha256": "85f144936ec6b78d8811190b46fbbf5bb3316607c78eb0bb701ea01c5d965ccb",
+      "evidence_id": "ev_22bceeb05f00317327d04f2112ab886670df61d6f19019234ae12531ef91fd2a",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x77ffc8"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": true
+    },
+    {
+      "session": "rea-static-versioned-city-load-20261011",
+      "artifact": "archive-new-class-name-assembly.evidence.json",
+      "artifact_sha256": "e42cc99969b36c10711c9d20fb2819b0276693c177313c1f780188cc2bee09f3",
+      "evidence_id": "ev_b40776bf4810807ff94feb12cbe0b55a46f4dfb7cd56e0837bf81fe1fec22d80",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x7802fe"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": true
+    },
+    {
+      "session": "rea-static-pool-domain-20261011",
+      "artifact": "stream-runtime-class-constructor-assembly.evidence.json",
+      "artifact_sha256": "10c006d0337f282e9d16cd0179c9f3578c997a43187debf15a6c8aa496788da1",
+      "evidence_id": "ev_c2758cb5535491a2a706681992291b2937edf430e0d0cc9fa0eea25bb3efff80",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x77bb54"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": true
+    },
+    {
+      "session": "rea-static-load-identity-20261011",
+      "artifact": "runtime-class-base-chain-assembly.evidence.json",
+      "artifact_sha256": "fe4feddf46ccbb4c5c58a315fbf1a86804bdd1fbe82faa6f4eb21ec448b3f895",
+      "evidence_id": "ev_f8162b75be8aafab061736209b8eb75f1c56cfdb01707f956f1113206be382ba",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x77bbc0"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": true
+    },
+    {
+      "session": "rea-static-load-identity-20261011",
+      "artifact": "object-runtime-class-compatibility-assembly.evidence.json",
+      "artifact_sha256": "60c933637550167bc9448e7e553f6f9cdd9d1dc6ae94cbd9d2a49cbaae5acb9c",
+      "evidence_id": "ev_9dddcb63d9f2d1db5f4105831b8bfee23409aca5ca358a0f7117c58b46a45225",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x77bb42"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": true
+    },
+    {
+      "session": "rea-static-versioned-city-load-20261011",
+      "artifact": "archive-reader-mode-setup-assembly.evidence.json",
+      "artifact_sha256": "a104330c8476654b38abfbd54f32ddd08deda6b1049a94c3a7f9ebbb364e03a0",
+      "evidence_id": "ev_3d3ea35de053256408a7ce2240cb097b9be0162680bef7d9f2cb376aa7de80b7",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x77fe3f"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": true
+    },
+    {
+      "session": "rea-static-versioned-city-load-20261011",
+      "artifact": "archive-object-cache-create-assembly.evidence.json",
+      "artifact_sha256": "ddd5d88cb36444891f86bd7640f5de059c6480eb589a5181320e94ea83b89401",
+      "evidence_id": "ev_a2f6bb0feec3f10e26b57a4d0f71000bcc3e7f999f552b50f10816d934b2757e",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x77fcfd"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": true
+    },
+    {
+      "session": "rea-static-versioned-city-load-20261011",
+      "artifact": "archive-wrapper-helper-assembly.evidence.json",
+      "artifact_sha256": "ef1f5000424a3a9e676ab65c654ae6bcc752224954f0665176edd1c1ac311672",
+      "evidence_id": "ev_0652731ed155c5c1a283341e0c3770b88a8be6d0686cbe6a02f16c3e70877725",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x40cf80"
+      },
+      "complete_procedure_source": true,
+      "reused_old_complete_source": true
+    }
+  ],
+  "new_session": {
+    "exit_code": 0,
+    "seconds": 1062.445,
+    "operations": 31,
+    "whole_procedure_parameters_count": 8,
+    "native_address_count": 14,
+    "input_identity_unchanged": true,
+    "official_module_pairs_unchanged": 18,
+    "temporary_empty": true,
+    "provider_error_artifacts": [
+      "housing-runtime-class-getter.error.json"
+    ],
+    "NoProcedure_not_actual_security_rejection": true
+  },
+  "actual_statistics": {
+    "input_sha256": "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+    "decoded_sha256": "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+    "input_bytes": 165223,
+    "decoded_bytes": 4430995,
+    "validated_blocks": 136,
+    "city_version": 19,
+    "first_section_version": 6,
+    "section_begin": 2,
+    "section_version_width": 2,
+    "section_payload_bytes": 41,
+    "section_end": 45,
+    "fixed_field_requests": 8,
+    "section_payload_sha256": "5262f37722e69ee640ea31d0993948502650d02f73d84f5f32891ccf41eb581d",
+    "opaque16_offset": 17,
+    "opaque16_bytes": 16,
+    "opaque16_sha256": "abdd2399f672cbf3c5a277eacc6ce19c51cefb0b796a0f10941996d1f75c517f",
+    "component_version": 2,
+    "component_version_offset": 45,
+    "component_begin": 45,
+    "component_payload_offset": 47,
+    "component_payload_bytes": 48,
+    "component_end": 95,
+    "component_fixed_field_requests": 5,
+    "component_array_dwords": 8,
+    "component_payload_sha256": "c8b093d2f6f1be8e7e0a19480093f999443a11948cdaccb910742d10868dfa98",
+    "component_array32_offset": 59,
+    "component_array32_sha256": "c52c41de242b1ed3c223592adcd3e7b9081b03378e246b9a8796fc9ef4ee1958",
+    "live_original_receiver_type_proved": false,
+    "helper_version": 3,
+    "helper_version_offset": 95,
+    "fixed_owner_version": 4,
+    "fixed_owner_version_offset": 97,
+    "fixed_owner_payload_offset": 99,
+    "fixed_owner_payload_bytes": 3256,
+    "fixed_owner_payload_end": 3355,
+    "fixed_owner_payload_sha256": "669dd572c72d49a37a1df59b4cb6620573856e99aa1db95491aff970f5878c67",
+    "fixed_owner_requests": 4,
+    "member_group_begin": 3355,
+    "member_header_bytes": 6,
+    "member_version": 1,
+    "completed_empty_members": 0,
+    "positive_member_count_observed": true,
+    "positive_member_index": 0,
+    "last_member_count_sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450",
+    "member_group_complete_without_objects": false,
+    "parsed_end": 3379,
+    "retained_prefix_bytes": 3430,
+    "member_header_frontier": 3361,
+    "archive_tag_word": 65535,
+    "archive_tag_internal": 2147516415,
+    "archive_tag_kind": "new_class",
+    "declared_schema": 0,
+    "declared_class_name_bytes": 12,
+    "declared_class_name_sha256": "c4291be23ebdfef80b50eeb34ec27a9f30d63fa29e8014a7447d482e9c9ae6c7",
+    "class_name_emitted": false,
+    "actual_descriptor_resolved": false,
+    "expected_descriptor_used_as_actual": false,
+    "class_factory_or_schema_reader_executed": false,
+    "cache_runtime_state_proved": false,
+    "halt_reason": "class-declaration-only-lookup-and-schema-reader-unqualified",
+    "member_count_or_object_values_emitted": false,
+    "original_version_gate_inferred_from_modern_scope": false,
+    "remaining_uninterpreted_decoded_bytes": 4427616,
+    "read_only": true,
+    "input_metadata_unchanged": true,
+    "decoded_bytes_saved": false,
+    "cache_or_mainpool_indices_interpreted": false,
+    "objects_deserialized": false,
+    "actual_original_entry_proved": false
+  },
+  "actual_receipt": {
+    "argv": [
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-first-object-declaration-20261012/synthetic-final-checks/first-declaration-release",
+      "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+      "165223",
+      "262144",
+      "4915584",
+      "136",
+      "4275878570",
+      "2882400255",
+      "2863386095",
+      "36144",
+      "36144",
+      "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+      "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.011489333000000004,
+    "source_sha256": "8bb2fc0d29c276f2b05b469fca56ce16380320b2d844f820a3cd9e27cfdf8eb7",
+    "exe_sha256": "9ee326722e60a87bc528bf7643382d4e6d557def73c4d194fce1a8d8f39f939d",
+    "stdout_sha256": "2cff1b204626ff015e0b1c1f0680fd256d9f91ec4f8bda2521f11b89e9d3af5f",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "only_repeated_because_source_diagnostic_changed": true,
+    "original_game_or_callbacks_executed": false,
+    "raw_or_decoded_original_bytes_saved": false
+  },
+  "literal_match": {
+    "source_matches": [
+      {
+        "address": "0x859690",
+        "value": "cHousingGoal"
+      }
+    ],
+    "name_sha256": "c4291be23ebdfef80b50eeb34ec27a9f30d63fa29e8014a7447d482e9c9ae6c7",
+    "name_bytes": 12,
+    "declared_schema": 0,
+    "actual_descriptor_resolved": false,
+    "source_literal_name_is_not_registry_membership_proof": true
+  },
+  "source_mapped_descriptor": {
+    "descriptor": "859198",
+    "name": "cHousingGoal",
+    "name_pointer": "859690",
+    "instance_size_field": 20,
+    "schema_field": 0,
+    "factory": "5598a0",
+    "base": "8590d8",
+    "base_chain_expected_check_under_valid_pointer_premise": true,
+    "schema_check_matches_declaration0": true,
+    "constructor": "559900",
+    "vptr": "7b8350",
+    "get_runtime_class_slot0": "559970 native MOV/RET only; NoProcedure preserved",
+    "serialize_slot8": "560ef0",
+    "actual_original_runtime_descriptor_resolved": false,
+    "current_module_registry_membership_proved": false
+  },
+  "next_reader_source": {
+    "base": "55feb0",
+    "base_record": "12a5a48",
+    "base_init_current1": "559f90 native4nodes",
+    "base_selected_read_widths": [
+      2,
+      4
+    ],
+    "derived": "560ef0",
+    "derived_record": "12a59f0",
+    "derived_init_current1": "55a2b0 native4nodes",
+    "derived_selected_read_widths": [
+      2,
+      4,
+      4,
+      4
+    ],
+    "class_schema0_not_section_version1": true,
+    "wire_requirement_if_normal_full_requests": 20,
+    "actual_payload_parsed": false,
+    "actual_interpretation_end": 3379,
+    "3399_observed": false
+  },
+  "self_authored_test_passed": 72,
+  "self_authored_test_failed": 0,
+  "self_authored_cases_per_mode": 36,
+  "tool_source_sha256": "8bb2fc0d29c276f2b05b469fca56ce16380320b2d844f820a3cd9e27cfdf8eb7",
+  "test_runner_sha256": "dd9bc8d8ba0ad6c110ecb04eaebdff3f8ae1600d0f65e0b29d9deb6cf8e77ad8",
+  "production_sources_unchanged": {
+    "file_io/include/owned_reader.hpp": "c7d3f5ada30ddddd748c429f61f7bb4525504bccf0cc6d016325b8e60a13e937",
+    "file_io/include/framed_reader.hpp": "d3d21e07110f57a19cd37d7e1fa61a922203a4c2ccb7c4988f60cb2e543abbd9",
+    "file_io/include/strict_zlib.h": "8884a8a9bc6d8222320d93023d088cd18430017e479a282ca698f102c3eaf7a4",
+    "file_io/src/framed_reader.cpp": "648bb362ff03f96afa0596cc5c84e628b1b666d78325d41099a70181eab5d68b",
+    "file_io/src/strict_zlib.cpp": "1c13bf06ba9721a85000105f4b18763f88bfadf71626f2cae1127288c6fb2f0e"
+  },
+  "P3_diagnostic_only": {
+    "source": "city19-component2-c00cd6a-review/suggested-truncation-label.patch",
+    "paths": [
+      "file_io/tools/qualify_city19_component2.cpp",
+      "file_io/tools/qualify_city19_member_headers.cpp"
+    ],
+    "passed": 48,
+    "failed": 0,
+    "only_text_replacement": true,
+    "no_parse_or_reject_behavior_changed": true
+  },
+  "optimization_guard": {
+    "exit_code": 2,
+    "output_directory_created": false,
+    "passed": true
+  },
+  "prior_4fd_independent_review": {
+    "saved_groups": 18,
+    "release_passed": 40,
+    "ubsan_passed": 40,
+    "new_issues": 0,
+    "report": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-member-header-4fd605e-review/REVIEW.md"
+  },
+  "prior_partial_1170_exit1_reclassified_as_success": false,
+  "original_or_decoded_raw_bytes_binaries_or_credentials_published": false,
+  "new_declaration_semantics_independently_reviewed": false
+}
