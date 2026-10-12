@@ -1,0 +1,388 @@
+{
+  "schema": "NATIVE_MEDIA_DOCUMENT_REVIEW_20261012",
+  "reviewed_utc": "2026-10-12T17:03:39.941580+00:00",
+  "baseline_HEAD": "d46f6ed4bbad300b6b720915ee4ae43059f88d90",
+  "scope": "Existing media reports, source/result manifests, read-only file fingerprints. No tests/binaries, original binary analysis, GameData access, network, UI, keyboard or audio-device operations. Git publication separately authorized.",
+  "evidence": [
+    {
+      "origin": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage23-native-surface-bridge.md",
+      "sha256": "12632e9da1c71f1185364915d05e2b014445eb49a5db0d296506c30f36cd5bcd",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage36-audio-handoff.md",
+      "sha256": "b6ec59d598ec56423053f1dd319d4f06c16deff993a8f93ce19f77e3be4abf63",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage37-audio-module.md",
+      "sha256": "0d203ed2ca04731da29f4056cecbf1558963c9a475e55f5fbb1381e4900aa448",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "LOCAL_LEGACY_TASK",
+      "relative_path": "reports/stage42-missing-movie-startup.md",
+      "sha256": "ddad8b17b6f58745077600414445c1706db2c6ff114da23f4946da8bb697b4bf",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage23-result.json",
+      "sha256": "b29d180876620cd8b8c1c991be14738ecb6384c96e9a27784e60edc7069d1239",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage37-integrated-fixed.result.json",
+      "sha256": "85ea1327b137cd56b5e896a1f7127206ba5fee481a0193acb7948f44efab894b",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "LOCAL_LEGACY_TASK",
+      "relative_path": "evidence/stage37-independent-restore.json",
+      "sha256": "047eb666a7f61519087c5274f56bc3dfb2187cdb404d94f12b05d837b4825f0b",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "docs/PLATFORM_AUDIT.md",
+      "sha256": "0c0da2430a11b926ee2bed80e0600f2539a090c2acc834df98ac911a2707080c",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "VALIDATION.md",
+      "sha256": "c0c50ed5bd30ef73f3b759785dbf291935f5d399a1547c577fc4fd4db39da5e0",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "docs/audit-evidence.json",
+      "sha256": "76f9148324f630197d95f7303b78d1d1bec1abca5fc04d5790667734ef869f7f",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "docs/APP_MOVIE_PLAYBACK.md",
+      "sha256": "d54a8865b4dd3db6f3bc0a88a5c868bc219d246a338d3f4ece313518ffdfbb41",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "docs/APP_MOVIE_ASYNC.md",
+      "sha256": "2914817f2c66063fa7e86c863c2085deebad3f7333cc68a43a5afed4e91da35b",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "docs/APP_TERMINATION.md",
+      "sha256": "9f3ad2b377be00043f043c6c7ebafddb07747f7b7357f8335a353c1631e2d060",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "docs/WINDOW_ACCEPTANCE.md",
+      "sha256": "f5b2e8ab598bcb03252a4bd4aee15b7936655504499241b95152168a4dac33d4",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "audio_lab/audio.hpp",
+      "sha256": "e366de20530c68c6effb9324c57705c7bc7e6ad228a48f644b59426fd2e49b7a",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "audio_lab/audio.cpp",
+      "sha256": "31fe1ac489822c97ceda2f6fd935cf50482eff292a82366390ada396fad02dd3",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_TASK",
+      "relative_path": "surface_lab/RESULTS.md",
+      "sha256": "04dcea1e7a1a76e0e3c050fb202c358fc604f8a5a13dcb79e45483a8c87f4182",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_TASK",
+      "relative_path": "audio_lab/RESULTS.md",
+      "sha256": "de83845e07a673c81fdd48a70414b258999f45d86edd6379c969d50f3ffc7030",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_TASK",
+      "relative_path": "video_lab/RESULTS.md",
+      "sha256": "7d2c4a6c33c2a8f0af842a6e9ce3b056b92d2b0e6f0b130b9a4835d04b4e1ed9",
+      "matches_prior_review": true
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "docs/NATIVE_MEDIA_CAPABILITY_AUDIT.md",
+      "sha256": "8dd320e884997ffbb2fd4668f14aa9429f4dbc577891cba30d6b8fce4ed7c5f6"
+    },
+    {
+      "origin": "CURRENT_WORKTREE",
+      "relative_path": "docs/RGB555_BOUNDARIES.md",
+      "sha256": "5e9333f4cc2455095aa9436372194492d5bead554525bda9f7fb6364c70b4c01"
+    },
+    {
+      "origin": "CURRENT_TASK",
+      "relative_path": "audio_lab/evidence/release/summary.json",
+      "sha256": "c219c58aa40b8e660d08a531ca541f3cfc39a82c77e7888da4787fec45aa8f67"
+    },
+    {
+      "origin": "CURRENT_TASK",
+      "relative_path": "audio_lab/evidence/undefined/summary.json",
+      "sha256": "0388f0299e3ded41ee113b263cb03a2f886aac723671f2e58d58f0073932904c"
+    },
+    {
+      "origin": "CURRENT_TASK",
+      "relative_path": "video_lab/evidence/release/summary.json",
+      "sha256": "43ccfd2de94735ff6f7ac2f0c12fe1558124d60e1701b46fc06bf7920e84304e"
+    },
+    {
+      "origin": "CURRENT_TASK",
+      "relative_path": "video_lab/evidence/undefined/summary.json",
+      "sha256": "44a5a0205e1c48fc441e6d80c32e5c1640d85f76fc6528c37062acc9f37b383c"
+    },
+    {
+      "origin": "CURRENT_TASK",
+      "relative_path": "rgb555-followup-20261011/qualified-validation-receipt.json",
+      "sha256": "7e6f60dcbcbe7f098db67c03d5fb1069f24a36efb688d6b49b2166d3fc369a95"
+    }
+  ],
+  "graphics_frozen_source_and_result_checks": [
+    {
+      "suite": "metal",
+      "mode": "release",
+      "local_report": "rgb555-followup-20261011/independent-validation/metal-release-f7rusd8j",
+      "source_manifest_sha256": "a36163bddd008b21805ed72a955589d18e2c95f68104e8c8808d46c63dc79b88",
+      "source_manifest_matches_receipt": true,
+      "current_source_matches_frozen": {
+        "metal_lab/backend.hpp": true,
+        "metal_lab/backend.mm": true,
+        "metal_lab/tests.mm": true,
+        "scripts/independent_runner.py": false,
+        "scripts/self_fixture_evidence.hpp": true,
+        "surface_lab/oracle.cpp": true,
+        "surface_lab/oracle.hpp": true,
+        "surface_lab/surface.cpp": true,
+        "surface_lab/surface.hpp": true
+      },
+      "historical_result": {
+        "passed": true,
+        "suite": "metal",
+        "mode": "release",
+        "results": {
+          "metal": {
+            "final_rng_hex": "0x99a61c3c70219f77",
+            "window_or_display_used": false,
+            "bytes_compared": 605967,
+            "backend_rebuild_cycles": 8,
+            "GPU_compute_and_readback": true,
+            "passed": true,
+            "assertions": 9890,
+            "actual_device_loss_tested": false,
+            "completion_callbacks": 572,
+            "reason": "",
+            "available": true,
+            "pixel_cases": 540,
+            "device": "Apple M1",
+            "seed_hex": "0x6d37a15eed202601",
+            "random_cases": 512
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "result_sha256": "14216785aa1364ac7d00896f53844e2e237b9022093b46ecc4f6d1b5ea1394dd",
+      "result_matches_saved_manifest": true,
+      "new_execution": false
+    },
+    {
+      "suite": "metal",
+      "mode": "undefined",
+      "local_report": "rgb555-followup-20261011/independent-validation/metal-undefined-g1h7njgw",
+      "source_manifest_sha256": "d4de09670845e22acf630d16f8884ad5b0a43dc6ce205ffe40f29ea2579769a4",
+      "source_manifest_matches_receipt": true,
+      "current_source_matches_frozen": {
+        "metal_lab/backend.hpp": true,
+        "metal_lab/backend.mm": true,
+        "metal_lab/tests.mm": true,
+        "scripts/independent_runner.py": false,
+        "scripts/self_fixture_evidence.hpp": true,
+        "surface_lab/oracle.cpp": true,
+        "surface_lab/oracle.hpp": true,
+        "surface_lab/surface.cpp": true,
+        "surface_lab/surface.hpp": true
+      },
+      "historical_result": {
+        "passed": true,
+        "suite": "metal",
+        "mode": "undefined",
+        "results": {
+          "metal": {
+            "final_rng_hex": "0x99a61c3c70219f77",
+            "window_or_display_used": false,
+            "bytes_compared": 605967,
+            "backend_rebuild_cycles": 8,
+            "GPU_compute_and_readback": true,
+            "passed": true,
+            "assertions": 9890,
+            "actual_device_loss_tested": false,
+            "completion_callbacks": 572,
+            "reason": "",
+            "available": true,
+            "pixel_cases": 540,
+            "device": "Apple M1",
+            "seed_hex": "0x6d37a15eed202601",
+            "random_cases": 512
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "result_sha256": "9826382ea52acb9d8b710cc1f542fca61aa025305d53218058e9ff0289f96294",
+      "result_matches_saved_manifest": true,
+      "new_execution": false
+    },
+    {
+      "suite": "surface",
+      "mode": "release",
+      "local_report": "rgb555-followup-20261011/independent-validation/surface-release-u6vsh7bg",
+      "source_manifest_sha256": "bb903bac895e281e058610952ea5bd53f3c4aaafbd770430a885220db317a54c",
+      "source_manifest_matches_receipt": true,
+      "current_source_matches_frozen": {
+        "scripts/independent_runner.py": false,
+        "scripts/self_fixture_evidence.hpp": true,
+        "surface_lab/oracle.cpp": true,
+        "surface_lab/oracle.hpp": true,
+        "surface_lab/surface.cpp": true,
+        "surface_lab/surface.hpp": true,
+        "surface_lab/tests.cpp": true
+      },
+      "historical_result": {
+        "passed": true,
+        "suite": "surface",
+        "mode": "release",
+        "results": {
+          "surface": {
+            "passed": true,
+            "scope": "self-authored CPU offscreen surface component",
+            "pixel_seed_hex": "0x5eed565b6a8a0001",
+            "lifecycle_seed_hex": "0x1a11ce005eed0002",
+            "groups_passed": 9,
+            "assertions": 218646,
+            "bytes_compared": 1883612,
+            "copy_cases": 627,
+            "nearest_cases": 594,
+            "negative_checks": 2043,
+            "random_pixel_cases": 1024,
+            "random_lifecycle_events": 2048,
+            "exhaustive_RGB565_values": 65536,
+            "exhaustive_RGB555_values": 32768,
+            "allocation_loss_restore_release_cycles": 256,
+            "pixel_rng_final_hex": "0x46a414f38e1dd8",
+            "lifecycle_rng_final_hex": "0xa18c891d1f311aba",
+            "elapsed_ms": 28.5473,
+            "error": "",
+            "GPU_tested": false,
+            "UI_or_input_used": false,
+            "audio_devices_used": false,
+            "game_resources_or_instructions_loaded": false,
+            "binary_translator_or_emulator_used": false
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "result_sha256": "ccb4e99d048a42325fb848f109150712ad627ea26223943e338e33056787b182",
+      "result_matches_saved_manifest": true,
+      "new_execution": false
+    },
+    {
+      "suite": "surface",
+      "mode": "undefined",
+      "local_report": "rgb555-followup-20261011/independent-validation/surface-undefined-yo68hhoq",
+      "source_manifest_sha256": "f8d13d12874d6cfe4dbd65d8956f0628fe96aa82077776b04f0bd4c32bb55490",
+      "source_manifest_matches_receipt": true,
+      "current_source_matches_frozen": {
+        "scripts/independent_runner.py": false,
+        "scripts/self_fixture_evidence.hpp": true,
+        "surface_lab/oracle.cpp": true,
+        "surface_lab/oracle.hpp": true,
+        "surface_lab/surface.cpp": true,
+        "surface_lab/surface.hpp": true,
+        "surface_lab/tests.cpp": true
+      },
+      "historical_result": {
+        "passed": true,
+        "suite": "surface",
+        "mode": "undefined",
+        "results": {
+          "surface": {
+            "passed": true,
+            "scope": "self-authored CPU offscreen surface component",
+            "pixel_seed_hex": "0x5eed565b6a8a0001",
+            "lifecycle_seed_hex": "0x1a11ce005eed0002",
+            "groups_passed": 9,
+            "assertions": 218646,
+            "bytes_compared": 1883612,
+            "copy_cases": 627,
+            "nearest_cases": 594,
+            "negative_checks": 2043,
+            "random_pixel_cases": 1024,
+            "random_lifecycle_events": 2048,
+            "exhaustive_RGB565_values": 65536,
+            "exhaustive_RGB555_values": 32768,
+            "allocation_loss_restore_release_cycles": 256,
+            "pixel_rng_final_hex": "0x46a414f38e1dd8",
+            "lifecycle_rng_final_hex": "0xa18c891d1f311aba",
+            "elapsed_ms": 46.9815,
+            "error": "",
+            "GPU_tested": false,
+            "UI_or_input_used": false,
+            "audio_devices_used": false,
+            "game_resources_or_instructions_loaded": false,
+            "binary_translator_or_emulator_used": false
+          }
+        },
+        "error": null,
+        "ui": false,
+        "audio_devices": false,
+        "GameData": false,
+        "legacy": false,
+        "app_launched": false
+      },
+      "result_sha256": "44e4a926ccd02d305cee31dacd1a85d0f7fbd8c1853b220b4bb2b286b9df407a",
+      "result_matches_saved_manifest": true,
+      "new_execution": false
+    }
+  ],
+  "historical_claims_are_new_tests": false,
+  "all_prior_evidence_fingerprints_match": true,
+  "not_verified": [
+    "auditory output",
+    "physical device disconnection/recovery",
+    "hardware audio clock",
+    "complete window/drawable/vblank visual behavior",
+    "valid Bink decoding and original ABI compatibility",
+    "complete game acceptance"
+  ],
+  "authentication": "Prior publication receipt reports existing GitHub authentication invalid; no new authentication or remote attempts during review."
+}
