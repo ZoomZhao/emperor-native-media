@@ -1,0 +1,2845 @@
+{
+  "schema_version": 1,
+  "utc": "2026-10-12T07:54:59.996752+00:00",
+  "base_HEAD": "cfea23e6e738a2a444296c6c045f165914a82f28",
+  "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+  "source_sessions": [
+    {
+      "root": "rea-static-city19-religion-following-20261012",
+      "profile_digest": "741fa06699107a2d52bb94779718c80977dec0337fc7366e18bd4778e7b2445d",
+      "seed_commitment": {
+        "format": "rea-ghidra-seeds-v1",
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-religion-following-20261012/seeds.tsv",
+        "configured_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-religion-following-20261012/seeds.tsv",
+        "sha256": "1ed51546a9df714f240f7bda6b27012fb660359ffe0c182b559463d4749fe04a",
+        "entries": {
+          "function": 1,
+          "code": 0,
+          "label": 0
+        }
+      },
+      "seed_report": {
+        "format": "rea-ghidra-seeds-v1",
+        "sha256": "1ed51546a9df714f240f7bda6b27012fb660359ffe0c182b559463d4749fe04a",
+        "entries": 1,
+        "function_created": 1,
+        "function_existing": 0,
+        "function_failed": 0,
+        "code_decoded": 0,
+        "code_failed": 0,
+        "label_applied": 0,
+        "label_failed": 0,
+        "unmapped": 0
+      },
+      "seed_entry_declarations_not_discoveries": true,
+      "exit_code": 0,
+      "seconds": 552.285,
+      "operations": 21,
+      "Evidence": 19,
+      "errors": [
+        {
+          "file": "religion-embedded-selected-reader.error.json",
+          "sha256": "3289a33c4d2a0dc48f8162eefa0f49e203022e881a0a138f5c727169e8481df6",
+          "error": {
+            "code": "invalid_request",
+            "category": "invalid_input",
+            "message": "Analysis input is invalid. Check the arguments and try again.",
+            "retryable": true,
+            "remediation": {
+              "action": "Correct the listed arguments and retry."
+            },
+            "details": {
+              "operation": "procedure_assembly",
+              "issues": [
+                {
+                  "path": [],
+                  "reason": "invalid_value",
+                  "message": "No procedure exists at the requested address: 0x510010"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "file": "religion-child-selected-reader.error.json",
+          "sha256": "944eaceac53524821891db8ed29734c17dc355eddbd110427018e1ffac2564d5",
+          "error": {
+            "code": "invalid_request",
+            "category": "invalid_input",
+            "message": "Analysis input is invalid. Check the arguments and try again.",
+            "retryable": true,
+            "remediation": {
+              "action": "Correct the listed arguments and retry."
+            },
+            "details": {
+              "operation": "procedure_assembly",
+              "issues": [
+                {
+                  "path": [],
+                  "reason": "invalid_value",
+                  "message": "No procedure exists at the requested address: 0x5a71b0"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "procedure_parameters": 8,
+      "native_sites": 8,
+      "selected_bytes": 56,
+      "input_identity_unchanged": true,
+      "official_module_pairs_unchanged": 23,
+      "temporary_empty": true
+    },
+    {
+      "root": "rea-static-city19-religion-children-seeded-20261012",
+      "profile_digest": "b56f965010ae0123b670f5763cc5fe952b5fce65bc8f3a434b2a254396326a1c",
+      "seed_commitment": {
+        "format": "rea-ghidra-seeds-v1",
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-religion-children-seeded-20261012/seeds.tsv",
+        "configured_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-religion-children-seeded-20261012/seeds.tsv",
+        "sha256": "eeb8e3c9490f2d718b66d0f57c87e7fbbb66cebe1a30dee8c2071c8c332b8ddf",
+        "entries": {
+          "function": 2,
+          "code": 0,
+          "label": 0
+        }
+      },
+      "seed_report": {
+        "format": "rea-ghidra-seeds-v1",
+        "sha256": "eeb8e3c9490f2d718b66d0f57c87e7fbbb66cebe1a30dee8c2071c8c332b8ddf",
+        "entries": 2,
+        "function_created": 2,
+        "function_existing": 0,
+        "function_failed": 0,
+        "code_decoded": 0,
+        "code_failed": 0,
+        "label_applied": 0,
+        "label_failed": 0,
+        "unmapped": 0
+      },
+      "seed_entry_declarations_not_discoveries": true,
+      "exit_code": 0,
+      "seconds": 1097.467,
+      "operations": 16,
+      "Evidence": 16,
+      "errors": [],
+      "procedure_parameters": 5,
+      "native_sites": 2,
+      "selected_bytes": 88,
+      "input_identity_unchanged": true,
+      "official_module_pairs_unchanged": 23,
+      "temporary_empty": true
+    }
+  ],
+  "new_source_bindings": [
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-child-constructor.evidence.json",
+      "artifact_sha256": "0d9de13a1d0cab82f623949b0bdb1cd18ae9ec38d3e24662baaca22bc4cbb610",
+      "evidence_id": "ev_0ecf5b8d4f48e2f33d415459e48448489a7fd59db1fc36a78a230a932d922e29",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5a7010"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "fourth-seeded-reader.evidence.json",
+      "artifact_sha256": "7cae13902ed38549f3153c241ef8aa62f36a735c92ca2e6fabd4314f7ba7af52",
+      "evidence_id": "ev_4b845e65cb42ec71e671d36bc8a144aa6ffe3311bd05d5908b0be8b6cbf35780",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x40cf40"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "fourth-post-vptr-reset.evidence.json",
+      "artifact_sha256": "4b72a14db112ca6d89bc0d68a55014c559f41a56ae7518ef6f02d812989233a5",
+      "evidence_id": "ev_4e92f19b0fe724674eaecc745bf9bddf72a9569fda38bf2e0dab186d921109da",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x40d170"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "fourth-seeded-entry-native.evidence.json",
+      "artifact_sha256": "a06dc52be6b73773d478142dd8fac99792ce8da5e66f7db3da543face59c7c2a",
+      "evidence_id": "ev_42280e14f215afda5c80cd5bc5777ecc34d8e6bdc61a8b0293b2d8042347a0ba",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x40cf40"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-child-vptr-slots.evidence.json",
+      "artifact_sha256": "38c4c2f3359d9fbedb79b11628236bfdfe23fdd4b04977a6090e95c9db84b925",
+      "evidence_id": "ev_30331aa2ff89827dd6193f66f56613f638e2282b9542f15ef00a1cf5dfe9977e",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7bc028",
+        "length": 20
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-child-size-native.evidence.json",
+      "artifact_sha256": "757676a06df5a384b542667a93567e9d3e79025da184f14585c9c231c1eab38b",
+      "evidence_id": "ev_b62c1ca86339b2add27b6d3c6e08b16314f9b2612d0314ff8e2c33cdd3c697ce",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a7190"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-child-buffer-native.evidence.json",
+      "artifact_sha256": "bebbe821e6c9e66e006a5bac42306b234e1cb1afe5d4d120495ff463f65f278f",
+      "evidence_id": "ev_a608c1c77fe63a1870519c33d073ecdd7ed5c0d374e9f7d21f1e9e336b8178d9",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a71a0"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "fourth-version-xrefs.evidence.json",
+      "artifact_sha256": "4caf0c32257cda530a8310f6a189b5dbdc890dceef468ca0f406e38d39d65644",
+      "evidence_id": "ev_d1d668b6f4fd40561d4a14d13db2b05b4fb3d74d3f79a2ee6f2e3225c9eda614",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x88f180"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-child-actual-size-native.evidence.json",
+      "artifact_sha256": "bb5ca51084cb541c492e7c8cb1d1f620368b0ddc5199a808c661eac60dd0a7df",
+      "evidence_id": "ev_1b476548136b655b2f831c53032347029b6307f1dbcea49a75b8e6b7601dba55",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x4f8920"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-child-data-pointer-ret.evidence.json",
+      "artifact_sha256": "d8a5297336ab286626382db13bce828c8ccf588ce06e0637f2f34cb18f6bc114",
+      "evidence_id": "ev_508fa7679b81a39e1b49647728ca0776dff011c5a5d10ff40111031263219ce1",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a71a3"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-embedded-constructor.evidence.json",
+      "artifact_sha256": "2e81ac80e9723cb0838f4438a00f35bfb426624d80d6bb756f17c3b43f63fb51",
+      "evidence_id": "ev_04610ac59c83ee4787ac88bcc26a52a98d27ed3622117551622541ae0a1fde48",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5156a0"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "fourth-version-initializer-owner.evidence.json",
+      "artifact_sha256": "c6240de025f6813a91a944c1077c43f93b8ca42c895cc5b26ecdb9b40a598653",
+      "evidence_id": "ev_72aeb40352dbff428829e5b2f3279c6f8720b50d130167f678dbda7b54bb5c20",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x40a9b2"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-embedded-vptr-slots.evidence.json",
+      "artifact_sha256": "f3934b3ff86cbb130656b0eb81d9c8c8bbdc2054bf304b66e3aec9434c5f824f",
+      "evidence_id": "ev_1beb4d4f9001792d2d39065889331a8101440080f3252d00ddeed45386fc9ff3",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7b5c18",
+        "length": 12
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-child-actual-size-ret.evidence.json",
+      "artifact_sha256": "c70dbfa6f2cfa570c44851d5fab5f83349c5f7029cd348c60e06719e98ad3d13",
+      "evidence_id": "ev_32cd23b6bba4f624e0586d772ce5b73a0445df42752eaf590888db13b8451d01",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x4f8925"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-child-runtime-getter-native.evidence.json",
+      "artifact_sha256": "b5978dc76b5cbe1a565b37a39aac1f3ef2c51e0635a50fb9439bce88882376c6",
+      "evidence_id": "ev_95e48de12a2ed9bd0cfc02d9b0599d4446a422123464d49d702930df47ac11f6",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a6f30"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-child-runtime-getter-ret.evidence.json",
+      "artifact_sha256": "54dcf49e54a6c4d67cb880dcd300e26d45f8dc8a2d1d4ad65e60d06ba14770ba",
+      "evidence_id": "ev_5b66c5ccbc43461b8ad7244f1899d19835623e71a9104e541c04fd9927ade40f",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a6f35"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "fourth-version-initializer.evidence.json",
+      "artifact_sha256": "f4890d932eaba130a8186c01c446c5a0159f4176d0fc3596342a83529f8d888e",
+      "evidence_id": "ev_ea73c3b6162230f0641cb7f749a129789a5c7dd08f09b330227efb951df5b336",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x40a9b0"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-embedded-bounds-helper.evidence.json",
+      "artifact_sha256": "9495ae396667ee5b092d33ce5a42fe0a99f6a02d0c4d5a4e95dedb8d21a0f8d0",
+      "evidence_id": "ev_ee0922a408ee2e183bd4e48d6217577e879b7555d46e453ca28941adef55f53f",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x515700"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-following-20261012",
+      "artifact": "religion-child-descriptor.evidence.json",
+      "artifact_sha256": "ddee775b3306882297ec2ed61ed8797b8834eff3a82232c4fe0c99969f2a6731",
+      "evidence_id": "ev_db669f30b981c28bf4925993f795360f7b0bec6380528695653c0648e3c8f220",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x85db28",
+        "length": 24
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-child-seeded-reader.evidence.json",
+      "artifact_sha256": "105c1a077c39f82489a55e8aaf9c196db36ebf86ba940f2fff6bf9aea90952bf",
+      "evidence_id": "ev_1310a6e3ec49eaf36f1bb8aff533b0a82552a79d404a4bbc060af3498dcc13a4",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5a71b0"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-embedded-seeded-reader.evidence.json",
+      "artifact_sha256": "fabc128c4e0b06dd6336429a2cf4a2d7fb3503e078924140a1b87c470de6e7b7",
+      "evidence_id": "ev_0ce19b54897801af049a51760cc82ae4c9de8db01e9fb307f39508ebc04588de",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x510010"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-parent-version-xrefs.evidence.json",
+      "artifact_sha256": "c3eb173e2f8bf89fb3955f5cd60b6b47c1795058ea6a044e245493905b59269f",
+      "evidence_id": "ev_e062de8a0ffe31b5549cb5a2ecb8a7f8f0cdc0802246e9da61739a0347991bbb",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x1312e48"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-child-type-name.evidence.json",
+      "artifact_sha256": "299c6cb153886ff46b4c6b2225865d48c22e19f85c4d8eeab6f923ee269fec59",
+      "evidence_id": "ev_6d365d959b8953233c2059f3431bf1c9b6b9415011ae349d8278305768f7b862",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x85dbc0",
+        "length": 32
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-child-version-xrefs.evidence.json",
+      "artifact_sha256": "d542b16671497f41056ece8a822029191b3ce467688d2db81de453a2848d13ab",
+      "evidence_id": "ev_17378f933a81ad24ecae1088be4dce214d71d02f1de9b8389863a23b6e531b3d",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x1312f68"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-embedded-version-xrefs.evidence.json",
+      "artifact_sha256": "500e8f52c4418c5bdcf4a619cd650cde1f6635de21eb1d1ed59fcc5c05312492",
+      "evidence_id": "ev_12238397bfb006a5433c301da7f9cc1dd2334668c6875262db95033f785260a2",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x10bfdd8"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-parent-initializer-owner.evidence.json",
+      "artifact_sha256": "3888329a0f3402cb1f2c535c27eb614179dd8d6d5e877f818251b80e45de196e",
+      "evidence_id": "ev_de0098245303fcf3f8ee6edda4cdc03e18f5967b97519b8897701caafa1ff9d9",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x5a7872"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "fourth-runtime-getter-native.evidence.json",
+      "artifact_sha256": "454756a85306949d262766df8f13f47282dbd62d0f964d53b431b17af2df96f5",
+      "evidence_id": "ev_90e6d5e22e4a9590f4060c1261aa48bb7629db7bf78e947b5df8a3ea2dba5d0b",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x40aa50"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "fourth-runtime-getter-ret.evidence.json",
+      "artifact_sha256": "1f28e5998a5e9286754e7cd5767d1a7d0216ff8e3172285bdb3d493f56f66142",
+      "evidence_id": "ev_1a70dd890f5d4de415312bc631000a2a878ca773c3ad63aaf63e2871ddbbddde",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x40aa55"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-parent-version-initializer.evidence.json",
+      "artifact_sha256": "969531eecfd11acc64aef12894a899edc85143e9831cd8a85944fc6032699fc2",
+      "evidence_id": "ev_7d3da83f5c2d60d251e93c2a68a5f829750c6efb2caa13dca91220c1d35f48a9",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5a7870"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-child-version-owner.evidence.json",
+      "artifact_sha256": "976f1b0d6e388ac6f186b82fd9b34c9b3626d05350d834800d2a8e4adefa9f94",
+      "evidence_id": "ev_68ca978955ceb90fb430a4c97da96a0809a292b829cb38c48e7d62a3de8e1099",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x5a6e92"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-embedded-version-owner.evidence.json",
+      "artifact_sha256": "e03bef8352592d213a4d8b2721c4f7a439cb6e0fdd8dc05ea69a855caa83c800",
+      "evidence_id": "ev_73886588fdf70437774ff169c5916e482d96859d6b750d95d95eabb426aa07ff",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x50fef2"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "fourth-descriptor.evidence.json",
+      "artifact_sha256": "55bf022eb2337dcfa62c391fcae6b89095e22be9a5e7360e79a63cc690586575",
+      "evidence_id": "ev_55e4023dc246a48258e78a8fd3650bc954bf2a23022adf5fcfebe71ff5eb1298",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x8158e0",
+        "length": 24
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-child-version-initializer.evidence.json",
+      "artifact_sha256": "ee8f90afc170d6fa47672aa4cb0e2fe39f40f56566a781ee2d47ec4f733f0971",
+      "evidence_id": "ev_6e8bb82e681ad2ce614867c89e18a09409f129095681d439576093c712f30d97",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5a6e90"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "religion-embedded-version-initializer.evidence.json",
+      "artifact_sha256": "95794cc4e37908ff82a11162961cefef0e18893d7ff547b3cd55781947ee411f",
+      "evidence_id": "ev_5801d35e90cf1322ea9825108747d04641ff8a21c3dcbd46cde93942b8b8fb40",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x50fef0"
+      }
+    },
+    {
+      "session": "rea-static-city19-religion-children-seeded-20261012",
+      "artifact": "fourth-source-type-name.evidence.json",
+      "artifact_sha256": "26009b2877584cf88cabce14aa812676598a7839c3dd65d2cd7b927e5952c09b",
+      "evidence_id": "ev_5e60d20303d6e89364888cfa732f7603a3b339984a71e7b119a2bf36abc74a53",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x815b80",
+        "length": 32
+      }
+    }
+  ],
+  "reused_source_bindings": [
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "seeded-flood-entry-native.evidence.json",
+      "artifact_sha256": "f8bb17553f821674c763e091c9c1e455be71f93b506b92537a3ab75d9e75c5e6",
+      "evidence_id": "ev_c6a2360a44b13e8d2811ec8b87c0822a390a12dfad3fc959ecb99e87584466f8",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x4edda0"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "seeded-flood-procedure-containing.evidence.json",
+      "artifact_sha256": "2d9c103fbfd1f638614cd9c7a008cfa05e4bbe27125eeb8b131ff1d3ebe9b832",
+      "evidence_id": "ev_2fbb2b4613f0f35825e893ed75cfdfadaf8eab890fce6cee4063a9a9a26b7131",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x4edda0"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "seeded-flood-reader-assembly.evidence.json",
+      "artifact_sha256": "8e266a2181fff193ed9c94de4418113615c1e48585677971c9a38814c6bae5c6",
+      "evidence_id": "ev_c0c77fc7307ffd4fa3aa02e29cf71a704494078ca38423dee4b0b1bb509207ca",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4edda0"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "seeded-flood-window-bytes.evidence.json",
+      "artifact_sha256": "2af7b116bd3a88f323a4f5f7ed48e9a8f0af59af33f8a7ea37655e38a38ea0c3",
+      "evidence_id": "ev_f658ce8960c4bafb96aab112f6604f0b92baae4847dcec93d509dd212971942f",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x4edda0",
+        "length": 64
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "seeded-flood-target-xrefs.evidence.json",
+      "artifact_sha256": "6e99b75bc27a5fc754b7f3d9164ca239ce2629317219c2738017760487341b65",
+      "evidence_id": "ev_6ca32ce19d46ea7f334965d62f474514fdb293528e377fd8ca9398a0e2078a59",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x4edda0"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "flood-following-second-static-initializer.evidence.json",
+      "artifact_sha256": "f36792791be588579afe5fdd670a82b00378bb209d21e6c31af035b6b16e67eb",
+      "evidence_id": "ev_989a132e7b3ddfb238ca626d953f97fd2afa3c15e02a4527ab4cba4d48a9cb87",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x48deb0"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "flood-following-third-getter.evidence.json",
+      "artifact_sha256": "7710f961cb757cb5d0abe4e6b1b101cd02e18ac7266e46f24950aaf45655afab",
+      "evidence_id": "ev_21675e13cda65bf1e9474ebc06b0dd2d8907ecc9201859c55f6677847e351f48",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x426a60"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "flood-following-fourth-getter.evidence.json",
+      "artifact_sha256": "6cad1951f7d13a7bb9c84c59d53e5b9248341d0a6d0b88a66b0dad66e7bce72c",
+      "evidence_id": "ev_36ec41d0474189cbf08763c51c0accbf7ec2ae733f2728a8a83d052a8fb9fac4",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4081f0"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "seeded-flood-own-version-xrefs.evidence.json",
+      "artifact_sha256": "5e6c604afe0e5c67d3edcd3205f9a8af1525fa8ac0f456806853137d8be5102e",
+      "evidence_id": "ev_53fecb3d27e4d84c82b729c0686fabd4fc7775aba9e65bdcd2ce9b6298b26aa9",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x10af4d0"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "flood-following-second-constructor.evidence.json",
+      "artifact_sha256": "c9cd2ee5cc2810e7dd1625063dd88109419a6e143696b0bdc7b75808666d8f67",
+      "evidence_id": "ev_2c2ab96751b48e39790c857a7ffe8e5ca89309d7135c8ac9b6e5e6365d9090b6",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x48df40"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "seeded-flood-version-initializer-owner.evidence.json",
+      "artifact_sha256": "203fccd6b0059d50e20b8d40a0affee0d07c93c8665717ab3a538410b4ca58f9",
+      "evidence_id": "ev_181537b225692c6e5b5ae59f227a7fda6ca0e119d627dc288d6c2877474214d7",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x4ed172"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "following-second-reset.evidence.json",
+      "artifact_sha256": "35dfc4b43798dc587bdc11c69fd2895f9c88992bb636fd07368d0cb44d2b8045",
+      "evidence_id": "ev_01b5fdca3caf9bc76a788311fdd88c265c07092008edf023faf6dd3d94681d45",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x48dff0"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "following-second-vptr-slots.evidence.json",
+      "artifact_sha256": "2789ac252ca48557674804886cba45bcf796fa5fb56460bceef2ebbce36b3714",
+      "evidence_id": "ev_13112715d164284c8a9d467ad9098e9332810d72e1d9ec37c6ee39cbe17bfca4",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7adb88",
+        "length": 12
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "seeded-flood-own-version-initializer.evidence.json",
+      "artifact_sha256": "aaa54a0259b63eed831a7741fc6e2e7d5478a8d3feb9284c6db671c58b5721fc",
+      "evidence_id": "ev_1147d8d81ad5aa0a66bb0efbd5ba73768c04d7fbbe28d3cc8c37154439a369d0",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4ed170"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "following-second-reset-helper-native.evidence.json",
+      "artifact_sha256": "800c84764168fbae1ac2f011a272268fcf0fb104f028e772e38adc1ab9be5480",
+      "evidence_id": "ev_9baa5ed236154424f4dbd68501a568e712d5ad5f2f42d81e1ca2a63c1e7f72a9",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x48dfd0"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "following-second-reset-helper-next.evidence.json",
+      "artifact_sha256": "e646b843a43d0e74d828cc79aad80f0869bc1ca1da5be8ef816e7443a5e18cbb",
+      "evidence_id": "ev_73310f1cc208439090d50cf4ebca2fb9f5c3ac3939c96a370a5e3eb79024c6d3",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x48dfd2"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "following-second-reset-helper-next2.evidence.json",
+      "artifact_sha256": "4fe33d02b64fd31486ccfc8419f7176763ce5199ce5df4ca762fd862eabd630f",
+      "evidence_id": "ev_98d2ebda2bc0afead5452f136f5e47b7f89200a8232192d053319d999a590faf",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x48dfd5"
+      }
+    },
+    {
+      "session": "rea-static-city19-flood-seeded-20261012",
+      "artifact": "following-second-native-unseeded.evidence.json",
+      "artifact_sha256": "b8895a601113a2da5907d34c2568f6b7b6b247086c49a68b89cbb99d0d0dc24c",
+      "evidence_id": "ev_89c3fb87f60dd42216b4adea6d4b72724c047af72cd5a1aa852e706e3c955892",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x48ed30"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-seeded-native-entry.evidence.json",
+      "artifact_sha256": "4ece5df4874e345ada8ef4d2146f404641bf16b6594f0d5c7d53730b356bfdca",
+      "evidence_id": "ev_dcaa24780a746362e34bb5a6d475143e408cbaf6b821adaf85b40855ec5a4046",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x48ed30"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-seeded-reader.evidence.json",
+      "artifact_sha256": "2a186582687312604a08c7180d1f1c82c5cdc9200ed2ce83f472d5bb6c91dbca",
+      "evidence_id": "ev_e7c92fb8a41534abcc2a35698c3a90fb1a23fe0b8b162d7072fc6daed068ec52",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x48ed30"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-reset-helper-full.evidence.json",
+      "artifact_sha256": "becfa80733105fa4dbc3ad4e71df26013b5eb57149f83185da4820cfb25641ba",
+      "evidence_id": "ev_d90ecc12970c4e125d49e7b9c65a1cd944e61d9dbe3f225520e48b57166561d5",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x48dfd0"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-rect-reset-helper-full.evidence.json",
+      "artifact_sha256": "b6c22b5a6a4f0d8ab2c9834b422a2d78f22264821204227234aa9cabaf3b3e6e",
+      "evidence_id": "ev_d036bf9981183e889c78c2b6262b4e1de4689483376942b17e4090fd47f42a1d",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4f89b0"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "third-owner-xrefs.evidence.json",
+      "artifact_sha256": "b22595ca54a120f886ebc88844839ced74a1a814a9f8de3fb5c515aed5688187",
+      "evidence_id": "ev_76ec9475b5f9a0694707e6891995539f3fe13e3911090f8fa3f3a9611cb9527c",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x1312f08"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "fourth-owner-xrefs.evidence.json",
+      "artifact_sha256": "e9fe3519915246efda97a7b9fe421f151c922b7e4d90f5f7a6b7d6374a99e839",
+      "evidence_id": "ev_8e6759739eb2dbc2ddf98907a430c0a80b241c41b1c612faae77c07c84082c42",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x88f190"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-embedded-member-constructor.evidence.json",
+      "artifact_sha256": "83ca20eed00ea05de02d7fc4790f60824dd9f1419ffd487f72e02214f15a8b20",
+      "evidence_id": "ev_15949c085ff867f5902754d55db6651dbf355d959e744c24334166e6ad214664",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4f8930"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-own-version-xrefs.evidence.json",
+      "artifact_sha256": "bef373445018436aef4b82e6d999e720bba9a3152bb256fbdc022aeaa067d2e8",
+      "evidence_id": "ev_a1d83da6529bc4ab7ac75b1d662d55f8d98de1b19ed18982a03acece7372f4cc",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0xc702b8"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-version-case-table.evidence.json",
+      "artifact_sha256": "f5c7ab6bbb61a61d731b25ff56cf8f5e511801039b0ae25faa2a9acc91b7acca",
+      "evidence_id": "ev_c0470564fb5ea0e3eb26956676dd595e1c3c9825e71a8a5fe4fae3f690c620f0",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x48f128",
+        "length": 16
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-runtime-getter-native.evidence.json",
+      "artifact_sha256": "47c3dbb90ab7c793080a9d3f0eff1cb65ca7eb21301a3b7dd1eb234b49ea74fe",
+      "evidence_id": "ev_c0e68bb18c63ef4c5ec5e2f54a91453dc63997a5a8ec1e0a6ed69a0f8a23029f",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x48a260"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-runtime-getter-ret.evidence.json",
+      "artifact_sha256": "8e053cd612ab31d976b5c7283da7da98f8fdfb37f3f3c8bb574b024597542fcf",
+      "evidence_id": "ev_e3cce6c8ead37494c4c42d790977eb1b57fe2972146c8b8b7dfbb43e58151035",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x48a265"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-embedded-vptr-slots.evidence.json",
+      "artifact_sha256": "dbe71b5b071ee6c27a241a57dc6d74d28d6211791cede10a749dbb78cc41578d",
+      "evidence_id": "ev_bde25380c1a2ed309c14a3ffc35b3e144ecb70ce51d7808b7d534472626aa2c5",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7b3ee0",
+        "length": 12
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-own-version-initializer-owner.evidence.json",
+      "artifact_sha256": "8d2e23fcf354d6d8fb368965d31b636a062acf31a6f31498d763d2761cf38456",
+      "evidence_id": "ev_96a0685cf56a803ab8596bfee9568aac7bb9e44d8e8cb680604d4237292d9596",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x48a302"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-descriptor.evidence.json",
+      "artifact_sha256": "3d20f13699d93180c403159edea6986624e645cb957d7db6a8db804411b268ee",
+      "evidence_id": "ev_f5537b9908e292acceb728cf900c592136dbb806fdca39b72308612ff246528e",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x82bc58",
+        "length": 24
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-own-version-initializer.evidence.json",
+      "artifact_sha256": "16d700fede1a609c741881844d9ffb95ffae635a52fd723efacfcf53d9deea00",
+      "evidence_id": "ev_b7a09509b1bdf7610b5aa70ddf51d2409ea3e98526f82e71423b086032a0dee7",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x48a300"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "second-source-type-name.evidence.json",
+      "artifact_sha256": "68ee1e4f3a85ebf7a90e960beb6eb24f1f7730ca23f543dc6c3a516c92697865",
+      "evidence_id": "ev_70f64654d8e206db027daffa6e2a2ae5df29be362314a8535b8dcc744c94fbe2",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x82c298",
+        "length": 32
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "third-static-initializer.evidence.json",
+      "artifact_sha256": "d452e1c9ffe1b70d7c19ad6471f88efce5f33e9f4434d50b6143388a4bd6632c",
+      "evidence_id": "ev_5547bcba5798fa3e621b3bfc0d367a73960a8551c3adeb7ddb6277c0671741c2",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5a77d0"
+      }
+    },
+    {
+      "session": "rea-static-city19-second-postgoal-seeded-20261012",
+      "artifact": "fourth-static-initializer.evidence.json",
+      "artifact_sha256": "77807d07d524ef27b54efb105a7461a12520f2887830f5e203e53c7229c7b529",
+      "evidence_id": "ev_e0abbe4717e8cd52e9de1e5d5a709962ec8f2b1c8a1d99e0f9c41fd11d3f064d",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x40a960"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "festival-child-seeded-entry.evidence.json",
+      "artifact_sha256": "0e2d29fcb1afae17e9d69b16f7eecc3fc7849c5edb7761eef9923d34b2df72d7",
+      "evidence_id": "ev_36f5b2d3c6dcb481808a4df22d00e5475e171c68cc427f0f0aef8b81fa7573e4",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x4f8ca0"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "festival-child-seeded-reader.evidence.json",
+      "artifact_sha256": "c0bbe9f4863b08a437d961a7d7d72424c05035277f9236d36b65fa918bf072d1",
+      "evidence_id": "ev_90524da4440f7a320d5ad0abfc816212e1a0b420a72557bb74d69093e4822f3a",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4f8ca0"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-static-constructor.evidence.json",
+      "artifact_sha256": "f688c55620b7172e276767206a4da519d9de605c114cf28ff2303b2cfdc9efa7",
+      "evidence_id": "ev_eba75fd44ecc0b33b377c526fadd79d6ff5850db6244fc7ea44991acd537359f",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5a7940"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "fourth-static-constructor.evidence.json",
+      "artifact_sha256": "c1df24bf5456d16f1c08ad0b87f29fc28d41c686a688c82453c1d0515dcf2b71",
+      "evidence_id": "ev_c803ec16d7c2f3590ef8b3088f8805d3b7f15e1d3ce9f8f33442d13131ca10c2",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x40aaa0"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "festival-child-version-xrefs.evidence.json",
+      "artifact_sha256": "53ac80aeb9973998c3f8a157ca37a353a43e9fa45ce6812d1ac7fe3e3db620b6",
+      "evidence_id": "ev_e061ce245269fa6d13f585843690d3aa33206d46347ac5d11b6569596ed3ac1b",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x10bc148"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-source-vptr-slots.evidence.json",
+      "artifact_sha256": "f1b4e7e5e5231bc00da30743d92fc97fd945274629c323f34c0c40d8ada8a6fc",
+      "evidence_id": "ev_a1be69701dac6157f1cad212815d9d63ab7b1a3e075c8ea6fb9a7a0ecbec98c1",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7bc080",
+        "length": 12
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "fourth-source-vptr-slots.evidence.json",
+      "artifact_sha256": "8207496b5c59577d53f9bea71a0e2e710b57baa14f6dcd77da6ae5d9c09b353f",
+      "evidence_id": "ev_8ce6d5d7f558803840f87334dc3d1ed9f6a87b6549f588081ffe83e2424c57d5",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7a97e0",
+        "length": 12
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "festival-child-version-owner.evidence.json",
+      "artifact_sha256": "0d00d8bb35a097f9a8cc96cc19b526af8a0b208f2e8c32b60ad3847266a81908",
+      "evidence_id": "ev_94a1e554d570c21e2f14ad0676a8ce7956b853845299f0ff87eda7af379889cd",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x4f87f2"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "festival-child-scalar-helper.evidence.json",
+      "artifact_sha256": "35c9fc3ed9823c8c48bc9f776273cc8a7bb1e448d15cf70109ee575d47539197",
+      "evidence_id": "ev_08fbd8f7e34bc2a478fabe1fa25dfadb58d3c26cf1886b5bb61f0e8cea95fe81",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4c95e0"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "festival-child-scalar-u32-reader.evidence.json",
+      "artifact_sha256": "d21b870ec6d2ef4a345eec1607d64476c632ebdf35f65505d5da6e464e15dac2",
+      "evidence_id": "ev_28a42061bd92a59536f142b591074bdf453d2b772764338caee1e6b62675307b",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x42dc20"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "festival-child-version-initializer.evidence.json",
+      "artifact_sha256": "ec5c19bf24afdea766b6177270d88523ec073418be68016c69f491a31383f929",
+      "evidence_id": "ev_336069be35fcc740bd70f26ee121b7b38cec15890a4237e2cce1021d8ff46bbf",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4f87f0"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-reader-current-definition.evidence.json",
+      "artifact_sha256": "d9f7340af006e04b8856ed02eb98657fb560f3fd00be475d56266ade92e94681",
+      "evidence_id": "ev_8541df3b5b2a518bb412205c70367a43a2a7878ec87efe303878feda07dd7ded",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x5a7b90"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-runtime-getter-native.evidence.json",
+      "artifact_sha256": "862d453e67a67f3dce925eabdbaf6d33e056d19ffcea9423727a387788586f2f",
+      "evidence_id": "ev_394e21ade5a7abe1bb82bbdeb70126eaf18a43556626eed7d26e9d5194831f4b",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a7910"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-runtime-getter-ret.evidence.json",
+      "artifact_sha256": "6850d447a47625e685a12239514591b790e6dfb2a6886e892202d4e9de335e93",
+      "evidence_id": "ev_4e2cad58ec86370a0bf1a5210e82f1b7ce3ac08c13d0c4156b60da785582a702",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a7915"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-size-accessor-slots.evidence.json",
+      "artifact_sha256": "d79d14047a73be401ae4d685eb384288f7fe7e5fc1aa0fcb44258e306a2e99d2",
+      "evidence_id": "ev_a674180691dead48c0ee9346aac5138ca354269b87651224183581d2880b778f",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7bc08c",
+        "length": 8
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-descriptor.evidence.json",
+      "artifact_sha256": "23de1dfb8e33634c61abd27699a2dddb98873d3216cf9b1be44e1328dbe794e4",
+      "evidence_id": "ev_4dd0e7985819b9a2d5852330113dc6e13fc752f95df2f16bcee5cd4282c87834",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x85db40",
+        "length": 24
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-buffer-accessor-native.evidence.json",
+      "artifact_sha256": "0423bbdcbc4ca59c8a72dca051f784a7cb3e69e1e622803ca651497f1f6c5e1a",
+      "evidence_id": "ev_238a8adda895162dfe70b395cd0a38d91cca8cfd2f68d092506972c938e3f7cf",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a7c20"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-length-accessor-native.evidence.json",
+      "artifact_sha256": "ff3ecef6fa187894bd42d3d26b410b252a24956f3e4af72a19d1b5c25dd32411",
+      "evidence_id": "ev_ebd73db0cb93fa24a09b7047b533e401f4c31a2de09f410d6669e776bb4b4980",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a7c30"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-buffer-accessor-ret.evidence.json",
+      "artifact_sha256": "ebb49e9c08f8ec9ca6969e2c35a040f63edf0c77e6d5b94c52a5df3eca3deb22",
+      "evidence_id": "ev_2bdc0757e73fa418e5c1e0ab7f0f749f979dbd0c4a24c7ed3853754cd55a6956",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a7c23"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-length-accessor-ret.evidence.json",
+      "artifact_sha256": "f2d75fd693242edbd4632a186152cda8bf6132581feb750f8502d85e2d305e5b",
+      "evidence_id": "ev_de08aaf6c38df770e5845661ed944809e0c7033d156a6397cbf6b082c3af9218",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x5a7c35"
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "third-source-type-name.evidence.json",
+      "artifact_sha256": "b167f57f39aad050017e04b269c104c318acd24df2d93748e469c569e151f3ea",
+      "evidence_id": "ev_f6e8f215535a35e70147ae8e89bdb8df5ba73655afd523105ff45870213d10e1",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x85dbb4",
+        "length": 32
+      }
+    },
+    {
+      "session": "rea-static-city19-festival-child-seeded-20261012",
+      "artifact": "fourth-native-entry.evidence.json",
+      "artifact_sha256": "ba416edf5b4f43b5638fa6351976b5e9566f71c5b2a8ad0253610f43dcc7aec4",
+      "evidence_id": "ev_0a7bca8a81e818d323b4c1ad1bbd93c60645a04b8bee5500e10f988ac0bd45ec",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x40cf40"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-owner-getter.evidence.json",
+      "artifact_sha256": "f64b602e036a80ac35cc89e5d8befe44bb4bfc06d877eb8ca57fbf8da027a8b9",
+      "evidence_id": "ev_066c3b6b676581cc8fc7dd4eb45ee2402e8e4b16c3cb37dd2729e628ac5831bf",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x425260"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-owner-xrefs.evidence.json",
+      "artifact_sha256": "d7ca222e8d673a1b776f84a080b32aa09ecf17e637a24ec6889ba341b757df86",
+      "evidence_id": "ev_67817f49fd665c6135ce9d6404e741216dc2f9b113693aa26d08791f0dbdde63",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x10af4e0"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-second-owner-getter.evidence.json",
+      "artifact_sha256": "a138d4845c928ea7ab10eb95a1e13bc2db9f67d1fd20045b2f95c16187511a63",
+      "evidence_id": "ev_ebc0c2ef5f4fea7b59eccc48c59e5d5a3251ec5d4991ef263fc7a5e60c1ccb24",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x48df30"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-initializer-owner.evidence.json",
+      "artifact_sha256": "b5cb32d98c59b62a7a85501389921a4375325f41878a95b9308fb8b7f7ad0773",
+      "evidence_id": "ev_9e3369d37e5b0bc9eb19faf5be156d589640f8f9dbb4ed2e4cf683d64305ce58",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x4ed110"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-second-owner-xrefs.evidence.json",
+      "artifact_sha256": "630b3e26bfb2416fbd1fa7853924f2a4043fdbdf149c665fcdcd63e71cbb92ad",
+      "evidence_id": "ev_5600c51cb270e48fc6390a6e96c2ddd6ba4803994aa32df1a1888c66a6311f77",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0xc701d8"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-static-initializer.evidence.json",
+      "artifact_sha256": "e2eb626d7ff7fa5943800f728ae36300db2d23086a1a4cafacfe81cf837383a0",
+      "evidence_id": "ev_5b81113c2cbf7cc957545b4e80511f79d2c4eb4162e35879044cf52e6313a40e",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4ed110"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-constructor.evidence.json",
+      "artifact_sha256": "2f678960313e75a717957b5696a9fef9d6ce652b9a1a3992493ccbecf2875446",
+      "evidence_id": "ev_8d86d636862b68538c7a7b0507416bb4b5ebe319cee31723d651656ec057410a",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4ed240"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-post-vptr-reset.evidence.json",
+      "artifact_sha256": "8061600a29c808a206e1085fff884b4ba63355b481eb1eccb91aa48bfb02c9ac",
+      "evidence_id": "ev_e0286ecedde9fdd9ba8729b34617bb546f74b454d51fb3f3d24fab4da56191c2",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4ed290"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-vptr-serialize-slot.evidence.json",
+      "artifact_sha256": "b95577f7df88f5cc5ab33d580f2aa6cd77186a58896760a9a743a5ab9bbf2f5f",
+      "evidence_id": "ev_ba2901263a126af66abd28c8fd407a98c768b083160c79cfa4a36269ea90f743",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7b2bb8",
+        "length": 12
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-reader-native-entry.evidence.json",
+      "artifact_sha256": "70d03c2800df07b3e6eb3cb52873c0d2d81290ba467d3af4b12ce88ed1084f03",
+      "evidence_id": "ev_654dc56a02a27897f28f549a9a90a6751609bce93c75a37bc33da019e94f0337",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x4edda0"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-reader-containing.evidence.json",
+      "artifact_sha256": "5b7f3e9625e95284baa284ed8e310fee27c780c3c330b4fd863acfc14a20b0d4",
+      "evidence_id": "ev_1be26360c38ea76d38ef051e59332b865caa59cb4aca1922c01dcf2dd7858ed4",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x4edda0"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-init-caller-xrefs.evidence.json",
+      "artifact_sha256": "82a837b6f5e83e7c364213f6180746e03ff5a9eecb78b3ab59bfe3e1dda1ae36",
+      "evidence_id": "ev_4952e2fbe076bd0bb5e41f6a9fccda645dbc89c82164207359c68531ff7f06e7",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x4ed110"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-runtime-getter-native.evidence.json",
+      "artifact_sha256": "3661ddaf1a0d00cc09e50379d2da56dbb91de5377cafe57502ae10ea49d54cbf",
+      "evidence_id": "ev_06b02d23361b6673f40f2770850077cf6210d4af79ff775687d9365dec01b05a",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x4ed210"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-runtime-getter-ret.evidence.json",
+      "artifact_sha256": "b208c616bb1ad8ce3df416b00717120c02ebf6d5d3bcac13abb0a8c09082fcbe",
+      "evidence_id": "ev_0293beedb3c9e18870c729b862154ed1104c3b4c37f155b87c81174d45ef1fb4",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x4ed215"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-descriptor.evidence.json",
+      "artifact_sha256": "8d9fff6cbb67ace48407e91d42412e00e538f7a66154680539606fb8117c2af7",
+      "evidence_id": "ev_ee8a3787d13a2d373bffbe9f8555322a749eafdb5ddf089a40c51505231fc00a",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x84fab0",
+        "length": 24
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-init-table-xrefs.evidence.json",
+      "artifact_sha256": "11636cdf82e301f630124def735c15afdf22ac1f0b67d4644715a1d8a0437699",
+      "evidence_id": "ev_93450daab376e9cdd541e20e12c1b6b74171bcd2b5b052e7a3d2353c0ee5e01b",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x4ed100"
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-type-name.evidence.json",
+      "artifact_sha256": "fd6b148faccd5928463a11045aa150fa3e9119e3660067af18d42e0a83041517",
+      "evidence_id": "ev_3e0f7cc08fbfbb2afe2630d5ebb2d229c827954aceac64713292cb7c7fbbff80",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x84fb1c",
+        "length": 32
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-init-table-word.evidence.json",
+      "artifact_sha256": "35042a4fcecfa19f32577eecaaa6dc4a30496a05370960eeb57117ec32e88996",
+      "evidence_id": "ev_a44403ac414165445ee8bed8e12d949dfbfc568683824ed9ab0dd8145ef8b995",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x8144f4",
+        "length": 4
+      }
+    },
+    {
+      "session": "rea-static-city19-postgoals-source-20261012",
+      "artifact": "postgoal-first-init-native-entry.evidence.json",
+      "artifact_sha256": "78702fb94df4ffb6bcb6687cb75468c884628aea4772ab73bc333824c6f17ea7",
+      "evidence_id": "ev_72922b7f8ff55caa13c2e7f701967a985e76f81a973f670dc2317ab1d79e74aa",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x4ed100"
+      }
+    },
+    {
+      "session": "rea-static-versioned-city-load-20261011",
+      "artifact": "archive-wrapper-helper-assembly.evidence.json",
+      "artifact_sha256": "ef1f5000424a3a9e676ab65c654ae6bcc752224954f0665176edd1c1ac311672",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x40cf80"
+      }
+    }
+  ],
+  "reused_caller_source": {
+    "source": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-object-factory-consumption-20261011/pool-load-second-caller-assembly.evidence.json",
+    "sha256": "8976b4d79c15d9bd52dfab1f1f1afa182e6c29d700384087777c45ed50297dda",
+    "evidence_id": "ev_89f6bd8f1aef10050d837c4cea04adb851d25111c6ea4691662c8a7a3a294055",
+    "shared_archive_register": "ESI, pushed unchanged for each reader",
+    "ordered_consumers": [
+      {
+        "callsite": "0x53062f",
+        "getter": "0x425260",
+        "slot": 8
+      },
+      {
+        "callsite": "0x53063c",
+        "getter": "0x48df30",
+        "slot": 8
+      },
+      {
+        "callsite": "0x530649",
+        "getter": "0x426a60",
+        "slot": 8
+      },
+      {
+        "callsite": "0x530656",
+        "getter": "0x4081f0",
+        "slot": 8
+      },
+      {
+        "callsite": "0x53065f",
+        "direct_reader": "0x42d790",
+        "receiver": "0x8c7630"
+      }
+    ],
+    "actual_current_offset": 3736,
+    "no_runtime_archive_state_proof": true
+  },
+  "source_contract": {
+    "Religion_root": "7bc080",
+    "Religion_reader": "5a7b90",
+    "Religion_receiver": "1312f08",
+    "Religion_version_owner": "1312e48",
+    "Religion_version": 1,
+    "four_child_constructor": "5a7010",
+    "child_type": "cWorshipType",
+    "child_root": "7bc028",
+    "child_reader": "5a71b0",
+    "child_version_owner": "1312f68",
+    "child_version": 3,
+    "embedded_constructor": "5156a0",
+    "embedded_count_each_child": 3,
+    "embedded_stride_memory": 24,
+    "embedded_root": "7b5c18",
+    "embedded_reader": "510010",
+    "embedded_version_owner": "10bfdd8",
+    "embedded_version": 2,
+    "embedded_five_scalar_widths": [
+      4,
+      4,
+      4,
+      4,
+      4
+    ],
+    "embedded_wire22": true,
+    "child_wire68": true,
+    "constructor_clear12_region_serialized": false,
+    "legacy_numeric_adjustments_implemented": false,
+    "Religion_following_raw_bytes": 20,
+    "Religion_wire_bytes": 294,
+    "Commerce_descriptor": "8158e0",
+    "Commerce_type": "cCommerce",
+    "Commerce_receiver": "88f190",
+    "Commerce_root": "7a97e0",
+    "Commerce_reader": "40cf40",
+    "Commerce_version_owner": "88f180",
+    "Commerce_modern_version_subset": 1,
+    "Commerce_original_returned_version_ignored_for_fields": true,
+    "Commerce_wire_bytes": 2,
+    "Commerce_fields_bytes": 0
+  },
+  "discarded_probe": {
+    "address": "5a7190",
+    "old_query_label": "religion-child-size-native",
+    "reason": "inside5a7140, not actualvtable+10; actual selected slot4f8920 returns12; probe not used for layout"
+  },
+  "actual_statistics": {
+    "input_sha256": "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+    "decoded_sha256": "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+    "input_bytes": 165223,
+    "decoded_bytes": 4430995,
+    "validated_blocks": 136,
+    "parsed_end": 56118,
+    "retained_prefix_bytes": 65536,
+    "known_items": 11,
+    "completed_members": 10,
+    "following_member": 10,
+    "following_ordinal": 0,
+    "stop_reason": "mainpool_before_section_and_objects",
+    "conditional_cache_next_id": 17,
+    "cache_runtime_state_proved": false,
+    "registry_current_vptr_proved": false,
+    "original_factory_or_schema_callback_executed": false,
+    "field_values_emitted": false,
+    "mainpool_indices_interpreted": false,
+    "modern_cache_kind_gate_not_original_explicit_guard": true,
+    "remaining_uninterpreted_decoded_bytes": 4374877,
+    "member_headers": [
+      {
+        "member": 0,
+        "offset": 3355,
+        "version": 1,
+        "count": 1
+      },
+      {
+        "member": 1,
+        "offset": 3399,
+        "version": 1,
+        "count": 1
+      },
+      {
+        "member": 2,
+        "offset": 3427,
+        "version": 1,
+        "count": 2
+      },
+      {
+        "member": 3,
+        "offset": 3488,
+        "version": 1,
+        "count": 3
+      },
+      {
+        "member": 4,
+        "offset": 3601,
+        "version": 1,
+        "count": 2
+      },
+      {
+        "member": 5,
+        "offset": 3651,
+        "version": 1,
+        "count": 2
+      },
+      {
+        "member": 6,
+        "offset": 3712,
+        "version": 1,
+        "count": 0
+      },
+      {
+        "member": 7,
+        "offset": 3718,
+        "version": 1,
+        "count": 0
+      },
+      {
+        "member": 8,
+        "offset": 3724,
+        "version": 1,
+        "count": 0
+      },
+      {
+        "member": 9,
+        "offset": 3730,
+        "version": 1,
+        "count": 0
+      }
+    ],
+    "items": [
+      {
+        "member": 0,
+        "ordinal": 0,
+        "tag_offset": 3361,
+        "class_model_id": 1,
+        "object_model_id": 2,
+        "object_reference": false,
+        "payload_offset": 3379,
+        "payload_bytes": 20,
+        "payload_sha256": "653bb4fe9d14b084bc95bde7b3f2e40e5adb9642c243f35956584d67877896ff"
+      },
+      {
+        "member": 1,
+        "ordinal": 0,
+        "tag_offset": 3405,
+        "class_model_id": 1,
+        "object_model_id": 3,
+        "object_reference": false,
+        "payload_offset": 3407,
+        "payload_bytes": 20,
+        "payload_sha256": "850e83029b5521094a70a51d6096b8b91db8ec10b5f6c1364b07fd770c00645f"
+      },
+      {
+        "member": 2,
+        "ordinal": 0,
+        "tag_offset": 3433,
+        "class_model_id": 1,
+        "object_model_id": 4,
+        "object_reference": false,
+        "payload_offset": 3435,
+        "payload_bytes": 20,
+        "payload_sha256": "01695bfbab195993d5eb6f7bb4bb8cd60e5363c93c8d4aca1a4535879af5f0db"
+      },
+      {
+        "member": 2,
+        "ordinal": 1,
+        "tag_offset": 3455,
+        "class_model_id": 5,
+        "object_model_id": 6,
+        "object_reference": false,
+        "payload_offset": 3472,
+        "payload_bytes": 16,
+        "payload_sha256": "a84d5370fe010602ccb2b336d646c7bfc129b4ffccd1040e2ea421a717f5b2ac"
+      },
+      {
+        "member": 3,
+        "ordinal": 0,
+        "tag_offset": 3494,
+        "class_model_id": 1,
+        "object_model_id": 7,
+        "object_reference": false,
+        "payload_offset": 3496,
+        "payload_bytes": 20,
+        "payload_sha256": "5dd9df2b97d4cab06eb65f4634d62203354c160506b3aa0f44cd0b9417a40d63"
+      },
+      {
+        "member": 3,
+        "ordinal": 1,
+        "tag_offset": 3516,
+        "class_model_id": 8,
+        "object_model_id": 9,
+        "object_reference": false,
+        "payload_offset": 3542,
+        "payload_bytes": 12,
+        "payload_sha256": "63362e01dc37cca37000c405c301d2052767603832833d48270777e6fbf924b2"
+      },
+      {
+        "member": 3,
+        "ordinal": 2,
+        "tag_offset": 3554,
+        "class_model_id": 10,
+        "object_model_id": 11,
+        "object_reference": false,
+        "payload_offset": 3581,
+        "payload_bytes": 20,
+        "payload_sha256": "fe1fceba52ae25d799e8649b6bf3e004cf54dc1728c3ffba5dd04a247736bb13"
+      },
+      {
+        "member": 4,
+        "ordinal": 0,
+        "tag_offset": 3607,
+        "class_model_id": 1,
+        "object_model_id": 12,
+        "object_reference": false,
+        "payload_offset": 3609,
+        "payload_bytes": 20,
+        "payload_sha256": "b2108bbfa88f2ceccb6d995e4536a71ac7fdc7db60f43e8679a9b85cba25d7de"
+      },
+      {
+        "member": 4,
+        "ordinal": 1,
+        "tag_offset": 3629,
+        "class_model_id": 10,
+        "object_model_id": 13,
+        "object_reference": false,
+        "payload_offset": 3631,
+        "payload_bytes": 20,
+        "payload_sha256": "76f2e91985959734482a23d70224c9604415dd995a26e9cf413f4348b500a830"
+      },
+      {
+        "member": 5,
+        "ordinal": 0,
+        "tag_offset": 3657,
+        "class_model_id": 14,
+        "object_model_id": 15,
+        "object_reference": false,
+        "payload_offset": 3678,
+        "payload_bytes": 12,
+        "payload_sha256": "26989234d58cdbb1eefd5774033642437115ac5d1cbbab1f3bc74529e591e42c"
+      },
+      {
+        "member": 5,
+        "ordinal": 1,
+        "tag_offset": 3690,
+        "class_model_id": 10,
+        "object_model_id": 16,
+        "object_reference": false,
+        "payload_offset": 3692,
+        "payload_bytes": 20,
+        "payload_sha256": "8390833fb77e718b42bac826733b01286fdf4575471a29447d5d2a78ed023c69"
+      }
+    ],
+    "pending_class": null,
+    "goal_parsed_end": 3736,
+    "postgoal_sections": [
+      {
+        "name": "cFlood",
+        "reader": "0x4edda0",
+        "start": 3736,
+        "end": 55739,
+        "version": 1,
+        "payload_sha256": "9b130905c8b35c9471a2591a9781a0c95491087b14a2759030f39ffa2125e177",
+        "embedded_version": 0,
+        "embedded_version_offset": 0,
+        "fields": [
+          {
+            "offset": 3738,
+            "bytes": 4,
+            "receiver_offset": 4,
+            "source_call": "0x4ede36",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 3742,
+            "bytes": 1,
+            "receiver_offset": 8,
+            "source_call": "0x4ede43",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "offset": 3743,
+            "bytes": 4,
+            "receiver_offset": 12,
+            "source_call": "0x4ede50",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 3747,
+            "bytes": 4,
+            "receiver_offset": 16,
+            "source_call": "0x4ede5d",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 3751,
+            "bytes": 4,
+            "receiver_offset": 20,
+            "source_call": "0x4ede6a",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 3755,
+            "bytes": 51984,
+            "receiver_offset": 24,
+            "source_call": "0x4ede7a",
+            "sha256": "0821d46323a93e6b6ed925ddafbe4fbf47ca72a3a76550e774e9e87ec7d9291d"
+          }
+        ]
+      },
+      {
+        "name": "cFestival",
+        "reader": "0x48ed30",
+        "start": 55739,
+        "end": 55822,
+        "version": 4,
+        "payload_sha256": "0cc1c50d42f31a698d04cd19bf0f727120910e7e62fb3e08870ef0f8bda91c25",
+        "embedded_version": 1,
+        "embedded_version_offset": 55741,
+        "fields": [
+          {
+            "offset": 55743,
+            "bytes": 4,
+            "receiver_offset": 8,
+            "source_call": "0x4f8d0f",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55747,
+            "bytes": 4,
+            "receiver_offset": 12,
+            "source_call": "0x4f8d1a",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55751,
+            "bytes": 4,
+            "receiver_offset": 16,
+            "source_call": "0x4f8d25",
+            "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+          },
+          {
+            "offset": 55755,
+            "bytes": 4,
+            "receiver_offset": 20,
+            "source_call": "0x4f8d30",
+            "sha256": "61745d9c9ca2c73bbe883fbe34cd7a817d9cc08a0f544f5ebbddf0433a0294b4"
+          },
+          {
+            "offset": 55759,
+            "bytes": 4,
+            "receiver_offset": 40,
+            "source_call": "0x48ee96",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55763,
+            "bytes": 4,
+            "receiver_offset": 44,
+            "source_call": "0x48eea3",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55767,
+            "bytes": 4,
+            "receiver_offset": 48,
+            "source_call": "0x48eeb0",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55771,
+            "bytes": 4,
+            "receiver_offset": 52,
+            "source_call": "0x48eebd",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55775,
+            "bytes": 4,
+            "receiver_offset": 56,
+            "source_call": "0x48eeca",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55779,
+            "bytes": 4,
+            "receiver_offset": 60,
+            "source_call": "0x48eed7",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55783,
+            "bytes": 4,
+            "receiver_offset": 64,
+            "source_call": "0x48eee4",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55787,
+            "bytes": 4,
+            "receiver_offset": 68,
+            "source_call": "0x48eef1",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55791,
+            "bytes": 4,
+            "receiver_offset": 24,
+            "source_call": "0x48eefe",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55795,
+            "bytes": 4,
+            "receiver_offset": 28,
+            "source_call": "0x48ef0b",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55799,
+            "bytes": 1,
+            "receiver_offset": 32,
+            "source_call": "0x48ef18",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "offset": 55800,
+            "bytes": 1,
+            "receiver_offset": 33,
+            "source_call": "0x48ef25",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "offset": 55801,
+            "bytes": 4,
+            "receiver_offset": 36,
+            "source_call": "0x48ef32",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55805,
+            "bytes": 1,
+            "receiver_offset": 80,
+            "source_call": "0x48ef3f",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "offset": 55806,
+            "bytes": 4,
+            "receiver_offset": 84,
+            "source_call": "0x48ef4c",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55810,
+            "bytes": 4,
+            "receiver_offset": 88,
+            "source_call": "0x48ef59",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55814,
+            "bytes": 4,
+            "receiver_offset": 72,
+            "source_call": "0x48ef63",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55818,
+            "bytes": 4,
+            "receiver_offset": 76,
+            "source_call": "0x48f110",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          }
+        ]
+      }
+    ],
+    "postgoal_parsed_end": 55822,
+    "religion": {
+      "start": 55822,
+      "end": 56116,
+      "version": 1,
+      "sha256": "ba443dc6a4bc5811cd4a3992541d98ffb29713cacdf0b903cdf8b30d194a6f0d",
+      "children": [
+        {
+          "start": 55824,
+          "end": 55892,
+          "version": 3,
+          "embedded": [
+            {
+              "start": 55826,
+              "end": 55848,
+              "version": 2,
+              "payload_sha256": "6618da78b211713331fb4a61477b4048ccf2f5443b84392bc84edab4de246a03"
+            },
+            {
+              "start": 55848,
+              "end": 55870,
+              "version": 2,
+              "payload_sha256": "5d71631b9bd84bda348bc74c1df90a778b1e5b53dbee83d1f6c8e0e6bbb37d89"
+            },
+            {
+              "start": 55870,
+              "end": 55892,
+              "version": 2,
+              "payload_sha256": "635afe8a187e9e1a9c7a8dcc36c410fce443390960244e4536760636ea752e86"
+            }
+          ]
+        },
+        {
+          "start": 55892,
+          "end": 55960,
+          "version": 3,
+          "embedded": [
+            {
+              "start": 55894,
+              "end": 55916,
+              "version": 2,
+              "payload_sha256": "d7c3bead2c26468be9e8d6d903d224caedfb41178f99424d579307ccb227df62"
+            },
+            {
+              "start": 55916,
+              "end": 55938,
+              "version": 2,
+              "payload_sha256": "74e843088547eabb7c900b2ed5def9d96d8158018c280f8b15fb9c0948d9cd5e"
+            },
+            {
+              "start": 55938,
+              "end": 55960,
+              "version": 2,
+              "payload_sha256": "0fad3898101040b37b28f87852f97dfe09a53f110fc54732b61f928797c2c1a4"
+            }
+          ]
+        },
+        {
+          "start": 55960,
+          "end": 56028,
+          "version": 3,
+          "embedded": [
+            {
+              "start": 55962,
+              "end": 55984,
+              "version": 2,
+              "payload_sha256": "93a3a841c4bdcb53db27d7dc365b70f445e6fd1f8f4dd7795b4e5dad675bf169"
+            },
+            {
+              "start": 55984,
+              "end": 56006,
+              "version": 2,
+              "payload_sha256": "d77e4ce78bda0ec613f7aef9294aa7f728044859e68aa35c984ba218f2097000"
+            },
+            {
+              "start": 56006,
+              "end": 56028,
+              "version": 2,
+              "payload_sha256": "1374997670d21c891aa4bd8fc4181a73496ebb1d3020ddc1f5ace27d9c4afeaf"
+            }
+          ]
+        },
+        {
+          "start": 56028,
+          "end": 56096,
+          "version": 3,
+          "embedded": [
+            {
+              "start": 56030,
+              "end": 56052,
+              "version": 2,
+              "payload_sha256": "f6dbc9baa971abd65a529c8103b9ba8619ea5287869d913809a8a6b7ba3a5ae7"
+            },
+            {
+              "start": 56052,
+              "end": 56074,
+              "version": 2,
+              "payload_sha256": "8e0db9029fb191f0fdd4c21cf8488b9cf25eebb1f37414d7e1f145ad2f3f9a16"
+            },
+            {
+              "start": 56074,
+              "end": 56096,
+              "version": 2,
+              "payload_sha256": "fbfee8db46fc0a452b8e48c87dbc2aa28e9a966015a6109140c52a47e8d05346"
+            }
+          ]
+        }
+      ],
+      "raw20": {
+        "offset": 56096,
+        "bytes": 20,
+        "sha256": "55337594aa89ebe65975ff515b2b9221f72f112d4139bbb960ae17a12ce099a1"
+      }
+    },
+    "commerce": {
+      "start": 56116,
+      "end": 56118,
+      "version": 1,
+      "field_bytes": 0
+    },
+    "read_only": true,
+    "raw_or_decoded_bytes_saved": false
+  },
+  "Religion_checkpoint_statistics": {
+    "input_sha256": "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+    "decoded_sha256": "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+    "input_bytes": 165223,
+    "decoded_bytes": 4430995,
+    "validated_blocks": 136,
+    "parsed_end": 56116,
+    "retained_prefix_bytes": 65536,
+    "known_items": 11,
+    "completed_members": 10,
+    "following_member": 10,
+    "following_ordinal": 0,
+    "stop_reason": "fourth_consumer_before_section",
+    "conditional_cache_next_id": 17,
+    "cache_runtime_state_proved": false,
+    "registry_current_vptr_proved": false,
+    "original_factory_or_schema_callback_executed": false,
+    "field_values_emitted": false,
+    "mainpool_indices_interpreted": false,
+    "modern_cache_kind_gate_not_original_explicit_guard": true,
+    "remaining_uninterpreted_decoded_bytes": 4374879,
+    "member_headers": [
+      {
+        "member": 0,
+        "offset": 3355,
+        "version": 1,
+        "count": 1
+      },
+      {
+        "member": 1,
+        "offset": 3399,
+        "version": 1,
+        "count": 1
+      },
+      {
+        "member": 2,
+        "offset": 3427,
+        "version": 1,
+        "count": 2
+      },
+      {
+        "member": 3,
+        "offset": 3488,
+        "version": 1,
+        "count": 3
+      },
+      {
+        "member": 4,
+        "offset": 3601,
+        "version": 1,
+        "count": 2
+      },
+      {
+        "member": 5,
+        "offset": 3651,
+        "version": 1,
+        "count": 2
+      },
+      {
+        "member": 6,
+        "offset": 3712,
+        "version": 1,
+        "count": 0
+      },
+      {
+        "member": 7,
+        "offset": 3718,
+        "version": 1,
+        "count": 0
+      },
+      {
+        "member": 8,
+        "offset": 3724,
+        "version": 1,
+        "count": 0
+      },
+      {
+        "member": 9,
+        "offset": 3730,
+        "version": 1,
+        "count": 0
+      }
+    ],
+    "items": [
+      {
+        "member": 0,
+        "ordinal": 0,
+        "tag_offset": 3361,
+        "class_model_id": 1,
+        "object_model_id": 2,
+        "object_reference": false,
+        "payload_offset": 3379,
+        "payload_bytes": 20,
+        "payload_sha256": "653bb4fe9d14b084bc95bde7b3f2e40e5adb9642c243f35956584d67877896ff"
+      },
+      {
+        "member": 1,
+        "ordinal": 0,
+        "tag_offset": 3405,
+        "class_model_id": 1,
+        "object_model_id": 3,
+        "object_reference": false,
+        "payload_offset": 3407,
+        "payload_bytes": 20,
+        "payload_sha256": "850e83029b5521094a70a51d6096b8b91db8ec10b5f6c1364b07fd770c00645f"
+      },
+      {
+        "member": 2,
+        "ordinal": 0,
+        "tag_offset": 3433,
+        "class_model_id": 1,
+        "object_model_id": 4,
+        "object_reference": false,
+        "payload_offset": 3435,
+        "payload_bytes": 20,
+        "payload_sha256": "01695bfbab195993d5eb6f7bb4bb8cd60e5363c93c8d4aca1a4535879af5f0db"
+      },
+      {
+        "member": 2,
+        "ordinal": 1,
+        "tag_offset": 3455,
+        "class_model_id": 5,
+        "object_model_id": 6,
+        "object_reference": false,
+        "payload_offset": 3472,
+        "payload_bytes": 16,
+        "payload_sha256": "a84d5370fe010602ccb2b336d646c7bfc129b4ffccd1040e2ea421a717f5b2ac"
+      },
+      {
+        "member": 3,
+        "ordinal": 0,
+        "tag_offset": 3494,
+        "class_model_id": 1,
+        "object_model_id": 7,
+        "object_reference": false,
+        "payload_offset": 3496,
+        "payload_bytes": 20,
+        "payload_sha256": "5dd9df2b97d4cab06eb65f4634d62203354c160506b3aa0f44cd0b9417a40d63"
+      },
+      {
+        "member": 3,
+        "ordinal": 1,
+        "tag_offset": 3516,
+        "class_model_id": 8,
+        "object_model_id": 9,
+        "object_reference": false,
+        "payload_offset": 3542,
+        "payload_bytes": 12,
+        "payload_sha256": "63362e01dc37cca37000c405c301d2052767603832833d48270777e6fbf924b2"
+      },
+      {
+        "member": 3,
+        "ordinal": 2,
+        "tag_offset": 3554,
+        "class_model_id": 10,
+        "object_model_id": 11,
+        "object_reference": false,
+        "payload_offset": 3581,
+        "payload_bytes": 20,
+        "payload_sha256": "fe1fceba52ae25d799e8649b6bf3e004cf54dc1728c3ffba5dd04a247736bb13"
+      },
+      {
+        "member": 4,
+        "ordinal": 0,
+        "tag_offset": 3607,
+        "class_model_id": 1,
+        "object_model_id": 12,
+        "object_reference": false,
+        "payload_offset": 3609,
+        "payload_bytes": 20,
+        "payload_sha256": "b2108bbfa88f2ceccb6d995e4536a71ac7fdc7db60f43e8679a9b85cba25d7de"
+      },
+      {
+        "member": 4,
+        "ordinal": 1,
+        "tag_offset": 3629,
+        "class_model_id": 10,
+        "object_model_id": 13,
+        "object_reference": false,
+        "payload_offset": 3631,
+        "payload_bytes": 20,
+        "payload_sha256": "76f2e91985959734482a23d70224c9604415dd995a26e9cf413f4348b500a830"
+      },
+      {
+        "member": 5,
+        "ordinal": 0,
+        "tag_offset": 3657,
+        "class_model_id": 14,
+        "object_model_id": 15,
+        "object_reference": false,
+        "payload_offset": 3678,
+        "payload_bytes": 12,
+        "payload_sha256": "26989234d58cdbb1eefd5774033642437115ac5d1cbbab1f3bc74529e591e42c"
+      },
+      {
+        "member": 5,
+        "ordinal": 1,
+        "tag_offset": 3690,
+        "class_model_id": 10,
+        "object_model_id": 16,
+        "object_reference": false,
+        "payload_offset": 3692,
+        "payload_bytes": 20,
+        "payload_sha256": "8390833fb77e718b42bac826733b01286fdf4575471a29447d5d2a78ed023c69"
+      }
+    ],
+    "pending_class": null,
+    "goal_parsed_end": 3736,
+    "postgoal_sections": [
+      {
+        "name": "cFlood",
+        "reader": "0x4edda0",
+        "start": 3736,
+        "end": 55739,
+        "version": 1,
+        "payload_sha256": "9b130905c8b35c9471a2591a9781a0c95491087b14a2759030f39ffa2125e177",
+        "embedded_version": 0,
+        "embedded_version_offset": 0,
+        "fields": [
+          {
+            "offset": 3738,
+            "bytes": 4,
+            "receiver_offset": 4,
+            "source_call": "0x4ede36",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 3742,
+            "bytes": 1,
+            "receiver_offset": 8,
+            "source_call": "0x4ede43",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "offset": 3743,
+            "bytes": 4,
+            "receiver_offset": 12,
+            "source_call": "0x4ede50",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 3747,
+            "bytes": 4,
+            "receiver_offset": 16,
+            "source_call": "0x4ede5d",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 3751,
+            "bytes": 4,
+            "receiver_offset": 20,
+            "source_call": "0x4ede6a",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 3755,
+            "bytes": 51984,
+            "receiver_offset": 24,
+            "source_call": "0x4ede7a",
+            "sha256": "0821d46323a93e6b6ed925ddafbe4fbf47ca72a3a76550e774e9e87ec7d9291d"
+          }
+        ]
+      },
+      {
+        "name": "cFestival",
+        "reader": "0x48ed30",
+        "start": 55739,
+        "end": 55822,
+        "version": 4,
+        "payload_sha256": "0cc1c50d42f31a698d04cd19bf0f727120910e7e62fb3e08870ef0f8bda91c25",
+        "embedded_version": 1,
+        "embedded_version_offset": 55741,
+        "fields": [
+          {
+            "offset": 55743,
+            "bytes": 4,
+            "receiver_offset": 8,
+            "source_call": "0x4f8d0f",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55747,
+            "bytes": 4,
+            "receiver_offset": 12,
+            "source_call": "0x4f8d1a",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55751,
+            "bytes": 4,
+            "receiver_offset": 16,
+            "source_call": "0x4f8d25",
+            "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+          },
+          {
+            "offset": 55755,
+            "bytes": 4,
+            "receiver_offset": 20,
+            "source_call": "0x4f8d30",
+            "sha256": "61745d9c9ca2c73bbe883fbe34cd7a817d9cc08a0f544f5ebbddf0433a0294b4"
+          },
+          {
+            "offset": 55759,
+            "bytes": 4,
+            "receiver_offset": 40,
+            "source_call": "0x48ee96",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55763,
+            "bytes": 4,
+            "receiver_offset": 44,
+            "source_call": "0x48eea3",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55767,
+            "bytes": 4,
+            "receiver_offset": 48,
+            "source_call": "0x48eeb0",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55771,
+            "bytes": 4,
+            "receiver_offset": 52,
+            "source_call": "0x48eebd",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55775,
+            "bytes": 4,
+            "receiver_offset": 56,
+            "source_call": "0x48eeca",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55779,
+            "bytes": 4,
+            "receiver_offset": 60,
+            "source_call": "0x48eed7",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55783,
+            "bytes": 4,
+            "receiver_offset": 64,
+            "source_call": "0x48eee4",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55787,
+            "bytes": 4,
+            "receiver_offset": 68,
+            "source_call": "0x48eef1",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55791,
+            "bytes": 4,
+            "receiver_offset": 24,
+            "source_call": "0x48eefe",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55795,
+            "bytes": 4,
+            "receiver_offset": 28,
+            "source_call": "0x48ef0b",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55799,
+            "bytes": 1,
+            "receiver_offset": 32,
+            "source_call": "0x48ef18",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "offset": 55800,
+            "bytes": 1,
+            "receiver_offset": 33,
+            "source_call": "0x48ef25",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "offset": 55801,
+            "bytes": 4,
+            "receiver_offset": 36,
+            "source_call": "0x48ef32",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55805,
+            "bytes": 1,
+            "receiver_offset": 80,
+            "source_call": "0x48ef3f",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          {
+            "offset": 55806,
+            "bytes": 4,
+            "receiver_offset": 84,
+            "source_call": "0x48ef4c",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55810,
+            "bytes": 4,
+            "receiver_offset": 88,
+            "source_call": "0x48ef59",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55814,
+            "bytes": 4,
+            "receiver_offset": 72,
+            "source_call": "0x48ef63",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          },
+          {
+            "offset": 55818,
+            "bytes": 4,
+            "receiver_offset": 76,
+            "source_call": "0x48f110",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+          }
+        ]
+      }
+    ],
+    "postgoal_parsed_end": 55822,
+    "religion": {
+      "start": 55822,
+      "end": 56116,
+      "version": 1,
+      "sha256": "ba443dc6a4bc5811cd4a3992541d98ffb29713cacdf0b903cdf8b30d194a6f0d",
+      "children": [
+        {
+          "start": 55824,
+          "end": 55892,
+          "version": 3,
+          "embedded": [
+            {
+              "start": 55826,
+              "end": 55848,
+              "version": 2,
+              "payload_sha256": "6618da78b211713331fb4a61477b4048ccf2f5443b84392bc84edab4de246a03"
+            },
+            {
+              "start": 55848,
+              "end": 55870,
+              "version": 2,
+              "payload_sha256": "5d71631b9bd84bda348bc74c1df90a778b1e5b53dbee83d1f6c8e0e6bbb37d89"
+            },
+            {
+              "start": 55870,
+              "end": 55892,
+              "version": 2,
+              "payload_sha256": "635afe8a187e9e1a9c7a8dcc36c410fce443390960244e4536760636ea752e86"
+            }
+          ]
+        },
+        {
+          "start": 55892,
+          "end": 55960,
+          "version": 3,
+          "embedded": [
+            {
+              "start": 55894,
+              "end": 55916,
+              "version": 2,
+              "payload_sha256": "d7c3bead2c26468be9e8d6d903d224caedfb41178f99424d579307ccb227df62"
+            },
+            {
+              "start": 55916,
+              "end": 55938,
+              "version": 2,
+              "payload_sha256": "74e843088547eabb7c900b2ed5def9d96d8158018c280f8b15fb9c0948d9cd5e"
+            },
+            {
+              "start": 55938,
+              "end": 55960,
+              "version": 2,
+              "payload_sha256": "0fad3898101040b37b28f87852f97dfe09a53f110fc54732b61f928797c2c1a4"
+            }
+          ]
+        },
+        {
+          "start": 55960,
+          "end": 56028,
+          "version": 3,
+          "embedded": [
+            {
+              "start": 55962,
+              "end": 55984,
+              "version": 2,
+              "payload_sha256": "93a3a841c4bdcb53db27d7dc365b70f445e6fd1f8f4dd7795b4e5dad675bf169"
+            },
+            {
+              "start": 55984,
+              "end": 56006,
+              "version": 2,
+              "payload_sha256": "d77e4ce78bda0ec613f7aef9294aa7f728044859e68aa35c984ba218f2097000"
+            },
+            {
+              "start": 56006,
+              "end": 56028,
+              "version": 2,
+              "payload_sha256": "1374997670d21c891aa4bd8fc4181a73496ebb1d3020ddc1f5ace27d9c4afeaf"
+            }
+          ]
+        },
+        {
+          "start": 56028,
+          "end": 56096,
+          "version": 3,
+          "embedded": [
+            {
+              "start": 56030,
+              "end": 56052,
+              "version": 2,
+              "payload_sha256": "f6dbc9baa971abd65a529c8103b9ba8619ea5287869d913809a8a6b7ba3a5ae7"
+            },
+            {
+              "start": 56052,
+              "end": 56074,
+              "version": 2,
+              "payload_sha256": "8e0db9029fb191f0fdd4c21cf8488b9cf25eebb1f37414d7e1f145ad2f3f9a16"
+            },
+            {
+              "start": 56074,
+              "end": 56096,
+              "version": 2,
+              "payload_sha256": "fbfee8db46fc0a452b8e48c87dbc2aa28e9a966015a6109140c52a47e8d05346"
+            }
+          ]
+        }
+      ],
+      "raw20": {
+        "offset": 56096,
+        "bytes": 20,
+        "sha256": "55337594aa89ebe65975ff515b2b9221f72f112d4139bbb960ae17a12ce099a1"
+      }
+    },
+    "commerce": null,
+    "read_only": true,
+    "raw_or_decoded_bytes_saved": false
+  },
+  "actual_command_receipts": [
+    {
+      "argv": [
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/new-class-checks/religion-following-release",
+        "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+        "165223",
+        "262144",
+        "4915584",
+        "136",
+        "4275878570",
+        "2882400255",
+        "2863386095",
+        "36144",
+        "36144",
+        "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+        "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+        "1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.00875275,
+      "religion_header_sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450",
+      "postgoal_header_sha256": "b8afc7b9c79dfb1a3a3092ddaee00dafd3d101949ac225d2d418e35fc100c87f",
+      "goal_header_sha256": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b",
+      "exe_sha256": "2bbdbe9c86e710c48deca597b19cb0e702c965943f8d13ddcd8a7fd8b91cb4ec",
+      "stdout_sha256": "df1927ceb9104854717070afc646288653ea8b104e8dc4e0bc59a9cef7834e40",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originalruntime_or_callbacks_executed": false,
+      "raw_or_decoded_original_bytes_saved": false
+    },
+    {
+      "argv": [
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/new-class-checks/religion-following-release",
+        "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+        "165223",
+        "262144",
+        "4915584",
+        "136",
+        "4275878570",
+        "2882400255",
+        "2863386095",
+        "36144",
+        "36144",
+        "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+        "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+        "0"
+      ],
+      "exit_code": 0,
+      "seconds": 0.007814666000000001,
+      "religion_header_sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450",
+      "postgoal_header_sha256": "b8afc7b9c79dfb1a3a3092ddaee00dafd3d101949ac225d2d418e35fc100c87f",
+      "goal_header_sha256": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b",
+      "exe_sha256": "2bbdbe9c86e710c48deca597b19cb0e702c965943f8d13ddcd8a7fd8b91cb4ec",
+      "stdout_sha256": "cf3397f669b067532f5ef2e32480b3cba9b9618f0acae48062ef5e505c4b0832",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originalruntime_or_callbacks_executed": false,
+      "raw_or_decoded_original_bytes_saved": false
+    }
+  ],
+  "prefix_regression": {
+    "checks": {
+      "old_all_goal_items_same": true,
+      "old_all_goal_headers_same": true,
+      "complete_Flood_Festival_statistics_same": true,
+      "full_input_decoded_identity_same": true,
+      "goal3736_post55822_retained": true,
+      "four_children68_each": true,
+      "twelve_embedded22_each": true,
+      "Religion294_Commerce2": true,
+      "mainpool_start56118": true,
+      "five_core_unchanged": true,
+      "old_all_tools_unchanged": true,
+      "old_postgoal_header_unchanged": true
+    },
+    "old_full_suites_not_rerun": true,
+    "new_goal_or_oldpost_header_changes": false
+  },
+  "author_cases_per_mode": 71,
+  "author_passed": 142,
+  "author_failed": 0,
+  "test_results_sha256": "8012e56a0244138099287c0bb041ea653b997df8ce34033eaf0ffd4f1d8a9a68",
+  "new_header_sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450",
+  "new_tool_sha256": "0f5bf2516e01b9a1ea74c51043e726a8e876ee8b1887209f9f42fd0e76b1214f",
+  "new_tests_sha256": "6fb9ff480298d79aec1814ffa5854c259dd8011072a22a9c58376d95ca883f01",
+  "unchanged_goal_header_sha256": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b",
+  "unchanged_postgoal_header_sha256": "b8afc7b9c79dfb1a3a3092ddaee00dafd3d101949ac225d2d418e35fc100c87f",
+  "unchanged_core_sources": {
+    "file_io/include/owned_reader.hpp": "c7d3f5ada30ddddd748c429f61f7bb4525504bccf0cc6d016325b8e60a13e937",
+    "file_io/include/framed_reader.hpp": "d3d21e07110f57a19cd37d7e1fa61a922203a4c2ccb7c4988f60cb2e543abbd9",
+    "file_io/include/strict_zlib.h": "8884a8a9bc6d8222320d93023d088cd18430017e479a282ca698f102c3eaf7a4",
+    "file_io/src/framed_reader.cpp": "648bb362ff03f96afa0596cc5c84e628b1b666d78325d41099a70181eab5d68b",
+    "file_io/src/strict_zlib.cpp": "1c13bf06ba9721a85000105f4b18763f88bfadf71626f2cae1127288c6fb2f0e"
+  },
+  "unchanged_old_tools": {
+    "file_io/tools/qualify_city19_component2.cpp": "0c0952497611e7d82efe88fa7c6bb1dd611775c625871341c4ee4944c7c6c137",
+    "file_io/tools/qualify_city19_member_headers.cpp": "8c8d72aec5b4b706ea3d8e5cbb83142a00cefa5b70d480894ecdaef30f3dd0de",
+    "file_io/tools/qualify_city19_first_declaration.cpp": "8bb2fc0d29c276f2b05b469fca56ce16380320b2d844f820a3cd9e27cfdf8eb7",
+    "file_io/tools/qualify_city19_housing_payload.cpp": "5afdfb40becf03d45ede66629fc2af171d3313d90dc43dfe5a10c565529fe219",
+    "file_io/tools/qualify_city19_next_member_tag.cpp": "24990a1fb5d941b45b0ed28df958be5cbe8a6eaf3da283d32d464a798132aadc",
+    "file_io/tools/qualify_city19_goal_walk.cpp": "9e9e96c861d7a671ca11b74e96637f0d385eeefed3992c7150c7ec80f4a1b9a4",
+    "file_io/tools/qualify_city19_homage_walk.cpp": "a04a3986e5bc8cb38269616960ca676c407c853cb2d2cc8bbd1db5619451e291",
+    "file_io/tools/qualify_city19_trading_walk.cpp": "fe14dfdb18c5efb426b0879a43f5eea761bbab3f3843b7344c3ef1b4fbb8b515",
+    "file_io/tools/qualify_city19_yearly_walk.cpp": "1c91df29296e4674e5ec3cc14642bab96cb86de8eab9f260f2393fef25f47b76",
+    "file_io/tools/qualify_city19_population_walk.cpp": "04b45d67531d040e8b8b986304bc7d1fc9eef449aabb54671ebe65ea0c83aff6",
+    "file_io/tools/qualify_city19_postgoals.cpp": "4f228dfbb73e2e9967af21202c051f3871960af8d8cf9414a7b1d29e0ddd7676"
+  },
+  "optimization_guard": {
+    "argv": [
+      "python3",
+      "-O",
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/candidate/file_io/tests/city19_religion_following_tests.py",
+      "--source-root",
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/candidate",
+      "--output",
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/optimized-should-not-exist"
+    ],
+    "exit_code": 2,
+    "stderr": "usage: city19_religion_following_tests.py [-h] --source-root SOURCE_ROOT\n                                          --output OUTPUT\ncity19_religion_following_tests.py: error: optimized test invocation unsupported\n",
+    "output_not_created": true,
+    "runner_sha256": "6fb9ff480298d79aec1814ffa5854c259dd8011072a22a9c58376d95ca883f01"
+  },
+  "cfea_independent_review": {
+    "commit": "cfea23e6e738a2a444296c6c045f165914a82f28",
+    "author_cases_each": 70,
+    "independent_cases_each": 12,
+    "source_audits": 22,
+    "new_blocking_findings": 0,
+    "adoption": {
+      "reviewed_commit": "cfea23e6e738a2a444296c6c045f165914a82f28",
+      "review_patch_sha256": "9929a3d0c5ba176114c90c5fb8f1b84cab8ec57241c071c4b0d9d3a0093825d1",
+      "review_report_sha256": "476a9ad3cfd086a388dc2685d7993599075e1167ccdcc71cf0ec4bf3bebb4c79",
+      "changes": [
+        "explicit source-root",
+        "optimization refusal before output",
+        "sparse-fields assertion index guards"
+      ],
+      "production_code_changed": false
+    },
+    "current_component_results": {
+      "passed": 24,
+      "failed": 0,
+      "execution_failed": false,
+      "results": [
+        {
+          "mode": "release",
+          "exit_code": 0,
+          "stderr_empty": true,
+          "report": {
+            "checks": [
+              {
+                "name": "variable odd goal endpoint controls postgoal start",
+                "passed": true
+              },
+              {
+                "name": "Flood fixed array remains51984 with independent scalar and byte fields",
+                "passed": true
+              },
+              {
+                "name": "Festival nested versions and four scalar fields precede eight repeated fields",
+                "passed": true
+              },
+              {
+                "name": "Festival sparse byte and final receiver order preserved",
+                "passed": true
+              },
+              {
+                "name": "Religion poison tail untouched and goal metadata stays immutable",
+                "passed": true
+              },
+              {
+                "name": "Flood-only never peeks unsupported Festival version",
+                "passed": true
+              },
+              {
+                "name": "fixed array last byte is mandatory",
+                "passed": true
+              },
+              {
+                "name": "final Festival DWORD last byte is mandatory",
+                "passed": true
+              },
+              {
+                "name": "separate postgoal prefix exact65536 accepts known sections",
+                "passed": true
+              },
+              {
+                "name": "postgoal prefix65537 refuses before interpretation",
+                "passed": true
+              },
+              {
+                "name": "old Goal component still rejects views above16384",
+                "passed": true
+              },
+              {
+                "name": "incomplete or pending goal baseline refuses new section",
+                "passed": true
+              }
+            ],
+            "passed": 12,
+            "failed": 0
+          }
+        },
+        {
+          "mode": "ubsan",
+          "exit_code": 0,
+          "stderr_empty": true,
+          "report": {
+            "checks": [
+              {
+                "name": "variable odd goal endpoint controls postgoal start",
+                "passed": true
+              },
+              {
+                "name": "Flood fixed array remains51984 with independent scalar and byte fields",
+                "passed": true
+              },
+              {
+                "name": "Festival nested versions and four scalar fields precede eight repeated fields",
+                "passed": true
+              },
+              {
+                "name": "Festival sparse byte and final receiver order preserved",
+                "passed": true
+              },
+              {
+                "name": "Religion poison tail untouched and goal metadata stays immutable",
+                "passed": true
+              },
+              {
+                "name": "Flood-only never peeks unsupported Festival version",
+                "passed": true
+              },
+              {
+                "name": "fixed array last byte is mandatory",
+                "passed": true
+              },
+              {
+                "name": "final Festival DWORD last byte is mandatory",
+                "passed": true
+              },
+              {
+                "name": "separate postgoal prefix exact65536 accepts known sections",
+                "passed": true
+              },
+              {
+                "name": "postgoal prefix65537 refuses before interpretation",
+                "passed": true
+              },
+              {
+                "name": "old Goal component still rejects views above16384",
+                "passed": true
+              },
+              {
+                "name": "incomplete or pending goal baseline refuses new section",
+                "passed": true
+              }
+            ],
+            "passed": 12,
+            "failed": 0
+          }
+        }
+      ],
+      "commands": [
+        {
+          "argv": [
+            "/usr/bin/xcrun",
+            "--sdk",
+            "macosx",
+            "--show-sdk-path"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "2bd5dc92a04fd174d35e7dccde7bf53f6b37c4bb92ce8685a4959e9015c200bc",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/usr/bin/clang++",
+            "-std=c++17",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-O2",
+            "-isysroot",
+            "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+            "-I",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/candidate/file_io/include",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/candidate/file_io/tests/independent_city19_postgoal_component/postgoal_properties.cpp",
+            "-o",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/cfea-review-current-checks/postgoal-properties-release"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/cfea-review-current-checks/postgoal-properties-release"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "e1a594f79053769f14b544f28e9bb1d927e784f2e2ded05a63269e334f8a564c",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/usr/bin/clang++",
+            "-std=c++17",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-O1",
+            "-g",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "-isysroot",
+            "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+            "-I",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/candidate/file_io/include",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/candidate/file_io/tests/independent_city19_postgoal_component/postgoal_properties.cpp",
+            "-o",
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/cfea-review-current-checks/postgoal-properties-ubsan"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/cfea-review-current-checks/postgoal-properties-ubsan"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "e1a594f79053769f14b544f28e9bb1d927e784f2e2ded05a63269e334f8a564c",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "component_sha256": "b8afc7b9c79dfb1a3a3092ddaee00dafd3d101949ac225d2d418e35fc100c87f",
+      "goal_component_sha256": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b",
+      "test_sha256": "f8142bee63fa8196e885d561a3ab70ecb7904083d5e02168aef1a346f2748aac",
+      "elapsed_seconds": 3.332864333,
+      "total_budget_seconds": 180,
+      "original_payload_or_EXE_read": false,
+      "original_or_derived_game_executed": false,
+      "new_REA_query": false,
+      "main_written": false,
+      "pushed": false
+    },
+    "optimization_guard": {
+      "argv": [
+        "python3",
+        "-O",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/candidate/file_io/tests/independent_city19_postgoal_component/run_properties.py",
+        "--source-root",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/candidate",
+        "--output",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-religion-following-20261012/postgoal-optimized-should-not-exist"
+      ],
+      "exit_code": 1,
+      "stderr": "assertions must remain enabled; do not use python -O\n",
+      "output_not_created": true
+    }
+  },
+  "new_interpreted_bytes": 296,
+  "goal_members_completed": 10,
+  "goal_items_qualified": 11,
+  "all4_pre_mainpool_consumers_qualified": true,
+  "next_mainpool_start": 56118,
+  "next_mainpool_receiver": "8c7630",
+  "next_mainpool_reader": "42d790",
+  "mainpool_section_count_objects_unconsumed": true,
+  "conditional_cache_next17_preserved_not_runtime_proof": true,
+  "old_full_suites_not_rerun": true,
+  "runtime_registry_current_vptr_and_instances_proved": false,
+  "raw_original_decoded_bytes_or_listing_published": false,
+  "new_semantics_independently_reviewed": false
+}
