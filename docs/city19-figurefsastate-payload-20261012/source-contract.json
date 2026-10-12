@@ -1,0 +1,297 @@
+{
+  "schema": "FIGUREFSASTATE_SOURCE_BOUND_CODEC_20261012",
+  "baseline": "fe09b158e410c232b6820932a6d9dc878d11a976",
+  "identifier": "FigureFSAState",
+  "name_address": "84d48c",
+  "descriptor": "84d310",
+  "class_schema": 0,
+  "memory_size": 84,
+  "memory_size_used_as_wire_width": false,
+  "base_descriptor": "850230 FSAState",
+  "factory": "4db820",
+  "constructor": "4db8b0",
+  "base_constructor": "4f5270",
+  "root": "7b0034",
+  "runtime_class_getter": "4db880 returns84d310 via virtual0",
+  "reader_slot8": "4dbaa0",
+  "compatibility": "77bb42 virtual0 and77bbc0 descriptor+10 traversal; one-way FigureState->State; exact concrete cache type retained",
+  "base_reader": "4f5630",
+  "base_supported_version": 1,
+  "own_supported_versions": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "version_case_table": "4dbce4",
+  "version_targets": [
+    "4dbc95",
+    "4dbc54",
+    "4dbc09",
+    "4dbbb1",
+    "4dbb4f"
+  ],
+  "own_wire_byte_counts": {
+    "1": 6,
+    "2": 7,
+    "3": 8,
+    "4": 9,
+    "5": 10
+  },
+  "own_wire_member_order": {
+    "1": [
+      "4a",
+      "4b",
+      "4c",
+      "4d",
+      "4e",
+      "4f"
+    ],
+    "2": [
+      "4a",
+      "4b",
+      "4c",
+      "4d",
+      "4e",
+      "4f",
+      "50"
+    ],
+    "3": [
+      "4a",
+      "4b",
+      "4c",
+      "4d",
+      "4e",
+      "4f",
+      "50",
+      "51"
+    ],
+    "4": [
+      "4a",
+      "4b",
+      "4c",
+      "4d",
+      "4e",
+      "4f",
+      "50",
+      "51",
+      "49"
+    ],
+    "5": [
+      "4a",
+      "4b",
+      "4c",
+      "4d",
+      "4e",
+      "4f",
+      "50",
+      "51",
+      "49",
+      "48"
+    ]
+  },
+  "source_other_versions_skip_fields": true,
+  "modern_other_versions_rejected_as_explicit_subset": true,
+  "actual_runtime_identity_proved": false,
+  "new_unknown_types_added": false,
+  "source_stages": [
+    {
+      "stage": "rea-static-city19-figurefsastate-source-20261012",
+      "artifacts": [
+        {
+          "phase": "figurefsastate-defined-name-search",
+          "operation": "search_strings",
+          "parameters": {
+            "pattern": "FigureFSAState"
+          },
+          "evidence_id": "ev_b0b4a7bb51d057395b25c944ff4002eb6549aab90cded38caf030478cfa5a8f1",
+          "file": "figurefsastate-defined-name-search.evidence.json",
+          "bytes": 5337,
+          "sha256": "d48ea33f20642ec49cb47a3732f48f7648daa0cf27dd155e31396867aafa15ec"
+        },
+        {
+          "phase": "figurefsastate-name-data-references",
+          "operation": "xrefs",
+          "parameters": {
+            "address": "0x84d48c"
+          },
+          "evidence_id": "ev_6c9e1c0ace8ae6e3c1b891535ee32c3c43a82b277cac52d631129e31a9b2af63",
+          "file": "figurefsastate-name-data-references.evidence.json",
+          "bytes": 4811,
+          "sha256": "de6da3ea2b6bcae26b036545ad9ce2de53e4269fb820e240213682ef231183d3"
+        },
+        {
+          "phase": "figurefsastate-runtime-descriptor",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x84d310",
+            "length": 24
+          },
+          "evidence_id": "ev_b5a727d23e8321b0fc3f6c4bf428327cf60c9477c8a47cb34d46bb4628a220d9",
+          "file": "figurefsastate-runtime-descriptor.evidence.json",
+          "bytes": 5021,
+          "sha256": "6f6702a43177a5a8b0c7ba9e540785604a27d4d6fe008e1e0314657e10384753"
+        },
+        {
+          "phase": "figurefsastate-factory4db820",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4db820"
+          },
+          "evidence_id": "ev_0288b02b18434cfe642f05817031dca9acff404b7786bc395f8a4fbca3f5d912",
+          "file": "figurefsastate-factory4db820.evidence.json",
+          "bytes": 5938,
+          "sha256": "7aba1d8ff42399d5e0ce5d7c0d02b3e6febc418b2adab8ae679b563f5f204ae8"
+        },
+        {
+          "phase": "figurefsastate-constructor4db8b0",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4db8b0"
+          },
+          "evidence_id": "ev_d01898a146dc9523801597d1d29fcf474c49563f7dd04ee786a93d74cd3a7622",
+          "file": "figurefsastate-constructor4db8b0.evidence.json",
+          "bytes": 5766,
+          "sha256": "e42a4e49e0b96590bfd90933376a55adee66debc8b21df26d84d4cd621b3df35"
+        },
+        {
+          "phase": "figurefsastate-root-runtimeclass-slot0",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x7b0034",
+            "length": 4
+          },
+          "evidence_id": "ev_784c37e2e6b7c580222085bd12a2f23546f490d32626addd61141a91e0ad5e71",
+          "file": "figurefsastate-root-runtimeclass-slot0.evidence.json",
+          "bytes": 4936,
+          "sha256": "f80f4adedf22288b02568b688cb715cdf11c8c183175009a23f0d435f7dd5157"
+        },
+        {
+          "phase": "figurefsastate-root-reader-slot8",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x7b003c",
+            "length": 4
+          },
+          "evidence_id": "ev_dfcd2120644a48c134eb72372de058a555b4cb519d79bc318fba1361c1cf9354",
+          "file": "figurefsastate-root-reader-slot8.evidence.json",
+          "bytes": 4936,
+          "sha256": "8c3cd176afed7e0ed32910c0e597d716d077aed7657e27d79f2c4942c70a8ea7"
+        }
+      ],
+      "provider_errors": [
+        {
+          "file": "figurefsastate-reader4dbaa0.error.json",
+          "sha256": "046a8fcdf043354d81e38a4226cf4523b718d9a65bdfcfba89b9ab32a65a312e",
+          "result": {
+            "code": "invalid_request",
+            "category": "invalid_input",
+            "message": "Analysis input is invalid. Check the arguments and try again.",
+            "retryable": true,
+            "remediation": {
+              "action": "Correct the listed arguments and retry."
+            },
+            "details": {
+              "operation": "procedure_assembly",
+              "issues": [
+                {
+                  "path": [],
+                  "reason": "invalid_value",
+                  "message": "No procedure exists at the requested address: 0x4dbaa0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "file": "figurefsastate-runtimeclass-getter4db880.error.json",
+          "sha256": "af0ae0a05875fa6683de388645f636710b643124901d8c6caff9b106a0d85b46",
+          "result": {
+            "code": "invalid_request",
+            "category": "invalid_input",
+            "message": "Analysis input is invalid. Check the arguments and try again.",
+            "retryable": true,
+            "remediation": {
+              "action": "Correct the listed arguments and retry."
+            },
+            "details": {
+              "operation": "procedure_assembly",
+              "issues": [
+                {
+                  "path": [],
+                  "reason": "invalid_value",
+                  "message": "No procedure exists at the requested address: 0x4db880"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "exit_code": 0,
+      "seconds": 447.87,
+      "temporary_entries_after": [],
+      "input_identity_unchanged": true,
+      "selected_tool_SHA_unchanged": true,
+      "status_sha256": "4d8b687d39ac55e7fa992cd8ec5643a077ce2cc37bc28550d0210a7aa5b2f5f7",
+      "result_sha256": "3da9ff0d86c4652e616209cc3a15f5ba7e4b0e79ac778ce49af8a48f1a8a3b09"
+    },
+    {
+      "stage": "rea-static-city19-figurefsastate-reader-20261012",
+      "artifacts": [
+        {
+          "phase": "figurefsastate-runtimeclass-getter4db880",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4db880"
+          },
+          "evidence_id": "ev_d66fb03bda718d4eee4446b55423dded12fd62015d429d6a0d284d214e81461d",
+          "file": "figurefsastate-runtimeclass-getter4db880.evidence.json",
+          "bytes": 4732,
+          "sha256": "ccd0a0de563261b615af20e1737fd262488bf417055cc8618367be0b94f52f6e"
+        },
+        {
+          "phase": "figurefsastate-reader4dbaa0",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4dbaa0"
+          },
+          "evidence_id": "ev_c01d2ba88b5c816ed092c3fc2ce9fa603e50d50b1c09c533690e6ce05c5c6e56",
+          "file": "figurefsastate-reader4dbaa0.evidence.json",
+          "bytes": 15820,
+          "sha256": "7846ade70aab11a06ccae54ce3ca095ba13fe050acf246b886abf29528787c9e"
+        },
+        {
+          "phase": "figurefsastate-own-version-table",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x4dbce4",
+            "length": 20
+          },
+          "evidence_id": "ev_0271a47d80dc23b51c926e58d8be4e2a69b690a25ed7aa791c784da5553ac258",
+          "file": "figurefsastate-own-version-table.evidence.json",
+          "bytes": 5005,
+          "sha256": "8a77cdd877e2d028cccca04f66f4f8d7703f4f87932164646825af9304cba23b"
+        }
+      ],
+      "provider_errors": [],
+      "exit_code": 0,
+      "seconds": 249.22,
+      "temporary_entries_after": [],
+      "input_identity_unchanged": true,
+      "selected_tool_SHA_unchanged": true,
+      "status_sha256": "659bdfacfcb18ab3ae7b0354ef0d98184a21a109438b6dcf238023d902a82d3c",
+      "result_sha256": "729908f872c7043f8f8d5114190c8f5a96cf4f56d4f6b4fbb5ebf5ac8b9282c9"
+    }
+  ],
+  "reused_compatibility_evidence": [
+    {
+      "file": "rea-static-load-identity-20261011/object-runtime-class-compatibility-assembly.evidence.json",
+      "sha256": "60c933637550167bc9448e7e553f6f9cdd9d1dc6ae94cbd9d2a49cbaae5acb9c"
+    },
+    {
+      "file": "rea-static-load-identity-20261011/runtime-class-base-chain-assembly.evidence.json",
+      "sha256": "fe4feddf46ccbb4c5c58a315fbf1a86804bdd1fbe82faa6f4eb21ec448b3f895"
+    }
+  ]
+}

@@ -1,0 +1,321 @@
+{
+  "self_authored_results": [
+    {
+      "mode": "release",
+      "compile_exit": 0,
+      "exit_code": 0,
+      "stderr_empty": true,
+      "compiled_dependency_sha256": {
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsastate-payload-20261012/candidate/file_io/tests/figurefsastate_payload/properties.cpp": "1f2d949ab762f412994a05d02ce2d26e0a13c24c114fd78592a362e9a4611760",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsastate-payload-20261012/candidate/file_io/include/city19_figurefsa_objects.hpp": "86214c97d5e47d5ed834cb09b9a97a1bd07c64e119488b60f13b2542639094d5",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsastate-payload-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsastate-payload-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+      },
+      "report": {
+        "checks": [
+          {
+            "id": "proved_derived_State_reference_keeps_concrete_cache_type",
+            "passed": true
+          },
+          {
+            "id": "inheritance_compatibility_is_directional_and_kind_checked",
+            "passed": true
+          },
+          {
+            "id": "mixed_FigureState_base_State_and_cached_derived_all_versions",
+            "passed": true
+          },
+          {
+            "id": "derived_global6020_graph_and_every_truncation",
+            "passed": true
+          },
+          {
+            "id": "derived_base_and_own_versions_are_independent",
+            "passed": true
+          },
+          {
+            "id": "derived_late_failure_keeps_prior_output_and_cache",
+            "passed": true
+          },
+          {
+            "id": "global_6020_class_then_object_and_back_references",
+            "passed": true
+          },
+          {
+            "id": "same_cache_continues_into_following_record",
+            "passed": true
+          },
+          {
+            "id": "opaque_prefix_reference_stops_without_guessing",
+            "passed": true
+          },
+          {
+            "id": "late_failure_preserves_complete_prior_output_and_prefix",
+            "passed": true
+          },
+          {
+            "id": "prefix_budget_and_nested_budget_remain_bounded",
+            "passed": true
+          },
+          {
+            "id": "unknown_class_diagnostic_range_without_partial_cache",
+            "passed": true
+          },
+          {
+            "id": "state_declaration_cached_class_all_outer_versions",
+            "passed": true
+          },
+          {
+            "id": "cached_branch_agrees_with_preserved_component",
+            "passed": true
+          },
+          {
+            "id": "three_primary_classes_new_payloads_and_back_reference_cycle",
+            "passed": true
+          },
+          {
+            "id": "six_concrete_classes_declared_and_cached_new_instances",
+            "passed": true
+          },
+          {
+            "id": "all_six_preloaded_classes_support_small_and_extended_tags",
+            "passed": true
+          },
+          {
+            "id": "every_six_class_graph_truncation_rejected",
+            "passed": true
+          },
+          {
+            "id": "all_six_own_version_subsets_reject_unsupported",
+            "passed": true
+          },
+          {
+            "id": "every_recursive_graph_truncation_rejected",
+            "passed": true
+          },
+          {
+            "id": "depth_budget_checks_new_payload_only_not_back_reference",
+            "passed": true
+          },
+          {
+            "id": "every_state_fixture_truncation_rejected",
+            "passed": true
+          },
+          {
+            "id": "signed_counts_preserved_and_nonpositive_skip",
+            "passed": true
+          },
+          {
+            "id": "class_schema_separate_from_object_own_version",
+            "passed": true
+          },
+          {
+            "id": "unknown_class_and_name_length_rejected",
+            "passed": true
+          },
+          {
+            "id": "unsupported_own_version_and_endian_rejected",
+            "passed": true
+          },
+          {
+            "id": "object_cache_and_string_budgets",
+            "passed": true
+          },
+          {
+            "id": "class_and_object_tags_kind_zero_range_and_family",
+            "passed": true
+          },
+          {
+            "id": "duplicate_class_declarations_keep_separate_ids",
+            "passed": true
+          },
+          {
+            "id": "positive_list_and_input_view_budgets",
+            "passed": true
+          },
+          {
+            "id": "translated_prefix_and_unconsumed_trailing_bytes",
+            "passed": true
+          },
+          {
+            "id": "failures_are_readonly_and_later_invocation_clean",
+            "passed": true
+          },
+          {
+            "id": "explicit_contract_argument_and_initial_cache_validation",
+            "passed": true
+          },
+          {
+            "id": "readonly_exact_record_guard_page",
+            "passed": true
+          }
+        ],
+        "passed": 34,
+        "failed": 0
+      }
+    },
+    {
+      "mode": "ubsan",
+      "compile_exit": 0,
+      "exit_code": 0,
+      "stderr_empty": true,
+      "compiled_dependency_sha256": {
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsastate-payload-20261012/candidate/file_io/tests/figurefsastate_payload/properties.cpp": "1f2d949ab762f412994a05d02ce2d26e0a13c24c114fd78592a362e9a4611760",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsastate-payload-20261012/candidate/file_io/include/city19_figurefsa_objects.hpp": "86214c97d5e47d5ed834cb09b9a97a1bd07c64e119488b60f13b2542639094d5",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsastate-payload-20261012/candidate/file_io/include/city19_figurefsa_archive.hpp": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+        "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-figurefsastate-payload-20261012/candidate/file_io/include/city19_goal_archive.hpp": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b"
+      },
+      "report": {
+        "checks": [
+          {
+            "id": "proved_derived_State_reference_keeps_concrete_cache_type",
+            "passed": true
+          },
+          {
+            "id": "inheritance_compatibility_is_directional_and_kind_checked",
+            "passed": true
+          },
+          {
+            "id": "mixed_FigureState_base_State_and_cached_derived_all_versions",
+            "passed": true
+          },
+          {
+            "id": "derived_global6020_graph_and_every_truncation",
+            "passed": true
+          },
+          {
+            "id": "derived_base_and_own_versions_are_independent",
+            "passed": true
+          },
+          {
+            "id": "derived_late_failure_keeps_prior_output_and_cache",
+            "passed": true
+          },
+          {
+            "id": "global_6020_class_then_object_and_back_references",
+            "passed": true
+          },
+          {
+            "id": "same_cache_continues_into_following_record",
+            "passed": true
+          },
+          {
+            "id": "opaque_prefix_reference_stops_without_guessing",
+            "passed": true
+          },
+          {
+            "id": "late_failure_preserves_complete_prior_output_and_prefix",
+            "passed": true
+          },
+          {
+            "id": "prefix_budget_and_nested_budget_remain_bounded",
+            "passed": true
+          },
+          {
+            "id": "unknown_class_diagnostic_range_without_partial_cache",
+            "passed": true
+          },
+          {
+            "id": "state_declaration_cached_class_all_outer_versions",
+            "passed": true
+          },
+          {
+            "id": "cached_branch_agrees_with_preserved_component",
+            "passed": true
+          },
+          {
+            "id": "three_primary_classes_new_payloads_and_back_reference_cycle",
+            "passed": true
+          },
+          {
+            "id": "six_concrete_classes_declared_and_cached_new_instances",
+            "passed": true
+          },
+          {
+            "id": "all_six_preloaded_classes_support_small_and_extended_tags",
+            "passed": true
+          },
+          {
+            "id": "every_six_class_graph_truncation_rejected",
+            "passed": true
+          },
+          {
+            "id": "all_six_own_version_subsets_reject_unsupported",
+            "passed": true
+          },
+          {
+            "id": "every_recursive_graph_truncation_rejected",
+            "passed": true
+          },
+          {
+            "id": "depth_budget_checks_new_payload_only_not_back_reference",
+            "passed": true
+          },
+          {
+            "id": "every_state_fixture_truncation_rejected",
+            "passed": true
+          },
+          {
+            "id": "signed_counts_preserved_and_nonpositive_skip",
+            "passed": true
+          },
+          {
+            "id": "class_schema_separate_from_object_own_version",
+            "passed": true
+          },
+          {
+            "id": "unknown_class_and_name_length_rejected",
+            "passed": true
+          },
+          {
+            "id": "unsupported_own_version_and_endian_rejected",
+            "passed": true
+          },
+          {
+            "id": "object_cache_and_string_budgets",
+            "passed": true
+          },
+          {
+            "id": "class_and_object_tags_kind_zero_range_and_family",
+            "passed": true
+          },
+          {
+            "id": "duplicate_class_declarations_keep_separate_ids",
+            "passed": true
+          },
+          {
+            "id": "positive_list_and_input_view_budgets",
+            "passed": true
+          },
+          {
+            "id": "translated_prefix_and_unconsumed_trailing_bytes",
+            "passed": true
+          },
+          {
+            "id": "failures_are_readonly_and_later_invocation_clean",
+            "passed": true
+          },
+          {
+            "id": "explicit_contract_argument_and_initial_cache_validation",
+            "passed": true
+          },
+          {
+            "id": "readonly_exact_record_guard_page",
+            "passed": true
+          }
+        ],
+        "passed": 34,
+        "failed": 0
+      }
+    }
+  ],
+  "passed": 68,
+  "failed": 0,
+  "results_sha256": "9ada0e44645864b26840540b5cc52d195570627201b0a3aa6c4e0abfd30fca11",
+  "actual_compiler_dependencies_match": true,
+  "new_header_sha256": "86214c97d5e47d5ed834cb09b9a97a1bd07c64e119488b60f13b2542639094d5",
+  "original_cached_header_unchanged": true,
+  "original_cached_header_sha256": "4d80bb872a88bfae52057202ef255f71eb9a4adbe2e12f4ec76c2eb96ada1597",
+  "original_data_loaded_in_synthetic_tests": false,
+  "runtime_type_proof": false
+}

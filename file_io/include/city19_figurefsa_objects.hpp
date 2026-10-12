@@ -2,7 +2,12 @@
 #include "city19_figurefsa_archive.hpp"
 
 namespace emperor::file_io::research {
-enum class FigureFsaWireType { State, Transition, ActionContext, Action, Context, Match, OpaquePrefix };
+enum class FigureFsaWireType { State, Transition, ActionContext, Action, Context, Match, OpaquePrefix, FigureState };
+inline bool figure_fsa_wire_compatible(FigureFsaWireType actual,FigureFsaWireType expected) {
+    // Static84d310.base=850230; source77bbc0 traverses descriptor+10.
+    // This models the selected concrete catalog, not a live IsKindOf call.
+    return actual==expected||(actual==FigureFsaWireType::FigureState&&expected==FigureFsaWireType::State);
+}
 struct FigureFsaWireCacheEntry {
     FigureFsaCacheKind kind=FigureFsaCacheKind::Null;
     FigureFsaWireType family=FigureFsaWireType::State;
@@ -31,6 +36,7 @@ struct FigureFsaObjectPayload {
     FigureFsaWireType family=FigureFsaWireType::State;
     uint16_t version=0;
     std::vector<FigureFsaRange> fields;
+    uint16_t base_version=0;
 };
 struct FigureFsaObjectWalk {
     static constexpr bool verifies_original_instance=false;
@@ -74,7 +80,7 @@ class FigureFsaObjectReader {
     static bool family_valid(FigureFsaWireType f) {
         return f==FigureFsaWireType::State || f==FigureFsaWireType::Transition ||
                f==FigureFsaWireType::ActionContext || f==FigureFsaWireType::Action ||
-               f==FigureFsaWireType::Context || f==FigureFsaWireType::Match;
+               f==FigureFsaWireType::Context || f==FigureFsaWireType::Match || f==FigureFsaWireType::FigureState;
     }
     uint32_t append(FigureFsaWireCacheEntry entry) {
         if(result_.cache.size()>=limits_.max_cache)
@@ -119,6 +125,7 @@ class FigureFsaObjectReader {
         else if(equal("FSAAction"))family=FigureFsaWireType::Action;
         else if(equal("FSAContext"))family=FigureFsaWireType::Context;
         else if(equal("FSAMatch"))family=FigureFsaWireType::Match;
+        else if(equal("FigureFSAState"))family=FigureFsaWireType::FigureState;
         else throw FigureFsaUnknownClassFailure(tag.offset,off,n,schema);
         if(schema!=0)throw std::runtime_error("FigureFSA exact class schema mismatch");
         const auto id=append({FigureFsaCacheKind::Class,family,0,schema});
@@ -144,7 +151,7 @@ class FigureFsaObjectReader {
             if(object_id&&result_.cache[object_id].family==FigureFsaWireType::OpaquePrefix)
                 throw std::runtime_error("FigureFSA reference to unsupported opaque prefix object");
             if(object_id&&(result_.cache[object_id].kind!=FigureFsaCacheKind::Object||
-                          result_.cache[object_id].family!=expected))
+                          !figure_fsa_wire_compatible(result_.cache[object_id].family,expected)))
                 throw std::runtime_error("FigureFSA object reference kind/family");
             result_.references.push_back({tag.offset,tag_bytes,object_id,at,expected,
                                           object_id==0,tag.word==0x7fff});
@@ -152,7 +159,7 @@ class FigureFsaObjectReader {
         }
         const auto type=result_.cache[class_id].family;
         const auto schema=result_.cache[class_id].schema;
-        if(type!=expected)throw std::runtime_error("FigureFSA new object expected family mismatch");
+        if(!figure_fsa_wire_compatible(type,expected))throw std::runtime_error("FigureFSA new object expected family mismatch");
         if(schema!=0)throw std::runtime_error("FigureFSA new object exact schema mismatch");
         if(depth>=limits_.max_depth||result_.payloads.size()>=limits_.max_objects)
             throw std::runtime_error("FigureFSA object depth/count budget");
@@ -196,7 +203,7 @@ public:
 inline void FigureFsaObjectReader::payload(size_t index,size_t depth) {
     const auto type=result_.payloads[index].family;
     const auto version=cursor_.u16();result_.payloads[index].version=version;
-    if(type==FigureFsaWireType::State) {
+    if(type==FigureFsaWireType::State||type==FigureFsaWireType::FigureState) {
         // Selected4f5630 -> root40cf80 (zero bytes), own version1.
         if(version!=1)throw std::runtime_error("FSAState own outside selected1 subset");
         string(0x4f5785);
@@ -204,6 +211,22 @@ inline void FigureFsaObjectReader::payload(size_t index,size_t depth) {
         refs(FigureFsaWireType::ActionContext,0x4f57d2,0x4f57ea,depth);
         reference(FigureFsaWireType::Transition,0x4f5811,depth);
         refs(FigureFsaWireType::Transition,0x4f581d,0x4f5832,depth);
+        if(type==FigureFsaWireType::FigureState) {
+            result_.payloads[index].base_version=version;
+            const auto own=cursor_.u16();result_.payloads[index].version=own;
+            if(own<1||own>5)throw std::runtime_error("FigureFSAState own outside source1..5 subset");
+            const std::array<std::array<uint32_t,10>,5> calls{{
+                {{0x4dbc9a,0x4dbca4,0x4dbcae,0x4dbcb8,0x4dbcc2,0x4dbccc}},
+                {{0x4dbc59,0x4dbc63,0x4dbc6d,0x4dbc77,0x4dbc81,0x4dbc8b,0x4dbccc}},
+                {{0x4dbc0e,0x4dbc18,0x4dbc22,0x4dbc2c,0x4dbc36,0x4dbc40,0x4dbc4a,0x4dbccc}},
+                {{0x4dbbb6,0x4dbbc0,0x4dbbca,0x4dbbd4,0x4dbbde,0x4dbbe8,0x4dbbf2,0x4dbbfc,0x4dbccc}},
+                {{0x4dbb54,0x4dbb5e,0x4dbb68,0x4dbb72,0x4dbb7c,0x4dbb86,0x4dbb90,0x4dbb9a,0x4dbba4,0x4dbccc}}
+            }};
+            for(size_t k=0;k<size_t(own)+5;++k) {
+                const auto off=cursor_.position();flag(calls[own-1][k]);
+                result_.payloads[index].fields.push_back({off,1,calls[own-1][k]});
+            }
+        }
     } else if(type==FigureFsaWireType::ActionContext) {
         if(version!=1)throw std::runtime_error("FSAActionContext own outside selected1 subset");
         reference(FigureFsaWireType::Action,0x4f7b36,depth);
