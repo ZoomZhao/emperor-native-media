@@ -1,0 +1,956 @@
+{
+  "scope": "cGoodsControlList source1 signed raw count and200 preconstructed inline cGoodsControl source1 records; shared archive metadata unchanged",
+  "base": "ba11f1a72e8f499901d033c5fc0a6801ecc9e020",
+  "old_frontier": 1592210,
+  "new_frontier": 1646216,
+  "new_qualified_bytes": 54006,
+  "remaining_uninterpreted_decoded_bytes": 2784779,
+  "input_sha256": "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+  "decoded_sha256": "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+  "input_bytes": 165223,
+  "decoded_bytes": 4430995,
+  "blocks": 136,
+  "goods": {
+    "start": 1592210,
+    "end": 1646216,
+    "version": 1,
+    "count": 200,
+    "processed": 200,
+    "complete": true,
+    "conditional_cache_next": 6020,
+    "stop_reason": "GoodsControl_complete_before_unqualified_Empire",
+    "record_values_interpreted": false
+  },
+  "first_record": {
+    "ordinal": 0,
+    "start": 1592216,
+    "end": 1592486,
+    "version": 1,
+    "wire_bytes": 270,
+    "sha256": "4b5bb0866ba59927bc5a6e1de11cb7a03f6041c6d7edbdc27c6228e011be4012"
+  },
+  "last_record": {
+    "ordinal": 199,
+    "start": 1645946,
+    "end": 1646216,
+    "version": 1,
+    "wire_bytes": 270,
+    "sha256": "4b5bb0866ba59927bc5a6e1de11cb7a03f6041c6d7edbdc27c6228e011be4012"
+  },
+  "source_manager": {
+    "literal": "cGoodsControlList",
+    "descriptor": "852500",
+    "schema": 0,
+    "memory_size20_not_wire": true,
+    "getter": "506240",
+    "receiver": "10bc910",
+    "constructor": "506250",
+    "root": "7b430c",
+    "reader": "506710",
+    "own_record": "10bc908",
+    "own_section": 1,
+    "raw_count_read": "5067a5->780533(length4) into[esp10]",
+    "count_signed_by_TEST_JLE": true,
+    "count_return_not_checked_here": true,
+    "constructor_default200_not_validation_upper_bound": true,
+    "no_observed_original_count_upper_bound": true
+  },
+  "source_inline": {
+    "literal": "cGoodsControl",
+    "descriptor": "852518",
+    "schema": 0,
+    "memory_size272_not_wire": true,
+    "constructor": "5068d0",
+    "reset": "506920",
+    "root": "7b431c",
+    "reader": "5069b0",
+    "own_record": "10bc8f8",
+    "own_section": 1,
+    "field_requests": 15,
+    "field_bytes": 268,
+    "wire_record_bytes": 270,
+    "plain_inline_not_ReadObject": true,
+    "no_archive_ID_append": true,
+    "record_values_uninterpreted": true
+  },
+  "exact_fields": [
+    {
+      "receiver_offset": 4,
+      "bytes": 4,
+      "source_call": "0x506ac9"
+    },
+    {
+      "receiver_offset": 8,
+      "bytes": 2,
+      "source_call": "0x506ad6"
+    },
+    {
+      "receiver_offset": 10,
+      "bytes": 2,
+      "source_call": "0x506ae3"
+    },
+    {
+      "receiver_offset": 12,
+      "bytes": 1,
+      "source_call": "0x506af0"
+    },
+    {
+      "receiver_offset": 13,
+      "bytes": 1,
+      "source_call": "0x506afd"
+    },
+    {
+      "receiver_offset": 14,
+      "bytes": 36,
+      "source_call": "0x506b0a"
+    },
+    {
+      "receiver_offset": 50,
+      "bytes": 1,
+      "source_call": "0x506b17"
+    },
+    {
+      "receiver_offset": 51,
+      "bytes": 1,
+      "source_call": "0x506b24"
+    },
+    {
+      "receiver_offset": 52,
+      "bytes": 1,
+      "source_call": "0x506b31"
+    },
+    {
+      "receiver_offset": 53,
+      "bytes": 1,
+      "source_call": "0x506b3e"
+    },
+    {
+      "receiver_offset": 54,
+      "bytes": 2,
+      "source_call": "0x506b4b"
+    },
+    {
+      "receiver_offset": 56,
+      "bytes": 72,
+      "source_call": "0x506b58"
+    },
+    {
+      "receiver_offset": 128,
+      "bytes": 72,
+      "source_call": "0x506b68"
+    },
+    {
+      "receiver_offset": 200,
+      "bytes": 36,
+      "source_call": "0x506b78"
+    },
+    {
+      "receiver_offset": 236,
+      "bytes": 36,
+      "source_call": "0x506b88"
+    }
+  ],
+  "source_evidence": [
+    {
+      "saved_evidence": "rea-static-city19-after-mainpool-retry-20261012/second-consumer-getter.evidence.json",
+      "sha256": "4f0a5b5b4b368e69e252eda0561106a5b2c50516b891d47aa2ac3b6407a540c1",
+      "evidence_id": "ev_68a11779549efc120aad764a5c6b91b9e642e1aee4f28af6f98fe020d13505d7",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x506240"
+      },
+      "profile_digest": "0ced5e78f012b83a9dc37a3607d4408a7d53d5ac3d7c2cbd30624acea63ab67b",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-figure-and-followers-20261012/second-ctor-assembly.evidence.json",
+      "sha256": "d2fe1c9dfefa0136933973aa7a2e6d12202f209c0584cb75257ba434500b2b40",
+      "evidence_id": "ev_a561b526c60f1673ba4be0d1e0a3ea982f1984410811e6b694592a6d78e1034f",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x506250"
+      },
+      "profile_digest": "f2edebd92826244635b51fd9e0bc3e19ff13944ad1380e7dce55dac43a0b6721",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-figure-and-followers-20261012/second-reset-assembly.evidence.json",
+      "sha256": "55c37bbf6148e96e4a3f7a5e2112c9e49c88f8b39bf61d9a5ad490b1e86fecd2",
+      "evidence_id": "ev_d4a346f6518693dc052cb9a250624fa258cd838c77bde226a43b52017e0bab86",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x506350"
+      },
+      "profile_digest": "f2edebd92826244635b51fd9e0bc3e19ff13944ad1380e7dce55dac43a0b6721",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-figure-and-followers-20261012/second-root-bytes.evidence.json",
+      "sha256": "9bcb1cfb3b1e7454f6b032ab03a79ee00e937e6ca9698524f185b9cc2cbf5563",
+      "evidence_id": "ev_3ef645210ef834a7608a2883e094c65299873bc7d14f09e2a6649a878dc6e160",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x7b430c",
+        "length": 12
+      },
+      "profile_digest": "f2edebd92826244635b51fd9e0bc3e19ff13944ad1380e7dce55dac43a0b6721",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-figure-and-followers-20261012/second-type-getter.evidence.json",
+      "sha256": "e2f4fe680b8678c810c819b03cc9a2f108e634d8c604be5e96b21f5c0ef574f6",
+      "evidence_id": "ev_58d8045bc8578776f21bb4e45e94cad3162eb2f07acf9941144d31a847b8efb1",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x506210"
+      },
+      "profile_digest": "f2edebd92826244635b51fd9e0bc3e19ff13944ad1380e7dce55dac43a0b6721",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-figure-and-followers-20261012/second-type-getter-ret.evidence.json",
+      "sha256": "941519315b4a643a227cf315686e6aa8847e9338786ede5fbe5d681bc714cdb8",
+      "evidence_id": "ev_3aec4225fd262f7033b93b62e28fbcd7c980b4c8dbb1ca7f2cb01cfffd65a791",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x506215"
+      },
+      "profile_digest": "f2edebd92826244635b51fd9e0bc3e19ff13944ad1380e7dce55dac43a0b6721",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-figure-and-followers-20261012/second-reader-assembly.evidence.json",
+      "sha256": "fa03fe9eec31b4ab55edc1a4e48e693d6c0ee480eca32265b188988c6f7f178a",
+      "evidence_id": "ev_e93f4cd1fbb2f650ace670a0b0e4b5b3a7a863c7b603fc495618972ee3101e67",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x506710"
+      },
+      "profile_digest": "f2edebd92826244635b51fd9e0bc3e19ff13944ad1380e7dce55dac43a0b6721",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-binding-20261011/record-clear-assembly.evidence.json",
+      "sha256": "0259de40815aceab3ccef47962ab6e648256c429feced9d7506eb6a1ce325a16",
+      "evidence_id": "ev_5e6ff89ef6a50e47a491ace18e12c676b86ea23b73ef17e9b78240e5a67d510d",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x506480"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-binding-20261011/record-populate-assembly.evidence.json",
+      "sha256": "60e931f237c7b5d6ae0a88507c63d88766137a26254d3e597e2c5c8d54ecc26a",
+      "evidence_id": "ev_749cd4f3c6e0d317795d27e20ae1b02548867b75b40115eed7f5f3e204601d16",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x506380"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-binding-20261011/record-constructor-assembly.evidence.json",
+      "sha256": "28eb34bebcf908bfc6cc053b9f4af282e146da45c545660afe3b1526b7656d74",
+      "evidence_id": "ev_91113efa4a06abc8500719dfa78454d18547b69df872a44b9ff7f10df3fdb15f",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x5068d0"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-binding-20261011/record-reset-fields-assembly.evidence.json",
+      "sha256": "96614883a13c96669b4887b1fb45004f4e38e3c0dabe366087032812bc0e293e",
+      "evidence_id": "ev_207ebbff29e6c97b3bce7b0159213596ec6ef62e6cec0cbc413a3c579507c767",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x506920"
+      },
+      "profile_digest": "e3402f2d7c487875edf3c6215fa95d67ee1fa133ba68c2390a9338b38656a7b2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-wire-helper-readers-20261012/record-root-bytes.evidence.json",
+      "sha256": "d3aea34d657bdeed7456048ef83f02f397986e8d7f9358c678aa64fe11d11ccd",
+      "evidence_id": "ev_00350750f5bfb26c5e5d48232c34b03032c51e4cb059086f0ca0e204cf579089",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x7b431c",
+        "length": 12
+      },
+      "profile_digest": "48738550fcfeaabcb125e8ea502d3349773fd302b513d1c98523d13a7194be84",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-wire-helper-readers-20261012/record-type-getter-native.evidence.json",
+      "sha256": "ccf2957824a919d869b06a63b319b5da1e96e9615b006de6e0a0aa6986afc62a",
+      "evidence_id": "ev_3981d870e41be1fa2904f5ffbf93eafebd48fbde3f6e62da02216be6864de0e3",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x5068a0"
+      },
+      "profile_digest": "48738550fcfeaabcb125e8ea502d3349773fd302b513d1c98523d13a7194be84",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-wire-helper-readers-20261012/record-type-getter-ret.evidence.json",
+      "sha256": "34552bd9138fa53e3681c84c549277d34cb1995b287b2d45322b13bb5d924fda",
+      "evidence_id": "ev_0d79ca7d45433a7e6fb8ea7c88b56f261d75666e8f560e5d4eb6f0a04e3969c0",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x5068a5"
+      },
+      "profile_digest": "48738550fcfeaabcb125e8ea502d3349773fd302b513d1c98523d13a7194be84",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-wire-helper-readers-20261012/second-class-name-bytes.evidence.json",
+      "sha256": "364724f3cd0dbfba23b150ae781bcea987ef8d4482378e5953b86f5066a7bc95",
+      "evidence_id": "ev_5930b4fbed7c54939b3a960db5b2a02f32f0cf0eee2c4dd86e8b84d373f72bb4",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x852540",
+        "length": 32
+      },
+      "profile_digest": "48738550fcfeaabcb125e8ea502d3349773fd302b513d1c98523d13a7194be84",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-goods-empire-fields-20261012/goods-seeded-reader.evidence.json",
+      "sha256": "a8d90b293bbb6777e6b986a798df7cf0d55ff0c6de8c8609919136d07d4de6e3",
+      "evidence_id": "ev_8b1d56a3a9d7c9e8534352ac1cd59e9f9bfee8e6b7d7a34ee1c1d334bf2ee703",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "procedure": "0x5069b0"
+      },
+      "profile_digest": "181eb6583277062b671aa5ea96e1cc79293233f263994afabf78b7b04a1f72a2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-goods-empire-fields-20261012/goods-class-descriptor-bytes.evidence.json",
+      "sha256": "857575e7bd6e2533af5f467abd5ec0ed142cfb5d50dd4547037bd83fb21d8885",
+      "evidence_id": "ev_6f8b24e3a638a05873990261e1e34f31b4a800120c31fc85d8aaf8cdea032a6e",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x852518",
+        "length": 24
+      },
+      "profile_digest": "181eb6583277062b671aa5ea96e1cc79293233f263994afabf78b7b04a1f72a2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    },
+    {
+      "saved_evidence": "rea-static-city19-goods-empire-fields-20261012/goods-static-name-bytes.evidence.json",
+      "sha256": "4f2474e01c6cc37d600930e72985da3ca525169a3a928730c0ecd285e12c318d",
+      "evidence_id": "ev_f1cf8033dd80e3a5a019378f8b9c893f967073cd7aae1cb8a84ac3b4c9a78075",
+      "subject_sha256": "8a6d2df1015cb75d797546d117da5f82b86fd08726090c2a13d853b9009d6753",
+      "parameters": {
+        "address": "0x852530",
+        "length": 16
+      },
+      "profile_digest": "181eb6583277062b671aa5ea96e1cc79293233f263994afabf78b7b04a1f72a2",
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": "12.1.2"
+      },
+      "authority": "shipped-artifact"
+    }
+  ],
+  "reused_source_no_new_REA_queries": true,
+  "original_version_other_than1_may_skip_fields_not_explicit_error": true,
+  "original_raw_returncounts_ignored_modern_requires_fullbytes": true,
+  "normal_source_conditions": [
+    "correct selected currentroot and valid allocated inline objects if original were run",
+    "normal callees/DF0 reset",
+    "complete requests and no same-S aliases through cleanup callbacks"
+  ],
+  "modern_limits": {
+    "prefix": 4915584,
+    "count": 8192,
+    "items": 8192,
+    "nonnegative_counts_and_version1_subsets": true,
+    "modern_policies_not_original_validation": true
+  },
+  "same_archive_cache6020_before_after": true,
+  "record_ordinals_not_archive_ids_or_business_ids": true,
+  "actual_command": {
+    "argv": [
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/goodscontrol-release",
+      "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+      "165223",
+      "262144",
+      "4915584",
+      "136",
+      "4275878570",
+      "2882400255",
+      "2863386095",
+      "36144",
+      "36144",
+      "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+      "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+      "4096",
+      "8192",
+      "1",
+      "8192"
+    ],
+    "exit_code": 0,
+    "seconds": 0.020872333999999996,
+    "exe_sha256": "ac65ef4d354947678a38773116691f4cf37ce52ef0fc63af66e3f85973ef5d31",
+    "stdout_sha256": "0373269c45db8d4b1644f4c03ce615029344b41be845e048ad2f06778b54b66f",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_runtime_or_callbacks_executed": false,
+    "raw_original_decoded_bytes_saved": false
+  },
+  "regression": {
+    "checks": {
+      "input_sha256": true,
+      "decoded_sha256": true,
+      "input_bytes": true,
+      "decoded_bytes": true,
+      "validated_blocks": true,
+      "items": true,
+      "member_headers": true,
+      "known_items": true,
+      "completed_members": true,
+      "goal_parsed_end": true,
+      "postgoal_sections": true,
+      "postgoal_parsed_end": true,
+      "religion": true,
+      "commerce": true,
+      "pool": true,
+      "afterpool": true,
+      "conditional_cache_next_id": true
+    },
+    "passed": 18,
+    "failed": 0,
+    "old_complete_suites_not_rerun": true,
+    "old_sources_and_eight_headers_unchanged": true
+  },
+  "property_tests": {
+    "passed": 32,
+    "failed": 0,
+    "execution_failed": false,
+    "results": [
+      {
+        "mode": "release",
+        "exit_code": 0,
+        "stderr_empty": true,
+        "report": {
+          "checks": [
+            {
+              "name": "15 sparse explicit requests268 not sizeof272",
+              "passed": true
+            },
+            {
+              "name": "record word1 plus268 consumes270 opaque bytes",
+              "passed": true
+            },
+            {
+              "name": "zero count consumes only6 and preserves tail",
+              "passed": true
+            },
+            {
+              "name": "200 self records exact without class IDs or padding",
+              "passed": true
+            },
+            {
+              "name": "201 accepted proves constructor default200 not upperbound",
+              "passed": true
+            },
+            {
+              "name": "all270 proper record prefixes reject truncated",
+              "passed": true
+            },
+            {
+              "name": "all6 list header prefixes reject truncated",
+              "passed": true
+            },
+            {
+              "name": "source1 list subset rejects0,2,ffff",
+              "passed": true
+            },
+            {
+              "name": "source1 record subset rejects0,2,ffff",
+              "passed": true
+            },
+            {
+              "name": "signed negatives and modern count8193 reject",
+              "passed": true
+            },
+            {
+              "name": "item checkpoint before missing next record",
+              "passed": true
+            },
+            {
+              "name": "next Empire tail remains structurally unread",
+              "passed": true
+            },
+            {
+              "name": "incomplete previous Figure list refuses",
+              "passed": true
+            },
+            {
+              "name": "pending extension or class refuses context",
+              "passed": true
+            },
+            {
+              "name": "same prefix budget exact4915584,one extra rejects",
+              "passed": true
+            },
+            {
+              "name": "zero or over hard modern limits refuse",
+              "passed": true
+            }
+          ],
+          "passed": 16,
+          "failed": 0
+        }
+      },
+      {
+        "mode": "ubsan",
+        "exit_code": 0,
+        "stderr_empty": true,
+        "report": {
+          "checks": [
+            {
+              "name": "15 sparse explicit requests268 not sizeof272",
+              "passed": true
+            },
+            {
+              "name": "record word1 plus268 consumes270 opaque bytes",
+              "passed": true
+            },
+            {
+              "name": "zero count consumes only6 and preserves tail",
+              "passed": true
+            },
+            {
+              "name": "200 self records exact without class IDs or padding",
+              "passed": true
+            },
+            {
+              "name": "201 accepted proves constructor default200 not upperbound",
+              "passed": true
+            },
+            {
+              "name": "all270 proper record prefixes reject truncated",
+              "passed": true
+            },
+            {
+              "name": "all6 list header prefixes reject truncated",
+              "passed": true
+            },
+            {
+              "name": "source1 list subset rejects0,2,ffff",
+              "passed": true
+            },
+            {
+              "name": "source1 record subset rejects0,2,ffff",
+              "passed": true
+            },
+            {
+              "name": "signed negatives and modern count8193 reject",
+              "passed": true
+            },
+            {
+              "name": "item checkpoint before missing next record",
+              "passed": true
+            },
+            {
+              "name": "next Empire tail remains structurally unread",
+              "passed": true
+            },
+            {
+              "name": "incomplete previous Figure list refuses",
+              "passed": true
+            },
+            {
+              "name": "pending extension or class refuses context",
+              "passed": true
+            },
+            {
+              "name": "same prefix budget exact4915584,one extra rejects",
+              "passed": true
+            },
+            {
+              "name": "zero or over hard modern limits refuse",
+              "passed": true
+            }
+          ],
+          "passed": 16,
+          "failed": 0
+        }
+      }
+    ],
+    "commands": [
+      {
+        "argv": [
+          "/usr/bin/xcrun",
+          "--sdk",
+          "macosx",
+          "--show-sdk-path"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "2bd5dc92a04fd174d35e7dccde7bf53f6b37c4bb92ce8685a4959e9015c200bc",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O2",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/tests/goodscontrol_properties.cpp",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/new-class-checks/goodscontrol-properties-release"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/new-class-checks/goodscontrol-properties-release"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "ca667b92e6aa11fbef9405cad7482d5fff12854e858df38e5132ad059ae5d960",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O1",
+          "-g",
+          "-fsanitize=undefined",
+          "-fno-sanitize-recover=undefined",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/tests/goodscontrol_properties.cpp",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/new-class-checks/goodscontrol-properties-ubsan"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/new-class-checks/goodscontrol-properties-ubsan"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "ca667b92e6aa11fbef9405cad7482d5fff12854e858df38e5132ad059ae5d960",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "component_sha256": "12b0468ab39f6ca7c43051f80fc5b89a7757d2767d391760e78233c0d885deeb",
+    "goal_component_sha256": "ba28a2f5a601613ac230465104999e0e37579c16be048ad6a8e8bd0a95f9ad0b",
+    "building_layout_sha256": "853b8f19ff821e3cb0ac4c7d60303a9667de11fc7336b83203eed813b66a4ed4",
+    "driver_sha256": "8260ac0aba52a7e7c776eb5acd7f5e69e49a4278e70fe8188bf8a7fd7e7e8b53",
+    "test_sha256": "dda956cb77b6d1903ad370e3d14ec9916bd27f8cab217c622c2024a8e1571766",
+    "elapsed_seconds": 4.289442917,
+    "total_budget_seconds": 180,
+    "original_payload_or_EXE_read": false,
+    "original_or_derived_game_executed": false,
+    "new_REA_query": false,
+    "main_written": false,
+    "pushed": false
+  },
+  "CLI_tests": {
+    "results": [
+      {
+        "mode": "release",
+        "passed": true
+      },
+      {
+        "mode": "ubsan",
+        "passed": true
+      }
+    ],
+    "passed": 2,
+    "failed": 0,
+    "negative_budget_cases": 2,
+    "commands": [
+      {
+        "argv": [
+          "/usr/bin/xcrun",
+          "--sdk",
+          "macosx",
+          "--show-sdk-path"
+        ],
+        "exit_code": 0,
+        "seconds": 0.007944666,
+        "stdout_sha256": "2bd5dc92a04fd174d35e7dccde7bf53f6b37c4bb92ce8685a4959e9015c200bc",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O2",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/src/strict_zlib.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/src/framed_reader.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/tools/qualify_city19_goodscontrol.cpp",
+          "-lz",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/goodscontrol-release"
+        ],
+        "exit_code": 0,
+        "seconds": 1.535570833,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/goodscontrol-release",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/self-authored-GoodsControl.bin",
+          "56719",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "b5e26fe7f0fde4371d244eb8693d5da53d4bc7aeb94dff7a1e742776462ec954",
+          "3490269aa47976d132a2222f0adfd9cb43c8cf127d4a22bff4e14f2dc00db52a",
+          "4096",
+          "8192",
+          "1",
+          "8192"
+        ],
+        "exit_code": 0,
+        "seconds": 1.1561102079999999,
+        "stdout_sha256": "af9b3bf8166672f3119d73f696eead5dfb16d7ccf47b0427c65d3748cabc892f",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/goodscontrol-release",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/self-authored-GoodsControl.bin",
+          "56719",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "b5e26fe7f0fde4371d244eb8693d5da53d4bc7aeb94dff7a1e742776462ec954",
+          "3490269aa47976d132a2222f0adfd9cb43c8cf127d4a22bff4e14f2dc00db52a",
+          "4096",
+          "8192",
+          "1",
+          "0"
+        ],
+        "exit_code": 2,
+        "seconds": 0.0034577080000000038,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "f222c28f38aa9e201251c0a8ab7e5d3e2fea6fc3cd0203fffe3bec3613124ba1"
+      },
+      {
+        "argv": [
+          "/usr/bin/clang++",
+          "-std=c++17",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O1",
+          "-g",
+          "-fsanitize=undefined",
+          "-fno-sanitize-recover=undefined",
+          "-isysroot",
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk",
+          "-I",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/include",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/src/strict_zlib.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/src/framed_reader.cpp",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/candidate/file_io/tools/qualify_city19_goodscontrol.cpp",
+          "-lz",
+          "-o",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/goodscontrol-ubsan"
+        ],
+        "exit_code": 0,
+        "seconds": 2.2486604170000004,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/goodscontrol-ubsan",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/self-authored-GoodsControl.bin",
+          "56719",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "b5e26fe7f0fde4371d244eb8693d5da53d4bc7aeb94dff7a1e742776462ec954",
+          "3490269aa47976d132a2222f0adfd9cb43c8cf127d4a22bff4e14f2dc00db52a",
+          "4096",
+          "8192",
+          "1",
+          "8192"
+        ],
+        "exit_code": 0,
+        "seconds": 0.40410945799999975,
+        "stdout_sha256": "af9b3bf8166672f3119d73f696eead5dfb16d7ccf47b0427c65d3748cabc892f",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "argv": [
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/goodscontrol-ubsan",
+          "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-goodscontrol-walk-20261012/cli-checks/self-authored-GoodsControl.bin",
+          "56719",
+          "262144",
+          "4915584",
+          "2",
+          "4275878570",
+          "2882400255",
+          "2863386095",
+          "36144",
+          "36144",
+          "b5e26fe7f0fde4371d244eb8693d5da53d4bc7aeb94dff7a1e742776462ec954",
+          "3490269aa47976d132a2222f0adfd9cb43c8cf127d4a22bff4e14f2dc00db52a",
+          "4096",
+          "8192",
+          "1",
+          "0"
+        ],
+        "exit_code": 2,
+        "seconds": 0.011989332999999824,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "f222c28f38aa9e201251c0a8ab7e5d3e2fea6fc3cd0203fffe3bec3613124ba1"
+      }
+    ],
+    "original_input_or_game_used": false,
+    "tool_sha256": "7ac7d07afdfca98866a59dc2d794cf97aa2e5fac4a5d9d4349c4dc12b45a1630",
+    "header_sha256": "12b0468ab39f6ca7c43051f80fc5b89a7757d2767d391760e78233c0d885deeb"
+  },
+  "next_consumer": {
+    "offset": 1646216,
+    "literal": "cEmpire",
+    "getter": "480740",
+    "receiver": "c058d0",
+    "selected_root": "7acd58",
+    "reader": "480800",
+    "actual_version_count_payload_not_read": true
+  },
+  "activity_fields_and_logic_interpreted": false,
+  "original_registry_vptr_cache_lifetime_fullcity_compatibility_proved": false,
+  "original_game_codec_ctor_padding_hooks_executed": false,
+  "new_increment_independent_review_pending": true,
+  "raw_original_decoded_fields_GUIDs_binaries_credentials_listing_user_work_uploaded": false
+}
