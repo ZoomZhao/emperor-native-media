@@ -1,0 +1,173 @@
+{
+  "commit": "9d343cb8ad86dc483961ae3657848b8ae2e49c1d",
+  "tests": [
+    {
+      "suite": "independent_component",
+      "name": "Religion variable start and294 wire includes no constructor clear12",
+      "expectation_kind": "selected_static_width",
+      "expected": "Start55501 and294=2+4*(2+3*22)+20; no extra constructor clear12 bytes.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_religion_archive.hpp",
+          "sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450"
+        },
+        {
+          "path": "frozen/docs/city19-religion-following-evidence.json",
+          "sha256": "74f26ec6be28267f2549f90a15583a696423073f5e2978381b25d6ccf33b498b"
+        },
+        {
+          "path": "saved/source/rea-static-city19-religion-children-seeded-20261012/religion-child-seeded-reader.evidence.json",
+          "sha256": "105c1a077c39f82489a55e8aaf9c196db36ebf86ba940f2fff6bf9aea90952bf"
+        },
+        {
+          "path": "saved/source/rea-static-city19-religion-children-seeded-20261012/religion-embedded-seeded-reader.evidence.json",
+          "sha256": "fabc128c4e0b06dd6336429a2cf4a2d7fb3503e078924140a1b87c470de6e7b7"
+        },
+        {
+          "path": "saved/source/rea-static-city19-religion-following-20261012/religion-child-actual-size-native.evidence.json",
+          "sha256": "bb5ca51084cb541c492e7c8cb1d1f620368b0ddc5199a808c661eac60dd0a7df"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "four children and twelve embedded members retain exact boundaries",
+      "expectation_kind": "selected_static_width",
+      "expected": "Four consecutive68B children; each has three22B members, five4B fields at receiver+4/+8/+c/+10/+14.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_religion_archive.hpp",
+          "sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450"
+        },
+        {
+          "path": "saved/source/rea-static-city19-religion-children-seeded-20261012/religion-child-seeded-reader.evidence.json",
+          "sha256": "105c1a077c39f82489a55e8aaf9c196db36ebf86ba940f2fff6bf9aea90952bf"
+        },
+        {
+          "path": "saved/source/rea-static-city19-religion-children-seeded-20261012/religion-embedded-seeded-reader.evidence.json",
+          "sha256": "fabc128c4e0b06dd6336429a2cf4a2d7fb3503e078924140a1b87c470de6e7b7"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "raw20 pointer-looking bits stay opaque and contiguous",
+      "expectation_kind": "source_raw_opaque",
+      "expected": "The final20B immediately follows the last child; pointer-looking FF bytes remain opaque and source bytes unchanged.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_religion_archive.hpp",
+          "sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450"
+        },
+        {
+          "path": "frozen/docs/city19-religion-following-evidence.json",
+          "sha256": "74f26ec6be28267f2549f90a15583a696423073f5e2978381b25d6ccf33b498b"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Commerce reads only2 and leaves mainpool version/count/tag unread",
+      "expectation_kind": "source_width_and_modern_stop",
+      "expected": "Commerce consumes2B;40B tail including pool-looking word/count/tag remains; stop reason mainpool_before_section_and_objects.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_religion_archive.hpp",
+          "sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450"
+        },
+        {
+          "path": "saved/source/rea-static-city19-religion-following-20261012/fourth-seeded-reader.evidence.json",
+          "sha256": "7cae13902ed38549f3153c241ef8aa62f36a735c92ca2e6fabd4314f7ba7af52"
+        },
+        {
+          "path": "frozen/docs/city19-religion-following-evidence.json",
+          "sha256": "74f26ec6be28267f2549f90a15583a696423073f5e2978381b25d6ccf33b498b"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Religion checkpoint does not peek unsupported Commerce",
+      "expectation_kind": "modern_checkpoint",
+      "expected": "Religion-only returns before malformed Commerce; with Commerce enabled unsupported version rejects.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_religion_archive.hpp",
+          "sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "child legacy2 refuses without implementing numeric adjustment",
+      "expectation_kind": "modern_subset",
+      "expected": "Child source2 rejects; selected source3 skips the original <=2 numeric adjustment.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_religion_archive.hpp",
+          "sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450"
+        },
+        {
+          "path": "saved/source/rea-static-city19-religion-children-seeded-20261012/religion-child-seeded-reader.evidence.json",
+          "sha256": "105c1a077c39f82489a55e8aaf9c196db36ebf86ba940f2fff6bf9aea90952bf"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "embedded source1 raw20 alternative remains outside source2 subset",
+      "expectation_kind": "modern_subset",
+      "expected": "Embedded version1 rejects despite original alternative raw20 path; only selected version2 supported.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_religion_archive.hpp",
+          "sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450"
+        },
+        {
+          "path": "saved/source/rea-static-city19-religion-children-seeded-20261012/religion-embedded-seeded-reader.evidence.json",
+          "sha256": "fabc128c4e0b06dd6336429a2cf4a2d7fb3503e078924140a1b87c470de6e7b7"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "Commerce final version byte is mandatory",
+      "expectation_kind": "source_width_and_modern_bounds",
+      "expected": "Cut the final Commerce word after first byte and require truncated.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_religion_archive.hpp",
+          "sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450"
+        },
+        {
+          "path": "saved/source/rea-static-city19-religion-following-20261012/fourth-seeded-reader.evidence.json",
+          "sha256": "7cae13902ed38549f3153c241ef8aa62f36a735c92ca2e6fabd4314f7ba7af52"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "65536 accepts known296 bytes but65537 rejects",
+      "expectation_kind": "modern_budget",
+      "expected": "An immutable65536B component view with296B known suffix succeeds;65537B view rejects segment/budget.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_religion_archive.hpp",
+          "sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "incomplete preceding consumer set refuses Religion",
+      "expectation_kind": "modern_precondition",
+      "expected": "A PostGoalWalk with only one completed section is outside Religion precondition and rejects segment/budget.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_religion_archive.hpp",
+          "sha256": "4a9b70e2faf08025680080c9eabfe8e181c3b7d038dadda948bfd3dc8d0a7450"
+        }
+      ]
+    }
+  ]
+}
