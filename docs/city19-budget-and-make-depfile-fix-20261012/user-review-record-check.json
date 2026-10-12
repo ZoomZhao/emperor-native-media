@@ -1,0 +1,47 @@
+{
+  "user_reported_review_completed": true,
+  "user_statement_utc": "2026-10-12T23:32:47Z",
+  "review_baseline": "0736f440728cd479026fd9548d03a993e3b27c20",
+  "report_directory": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-figurefsastate-0736f44-review",
+  "checked_record_sha256": {
+    "README.zh-CN.md": "ab5163edb2e4189bec22933593cc84bc6777b14358ab0519032a2492602bcf2b",
+    "closure.json": "d66cf384d6040771530c391d1f6a14d192b608148472eae970050b20092a6a52",
+    "capture.json": "4408faa494981b166a140fd29afcd4e817017af206373e40e48a9fc552663f02",
+    "author-replay/results.json": "4ffba21b4b26c42f0ea8aa2ef85cbc6ce613a587536f400c5f70f3dc31b97042",
+    "independent-verification/results.json": "55ae22134bc8e3bdfd2f79a7d0caa05b2431eba85cb284fc5a8d8f982fadd0bd",
+    "author-replay/release-test.stdout": "a33da5d88566b341b60ee2252eeb57d0526c25e64bcbf209777a828581c606ee",
+    "author-replay/release-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "author-replay/ubsan-test.stdout": "a33da5d88566b341b60ee2252eeb57d0526c25e64bcbf209777a828581c606ee",
+    "author-replay/ubsan-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "independent-verification/release-test.stdout": "f7255e5872ff61bce8c5dad64e8a9ee2e133779707def7cc495e73d3b9a2f11b",
+    "independent-verification/release-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "independent-verification/ubsan-test.stdout": "f7255e5872ff61bce8c5dad64e8a9ee2e133779707def7cc495e73d3b9a2f11b",
+    "independent-verification/ubsan-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "recorded_tests": {
+    "author-replay": {
+      "release": {
+        "passed": 34,
+        "failed": 0
+      },
+      "ubsan": {
+        "passed": 34,
+        "failed": 0
+      }
+    },
+    "independent-verification": {
+      "release": {
+        "passed": 10,
+        "failed": 0
+      },
+      "ubsan": {
+        "passed": 10,
+        "failed": 0
+      }
+    }
+  },
+  "current_turn_tests_rerun": false,
+  "current_turn_original_source_verified": false,
+  "previous_platform_rejection_not_retried": true,
+  "actual_identity_or_original_execution_verified": false
+}

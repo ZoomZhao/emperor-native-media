@@ -12,6 +12,14 @@
 
 独审交付：`/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-budget-make-fix-5d49c1a-review/README.zh-CN.md`，详细命令、依赖核验和关闭判断见同目录`final-verification/results.json`、`closure.json`。本次只阅读该交付并更新文档，没有重跑测试。0736仍未完成独审，原来源与真实实验仍暂停，GitHub认证仍待用户。
 
+## 用户交付0736审查记录更新
+
+2026-10-12 23:32:47 UTC，用户明确报告已独立完成0736审查。对应报告、closure、两套results及四份测试stdout/stderr与其manifest哈希匹配；记录为作者Release/UBSan各34/0、独立各10/0，总88/0。本轮只核对交付记录，没有重跑这些测试或重新核验原来源。单向继承、schema0和版本1..5为交付审查范围；真实holder/registry身份及完整原版运行仍未证明。
+
+记录已完成的0736审查不改变5d49作者200/0未全套独立复跑的范围。初始预算与Make缺陷已关闭；条件前沿1992063、无条件1991913仍为既有标记，无新增真实实验。认证已恢复、既有提交已发布；先前具体受阻动作及依赖扩展仍暂停。[本轮记录核对](user-review-record-check.json)
+
+以下“未审／认证待恢复”属于当时修复快照，不再代表当前交付状态。
+
 ## 初始追加预算
 
 原入口只在新append时检查FSA追加≤1024；因此初始prefix1/cache1026或prefix6020/cache7045，虽然已追加1025项，仍能读完一个不追加的76字节NULL记录。总8192上限依然有效，问题是已声明的累计追加合同没有在入参实施。
