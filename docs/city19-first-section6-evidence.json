@@ -1,0 +1,489 @@
+{
+  "first_section_source_layout": {
+    "source": [
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/city19-first-section-reader-assembly.evidence.json",
+        "sha256": "4be035d616a26b5a7e1b4a9131a2829e82e78bceeffbd2a05a4978b7a9fe19d5",
+        "evidence_id": "ev_0aa86f1eda4ad442b636ce7e320ed3f95244b65b0a708698bdd50624ebc6aefa",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x52fa30"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/city19-first-section-owner-getter-assembly.evidence.json",
+        "sha256": "05985e842451359b142b1328150b9b7e1539cd6e74367fe0450d322b9a1c2664",
+        "evidence_id": "ev_4820ff001dc3f98720d1d22c777535de6543716a936b8b8f1685c5a4ff4d9599",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x52fd90"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-version-init-52f970-assembly.evidence.json",
+        "sha256": "5153e2d28001a4791bfb017540a52ba22704d176c4072a78ed839010a1dae7e0",
+        "evidence_id": "ev_39750d6f47cb0c3fcad56674c9bd3b83174521e04436ccee8851625069105e54",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x52f970"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-owner-init-load-native.evidence.json",
+        "sha256": "8ee442319186c6066049073c0d4e28965e9573b368f2dd80a3df470d4e62d73d",
+        "evidence_id": "ev_689666192597d416426c45c384cac7627e2041b5ee8d6b1b47976a0ca9e9d3a4",
+        "operation": "inspect_native_instruction",
+        "parameters": {
+          "address": "0x52f9c0"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-owner-init-call-native.evidence.json",
+        "sha256": "baaa4c9bab3b5e37752fc6cd633c1e4fe5e7030bb0d6621987423a54cf86e25d",
+        "evidence_id": "ev_72b1fd4398e1770001d78e3a0b88c3947ad66d67f4d5a29444297b2ba7ff2137",
+        "operation": "resolve_native_call_targets",
+        "parameters": {
+          "address": "0x52f9c5"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-owner-constructor-assembly.evidence.json",
+        "sha256": "7dba762a92f96a35858908bd14ee7b27d3624e446faa5426e71e47cfb9cedf90",
+        "evidence_id": "ev_714102ded4e2dfd2b9325673169d0f370116d1d1fd94aeea2b8ee21de932efc6",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x52f9d0"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-owner-constructor-fields-assembly.evidence.json",
+        "sha256": "96e3e33cd53aa587a91050741fb52b72a4dc2866e09f30067e366e7039343681",
+        "evidence_id": "ev_3964b74e66efe357338e92d0948c98d00375c11f99a2e94e7fe7db4450d58ca9",
+        "operation": "procedure_assembly",
+        "parameters": {
+          "procedure": "0x52f9e0"
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-read-case-table.evidence.json",
+        "sha256": "1f733cd5f9828b01f8ecdf9b6407e1d5a115aa45e5356bd7d60497ed4a44ba49",
+        "evidence_id": "ev_500d898c06be9fc137a0c79028866a9e35cf7f8fd74b1321fafb759829f43cc9",
+        "operation": "read_bytes",
+        "parameters": {
+          "address": "0x52fcd8",
+          "length": 24
+        }
+      },
+      {
+        "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-read-dispatch-native.evidence.json",
+        "sha256": "1193197877f1a3a52ca808c906f641d90d9ac1032d6e265ce545a45542c4ebc9",
+        "evidence_id": "ev_ab4abcbee1ee8344d13be66c8e87c8cfe060be1db894fff3f22e26c5d204aee6",
+        "operation": "inspect_native_instruction",
+        "parameters": {
+          "address": "0x52fb4c"
+        }
+      }
+    ],
+    "city19_source_semantic_start": 2,
+    "owner_address": "0x1158d88",
+    "version_record_address": "0x1158db8",
+    "current_constructor_section_version": 6,
+    "selected_case6": "0x52fb53",
+    "schema6_fields": [
+      {
+        "decoded_offset": 4,
+        "bytes": 1,
+        "owner_offset": 0,
+        "read_site": "0x52fb58"
+      },
+      {
+        "decoded_offset": 5,
+        "bytes": 4,
+        "owner_offset": 4,
+        "read_site": "0x52fb65"
+      },
+      {
+        "decoded_offset": 9,
+        "bytes": 4,
+        "owner_offset": 8,
+        "read_site": "0x52fb72"
+      },
+      {
+        "decoded_offset": 13,
+        "bytes": 4,
+        "owner_offset": 12,
+        "read_site": "0x52fb7c"
+      },
+      {
+        "decoded_offset": 17,
+        "bytes": 16,
+        "owner_offset": 16,
+        "read_site": "0x52fb89"
+      },
+      {
+        "decoded_offset": 33,
+        "bytes": 4,
+        "owner_offset": 32,
+        "read_site": "0x52fb96"
+      },
+      {
+        "decoded_offset": 37,
+        "bytes": 4,
+        "owner_offset": 36,
+        "read_site": "0x52fba3"
+      },
+      {
+        "decoded_offset": 41,
+        "bytes": 4,
+        "owner_offset": 40,
+        "read_site": "0x52fcbf"
+      }
+    ],
+    "payload_requested_bytes": 41,
+    "conditional_section_end": 45,
+    "padding_in_memory_not_serialized": 3,
+    "owner_plus4_save_and_load_global": "0x13124e4",
+    "no_scheduler_phase_c82ef8_or_cache_index_or_mainpool_slot_interpretation": true,
+    "actual_original_sample_entry_not_proved": true,
+    "full_requests_and_ordinary_no_same_stream_alias_sideeffect_premise": true,
+    "next_actual_consumer_getter": "0x52e7b0",
+    "next_virtual_call": "0x530618",
+    "no83field_or_pool_offset_applied": true,
+    "guid16_constructor_import": {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-identifier-import-name.evidence.json",
+      "sha256": "9725b21f11e910a95b9758f55c70644129811b0be76081674f5961b7f6ad32b1",
+      "evidence_id": "ev_1e9062676287cced49739b9e26f95eac2540841992df15adfd071aedb1c6133b",
+      "name": "PTR_CoCreateGuid_007a96f8",
+      "constructor_site": "0x52f9f4",
+      "owner_offset": 16,
+      "decoded_offset": 17,
+      "serialized_bytes": 16,
+      "actual_guid_contents_not_exported": true,
+      "import_call_runtime_success_not_proved": true
+    },
+    "next_virtual_owner": {
+      "getter": "0x52e7b0",
+      "address": "0x1158e18",
+      "static_init_call": "0x52c1b5",
+      "constructor": "0x52e440",
+      "vptr_literal": "0x7b6be8",
+      "slot0_target": "0x52e690",
+      "ctor_helper_not_yet_closed": "0x52e460",
+      "sample_beyond45_not_parsed": true
+    }
+  },
+  "real_city_section_statistics": {
+    "input_sha256": "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+    "decoded_sha256": "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f",
+    "input_bytes": 165223,
+    "decoded_bytes": 4430995,
+    "validated_blocks": 136,
+    "city_version": 19,
+    "first_section_version": 6,
+    "section_begin": 2,
+    "section_version_width": 2,
+    "section_payload_bytes": 41,
+    "section_end": 45,
+    "fixed_field_requests": 8,
+    "section_payload_sha256": "5262f37722e69ee640ea31d0993948502650d02f73d84f5f32891ccf41eb581d",
+    "opaque16_offset": 17,
+    "opaque16_bytes": 16,
+    "opaque16_sha256": "abdd2399f672cbf3c5a277eacc6ce19c51cefb0b796a0f10941996d1f75c517f",
+    "remaining_uninterpreted_decoded_bytes": 4430950,
+    "read_only": true,
+    "input_metadata_unchanged": true,
+    "decoded_bytes_saved": false,
+    "cache_or_mainpool_indices_interpreted": false,
+    "objects_deserialized": false,
+    "actual_original_entry_proved": false
+  },
+  "actual_command_receipt": {
+    "argv": [
+      "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-first-section-20261012/qualify-city19-section6",
+      "/Users/zoomzhao/Workspace/emperor-native-media/GameData/Save/zoom/历史战役自动保存_1.sav",
+      "165223",
+      "262144",
+      "4915584",
+      "136",
+      "4275878570",
+      "2882400255",
+      "2863386095",
+      "36144",
+      "36144",
+      "e002894ce7dfa91d374715356708433afa70129bff673ce667f47b3520a12845",
+      "fe4032203aed5dae2f131c975cb1e71f19bfacac4fd5b36e240607dc4491b26f"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.185578208,
+    "source_sha256": "405217a21d3969c1b1a1c2997c9c112128a410c506f1575c1142f8c6a2e9f307",
+    "binary_sha256": "b9172319e7add394580a53e764fa099fbfd928ba214846721b8e096d17da8a8d",
+    "stdout_sha256": "4705f7f1a2085bf5a9b57b05efb6d7425246f57df3bcc9478f5e052116b0e0d4",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "no_original_or_derived_game_executed": true,
+    "no_raw_decoded_bytes_saved": true
+  },
+  "selfauthored_tests": {
+    "passed": 17,
+    "failed": 0,
+    "result_sha256": "91712bba48f58487fc043b77ce310fbb33b504780b7c49a1faa595d0b61eae5a"
+  },
+  "static_source_bindings": [
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/city19-first-section-owner-getter-assembly.evidence.json",
+      "sha256": "05985e842451359b142b1328150b9b7e1539cd6e74367fe0450d322b9a1c2664",
+      "evidence_id": "ev_4820ff001dc3f98720d1d22c777535de6543716a936b8b8f1685c5a4ff4d9599",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52fd90"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/city19-first-section-reader-assembly.evidence.json",
+      "sha256": "4be035d616a26b5a7e1b4a9131a2829e82e78bceeffbd2a05a4978b7a9fe19d5",
+      "evidence_id": "ev_0aa86f1eda4ad442b636ce7e320ed3f95244b65b0a708698bdd50624ebc6aefa",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52fa30"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/city19-first-section-reader-callers.evidence.json",
+      "sha256": "33962be188ae3b274c0a9cb23ea3a158e59e6cebd7a25299b703025d52aa856f",
+      "evidence_id": "ev_28c56de489c5d4f66c16942dbc176d1f9da8c0e64a9a2bb41bce06e758302e96",
+      "operation": "procedure_callers",
+      "parameters": {
+        "procedure": "0x52fa30"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-identifier-import-name.evidence.json",
+      "sha256": "9725b21f11e910a95b9758f55c70644129811b0be76081674f5961b7f6ad32b1",
+      "evidence_id": "ev_1e9062676287cced49739b9e26f95eac2540841992df15adfd071aedb1c6133b",
+      "operation": "address_name",
+      "parameters": {
+        "address": "0x7a96f8"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-owner-construction-owner.evidence.json",
+      "sha256": "b3c149dd0d04705326dfa27c157a645bb4f726290086d5387fa41404df5abae8",
+      "evidence_id": "ev_b129921cdbf06b71f2ce05c4293af51453a4ba1f4e7fec6283ff4046ef82bf05",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x52f9c0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-owner-constructor-assembly.evidence.json",
+      "sha256": "7dba762a92f96a35858908bd14ee7b27d3624e446faa5426e71e47cfb9cedf90",
+      "evidence_id": "ev_714102ded4e2dfd2b9325673169d0f370116d1d1fd94aeea2b8ee21de932efc6",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52f9d0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-owner-constructor-fields-assembly.evidence.json",
+      "sha256": "96e3e33cd53aa587a91050741fb52b72a4dc2866e09f30067e366e7039343681",
+      "evidence_id": "ev_3964b74e66efe357338e92d0948c98d00375c11f99a2e94e7fe7db4450d58ca9",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52f9e0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-owner-init-call-native.evidence.json",
+      "sha256": "baaa4c9bab3b5e37752fc6cd633c1e4fe5e7030bb0d6621987423a54cf86e25d",
+      "evidence_id": "ev_72b1fd4398e1770001d78e3a0b88c3947ad66d67f4d5a29444297b2ba7ff2137",
+      "operation": "resolve_native_call_targets",
+      "parameters": {
+        "address": "0x52f9c5"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-owner-init-load-native.evidence.json",
+      "sha256": "8ee442319186c6066049073c0d4e28965e9573b368f2dd80a3df470d4e62d73d",
+      "evidence_id": "ev_689666192597d416426c45c384cac7627e2041b5ee8d6b1b47976a0ca9e9d3a4",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x52f9c0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-owner-structure-xrefs.evidence.json",
+      "sha256": "b24c01c7c7619b007462161e7d08b21ccdf7427c2a2f8a96d620486b17f04f11",
+      "evidence_id": "ev_e72a401bccb20dc8b25bf7e9551f9eb5039111a9705b4b4e16af123bf496bba6",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x1158d88"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-read-case-table.evidence.json",
+      "sha256": "1f733cd5f9828b01f8ecdf9b6407e1d5a115aa45e5356bd7d60497ed4a44ba49",
+      "evidence_id": "ev_500d898c06be9fc137a0c79028866a9e35cf7f8fd74b1321fafb759829f43cc9",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x52fcd8",
+        "length": 24
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-read-dispatch-native.evidence.json",
+      "sha256": "1193197877f1a3a52ca808c906f641d90d9ac1032d6e265ce545a45542c4ebc9",
+      "evidence_id": "ev_ab4abcbee1ee8344d13be66c8e87c8cfe060be1db894fff3f22e26c5d204aee6",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x52fb4c"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-version-init-52f970-assembly.evidence.json",
+      "sha256": "5153e2d28001a4791bfb017540a52ba22704d176c4072a78ed839010a1dae7e0",
+      "evidence_id": "ev_39750d6f47cb0c3fcad56674c9bd3b83174521e04436ccee8851625069105e54",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52f970"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-version-init-owner-0.evidence.json",
+      "sha256": "3f3a4e8033452e0aa70fe660872774becbca9a52b0df279ca7e2bc21af113fa0",
+      "evidence_id": "ev_fb35946b11f4667a76eb58d221c2535abaa9bf3a88377eb321b2e628bd28d292",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x52f972"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-version-init-owner-1.evidence.json",
+      "sha256": "677e89856e882ddeafed39c9b615dc75f33e88cc432027e6a3d9e194f2d8bb4a",
+      "evidence_id": "ev_1223dae37ed63d59ba387b7a0745d9a36717312cc01ecde1104431f24689993c",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x52f9a4"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/first-section-version-object-xrefs.evidence.json",
+      "sha256": "b8368a9941f5be828778821060b5c0f9558d7a80bbb87c8bd2d67ba72fcb22fd",
+      "evidence_id": "ev_9b8aaea5b123ee0eff92a62f35799300bbb9263dc281d1c6acd51b2b1167348c",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x1158db8"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/next-city-component-owner-getter-assembly.evidence.json",
+      "sha256": "8e5ebc48bf1423e5ff69faebdbb9066bf695ea25ba7b9fe27884a2091575282e",
+      "evidence_id": "ev_3f21875ad5084e9621daaf251494a75e782e571ad261383be05bd26cd8f3265b",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52e7b0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/next-city-component-owner-xrefs.evidence.json",
+      "sha256": "5c475f0f0dc79ca723785e1308f53c64b4006bbe60d9da115884167c4b537c28",
+      "evidence_id": "ev_1f9dce44a5bf51ea3d7df4b04626e26a9ae77c570cd9af6f46f8c14e540e9600",
+      "operation": "xrefs",
+      "parameters": {
+        "address": "0x1158e18"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/next-owner-actual-constructor-assembly.evidence.json",
+      "sha256": "3900e3f0fa9bb81ae831cd7a8fcd2fbdbd39697fa5cfb32109f31c64655e1d59",
+      "evidence_id": "ev_f2f35d7daad3aca6f93a75c103c0dcf09f79f5ded1cc87cb811cef5912eb6dca",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x52e440"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/next-owner-current-vtable-entries.evidence.json",
+      "sha256": "40995fa888a34d9a5a49ed5ee32318cd2c467254fb5ceb6ffd6fff7b407d85cb",
+      "evidence_id": "ev_97376e61f363de25626f7cdb5f6de999c53aa3142f291f0fb47b0caf402aa337",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x7b6be8",
+        "length": 16
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/next-owner-init-call-native.evidence.json",
+      "sha256": "a4ac3d8e397126c1ba30c97d0aca35ecdcb8e0054c2b64123707cf94f8fad030",
+      "evidence_id": "ev_3ec2e7e928e771f7bbbf2e4ed1e503cd0d8edb57d4470b0db6c408dbaeea9b27",
+      "operation": "resolve_native_call_targets",
+      "parameters": {
+        "address": "0x52c1b5"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/next-owner-init-load-native.evidence.json",
+      "sha256": "68d7abd833eb4cf9c7f28904d495d1e4c11f7456eecd155048c380c23574fbfb",
+      "evidence_id": "ev_b0a7099c8350214933e148793b5ab4c0796e4ec5adb21ea66a850110752eed1c",
+      "operation": "inspect_native_instruction",
+      "parameters": {
+        "address": "0x52c1b0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/next-owner-initialization-site-owner.evidence.json",
+      "sha256": "da81adb2e0014f58125a482eb94dfbd2e65e7e91bc7759e58b4ace8e1d84f9ed",
+      "evidence_id": "ev_1c4a6aa6d35fad837a526d5ac58ed1c86edc4a631dc583beb9fa6b3f29792fe6",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x52c1b0"
+      }
+    },
+    {
+      "path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/rea-static-city19-first-section-20261012/next-owner-load-site-owner.evidence.json",
+      "sha256": "cfe6cc078c876ba81d3c66d926f276b83a2f1eb4ef6848c22b58f2b45394a7f7",
+      "evidence_id": "ev_2186e8deadaf5fb7a76f7840b8ff0b39cb994774ffbe59f7d067a1e1c57f0447",
+      "operation": "resolve_containing_procedure",
+      "parameters": {
+        "address": "0x534400"
+      }
+    }
+  ],
+  "static_pass": {
+    "operations": 25,
+    "procedure_count": 8,
+    "successful_evidence": 24,
+    "saved_expected_NoProcedure_errors": 1,
+    "input_and18modules_unchanged": true,
+    "official_cleanup_verified": true
+  },
+  "full_city_qualification_independent_review": {
+    "review_path": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/city19-65deaa2-bdc4ab3-review/REVIEW.md",
+    "review_sha256": "0bdc15678848c96aa8b11a3f22a737346e936e06743fb6166b02c0277a193855",
+    "reviewed_commits": [
+      "65deaa259134c9962236f7b6133244582c71576b",
+      "bdc4ab3dd692020e65504edf2bfaca80ccdb5966"
+    ],
+    "saved_checks_passed": 20,
+    "synthetic_checks_passed": 41,
+    "failed": 0,
+    "reviewer_did_not_redecode_real_original_data": true,
+    "semantic_offset2_limit_confirmed": true,
+    "no_new_problem": true
+  },
+  "source_candidate_actual_entry_proved": false,
+  "ordinary_no_alias_and_full_request_premise": true,
+  "original_game_or_callbacks_executed": false,
+  "raw_or_decoded_bytes_saved_or_published": false,
+  "cache_or_mainpool_slot_assigned": false,
+  "nextcomponent_semantics_not_parsed": true,
+  "portable_synthetic_tests": {
+    "results_path": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/city19-first-section-20261012/portable-section-tests/results.json",
+    "results_sha256": "477c0d9ea419d2109ce103f8c44fa487e8461ac897312da3b30cd316c8443889",
+    "passed": 34,
+    "failed": 0,
+    "each_build": {
+      "release": 17,
+      "ubsan": 17
+    }
+  },
+  "test_script_sha256": "953059c238b1991cfd716f2016ccc5c1c2096ef17892121122aab24e9204d932"
+}
