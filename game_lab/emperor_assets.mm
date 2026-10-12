@@ -131,23 +131,32 @@ CityMap loadCityMap(const std::string& path) {
     } catch (const std::bad_alloc&) { return {}; }
 }
 
-std::vector<std::string> loadEmperorText(const std::string& path) {
+TextLoadResult loadEmperorTextResult(const std::string& path) {
     std::vector<uint8_t> bytes;
-    if (!detail::readFile(path, kMaxTextBytes, bytes) || bytes.empty()) return {};
+    if (!detail::readFile(path, kMaxTextBytes, bytes)) return {};
+    if (bytes.empty()) return {TextLoadState::NoText, {}};
     try {
         std::vector<std::string> lines;
         @autoreleasepool {
             CFStringRef text = CFStringCreateWithBytes(kCFAllocatorDefault, bytes.data(), bytes.size(),
                                                       kCFStringEncodingGB_18030_2000, false);
-            if (!text) return {};
+            if (!text) return {TextLoadState::DecodeFailure, {}};
             NSString* string = (__bridge_transfer NSString*)text;
             for (NSString* line in [string componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]]) {
                 NSString* trimmed = [line stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-                if (trimmed.length && trimmed.UTF8String) lines.emplace_back(trimmed.UTF8String);
+                if (!trimmed.length) continue;
+                const char* utf8 = trimmed.UTF8String;
+                if (!utf8) return {TextLoadState::DecodeFailure, {}};
+                lines.emplace_back(utf8);
             }
         }
-        return lines;
-    } catch (const std::bad_alloc&) { return {}; }
+        if (lines.empty()) return {TextLoadState::NoText, {}};
+        return {TextLoadState::Loaded, std::move(lines)};
+    } catch (const std::bad_alloc&) { return {TextLoadState::DecodeFailure, {}}; }
+}
+
+std::vector<std::string> loadEmperorText(const std::string& path) {
+    return loadEmperorTextResult(path).lines;
 }
 
 DecodedImage extractSprite(const SG3Sprite& sprite, const std::string& companion555Path) {

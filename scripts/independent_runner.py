@@ -63,13 +63,15 @@ WAREHOUSE_TRANSFER = [name for name in WAREHOUSE_TRAINING_STATE if name != 'game
 WAREHOUSE_ROUTES = [name for name in WAREHOUSE_TRANSFER if name != 'game_lab/warehouse_transfer_tests.cpp'] + ['game_lab/warehouse_route_tests.cpp']
 VIEWPORT = ['game_lab/map_viewport.hpp','game_lab/map_viewport_tests.cpp']
 LAUNCH = ['game_lab/app_launch.hpp','game_lab/resource_root.hpp','game_lab/resource_root.cpp','game_lab/app_launch_tests.cpp']
+TEXT_FEEDBACK = [name for name in APP if name != 'game_lab/app_media_integration_tests.mm'] + [
+    'game_lab/text_load_feedback_tests.mm']
 IMAGE_CONVERSION = ['game_lab/asset_limits.hpp', 'game_lab/cg_image_conversion.hpp',
                     'game_lab/cg_image_conversion_tests.cpp']
 SURFACE = ['surface_lab/surface.hpp', 'surface_lab/surface.cpp',
            'surface_lab/oracle.hpp', 'surface_lab/oracle.cpp', 'surface_lab/tests.cpp']
 METAL = [name for name in SURFACE if name != 'surface_lab/tests.cpp'] + [
     'metal_lab/backend.hpp', 'metal_lab/backend.mm', 'metal_lab/tests.mm']
-SUITES = {'image-conversion': IMAGE_CONVERSION, 'viewport': VIEWPORT, 'launch': LAUNCH, 'surface': SURFACE, 'metal': METAL,
+SUITES = {'text-feedback': TEXT_FEEDBACK, 'image-conversion': IMAGE_CONVERSION, 'viewport': VIEWPORT, 'launch': LAUNCH, 'surface': SURFACE, 'metal': METAL,
           'city': CITY, 'service': SERVICE, 'scenario-state': SCENARIO_STATE, 'warehouse': WAREHOUSE,
           'warehouse-routes': WAREHOUSE_ROUTES, 'warehouse-transfer': WAREHOUSE_TRANSFER, 'warehouse-training-state': WAREHOUSE_TRAINING_STATE, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
           'movie-async': APP + ['game_lab/movie_session_async_tests.mm'],
@@ -240,7 +242,7 @@ def run(suite, mode, output):
             command('data-test', [report / 'data-tests'])
             command('tlv-test', ['/usr/bin/python3', '-I', '-B', snapshot / 'runtime_core/tests/state_codec_tests.py'])
             results = {'data': read(report / 'data-test.stdout'), 'tlv': read(report / 'tlv-test.stdout')}
-        elif suite in ('media', 'integration', 'movie-async', 'movie-termination'):
+        elif suite in ('media', 'integration', 'text-feedback', 'movie-async', 'movie-termination'):
             compiled = ['game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
                         'game_lab/resource_root.cpp', 'surface_lab/surface.cpp']
             extra_frameworks = []
@@ -248,7 +250,8 @@ def run(suite, mode, output):
                 compiled.insert(0, 'game_lab/pure_boundary_tests.mm')
             else:
                 compiled[:0] = [
-                    ('game_lab/movie_session_async_tests.mm' if suite == 'movie-async' else
+                    ('game_lab/text_load_feedback_tests.mm' if suite == 'text-feedback' else
+                     'game_lab/movie_session_async_tests.mm' if suite == 'movie-async' else
                      'game_lab/movie_termination_tests.mm' if suite == 'movie-termination' else
                      'game_lab/app_media_integration_tests.mm'), 'game_lab/app_media.cpp',
                     'game_lab/movie_session.mm',

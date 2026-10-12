@@ -35,9 +35,12 @@ DecodedImage AppMedia::sprite(const SG3Sprite& spriteRecord, const std::string& 
     const auto path = resourcePath(companionRelative);
     return path.empty() ? DecodedImage{} : extractSprite(spriteRecord, path);
 }
-std::vector<std::string> AppMedia::text(const std::string& relative) const {
+TextLoadResult AppMedia::textWithStatus(const std::string& relative) const {
     const auto path = resourcePath(relative);
-    return path.empty() ? std::vector<std::string>{} : loadEmperorText(path);
+    return path.empty() ? TextLoadResult{} : loadEmperorTextResult(path);
+}
+std::vector<std::string> AppMedia::text(const std::string& relative) const {
+    return textWithStatus(relative).lines;
 }
 DecodedImage readMoviePosterBytes(const std::string& path, std::shared_ptr<stream_lab::OpenControl> control) {
     if (path.empty()) {

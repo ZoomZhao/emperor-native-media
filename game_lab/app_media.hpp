@@ -56,6 +56,7 @@ public:
     CityMap cityMap(const std::string& relative) const;
     SG3Archive sg3(const std::string& relative) const;
     DecodedImage sprite(const SG3Sprite& sprite, const std::string& companionRelative) const;
+    TextLoadResult textWithStatus(const std::string& relative) const;
     std::vector<std::string> text(const std::string& relative) const;
     DecodedImage moviePoster(const std::string& relative) const;
     std::unique_ptr<MovieSession> createMovieSession(const std::string& relative = "") const;

@@ -68,6 +68,26 @@ struct CityMap {
     bool valid() const { return width == 128 && height == 128 && tiles.size() == 128u * 128u; }
 };
 
+enum class TextLoadState { Loaded, ResourceFailure, DecodeFailure, NoText };
+struct TextLoadResult {
+    TextLoadState state = TextLoadState::ResourceFailure;
+    std::vector<std::string> lines;
+};
+inline std::string formatTextLoadResult(const TextLoadResult& result) {
+    switch (result.state) {
+        case TextLoadState::Loaded:
+            return "文本库 (共 " + std::to_string(result.lines.size()) + " 条非空文本行 · GB18030 转码)";
+        case TextLoadState::ResourceFailure:
+            return "文本载入失败：资源不可读取或超出大小限制";
+        case TextLoadState::DecodeFailure:
+            return "文本载入失败：GB18030 解码或转码失败";
+        case TextLoadState::NoText:
+            return "文本资源为空或没有非空文本行";
+    }
+    return "文本载入失败";
+}
+TextLoadResult loadEmperorTextResult(const std::string& path);
+
 // In-memory decoders allow entirely self-authored boundary fixtures.
 DecodedWav decodeWAV(const std::vector<uint8_t>& bytes);
 Raw555Image decodeRaw555(const std::vector<uint8_t>& bytes, uint32_t width, uint32_t height);
