@@ -1,0 +1,357 @@
+{
+  "commit": "9277994938183e0fd438c707a41e727399b3ce2b",
+  "tests": [
+    {
+      "suite": "independent_component",
+      "name": "actual predecessor plus any nonzero presence yields partial35 and no next word",
+      "expectation_kind": "source_optional_and_modern_partial_frontier",
+      "expected": "Any nonzero presence stops after2+32+1=35 prefix, records entry full_recordfalse and collection incomplete, no next word or vectors. Even12 prefix entries do not imply completion.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/first-record-reader-assembly.evidence.json",
+          "sha256": "1281fb58c686c02f6c8397c89796eaf09d5adfde0842a4d42ed01ca15c0a619e"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/figure-presence-helper.evidence.json",
+          "sha256": "f1d00da6bdf611ff555439014c794cd73bfee259c9bf2c86a2c2d87aeda4ae2e"
+        },
+        {
+          "path": "saved/extension-source/rea-static-city19-fixed-extension-target-20261012/fixed-extension-target-helper.evidence.json",
+          "sha256": "37cb269767ae593ff341ee405e0010e6beb78d96f27f830678adea8b2700c1ac"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "opaque pointer-looking DWORDs never infer getter type or null",
+      "expectation_kind": "source_nonserialized_pointer_and_modern_opacity",
+      "expected": "raw DWORD patterns do not provide existingreceiver+30 or getter null/type/vptr; changed raw bytes with same nonzero presence retain identical partial35 frontier.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/first-record-reader-assembly.evidence.json",
+          "sha256": "1281fb58c686c02f6c8397c89796eaf09d5adfde0842a4d42ed01ca15c0a619e"
+        },
+        {
+          "path": "saved/extension-source/rea-static-city19-fixed-extension-target-20261012/fixed-extension-target-helper.evidence.json",
+          "sha256": "37cb269767ae593ff341ee405e0010e6beb78d96f27f830678adea8b2700c1ac"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "nonzero twelfth prefix stays incomplete despite twelve entries",
+      "expectation_kind": "source_optional_and_modern_partial_frontier",
+      "expected": "Any nonzero presence stops after2+32+1=35 prefix, records entry full_recordfalse and collection incomplete, no next word or vectors. Even12 prefix entries do not imply completion.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/first-record-reader-assembly.evidence.json",
+          "sha256": "1281fb58c686c02f6c8397c89796eaf09d5adfde0842a4d42ed01ca15c0a619e"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/figure-presence-helper.evidence.json",
+          "sha256": "f1d00da6bdf611ff555439014c794cd73bfee259c9bf2c86a2c2d87aeda4ae2e"
+        },
+        {
+          "path": "saved/extension-source/rea-static-city19-fixed-extension-target-20261012/fixed-extension-target-helper.evidence.json",
+          "sha256": "37cb269767ae593ff341ee405e0010e6beb78d96f27f830678adea8b2700c1ac"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "all35 first prefix truncations reject including presence byte",
+      "expectation_kind": "source_optional_and_modern_partial_frontier",
+      "expected": "Any nonzero presence stops after2+32+1=35 prefix, records entry full_recordfalse and collection incomplete, no next word or vectors. Even12 prefix entries do not imply completion.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/first-record-reader-assembly.evidence.json",
+          "sha256": "1281fb58c686c02f6c8397c89796eaf09d5adfde0842a4d42ed01ca15c0a619e"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/figure-presence-helper.evidence.json",
+          "sha256": "f1d00da6bdf611ff555439014c794cd73bfee259c9bf2c86a2c2d87aeda4ae2e"
+        },
+        {
+          "path": "saved/extension-source/rea-static-city19-fixed-extension-target-20261012/fixed-extension-target-helper.evidence.json",
+          "sha256": "37cb269767ae593ff341ee405e0010e6beb78d96f27f830678adea8b2700c1ac"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "zero presence reads12 times35 without56 destination padding",
+      "expectation_kind": "source_optional_and_modern_partial_frontier",
+      "expected": "Any nonzero presence stops after2+32+1=35 prefix, records entry full_recordfalse and collection incomplete, no next word or vectors. Even12 prefix entries do not imply completion.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/first-record-reader-assembly.evidence.json",
+          "sha256": "1281fb58c686c02f6c8397c89796eaf09d5adfde0842a4d42ed01ca15c0a619e"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/figure-presence-helper.evidence.json",
+          "sha256": "f1d00da6bdf611ff555439014c794cd73bfee259c9bf2c86a2c2d87aeda4ae2e"
+        },
+        {
+          "path": "saved/extension-source/rea-static-city19-fixed-extension-target-20261012/fixed-extension-target-helper.evidence.json",
+          "sha256": "37cb269767ae593ff341ee405e0010e6beb78d96f27f830678adea8b2700c1ac"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "first modern checkpoint precedes unknown next version",
+      "expectation_kind": "modern_record_checkpoint",
+      "expected": "Before missing/unknown nextword, stop on completed record boundary without pending version/header peek; collection remains incomplete.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "last unsupported fixed version stops after word before fields",
+      "expectation_kind": "modern_version_subset",
+      "expected": "Only fixed4 is selected; other versions stop after ownword with pending version, no guessed35/56 skip.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/first-record-reader-assembly.evidence.json",
+          "sha256": "1281fb58c686c02f6c8397c89796eaf09d5adfde0842a4d42ed01ca15c0a619e"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "fixed complete next header belongs to vectors once only",
+      "expectation_kind": "modern_header_ownership",
+      "expected": "After12 complete fixed35 records, nextvectorword belongs to before.next_header; first vector uses it exactly once and reads six counts; does not consume guessed payload.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/second-record-reader-assembly.evidence.json",
+          "sha256": "a6c47d0757dd187144f9bacbd0ac9b430628e8f1bb40e5dd09391baa5e2f58ae"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "nonzero fixed prefix cannot enter empty vectors",
+      "expectation_kind": "source_optional_and_modern_partial_frontier",
+      "expected": "Any nonzero presence stops after2+32+1=35 prefix, records entry full_recordfalse and collection incomplete, no next word or vectors. Even12 prefix entries do not imply completion.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/first-record-reader-assembly.evidence.json",
+          "sha256": "1281fb58c686c02f6c8397c89796eaf09d5adfde0842a4d42ed01ca15c0a619e"
+        },
+        {
+          "path": "saved/source/rea-static-city19-wire-helper-readers-20261012/figure-presence-helper.evidence.json",
+          "sha256": "f1d00da6bdf611ff555439014c794cd73bfee259c9bf2c86a2c2d87aeda4ae2e"
+        },
+        {
+          "path": "saved/extension-source/rea-static-city19-fixed-extension-target-20261012/fixed-extension-target-helper.evidence.json",
+          "sha256": "37cb269767ae593ff341ee405e0010e6beb78d96f27f830678adea8b2700c1ac"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "all six positive vector groups stop before unknown object tag",
+      "expectation_kind": "modern_vector_version_subset",
+      "expected": "Unsupported vector version stops after ownword, no count or objecttag consumption.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/second-record-reader-assembly.evidence.json",
+          "sha256": "a6c47d0757dd187144f9bacbd0ac9b430628e8f1bb40e5dd09391baa5e2f58ae"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "twenty seventh partial vector is not a complete collection",
+      "expectation_kind": "modern_partial_vector_frontier",
+      "expected": "26 completed zero records plus27th positive group remains incomplete/pending before tag; do not inspect593140 word.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/second-record-reader-assembly.evidence.json",
+          "sha256": "a6c47d0757dd187144f9bacbd0ac9b430628e8f1bb40e5dd09391baa5e2f58ae"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "27 zero-count vectors qualify26 each but no typed payload",
+      "expectation_kind": "source_zero_group_wire_and_modern_lookahead",
+      "expected": "Synthetic27x26=702B zero-count vector bytes complete without typed payload/cache append; next593140 word only when inspect_next_header enabled. No real vector claim.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/second-record-reader-assembly.evidence.json",
+          "sha256": "a6c47d0757dd187144f9bacbd0ac9b430628e8f1bb40e5dd09391baa5e2f58ae"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "missing final next header may be left unread explicitly",
+      "expectation_kind": "modern_header_ownership",
+      "expected": "After12 complete fixed35 records, nextvectorword belongs to before.next_header; first vector uses it exactly once and reads six counts; does not consume guessed payload.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/second-record-reader-assembly.evidence.json",
+          "sha256": "a6c47d0757dd187144f9bacbd0ac9b430628e8f1bb40e5dd09391baa5e2f58ae"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "signed and over-budget vector counts reject before tag",
+      "expectation_kind": "modern_resource_policy",
+      "expected": "Reject signed negatives/positive>8192 or invalidrecord/prefix budgets before unbounded processing; these are modern policies.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        },
+        {
+          "path": "saved/source/rea-static-city19-postempire-nextconsumer-20261012/second-record-reader-assembly.evidence.json",
+          "sha256": "a6c47d0757dd187144f9bacbd0ac9b430628e8f1bb40e5dd09391baa5e2f58ae"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "exact fixed4915584 prefix accepts one partial record and one extra rejects",
+      "expectation_kind": "modern_prefix_budget",
+      "expected": "Exact4915584B view accepts known partial35 and preserves future bytes;4915585B rejects before parse.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        }
+      ]
+    },
+    {
+      "suite": "independent_component",
+      "name": "incomplete previous grid parent tail blocks following prefix",
+      "expectation_kind": "modern_precondition",
+      "expected": "Following fixed requires complete selected parent bytes; vectors require complete12 fixed records with already-inspected firstheader and no pending version/extension.",
+      "sources": [
+        {
+          "path": "frozen/file_io/include/city19_following_fixed_archive.hpp",
+          "sha256": "2d44db9bc767c4b85ca6c1c693ef5d2425ee27d8ed9732bd4ba8a12ed6247663"
+        },
+        {
+          "path": "frozen/file_io/include/city19_following_vectors_archive.hpp",
+          "sha256": "d401a494d588f73070dbda8e5989249ae1e7ac32765c82dc090f43420b597935"
+        }
+      ]
+    }
+  ]
+}
