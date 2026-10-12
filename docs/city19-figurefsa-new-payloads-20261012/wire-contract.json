@@ -1,0 +1,734 @@
+{
+  "schema": "FIGUREFSA_EXACT_SIX_CLASS_NEW_OBJECT_CONTRACT_20261012",
+  "baseline": "46893b8fa44a78fbc5e7a920ca03a2541a42b480",
+  "classes": [
+    {
+      "name": "FSAState",
+      "descriptor": "0x850230",
+      "schema": 0,
+      "factory": "0x4f1cd0",
+      "constructor": "0x4f5270",
+      "selected_root": "0x7b3d5c",
+      "reader_slot8": "0x4f5630",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; string; ActionContext list; ActionContext list; Transition ref; Transition list",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 20,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "c424ca2f83fed03f67d2b39ce2d3cfc4ece3c9c454182a22a049ec3a122f6447",
+      "constructor_evidence": "cca132d7626665b24741db81cbe3b4da833babac38462af32c2800c4ce8dbb7c",
+      "slot_evidence": "29392ce1e2851519a08fd7f8175da426c83cae26f38be649d105125f39077206",
+      "reader_evidence": "b5dcaf8863194043553563e0381c0193d13e02863438ff503d3bb10ba34e80ff",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "087a29536f5d180a5a277d371be2e7a4231d81c05e8ad0e521a81e5bbcf4a59b",
+      "memory_object_bytes": 72,
+      "memory_size_used_as_wire_width": false
+    },
+    {
+      "name": "FSATransition",
+      "descriptor": "0x850248",
+      "schema": 0,
+      "factory": "0x4f1dd0",
+      "constructor": "0x4f5b30",
+      "selected_root": "0x7b3d8c",
+      "reader_slot8": "0x4f6890",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; Match list; byte; DWORD; raw8; raw8; State ref; ActionContext list",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 33,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "eda47adba698fc7122cc39ea0e75c41ea06024b9f007f284005087661db75090",
+      "constructor_evidence": "60d7f5ec6584bc1e82cf1d6e3a7ab44e55f554029ea1981387450fd49cb05d7c",
+      "slot_evidence": "90a258d702b8c23e8a8a8feec3784e8d90930d9c4f058233f2da9e1fc4db2626",
+      "reader_evidence": "15396321c62f952afc76ad6d1f7b062f33faf5634c86d5bb9dfa042cfcffe174",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "7e0a8c045d68e0f74a40ca1178768d0970859ae3e1ae3f18d5d29c0a42400c06",
+      "memory_object_bytes": 80,
+      "memory_size_used_as_wire_width": false
+    },
+    {
+      "name": "FSAActionContext",
+      "descriptor": "0x8502c0",
+      "schema": 0,
+      "factory": "0x4f2290",
+      "constructor": "0x4f7970",
+      "selected_root": "0x7b3e74",
+      "reader_slot8": "0x4f7ae0",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; Action ref; Context ref",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 6,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "b8d0cd984d75802490aec66e917254143e98d563315fc8b746ed70a907ee5d0f",
+      "constructor_evidence": "071475a7bf0257c9c95e301cfd0c4e0a6b16c115c9c617076d10c7aedff098c3",
+      "slot_evidence": "000a6a2f6e7d02faa837b2826e57589bad011485774d663f5e88a52a1811d5b2",
+      "reader_evidence": "fad3a71cf957ca6c60c5b0f257a3017c626a235a34e43a83fa6a1ff984369c41",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "85730338df3cdb1a19d2c25be4b2691e33afae84f916b5c1362c7f81ec76bc48",
+      "memory_object_bytes": 12,
+      "memory_size_used_as_wire_width": false
+    },
+    {
+      "name": "FSAAction",
+      "descriptor": "0x850290",
+      "schema": 0,
+      "factory": "0x4f2090",
+      "constructor": "0x4f7670",
+      "selected_root": "0x7b3e58",
+      "reader_slot8": "0x4f78a0",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; string",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 6,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "f82d3cdff927ae31eaa396685b75afe0b5b824bc7b54b0ffc3c3afac28c5177a",
+      "constructor_evidence": "994032f7fbe88f39c883135ad76e80c04ab9fc78ff1f890e911727caee34f6e5",
+      "slot_evidence": "6583d3af76b498b98876ce9970c5c3ff50e9224377ae8236a7b1d150ad917a3b",
+      "reader_evidence": "5724adb9b62c6ccaa24fa076b47b4d87c12fa83fd60c6ce60be236593a9e2d3f",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "015c0866e2aae00cb118b5dc4ada21a7142fa5bb2e0968a83be48bf064b4cf49",
+      "memory_object_bytes": 20,
+      "memory_size_used_as_wire_width": false
+    },
+    {
+      "name": "FSAContext",
+      "descriptor": "0x8502a8",
+      "schema": 0,
+      "factory": "0x4f2190",
+      "constructor": "0x4f7540",
+      "selected_root": "0x7b3e38",
+      "reader_slot8": "0x4f75b0",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; DWORD",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 6,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "4275bdda246cbc3a5ec2a974117d22a670158124a8043e3c972b95e52d9b3163",
+      "constructor_evidence": "85c374c1bdf57ecd1dd65a236fccf87f67a93c9b689f161ef35de3d0d8bbe997",
+      "slot_evidence": "d26e869a38212c5dd2d6a7f08bc7d01a8f3d601e46bfdb4d8ef13a2068a8a841",
+      "reader_evidence": "3f106afe0633d30331560775e2a009750d48d8292b3f58509be2331cb2b67a3b",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "77bc7a1af08f0384b48d556bc5a2bf3d69be7b49143fa521a046a785022a96f7",
+      "memory_object_bytes": 8,
+      "memory_size_used_as_wire_width": false
+    },
+    {
+      "name": "FSAMatch",
+      "descriptor": "0x8502d8",
+      "schema": 0,
+      "factory": "0x4f2390",
+      "constructor": "0x4f7b90",
+      "selected_root": "0x7b3ea4",
+      "reader_slot8": "0x4f7d00",
+      "supported_own_versions": [
+        1
+      ],
+      "wire": "word own1; string; DWORD",
+      "minimum_payload_bytes_with_empty_strings_lists_and_compact_null_refs": 10,
+      "strings_add_exact_byte_length": true,
+      "factory_evidence": "e1ef72437a762b05276f5b6755faeef6812ac0819de1fa868eb470da135619c0",
+      "constructor_evidence": "3d1289d115cd7f25f9d8054e3f5a8521ca685d8b89276f1195e111f84e035ab6",
+      "slot_evidence": "766f9c8cb0f38c21971005ce1c4c887f83702d10d04409892a52f2c33487d6df",
+      "reader_evidence": "9625906c08584103fb7debfba561ed0273704b69510047ed42d6bca9a4747fa5",
+      "runtime_binding_proven": false,
+      "descriptor_evidence_sha256": "60580647c9725b38fd08d7bf1a5f6f7d833e16162d083cc6e767ddd9cd284459",
+      "memory_object_bytes": 24,
+      "memory_size_used_as_wire_width": false
+    }
+  ],
+  "outer_base_versions": [
+    1,
+    2
+  ],
+  "outer_own_versions": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "outer_embedded_version": 1,
+  "catalog_is_exhaustive_for_arbitrary_derived_classes": false,
+  "class_declaration": "ffff word, schema word0, name length word1..63, exact supported name bytes",
+  "tag_grammar": "ordinary word low15 id/highbit class;7fff escape then DWORD; NULL/cached object/cached class-new object/new class-new object",
+  "registration_order": "Class before expected-type check; object before payload. IDs are metadata indices, not original pointers. Duplicate class declarations and object aliases permitted.",
+  "integer_and_string_policy": "Little endian; signed nonpositive counts skip; strings nonnegative4byte length, bounded opaque exact bytes; host terminator not wire",
+  "failure_commit_policy": "All cursor/cache/results invocation-local; no partial result or caller cache mutation on failure",
+  "limits": {
+    "bytes": 65536,
+    "string_bytes": 8192,
+    "items_per_list": 256,
+    "references": 1024,
+    "cache_entries": 1024,
+    "new_objects": 128,
+    "new_object_depth": 16,
+    "strings": 1024
+  },
+  "conditional_assumptions": [
+    "Explicit nominal root7b5bc8/reader4dad10 contract; exact six named classes only",
+    "Initial cache labels refer to the exact selected schema0 concrete types",
+    "Normal readmode0, legal buffers/objects and ordinary allocation/container contracts",
+    "Factory name resolution and nominal root selection are a conditional model, not evidence of a live original instance",
+    "Application callbacks consume no additional wire bytes on the selected normal contract; their identity/lifetime/write effects remain separate"
+  ],
+  "remaining_gaps": [
+    "Unknown derived/new class names and schemas outside exact catalog",
+    "Incoming own versions other than selected1; original readers skip their fields rather than modern rejection",
+    "Actual holder+30 identity, lifetime and legitimate callback replacement/root writes",
+    "No actual data experiment or integration into unconditional qualifier"
+  ],
+  "actual_frontier": 1991913,
+  "new_real_bytes": 0,
+  "original_target_executed": false,
+  "source_stages": [
+    {
+      "stage": "rea-static-city19-figurefsa-factories-fixed-20261012",
+      "successful_operations": 10,
+      "queried_function_count": 8,
+      "selected_read_bytes": 12,
+      "exit_code": 0,
+      "seconds": 281.06,
+      "original_identity_unchanged": true,
+      "selected_module_SHA_unchanged": true,
+      "temporary_entries_after": [],
+      "provider_errors": [
+        {
+          "file": "fsa-context-reader4f7ae0.error.json",
+          "sha256": "d98c7b1afadacdc8d108b771c9c99ef2fd5d11a4f945414bfc3a24af81309173",
+          "code": "invalid_request",
+          "message": [
+            {
+              "path": [],
+              "reason": "invalid_value",
+              "message": "No procedure exists at the requested address: 0x4f7ae0"
+            }
+          ]
+        }
+      ],
+      "status_sha256": "446de3855b34e5ceca33e63ebd2deeef7c42781c281b505e72b638b6a202cc35",
+      "result_sha256": "2cfe8e9ba38cc5a4d4336bf48fb5325c62a51c291798885feec695cf193469db",
+      "artifacts": [
+        {
+          "phase": "fsa-state-factory4f1cd0",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f1cd0"
+          },
+          "evidence_id": "ev_94ecf049e52b406b27a449eac0d23dcb42e8acad248766f417c84165ca665ef6",
+          "file": "fsa-state-factory4f1cd0.evidence.json",
+          "bytes": 5950,
+          "sha256": "c424ca2f83fed03f67d2b39ce2d3cfc4ece3c9c454182a22a049ec3a122f6447"
+        },
+        {
+          "phase": "fsa-transition-factory4f1dd0",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f1dd0"
+          },
+          "evidence_id": "ev_192f6da85d28f1f8f59834b7b5f9cc1796a104bac958d4edfd05be745a989d4b",
+          "file": "fsa-transition-factory4f1dd0.evidence.json",
+          "bytes": 6032,
+          "sha256": "eda47adba698fc7122cc39ea0e75c41ea06024b9f007f284005087661db75090"
+        },
+        {
+          "phase": "fsa-context-factory4f2290",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f2290"
+          },
+          "evidence_id": "ev_d0594347f1c13fe7fe7969585babd685fe06a4f25cba59e0485ebd3f9127e398",
+          "file": "fsa-context-factory4f2290.evidence.json",
+          "bytes": 5948,
+          "sha256": "b8d0cd984d75802490aec66e917254143e98d563315fc8b746ed70a907ee5d0f"
+        },
+        {
+          "phase": "fsa-state-constructor4f5270",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f5270"
+          },
+          "evidence_id": "ev_c29da07575aa9097b30c636ee730d0cabee27b4cbd452c9e20195aa0fb071ef3",
+          "file": "fsa-state-constructor4f5270.evidence.json",
+          "bytes": 7290,
+          "sha256": "cca132d7626665b24741db81cbe3b4da833babac38462af32c2800c4ce8dbb7c"
+        },
+        {
+          "phase": "fsa-transition-constructor4f5b30",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f5b30"
+          },
+          "evidence_id": "ev_4bcde3108d55f1608c806917dc477cc03ce6f953b26fdafe9f5f6059c1771996",
+          "file": "fsa-transition-constructor4f5b30.evidence.json",
+          "bytes": 8244,
+          "sha256": "60d7f5ec6584bc1e82cf1d6e3a7ab44e55f554029ea1981387450fd49cb05d7c"
+        },
+        {
+          "phase": "fsa-context-constructor4f7970",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f7970"
+          },
+          "evidence_id": "ev_9467c903d939332a31e32433663109ac8c5eff50b58530a05a1dfa8b8af7efa9",
+          "file": "fsa-context-constructor4f7970.evidence.json",
+          "bytes": 5212,
+          "sha256": "071475a7bf0257c9c95e301cfd0c4e0a6b16c115c9c617076d10c7aedff098c3"
+        },
+        {
+          "phase": "fsa-state-root-slot8",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x7b3d64",
+            "length": 4
+          },
+          "evidence_id": "ev_f033ee526111769900b544ffc0dbb41e3f4130a9bb536516c1da4cd900fbe261",
+          "file": "fsa-state-root-slot8.evidence.json",
+          "bytes": 4948,
+          "sha256": "29392ce1e2851519a08fd7f8175da426c83cae26f38be649d105125f39077206"
+        },
+        {
+          "phase": "fsa-transition-root-slot8",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x7b3d94",
+            "length": 4
+          },
+          "evidence_id": "ev_c8e708426a09b0e2c909d4c937862d8edc074793687359b9c14eeb1ee0fa9b51",
+          "file": "fsa-transition-root-slot8.evidence.json",
+          "bytes": 4948,
+          "sha256": "90a258d702b8c23e8a8a8feec3784e8d90930d9c4f058233f2da9e1fc4db2626"
+        },
+        {
+          "phase": "fsa-context-root-slot8",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x7b3e7c",
+            "length": 4
+          },
+          "evidence_id": "ev_c953dab96dfdb847cb4e7eb6e0cae54056d8560348159e931a82418a52c1db27",
+          "file": "fsa-context-root-slot8.evidence.json",
+          "bytes": 4948,
+          "sha256": "000a6a2f6e7d02faa837b2826e57589bad011485774d663f5e88a52a1811d5b2"
+        },
+        {
+          "phase": "fsa-state-reader4f5630",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f5630"
+          },
+          "evidence_id": "ev_c6678f73ad36266c37bc3916c7a4a512c61dc17a29b1443a9ae2ded6d4f5dfa3",
+          "file": "fsa-state-reader4f5630.evidence.json",
+          "bytes": 15646,
+          "sha256": "b5dcaf8863194043553563e0381c0193d13e02863438ff503d3bb10ba34e80ff"
+        }
+      ]
+    },
+    {
+      "stage": "rea-static-city19-figurefsa-object-readers-20261012",
+      "successful_operations": 14,
+      "queried_function_count": 8,
+      "selected_read_bytes": 168,
+      "exit_code": 0,
+      "seconds": 319.237,
+      "original_identity_unchanged": true,
+      "selected_module_SHA_unchanged": true,
+      "temporary_entries_after": [],
+      "provider_errors": [],
+      "status_sha256": "d4457951d559270e77c7470c78eaceb0c93847fb34f997d7b58568a3130a42f2",
+      "result_sha256": "d77874353b174d44246678d70a577aabc72eab9682575a4ec645c8b9905ec840",
+      "artifacts": [
+        {
+          "phase": "fsa-context-reader4f7ae0-seeded",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f7ae0"
+          },
+          "evidence_id": "ev_05f29bfa3545ab33c0d0501dc0f59b49f2ddf657b0e71d2081a8d4843f02196c",
+          "file": "fsa-context-reader4f7ae0-seeded.evidence.json",
+          "bytes": 6931,
+          "sha256": "fad3a71cf957ca6c60c5b0f257a3017c626a235a34e43a83fa6a1ff984369c41"
+        },
+        {
+          "phase": "fsa-transition-reader4f6890",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f6890"
+          },
+          "evidence_id": "ev_c2d80be0ddc7c54546e680e61a7c0bb5aefeb832b16315b642b8f3335a6571da",
+          "file": "fsa-transition-reader4f6890.evidence.json",
+          "bytes": 14535,
+          "sha256": "15396321c62f952afc76ad6d1f7b062f33faf5634c86d5bb9dfa042cfcffe174"
+        },
+        {
+          "phase": "fsa-context-nested-action4f2120",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f2120"
+          },
+          "evidence_id": "ev_fdd815fec9aa1295c6cb5e72b3e5fbde3dba8fcd6ff2a537abc5527caf7fa692",
+          "file": "fsa-context-nested-action4f2120.evidence.json",
+          "bytes": 5209,
+          "sha256": "0d3d89e6f33c771935ac1f3851b6fab16e5ea669c415df2252393944dfdcde16"
+        },
+        {
+          "phase": "fsa-context-nested-parameter4f2220",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f2220"
+          },
+          "evidence_id": "ev_b1b1223b94fb831257df9eb3ffd8904428b312bc8f14c3030b3d70bfb6bddf98",
+          "file": "fsa-context-nested-parameter4f2220.evidence.json",
+          "bytes": 5209,
+          "sha256": "fc4083354c38c5f0c49ebf5af8ec2aed0cc03f3e1fd30da8cfb02dcfe19152b7"
+        },
+        {
+          "phase": "fsa-transition-nested-predicate4f2420",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f2420"
+          },
+          "evidence_id": "ev_35e3c993e48565792af043d03042cab7aa7f5e13193b2bf2182b4e751960a3fd",
+          "file": "fsa-transition-nested-predicate4f2420.evidence.json",
+          "bytes": 5209,
+          "sha256": "b5e75186dafd2bb818082569ba498483ed4b34e3f7a8ac2935ea9d3d1eff4a11"
+        },
+        {
+          "phase": "fsa-transition-byte503d50",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x503d50"
+          },
+          "evidence_id": "ev_f2801782e0e5aee4d3bd2abf65e0399957da163129472b4293968b2860aa2323",
+          "file": "fsa-transition-byte503d50.evidence.json",
+          "bytes": 5507,
+          "sha256": "f6bd8b2cae633d278ef50f9d99c9e1983ff36a122937c131fa5f3ef6ce63df92"
+        },
+        {
+          "phase": "fsa-transition-eight-byte4f6b00",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f6b00"
+          },
+          "evidence_id": "ev_76f50af0c6f6db6f0bcc2741c1083b1036d22c8a6c6c20947b97a37c0dcd8770",
+          "file": "fsa-transition-eight-byte4f6b00.evidence.json",
+          "bytes": 6141,
+          "sha256": "32ef0411d1153e512795094705b77e9234b35448dde693723248aed577d1c04f"
+        },
+        {
+          "phase": "fsa-nested-action-descriptor",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x850290",
+            "length": 24
+          },
+          "evidence_id": "ev_dc5057a0f210f5479421c0c48d635ee3ed52a206849dfd7cf78931a317f785b4",
+          "file": "fsa-nested-action-descriptor.evidence.json",
+          "bytes": 5030,
+          "sha256": "015c0866e2aae00cb118b5dc4ada21a7142fa5bb2e0968a83be48bf064b4cf49"
+        },
+        {
+          "phase": "fsa-nested-parameter-descriptor",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x8502a8",
+            "length": 24
+          },
+          "evidence_id": "ev_ef88255511b11e297329b2f35f675caf1938712e8fc4d10805c3d5f7b1cc67d6",
+          "file": "fsa-nested-parameter-descriptor.evidence.json",
+          "bytes": 5030,
+          "sha256": "77bc7a1af08f0384b48d556bc5a2bf3d69be7b49143fa521a046a785022a96f7"
+        },
+        {
+          "phase": "fsa-nested-predicate-descriptor",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x8502d8",
+            "length": 24
+          },
+          "evidence_id": "ev_58ecd481bba2cd77958312e8f5d2a6d2737325fe202a1b01ecf0d7d5ae2984ea",
+          "file": "fsa-nested-predicate-descriptor.evidence.json",
+          "bytes": 5030,
+          "sha256": "60580647c9725b38fd08d7bf1a5f6f7d833e16162d083cc6e767ddd9cd284459"
+        },
+        {
+          "phase": "fsa-nested-action-name",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x85031c",
+            "length": 32
+          },
+          "evidence_id": "ev_04abbb5b508557565ec0bfdaf3508dc082da9c1296e0f55906b84fe9ce44e5bc",
+          "file": "fsa-nested-action-name.evidence.json",
+          "bytes": 5062,
+          "sha256": "cf1adbb2f974209d9133f81c4508f55c41caa335a9b2e201dca0d533710a7e9d"
+        },
+        {
+          "phase": "fsa-nested-parameter-name",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x850310",
+            "length": 32
+          },
+          "evidence_id": "ev_cffd227a4fcc4e942bcb06d97010f7ddcc9a43919c22b2664300510d7a8ba940",
+          "file": "fsa-nested-parameter-name.evidence.json",
+          "bytes": 5062,
+          "sha256": "af36e4d1e39c0cdd0decd378deab0198fd6e8d74a805c50ed30b2f821ace7350"
+        },
+        {
+          "phase": "fsa-nested-predicate-name",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x8502f0",
+            "length": 32
+          },
+          "evidence_id": "ev_b2a073797c984befb53fffc1f8aa0b89542ba0f847245e1d91363f11407b7615",
+          "file": "fsa-nested-predicate-name.evidence.json",
+          "bytes": 5062,
+          "sha256": "e9c9ced534120bc56b11a7db1d90bf814a03bfa7e5a3175071335d14b6c49435"
+        },
+        {
+          "phase": "fsa-scalar-byte4c95f0",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4c95f0"
+          },
+          "evidence_id": "ev_cbac31a5536acd21cd6aa4be05c9e29f458687b8cb73868c918b5a0d1a1b569b",
+          "file": "fsa-scalar-byte4c95f0.evidence.json",
+          "bytes": 4869,
+          "sha256": "8862a0a6cfa348b3337dd08ecbd592aaa7cec4b4f417489a2c3a37a5ad50742a"
+        }
+      ]
+    },
+    {
+      "stage": "rea-static-city19-figurefsa-nested-factories-20261012",
+      "successful_operations": 11,
+      "queried_function_count": 8,
+      "selected_read_bytes": 12,
+      "exit_code": 0,
+      "seconds": 225.101,
+      "original_identity_unchanged": true,
+      "selected_module_SHA_unchanged": true,
+      "temporary_entries_after": [],
+      "provider_errors": [],
+      "status_sha256": "8502425b7f669bdaa8f6dec8708ff0dd6903db917cebc2cdd3f653e0fc379d29",
+      "result_sha256": "5691147355da315d926772ef876051f30f3a41eac279db10641015d9dfbab13f",
+      "artifacts": [
+        {
+          "phase": "fsa-action-factory4f2090",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f2090"
+          },
+          "evidence_id": "ev_5c2fa0790c20da9b319b6f34719e16e9ced55c539655da188a30e820fc33ad33",
+          "file": "fsa-action-factory4f2090.evidence.json",
+          "bytes": 5953,
+          "sha256": "f82d3cdff927ae31eaa396685b75afe0b5b824bc7b54b0ffc3c3afac28c5177a"
+        },
+        {
+          "phase": "fsa-context8-factory4f2190",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f2190"
+          },
+          "evidence_id": "ev_04a201442386600a9749656f5247792fa8f03ace64ef08e87fb74f1a307b95a8",
+          "file": "fsa-context8-factory4f2190.evidence.json",
+          "bytes": 5951,
+          "sha256": "4275bdda246cbc3a5ec2a974117d22a670158124a8043e3c972b95e52d9b3163"
+        },
+        {
+          "phase": "fsa-match-factory4f2390",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f2390"
+          },
+          "evidence_id": "ev_f9731c3ebbb2937045fa4de2c7e7932e97cd2b7740cae2ca12e147914fc49160",
+          "file": "fsa-match-factory4f2390.evidence.json",
+          "bytes": 5993,
+          "sha256": "e1ef72437a762b05276f5b6755faeef6812ac0819de1fa868eb470da135619c0"
+        },
+        {
+          "phase": "fsa-action-constructor4f7670",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f7670"
+          },
+          "evidence_id": "ev_08782c26a8bfc1cd8780e1e7fa34f2fad13e0b5abe3d0a1c8ef37e528537c032",
+          "file": "fsa-action-constructor4f7670.evidence.json",
+          "bytes": 6283,
+          "sha256": "994032f7fbe88f39c883135ad76e80c04ab9fc78ff1f890e911727caee34f6e5"
+        },
+        {
+          "phase": "fsa-context8-constructor4f7540",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f7540"
+          },
+          "evidence_id": "ev_66a17a5e65b4361b0a72be48f2b5623a82f16c48a801718887bb9d82cac80148",
+          "file": "fsa-context8-constructor4f7540.evidence.json",
+          "bytes": 5083,
+          "sha256": "85c374c1bdf57ecd1dd65a236fccf87f67a93c9b689f161ef35de3d0d8bbe997"
+        },
+        {
+          "phase": "fsa-match-constructor4f7b90",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f7b90"
+          },
+          "evidence_id": "ev_2a890299688c6442d2c321eed1ef4266aa837f76e128d4515c680203f4bd1a82",
+          "file": "fsa-match-constructor4f7b90.evidence.json",
+          "bytes": 6463,
+          "sha256": "3d1289d115cd7f25f9d8054e3f5a8521ca685d8b89276f1195e111f84e035ab6"
+        },
+        {
+          "phase": "fsa-action-root-slot8",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x7b3e60",
+            "length": 4
+          },
+          "evidence_id": "ev_99170097bd72cd044647c395e59fc66f9db79ccb818a94ad4de520d044fbc74c",
+          "file": "fsa-action-root-slot8.evidence.json",
+          "bytes": 4951,
+          "sha256": "6583d3af76b498b98876ce9970c5c3ff50e9224377ae8236a7b1d150ad917a3b"
+        },
+        {
+          "phase": "fsa-context8-root-slot8",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x7b3e40",
+            "length": 4
+          },
+          "evidence_id": "ev_bf07e195914c5bd2ce912d12492e4c1cb53ab621131254c4831965f55aee891e",
+          "file": "fsa-context8-root-slot8.evidence.json",
+          "bytes": 4951,
+          "sha256": "d26e869a38212c5dd2d6a7f08bc7d01a8f3d601e46bfdb4d8ef13a2068a8a841"
+        },
+        {
+          "phase": "fsa-match-root-slot8",
+          "operation": "read_bytes",
+          "parameters": {
+            "address": "0x7b3eac",
+            "length": 4
+          },
+          "evidence_id": "ev_ba2a2b1c7d11b5afe562d3559cc9a5d592c3198ebacb2c0ed0f4f25d5d9652e3",
+          "file": "fsa-match-root-slot8.evidence.json",
+          "bytes": 4951,
+          "sha256": "766f9c8cb0f38c21971005ce1c4c887f83702d10d04409892a52f2c33487d6df"
+        },
+        {
+          "phase": "fsa-action-reader4f78a0",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f78a0"
+          },
+          "evidence_id": "ev_fb4d9c2aba4bdc812c5f5e5a1f8a808a7e21c3a3a1b7d4056b9bfe45a051d3bb",
+          "file": "fsa-action-reader4f78a0.evidence.json",
+          "bytes": 6485,
+          "sha256": "5724adb9b62c6ccaa24fa076b47b4d87c12fa83fd60c6ce60be236593a9e2d3f"
+        },
+        {
+          "phase": "fsa-context8-reader4f75b0",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f75b0"
+          },
+          "evidence_id": "ev_bb92b1ffbd78f1a3947b1db7a60235211542210ef096c23151291c78874f40f3",
+          "file": "fsa-context8-reader4f75b0.evidence.json",
+          "bytes": 6537,
+          "sha256": "3f106afe0633d30331560775e2a009750d48d8292b3f58509be2331cb2b67a3b"
+        }
+      ]
+    },
+    {
+      "stage": "rea-static-city19-figurefsa-match-reader-20261012",
+      "successful_operations": 1,
+      "queried_function_count": 1,
+      "selected_read_bytes": 0,
+      "exit_code": 0,
+      "seconds": 230.182,
+      "original_identity_unchanged": true,
+      "selected_module_SHA_unchanged": true,
+      "temporary_entries_after": [],
+      "provider_errors": [],
+      "status_sha256": "f5717b21aed80fb00126e62141b8427e7a6c3155babcf706ed4fa42559a7723e",
+      "result_sha256": "e8b3888d80f5f3e156f9afff8f4b67ea292e07217b1de9a3f1223ff10184f882",
+      "artifacts": [
+        {
+          "phase": "fsa-match-reader4f7d00",
+          "operation": "procedure_assembly",
+          "parameters": {
+            "procedure": "0x4f7d00"
+          },
+          "evidence_id": "ev_d5a9012601e99a41f6539d10eb60c645b7cef1305682bf88362bce9495c328ab",
+          "file": "fsa-match-reader4f7d00.evidence.json",
+          "bytes": 6925,
+          "sha256": "9625906c08584103fb7debfba561ed0273704b69510047ed42d6bca9a4747fa5"
+        }
+      ]
+    }
+  ],
+  "reused_source_evidence": [
+    {
+      "relative_task_path": "rea-static-city19-wire-helper-readers-20261012/figure-signed-byte-helper.evidence.json",
+      "evidence_id": "ev_908da592733a5f2c68d6204d66098c3143d4cfbf2f39f0becd7bd8f62e1e33f5",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4c9600"
+      },
+      "sha256": "fd94bbe3174acb6434ebfedb84648a065bd4c918e761538d91431c91e759b3af",
+      "new_query": false
+    },
+    {
+      "relative_task_path": "rea-static-city19-figurefsa-wire-20261012/figurefsa-rootbase40cf80-wire-source.evidence.json",
+      "evidence_id": "ev_a30e29862f8f7ec407cc899656c1bcdd4511d02677edf59bff18b82c7189194d",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x40cf80"
+      },
+      "sha256": "3de569577883d6dcd31c03e8523811e7030452f93ee7c3362c94c672cc1254fe",
+      "new_query": false
+    },
+    {
+      "relative_task_path": "rea-static-city19-figurefsa-wire-20261012/figurefsa-base4f4480-wire-source.evidence.json",
+      "evidence_id": "ev_658380ea11a16598aeb96fa008e8ad52b7c44e9f6815fc2600fb07d0f12114a6",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4f4480"
+      },
+      "sha256": "68773f634b5ff18d7ec0b4a386cc561af0a909cedf4db7c47e7c173e84108d7d",
+      "new_query": false
+    },
+    {
+      "relative_task_path": "rea-static-city19-hero-child-reader-20261012/child-vptr8-reader-assembly.evidence.json",
+      "evidence_id": "ev_f7e9bfcc023c03f9c88dab618feb32141e8108bf5d09bc0d849757b23237485e",
+      "operation": "procedure_assembly",
+      "parameters": {
+        "procedure": "0x4dad10"
+      },
+      "sha256": "c83cb5c59512c5be737b35a2e2400e98851346e6edf781ff7f19fde2bd2632ae",
+      "new_query": false
+    },
+    {
+      "relative_task_path": "rea-static-city19-figurefsa-wire-20261012/figurefsa-runtimeclass-state-descriptor.evidence.json",
+      "sha256": "087a29536f5d180a5a277d371be2e7a4231d81c05e8ad0e521a81e5bbcf4a59b",
+      "operation": "read_bytes",
+      "new_query": false
+    },
+    {
+      "relative_task_path": "rea-static-city19-figurefsa-wire-20261012/figurefsa-runtimeclass-legacy-one-descriptor.evidence.json",
+      "sha256": "7e0a8c045d68e0f74a40ca1178768d0970859ae3e1ae3f18d5d29c0a42400c06",
+      "operation": "read_bytes",
+      "new_query": false
+    },
+    {
+      "relative_task_path": "rea-static-city19-figurefsa-wire-20261012/figurefsa-runtimeclass-legacy-two-descriptor.evidence.json",
+      "sha256": "85730338df3cdb1a19d2c25be4b2691e33afae84f916b5c1362c7f81ec76bc48",
+      "operation": "read_bytes",
+      "new_query": false
+    }
+  ]
+}

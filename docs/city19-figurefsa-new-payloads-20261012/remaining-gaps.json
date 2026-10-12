@@ -1,0 +1,63 @@
+{
+  "schema": "FIGUREFSA_NEW_PAYLOAD_REMAINING_GAPS_20261012",
+  "baseline": "46893b8fa44a78fbc5e7a920ca03a2541a42b480",
+  "initial_missing_classes": [
+    "FSAState",
+    "FSATransition",
+    "FSAActionContext"
+  ],
+  "additional_nested_classes": [
+    "FSAAction",
+    "FSAContext",
+    "FSAMatch"
+  ],
+  "closed_payload_scope": "Exact six-class catalog, schema0, own1; outer base1/2, own2..5, embedded1",
+  "unknown_classes": "Other concrete/derived names are not enumerated; explicit rejection, not evidence that original rejects them",
+  "other_own_versions": "Original selected readers skip fields for own!=1 then reset1; modern rejects outside own1 subset",
+  "actual_instance_conditions": [
+    "Same holder+30 identity at51208b",
+    "NULL guard512090/512092 before virtual8 at51209d",
+    "Live object and root preserved across legitimate application callbacks/replacement",
+    "Original name registry/factory selection matches the explicit exact-class model"
+  ],
+  "minimal_next_work": [
+    "Close actual holder+30 identity/lifetime and callback write reachability",
+    "For an unsupported exact new type, prove descriptor->factory->constructor/root->reader plus all nested wire dependencies before adding a codec",
+    "Choose whether to model original non1-version skip policy explicitly; do not guess extra fields"
+  ],
+  "real_frontier": 1991913,
+  "new_real_bytes": 0,
+  "initial_configuration_failure": {
+    "stage": "rea-static-city19-figurefsa-factories-20261012",
+    "code": "configuration_invalid",
+    "message": "REA configuration is invalid: REA_GHIDRA_SEED_FILE: line 1: address must be 0x-prefixed hex.",
+    "result_sha256": "a3c80fab8ed27c7b3f9b97c22cf1b2c7d81a764181097bf470972408351c94f9",
+    "repair": "Corrected authored TSV address-tab-kind order; no tool or guard change"
+  },
+  "procedure_metadata_failure": [
+    {
+      "file": "fsa-context-reader4f7ae0.error.json",
+      "sha256": "d98c7b1afadacdc8d108b771c9c99ef2fd5d11a4f945414bfc3a24af81309173",
+      "code": "invalid_request",
+      "message": [
+        {
+          "path": [],
+          "reason": "invalid_value",
+          "message": "No procedure exists at the requested address: 0x4f7ae0"
+        }
+      ]
+    }
+  ],
+  "repair_metadata_is_runtime_discovery": false,
+  "last_verified_remote": "78f1b7ec4d141cb2008f8633a29b1fe083338dc5",
+  "pending_chain_at_baseline": [
+    "d46f6ed4bbad300b6b720915ee4ae43059f88d90",
+    "42f215547d75781415071c772ce791d38069f398",
+    "3687bde2a658fd92fd2cccc497703e4fa071215b",
+    "e4ef565fe073c327c19cec6115c1131401b6aea4",
+    "aa9f7664ff63dc81cbd61198af821e35d74ff4a6",
+    "46893b8fa44a78fbc5e7a920ca03a2541a42b480"
+  ],
+  "remote_query_or_push_attempted": false,
+  "push_blocker": "Existing GitHub authentication invalid; no retry until restoration."
+}
