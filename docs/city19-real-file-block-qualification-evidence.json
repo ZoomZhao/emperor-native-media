@@ -3868,5 +3868,15 @@
   "production_core_and_small_tool_unchanged": true,
   "new_native_capacity_is_explicitly_authorized_and_bounded": true,
   "map1463_nested_member_still_unclosed": true,
-  "city_game_compatibility_proved": false
+  "city_game_compatibility_proved": false,
+  "sample_actual_original_entry_chain_proved": false,
+  "static_reader_chain_is_source_candidate_not_runtime_dispatch_proof": true,
+  "complete_modern_blocks_do_not_prove_full_original_archive_type": true,
+  "map_source_review_9f9": {
+    "saved_source_checks": 34,
+    "synthetic_checks": 38,
+    "failed": 0,
+    "fixed_span_supported": "[4,1463) underselected source/readmode/fullrequest/noaliaspremises",
+    "scope_suggestion_patch_sha256": "bed2b397f3635902539464cf08ef1bbcaee1b3c59b533d0717acb2cee5e57307"
+  }
 }

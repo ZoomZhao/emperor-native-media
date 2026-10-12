@@ -741,5 +741,15 @@
   "raw_or_decoded_data_files_saved": false,
   "research_publication_performed": false,
   "approved_fixed_push_receipt": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/approved-5587fb5-push-20261012/push-and-preservation-receipt.json",
-  "known_own_harness_label_failure_receipt": "second-static-pass-receipt.json"
+  "known_own_harness_label_failure_receipt": "second-static-pass-receipt.json",
+  "sample_actual_original_entry_chain_proved": false,
+  "static_reader_chain_is_source_candidate_not_runtime_dispatch_proof": true,
+  "complete_modern_blocks_do_not_prove_full_original_archive_type": true,
+  "map_source_review_9f9": {
+    "saved_source_checks": 34,
+    "synthetic_checks": 38,
+    "failed": 0,
+    "fixed_span_supported": "[4,1463) underselected source/readmode/fullrequest/noaliaspremises",
+    "scope_suggestion_patch_sha256": "bed2b397f3635902539464cf08ef1bbcaee1b3c59b533d0717acb2cee5e57307"
+  }
 }
