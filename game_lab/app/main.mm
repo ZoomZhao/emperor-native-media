@@ -7,6 +7,7 @@
 #include "../audio_policy.hpp"
 #include "../image_presentation.hpp"
 #include "../cg_image_conversion.hpp"
+#include "../candidate_import.hpp"
 #include "../app_launch.hpp"
 #include "../map_geometry.hpp"
 #include "../map_viewport.hpp"
@@ -138,6 +139,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSView* _spriteView;
     NSView* _musicView;
     NSView* _textView;
+    NSView* _candidateView;
+    NSTextView* _candidateReport;
+    NSButton* _candidateRetry;
+    game_lab::CandidateImportController _candidateImport;
+    NSURL* _candidateDirectory;
     
     // Bottom playback bar
     NSTextField* _musicStatusLabel;
@@ -237,6 +243,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     self = [super init];
     if (self) {
         _selfAuthoredLaunch = selfAuthored;
+        _candidateDirectory = [NSURL fileURLWithPath:[NSString stringWithUTF8String:root.configuredDirectory().c_str()]];
         _media = std::make_unique<game_lab::AppMedia>(root, _audioFactory);
         __weak EmperorAppDelegate* weakSelf = self;
         _media->setStatusChangedCallback([weakSelf](const game_lab::PlaybackStatus&) {
@@ -312,6 +319,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self setupMusicView];
     [self setupTextView];
     [self setupMovieView];
+    [self setupCandidateView];
     [self showTab:1];
     
     // Start the self-authored city tick timer
@@ -331,11 +339,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSView* root = _window.contentView;
     
     // Top Navigation Bar
-    _navBar = [NSSegmentedControl segmentedControlWithLabels:@[@"主界面", @"城市营建（自写）", @"图素与贴图", @"国风音乐台", @"游戏文本资料库", @"影片首帧预览"]
+    _navBar = [NSSegmentedControl segmentedControlWithLabels:@[@"主界面", @"城市营建（自写）", @"图素与贴图", @"国风音乐台", @"游戏文本资料库", @"影片首帧预览", @"候选存档"]
                                                 trackingMode:NSSegmentSwitchTrackingSelectOne
                                                       target:self
                                                       action:@selector(onTabChanged:)];
     _navBar.frame = NSMakeRect(12, 775, 1000, 32);
+    for (NSInteger segment = 0; segment < 7; ++segment) [_navBar setWidth:1000.0 / 7.0 forSegment:segment];
     _navBar.selectedSegment = 0;
     _navBar.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     [root addSubview:_navBar];
@@ -1293,6 +1302,66 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_textTableView reloadData];
 }
 
+- (void)setupCandidateView {
+    _candidateView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
+    _candidateView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    NSTextField* title = [NSTextField labelWithString:@"候选存档只读检查"];
+    title.frame = NSMakeRect(20, _candidateView.bounds.size.height - 38, 900, 24);
+    title.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
+    [_candidateView addSubview:title];
+    NSButton* choose = [NSButton buttonWithTitle:@"选择候选文件" target:self action:@selector(onChooseCandidate:)];
+    choose.frame = NSMakeRect(20, _candidateView.bounds.size.height - 80, 140, 30);
+    choose.autoresizingMask = NSViewMinYMargin;
+    [_candidateView addSubview:choose];
+    _candidateRetry = [NSButton buttonWithTitle:@"重新检查候选" target:self action:@selector(onRetryCandidate:)];
+    _candidateRetry.frame = NSMakeRect(170, _candidateView.bounds.size.height - 80, 140, 30);
+    _candidateRetry.autoresizingMask = NSViewMinYMargin;
+    [_candidateView addSubview:_candidateRetry];
+    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:
+        NSMakeRect(20, 20, _candidateView.bounds.size.width - 40, _candidateView.bounds.size.height - 120)];
+    scroll.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    scroll.hasVerticalScroller = YES;
+    _candidateReport = [[NSTextView alloc] initWithFrame:scroll.contentView.bounds];
+    _candidateReport.editable = NO;
+    _candidateReport.richText = NO;
+    _candidateReport.font = [NSFont systemFontOfSize:14];
+    _candidateReport.autoresizingMask = NSViewWidthSizable;
+    _candidateReport.textContainer.widthTracksTextView = YES;
+    scroll.documentView = _candidateReport;
+    [_candidateView addSubview:scroll];
+    [self refreshCandidateReport];
+}
+- (void)refreshCandidateReport {
+    _candidateReport.string = [NSString stringWithUTF8String:game_lab::formatCandidateImport(_candidateImport).c_str()];
+    _candidateRetry.enabled = !_candidateImport.selectedPath().empty() &&
+        _candidateImport.result().state != game_lab::CandidateState::Selecting;
+}
+- (void)onChooseCandidate:(id)sender {
+    (void)sender;
+    _candidateImport.beginSelection();
+    [self refreshCandidateReport];
+    NSOpenPanel* panel = [NSOpenPanel openPanel];
+    panel.canChooseFiles = YES;
+    panel.canChooseDirectories = NO;
+    panel.allowsMultipleSelection = NO;
+    panel.canCreateDirectories = NO;
+    panel.resolvesAliases = NO;
+    panel.directoryURL = _candidateDirectory;
+    panel.message = @"只读检查候选文件；不会载入城市或写回存档。";
+    panel.prompt = @"只读检查";
+    if ([panel runModal] != NSModalResponseOK) _candidateImport.cancelSelection();
+    else {
+        const char* path = panel.URL.path.UTF8String;
+        _candidateImport.inspectFile(path ? path : "");
+    }
+    [self refreshCandidateReport];
+}
+- (void)onRetryCandidate:(id)sender {
+    (void)sender;
+    _candidateImport.retry();
+    [self refreshCandidateReport];
+}
+
 // ----------------------------------------------------
 // Tab 5: Movie Silent Preview (Restricted MOV: 64×48)
 // ----------------------------------------------------
@@ -1571,6 +1640,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         case 3: [_contentContainer addSubview:_musicView]; break;
         case 4: [_contentContainer addSubview:_textView]; break;
         case 5: [_contentContainer addSubview:_movieView]; break;
+        case 6: [_contentContainer addSubview:_candidateView]; break;
     }
 }
 

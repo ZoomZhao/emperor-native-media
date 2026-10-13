@@ -14,9 +14,10 @@ mkdir -p "$BUILD_DIR"
 echo "Compiling EmperorApp binary..."
 /usr/bin/clang++ -std=c++17 -fobjc-arc -fno-modules -O2 -mmacosx-version-min=15.0 \
     -Wall -Wextra -Werror \
-    -I"$REPO_ROOT" -I"$REPO_ROOT/media_demo" \
+    -I"$REPO_ROOT" -I"$REPO_ROOT/media_demo" -I"$REPO_ROOT/file_io/include" \
     "$APP_ROOT/main.mm" "$APP_ROOT/av_audio_backend.mm" \
-    "$LAB_ROOT/app_media.cpp" "$LAB_ROOT/movie_session.mm" \
+    "$LAB_ROOT/app_media.cpp" "$LAB_ROOT/movie_session.mm" "$LAB_ROOT/candidate_import.cpp" \
+    "$REPO_ROOT/file_io/src/strict_zlib.cpp" "$REPO_ROOT/file_io/src/framed_reader.cpp" \
     "$LAB_ROOT/emperor_assets.mm" \
     "$LAB_ROOT/wav_pcm.cpp" "$LAB_ROOT/asset_pixels.cpp" "$LAB_ROOT/resource_root.cpp" \
     "$REPO_ROOT/surface_lab/surface.cpp" \

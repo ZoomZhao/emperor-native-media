@@ -8,6 +8,7 @@ class ResourceRoot {
 public:
     static ResourceRoot fromAbsolute(const std::string& path);
     bool configured() const { return !root_.empty(); }
+    std::string configuredDirectory() const { return root_.string(); }
     std::string resolve(const std::string& relativePath) const;
 private:
     std::filesystem::path root_;

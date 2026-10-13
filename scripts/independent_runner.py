@@ -47,6 +47,17 @@ APP = [
     'media_demo/controller.hpp', 'media_demo/controller.cpp',
     'media_demo/device_monitor.hpp',
     'game_lab/run_app_integration.sh',
+    'game_lab/candidate_import.hpp',
+    'game_lab/candidate_import.cpp',
+    'file_io/include/strict_zlib.h',
+    'file_io/include/framed_reader.hpp',
+    'file_io/include/owned_reader.hpp',
+    'file_io/include/city19_goal_archive.hpp',
+    'file_io/src/strict_zlib.cpp',
+    'file_io/src/framed_reader.cpp',
+    'docs/original-file-outer-profile.json',
+    'docs/original-profile-owned-readiness.json',
+    'file_io/tests/original_profile_review_gate.json',
 ]
 CITY = ['game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
         'game_lab/city_simulation_tests.cpp', 'game_lab/emperor_assets.hpp',
@@ -63,6 +74,7 @@ WAREHOUSE_TRANSFER = [name for name in WAREHOUSE_TRAINING_STATE if name != 'game
 WAREHOUSE_ROUTES = [name for name in WAREHOUSE_TRANSFER if name != 'game_lab/warehouse_transfer_tests.cpp'] + ['game_lab/warehouse_route_tests.cpp']
 VIEWPORT = ['game_lab/map_viewport.hpp','game_lab/map_viewport_tests.cpp']
 LAUNCH = ['game_lab/app_launch.hpp','game_lab/resource_root.hpp','game_lab/resource_root.cpp','game_lab/app_launch_tests.cpp']
+CANDIDATE_IMPORT = ['game_lab/candidate_import.hpp', 'game_lab/candidate_import.cpp', 'file_io/include/strict_zlib.h', 'file_io/include/framed_reader.hpp', 'file_io/include/owned_reader.hpp', 'file_io/include/city19_goal_archive.hpp', 'file_io/src/strict_zlib.cpp', 'file_io/src/framed_reader.cpp', 'docs/original-file-outer-profile.json', 'docs/original-profile-owned-readiness.json', 'file_io/tests/original_profile_review_gate.json', 'game_lab/candidate_import_tests.cpp']
 TEXT_FEEDBACK = [name for name in APP if name != 'game_lab/app_media_integration_tests.mm'] + [
     'game_lab/text_load_feedback_tests.mm']
 IMAGE_CONVERSION = ['game_lab/asset_limits.hpp', 'game_lab/cg_image_conversion.hpp',
@@ -71,7 +83,7 @@ SURFACE = ['surface_lab/surface.hpp', 'surface_lab/surface.cpp',
            'surface_lab/oracle.hpp', 'surface_lab/oracle.cpp', 'surface_lab/tests.cpp']
 METAL = [name for name in SURFACE if name != 'surface_lab/tests.cpp'] + [
     'metal_lab/backend.hpp', 'metal_lab/backend.mm', 'metal_lab/tests.mm']
-SUITES = {'text-feedback': TEXT_FEEDBACK, 'image-conversion': IMAGE_CONVERSION, 'viewport': VIEWPORT, 'launch': LAUNCH, 'surface': SURFACE, 'metal': METAL,
+SUITES = {'candidate-import': CANDIDATE_IMPORT, 'text-feedback': TEXT_FEEDBACK, 'image-conversion': IMAGE_CONVERSION, 'viewport': VIEWPORT, 'launch': LAUNCH, 'surface': SURFACE, 'metal': METAL,
           'city': CITY, 'service': SERVICE, 'scenario-state': SCENARIO_STATE, 'warehouse': WAREHOUSE,
           'warehouse-routes': WAREHOUSE_ROUTES, 'warehouse-transfer': WAREHOUSE_TRANSFER, 'warehouse-training-state': WAREHOUSE_TRAINING_STATE, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
           'movie-async': APP + ['game_lab/movie_session_async_tests.mm'],
@@ -212,6 +224,15 @@ def run(suite, mode, output):
             binaries = {'city-tests': sha(report / 'city-tests')}
             command('city-test', [report / 'city-tests', report / 'city-fixtures'])
             results = {suite: read(report / 'city-test.stdout')}
+        elif suite == 'candidate-import':
+            command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
+                                     *flags, snapshot / 'game_lab/candidate_import_tests.cpp',
+                                     snapshot / 'game_lab/candidate_import.cpp',
+                                     snapshot / 'file_io/src/strict_zlib.cpp', snapshot / 'file_io/src/framed_reader.cpp',
+                                     '-I', snapshot / 'file_io/include', '-lz', '-o', report / 'candidate-tests'])
+            binaries = {'candidate-tests': sha(report / 'candidate-tests')}
+            command('candidate-test', [report / 'candidate-tests'])
+            results = {'candidate-import': read(report / 'candidate-test.stdout')}
         elif suite == 'image-conversion':
             command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
                                      *flags, snapshot / 'game_lab/cg_image_conversion_tests.cpp',
