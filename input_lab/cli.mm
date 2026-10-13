@@ -15,8 +15,9 @@ static uint64_t integer(NSDictionary* object,NSString* key,uint64_t maximum) {
 }
 int main(int argc,char** argv) { @autoreleasepool {
     try {
-        require(argc==2,"usage: scoped-click /absolute/local/request.json");
-        NSString* path=[NSString stringWithUTF8String:argv[1]];
+        bool inspect = argc == 3 && std::string(argv[1]) == "--inspect";
+        require(argc==2 || inspect,"usage: scoped-click [--inspect] /absolute/local/request.json");
+        NSString* path=[NSString stringWithUTF8String:argv[inspect?2:1]];
         require(path.isAbsolutePath,"absolute request path required");
         NSData* bytes=[NSData dataWithContentsOfFile:path];
         require(bytes && bytes.length<=8192,"request unavailable or excessive");
@@ -36,6 +37,12 @@ int main(int argc,char** argv) { @autoreleasepool {
         r.deadlineUnixSeconds=number(object,@"deadline_unix_seconds");
         // No launching, activation, key events, capture, permission requests or game paths.
         [NSApplication.sharedApplication setActivationPolicy:NSApplicationActivationPolicyProhibited];
+        if (inspect) {
+            NSData* data=[NSJSONSerialization dataWithJSONObject:inspectionJSON(r,currentSnapshot(r))
+                options:NSJSONWritingPrettyPrinted|NSJSONWritingSortedKeys error:nil];
+            require(data!=nil,"inspection JSON failed");
+            std::cout.write((const char*)data.bytes,data.length); std::cout << '\n'; return 0;
+        }
         CGPoint point=postClick(r);
         NSDictionary* result=@{@"input_sent":@YES,@"visible_transition_verified":@NO,
             @"pid":@(r.owner.pid),@"window_id":@(r.window),@"point":@[@(point.x),@(point.y)]};

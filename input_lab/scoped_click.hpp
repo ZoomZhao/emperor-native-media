@@ -12,6 +12,7 @@
 #include <string>
 #include <thread>
 #include <type_traits>
+#include <optional>
 
 namespace scoped_input {
 struct Identity {
@@ -41,7 +42,35 @@ struct Snapshot {
     double nowUnixSeconds = 0;
     int hitLayer = 0;
     CGRect hitFrame{};
+    // Diagnostics only: none of these fields grants dispatch permission.
+    std::optional<int> selectedLayer = std::nullopt;
+    std::optional<double> selectedAlpha = std::nullopt, candidateAlpha = std::nullopt;
+    CGRect candidateBounds{}, displayBounds{};
+    CGDirectDisplayID display = 0;
+    CGWindowID publicDisplayShield = 0;
 };
+inline const char* candidateRole(const Snapshot& s) {
+    return s.display != 0 && s.publicDisplayShield != 0 && s.hitWindow == s.publicDisplayShield
+        ? "public_display_capture_shield" : "unclassified_window";
+}
+inline NSArray* frameJSON(CGRect r) {
+    return @[@(r.origin.x),@(r.origin.y),@(r.size.width),@(r.size.height)];
+}
+inline NSDictionary* inspectionJSON(const Request& r, const Snapshot& s) {
+    return @{@"read_only":@YES, @"input_sent":@NO, @"pid":@(s.owner.pid),
+        @"expected_window_id":@(r.window), @"selected_window_id":@(s.window),
+        @"selected_owner_pid":@(s.windowPid), @"selected_frame":frameJSON(s.frame),
+        @"selected_layer":s.selectedLayer?(id)@(*s.selectedLayer):NSNull.null,
+        @"selected_alpha":s.selectedAlpha?(id)@(*s.selectedAlpha):NSNull.null,
+        @"AX_owner_pid":@(s.hitPid), @"AX_window_frame":frameJSON(s.hitFrame),
+        @"candidate_window_id":@(s.hitWindow), @"candidate_layer":@(s.hitLayer),
+        @"candidate_bounds":frameJSON(s.candidateBounds),
+        @"candidate_alpha":s.candidateAlpha?(id)@(*s.candidateAlpha):NSNull.null,
+        @"candidate_role":[NSString stringWithUTF8String:candidateRole(s)],
+        @"display_id":@(s.display), @"display_bounds":frameJSON(s.displayBounds),
+        @"public_display_shield_window_id":@(s.publicDisplayShield),
+        @"active":@(s.active), @"frontmost_pid":@(s.frontmostPid)};
+}
 inline void require(bool value, const char* why) {
     if (!value) throw std::runtime_error(why);
 }
@@ -148,6 +177,11 @@ inline Snapshot currentSnapshot(const Request& r) {
         if (id == r.window) {
             require(s.window == 0, "ambiguous selected window");
             s.window = id; s.windowPid = pid; s.frame = bounds;
+            NSNumber* level = row[(__bridge NSString*)kCGWindowLayer];
+            NSNumber* alpha = row[(__bridge NSString*)kCGWindowAlpha];
+            if ([level isKindOfClass:NSNumber.class]) s.selectedLayer = [level intValue];
+            if ([alpha isKindOfClass:NSNumber.class] && std::isfinite([alpha doubleValue]))
+                s.selectedAlpha = [alpha doubleValue];
         }
         // Include all layers of the AX-hit application; foreign AX hits fail
         // validate too. A same-PID floating peer must not be silently redirected.
@@ -155,7 +189,18 @@ inline Snapshot currentSnapshot(const Request& r) {
             [row[(__bridge NSString*)kCGWindowLayer] intValue], p)) {
             s.hitPid = pid; s.hitWindow = id; hitFound = true;
             s.hitLayer = [row[(__bridge NSString*)kCGWindowLayer] intValue];
+            s.candidateBounds = bounds;
+            NSNumber* alpha = row[(__bridge NSString*)kCGWindowAlpha];
+            if ([alpha isKindOfClass:NSNumber.class] && std::isfinite([alpha doubleValue]))
+                s.candidateAlpha = [alpha doubleValue];
         }
+    }
+    uint32_t displayCount = 0;
+    CGDirectDisplayID display = 0;
+    if (CGGetDisplaysWithPoint(p,1,&display,&displayCount) == kCGErrorSuccess && displayCount == 1) {
+        s.display = display;
+        s.displayBounds = CGDisplayBounds(display);
+        s.publicDisplayShield = CGShieldingWindowID(display); // Does not capture/release a display.
     }
     s.nowUnixSeconds = NSDate.date.timeIntervalSince1970;
     return s;

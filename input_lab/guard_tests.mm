@@ -64,8 +64,30 @@ int main() { @autoreleasepool {
             catch (const std::runtime_error& e) {rejected = std::string(e.what()) == test.reason;}
             require(rejected && sent == 1, "rejection submitted input or returned wrong reason");
         }
+        // Exact public API ID identifies a display-capture shield; level/name do not.
+        Snapshot displayShield = base;
+        displayShield.hitWindow = 88; displayShield.hitLayer = CGShieldingWindowLevel();
+        displayShield.display = 1; displayShield.publicDisplayShield = 88;
+        require(std::string(candidateRole(displayShield))=="public_display_capture_shield","public shield not identified");
+        bool stillBlocked = false;
+        try {dispatchChecked(good,displayShield,[&](CGPoint){++sent;});}
+        catch (const std::runtime_error& e) {stillBlocked=std::string(e.what())=="selected point obscured";}
+        require(stillBlocked && sent==1,"diagnostic role accidentally permits input");
+        displayShield.hitPid = base.hitPid + 1;
+        bool foreignBlocked = false;
+        try {dispatchChecked(good,displayShield,[&](CGPoint){++sent;});}
+        catch (const std::runtime_error& e) {foreignBlocked=std::string(e.what())=="selected point obscured";}
+        require(foreignBlocked && sent==1,"public shield identity erased foreign-window protection");
+        displayShield.hitPid = base.hitPid;
+        displayShield.publicDisplayShield = 89;
+        require(std::string(candidateRole(displayShield))=="unclassified_window","same-level spoof called shield");
+        displayShield.publicDisplayShield = 0;
+        require(std::string(candidateRole(displayShield))=="unclassified_window","missing API shield ID guessed");
+        NSDictionary* missing = inspectionJSON(good,base);
+        require(missing[@"candidate_alpha"]==NSNull.null && missing[@"selected_layer"]==NSNull.null &&
+            ![missing[@"input_sent"] boolValue],"missing metadata fabricated or inspection sent input");
         std::cout << "{\"valid_fake_submission\":1,\"rejections\":" << cases.size()
-            << ",\"occlusion_cases\":3,\"rejected_fake_submissions\":0,\"UI_events_posted\":0}\n";
+            << ",\"occlusion_cases\":3,\"shield_diagnostic_cases\":5,\"rejected_fake_submissions\":0,\"UI_events_posted\":0}\n";
         return 0;
     } catch (const std::exception& e) {std::cerr << e.what() << '\n'; return 1;}
 }}

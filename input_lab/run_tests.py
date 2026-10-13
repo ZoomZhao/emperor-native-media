@@ -15,7 +15,10 @@ def main():
     parser.add_argument('--window', action='store_true', help='opt in to own AppKit window/input/capture test')
     parser.add_argument('--build-dir', type=pathlib.Path)
     parser.add_argument('--request', type=pathlib.Path, help='submit one existing-window click instead of running tests')
+    parser.add_argument('--inspect', action='store_true', help='with --request, read guard metadata without sending input')
     args = parser.parse_args()
+    if args.inspect and not args.request:
+        parser.error('--inspect requires --request')
     if args.window and args.request:
         parser.error('--window and --request are mutually exclusive')
     source = pathlib.Path(__file__).resolve().parent
@@ -32,7 +35,7 @@ def main():
     frameworks = ['AppKit', 'ApplicationServices']
     compile_source('cli.mm', build / 'scoped-click', frameworks)
     if args.request:
-        subprocess.run([str(build / 'scoped-click'), str(args.request.resolve())], check=True, timeout=10)
+        subprocess.run([str(build / 'scoped-click')] + (['--inspect'] if args.inspect else []) + [str(args.request.resolve())], check=True, timeout=10)
         return
     compile_source('guard_tests.mm', build / 'guard-tests', frameworks)
     result = subprocess.run([str(build / 'guard-tests')], check=True, capture_output=True, text=True, timeout=10)
