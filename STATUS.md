@@ -4,7 +4,7 @@
 
 | Metric | Current result |
 |---|---|
-| Original under Wine/GPTK | **Unmeasured**. Signed Whisky2.3.5 found; its runtime directory is empty and Emperor bottle contains metadata only. Also found unverified unsigned bundled Wine+native ddraw override; not launched |
+| Original under existing bundled Wine | **Runs to a named window: 1/1 approved launch**, 180s observation; normal close, exit0, PID gone. Frame capture timed out; menu/city/projection/playability **unmeasured**. Unsigned Wine+native ddraw override, source remains unverified |
 | SG3 indexes / native browser | **58/58** enumerated and opened in real GUI; first images **57/58**, one missing dependency. Legacy selection cap of 6 removed |
 | SG3 images decoded / CGImage created | **71,751/72,370 (99.14%)**, baseline 0/72,370 |
 | SG3 by uint16 type | 0:1,800/2,124; 1:1,434/1,435; 10:526/535; 12:408/420; 13:32/33; 30:4,114/4,114; 256:58,047/58,159; 257:2/2; 276:5,388/5,548 |
@@ -20,4 +20,4 @@ MAP baseline **168/168** was first-block acceptance as a hardcoded 128×128 prev
 
 Full silent playback is independent-branch evidence (170.007s,5,101 draws); integration smoke is 1.916s, not another full run. External FFmpeg8.0.1 is not bundled; the 8MiB frame limit excludes process memory/copies. Final c51dfb4 lifecycle review passed Release/UBSan9/0 per mode and did not replay the full movie or GUI. [Bink scope](docs/BINK.md).
 
-Next: remaining terrain bits and SG3 tile mapping, original projection, empire-map layout, the missing SG3 companion and original audio/A-V synchronization. Freeze CitySimulation/EMP1. Original-game playability, complete city restoration and hearing verification remain unmeasured.
+Next: remaining terrain bits and SG3 tile mapping, original projection, empire-map layout, the missing SG3 companion and original audio/A-V synchronization. Freeze CitySimulation/EMP1. Original-game menu/city/playability, original projection, complete city restoration and hearing verification remain unmeasured. One approved run started 05:58:58 UTC and requested normal close at 06:01:58 UTC; two existing saves retained size/mtime, no new save or save action. No screenshots were obtained; a named window is not menu or gameplay evidence.
