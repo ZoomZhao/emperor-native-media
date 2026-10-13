@@ -177,7 +177,14 @@ SG3DecodeResult decodeSG3Sprite(const SG3Archive& a,size_t index,const std::stri
             if(delta>=0 || int64_t(index)+delta<0)return result;
             index=size_t(int64_t(index)+delta);mirrored=!mirrored;
         }
-        const auto& s=a.sprites[index];auto path=companion(a,s,internal);
+        const auto& s=a.sprites[index];
+        // The public reader rejects zero dimensions/data as no image. Keep such
+        // logical IDs enumerable, but never fabricate transparent decoded pixels.
+        // Classify the exact empty shape before resolving pixel dependencies.
+        if(s.width==0 && s.height==0 && s.length==0) {
+            result.status=SG3DecodeStatus::EmptyRecord;result.mirrored=mirrored;return result;
+        }
+        auto path=companion(a,s,internal);
         if(path.empty()){result.status=SG3DecodeStatus::MissingDependency;return result;}
         result=pixels(s,path);result.mirrored=mirrored;
         if(result.image.valid() && mirrored)for(size_t y=0;y<result.image.height;++y) {

@@ -15,7 +15,8 @@ int main() {
     if(!root.configured()){std::cerr<<"Invalid EMPEROR_GAMEDATA_ROOT\n";return 2;}
     const auto start=std::chrono::steady_clock::now();
     size_t archives=0,parsedArchives=0,images=0,decoded=0,presentable=0,capacity=0,
-        mirrored=0,alpha=0,external=0,unsupported=0,invalid=0,missing=0,maps=0,mapPreviews=0,videos=0;
+        mirrored=0,alpha=0,external=0,unsupported=0,invalidRecord=0,invalidPayload=0,
+        empty=0,missing=0,maps=0,mapPreviews=0,videos=0;
     struct Counts {size_t decoded=0,total=0;};std::map<uint16_t,Counts> types;
     bool binki=false;
     try {
@@ -37,9 +38,11 @@ int main() {
                         ++decoded;++types[s.type].decoded;mirrored+=result.mirrored;alpha+=s.alphaLength!=0;external+=s.external!=0;
                         auto image=game_lab::createCGImageFromPremultipliedBGRA(result.image.width,result.image.height,result.image.pixelsBGRA);
                         if(image){++presentable;CGImageRelease(image);}
-                    }else if(result.status==game_lab::SG3DecodeStatus::Unsupported)++unsupported;
+                    }else if(result.status==game_lab::SG3DecodeStatus::EmptyRecord)++empty;
+                    else if(result.status==game_lab::SG3DecodeStatus::Unsupported)++unsupported;
                     else if(result.status==game_lab::SG3DecodeStatus::MissingDependency)++missing;
-                    else ++invalid;
+                    else if(result.status==game_lab::SG3DecodeStatus::InvalidRecord)++invalidRecord;
+                    else ++invalidPayload;
                 }
             }else if(extension==".map"){++maps;mapPreviews+=game_lab::loadCityMap(path).valid();}
             else if(extension==".bik") {
@@ -52,7 +55,9 @@ int main() {
       <<",\"in_use_logical_images\":"<<images<<",\"capacity_slots_not_denominator\":"<<capacity
       <<",\"decoded_images\":"<<decoded<<",\"cg_images_created\":"<<presentable
       <<",\"decoded_mirrors\":"<<mirrored<<",\"decoded_alpha_records\":"<<alpha<<",\"decoded_external_records\":"<<external
-      <<",\"unsupported\":"<<unsupported<<",\"invalid\":"<<invalid<<",\"missing_dependencies\":"<<missing<<",\"by_type\":{";
+      <<",\"unsupported\":"<<unsupported<<",\"empty_logical_records\":"<<empty
+      <<",\"nonempty_logical_records\":"<<images-empty<<",\"invalid_record\":"<<invalidRecord
+      <<",\"invalid_payload\":"<<invalidPayload<<",\"missing_dependencies\":"<<missing<<",\"by_type\":{";
     bool first=true;for(const auto& [type,c]:types){if(!first)std::cout<<',';first=false;
         std::cout<<'"'<<type<<"\":{\"decoded\":"<<c.decoded<<",\"total\":"<<c.total<<'}';}
     std::cout<<"},\"map_files\":"<<maps<<",\"map_preview_payloads\":"<<mapPreviews

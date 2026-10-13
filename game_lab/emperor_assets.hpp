@@ -106,7 +106,7 @@ DecodedWav loadWAV(const std::string& path);
 CityMap loadCityMap(const std::string& path);
 std::vector<std::string> loadEmperorText(const std::string& path);
 
-enum class SG3DecodeStatus { Decoded, Unsupported, InvalidRecord, MissingDependency, InvalidPayload };
+enum class SG3DecodeStatus { Decoded, Unsupported, InvalidRecord, MissingDependency, InvalidPayload, EmptyRecord };
 struct SG3DecodeResult {
     SG3DecodeStatus status = SG3DecodeStatus::InvalidRecord;
     DecodedImage image;

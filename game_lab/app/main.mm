@@ -1159,7 +1159,6 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _spriteImageView.image = nil;
     _spriteSlider.enabled = NO;
     _spriteInfoLabel.stringValue = @"资源不可读取或图素布局不受支持";
-    if (sel < 0 || sel >= 6) return;
     if (sel < 0 || static_cast<size_t>(sel) >= _sg3Packages.size()) return;
     const auto& relative = _sg3Packages[static_cast<size_t>(sel)];
     auto companion = std::filesystem::path(relative); companion.replace_extension(".555");
@@ -1192,7 +1191,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const auto& extracted = delivery.image;
     if (!presentPixels(_spriteImageView, extracted.width, extracted.height, extracted.pixelsBGRA)) {
         _spriteImageView.image = nil;
-        _spriteInfoLabel.stringValue = @"图像记录/载荷无效、依赖缺失或格式不受支持；未显示旧图像";
+        if (delivery.status == game_lab::SG3DecodeStatus::EmptyRecord)
+            _spriteInfoLabel.stringValue = @"空图像记录：没有像素可显示；不计入解码成功，未显示旧图像";
+        else if (delivery.status == game_lab::SG3DecodeStatus::MissingDependency)
+            _spriteInfoLabel.stringValue = @"像素文件依赖缺失；未显示旧图像";
+        else _spriteInfoLabel.stringValue = @"图像记录/载荷无效、格式不受支持或转换失败；未显示旧图像";
         return;
     }
     

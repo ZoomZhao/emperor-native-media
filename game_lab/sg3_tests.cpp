@@ -58,6 +58,15 @@ int main() {
         need(game_lab::decodeSG3Sprite(a,0,data.string()).image.pixelsBGRA[0]==0xffff0000,"external bitmap resolution and one-byte correction");
         save(idx,index(213,{s},"absent.bmp"));a=game_lab::loadSG3(idx.string());need(game_lab::decodeSG3Sprite(a,0,data.string()).status==game_lab::SG3DecodeStatus::MissingDependency,"missing file is explicit dependency failure");
         save(idx,index(213,{s},"../external.bmp"));a=game_lab::loadSG3(idx.string());need(game_lab::decodeSG3Sprite(a,0,data.string()).status==game_lab::SG3DecodeStatus::MissingDependency,"external traversal rejected");
+        game_lab::SG3Sprite empty;save(idx,index(213,{empty},"absent.bmp"));a=game_lab::loadSG3(idx.string());
+        auto blank=game_lab::decodeSG3Sprite(a,0,(root/"missing.555").string());
+        need(a.sprites.size()==1 && blank.status==game_lab::SG3DecodeStatus::EmptyRecord && !blank.image.valid(),"zero record stays enumerable and is never decoded or hidden by missing dependency");
+        auto emptyMirror=empty;emptyMirror.type=256;emptyMirror.mirrorOffset=-1;
+        save(idx,index(214,{empty,emptyMirror},"absent.bmp"));a=game_lab::loadSG3(idx.string());
+        blank=game_lab::decodeSG3Sprite(a,1,(root/"missing.555").string());
+        need(blank.status==game_lab::SG3DecodeStatus::EmptyRecord && blank.mirrored && blank.image.pixelsBGRA.empty(),"mirrored empty source remains empty without fallback pixels");
+        auto invalid=empty;invalid.length=2;save(idx,index(213,{invalid}));a=game_lab::loadSG3(idx.string());
+        need(game_lab::decodeSG3Sprite(a,0,data.string()).status==game_lab::SG3DecodeStatus::InvalidRecord,"positive payload with zero dimensions is still an invalid record");
         save(idx,index(215,{s}));need(game_lab::loadSG3(idx.string()).sprites.empty(),"unknown version rejected");
         auto cut=index(214,{s});cut.pop_back();save(idx,cut);need(game_lab::loadSG3(idx.string()).sprites.empty(),"incomplete record table rejected");
         std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"self_authored\":true,\"real_data\":false}\n";
