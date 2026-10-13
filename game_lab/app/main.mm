@@ -1246,16 +1246,20 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     
     _filteredTexts = [NSMutableArray array];
     
-    _textSearchField = [[NSSearchField alloc] initWithFrame:NSMakeRect(20, 675, 400, 30)];
+    _textSearchField = [[NSSearchField alloc] initWithFrame:NSMakeRect(20, _textView.bounds.size.height - 45, 400, 30)];
+    _textSearchField.autoresizingMask = NSViewMinYMargin;
     _textSearchField.placeholderString = @"搜索游戏文本（如：新建、建造、粮食、战役）";
     _textSearchField.target = self;
     _textSearchField.action = @selector(onTextSearch:);
     [_textView addSubview:_textSearchField];
     NSButton* reload = [NSButton buttonWithTitle:@"重新加载" target:self action:@selector(onReloadText:)];
-    reload.frame = NSMakeRect(440, 675, 110, 30);
+    reload.frame = NSMakeRect(440, _textView.bounds.size.height - 45, 110, 30);
+    reload.autoresizingMask = NSViewMinYMargin;
     [_textView addSubview:reload];
     
-    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(20, 20, 984, 645)];
+    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:
+        NSMakeRect(20, 20, _textView.bounds.size.width - 40, _textView.bounds.size.height - 75)];
+    scroll.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _textTableView = [[NSTableView alloc] initWithFrame:scroll.bounds];
     NSTableColumn* col = [[NSTableColumn alloc] initWithIdentifier:@"TextLine"];
     col.title = @"文本资源待载入";

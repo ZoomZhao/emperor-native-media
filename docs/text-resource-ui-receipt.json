@@ -1,0 +1,233 @@
+{
+  "baseline_head": "6785c1214e6e6b724781471b298eaff176c975b7",
+  "candidate_main_sha256": "b18f9aa9fc427bc345bf408efa656d8dfb8be7bd31f0060a20bb9ba8da4b7044",
+  "ui": {
+    "session": {
+      "owned_instance": {
+        "binary_sha256": "6c1a77858521489fde48881a15c37f1ba95684245a91fb5801cd52f02c052d02",
+        "bundle": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/text-resource-feedback-20261012/validation/app-release-g811nmy7/build/EmperorApp.app",
+        "pid": 41959,
+        "process_identity": {
+          "executable": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/text-resource-feedback-20261012/validation/app-release-g811nmy7/build/EmperorApp.app/Contents/MacOS/EmperorApp",
+          "start_microseconds": 721705,
+          "start_seconds": 1791849273,
+          "uid": 501
+        },
+        "resources": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/text-resource-ui-20261012/session/resources"
+      },
+      "initial_missing_zero_rows": true,
+      "cases": {
+        "passed": true,
+        "cases": [
+          {
+            "stage": "corruptFailure",
+            "visible_rows": [],
+            "feedback_verified": "GB18030 解码或转码失败",
+            "pid": 41959,
+            "muted": true
+          },
+          {
+            "stage": "repairedValid",
+            "visible_rows": [
+              "   1: UI-repaired-new",
+              "   2: UI-repaired-last"
+            ],
+            "feedback_verified": "共 2 条",
+            "pid": 41959,
+            "muted": true
+          },
+          {
+            "stage": "repeatedReload",
+            "visible_rows": [
+              "   1: UI-repaired-new",
+              "   2: UI-repaired-last"
+            ],
+            "feedback_verified": "共 2 条",
+            "pid": 41959,
+            "muted": true
+          },
+          {
+            "stage": "missingAfterValid",
+            "visible_rows": [],
+            "feedback_verified": "资源不可读取或超出大小限制",
+            "pid": 41959,
+            "muted": true
+          },
+          {
+            "stage": "finalValid",
+            "visible_rows": [
+              "   1: UI-final-only"
+            ],
+            "feedback_verified": "共 1 条",
+            "pid": 41959,
+            "muted": true
+          }
+        ],
+        "consecutive_reload_clicks": 5,
+        "self_authored_text_only": true
+      },
+      "actions_sha256": "642702eecb982a9b62e44cd915ca168641bfd1af28a519a557a18ee4db3863bf",
+      "screenshot_sha256": {
+        "initialMissing.png": "b361e54cb807a6e7b544cf9ecc6eb12670219f9db307085a6810ffd98aab084d",
+        "corruptFailure.png": "c17c28dfe93b33c44ee171018b799d169e102c5d2e713808c93637f50187ea66",
+        "finalValid.png": "f8a51587cbe2f7718b44ec9ce7b8a2d8bd26d94b5cc2a90471d93311e54e5258"
+      },
+      "normal_exit_confirmed": true
+    },
+    "fixed-session": {
+      "owned_instance": {
+        "binary_sha256": "f6fefb5ef056efd1f7ed84c1efa3775bbb26ad3cc6380a0f2cd74f2580be282f",
+        "bundle": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/text-resource-ui-20261012/fixed-build/app-release-aer0eu8n/build/EmperorApp.app",
+        "pid": 42645,
+        "process_identity": {
+          "executable": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/text-resource-ui-20261012/fixed-build/app-release-aer0eu8n/build/EmperorApp.app/Contents/MacOS/EmperorApp",
+          "start_microseconds": 193473,
+          "start_seconds": 1791849525,
+          "uid": 501
+        },
+        "resources": "/Users/zoomzhao/Documents/Codex/2026-10-08/task-2/text-resource-ui-20261012/fixed-session/resources"
+      },
+      "initial_missing_zero_rows": true,
+      "cases": {
+        "passed": true,
+        "cases": [
+          {
+            "stage": "corruptFailure",
+            "visible_rows": [],
+            "feedback_verified": "GB18030 解码或转码失败",
+            "pid": 42645,
+            "muted": true
+          },
+          {
+            "stage": "repairedValid",
+            "visible_rows": [
+              "   1: UI-repaired-new",
+              "   2: UI-repaired-last"
+            ],
+            "feedback_verified": "共 2 条",
+            "pid": 42645,
+            "muted": true
+          },
+          {
+            "stage": "repeatedReload",
+            "visible_rows": [
+              "   1: UI-repaired-new",
+              "   2: UI-repaired-last"
+            ],
+            "feedback_verified": "共 2 条",
+            "pid": 42645,
+            "muted": true
+          },
+          {
+            "stage": "missingAfterValid",
+            "visible_rows": [],
+            "feedback_verified": "资源不可读取或超出大小限制",
+            "pid": 42645,
+            "muted": true
+          },
+          {
+            "stage": "finalValid",
+            "visible_rows": [
+              "   1: UI-final-only"
+            ],
+            "feedback_verified": "共 1 条",
+            "pid": 42645,
+            "muted": true
+          }
+        ],
+        "consecutive_reload_clicks": 5,
+        "self_authored_text_only": true
+      },
+      "actions_sha256": "3cd8ad0aba5ba91a0705486f438dbdae1a36fa34c95b192d6523c7f3d685fa43",
+      "screenshot_sha256": {
+        "initialMissing.png": "e37004fe374541c626b4345b90a4aac138a8bcedeee9a7c7df20dc6f664c0ae5",
+        "corruptFailure.png": "b1cf3d175021b3e01e92d6e3d3424b68f65c0730f9dfd6bab6e0b10cff4271f1",
+        "finalValid.png": "7cfc45771de27ec8d5c422c6e3369d6130a9952c21919fa2616cc8c91c47855e"
+      },
+      "normal_exit_confirmed": true
+    }
+  },
+  "geometry": {
+    "session": {
+      "nav_bottom": 99,
+      "reload_top": 88,
+      "gap": -11
+    },
+    "fixed-session": {
+      "nav_bottom": 99,
+      "reload_top": 129,
+      "gap": 30
+    }
+  },
+  "observed_window_scope": "1024x807 system-fitted window; native AX controls; own-window screenshots",
+  "real_UI_cases_passed": true,
+  "consecutive_AX_reload_presses": 5,
+  "all_registered_App_instances_normally_exited": true,
+  "permission_changes_or_requests": false,
+  "user_resource_files_modified": false,
+  "default_mute_kept": true,
+  "GameData_used": false,
+  "blocked_operation_retried": false,
+  "consumer_inventory": [
+    {
+      "result": "JPEG/BGRA/raw555",
+      "consumer": "AppMedia jpeg/raw555 -> menu/sprite -> shared CoreGraphics presenter",
+      "connected": true
+    },
+    {
+      "result": "SG3 raw sprite records",
+      "consumer": "AppMedia sg3/sprite -> sprite package/slider",
+      "connected": true,
+      "scope": "only supported exact raw layouts"
+    },
+    {
+      "result": "PCM16 WAV validation",
+      "consumer": "AppMedia readAudio/playSfx -> native factory/buttons",
+      "connected": true,
+      "scope": "no audio device tested in this UI run"
+    },
+    {
+      "result": "GB18030 text result",
+      "consumer": "textWithStatus -> shared message -> actual text table/reload",
+      "connected": true
+    },
+    {
+      "result": "map preview tile array",
+      "consumer": "cityMap -> loadAndRenderMap -> self-authored CitySimulation loadFromMap",
+      "connected": true,
+      "scope": "not original save-state restoration"
+    },
+    {
+      "result": "MovieReader/frame/controller",
+      "consumer": "MovieSession -> existing preview controls/presenter",
+      "connected": true,
+      "scope": "not Bink original ABI"
+    },
+    {
+      "result": "strict zlib FrameResult / OwnedFramedReader",
+      "consumer": null,
+      "connected": false,
+      "evidence": "App explicit source snapshot/build list has no file_io; successful App build does not require file_io tree"
+    },
+    {
+      "result": "finite City19 archive parsing results",
+      "consumer": null,
+      "connected": false,
+      "evidence": "No file_io dependency in App source/compiled list; city load uses authored game-state decoder",
+      "scope": "no original source or 0736 provenance re-reviewed"
+    }
+  ],
+  "readonly_audit_files_sha256": {
+    "game_lab/emperor_assets.hpp": "b1dd57f54d063d95c7b5f3bfcddeff738b0fc21d737c54aa2ff47215eda8a405",
+    "game_lab/app_media.cpp": "29e5793ba638496869670b245b5b103f95dbdc50b136429794933258a3d26c93",
+    "game_lab/movie_session.mm": "82868dc7a0d38eb57bf9e0d9c1b6b79808df770d177055677ba6dfc0d5b78f36",
+    "game_lab/app/main.mm": "48aaac2e29f78eaa206bdbca7dc62c47a95a9b7bc103168e979013c66d8afc0d",
+    "game_lab/app/build.sh": "299c7530b8b22a14fae315fa4dc3da63e5882e13e04db4cd0376b7ccaa336252",
+    "game_lab/app/build_provenance.py": "c7bb83e4d489fc6234d45d13bc28386d0795a4cbfb20c8f17223444d4e9c8bd6",
+    "game_lab/city_game_state.hpp": "5975a106f3d3904ff81e01bcc6c60fd32925c22d21168ed8fa89769a00210de0",
+    "file_io/include/framed_reader.hpp": "d3d21e07110f57a19cd37d7e1fa61a922203a4c2ccb7c4988f60cb2e543abbd9",
+    "file_io/include/owned_reader.hpp": "c7d3f5ada30ddddd748c429f61f7bb4525504bccf0cc6d016325b8e60a13e937",
+    "file_io/src/framed_reader.cpp": "648bb362ff03f96afa0596cc5c84e628b1b666d78325d41099a70181eab5d68b"
+  },
+  "next_loading_gap": "App candidate-import consumer for existing bounded frame/archive results, preserving explicit qualified profile, error/offset/budget and transactional handoff; original state adapter remains incomplete"
+}
