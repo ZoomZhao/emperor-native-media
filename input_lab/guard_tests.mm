@@ -12,14 +12,14 @@ int main() { @autoreleasepool {
             247.0 / 448.0, 1100};
         Snapshot base{owner, 501, true, true, false, 123, 123, 123, 77, 77,
             good.capturedFrame, 1000};
-        base.hitFrame=good.capturedFrame;
+        base.hitFrame=good.capturedFrame; base.candidateOwnerPid=owner.pid;
         unsigned sent = 0;
         dispatchChecked(good, base, [&](CGPoint p) {
             require(p.x == 530 && p.y == 489, "point conversion mismatch"); ++sent;
         });
         require(sent == 1, "valid control not submitted");
-        require(!occludesPoint(CGRectMake(525,484,28,40),1,
-            CGWindowLevelForKey(kCGCursorWindowLevelKey),CGPointMake(530,489)),"cursor falsely blocks target");
+        require(occludesPoint(CGRectMake(525,484,28,40),1,
+            CGWindowLevelForKey(kCGCursorWindowLevelKey),CGPointMake(530,489)),"legal app cursor-level window skipped");
         require(occludesPoint(good.capturedFrame,1,NSFloatingWindowLevel,CGPointMake(530,489)),
             "floating cover ignored");
         require(!occludesPoint(good.capturedFrame,0,NSFloatingWindowLevel,CGPointMake(530,489)),
@@ -64,6 +64,22 @@ int main() { @autoreleasepool {
             catch (const std::runtime_error& e) {rejected = std::string(e.what()) == test.reason;}
             require(rejected && sent == 1, "rejection submitted input or returned wrong reason");
         }
+        const int cursorLevel=CGWindowLevelForKey(kCGCursorWindowLevelKey);
+        require(candidateAtPoint(good.capturedFrame,1,cursorLevel,cursorLevel,CGPointMake(530,489),false),"legal cursor-level app excluded");
+        Identity server{163,88,42,1234,"/System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer"};
+        require(systemCursorWitness(server,501,cursorLevel,CGRectMake(525,484,28,40),CGPointMake(530,489)),"system cursor not recognized");
+        require(!systemCursorWitness(owner,501,cursorLevel,CGRectMake(525,484,28,40),CGPointMake(530,489)),"app at cursor level exempted");
+        require(!systemCursorWitness(server,501,cursorLevel,good.capturedFrame,CGPointMake(530,489)),"large system overlay exempted");
+        Snapshot foreign=base; foreign.hitWindow=88; foreign.hitLayer=cursorLevel+1; foreign.candidateOwnerPid=999;
+        require(candidateAtPoint(good.capturedFrame,1,cursorLevel+1,cursorLevel,CGPointMake(530,489),false),"foreign front cover skipped");
+        bool blocked=false; try {dispatchChecked(good,foreign,[&](CGPoint){++sent;});}
+        catch(const std::runtime_error& e){blocked=std::string(e.what())=="selected point obscured";}
+        require(blocked&&sent==1,"foreign CG cover with own AX hit allowed");
+        foreign.candidateOwnerPid=owner.pid; blocked=false;
+        try {dispatchChecked(good,foreign,[&](CGPoint){++sent;});}
+        catch(const std::runtime_error& e){blocked=std::string(e.what())=="selected point obscured";}
+        require(blocked&&sent==1,"same-owner high cover allowed");
+        require(!candidateAtPoint(good.capturedFrame,1,cursorLevel-2,cursorLevel,CGPointMake(530,489),false),"lower back window occludes high app");
         // Exact public API ID identifies a display-capture shield; level/name do not.
         Snapshot displayShield = base;
         displayShield.hitWindow = 88; displayShield.hitLayer = CGShieldingWindowLevel();
@@ -87,7 +103,7 @@ int main() { @autoreleasepool {
         require(missing[@"candidate_alpha"]==NSNull.null && missing[@"selected_layer"]==NSNull.null &&
             ![missing[@"input_sent"] boolValue],"missing metadata fabricated or inspection sent input");
         std::cout << "{\"valid_fake_submission\":1,\"rejections\":" << cases.size()
-            << ",\"occlusion_cases\":3,\"shield_diagnostic_cases\":5,\"rejected_fake_submissions\":0,\"UI_events_posted\":0}\n";
+            << ",\"occlusion_cases\":3,\"layer_regression_cases\":7,\"shield_diagnostic_cases\":5,\"rejected_fake_submissions\":0,\"UI_events_posted\":0}\n";
         return 0;
     } catch (const std::exception& e) {std::cerr << e.what() << '\n'; return 1;}
 }}

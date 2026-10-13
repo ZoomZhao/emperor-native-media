@@ -42,12 +42,13 @@ struct Snapshot {
     double nowUnixSeconds = 0;
     int hitLayer = 0;
     CGRect hitFrame{};
-    // Diagnostics only: none of these fields grants dispatch permission.
+    // Layer metadata determines candidate ordering; shield role is diagnostic only.
     std::optional<int> selectedLayer = std::nullopt;
     std::optional<double> selectedAlpha = std::nullopt, candidateAlpha = std::nullopt;
     CGRect candidateBounds{}, displayBounds{};
     CGDirectDisplayID display = 0;
     CGWindowID publicDisplayShield = 0;
+    pid_t candidateOwnerPid = 0;
 };
 inline const char* candidateRole(const Snapshot& s) {
     return s.display != 0 && s.publicDisplayShield != 0 && s.hitWindow == s.publicDisplayShield
@@ -63,7 +64,7 @@ inline NSDictionary* inspectionJSON(const Request& r, const Snapshot& s) {
         @"selected_layer":s.selectedLayer?(id)@(*s.selectedLayer):NSNull.null,
         @"selected_alpha":s.selectedAlpha?(id)@(*s.selectedAlpha):NSNull.null,
         @"AX_owner_pid":@(s.hitPid), @"AX_window_frame":frameJSON(s.hitFrame),
-        @"candidate_window_id":@(s.hitWindow), @"candidate_layer":@(s.hitLayer),
+        @"candidate_window_id":@(s.hitWindow), @"candidate_owner_pid":@(s.candidateOwnerPid), @"candidate_layer":@(s.hitLayer),
         @"candidate_bounds":frameJSON(s.candidateBounds),
         @"candidate_alpha":s.candidateAlpha?(id)@(*s.candidateAlpha):NSNull.null,
         @"candidate_role":[NSString stringWithUTF8String:candidateRole(s)],
@@ -80,11 +81,17 @@ inline bool validFrame(CGRect r) {
         r.size.width > 0 && r.size.height > 0 &&
         r.size.width <= 4096 && r.size.height <= 4096;
 }
-inline bool occludesPoint(CGRect bounds, double alpha, int layer, CGPoint point) {
-    // The cursor is itself a WindowServer window under its pointer. It displays
-    // the pointer, rather than receiving the click. Do not ignore other overlays.
-    return alpha > 0 && layer != CGWindowLevelForKey(kCGCursorWindowLevelKey) &&
-        CGRectContainsPoint(bounds, point);
+inline bool occludesPoint(CGRect bounds, double alpha, int /*layer*/, CGPoint point) {
+    return alpha > 0 && CGRectContainsPoint(bounds,point);
+}
+inline bool systemCursorWitness(const Identity& owner, uid_t caller, int layer, CGRect bounds, CGPoint cursor) {
+    const bool systemPath = owner.executable == "/System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer" ||
+        owner.executable == "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer";
+    return systemPath && owner.uid != caller && layer == CGWindowLevelForKey(kCGCursorWindowLevelKey) &&
+        validFrame(bounds) && bounds.size.width <= 128 && bounds.size.height <= 128 && CGRectContainsPoint(bounds,cursor);
+}
+inline bool candidateAtPoint(CGRect bounds,double alpha,int layer,int selectedLayer,CGPoint point,bool verifiedCursor) {
+    return !verifiedCursor && layer >= selectedLayer && occludesPoint(bounds,alpha,layer,point);
 }
 inline CGPoint target(const Request& r) {
     require(r.owner.pid > 0 && r.owner.birthSeconds > 0 && r.owner.birthMicros < 1000000 &&
@@ -107,7 +114,7 @@ inline CGPoint validate(const Request& r, const Snapshot& s) {
     require(s.window == r.window && s.windowPid == r.owner.pid, "selected window absent or foreign");
     require(validFrame(s.frame) && CGRectEqualToRect(r.capturedFrame, s.frame), "captured window moved or resized");
     require(s.active && s.frontmostPid == r.owner.pid, "owned app not frontmost");
-    require(s.hitPid == r.owner.pid && s.hitWindow == r.window &&
+    require(s.hitPid == r.owner.pid && s.candidateOwnerPid == r.owner.pid && s.hitWindow == r.window &&
         CGRectEqualToRect(s.hitFrame,r.capturedFrame), "selected point obscured");
     require(!s.leftButtonDown, "left button already held");
     const double remaining = r.deadlineUnixSeconds - s.nowUnixSeconds;
@@ -137,8 +144,8 @@ inline Snapshot currentSnapshot(const Request& r) {
     s.active = app && app.active;
     s.frontmostPid = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
     s.leftButtonDown = CGEventSourceButtonState(kCGEventSourceStateCombinedSessionState, kCGMouseButtonLeft);
-    // Rectangle metadata alone includes click-through Dock/backdrop windows.
-    // Public AX hit-testing identifies the actual element at the target point.
+    // AX hit-testing supplies a separate owner/frame witness. Rectangle metadata
+    // may include transparent backdrops; unresolved front candidates still block.
     auto system=AXUIElementCreateSystemWide(); AXUIElementRef hit=nullptr;
     AXError hitError=AXUIElementCopyElementAtPosition(system,p.x,p.y,&hit); CFRelease(system);
     if (hitError==kAXErrorSuccess && hit) {
@@ -167,33 +174,39 @@ inline Snapshot currentSnapshot(const Request& r) {
     NSArray* windows = CFBridgingRelease(CGWindowListCopyWindowInfo(
         kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID));
     require(windows != nil, "window metadata unavailable");
-    bool hitFound = false;
+    // Resolve the selected layer first; then examine every front-layer owner.
+    for (NSDictionary* row in windows) {
+        if ([row[(__bridge NSString*)kCGWindowNumber] unsignedIntValue] != r.window) continue;
+        require(s.window == 0,"ambiguous selected window");
+        require(CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)row[(__bridge NSString*)kCGWindowBounds],&s.frame),"selected bounds unavailable");
+        s.window=r.window; s.windowPid=[row[(__bridge NSString*)kCGWindowOwnerPID] intValue];
+        NSNumber* level=row[(__bridge NSString*)kCGWindowLayer];
+        NSNumber* alpha=row[(__bridge NSString*)kCGWindowAlpha];
+        if ([level isKindOfClass:NSNumber.class]) s.selectedLayer=[level intValue];
+        if ([alpha isKindOfClass:NSNumber.class] && std::isfinite([alpha doubleValue])) s.selectedAlpha=[alpha doubleValue];
+    }
+    require(s.selectedLayer.has_value(),"selected layer unavailable");
+    CGEventRef cursorEvent=CGEventCreate(nullptr);
+    CGPoint cursorPoint=cursorEvent?CGEventGetLocation(cursorEvent):CGPointMake(NAN,NAN);
+    if (cursorEvent) CFRelease(cursorEvent);
     for (NSDictionary* row in windows) {
         CGRect bounds{};
-        require(CGRectMakeWithDictionaryRepresentation(
-            (__bridge CFDictionaryRef)row[(__bridge NSString*)kCGWindowBounds], &bounds), "window bounds unavailable");
-        CGWindowID id = [row[(__bridge NSString*)kCGWindowNumber] unsignedIntValue];
-        pid_t pid = [row[(__bridge NSString*)kCGWindowOwnerPID] intValue];
-        if (id == r.window) {
-            require(s.window == 0, "ambiguous selected window");
-            s.window = id; s.windowPid = pid; s.frame = bounds;
-            NSNumber* level = row[(__bridge NSString*)kCGWindowLayer];
-            NSNumber* alpha = row[(__bridge NSString*)kCGWindowAlpha];
-            if ([level isKindOfClass:NSNumber.class]) s.selectedLayer = [level intValue];
-            if ([alpha isKindOfClass:NSNumber.class] && std::isfinite([alpha doubleValue]))
-                s.selectedAlpha = [alpha doubleValue];
+        require(CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)row[(__bridge NSString*)kCGWindowBounds],&bounds),"window bounds unavailable");
+        pid_t ownerPid=[row[(__bridge NSString*)kCGWindowOwnerPID] intValue];
+        NSNumber* level=row[(__bridge NSString*)kCGWindowLayer];
+        require([level isKindOfClass:NSNumber.class],"window layer unavailable");
+        int layer=[level intValue];
+        NSNumber* alpha=row[(__bridge NSString*)kCGWindowAlpha];
+        require([alpha isKindOfClass:NSNumber.class] && std::isfinite([alpha doubleValue]),"window alpha unavailable");
+        bool cursor=false;
+        if (ownerPid!=r.owner.pid && layer==CGWindowLevelForKey(kCGCursorWindowLevelKey)) {
+            try {cursor=systemCursorWitness(processIdentity(ownerPid),getuid(),layer,bounds,cursorPoint);}
+            catch (const std::exception&) {cursor=false;} // Unknown identity never grants an exception.
         }
-        // Include all layers of the AX-hit application; foreign AX hits fail
-        // validate too. A same-PID floating peer must not be silently redirected.
-        if (!hitFound && pid==s.hitPid && occludesPoint(bounds, [row[(__bridge NSString*)kCGWindowAlpha] doubleValue],
-            [row[(__bridge NSString*)kCGWindowLayer] intValue], p)) {
-            s.hitPid = pid; s.hitWindow = id; hitFound = true;
-            s.hitLayer = [row[(__bridge NSString*)kCGWindowLayer] intValue];
-            s.candidateBounds = bounds;
-            NSNumber* alpha = row[(__bridge NSString*)kCGWindowAlpha];
-            if ([alpha isKindOfClass:NSNumber.class] && std::isfinite([alpha doubleValue]))
-                s.candidateAlpha = [alpha doubleValue];
-        }
+        if (!candidateAtPoint(bounds,[alpha doubleValue],layer,*s.selectedLayer,p,cursor)) continue;
+        s.hitWindow=[row[(__bridge NSString*)kCGWindowNumber] unsignedIntValue];
+        s.candidateOwnerPid=ownerPid; s.hitLayer=layer; s.candidateBounds=bounds; s.candidateAlpha=[alpha doubleValue];
+        break;
     }
     uint32_t displayCount = 0;
     CGDirectDisplayID display = 0;

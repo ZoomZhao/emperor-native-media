@@ -23,6 +23,7 @@ static void emit(NSDictionary* value) {
         backing:NSBackingStoreBuffered defer:NO];
     self.window.title = @"Codex Authored Input Fixture";
     self.window.releasedWhenClosed = NO;
+    self.window.level = CGWindowLevelForKey(kCGCursorWindowLevelKey);
     NSButton* button = [NSButton buttonWithTitle:@"Scoped click test" target:self action:@selector(clicked:)];
     button.frame = NSMakeRect(180,160,260,80); button.accessibilityIdentifier = @"probe-button";
     [self.window.contentView addSubview:button]; [self.window makeKeyAndOrderFront:nil];
@@ -57,7 +58,7 @@ static void emit(NSDictionary* value) {
         self.overlay = [[NSWindow alloc] initWithContentRect:self.window.frame
             styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:NO];
         self.overlay.releasedWhenClosed = NO;
-        self.overlay.level = NSFloatingWindowLevel;
+        self.overlay.level = self.window.level+1;
         [self.overlay orderFront:nil];
         emit(@{@"kind":@"cover",@"window_number":@(self.overlay.windowNumber)});
     }
