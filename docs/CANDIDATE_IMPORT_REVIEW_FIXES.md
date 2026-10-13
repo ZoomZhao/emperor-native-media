@@ -1,5 +1,11 @@
 # 候选导入 NoMemory 与文件名摘要修复
 
+## de96独立复核：两项原问题关闭
+
+独立固定de96f270152b165cf6bc55afb76b04fcaaa7244b，原7组与补充3组两模式分别7/0、3/0，作者102项两模式也独立复跑通过；P2/P3均可关闭。独审补充实际路径修复/重试、非法字节显示、Frame之后NoMemory等终止状态的失败原子性。旧runner的8298字段是历史值，实际消费者SHA核对到de96。
+
+未独立重跑GUI、App构建或真实存档；下文作者记录与首轮“待复核”按其时点保留。本轮只读核对交付，没有新增测试执行。[独审结论及哈希](candidate-import-independent-closure.json)；完整报告位于同条收据指定目录。
+
 基线 `8298d31560cb6310b7a6de2c0b07051b665bf934`。独审报告位于 `city-validation/candidate-import-8298d31-review/README.zh-CN.md`，确认P2合法NoMemory误报为DecodeFailure、P3文件名换行可伪造摘要行。本次仅修复控制器状态映射和显示字段，不修改提供者、解析器、profile、预算或城市绑定。
 
 ## 修复

@@ -1,0 +1,23 @@
+{
+  "reviewed_commit": "de96f270152b165cf6bc55afb76b04fcaaa7244b",
+  "P2_NoMemory_classification_closed": true,
+  "P3_filename_report_line_forgery_closed": true,
+  "independent_original_groups_per_mode": "7/0",
+  "independent_supplemental_groups_per_mode": "3/0",
+  "author_checks_independently_replayed_per_mode": 102,
+  "counts_are_distinct": true,
+  "GUI_independently_replayed": false,
+  "real_save_independently_used": false,
+  "source_attribution_matches_current_consumer": true,
+  "checked_review_files_sha256": {
+    "README.zh-CN.md": "d6a1b4227f50def37025f830464f2a172a2ac0c5f3f56a3db266d7d074411378",
+    "findings.json": "08fdb9a679a7d988fa8e6b08ffe3d8816e4c30b0e3176273dbb305910f14e43d",
+    "original-seven-replay-attribution.json": "d2cc274bad26b327b67e95f3c60c849e3d00bc0c518f553673f38e8d1ecdde3a",
+    "original-seven-replay/results.json": "3454a4e95f79dbe121f2779660fdbba08dc1f3456d2de321b224cbd9b90e9bbd",
+    "supplemental-only-final-results/results.json": "35fe7fa7daa489bb0e9df382c3fa1ef945170f9e880653185cef96d91257adfe",
+    "author-102-replays/results.json": "3a9c8c00a2e5bd3fe09a2b1b60e55e1a61c30c0b566bcb0a3f7b731e76afcb5c"
+  },
+  "review_directory": "/Users/zoomzhao/Documents/Codex/2026-10-11/task/city-validation/candidate-import-fixes-de96f27-review",
+  "this_documentation_turn_executed_tests_or_GUI": false,
+  "blocked_operation_retried": false
+}
