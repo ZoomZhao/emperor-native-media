@@ -18,14 +18,14 @@ DATA = [
     'runtime_core/tests/state_codec_tests.py', 'runtime_core/run_boundaries.sh',
 ]
 MEDIA = [
-    'game_lab/pure_boundary_tests.mm', 'game_lab/emperor_assets.mm', 'game_lab/emperor_assets.hpp',
+    'game_lab/pure_boundary_tests.mm', 'game_lab/sg3.cpp', 'game_lab/emperor_assets.mm', 'game_lab/emperor_assets.hpp',
     'game_lab/asset_bytes.hpp', 'game_lab/asset_limits.hpp', 'game_lab/asset_pixels.cpp',
     'game_lab/wav_pcm.cpp', 'game_lab/resource_root.cpp', 'game_lab/resource_root.hpp',
     'game_lab/audio_policy.hpp', 'surface_lab/surface.cpp', 'surface_lab/surface.hpp',
     'game_lab/run_boundaries.sh',
 ]
 APP = [
-    'LICENSE', 'docs/FIRST_PLAY.md', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
     'game_lab/city_game_state.hpp', 'game_lab/app/city_scenario.hpp', 'game_lab/app/city_scenario_checkpoint.hpp',
     'game_lab/app/city_warehouse_training.hpp', 'game_lab/app/city_warehouse_transfer.hpp', 'game_lab/app/city_warehouse_routes.hpp',
     'game_lab/app/main.mm', 'game_lab/app/city_goal_feedback.hpp', 'game_lab/app/city_goal_feedback_adapter.hpp',
@@ -48,16 +48,13 @@ APP = [
     'media_demo/device_monitor.hpp',
     'game_lab/run_app_integration.sh',
     'game_lab/candidate_import.hpp',
-    'game_lab/candidate_import.cpp',
+    'game_lab/candidate_import.cpp', 'game_lab/sg3.cpp',
     'file_io/include/strict_zlib.h',
     'file_io/include/framed_reader.hpp',
     'file_io/include/owned_reader.hpp',
     'file_io/include/city19_goal_archive.hpp',
     'file_io/src/strict_zlib.cpp',
     'file_io/src/framed_reader.cpp',
-    'docs/original-file-outer-profile.json',
-    'docs/original-profile-owned-readiness.json',
-    'file_io/tests/original_profile_review_gate.json',
 ]
 CITY = ['game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
         'game_lab/city_simulation_tests.cpp', 'game_lab/emperor_assets.hpp',
@@ -74,7 +71,7 @@ WAREHOUSE_TRANSFER = [name for name in WAREHOUSE_TRAINING_STATE if name != 'game
 WAREHOUSE_ROUTES = [name for name in WAREHOUSE_TRANSFER if name != 'game_lab/warehouse_transfer_tests.cpp'] + ['game_lab/warehouse_route_tests.cpp']
 VIEWPORT = ['game_lab/map_viewport.hpp','game_lab/map_viewport_tests.cpp']
 LAUNCH = ['game_lab/app_launch.hpp','game_lab/resource_root.hpp','game_lab/resource_root.cpp','game_lab/app_launch_tests.cpp']
-CANDIDATE_IMPORT = ['game_lab/candidate_import.hpp', 'game_lab/candidate_import.cpp', 'file_io/include/strict_zlib.h', 'file_io/include/framed_reader.hpp', 'file_io/include/owned_reader.hpp', 'file_io/include/city19_goal_archive.hpp', 'file_io/src/strict_zlib.cpp', 'file_io/src/framed_reader.cpp', 'docs/original-file-outer-profile.json', 'docs/original-profile-owned-readiness.json', 'file_io/tests/original_profile_review_gate.json', 'game_lab/candidate_import_tests.cpp', 'game_lab/candidate_import_allocation_test_hooks.cpp']
+CANDIDATE_IMPORT = ['game_lab/candidate_import.hpp', 'game_lab/candidate_import.cpp', 'game_lab/sg3.cpp', 'file_io/include/strict_zlib.h', 'file_io/include/framed_reader.hpp', 'file_io/include/owned_reader.hpp', 'file_io/include/city19_goal_archive.hpp', 'file_io/src/strict_zlib.cpp', 'file_io/src/framed_reader.cpp', 'game_lab/candidate_import_tests.cpp', 'game_lab/candidate_import_allocation_test_hooks.cpp']
 TEXT_FEEDBACK = [name for name in APP if name != 'game_lab/app_media_integration_tests.mm'] + [
     'game_lab/text_load_feedback_tests.mm']
 IMAGE_CONVERSION = ['game_lab/asset_limits.hpp', 'game_lab/cg_image_conversion.hpp',
@@ -227,7 +224,7 @@ def run(suite, mode, output):
         elif suite == 'candidate-import':
             command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
                                      *flags, snapshot / 'game_lab/candidate_import_tests.cpp',
-                                     snapshot / 'game_lab/candidate_import.cpp', snapshot / 'game_lab/candidate_import_allocation_test_hooks.cpp',
+                                     snapshot / 'game_lab/candidate_import.cpp', 'game_lab/sg3.cpp', snapshot / 'game_lab/candidate_import_allocation_test_hooks.cpp',
                                      snapshot / 'file_io/src/strict_zlib.cpp', snapshot / 'file_io/src/framed_reader.cpp',
                                      '-I', snapshot / 'file_io/include', '-lz', '-o', report / 'candidate-tests'])
             binaries = {'candidate-tests': sha(report / 'candidate-tests')}
@@ -264,7 +261,7 @@ def run(suite, mode, output):
             command('tlv-test', ['/usr/bin/python3', '-I', '-B', snapshot / 'runtime_core/tests/state_codec_tests.py'])
             results = {'data': read(report / 'data-test.stdout'), 'tlv': read(report / 'tlv-test.stdout')}
         elif suite in ('media', 'integration', 'text-feedback', 'movie-async', 'movie-termination'):
-            compiled = ['game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
+            compiled = ['game_lab/sg3.cpp', 'game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
                         'game_lab/resource_root.cpp', 'surface_lab/surface.cpp']
             extra_frameworks = []
             if suite == 'media':

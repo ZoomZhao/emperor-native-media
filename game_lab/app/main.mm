@@ -199,6 +199,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTextField* _spriteInfoLabel;
     NSImageView* _spriteImageView;
     game_lab::SG3Archive _currentSG3;
+    std::vector<std::string> _sg3Packages;
     std::string _current555Path;
     
     // Music tracks
@@ -320,7 +321,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self setupTextView];
     [self setupMovieView];
     [self setupCandidateView];
-    [self showTab:1];
+    [self showTab:2];
     
     // Start the self-authored city tick timer
     _simTimer = [NSTimer scheduledTimerWithTimeInterval:0.25 target:self selector:@selector(onSimulationStep:) userInfo:nil repeats:YES];
@@ -333,7 +334,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                                             backing:NSBackingStoreBuffered
                                               defer:NO];
     _window.contentMinSize=NSMakeSize(1024,760);
-    _window.title = @"皇帝：龙之崛起 · 城市营建与媒体（自写）";
+    _window.title = @"Emperor · 原始数据浏览器";
     [_window center];
     
     NSView* root = _window.contentView;
@@ -1098,35 +1099,49 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _spriteView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     
     NSTextField* title = [NSTextField labelWithString:@"图素与贴图浏览器 (SG3 / 555)"];
-    title.frame = NSMakeRect(20, 670, 400, 30);
+    title.frame = NSMakeRect(20, _spriteView.bounds.size.height - 38, 900, 26);
     title.font = [NSFont boldSystemFontOfSize:18];
     [_spriteView addSubview:title];
     
-    _spritePackagePopup = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(20, 630, 320, 30) pullsDown:NO];
-    [_spritePackagePopup addItemsWithTitles:@[
-        @"China_Elevation (372 精灵)",
-        @"China_General (2941 精灵)",
-        @"China_Bodhidharma (601 精灵)",
-        @"China_DEMO1.555 (640×480 全屏贴图)",
-        @"China_DEMO2.555 (640×480 全屏贴图)",
-        @"China_DEMO3.555 (640×480 全屏贴图)"
-    ]];
+    _spritePackagePopup = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(20, _spriteView.bounds.size.height - 80, 520, 30) pullsDown:NO];
+    _sg3Packages = _media->sg3Packages();
+    for (const auto& relative : _sg3Packages)
+        [_spritePackagePopup addItemWithTitle:[NSString stringWithUTF8String:std::filesystem::path(relative).filename().string().c_str()]];
+    if (_sg3Packages.empty()) [_spritePackagePopup addItemWithTitle:@"目录内没有 SG3；请用 --data-root 指定 GameData"];
+    // Start with an existing internal companion. Missing archives remain listed
+    // and show an explicit failure when selected, without keeping an old image.
+    for (size_t i = 0; i < _sg3Packages.size(); ++i) {
+        auto path = std::filesystem::path(_sg3Packages[i]); path.replace_extension(".555");
+        if (!_media->resourcePath(path.generic_string()).empty()) {
+            [_spritePackagePopup selectItemAtIndex:static_cast<NSInteger>(i)]; break;
+        }
+    }
+    _spritePackagePopup.accessibilityIdentifier = @"sg3-package";
+    title.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
+    _spritePackagePopup.autoresizingMask = NSViewMinYMargin | NSViewWidthSizable;
     _spritePackagePopup.target = self;
     _spritePackagePopup.action = @selector(onSpritePackageChanged:);
     [_spriteView addSubview:_spritePackagePopup];
     
-    _spriteSlider = [[NSSlider alloc] initWithFrame:NSMakeRect(360, 634, 400, 24)];
+    _spriteSlider = [[NSSlider alloc] initWithFrame:NSMakeRect(560, _spriteView.bounds.size.height - 74, 420, 24)];
+    _spriteSlider.accessibilityIdentifier = @"sg3-image-index";
     _spriteSlider.minValue = 0;
     _spriteSlider.maxValue = 100;
+    _spriteSlider.autoresizingMask = NSViewMinYMargin;
     _spriteSlider.target = self;
     _spriteSlider.action = @selector(onSpriteSliderChanged:);
     [_spriteView addSubview:_spriteSlider];
     
     _spriteInfoLabel = [NSTextField labelWithString:@"图素信息: 请选择图素包"];
-    _spriteInfoLabel.frame = NSMakeRect(20, 590, 740, 30);
+    _spriteInfoLabel.frame = NSMakeRect(20, _spriteView.bounds.size.height - 138, 984, 46);
+    _spriteInfoLabel.autoresizingMask = NSViewMinYMargin | NSViewWidthSizable;
+    _spriteInfoLabel.maximumNumberOfLines = 2;
+    _spriteInfoLabel.accessibilityIdentifier = @"sg3-image-info";
     [_spriteView addSubview:_spriteInfoLabel];
     
-    _spriteImageView = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 40, 640, 520)];
+    _spriteImageView = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 984, _spriteView.bounds.size.height - 176)];
+    _spriteImageView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    _spriteImageView.accessibilityIdentifier = @"sg3-native-image";
     _spriteImageView.imageScaling = NSImageScaleProportionallyUpOrDown;
     _spriteImageView.wantsLayer = YES;
     _spriteImageView.layer.borderColor = [NSColor darkGrayColor].CGColor;
@@ -1145,33 +1160,19 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _spriteSlider.enabled = NO;
     _spriteInfoLabel.stringValue = @"资源不可读取或图素布局不受支持";
     if (sel < 0 || sel >= 6) return;
-    if (sel >= 3) {
-        // Fullscreen demo 555 image
-        NSString* demoNames[] = {@"China_DEMO1.555", @"China_DEMO2.555", @"China_DEMO3.555"};
-        NSString* name = demoNames[sel - 3];
-        const auto relative = [NSString stringWithFormat:@"DATA/%@", name];
-        const auto raw = _media->raw555(relative.UTF8String, 640, 480);
-        if (raw.valid()) {
-            const bool presented = presentPixels(_spriteImageView, raw.width, raw.height, raw.pixelsBGRA);
-            _spriteInfoLabel.stringValue = presented ?
-                [NSString stringWithFormat:@"贴图: %@ · 尺寸: 640×480 · 格式: RGB555LE", name] :
-                @"贴图转换失败";
-        }
-        _spriteSlider.hidden = YES;
-    } else {
-        _spriteSlider.hidden = NO;
-        NSString* sg3Names[] = {@"China_Elevation", @"China_General", @"China_Bodhidharma"};
-        NSString* baseName = sg3Names[sel];
-        const auto relativeSg3 = [NSString stringWithFormat:@"DATA/%@.sg3", baseName];
-        _current555Path = [NSString stringWithFormat:@"DATA/%@.555", baseName].UTF8String;
-        _currentSG3 = _media->sg3(relativeSg3.UTF8String);
-        if (!_currentSG3.sprites.empty() && !_current555Path.empty()) {
-            _spriteSlider.enabled = YES;
-            _spriteSlider.maxValue = _currentSG3.sprites.size() - 1;
-            _spriteSlider.doubleValue = 0;
-            [self renderSpriteAtIndex:0];
-        }
-    }
+    if (sel < 0 || static_cast<size_t>(sel) >= _sg3Packages.size()) return;
+    const auto& relative = _sg3Packages[static_cast<size_t>(sel)];
+    auto companion = std::filesystem::path(relative); companion.replace_extension(".555");
+    _current555Path = companion.generic_string();
+    _currentSG3 = _media->sg3(relative);
+    _spriteSlider.hidden = NO;
+    if (!_currentSG3.sprites.empty()) {
+        _spriteSlider.enabled = YES;
+        _spriteSlider.maxValue = _currentSG3.sprites.size() - 1;
+        _spriteSlider.doubleValue = 0;
+        [self renderSpriteAtIndex:0];
+    } else _spriteInfoLabel.stringValue = @"SG3 索引无效或不受支持；未显示旧图像";
+
 }
 
 - (void)onSpriteSliderChanged:(id)sender {
@@ -1187,14 +1188,17 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         return;
     }
     const auto& s = _currentSG3.sprites[idx];
-    const auto extracted = _media->sprite(s, _current555Path);
+    const auto delivery = _media->sprite(_currentSG3, idx, _current555Path);
+    const auto& extracted = delivery.image;
     if (!presentPixels(_spriteImageView, extracted.width, extracted.height, extracted.pixelsBGRA)) {
-        _spriteInfoLabel.stringValue = @"图素布局不受支持或转换失败";
+        _spriteImageView.image = nil;
+        _spriteInfoLabel.stringValue = @"图像记录/载荷无效、依赖缺失或格式不受支持；未显示旧图像";
         return;
     }
     
-    _spriteInfoLabel.stringValue = [NSString stringWithFormat:@"精灵序号: %zu / %zu · 偏移: %u · 长度: %u · 类型: %u · 尺寸: %dx%d",
-                                    idx, _currentSG3.sprites.size(), s.offset, s.length, s.type, s.width, s.height];
+    _spriteInfoLabel.stringValue = [NSString stringWithFormat:@"图像 ID: %zu / %zu（使用中）· SG3 v%u · 类型: %u · 尺寸: %dx%d\n镜像: %@ · Alpha: %@ · 已原生显示；与原版视觉一致性未测",
+        idx + 1, _currentSG3.sprites.size(), _currentSG3.version, s.type, extracted.width, extracted.height,
+        delivery.mirrored ? @"是" : @"否", delivery.alphaApplied ? @"是" : @"否"];
 }
 
 // ----------------------------------------------------
@@ -1691,7 +1695,6 @@ int main(int argc, const char* argv[]) {
         const char* environment = std::getenv("EMPEROR_GAMEDATA_ROOT");
         std::vector<std::string> arguments;
         for (int i = 1; i < argc; ++i) arguments.emplace_back(argv[i]);
-        NSString* ownRoot = [NSBundle.mainBundle.resourcePath stringByAppendingPathComponent:@"SelfAuthoredData"];
         const auto plan = game_lab::prepareLaunch(arguments, environment ? environment : "", [] {
             NSApplication* app = [NSApplication sharedApplication];
             [app setActivationPolicy:NSApplicationActivationPolicyRegular];
@@ -1705,10 +1708,10 @@ int main(int argc, const char* argv[]) {
             if ([chooser runModal] != NSModalResponseOK) return std::string{};
             const char* selected = chooser.URL.path.UTF8String;
             return selected ? std::string(selected) : std::string{};
-        }, ownRoot.UTF8String ? ownRoot.UTF8String : "");
+        });
         if (plan.action == game_lab::LaunchAction::Help) {
             std::fprintf(stdout, "Usage: EmperorApp [--data-root /absolute/path/to/GameData]\n"
-                                 "Normal launch uses packaged self-authored empty data; no resource selection required.\n");
+                                 "Supply original files via --data-root or EMPEROR_GAMEDATA_ROOT; otherwise choose a directory.\n");
             return 0;
         }
         if (plan.action == game_lab::LaunchAction::ArgumentError) {

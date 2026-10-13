@@ -4,6 +4,7 @@
 #include "movie_session.hpp"
 #include "../stream_lab/movie_io.hpp"
 #include <cstring>
+#include <algorithm>
 
 namespace game_lab {
 void AppMedia::setStatus(PlaybackState state, const char* message) {
@@ -30,6 +31,28 @@ CityMap AppMedia::cityMap(const std::string& relative) const {
 SG3Archive AppMedia::sg3(const std::string& relative) const {
     const auto path = resourcePath(relative);
     return path.empty() ? SG3Archive{} : loadSG3(path);
+}
+std::vector<std::string> AppMedia::sg3Packages() const {
+    std::vector<std::string> result;
+    std::error_code error;
+    auto directory=std::filesystem::path(root_.configuredDirectory())/"DATA";
+    for(std::filesystem::directory_iterator it(directory,error),end;!error && it!=end;it.increment(error)) {
+        auto ext=it->path().extension().string();
+        for(char& c:ext)if(c>='A' && c<='Z')c=char(c-'A'+'a');
+        if(ext!=".sg3")continue;
+        auto relative=(std::filesystem::path("DATA")/it->path().filename()).generic_string();
+        if(!resourcePath(relative).empty())result.push_back(relative);
+    }
+    std::sort(result.begin(),result.end());return result;
+}
+SG3DecodeResult AppMedia::sprite(const SG3Archive& archive,size_t index,const std::string& companionRelative) const {
+    // The internal file may be absent while this record has a valid external
+    // dependency. A validated SG path fixes its parent inside the selected root.
+    auto sgPath=std::filesystem::path(companionRelative);sgPath.replace_extension(".sg3");
+    auto path=resourcePath(sgPath.generic_string());
+    if(path.empty())return {};
+    auto internal=std::filesystem::path(path);internal.replace_extension(".555");
+    return decodeSG3Sprite(archive,index,internal.string());
 }
 DecodedImage AppMedia::sprite(const SG3Sprite& spriteRecord, const std::string& companionRelative) const {
     const auto path = resourcePath(companionRelative);

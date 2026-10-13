@@ -77,36 +77,6 @@ Raw555Image loadRaw555(const std::string& path, uint32_t width, uint32_t height)
     return decodeRaw555(bytes, width, height);
 }
 
-SG3Archive loadSG3(const std::string& path) {
-    constexpr size_t tableOffset = 40680, recordSize = 64;
-    std::vector<uint8_t> bytes;
-    if (!detail::readFile(path, kMaxAssetBytes, bytes) || bytes.size() < tableOffset) return {};
-    const uint32_t version = detail::u32(bytes.data() + 4);
-    const uint32_t count = detail::u32(bytes.data() + 16);
-    if (version != 213 || !count || count > (bytes.size() - tableOffset) / recordSize) return {};
-    try {
-        SG3Archive archive;
-        archive.sprites.reserve(count);
-        for (uint32_t i = 0; i < count; ++i) {
-            const uint8_t* rec = bytes.data() + tableOffset + static_cast<size_t>(i) * recordSize;
-            SG3Sprite s;
-            s.offset = detail::u32(rec);
-            s.length = detail::u32(rec + 4);
-            s.uncompressedLength = detail::u32(rec + 8);
-            s.width = detail::i16(rec + 12); s.height = detail::i16(rec + 14);
-            s.originX = detail::i16(rec + 16); s.originY = detail::i16(rec + 18);
-            s.type = detail::u16(rec + 20); s.flags = detail::u16(rec + 22);
-            s.bitmapId = rec[24];
-            archive.sprites.push_back(s);
-        }
-        archive.fileSize = static_cast<uint32_t>(bytes.size());
-        archive.version = version;
-        archive.numFiles = detail::u32(bytes.data() + 8);
-        archive.numImages = count;
-        return archive;
-    } catch (const std::bad_alloc&) { return {}; }
-}
-
 DecodedWav loadWAV(const std::string& path) {
     std::vector<uint8_t> bytes;
     if (!detail::readFile(path, kMaxWavBytes, bytes)) return {};
@@ -159,16 +129,4 @@ std::vector<std::string> loadEmperorText(const std::string& path) {
     return loadEmperorTextResult(path).lines;
 }
 
-DecodedImage extractSprite(const SG3Sprite& sprite, const std::string& companion555Path) {
-    if (sprite.type != 16 && sprite.type != 24 && sprite.type != 32) return {};
-    const uint32_t width = sprite.type, height = sprite.type;
-    const size_t expected = static_cast<size_t>(width) * height * 2;
-    if (sprite.length != expected || sprite.flags != 0 ||
-        (sprite.uncompressedLength != 0 && sprite.uncompressedLength != expected)) return {};
-    std::vector<uint8_t> bytes;
-    if (!detail::readRange(companion555Path, sprite.offset, expected, bytes)) return {};
-    auto raw = decodeRaw555(bytes, width, height);
-    if (!raw.valid()) return {};
-    return {raw.width, raw.height, std::move(raw.pixelsBGRA)};
-}
 } // namespace game_lab

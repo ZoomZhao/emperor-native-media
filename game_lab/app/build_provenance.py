@@ -6,7 +6,7 @@ import sys
 
 repository = Path(__file__).resolve().parents[2]
 sources = [
-    'LICENSE', 'docs/FIRST_PLAY.md', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
     'game_lab/city_game_state.hpp', 'game_lab/app/city_scenario.hpp', 'game_lab/app/city_scenario_checkpoint.hpp',
     'game_lab/app/city_warehouse_training.hpp', 'game_lab/app/city_warehouse_transfer.hpp', 'game_lab/app/city_warehouse_routes.hpp',
     'game_lab/app/main.mm', 'game_lab/app/city_goal_feedback.hpp', 'game_lab/app/city_goal_feedback_adapter.hpp',
@@ -30,23 +30,20 @@ sources = [
     'media_demo/controller.hpp', 'media_demo/controller.cpp',
     'media_demo/device_monitor.hpp',
     'game_lab/candidate_import.hpp',
-    'game_lab/candidate_import.cpp',
+    'game_lab/candidate_import.cpp', 'game_lab/sg3.cpp',
     'file_io/include/strict_zlib.h',
     'file_io/include/framed_reader.hpp',
     'file_io/include/owned_reader.hpp',
     'file_io/include/city19_goal_archive.hpp',
     'file_io/src/strict_zlib.cpp',
     'file_io/src/framed_reader.cpp',
-    'docs/original-file-outer-profile.json',
-    'docs/original-profile-owned-readiness.json',
-    'file_io/tests/original_profile_review_gate.json',
 ]
 compiled = [
     'game_lab/app/main.mm', 'game_lab/app/av_audio_backend.mm',
     'game_lab/app_media.cpp', 'game_lab/movie_session.mm',
     'game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
     'game_lab/resource_root.cpp', 'surface_lab/surface.cpp',
-    'game_lab/candidate_import.cpp', 'file_io/src/strict_zlib.cpp', 'file_io/src/framed_reader.cpp',
+    'game_lab/candidate_import.cpp', 'game_lab/sg3.cpp', 'file_io/src/strict_zlib.cpp', 'file_io/src/framed_reader.cpp',
     'stream_lab/movie_io.mm', 'stream_lab/presenter.cpp',
     'video_lab/stream.cpp', 'metal_lab/backend.mm',
     'audio_lab/audio.cpp',

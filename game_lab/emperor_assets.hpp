@@ -38,13 +38,20 @@ struct SG3Sprite {
     uint16_t type = 0;
     uint16_t flags = 0;
     uint8_t bitmapId = 0;
+    int32_t mirrorOffset = 0;
+    uint32_t alphaOffset = 0, alphaLength = 0;
+    uint8_t external = 0, tileSize = 0;
 };
+
+struct SG3Bitmap { std::string filename; };
 
 struct SG3Archive {
     uint32_t fileSize = 0;
     uint32_t version = 0;
     uint32_t numFiles = 0;
     uint32_t numImages = 0;
+    uint32_t capacity = 0;
+    std::vector<SG3Bitmap> bitmaps;
     std::vector<SG3Sprite> sprites;
     std::vector<uint8_t> rawData;
 };
@@ -99,7 +106,15 @@ DecodedWav loadWAV(const std::string& path);
 CityMap loadCityMap(const std::string& path);
 std::vector<std::string> loadEmperorText(const std::string& path);
 
-// Only exact raw RGB555 square records of type 16/24/32 are accepted.
-// Compressed/unknown sprite layouts are unsupported and fail closed.
+enum class SG3DecodeStatus { Decoded, Unsupported, InvalidRecord, MissingDependency, InvalidPayload };
+struct SG3DecodeResult {
+    SG3DecodeStatus status = SG3DecodeStatus::InvalidRecord;
+    DecodedImage image;
+    bool mirrored = false;
+    bool alphaApplied = false;
+};
+// Logical index 0 corresponds to SG image ID1; dummy ID0 is excluded.
+// Companion resolution is confined to the SG directory (including 555/).
+SG3DecodeResult decodeSG3Sprite(const SG3Archive&, size_t index, const std::string& companion555Path);
 DecodedImage extractSprite(const SG3Sprite& sprite, const std::string& companion555Path);
 } // namespace game_lab

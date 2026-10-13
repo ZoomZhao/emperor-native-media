@@ -16,7 +16,7 @@ echo "Compiling EmperorApp binary..."
     -Wall -Wextra -Werror \
     -I"$REPO_ROOT" -I"$REPO_ROOT/media_demo" -I"$REPO_ROOT/file_io/include" \
     "$APP_ROOT/main.mm" "$APP_ROOT/av_audio_backend.mm" \
-    "$LAB_ROOT/app_media.cpp" "$LAB_ROOT/movie_session.mm" "$LAB_ROOT/candidate_import.cpp" \
+    "$LAB_ROOT/app_media.cpp" "$LAB_ROOT/movie_session.mm" "$LAB_ROOT/candidate_import.cpp" "$LAB_ROOT/sg3.cpp" \
     "$REPO_ROOT/file_io/src/strict_zlib.cpp" "$REPO_ROOT/file_io/src/framed_reader.cpp" \
     "$LAB_ROOT/emperor_assets.mm" \
     "$LAB_ROOT/wav_pcm.cpp" "$LAB_ROOT/asset_pixels.cpp" "$LAB_ROOT/resource_root.cpp" \
@@ -38,7 +38,8 @@ mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources/SelfAuthor
 mv "$BUILD_DIR/EmperorApp.bin" "$APP_BUNDLE/Contents/MacOS/EmperorApp"
 cp "$APP_ROOT/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
 cp "$REPO_ROOT/LICENSE" "$APP_BUNDLE/Contents/Resources/LICENSE"
-cp "$REPO_ROOT/docs/FIRST_PLAY.md" "$APP_BUNDLE/Contents/Resources/FIRST_PLAY.md"
+cp "$REPO_ROOT/THIRD_PARTY_NOTICES.md" "$APP_BUNDLE/Contents/Resources/THIRD_PARTY_NOTICES.md"
+cp "$REPO_ROOT/README.md" "$APP_BUNDLE/Contents/Resources/README.md"
 printf 'APPL????' > "$APP_BUNDLE/Contents/PkgInfo"
 
 /usr/bin/python3 -I -B "$APP_ROOT/build_provenance.py" "$APP_BUNDLE"
