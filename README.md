@@ -17,12 +17,18 @@ make sg3-test
 EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make data-metrics
 make map-test
 make map-test-undefined
+make input-test
+make input-test-undefined
+# Explicit own-window UI test; requires existing AX/input/capture permissions:
+make input-window-test
 EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make map-metrics
 EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData python3 game_lab/run_bink_tests.py
 EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData python3 game_lab/run_bink_tests.py --window --smoke
 ```
 
 Real-data tests read only `EMPEROR_GAMEDATA_ROOT` and skip cleanly when unset. No implicit repository asset lookup or global environment changes. Native App selection retains `--data-root` precedence. [SG3 format and scope](docs/SG3.md) defines the image denominator and remaining gaps. For out-of-tree MAP checks, use `python3 scripts/map_data.py test --build-dir /absolute/temporary/path` or `metrics --mode undefined --build-dir /absolute/temporary/path`.
+
+The reusable [scoped input driver](input_lab/scoped_click.hpp) and own-AppKit regression diagnose the current mouse-routing blocker without GameData or original-game startup. Tests build in a temporary directory by default; `--build-dir` keeps local evidence, `--window` opts into one authored window and its capture, and missing existing permissions produce SKIP without requesting access. [MAP input scope](docs/MAP.md) documents the single-click request and the still-unverified Wine boundary.
 
 Work from original file bytes, published format documents and licensed modern parsers. Never use decompiled/disassembled game code or the retired static execution route. Never commit original files, extracted images, atlases, dumps or captures. Data checks emit aggregate counts, not assets. Follow [AGENTS.md](AGENTS.md).
 

@@ -1,4 +1,4 @@
-.PHONY: all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics
+.PHONY: all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics input-test input-test-undefined input-window-test
 all: game-app
 game-app:
 	/bin/sh game_lab/app/build.sh
@@ -16,3 +16,9 @@ map-test-undefined:
 	/usr/bin/python3 scripts/map_data.py test --mode undefined
 map-metrics:
 	/usr/bin/python3 scripts/map_data.py metrics
+input-test:
+	/usr/bin/python3 input_lab/run_tests.py
+input-test-undefined:
+	/usr/bin/python3 input_lab/run_tests.py --mode undefined
+input-window-test:
+	/usr/bin/python3 input_lab/run_tests.py --window
