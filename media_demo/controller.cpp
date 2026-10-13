@@ -19,7 +19,7 @@ Controller::Controller(std::string path,PCMObserver observer,uint64_t frames):pa
     require(!path_.empty(),"missing bundled synthetic movie");videoOK(video_.open(reader_.metadata()));clock_.reset();observation_=clock_.read();}
 Controller::~Controller(){try{close();}catch(...){}}
 Snapshot Controller::snapshot() const{Snapshot out;out.state=state_;out.frame=frame_;out.pcmFrames=consumed_;out.basePCM=basePCM_;out.mediaPCM=basePCM_+consumed_;
-    out.durationPCM=totalPCM_;out.deviceBlocked=deviceBlocked_;out.clock=observation_;out.stats=stats_;
+    out.durationPCM=totalPCM_;out.positionSeconds=double(out.mediaPCM)/stream_lab::rate;out.durationSeconds=double(totalPCM_)/stream_lab::rate;out.deviceBlocked=deviceBlocked_;out.clock=observation_;out.stats=stats_;
     const auto video=video_.usage();out.epoch=video.epoch;out.queuedVideo=video.queuedFrames;out.videoBytes=video.ownedFrameBytes;
     const auto io=reader_.usage();out.readers=io.readers;out.nativePCMBytes=io.nativePCMBytes;
     const auto readerStats=reader_.stats();out.stats.metadataTimeouts=readerStats.metadataTimeouts;out.stats.metadataCancellations=readerStats.metadataCancellations;

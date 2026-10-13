@@ -70,16 +70,16 @@ DecodedImage readMoviePosterBytes(const std::string& path, std::shared_ptr<strea
         throw std::runtime_error("missing poster or fixed first-frame layout mismatch");
     }
         stream_lab::MovieReader reader;
-        reader.open(path, 0, std::move(control));
+        reader.open(path, 0, control);
         video_lab::Frame frame;
-        if (!reader.nextFrame(frame)) {
+        if (!reader.nextFrame(frame,control)) {
             throw std::runtime_error("missing poster or fixed first-frame layout mismatch");
         }
         if (frame.pts != 0) {
             throw std::runtime_error("missing poster or fixed first-frame layout mismatch");
         }
         const auto meta = reader.metadata();
-        if (meta.width != 64 || meta.height != 48 || meta.stride < meta.width * 4) {
+        if (!meta.width || !meta.height || meta.stride < size_t(meta.width)*4 || meta.stride > 8u*1024u*1024u/meta.height) {
             throw std::runtime_error("missing poster or fixed first-frame layout mismatch");
         }
         if (frame.bgra.size() != meta.stride * meta.height) {

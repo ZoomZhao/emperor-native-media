@@ -1,0 +1,25 @@
+{
+  "scope": "Authored fixtures and public modern adapter/session interfaces only; these passes do not measure original data progress.",
+  "cases": [
+    {
+      "id": "active_tick_cancel_survives_pending_tick",
+      "source": "OpenControl is the public cancellation token; MovieSession::invalidate must cancel the currently active operation when terminating. A coalesced same-revision Tick must not replace the sole owner handle to that token. 800ms is sufficient for the identical child/input after token-sharing correction (~300ms).",
+      "limits": "Two valid asynchronous Ticks through common API; current App timer gates one outstanding Tick, so this is not proof of normal GUI reproduction. Existing base had the same token replacement. Deliverable child now cooperates with TERM; timeouts retain unfinished PID without forced signals. Earlier seven process tests used the old close policy and do not validate a replacement safe-close implementation."
+    },
+    {
+      "id": "child_shutdown_signals_not_blocked",
+      "source": "External decoder shutdown must receive TERM independently of dispatch worker signal mask. Measured worker-spawned child blocked TERM/INT (1/1); POSIX_SPAWN_SETSIGMASK with empty mask fixes both to 0/0. Probe records the actual child mask and runner rejects blocked TERM/INT.",
+      "limits": "The 150ms natural-lifetime diagnostic confirms inheritance without requiring forced termination. A later cleanup policy must still preserve pending PID ownership and truthful resource state; that new policy is not yet in the supplied snapshot."
+    },
+    {
+      "id": "reported_zero_requires_recorded_child_gone",
+      "source": "MovieSession permitsExit requires completed close, resource zero and worker idle; independently check existence of the self child PID captured before first frame, after native test reports completion. Signal 0 is only an existence query; harness sends no termination signal. This catches dropped PID ownership that could otherwise fake resource-zero flags.",
+      "limits": "Only the self child PID is queried; original work policies and private fixes are covered, new main cleanup still requires separate replay."
+    }
+  ],
+  "published_format_reference": "https://ffmpeg.org/doxygen/trunk/libavformat_2bink_8c_source.html",
+  "original_frames_independently_decoded": null,
+  "real_data_root_unset": true,
+  "GUI_or_audio_device_used": false,
+  "legacy_process_checks": "Seven earlier process probes passed on original close policy. Do not interpret those as acceptance of the new main safe-close implementation."
+}

@@ -1,6 +1,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AudioToolbox/AudioToolbox.h>
 #include "movie_io.hpp"
+#include "bink_process.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -127,22 +128,35 @@ WriterStats writeSyntheticMovie(const std::string& path){@autoreleasepool{
     return stats;
 }}
 struct MovieReader::Impl {
-    video_lab::StreamMetadata meta{};
+    video_lab::StreamMetadata meta{},expected{};
+    std::unique_ptr<BinkProcess> bink;uint32_t fpsDenominator=1;
     AVURLAsset* asset=nil;AVAssetReader* reader=nil;AVAssetReaderTrackOutput* video=nil;AVAssetReaderTrackOutput* audio=nil;
     CMSampleBufferRef pcm=nullptr;size_t pcmFrames=0,pcmOffset=0,pcmBytes=0;
     uint64_t nextVideo=0,nextAudio=0;bool videoEof=false,audioEof=false;IOStats stats;
     void releasePCM(){if(pcm)CFRelease(pcm);pcm=nullptr;pcmFrames=pcmOffset=pcmBytes=0;}
 };
 MovieReader::MovieReader(video_lab::StreamMetadata metadata):impl_(new Impl){
-    video_lab::StreamingPlayer validator;require(validator.open(metadata)==video_lab::Status::Ok&&metadata.audioRate%metadata.fps==0,"reader metadata bounds/rate ratio");
-    impl_->meta=metadata;
+    video_lab::StreamingPlayer validator(4,maxBinkFrameBytes);require(validator.open(metadata)==video_lab::Status::Ok&&metadata.audioRate%metadata.fps==0,"reader metadata bounds/rate ratio");
+    impl_->meta=impl_->expected=metadata;
 }MovieReader::~MovieReader(){close();}
-void MovieReader::close(){auto& s=*impl_;s.releasePCM();if(s.reader){[s.reader cancelReading];++s.stats.readerCancels;}
+void MovieReader::close(){auto& s=*impl_;
+    if(s.bink){if(s.bink->active())++s.stats.readerCancels;s.bink->close();s.bink.reset();}
+    s.releasePCM();if(s.reader){[s.reader cancelReading];++s.stats.readerCancels;}
     if(s.asset)[s.asset cancelLoading];
     s.reader=nil;s.video=nil;s.audio=nil;s.asset=nil;s.videoEof=s.audioEof=true;}
 void MovieReader::open(const std::string& path,uint64_t first,std::shared_ptr<OpenControl> control){@autoreleasepool{
-    auto& s=*impl_;const auto m=s.meta;require(first<m.frames,"seek outside movie");close();
+    auto& s=*impl_;close();
     if(!control)control=std::make_shared<OpenControl>();
+    if(hasBinkSignature(path)){
+        if(control->cancelled)throw std::runtime_error("Bink open cancelled");
+        auto process=std::make_unique<BinkProcess>();process->open(path,first);
+        const auto info=process->info();
+        s.meta={info.width,info.height,info.stride(),info.fpsNumerator,0,info.frames};
+        s.fpsDenominator=info.fpsDenominator;s.bink=std::move(process);
+        s.videoEof=false;s.audioEof=true;++s.stats.readerOpens;return;
+    }
+    s.meta=s.expected;const auto m=s.meta;s.fpsDenominator=1;
+    require(first<m.frames,"seek outside movie");
     const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(2);
     try{
     s.asset=[AVURLAsset URLAssetWithURL:url(path) options:nil];
@@ -166,8 +180,12 @@ void MovieReader::open(const std::string& path,uint64_t first,std::shared_ptr<Op
     s.nextVideo=first;s.nextAudio=first*m.audioRate/m.fps;s.videoEof=s.audioEof=false;++s.stats.readerOpens;
     }catch(...){close();throw;}
 }}
-bool MovieReader::nextFrame(video_lab::Frame& output){@autoreleasepool{
-    auto& s=*impl_;const auto m=s.meta;require(s.reader!=nil,"reader closed");if(s.videoEof)return false;
+bool MovieReader::nextFrame(video_lab::Frame& output,std::shared_ptr<OpenControl> control){@autoreleasepool{
+    auto& s=*impl_;
+    if(s.bink){const bool found=s.bink->nextFrame(output,[control]{return control&&control->cancelled.load();});
+        if(found){++s.stats.videoPackets;s.stats.maxVideoBufferBytes=std::max(s.stats.maxVideoBufferBytes,output.bgra.size());}
+        return found;}
+    const auto m=s.meta;require(s.reader!=nil,"reader closed");if(s.videoEof)return false;
     CF<CMSampleBufferRef> sample;
     while((sample.value=[s.video copyNextSampleBuffer])&&CMSampleBufferGetNumSamples(sample)==0){
         ++s.stats.markers;CFRelease(sample.value);sample.value=nullptr;}
@@ -186,7 +204,8 @@ bool MovieReader::nextFrame(video_lab::Frame& output){@autoreleasepool{
     ++s.nextVideo;++s.stats.videoPackets;output=std::move(frame);return true;
 }}
 bool MovieReader::nextPCM(PCM& output,size_t maxFrames){@autoreleasepool{
-    require(maxFrames>0&&maxFrames<=pcmPacketFrames,"PCM slice limit");auto& s=*impl_;const auto m=s.meta;require(s.reader!=nil,"reader closed");if(s.audioEof)return false;
+    require(maxFrames>0&&maxFrames<=pcmPacketFrames,"PCM slice limit");auto& s=*impl_;
+    if(s.bink)throw std::runtime_error("Bink path is a silent video preview; PCM/synchronization is not implemented");const auto m=s.meta;require(s.reader!=nil,"reader closed");if(s.audioEof)return false;
     if(!s.pcm){
         while((s.pcm=[s.audio copyNextSampleBuffer])&&CMSampleBufferGetNumSamples(s.pcm)==0){++s.stats.markers;s.releasePCM();}
         if(!s.pcm){if(s.reader.status==AVAssetReaderStatusFailed)throw std::runtime_error("audio read: "+detail(s.reader.error));
@@ -206,6 +225,7 @@ bool MovieReader::nextPCM(PCM& output,size_t maxFrames){@autoreleasepool{
     s.pcmOffset+=count;s.nextAudio+=count;if(s.pcmOffset==s.pcmFrames)s.releasePCM();output=std::move(packet);return true;
 }}
 video_lab::StreamMetadata MovieReader::metadata() const{return impl_->meta;}
-IOUsage MovieReader::usage() const{const auto& s=*impl_;return {s.reader?size_t(1):size_t(0),s.pcm?size_t(1):size_t(0),s.pcmBytes};}
+uint32_t MovieReader::frameRateDenominator() const{return impl_->fpsDenominator;}
+IOUsage MovieReader::usage() const{const auto& s=*impl_;return {(s.reader||(s.bink&&s.bink->active()))?size_t(1):size_t(0),s.pcm?size_t(1):size_t(0),s.pcmBytes};}
 IOStats MovieReader::stats() const{return impl_->stats;}
 } // namespace stream_lab

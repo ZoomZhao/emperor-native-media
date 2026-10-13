@@ -1370,30 +1370,30 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 // ----------------------------------------------------
-// Tab 5: Movie Silent Preview (Restricted MOV: 64×48)
+// Tab 5: Silent original Bink video (external FFmpeg) and AVFoundation MOV
 // ----------------------------------------------------
 - (void)setupMovieView {
     _movieView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
     _movieView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 
-    NSTextField* title = [NSTextField labelWithString:@"影片静默连续预览 (受限 QuickTime MOV: 64×48)"];
+    NSTextField* title = [NSTextField labelWithString:@"影片静默预览"];
     title.frame = NSMakeRect(20, 670, 600, 30);
     title.font = [NSFont boldSystemFontOfSize:18];
     [_movieView addSubview:title];
 
-    NSTextField* desc = [NSTextField labelWithString:@"预览受支持 MOV 的连续画面；播放、暂停和拖动进度均不输出声音。"];
+    NSTextField* desc = [NSTextField labelWithString:@"Bink 视频使用本机已安装的 FFmpeg；支持播放、暂停和跳转，当前保持静音。"];
     desc.frame = NSMakeRect(20, 642, 600, 20);
     desc.font = [NSFont systemFontOfSize:12];
     desc.textColor = [NSColor colorWithCalibratedWhite:0.75 alpha:1.0];
     [_movieView addSubview:desc];
 
-    NSTextField* pathLabel = [NSTextField labelWithString:@"相对 MOV 路径:"];
+    NSTextField* pathLabel = [NSTextField labelWithString:@"相对影片路径:"];
     pathLabel.frame = NSMakeRect(20, 602, 110, 22);
     pathLabel.font = [NSFont systemFontOfSize:13 weight:NSFontWeightMedium];
     [_movieView addSubview:pathLabel];
 
     _moviePathField = [[NSTextField alloc] initWithFrame:NSMakeRect(135, 600, 360, 26)];
-    _moviePathField.stringValue = @"Movies/self_authored_8s.mov";
+    _moviePathField.placeholderString = @"Binks/…/*.bik";
     _moviePathField.font = [NSFont systemFontOfSize:13];
     [_movieView addSubview:_moviePathField];
 
@@ -1422,14 +1422,14 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _movieStopButton.bezelStyle = NSBezelStyleRounded;
     [_movieView addSubview:_movieStopButton];
 
-    _moviePositionLabel = [NSTextField labelWithString:@"0.00 / 8.00 秒"];
+    _moviePositionLabel = [NSTextField labelWithString:@"尚未加载影片"];
     _moviePositionLabel.frame = NSMakeRect(265, 563, 140, 22);
     _moviePositionLabel.font = [NSFont monospacedDigitSystemFontOfSize:13 weight:NSFontWeightRegular];
     [_movieView addSubview:_moviePositionLabel];
 
     _movieSeekSlider = [[AppMovieSeekSlider alloc] initWithFrame:NSMakeRect(410, 560, 260, 26)];
     _movieSeekSlider.minValue = 0;
-    _movieSeekSlider.maxValue = 239;
+    _movieSeekSlider.maxValue = 0;
     _movieSeekSlider.doubleValue = 0;
     _movieSeekSlider.continuous = NO;
     _movieSeekSlider.target = self;
@@ -1491,7 +1491,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     }
     if (_movieTimer) return;
     __weak EmperorAppDelegate* weakSelf = self;
-    _movieTimer = [NSTimer timerWithTimeInterval:1.0 / 30.0 repeats:YES block:^(NSTimer* timer) {
+    const auto& meta=_movieSession->lastSnapshot();
+    const double frameRate=double(meta.fpsNumerator)/std::max(1u,meta.fpsDenominator);
+    const double timerRate=std::max(30.0,std::min(120.0,frameRate*2));
+    _movieTimer = [NSTimer timerWithTimeInterval:1.0 / timerRate repeats:YES block:^(NSTimer* timer) {
         (void)timer;
         EmperorAppDelegate* owner = weakSelf;
         if (owner && !owner->_movieTickQueued && !owner->_moviePending) {
@@ -1518,8 +1521,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     if (!_movieSeekSlider.mouseTracking) {
         _movieSeekSlider.doubleValue = double(snap.frame);
     }
-    const double seconds = double(snap.mediaPCM) / 48000.0;
-    _moviePositionLabel.stringValue = [NSString stringWithFormat:@"%.2f / 8.00 秒", seconds];
+    _movieSeekSlider.maxValue=double(snap.videoFrames?snap.videoFrames-1:0);
+    _moviePositionLabel.stringValue = [NSString stringWithFormat:@"%.2f / %.2f 秒",snap.positionSeconds,snap.durationSeconds];
     _movieStatusLabel.stringValue = [NSString stringWithUTF8String:game_lab::formatMovieStatus(delivery).c_str()];
     [self updateMovieControls];
     [self updateMovieTimer];
@@ -1611,7 +1614,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _movieTickQueued = NO;
     _moviePending = _movieSession ? 1 : 0;
     if (_moviePresenter) _moviePresenter->clear();
-    _moviePositionLabel.stringValue = @"0.00 / 8.00 秒";
+    _moviePositionLabel.stringValue = @"尚未加载影片";
     _movieSeekSlider.doubleValue = 0;
     _movieStatusLabel.stringValue = @"正在清空…";
     if (_movieSession) {

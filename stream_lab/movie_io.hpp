@@ -27,6 +27,8 @@ WriterStats writeSyntheticMovie(const std::string& path);
 
 // One AVAssetReader at a time; one native PCM sample may be retained between pulls.
 // Returned frames/PCM are caller-owned. Owner thread only; destructor cancels reading.
+// BIK files use a separately installed FFmpeg process, video only, with an 8 MiB
+// per-frame cap. KB2 is rejected separately. No FFmpeg binary/library is bundled.
 class MovieReader {
 public:
     // Explicit expected format: fixed frame rate, rate divisible by fps, stereo S16LE.
@@ -37,7 +39,9 @@ public:
     // the native session before throwing; callback state never refers to this.
     void open(const std::string& path,uint64_t firstVideoFrame=0,std::shared_ptr<OpenControl> control={});
     void close();
-    bool nextFrame(video_lab::Frame& output);
+    bool nextFrame(video_lab::Frame& output,std::shared_ptr<OpenControl> control={});
+    // Bink metadata().fps is the numerator; audioRate=0 denotes video-only.
+    uint32_t frameRateDenominator() const;
     bool nextPCM(PCM& output,size_t maxFrames=pcmPacketFrames);
     video_lab::StreamMetadata metadata() const;
     IOUsage usage() const;IOStats stats() const;

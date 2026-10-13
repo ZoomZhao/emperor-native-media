@@ -68,15 +68,20 @@ inline bool processMovieDelivery(uint64_t activeRevision,
         presenter->clear();
     }
 
-    if (snapshot.bgra.size() == 133 * 24) {
-        out.pixelsBGRA.resize(32 * 24);
-        for (size_t y = 0; y < 24; ++y) {
-            const uint8_t* src = snapshot.bgra.data() + y * 133;
-            uint8_t* dst = reinterpret_cast<uint8_t*>(out.pixelsBGRA.data()) + y * 32 * 4;
-            std::memcpy(dst, src, 32 * 4);
+    size_t pixelCount=0;
+    if (imagePixelCount(snapshot.imageWidth,snapshot.imageHeight,pixelCount) &&
+        snapshot.imageStride>=size_t(snapshot.imageWidth)*4 &&
+        snapshot.imageStride<=8u*1024u*1024u/snapshot.imageHeight &&
+        snapshot.bgra.size()==snapshot.imageStride*snapshot.imageHeight) {
+        out.width=snapshot.imageWidth;out.height=snapshot.imageHeight;
+        out.pixelsBGRA.resize(pixelCount);
+        for (size_t y=0;y<out.height;++y) {
+            const uint8_t* src=snapshot.bgra.data()+y*snapshot.imageStride;
+            uint8_t* dst=reinterpret_cast<uint8_t*>(out.pixelsBGRA.data())+y*size_t(out.width)*4;
+            std::memcpy(dst,src,size_t(out.width)*4);
         }
         if (presenter) {
-            out.presentation = presentImage(*presenter, 32, 24, out.pixelsBGRA);
+            out.presentation = presentImage(*presenter,out.width,out.height,out.pixelsBGRA);
             out.presented = (out.presentation == PresentationResult::Presented);
         }
     }

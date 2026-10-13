@@ -23,3 +23,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+# External FFmpeg for Bink video
+
+The authored Bink adapter invokes an independently installed FFmpeg executable; it does not bundle that executable or link FFmpeg libraries. The observed local dependency is Homebrew FFmpeg 8.0.1 arm64, built with `--enable-gpl --enable-version3`; `ffmpeg -L` identifies GPL version 3 or later. This is distinct from this repository’s MIT source license. See [FFmpeg licensing](https://ffmpeg.org/legal.html). Public Bink container field documentation is referenced at [FFmpeg bink.c](https://ffmpeg.org/doxygen/trunk/libavformat_2bink_8c_source.html); original Emperor code is not used.

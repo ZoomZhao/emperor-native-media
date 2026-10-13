@@ -14,6 +14,7 @@ enum class Action {Play,Pause,Seek,Stop,Tick};
 enum class State {Ready,Playing,Paused,Ended,Failed};
 const char* stateName(State state);
 struct ControllerStats {size_t runtimeOpens=0,runtimeReleases=0,renders=0,discardedVideo=0;
+    uint64_t decodedVideoFrames=0;
     size_t maxVideoBytes=0,maxPCMSources=0,maxPCMBytes=0,maxReaders=0,maxGPUBytes=0;
     uint64_t checkedPCMFrames=0,maxCatchupFrames=0,clockRebuilds=0,nativeDeviceEvents=0,injectedDeviceEvents=0,
         deviceRecoveries=0,duplicateDeviceEvents=0,staleDeviceEvents=0,metadataTimeouts=0,metadataCancellations=0;};
@@ -23,6 +24,9 @@ struct Snapshot {
         pcmQueue=0,pcmEvents=0,gpuSurfaces=0,gpuBytes=0;bool clearImage=false,deviceBlocked=false;
     HostClock::Reading clock{};ControllerStats stats;
     std::vector<uint8_t> bgra;
+    uint32_t imageWidth=32,imageHeight=24,fpsNumerator=30,fpsDenominator=1;
+    size_t imageStride=133;uint64_t videoFrames=240;
+    double positionSeconds=0,durationSeconds=8;
     std::string message;
     bool resourcesZero() const{return !queuedVideo&&!videoBytes&&!pcmSources&&!pcmBytes&&!pcmQueue&&!pcmEvents&&
         !gpuTickets&&!gpuSurfaces&&!gpuBytes&&!readers&&!nativePCMBytes;}

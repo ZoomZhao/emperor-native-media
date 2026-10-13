@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #include "movie_session.hpp"
 #include "app_media.hpp"
+#include "bink_preview.hpp"
 #include <mutex>
 #include <algorithm>
 #include <thread>
@@ -33,6 +34,7 @@ struct MovieSessionState : std::enable_shared_from_this<MovieSessionState> {
     ResourceRoot root;
     dispatch_queue_t worker=dispatch_queue_create("local.emperor.movie-worker",DISPATCH_QUEUE_SERIAL);
     std::unique_ptr<media_demo::Controller> controller; // worker only
+    std::unique_ptr<BinkPreview> bink; // worker-owned, video only
     std::shared_ptr<MovieSessionStats> stats=std::make_shared<MovieSessionStats>();
     std::atomic<uint64_t> revision{1};
     uint32_t delayMs=0; bool holdMetadata=false, failClose=false; // owner only
@@ -74,6 +76,9 @@ struct MovieSessionState : std::enable_shared_from_this<MovieSessionState> {
         if(controller){controller->close();
             if(!controller->snapshot().resourcesZero())throw std::runtime_error("close resource invariant");
             controller.reset();}
+        if(bink){bink->close();
+            if(!bink->snapshot().resourcesZero())throw std::runtime_error("Bink close resource invariant");
+            bink.reset();}
         stats->hasController=false;stats->resourcesZero=true;
     }
     void delayed(uint32_t ms) {
@@ -99,7 +104,20 @@ struct MovieSessionState : std::enable_shared_from_this<MovieSessionState> {
                 stats->resourcesZero=true;
                 d.width=image.width;d.height=image.height;d.pixelsBGRA=image.pixelsBGRA;
                 d.snapshot.state=media_demo::State::Ready;
+                if(stream_lab::hasBinkSignature(resolved)){
+                    const auto info=stream_lab::readBinkInfo(resolved);
+                    d.snapshot.imageWidth=info.width;d.snapshot.imageHeight=info.height;d.snapshot.imageStride=info.stride();
+                    d.snapshot.fpsNumerator=info.fpsNumerator;d.snapshot.fpsDenominator=info.fpsDenominator;
+                    d.snapshot.videoFrames=info.frames;d.snapshot.durationSeconds=info.duration();
+                }
             }else{
+                if(stream_lab::hasBinkSignature(resolved)){
+                    bink=std::make_unique<BinkPreview>(resolved);stats->hasController=true;
+                    d.snapshot=onlyOpen?bink->snapshot():bink->perform(media_demo::Action::Play,0,control);
+                    stats->resourcesZero=d.snapshot.resourcesZero();
+                    if(d.snapshot.state==media_demo::State::Failed){d.errorMessage=d.snapshot.message;d.errorKind=decodeKind(d.errorMessage);}
+                    return d;
+                }
                 controller=std::make_unique<media_demo::Controller>(resolved);stats->hasController=true;
                 d.snapshot=onlyOpen?controller->snapshot():controller->perform(media_demo::Action::Play,0,control);
                 stats->resourcesZero=d.snapshot.resourcesZero();
@@ -115,8 +133,8 @@ struct MovieSessionState : std::enable_shared_from_this<MovieSessionState> {
     MovieDelivery action(uint64_t rev,media_demo::Action action,uint64_t frame,const std::shared_ptr<stream_lab::OpenControl>& control) {
         MovieDelivery d;d.revision=rev;
         if(revision!=rev)return d;
-        try {if(!controller)throw std::runtime_error("未打开有效媒体文件");
-             d.snapshot=controller->perform(action,frame,control);stats->resourcesZero=d.snapshot.resourcesZero();
+        try {if(!controller&&!bink)throw std::runtime_error("未打开有效媒体文件");
+             d.snapshot=bink?bink->perform(action,frame,control):controller->perform(action,frame,control);stats->resourcesZero=d.snapshot.resourcesZero();
              if(d.snapshot.state==media_demo::State::Failed){d.errorMessage=d.snapshot.message;d.errorKind=decodeKind(d.errorMessage);}
         }catch(const std::exception& e){d.snapshot.state=media_demo::State::Failed;d.snapshot.clearImage=true;
             d.errorMessage=e.what();d.snapshot.message=d.errorMessage;d.errorKind=decodeKind(d.errorMessage);}
@@ -151,7 +169,7 @@ MovieSession::~MovieSession(){*deliveryAlive_=false;cancelTerminationTimer();inv
     s->stats->resourcesZero=false;
     s->enqueue([](MovieSessionState& worker){try{worker.retire();}catch(...){
         // Final fallback destruction remains on the worker. Do not claim success.
-        worker.controller.reset();worker.stats->hasController=false;worker.stats->resourcesZero=false;}});
+        worker.controller.reset();worker.bink.reset();worker.stats->hasController=false;worker.stats->resourcesZero=false;}});
 }
 std::shared_ptr<const MovieSessionStats> MovieSession::stats()const{return state_->stats;}
 void MovieSession::setTestDelayMs(uint32_t ms){state_->delayMs=std::min(ms,500u);state_->stats->delayEntered=false;}
@@ -188,7 +206,10 @@ void MovieSession::requestPoster(const std::string& p,std::function<void(const M
 void MovieSession::request(media_demo::Action action,uint64_t frame,std::function<void(const MovieDelivery&)> callback,ImagePresenter* presenter){
     if(terminationLocksCommands())return;
     if(action!=media_demo::Action::Tick)invalidate();
-    const auto rev=revision_;auto control=std::make_shared<stream_lab::OpenControl>();loadControl_=control;
+    // Ticks in one revision share the cancellable operation token. A pending
+    // Tick must not hide the token held by an active blocking reader.
+    const auto rev=revision_;auto control=action==media_demo::Action::Tick&&loadControl_
+        ?loadControl_:std::make_shared<stream_lab::OpenControl>();loadControl_=control;
     auto alive=deliveryAlive_;
     state_->enqueue([this,alive,rev,action,frame,control,callback,presenter](MovieSessionState& worker){
         auto d=worker.action(rev,action,frame,control);
