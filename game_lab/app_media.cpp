@@ -28,6 +28,20 @@ CityMap AppMedia::cityMap(const std::string& relative) const {
     const auto path = resourcePath(relative);
     return path.empty() ? CityMap{} : loadCityMap(path);
 }
+std::vector<std::string> AppMedia::originalMapFiles() const {
+    std::vector<std::string> files;std::error_code error;
+    for(std::filesystem::recursive_directory_iterator it(root_.configuredDirectory(),error),end;!error && it!=end;it.increment(error)) {
+        if(!it->is_regular_file(error))continue;
+        auto ext=it->path().extension().string();for(char& c:ext)if(c>='A' && c<='Z')c=char(c-'A'+'a');
+        if(ext!=".map")continue;
+        auto relative=it->path().lexically_relative(root_.configuredDirectory()).generic_string();
+        if(!resourcePath(relative).empty())files.push_back(relative);
+    }
+    std::sort(files.begin(),files.end());return files;
+}
+OriginalMapResult AppMedia::originalMap(const std::string& relative) const {
+    const auto path=resourcePath(relative);return path.empty()?OriginalMapResult{}:loadOriginalMapTerrain(path);
+}
 SG3Archive AppMedia::sg3(const std::string& relative) const {
     const auto path = resourcePath(relative);
     return path.empty() ? SG3Archive{} : loadSG3(path);

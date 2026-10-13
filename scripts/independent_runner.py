@@ -18,7 +18,7 @@ DATA = [
     'runtime_core/tests/state_codec_tests.py', 'runtime_core/run_boundaries.sh',
 ]
 MEDIA = [
-    'game_lab/pure_boundary_tests.mm', 'game_lab/sg3.cpp', 'game_lab/emperor_assets.mm', 'game_lab/emperor_assets.hpp',
+    'game_lab/pure_boundary_tests.mm', 'game_lab/sg3.cpp', 'game_lab/original_map.cpp', 'game_lab/original_map.hpp', 'game_lab/emperor_assets.mm', 'game_lab/emperor_assets.hpp',
     'game_lab/asset_bytes.hpp', 'game_lab/asset_limits.hpp', 'game_lab/asset_pixels.cpp',
     'game_lab/wav_pcm.cpp', 'game_lab/resource_root.cpp', 'game_lab/resource_root.hpp',
     'game_lab/audio_policy.hpp', 'surface_lab/surface.cpp', 'surface_lab/surface.hpp',
@@ -49,7 +49,7 @@ APP = [
     'media_demo/device_monitor.hpp',
     'game_lab/run_app_integration.sh',
     'game_lab/candidate_import.hpp',
-    'game_lab/candidate_import.cpp', 'game_lab/sg3.cpp',
+    'game_lab/candidate_import.cpp', 'game_lab/sg3.cpp', 'game_lab/original_map.cpp', 'game_lab/original_map.hpp',
     'file_io/include/strict_zlib.h',
     'file_io/include/framed_reader.hpp',
     'file_io/include/owned_reader.hpp',
@@ -262,7 +262,7 @@ def run(suite, mode, output):
             command('tlv-test', ['/usr/bin/python3', '-I', '-B', snapshot / 'runtime_core/tests/state_codec_tests.py'])
             results = {'data': read(report / 'data-test.stdout'), 'tlv': read(report / 'tlv-test.stdout')}
         elif suite in ('media', 'integration', 'text-feedback', 'movie-async', 'movie-termination'):
-            compiled = ['game_lab/sg3.cpp', 'game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
+            compiled = ['game_lab/original_map.cpp', 'game_lab/sg3.cpp', 'game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
                         'game_lab/resource_root.cpp', 'surface_lab/surface.cpp']
             extra_frameworks = []
             if suite == 'media':

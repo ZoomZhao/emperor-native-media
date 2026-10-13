@@ -139,6 +139,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSView* _spriteView;
     NSView* _musicView;
     NSView* _textView;
+    NSView* _originalMapView;
+    NSPopUpButton* _originalMapPicker;
+    NSPopUpButton* _originalMapBitPicker;
+    NSTextField* _originalMapInfo;
+    NSImageView* _originalMapImage;
+    std::vector<std::string> _originalMapFiles;
+    game_lab::OriginalMapResult _originalMapResult;
     NSView* _candidateView;
     NSTextView* _candidateReport;
     NSButton* _candidateRetry;
@@ -321,7 +328,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self setupTextView];
     [self setupMovieView];
     [self setupCandidateView];
-    [self showTab:2];
+    [self setupOriginalMapView];
+    [self showTab:7];
     
     // Start the self-authored city tick timer
     _simTimer = [NSTimer scheduledTimerWithTimeInterval:0.25 target:self selector:@selector(onSimulationStep:) userInfo:nil repeats:YES];
@@ -340,12 +348,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSView* root = _window.contentView;
     
     // Top Navigation Bar
-    _navBar = [NSSegmentedControl segmentedControlWithLabels:@[@"主界面", @"城市营建（自写）", @"图素与贴图", @"国风音乐台", @"游戏文本资料库", @"影片首帧预览", @"候选存档"]
+    _navBar = [NSSegmentedControl segmentedControlWithLabels:@[@"主界面", @"城市营建（自写）", @"图素与贴图", @"国风音乐台", @"游戏文本资料库", @"影片首帧预览", @"候选存档", @"原始地图"]
                                                 trackingMode:NSSegmentSwitchTrackingSelectOne
                                                       target:self
                                                       action:@selector(onTabChanged:)];
     _navBar.frame = NSMakeRect(12, 775, 1000, 32);
-    for (NSInteger segment = 0; segment < 7; ++segment) [_navBar setWidth:1000.0 / 7.0 forSegment:segment];
+    for (NSInteger segment = 0; segment < 8; ++segment) [_navBar setWidth:1000.0 / 8.0 forSegment:segment];
     _navBar.selectedSegment = 0;
     _navBar.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     [root addSubview:_navBar];
@@ -1309,6 +1317,68 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_textTableView reloadData];
 }
 
+- (void)setupOriginalMapView {
+    _originalMapView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
+    _originalMapView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    const CGFloat height = _originalMapView.bounds.size.height;
+    NSTextField* title = [NSTextField labelWithString:@"原始城市地图 · 只读地形标志网格"];
+    title.frame = NSMakeRect(20, height - 38, 960, 26);
+    title.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
+    title.font = [NSFont boldSystemFontOfSize:17]; [_originalMapView addSubview:title];
+    _originalMapPicker = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(20, height - 80, 560, 30) pullsDown:NO];
+    _originalMapFiles = _media->originalMapFiles();
+    for(const auto& path : _originalMapFiles) [_originalMapPicker addItemWithTitle:[NSString stringWithUTF8String:path.c_str()]];
+    if(_originalMapFiles.empty()) [_originalMapPicker addItemWithTitle:@"数据目录没有 MAP"];
+    for(size_t i = 0; i < _originalMapFiles.size(); ++i) if(_originalMapFiles[i].rfind("Cities/", 0) == 0) {
+        [_originalMapPicker selectItemAtIndex:static_cast<NSInteger>(i)]; break;
+    }
+    _originalMapPicker.target = self; _originalMapPicker.action = @selector(onOriginalMapChanged:);
+    _originalMapPicker.autoresizingMask = NSViewMinYMargin;
+    _originalMapPicker.accessibilityIdentifier = @"original-map-file"; [_originalMapView addSubview:_originalMapPicker];
+    _originalMapBitPicker = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(600, height - 80, 400, 30) pullsDown:NO];
+    [_originalMapBitPicker addItemWithTitle:@"完整标志值（诊断色，非原版调色板）"];
+    for(int bit = 0; bit < 32; ++bit) [_originalMapBitPicker addItemWithTitle:[NSString stringWithFormat:@"位 %d · 0x%08x", bit, uint32_t(1) << bit]];
+    _originalMapBitPicker.target = self; _originalMapBitPicker.action = @selector(onOriginalMapPlaneChanged:);
+    _originalMapBitPicker.autoresizingMask = NSViewMinYMargin;
+    _originalMapBitPicker.accessibilityIdentifier = @"original-map-plane"; [_originalMapView addSubview:_originalMapBitPicker];
+    _originalMapInfo = [NSTextField wrappingLabelWithString:@"等待地图载入"];
+    _originalMapInfo.frame = NSMakeRect(20, height - 150, 980, 58);
+    _originalMapInfo.maximumNumberOfLines = 3; _originalMapInfo.font = [NSFont systemFontOfSize:12];
+    _originalMapInfo.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
+    _originalMapInfo.accessibilityIdentifier = @"original-map-info"; [_originalMapView addSubview:_originalMapInfo];
+    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 184)];
+    _originalMapImage.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    _originalMapImage.imageScaling = NSImageScaleProportionallyUpOrDown;
+    _originalMapImage.accessibilityIdentifier = @"original-map-grid"; [_originalMapView addSubview:_originalMapImage];
+    [self onOriginalMapChanged:nil];
+}
+- (void)onOriginalMapChanged:(id)sender {
+    (void)sender; _originalMapResult = {}; _originalMapImage.image = nil;
+    _originalMapImage.accessibilityLabel = @"没有显示地形网格";
+    const NSInteger index = _originalMapPicker.indexOfSelectedItem;
+    if(index < 0 || static_cast<size_t>(index) >= _originalMapFiles.size()) { _originalMapInfo.stringValue = @"没有选择 MAP"; return; }
+    _originalMapResult = _media->originalMap(_originalMapFiles[static_cast<size_t>(index)]);
+    [self onOriginalMapPlaneChanged:nil];
+}
+- (void)onOriginalMapPlaneChanged:(id)sender {
+    (void)sender; _originalMapImage.image = nil;
+    _originalMapImage.accessibilityLabel = @"没有显示地形网格";
+    const auto& result = _originalMapResult;
+    std::string text = game_lab::describeOriginalMap(result);
+    if(result.terrain.valid()) {
+        const int bit = static_cast<int>(_originalMapBitPicker.indexOfSelectedItem) - 1;
+        const auto image = game_lab::renderOriginalMapFlags(result.terrain, bit);
+        if(!presentPixels(_originalMapImage, image.width, image.height, image.pixelsBGRA)) text += "；画面转换失败";
+        else {
+            text += "；已原生显示";
+            _originalMapImage.accessibilityLabel = [NSString stringWithFormat:@"%@，地形标志网格 228×228，%@", _originalMapPicker.titleOfSelectedItem, _originalMapBitPicker.titleOfSelectedItem];
+        }
+        text += "\n完整消费 " + std::to_string(result.frames) + " 个压缩块，逻辑数据 " + std::to_string(result.decodedBytes) + " 字节；仅读取地形网格。";
+    }
+    text += "\n诊断色只区分原始数值/位；未建立原版类别、图素或坐标投影映射，不载入城市/建筑/单位。";
+    _originalMapInfo.stringValue = [NSString stringWithUTF8String:text.c_str()];
+}
+
 - (void)setupCandidateView {
     _candidateView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
     _candidateView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
@@ -1651,6 +1721,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         case 4: [_contentContainer addSubview:_textView]; break;
         case 5: [_contentContainer addSubview:_movieView]; break;
         case 6: [_contentContainer addSubview:_candidateView]; break;
+        case 7: [_contentContainer addSubview:_originalMapView]; break;
     }
 }
 

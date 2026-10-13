@@ -12,4 +12,4 @@ One worker/latest pending/latest delivery, pipe backpressure. The8MiB limit is p
 
 Corpus: one BIKi intro, 79,427,112 bytes, 640×480,30fps,5,101 frames. Independent full window run decoded/delivered/drew5,101/5,101 in170.007s with0due-frame drops. Integrated code decoded5,101/5,101; integrated smoke decoded59/drew58 visibly in1.916s,0due-frame drops, queue peaks1/1/1 and close resources zero. Smoke is not a full replay. Legacy MOV and normal child cleanup also passed; ordinary sandbox MOV writing failed, then passed with the specifically approved native-codec permission. Original renderer agreement, hearing/audio output and original-game playability remain unmeasured.
 
-同一代次的Tick共用取消令牌，避免第二个待处理Tick遮蔽正在读取的令牌。子进程显式清空信号屏蔽字并设TERM/INT/PIPE默认处理，不继承GCD worker的阻塞。整合后的自造协作子进程反例在Release/UBSan分别47/61ms关闭，记录PID已消失，资源归零；这是生命周期回归，不计真实帧覆盖率。最终整合版本仍待针对性独审复核；不沿用旧强杀方案的七项通过来证明新关闭政策。
+同一代次的Tick共用取消令牌，避免第二个待处理Tick遮蔽正在读取的令牌。子进程显式清空信号屏蔽字并设TERM/INT/PIPE默认处理，不继承GCD worker的阻塞。整合后的自造协作子进程反例在Release/UBSan分别47/61ms关闭，记录PID已消失，资源归零；这是生命周期回归，不计真实帧覆盖率。c51dfb4最终生命周期独审已通过：Release/UBSan各9/0，协作关闭49/54ms、TERM/INT屏蔽字0且PID回收，忽略TERM的短命子进程在80ms截止保持主队列响应并如实报未完成、实际退出后才归零；未独立重跑全片或真实窗口。

@@ -12,7 +12,7 @@ import sys
 
 SOURCES = [
     "game_lab/movie_session.mm", "game_lab/app_media.cpp",
-    "game_lab/emperor_assets.mm", "game_lab/sg3.cpp", "game_lab/asset_pixels.cpp",
+    "game_lab/emperor_assets.mm", "game_lab/sg3.cpp", "game_lab/original_map.cpp", "game_lab/asset_pixels.cpp",
     "game_lab/resource_root.cpp", "game_lab/wav_pcm.cpp",
     "file_io/src/strict_zlib.cpp", "file_io/src/framed_reader.cpp",
     "surface_lab/surface.cpp", "stream_lab/movie_io.mm",

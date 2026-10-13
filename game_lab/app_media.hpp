@@ -1,6 +1,7 @@
 #pragma once
 #include "audio_policy.hpp"
 #include "emperor_assets.hpp"
+#include "original_map.hpp"
 #include "resource_root.hpp"
 #include <memory>
 #include <functional>
@@ -54,6 +55,8 @@ public:
     DecodedImage jpeg(const std::string& relative) const;
     Raw555Image raw555(const std::string& relative, uint32_t width, uint32_t height) const;
     CityMap cityMap(const std::string& relative) const;
+    std::vector<std::string> originalMapFiles() const;
+    OriginalMapResult originalMap(const std::string& relative) const;
     SG3Archive sg3(const std::string& relative) const;
     std::vector<std::string> sg3Packages() const;
     SG3DecodeResult sprite(const SG3Archive&, size_t index, const std::string& companionRelative) const;
