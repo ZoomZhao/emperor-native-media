@@ -37,6 +37,22 @@ int main(){try{
  body[0]=2;put(body,84,140);write(file,encode(body));need(game_lab::loadOriginalMapTerrain(file.string()).status==game_lab::OriginalMapStatus::UnsupportedRole,"empire/other header not treated as city");
  body[0]=5;body.resize(261456);write(file,encode(body));need(game_lab::loadOriginalMapTerrain(file.string()).status==game_lab::OriginalMapStatus::InvalidGrid,"partial terrain is not loaded");
  Bytes raw;append(raw,0xfedcbaaa);append(raw,0xaaabcdef);append(raw,60);raw.resize(72);write(file,raw);need(game_lab::loadOriginalMapTerrain(file.string()).status==game_lab::OriginalMapStatus::UnsupportedContainer,"unverified raw/multipart container refused");
+ for(uint32_t side:{84u,112u,140u,170u,226u}){
+  game_lab::OriginalMapTerrain grid;grid.activeSide=side;grid.flags.assign(228u*228u,0x80000u);
+  const uint32_t origin=(228-side)/2;
+  grid.flags[size_t(origin)*228+origin]=1;
+  grid.flags[size_t(origin)*228+origin+side-1]=uint32_t(1)<<22;
+  auto analysis=game_lab::analyzeOriginalMap(grid);
+  need(analysis.cropValid()&&analysis.cropOrigin==origin&&analysis.cropSide==side&&analysis.activeCells==2,"five published crop sizes preserve all unmarked cells");
+  need(analysis.unknownFlagCells==1&&analysis.unknownBits==(uint32_t(1)<<22)&&analysis.unknownBitOccurrences[22]==1,"unpublished bits explicitly counted without guessed meanings");
+  auto cropped=game_lab::renderOriginalMapFlags(grid,-1,true);
+  need(cropped.valid()&&cropped.width==side&&cropped.height==side&&cropped.pixelsBGRA[0]&&cropped.pixelsBGRA[side-1]&&!cropped.pixelsBGRA[side],"crop keeps corner cells and leaves off-map cells transparent");
+  grid.flags[0]=0;analysis=game_lab::analyzeOriginalMap(grid);
+  need(!analysis.cropValid()&&analysis.outsideCropCells==1&&!game_lab::renderOriginalMapFlags(grid,-1,true).valid(),"contradictory crop fails rather than losing real cells");
+ }
+ game_lab::OriginalMapTerrain other;other.activeSide=144;other.flags.assign(228u*228u,0x80000u);other.flags[114u*228u+114]=0;
+ need(!game_lab::analyzeOriginalMap(other).cropSupported&&!game_lab::renderOriginalMapFlags(other,-1,true).valid()&&game_lab::renderOriginalMapFlags(other).valid(),"unpublished size remains raw diagnostic only");
+ need(game_lab::originalMapFlagLabel(22).find("unknown")!=std::string::npos&&game_lab::originalMapFlagLabel(19).find("地图外")!=std::string::npos,"unknown and public bit labels distinguish evidence");
  std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"self_authored\":true,\"original_data\":false}\n";
  }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}return 0;
 }

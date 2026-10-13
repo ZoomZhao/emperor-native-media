@@ -142,6 +142,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSView* _originalMapView;
     NSPopUpButton* _originalMapPicker;
     NSPopUpButton* _originalMapBitPicker;
+    NSButton* _originalMapCrop;
     NSTextField* _originalMapInfo;
     NSImageView* _originalMapImage;
     std::vector<std::string> _originalMapFiles;
@@ -1337,16 +1338,24 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapPicker.accessibilityIdentifier = @"original-map-file"; [_originalMapView addSubview:_originalMapPicker];
     _originalMapBitPicker = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(600, height - 80, 400, 30) pullsDown:NO];
     [_originalMapBitPicker addItemWithTitle:@"完整标志值（诊断色，非原版调色板）"];
-    for(int bit = 0; bit < 32; ++bit) [_originalMapBitPicker addItemWithTitle:[NSString stringWithFormat:@"位 %d · 0x%08x", bit, uint32_t(1) << bit]];
+    for(int bit = 0; bit < 32; ++bit) {
+        NSString* annotation = [NSString stringWithUTF8String:game_lab::originalMapFlagLabel(bit).c_str()];
+        [_originalMapBitPicker addItemWithTitle:[NSString stringWithFormat:@"位 %d · 0x%08x · %@", bit, uint32_t(1) << bit, annotation]];
+    }
     _originalMapBitPicker.target = self; _originalMapBitPicker.action = @selector(onOriginalMapPlaneChanged:);
     _originalMapBitPicker.autoresizingMask = NSViewMinYMargin;
     _originalMapBitPicker.accessibilityIdentifier = @"original-map-plane"; [_originalMapView addSubview:_originalMapBitPicker];
+    _originalMapCrop = [NSButton checkboxWithTitle:@"已验证中心活动框裁剪（按地图外标志留空，保留边缘格）" target:self action:@selector(onOriginalMapPlaneChanged:)];
+    _originalMapCrop.frame = NSMakeRect(20, height - 114, 980, 24);
+    _originalMapCrop.state = NSControlStateValueOn;
+    _originalMapCrop.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
+    _originalMapCrop.accessibilityIdentifier = @"original-map-crop"; [_originalMapView addSubview:_originalMapCrop];
     _originalMapInfo = [NSTextField wrappingLabelWithString:@"等待地图载入"];
-    _originalMapInfo.frame = NSMakeRect(20, height - 150, 980, 58);
-    _originalMapInfo.maximumNumberOfLines = 3; _originalMapInfo.font = [NSFont systemFontOfSize:12];
+    _originalMapInfo.frame = NSMakeRect(20, height - 202, 980, 78);
+    _originalMapInfo.maximumNumberOfLines = 4; _originalMapInfo.font = [NSFont systemFontOfSize:12];
     _originalMapInfo.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     _originalMapInfo.accessibilityIdentifier = @"original-map-info"; [_originalMapView addSubview:_originalMapInfo];
-    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 184)];
+    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 238)];
     _originalMapImage.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _originalMapImage.imageScaling = NSImageScaleProportionallyUpOrDown;
     _originalMapImage.accessibilityIdentifier = @"original-map-grid"; [_originalMapView addSubview:_originalMapImage];
@@ -1367,15 +1376,20 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     std::string text = game_lab::describeOriginalMap(result);
     if(result.terrain.valid()) {
         const int bit = static_cast<int>(_originalMapBitPicker.indexOfSelectedItem) - 1;
-        const auto image = game_lab::renderOriginalMapFlags(result.terrain, bit);
-        if(!presentPixels(_originalMapImage, image.width, image.height, image.pixelsBGRA)) text += "；画面转换失败";
+        const bool crop = _originalMapCrop.state == NSControlStateValueOn;
+        const auto analysis = game_lab::analyzeOriginalMap(result.terrain);
+        const auto image = game_lab::renderOriginalMapFlags(result.terrain, bit, crop);
+        if(!presentPixels(_originalMapImage, image.width, image.height, image.pixelsBGRA)) text += crop ? "；裁剪验证未通过，关闭裁剪可查看完整诊断" : "；画面转换失败";
         else {
             text += "；已原生显示";
-            _originalMapImage.accessibilityLabel = [NSString stringWithFormat:@"%@，地形标志网格 228×228，%@", _originalMapPicker.titleOfSelectedItem, _originalMapBitPicker.titleOfSelectedItem];
+            _originalMapImage.accessibilityLabel = [NSString stringWithFormat:@"%@，地形标志网格 %u×%u，%@，%@", _originalMapPicker.titleOfSelectedItem, image.width, image.height, _originalMapBitPicker.titleOfSelectedItem, crop ? @"中心活动框裁剪" : @"完整存储网格"];
         }
+        char details[256];
+        std::snprintf(details, sizeof(details), "\n中心活动框起点(%u,%u)，边长%u；非地图外格%zu，框外%zu；未知位格%zu，未知mask 0x%08x。", analysis.cropOrigin, analysis.cropOrigin, analysis.cropSide, analysis.activeCells, analysis.outsideCropCells, analysis.unknownFlagCells, analysis.unknownBits);
+        text += details;
         text += "\n完整消费 " + std::to_string(result.frames) + " 个压缩块，逻辑数据 " + std::to_string(result.decodedBytes) + " 字节；仅读取地形网格。";
     }
-    text += "\n诊断色只区分原始数值/位；未建立原版类别、图素或坐标投影映射，不载入城市/建筑/单位。";
+    text += "\n诊断色与公开位标注不等于原版外观；投影/SG3图素映射未验证，不载入城市/建筑/单位。";
     _originalMapInfo.stringValue = [NSString stringWithUTF8String:text.c_str()];
 }
 

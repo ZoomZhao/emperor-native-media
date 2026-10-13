@@ -11,6 +11,21 @@ constexpr size_t maxInput=4u*1024u*1024u,maxDecoded=8u*1024u*1024u,maxChunk=3276
 // Published city-map layout facts, independently checked on the local corpus.
 constexpr size_t sideOffset=84,terrainOffset=261455,terrainCells=228u*228u;
 constexpr std::array<uint8_t,8> citySignature{{5,0,0xfe,0xca,0,0,2,0}};
+constexpr uint32_t outsideFlag=0x00080000u;
+// Field annotations from public Emperor map data, not rendering priorities.
+// Composite states, original colours, object grids and SG3 IDs remain separate.
+constexpr std::array<const char*,32> flagLabels{{
+    "树/竹相关", "岩石/矿石相关", "水相关", "建筑相关", nullptr,
+    "花园相关", "道路相关", "肥沃相关", "洪水相关（组合）", "高程相关",
+    nullptr, "灌溉渠相关", "废墟相关（组合）", nullptr, "城墙相关", nullptr,
+    "沙滩相关", "采石相关", "盐沼相关", "地图外",
+    "矿产/废墟相关（组合）", "矿产相关（组合）", nullptr, nullptr,
+    nullptr, "尖峰相关", "深水相关（组合）", nullptr, "运河/纪念物相关",
+    nullptr, nullptr, "沙地相关"
+}};
+uint32_t annotatedMask() {
+    uint32_t mask=0;for(unsigned bit=0;bit<32;++bit)if(flagLabels[bit])mask|=uint32_t(1)<<bit;return mask;
+}
 }
 OriginalMapResult loadOriginalMapTerrain(const std::string& path) {
     OriginalMapResult result;
@@ -58,11 +73,36 @@ OriginalMapResult loadOriginalMapTerrain(const std::string& path) {
     } catch(const std::bad_alloc&) {result.status=OriginalMapStatus::BudgetExceeded;}
     return result;
 }
-DecodedImage renderOriginalMapFlags(const OriginalMapTerrain& grid,int bit) {
+OriginalMapAnalysis analyzeOriginalMap(const OriginalMapTerrain& grid) {
+    OriginalMapAnalysis result;if(!grid.valid())return result;
+    switch(grid.activeSide){case 84:case 112:case 140:case 170:case 226:result.cropSupported=true;break;default:break;}
+    if(result.cropSupported){result.cropSide=grid.activeSide;result.cropOrigin=(OriginalMapTerrain::storageSide-grid.activeSide)/2;}
+    const uint32_t known=annotatedMask();
+    for(size_t index=0;index<grid.flags.size();++index){
+        const uint32_t value=grid.flags[index];if(value&outsideFlag)continue;
+        ++result.activeCells;
+        const size_t x=index%OriginalMapTerrain::storageSide,y=index/OriginalMapTerrain::storageSide;
+        if(!result.cropSupported || x<result.cropOrigin || y<result.cropOrigin || x>=result.cropOrigin+result.cropSide || y>=result.cropOrigin+result.cropSide)++result.outsideCropCells;
+        const uint32_t unknown=value&~known;result.unknownBits|=unknown;
+        if(unknown)++result.unknownFlagCells;
+        for(unsigned bit=0;bit<32;++bit)if(unknown&(uint32_t(1)<<bit))++result.unknownBitOccurrences[bit];
+    }
+    return result;
+}
+std::string originalMapFlagLabel(unsigned bit) {
+    if(bit>=32)return "无效位";
+    return flagLabels[bit]?std::string("公开标注：")+flagLabels[bit]:"unknown：无公开标注";
+}
+DecodedImage renderOriginalMapFlags(const OriginalMapTerrain& grid,int bit,bool crop) {
     if(!grid.valid() || bit<-1 || bit>31)return {};
+    const auto analysis=analyzeOriginalMap(grid);if(crop && !analysis.cropValid())return {};
     try {
-        DecodedImage image;image.width=image.height=OriginalMapTerrain::storageSide;image.pixelsBGRA.reserve(grid.flags.size());
-        for(uint32_t value:grid.flags) {
+        const uint32_t side=crop?analysis.cropSide:OriginalMapTerrain::storageSide;
+        const uint32_t origin=crop?analysis.cropOrigin:0;
+        DecodedImage image;image.width=image.height=side;image.pixelsBGRA.reserve(size_t(side)*side);
+        for(uint32_t y=0;y<side;++y)for(uint32_t x=0;x<side;++x) {
+            const uint32_t value=grid.flags[size_t(y+origin)*OriginalMapTerrain::storageSide+x+origin];
+            if(crop && (value&outsideFlag)){image.pixelsBGRA.push_back(0);continue;}
             if(bit>=0)image.pixelsBGRA.push_back((value&(uint32_t(1)<<bit))?0xff54b9e8u:0xff24272bu);
             else if(!value)image.pixelsBGRA.push_back(0xffc9c5b7u);
             else {

@@ -21,7 +21,7 @@ All measured files use little-endian outer marker `0xfedcbaaa` and a single sequ
 
 The public modern [Emperor format reader](https://github.com/bvschaik/citybuilding-mappers/blob/master/emperorfile.cpp), [framing reader](https://github.com/bvschaik/citybuilding-mappers/blob/master/zlibfile.cpp) and [integer-grid reader](https://github.com/bvschaik/citybuilding-mappers/blob/master/gamefile.cpp) establish these format facts. That project is GPL-2.0-or-later. **Its implementation, palettes and coordinate projection were not copied or ported.** This repository keeps its MIT license; the bounded sequential decoder and numerical palette are independently authored. No original executable, disassembly, translated library or old reverse-engineering analysis was used.
 
-The active-side value is distinct from backing capacity. Its placement/cropping and original screen projection remain unverified; the native view displays the full backing grid. The empire map has a different logical header; its internal layout and dimensions remain unsupported.
+The active-side value is distinct from backing capacity. The centered activity box is verified below; original screen projection remains unverified. The full backing grid remains available for diagnosis. The empire map has a different logical header; its internal layout and dimensions remain unsupported.
 
 ## Results and verification
 
@@ -31,4 +31,37 @@ Release and UBSan agree: **168/168 complete compressed containers**, **167/167 c
 
 A recursive case-insensitive search of the same supplied corpus found **0 `ChinaMapProj.555` candidates**. No download or substitute was used; the 192 SG3 records requiring that companion remain blocked.
 
-Next MAP work needs independently verifiable terrain flag meanings and screen/crop mapping. Empire-map format needs separate evidence. Complete world parsing remains **unmeasured/168**; diagnostic terrain display is not a playable city or proof of original graphical agreement.
+Next MAP work needs evidence for the remaining flag meanings and a verifiable terrain-to-SG3 image connection. Empire-map format needs separate evidence. Complete world parsing remains **unmeasured/168**; diagnostic terrain display is not a playable city or proof of original graphical agreement.
+
+## Verified activity box and partial flag annotations
+
+The same public modern reader identifies a centered activity interval and `0x00080000` as off-map. Independent byte checks establish a safe **rectangular crop**, without porting its minimap projection, palette, branch priorities or renderer. For side S, each axis begins at `(228-S)/2`; the image remains in storage-grid coordinates. Only cells explicitly carrying the off-map bit are transparent. All other values, including unknown flags, are preserved.
+
+| S | Crop origin (both axes) | Corpus maps |
+|---|---|---|
+| 84 | 72 | 1 |
+| 112 | 58 | 16 |
+| 140 | 44 | 67 |
+| 170 | 29 | 72 |
+| 226 | 1 | 11 |
+
+Release/UBSan: **167/167 valid crops and crop CGImages**, preserving **2,107,836 non-off-map cells**, with **0 outside the crop**. The public reader's ideal diamond excludes **56 non-off-map cells across 17 maps**; this implementation preserves them and does not apply a guessed diamond mask. Unlisted sizes or any non-off-map cell outside the proposed crop fail crop validation; the raw grid remains available. This is not proof of original playability or original border rendering.
+
+The bit picker has partial public annotations, not mutually exclusive terrain categories. Primitive field labels are independently recorded; combinations retain their raw values. No GPL implementation or palette is included. Public-source annotations are: tree/bamboo bit0, rock/ore bit1, water bit2, building-related bit3, garden bit5, road bit6, fertility bit7, flood-related bit8, elevation bit9, irrigation bit11, ruins-related bit12, wall bit14, beach bit16, quarry bit17, salt marsh bit18, off-map bit19, mineral/ruins combinations bits20–21, pinnacle bit25, deep-water-related bit26, canal/monument-related bit28 and sand-related bit31. These observations come from [the terrain annotations](https://github.com/bvschaik/citybuilding-mappers/blob/master/emperorfile.cpp#L1056); compound-state behavior and original colours are not ported.
+
+Observed **unannotated bits: 6**, covering **77,341/2,107,836 non-off-map cells**; union mask `0x60c08400`. Counts overlap when several bits occur in one cell:
+
+| Unknown bit | Cell occurrences |
+|---|---|
+| 10 | 2,807 |
+| 15 | 835 |
+| 22 | 70,828 |
+| 23 | 3,995 |
+| 29 | 58,572 |
+| 30 | 5 |
+
+The public MAP reader identifies terrain flags and other auxiliary grids, but does not establish an SG3 archive/image-ID join. The five skipped byte grids are unclassified here. Numerical range, filename order or visual resemblance cannot establish IDs. **Verified MAP→SG3 tile joins remain 0/167**; the original image mapping and screen projection are unknown. Diagnostic bit annotations/crops must not be described as original artwork.
+
+Metric acceptance is gated by path role and complete container independently: city grid/CGImage/crop counts cannot be supplied by an empire path; all discovered containers must complete, empire paths must be explicitly excluded from city parsing, and unknown paths or an empty city corpus fail acceptance. Unset root is SKIP, never a real-data pass. `python3 scripts/map_data.py metrics-test` and `--mode undefined` exercise eight authored cases per mode, including swapped roles, incomplete empire, late city corruption, invalid crop, unclassified path, empty data and unset-root SKIP. The real corpus independently passes city **167/167**, empire exclusion **1/1**, complete containers **168/168**, role errors **0** and crops **167/167** in both modes; correcting the gate did not change these measured numerators.
+
+Final native build: **167/167 city crop selections**, five size captures and crop/raw toggles, **32/32 UTF-8 bit annotations**, unknown-bit presentation, empire failure clearing and normal quit passed. An initial label encoding error was corrected before release. A failed selection left an earlier test instance with a delayed quit; it later exited without a forced signal and is not used as successful final-build quit evidence. Screenshots and private runtime/launcher inventory stay outside Git.

@@ -4,7 +4,7 @@ Load and render **original Emperor: Rise of the Middle Kingdom data** natively o
 
 Original Bink silent video is connected through an existing external FFmpeg installation; [Bink scope and tests](docs/BINK.md) distinguish full playback evidence from smoke and exclude audio/synchronization claims.
 
-The **原始地图** tab opens original city MAP terrain flags as a read-only 228×228 grid with an independent numerical palette and 32 bit-plane views. It does not restore city objects or claim the original palette/projection. [MAP format and scope](docs/MAP.md) distinguishes city maps from the unsupported empire map.
+The **原始地图** tab opens original city MAP terrain flags as a read-only grid with a verified centered active-box crop, an independent numerical palette and 32 annotated bit-plane views. The full 228×228 backing grid remains selectable; unknown bits are explicit. It does not restore city objects or claim the original palette/projection. [MAP format and scope](docs/MAP.md) distinguishes city maps from the unsupported empire map.
 
 Current phase: **DATA FIRST**. Every change must raise a metric in [STATUS.md](STATUS.md) or remove a listed blocker. CitySimulation/EMP1 and the authored gameplay are frozen and retained; their tests do not measure original-game progress.
 

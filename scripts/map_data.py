@@ -3,13 +3,14 @@ from pathlib import Path
 import argparse
 import os
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('task', choices=['test', 'metrics'])
+    parser.add_argument('task', choices=['test', 'metrics', 'metrics-test'])
     parser.add_argument('--mode', choices=['release', 'undefined'], default='release')
     parser.add_argument('--build-dir', type=Path, default=ROOT / '.local' / 'map-build')
     args = parser.parse_args()
@@ -32,7 +33,9 @@ def main():
                     *flags, *[str(ROOT / p) for p in sources], *frameworks,
                     '-lz', '-o', str(binary)], check=True)
     # This process owns its child and waits normally; no forced termination.
-    return subprocess.run([str(binary)], check=False).returncode
+    command = [str(binary)] if args.task != 'metrics-test' else [
+        sys.executable, str(ROOT / 'game_lab/original_map_metrics_tests.py'), str(binary)]
+    return subprocess.run(command, check=False).returncode
 
 
 if __name__ == '__main__':
