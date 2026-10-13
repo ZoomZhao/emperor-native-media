@@ -74,7 +74,7 @@ WAREHOUSE_TRANSFER = [name for name in WAREHOUSE_TRAINING_STATE if name != 'game
 WAREHOUSE_ROUTES = [name for name in WAREHOUSE_TRANSFER if name != 'game_lab/warehouse_transfer_tests.cpp'] + ['game_lab/warehouse_route_tests.cpp']
 VIEWPORT = ['game_lab/map_viewport.hpp','game_lab/map_viewport_tests.cpp']
 LAUNCH = ['game_lab/app_launch.hpp','game_lab/resource_root.hpp','game_lab/resource_root.cpp','game_lab/app_launch_tests.cpp']
-CANDIDATE_IMPORT = ['game_lab/candidate_import.hpp', 'game_lab/candidate_import.cpp', 'file_io/include/strict_zlib.h', 'file_io/include/framed_reader.hpp', 'file_io/include/owned_reader.hpp', 'file_io/include/city19_goal_archive.hpp', 'file_io/src/strict_zlib.cpp', 'file_io/src/framed_reader.cpp', 'docs/original-file-outer-profile.json', 'docs/original-profile-owned-readiness.json', 'file_io/tests/original_profile_review_gate.json', 'game_lab/candidate_import_tests.cpp']
+CANDIDATE_IMPORT = ['game_lab/candidate_import.hpp', 'game_lab/candidate_import.cpp', 'file_io/include/strict_zlib.h', 'file_io/include/framed_reader.hpp', 'file_io/include/owned_reader.hpp', 'file_io/include/city19_goal_archive.hpp', 'file_io/src/strict_zlib.cpp', 'file_io/src/framed_reader.cpp', 'docs/original-file-outer-profile.json', 'docs/original-profile-owned-readiness.json', 'file_io/tests/original_profile_review_gate.json', 'game_lab/candidate_import_tests.cpp', 'game_lab/candidate_import_allocation_test_hooks.cpp']
 TEXT_FEEDBACK = [name for name in APP if name != 'game_lab/app_media_integration_tests.mm'] + [
     'game_lab/text_load_feedback_tests.mm']
 IMAGE_CONVERSION = ['game_lab/asset_limits.hpp', 'game_lab/cg_image_conversion.hpp',
@@ -227,7 +227,7 @@ def run(suite, mode, output):
         elif suite == 'candidate-import':
             command('compile-test', ['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
                                      *flags, snapshot / 'game_lab/candidate_import_tests.cpp',
-                                     snapshot / 'game_lab/candidate_import.cpp',
+                                     snapshot / 'game_lab/candidate_import.cpp', snapshot / 'game_lab/candidate_import_allocation_test_hooks.cpp',
                                      snapshot / 'file_io/src/strict_zlib.cpp', snapshot / 'file_io/src/framed_reader.cpp',
                                      '-I', snapshot / 'file_io/include', '-lz', '-o', report / 'candidate-tests'])
             binaries = {'candidate-tests': sha(report / 'candidate-tests')}

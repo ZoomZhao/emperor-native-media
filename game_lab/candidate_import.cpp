@@ -24,6 +24,51 @@ bool sameFile(const struct stat& a, const struct stat& b) {
            a.st_mtimespec.tv_sec == b.st_mtimespec.tv_sec &&
            a.st_mtimespec.tv_nsec == b.st_mtimespec.tv_nsec;
 }
+std::string quotedFilename(const std::string& name) {
+    constexpr char hex[] = "0123456789abcdef";
+    std::string out = "\"";
+    const auto escapedByte = [&](uint8_t byte) {
+        out += "\\x"; out += hex[byte >> 4]; out += hex[byte & 15];
+    };
+    const auto escapedCodepoint = [&](uint32_t codepoint) {
+        out += "\\u";
+        for (int shift = 12; shift >= 0; shift -= 4) out += hex[(codepoint >> shift) & 15];
+    };
+    for (size_t i = 0; i < name.size();) {
+        const auto first = static_cast<uint8_t>(name[i]);
+        if (first < 128) {
+            if (first == '\n') out += "\\n";
+            else if (first == '\r') out += "\\r";
+            else if (first == '\t') out += "\\t";
+            else if (first == '\\' || first == '"') { out += '\\'; out += char(first); }
+            else if (first < 32 || first == 127) escapedCodepoint(first);
+            else out += char(first);
+            ++i; continue;
+        }
+        const size_t length = first >= 0xc2 && first <= 0xdf ? 2 :
+            first >= 0xe0 && first <= 0xef ? 3 : first >= 0xf0 && first <= 0xf4 ? 4 : 0;
+        uint32_t codepoint = length ? first & ((1u << (7 - length)) - 1) : 0;
+        bool valid = length && length <= name.size() - i;
+        for (size_t n = 1; valid && n < length; ++n) {
+            const auto next = static_cast<uint8_t>(name[i + n]);
+            if ((next & 0xc0) != 0x80) valid = false;
+            else codepoint = (codepoint << 6) | (next & 63);
+        }
+        const uint32_t minimum = length == 2 ? 128 : length == 3 ? 2048 : 65536;
+        valid = valid && codepoint >= minimum && codepoint <= 0x10ffff &&
+            !(codepoint >= 0xd800 && codepoint <= 0xdfff);
+        if (!valid) { escapedByte(first); ++i; continue; }
+        // Unicode paragraph/C1 and directional controls can also affect the
+        // structure of a plain-text App report. Ordinary Unicode names survive.
+        if ((codepoint >= 0x80 && codepoint <= 0x9f) || codepoint == 0x2028 || codepoint == 0x2029 ||
+            codepoint == 0x061c || codepoint == 0x200e || codepoint == 0x200f ||
+            (codepoint >= 0x202a && codepoint <= 0x202e) ||
+            (codepoint >= 0x2066 && codepoint <= 0x2069)) escapedCodepoint(codepoint);
+        else out.append(name,i,length);
+        i += length;
+    }
+    out += '"'; return out;
+}
 }
 void CandidateImportController::clear() { selectedPath_.clear(); result_ = {}; }
 void CandidateImportController::beginSelection() { clear(); result_.state = CandidateState::Selecting; }
@@ -85,6 +130,8 @@ void CandidateImportController::inspectFile(std::string path) {
                 frame.status == ReadStatus::BlockLimit) result_.state = CandidateState::BudgetExceeded;
             else if (frame.status == ReadStatus::UnsupportedHeader || frame.status == ReadStatus::UnknownMarker)
                 result_.state = CandidateState::Unsupported;
+            else if (frame.status == ReadStatus::NoMemory)
+                result_.state = CandidateState::ResourceFailure;
             else result_.state = CandidateState::DecodeFailure;
             // Earlier valid blocks stay private after any later failure.
             return;
@@ -141,7 +188,7 @@ std::string formatCandidateImport(const CandidateImportController& controller) {
         case CandidateState::ResourceFailure: out << "资源分配失败；检查未完成"; break;
     }
     if (!controller.selectedPath().empty())
-        out << "\n文件：" << std::filesystem::path(controller.selectedPath()).filename().string();
+        out << "\n文件：" << quotedFilename(std::filesystem::path(controller.selectedPath()).filename().string());
     if (r.file_size_known) out << "\n文件大小：" << r.file_size << " 字节";
     out << "\n文件读取：" << (r.file_read ? "完整" : "未完成") << "，已读 " << r.read_bytes << " 字节";
     if (r.file_read) out << "\n帧消费：" << r.input_consumed << " 字节，文件剩余 "

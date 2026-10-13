@@ -6,6 +6,11 @@
 #include <stdexcept>
 #include <vector>
 #include <zlib.h>
+#include <algorithm>
+
+namespace candidate_allocation_test {
+void arm(); void disarm(); extern size_t failures;
+}
 
 namespace {
 using Bytes = std::vector<uint8_t>;
@@ -113,6 +118,46 @@ int main() {
         require(c.result().parsed_bytes==44&&c.result().known_items==1&&std::filesystem::file_size(path)==before,
                 "repeated inspection does not accumulate ranges or modify source size");
         c.clear();require(c.selectedPath().empty()&&c.result().state==game_lab::CandidateState::Idle,"explicit clear retires summary");
+        write(path,container(compressed(good)));c.inspectFile(path.string());
+        require(c.result().parsed_bytes==44,"valid result before provider NoMemory");
+        const auto previousFailures=candidate_allocation_test::failures;
+        candidate_allocation_test::arm();c.retry();candidate_allocation_test::disarm();
+        require(candidate_allocation_test::failures==previousFailures+1&&c.result().detail=="no_memory",
+                "real unchanged FramedReader returns legal NoMemory after a targeted allocation failure");
+        freshFailure(c,game_lab::CandidateState::ResourceFailure);
+        require(c.result().file_read&&game_lab::formatCandidateImport(c).find("资源分配失败")!=std::string::npos&&
+                game_lab::formatCandidateImport(c).find("解码失败或数据截断")==std::string::npos,
+                "App summary distinguishes resource shortage from corrupt bytes");
+        c.retry();require(c.result().parsed_bytes==44&&c.result().decoding_complete,"same unchanged file retries after NoMemory");
+        const auto clean=root/"clean.bin";write(clean,{'N','O','P','E'});c.inspectFile(clean.string());
+        const auto cleanText=game_lab::formatCandidateImport(c);
+        const auto newlineCount=std::count(cleanText.begin(),cleanText.end(),'\n');
+        const std::vector<std::pair<std::string,std::string>> names{
+            {"file\n解码完成：是\n局部核对范围：[0, 999999)\n.bin","\\n"},
+            {"file\r\t\"\\.bin","\\r\\t\\\"\\\\"},
+            {std::string("file\x01\x7f.bin"),"\\u0001\\u007f"},
+            {std::string("file\xc2\x85\xe2\x80\xa8\xe2\x80\xa9.bin"),"\\u0085\\u2028\\u2029"},
+            {std::string("file\xe2\x80\xae\xe2\x81\xa6.bin"),"\\u202e\\u2066"},
+            {"中文.bin","中文.bin"}
+        };
+        for(const auto& name:names) {
+            const auto evil=root/name.first;write(evil,{'N','O','P','E'});c.inspectFile(evil.string());
+            require(c.result().state==game_lab::CandidateState::Unsupported&&c.result().file_read&&
+                    c.selectedPath()==evil.string(),"display escaping preserves the actual filesystem path");
+            const auto text=game_lab::formatCandidateImport(c);const auto start=text.find("文件：");
+            const auto line=text.substr(start,text.find('\n',start)-start);
+            require(line.find("文件：\"")==0&&line.back()=='"'&&line.find(name.second)!=std::string::npos,
+                    "untrusted filename is one quoted and escaped field");
+            require(std::count(text.begin(),text.end(),'\n')==newlineCount&&
+                    text.find("\n解码完成：是")==std::string::npos&&text.find("\n局部核对范围：[0, 999999)")==std::string::npos,
+                    "filename cannot insert status-shaped report lines");
+        }
+        // This host rejects non-UTF8 filenames. An unreadable native path still
+        // reaches the report and must not break its UTF-8 App presentation.
+        const auto invalidNative=root/std::string("file\xff.bin");c.inspectFile(invalidNative.string());
+        require(c.result().state==game_lab::CandidateState::ReadFailure&&
+                game_lab::formatCandidateImport(c).find("\\xff")!=std::string::npos,
+                "invalid native path bytes are escaped even when the host rejects the file");
         std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"self_authored_inputs\":true,\"city_loaded\":false,\"UI\":false}\n";
         return 0;
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
