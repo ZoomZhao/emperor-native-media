@@ -2,7 +2,7 @@
 import unittest,sys,os,subprocess,json,tempfile
 from pathlib import Path
 import numpy as np
-from base_content_audit import diamond_mask,reference_base,match_masked_bases,load_pool,run,crop_reference_base
+from base_content_audit import diamond_mask,reference_base,match_masked_bases,load_pool,run,crop_reference_base,source_over_fixed_base
 
 
 def own():
@@ -53,6 +53,32 @@ class BaseContentTests(unittest.TestCase):
             self.assertEqual(len(labels),1);self.assertEqual(match_masked_bases(reference,bases)['matching_indices'],[0])
             image[0,0,3]=255;(p/'pixels').write_bytes(image.tobytes())
             with self.assertRaisesRegex(ValueError,'alpha geometry'):load_pool(pool)
+
+    def test_source_over_zero_and_full_alpha_are_exact(self):
+        _,base=own();layers=np.zeros((2,1600,4),np.uint8);layers[1]=[0,0,255,255]
+        out=source_over_fixed_base(base,layers)
+        np.testing.assert_array_equal(out[0],base);np.testing.assert_array_equal(out[1],layers[1])
+
+    def test_source_over_half_alpha_matches_integer_rounding(self):
+        base=np.tile(np.array([255,0,0,255],np.uint8),(1600,1));layer=np.tile(np.array([0,0,128,128],np.uint8),(1,1600,1))
+        out=source_over_fixed_base(base,layer)
+        np.testing.assert_array_equal(out[0,0],np.array([127,0,128,255],np.uint8))
+
+    def test_source_over_all_alpha_levels_preserve_inputs_and_bounds(self):
+        _,base=own();layers=np.zeros((1,1600,4),np.uint8);a=np.arange(1600,dtype=np.uint32)%256;layers[0,:,3]=a;layers[0,:,1]=a
+        before=layers.copy();out=source_over_fixed_base(base,layers)
+        self.assertTrue(np.all(out[:,:,3]==255));np.testing.assert_array_equal(layers,before)
+
+    def test_source_over_invalid_premultiplication_and_base_refuse(self):
+        _,base=own();layer=np.zeros((1,1600,4),np.uint8);layer[0,3,0]=1
+        with self.assertRaisesRegex(ValueError,'premultiplied'):source_over_fixed_base(base,layer)
+        base[0,3]=254
+        with self.assertRaises(ValueError):source_over_fixed_base(base,np.zeros((1,1600,4),np.uint8))
+
+    def test_source_over_does_not_create_a_base_cartesian_product(self):
+        _,base=own()
+        with self.assertRaises(ValueError):source_over_fixed_base(np.stack([base,base]),np.zeros((1,1600,4),np.uint8))
+        self.assertEqual(source_over_fixed_base(base,np.zeros((0,1600,4),np.uint8)).shape,(0,1600,4))
 
     def test_reference_centers_never_wrap_clip_or_truncate(self):
         frame=np.zeros((100,200,3),np.uint8)

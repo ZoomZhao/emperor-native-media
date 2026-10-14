@@ -59,6 +59,24 @@ def match_masked_bases(reference,bases,hasher=None):
             'RGB_bits':5,'finite_domain_only':True}
 
 
+def source_over_fixed_base(base,layers):
+    """One fixed opaque BGRA base, native premultiplied layers, no fitted alpha.
+
+    This is a diagnostic source-over contract, not an original-game rule.
+    """
+    import numpy as np
+    base,layers=map(np.asarray,(base,layers))
+    if (base.shape!=(1600,4) or base.dtype!=np.uint8 or layers.ndim!=3
+            or layers.shape[1:]!=(1600,4) or layers.dtype!=np.uint8 or len(layers)>1024
+            or not np.all(base[:,3]==255)):
+        raise ValueError('one opaque base and bounded native BGRA layers required')
+    if np.any(layers[:,:,:3]>layers[:,:,3,None]):raise ValueError('native premultiplied channels required')
+    src=layers.astype(np.uint32);dst=base.astype(np.uint32)[None];alpha=src[:,:,3,None]
+    result=src+(dst*(255-alpha)+127)//255
+    if np.any(result>255)or not np.all(result[:,:,3]==255):raise ValueError('source-over invariant')
+    return result.astype(np.uint8)
+
+
 def load_pool(pool):
     import numpy as np
     mask=diamond_mask();kind=pool['schema'];path=Path(pool['metadata'])
@@ -116,13 +134,59 @@ def run(root,manifest):
     return {'pools':results,'engine_selected_ID_proven':False,'all_original_resource_uniqueness_proven':False}
 
 
+def run_single_layer(root,manifest):
+    """Replay a previously frozen one-base/one-layer diagnostic, never infer use."""
+    import numpy as np
+    import struct
+    from PIL import Image
+    from map_sg3_audit import decode_container,city_fields
+    if Path(manifest['source_root']).resolve()!=root:raise ValueError('cache provenance root differs')
+    name=Path(manifest['map']);map_path=(root/name).resolve()
+    if name.is_absolute() or '..'in name.parts or not map_path.is_relative_to(root):raise ValueError('map root escape')
+    payload=decode_container(map_path.read_bytes());city_fields(payload)
+    side=struct.unpack_from('<I',payload,84)[0];origin=(228-side)//2
+    if manifest['map_raw_width']!=4:raise ValueError('frozen diagnostic u32 only')
+    raw_offset=manifest['map_raw_offset']
+    if not 0<=raw_offset<=len(payload)-51984*4:raise ValueError('raw span bounds')
+    bases,labels=load_pool(manifest['base_pool']);mask=diamond_mask()
+    rows=[r.split('\t')for r in Path(manifest['layers_metadata']).read_text().splitlines()]
+    blob=np.memmap(manifest['layers_pixels'],np.uint8,mode='r');layers=[];layer_labels=[]
+    for row in rows:
+        if not int(row[7]):continue
+        image=blob[int(row[5]):int(row[5])+12480].reshape(40,78,4)
+        if np.any(image[:,:,3][~mask]!=0)or not np.any((image[:,:,3]>0)&(image[:,:,3]<255)):
+            raise ValueError('frozen partial-alpha support differs')
+        name=Path(row[0]);asset=(root/name).resolve()
+        if name.is_absolute()or '..'in name.parts or not asset.is_relative_to(root)or not asset.is_file():raise ValueError('layer archive root escape')
+        layers.append(image[mask]);layer_labels.append({'archive':row[0],'id':int(row[1]),'bitmap_index':int(row[4])})
+    if len(layers)!=manifest['expected_layers']:raise ValueError('frozen layer count differs')
+    layers=np.asarray(layers,np.uint8);frame=np.asarray(Image.open(manifest['reference']).convert('RGB'));result={}
+    for target in manifest['targets']:
+        x,y=target['cell']
+        if not 0<=x<side or not 0<=y<side:raise ValueError('canonical map coordinate bounds')
+        raw=struct.unpack_from('<I',payload,raw_offset+4*((y+origin)*228+x+origin))[0]
+        predicted=raw-manifest['id_base']
+        if predicted!=target['id']:raise ValueError('frozen MAP prediction differs')
+        found=[i for i,label in enumerate(labels)if label['archive']==target['archive']and label['id']==predicted and label['variant']=='raw']
+        if len(found)!=1:raise ValueError('one frozen raw base required')
+        base=bases[found[0]];reference=crop_reference_base(frame,target['center'])
+        measured=match_masked_bases(reference,source_over_fixed_base(base,layers));hits=measured.pop('matching_indices')
+        zero=source_over_fixed_base(base,np.zeros((1,1600,4),np.uint8));control=match_masked_bases(reference,zero);control_hits=control.pop('matching_indices')
+        result[target['name']]={**measured,'matching_records':len(hits),'matches':[layer_labels[i]for i in hits],
+                              'zero_alpha_matches':len(control_hits),'zero_alpha_minimum_differences':control['minimum_logical_mismatches']}
+    return {'single_layer_count':len(layers),'targets':result,'original_rule_proven':False,'fixed_anchor_conditional':True}
+
+
 def main():
     env=os.environ.get('EMPEROR_GAMEDATA_ROOT')
     if not env:print(json.dumps({'skipped':True,'reason':'EMPEROR_GAMEDATA_ROOT unset'}));return 0
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--manifest',type=Path,required=True);args=parser.parse_args()
     root=Path(env)
     if not root.is_absolute()or not root.is_dir():parser.error('existing absolute root required')
-    try:print(json.dumps(run(root.resolve(),json.loads(args.manifest.read_text())),ensure_ascii=False))
+    try:
+        manifest=json.loads(args.manifest.read_text())
+        function=run_single_layer if manifest.get('mode')=='single-layer'else run
+        print(json.dumps(function(root.resolve(),manifest),ensure_ascii=False))
     except ValueError as error:print(str(error),file=__import__('sys').stderr);return 1
     return 0
 

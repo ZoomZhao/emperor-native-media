@@ -14,6 +14,8 @@ The [read-only SAV source audit](docs/SAV.md) now verifies existing save contain
 
 The [finite failed-base content check](docs/SG3.md#冻结失败格的有限-base-内容识别) preserves one complete RLE-free failed footprint and its same-view positive. Reusing the 2,983-record pool and extending only declared multibase subpieces plus exact-alpha natural78×40 RLE bases finds0/32,585 exact variants at the target; the positive remains ID361. This does not establish absence from all resources or exclude missing transparent layers. The cache verifier has11 authored regressions and clean unset-root SKIP.
 
+The [fixed raw-alpha layer check](docs/SG3.md#固定底图的单层原始-alpha-对照) also preserves0/172 exact target matches with the fixed MAP-predicted base and source alpha. Its geometric dust-bitmap candidates have no proved original ground binding. The four relevant SG3/555 files match the current Applications installation byte for byte; the remaining gap is actual image/layer consumption, not a demonstrated mismatch in these inputs.
+
 Current phase: **DATA FIRST**. Every change must raise a metric in [STATUS.md](STATUS.md) or remove a listed blocker. CitySimulation/EMP1 and the authored gameplay are frozen and retained; their tests do not measure original-game progress.
 
 Requires macOS 15+ and Apple command-line tools already installed.
