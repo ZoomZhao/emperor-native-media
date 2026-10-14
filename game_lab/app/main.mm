@@ -54,6 +54,18 @@ public:
 private:
     NSImageView* __weak view_;
 };
+@interface EmperorPixelImageView : NSImageView
+@end
+@implementation EmperorPixelImageView
+- (void)drawRect:(NSRect)dirtyRect {
+    if(self.imageScaling!=NSImageScaleNone){[super drawRect:dirtyRect];return;}
+    if(!self.image)return;
+    const NSSize size=self.image.size;
+    const NSRect target=NSMakeRect((self.bounds.size.width-size.width)/2,(self.bounds.size.height-size.height)/2,size.width,size.height);
+    [self.image drawInRect:target fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:1
+        respectFlipped:YES hints:@{NSImageHintInterpolation:@(NSImageInterpolationNone)}];
+}
+@end
 static bool readMapCameraNumber(NSTextField* field,double& value) {
     NSString* text=[field.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
     const char* raw=text.UTF8String;char* end=nullptr;if(!raw||!*raw)return false;
@@ -215,6 +227,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     // Sprites & 555
     NSPopUpButton* _spritePackagePopup;
     NSSlider* _spriteSlider;
+    NSTextField* _spriteIdField;
+    NSButton* _spriteIdApply;
+    NSButton* _spriteBaseCanvas;
     NSTextField* _spriteInfoLabel;
     NSImageView* _spriteImageView;
     game_lab::SG3Archive _currentSG3;
@@ -1152,14 +1167,26 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _spriteSlider.action = @selector(onSpriteSliderChanged:);
     [_spriteView addSubview:_spriteSlider];
     
+    NSTextField* idLabel=[NSTextField labelWithString:@"逻辑图像 ID"];
+    idLabel.frame=NSMakeRect(20,_spriteView.bounds.size.height-114,130,24);idLabel.autoresizingMask=NSViewMinYMargin;[_spriteView addSubview:idLabel];
+    _spriteIdField=[[NSTextField alloc] initWithFrame:NSMakeRect(156,_spriteView.bounds.size.height-114,90,24)];
+    _spriteIdField.target=self;_spriteIdField.action=@selector(onSpriteIdChanged:);_spriteIdField.autoresizingMask=NSViewMinYMargin;
+    _spriteIdField.accessibilityIdentifier=@"sg3-image-id";[_spriteView addSubview:_spriteIdField];
+    _spriteIdApply=[NSButton buttonWithTitle:@"显示" target:self action:@selector(onSpriteIdChanged:)];
+    _spriteIdApply.frame=NSMakeRect(258,_spriteView.bounds.size.height-116,80,28);_spriteIdApply.autoresizingMask=NSViewMinYMargin;
+    _spriteIdApply.accessibilityIdentifier=@"sg3-id-apply";[_spriteView addSubview:_spriteIdApply];
+    _spriteBaseCanvas=[NSButton checkboxWithTitle:@"单格基底居中对照（1逻辑像素=1点）" target:self action:@selector(onSpriteSliderChanged:)];
+    _spriteBaseCanvas.frame=NSMakeRect(360,_spriteView.bounds.size.height-114,620,24);_spriteBaseCanvas.autoresizingMask=NSViewMinYMargin;
+    _spriteBaseCanvas.accessibilityIdentifier=@"sg3-base-canvas";[_spriteView addSubview:_spriteBaseCanvas];
+
     _spriteInfoLabel = [NSTextField labelWithString:@"图素信息: 请选择图素包"];
-    _spriteInfoLabel.frame = NSMakeRect(20, _spriteView.bounds.size.height - 138, 984, 46);
+    _spriteInfoLabel.frame = NSMakeRect(20, _spriteView.bounds.size.height - 184, 984, 60);
     _spriteInfoLabel.autoresizingMask = NSViewMinYMargin | NSViewWidthSizable;
-    _spriteInfoLabel.maximumNumberOfLines = 2;
+    _spriteInfoLabel.maximumNumberOfLines = 3;
     _spriteInfoLabel.accessibilityIdentifier = @"sg3-image-info";
     [_spriteView addSubview:_spriteInfoLabel];
     
-    _spriteImageView = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 984, _spriteView.bounds.size.height - 176)];
+    _spriteImageView = [[EmperorPixelImageView alloc] initWithFrame:NSMakeRect(20, 20, 984, _spriteView.bounds.size.height - 218)];
     _spriteImageView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _spriteImageView.accessibilityIdentifier = @"sg3-native-image";
     _spriteImageView.imageScaling = NSImageScaleProportionallyUpOrDown;
@@ -1178,6 +1205,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _current555Path.clear();
     _spriteImageView.image = nil;
     _spriteSlider.enabled = NO;
+    _spriteIdField.enabled=NO;_spriteIdApply.enabled=NO;_spriteBaseCanvas.enabled=NO;
+    _spriteImageView.accessibilityLabel=@"没有显示SG3图像";
     _spriteInfoLabel.stringValue = @"资源不可读取或图素布局不受支持";
     if (sel < 0 || static_cast<size_t>(sel) >= _sg3Packages.size()) return;
     const auto& relative = _sg3Packages[static_cast<size_t>(sel)];
@@ -1187,6 +1216,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _spriteSlider.hidden = NO;
     if (!_currentSG3.sprites.empty()) {
         _spriteSlider.enabled = YES;
+        _spriteIdField.enabled=YES;_spriteIdApply.enabled=YES;
         _spriteSlider.maxValue = _currentSG3.sprites.size() - 1;
         _spriteSlider.doubleValue = 0;
         [self renderSpriteAtIndex:0];
@@ -1200,7 +1230,19 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self renderSpriteAtIndex:idx];
 }
 
+- (void)onSpriteIdChanged:(id)sender {
+    (void)sender;
+    NSString* text=[_spriteIdField.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    const char* raw=text.UTF8String;char* end=nullptr;const auto id=raw?std::strtoull(raw,&end,10):0;
+    if(!raw||!*raw||!end||end==raw||*end!='\0'||!id||id>_currentSG3.sprites.size()) {
+        _spriteImageView.image=nil;_spriteImageView.accessibilityLabel=@"没有显示SG3图像";
+        _spriteInfoLabel.stringValue=@"逻辑ID须在当前包使用中范围内；旧图像已清空";return;
+    }
+    _spriteSlider.doubleValue=double(id-1);[self renderSpriteAtIndex:size_t(id-1)];
+}
+
 - (void)renderSpriteAtIndex:(size_t)idx {
+    _spriteImageView.image=nil;_spriteImageView.accessibilityLabel=@"没有显示SG3图像";
     if (idx >= _currentSG3.sprites.size()) {
         _spriteImageView.image = nil;
         _spriteInfoLabel.stringValue = @"图素序号无效";
@@ -1209,7 +1251,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const auto& s = _currentSG3.sprites[idx];
     const auto delivery = _media->sprite(_currentSG3, idx, _current555Path);
     const auto& extracted = delivery.image;
-    if (!presentPixels(_spriteImageView, extracted.width, extracted.height, extracted.pixelsBGRA)) {
+    _spriteIdField.stringValue=[NSString stringWithFormat:@"%zu",idx+1];
+    const auto geometry=game_lab::sg3SingleCellGeometry(_currentSG3,idx);
+    _spriteBaseCanvas.enabled=geometry.has_value();
+    const bool baseCanvas=geometry&&_spriteBaseCanvas.state==NSControlStateValueOn;
+    const auto displayed=baseCanvas?game_lab::renderSG3SingleCellCanvas(extracted,{}):extracted;
+    _spriteImageView.imageScaling=baseCanvas?NSImageScaleNone:NSImageScaleProportionallyUpOrDown;
+    if (!presentPixels(_spriteImageView, displayed.width, displayed.height, displayed.pixelsBGRA)) {
         _spriteImageView.image = nil;
         if (delivery.status == game_lab::SG3DecodeStatus::EmptyRecord)
             _spriteInfoLabel.stringValue = @"空图像记录：没有像素可显示；不计入解码成功，未显示旧图像";
@@ -1222,6 +1270,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _spriteInfoLabel.stringValue = [NSString stringWithFormat:@"图像 ID: %zu / %zu（使用中）· SG3 v%u · 类型: %u · 尺寸: %dx%d\n镜像: %@ · Alpha: %@ · 已原生显示；与原版视觉一致性未测",
         idx + 1, _currentSG3.sprites.size(), _currentSG3.version, s.type, extracted.width, extracted.height,
         delivery.mirrored ? @"是" : @"否", delivery.alphaApplied ? @"是" : @"否"];
+    if(baseCanvas)_spriteInfoLabel.stringValue=[_spriteInfoLabel.stringValue stringByAppendingString:@"\n手动单格画布按底部78×40基底居中，越界裁剪；MAP选图与原版绘制锚点未知"];
+    _spriteImageView.accessibilityLabel=[NSString stringWithFormat:@"%@，图像ID %zu，原始尺寸 %u×%u，%@",_spritePackagePopup.titleOfSelectedItem,idx+1,extracted.width,extracted.height,baseCanvas?@"单格基底居中对照，500×240，MAP选图未知":@"原始画布预览"];
+
 }
 
 // ----------------------------------------------------

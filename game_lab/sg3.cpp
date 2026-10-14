@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <new>
+#include <cmath>
 
 namespace game_lab {
 namespace {
@@ -202,6 +203,38 @@ SG3DecodeResult decodeSG3Sprite(const SG3Archive& a,size_t index,const std::stri
         }
         return result;
     } catch(const std::bad_alloc&){return {};}
+}
+std::optional<SG3SingleCellGeometry> sg3SingleCellGeometry(const SG3Archive& a,size_t index) {
+    if(index>=a.numImages||index>=a.sprites.size())return std::nullopt;
+    while(a.sprites[index].mirrorOffset) {
+        const int64_t delta=a.sprites[index].mirrorOffset;
+        if(delta>=0||int64_t(index)+delta<0)return std::nullopt;
+        index=size_t(int64_t(index)+delta);
+    }
+    const auto& s=a.sprites[index];
+    if(s.type!=30||s.width!=78||s.height<40||s.uncompressedLength!=3200||s.length<s.uncompressedLength||
+       (s.tileSize&&s.tileSize!=1))return std::nullopt;
+    return SG3SingleCellGeometry{78,uint32_t(s.height),39,double(s.height)-20};
+}
+DecodedImage renderSG3SingleCellCanvas(const DecodedImage& source,const SG3CanvasPlacement& p) {
+    size_t count=0;
+    if(!source.valid()||source.width!=78||source.height<40||source.height>4096||p.scale<1||p.scale>4||
+       p.width>2048||p.height>2048||!imagePixelCount(p.width,p.height,count)||count>2048u*2048u||
+       !std::isfinite(p.centerX)||!std::isfinite(p.centerY)||std::abs(p.centerX)>1000000||std::abs(p.centerY)>1000000)return {};
+    // Explicit bottom-base convention, supplied centre and sign-consistent ties.
+    const int scale=int(p.scale),left=int(std::floor(p.centerX+.5))-39*scale,
+        top=int(std::floor(p.centerY+.5))-(int(source.height)-20)*scale;
+    try {
+        DecodedImage out;out.width=p.width;out.height=p.height;out.pixelsBGRA.assign(count,0);
+        for(uint32_t y=0;y<source.height;++y)for(uint32_t x=0;x<78;++x) {
+            const auto pixel=source.pixelsBGRA[size_t(y)*78+x];if(!(pixel>>24))continue;
+            for(int sy=0;sy<scale;++sy)for(int sx=0;sx<scale;++sx) {
+                const int px=left+int(x)*scale+sx,py=top+int(y)*scale+sy;
+                if(px>=0&&py>=0&&px<int(p.width)&&py<int(p.height))out.pixelsBGRA[size_t(py)*p.width+size_t(px)]=pixel;
+            }
+        }
+        return out;
+    }catch(const std::bad_alloc&){return {};}
 }
 DecodedImage extractSprite(const SG3Sprite& s,const std::string& path) {
     try {if(s.mirrorOffset || s.external)return {};return pixels(s,path).image;}

@@ -126,4 +126,14 @@ struct SG3DecodeResult {
 // Companion resolution is confined to the SG directory (including 555/).
 SG3DecodeResult decodeSG3Sprite(const SG3Archive&, size_t index, const std::string& companion555Path);
 DecodedImage extractSprite(const SG3Sprite& sprite, const std::string& companion555Path);
+// Decoded single-cell geometry only; this is not an original MAP draw origin.
+struct SG3SingleCellGeometry { uint32_t width=0,height=0; double baseCenterX=0,baseCenterY=0; };
+std::optional<SG3SingleCellGeometry> sg3SingleCellGeometry(const SG3Archive&,size_t logicalIndex);
+struct SG3CanvasPlacement {
+    uint32_t width=500,height=240,scale=1;
+    double centerX=250,centerY=120;
+};
+// One supplied decoded canvas on transparent pixels. No image selector/layers.
+DecodedImage renderSG3SingleCellCanvas(const DecodedImage&,const SG3CanvasPlacement&);
+
 } // namespace game_lab

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <limits>
 #include <unistd.h>
 namespace {
 using Bytes=std::vector<uint8_t>;
@@ -102,6 +103,35 @@ int main() {
         need(game_lab::decodeSG3Sprite(a,0,data.string()).status==game_lab::SG3DecodeStatus::InvalidRecord,"positive payload with zero dimensions is still an invalid record");
         save(idx,index(215,{s}));need(game_lab::loadSG3(idx.string()).sprites.empty(),"unknown version rejected");
         auto cut=index(214,{s});cut.pop_back();save(idx,cut);need(game_lab::loadSG3(idx.string()).sprites.empty(),"incomplete record table rejected");
+        // Authored base-centred placement, independent of image/MAP selection.
+        game_lab::SG3Sprite cell;cell.type=30;cell.width=78;cell.height=49;cell.length=4000;cell.uncompressedLength=3200;
+        cell.animationOffsetX=32767;cell.animationOffsetY=-32768;
+        game_lab::SG3Archive cells;cells.numImages=2;cells.sprites={cell,cell};cells.sprites[1].mirrorOffset=-1;
+        auto geometry=game_lab::sg3SingleCellGeometry(cells,1);
+        need(geometry&&geometry->width==78&&geometry->height==49&&geometry->baseCenterX==39&&geometry->baseCenterY==29,"tall base geometry follows effective mirrored source, not animation offsets");
+        need(!game_lab::sg3SingleCellGeometry(cells,2),"unused or out-of-array canvas ID rejected");
+        cells.sprites[1].mirrorOffset=1;need(!game_lab::sg3SingleCellGeometry(cells,1),"forward canvas mirror rejected");
+        cells.sprites[1].mirrorOffset=-1;
+        for(int bad=0;bad<5;++bad){auto invalid=cells;
+            if(bad==0)invalid.sprites[0].type=256;if(bad==1)invalid.sprites[0].height=39;if(bad==2)invalid.sprites[0].width=158;
+            if(bad==3)invalid.sprites[0].uncompressedLength=3198;if(bad==4)invalid.sprites[0].tileSize=2;
+            need(!game_lab::sg3SingleCellGeometry(invalid,1),"only declared single-cell isometric geometry qualifies");}
+        game_lab::DecodedImage tile;tile.width=78;tile.height=49;tile.pixelsBGRA.assign(78*49,0);
+        tile.pixelsBGRA[29*78+39]=0xff123456;tile.pixelsBGRA[39]=0x80800000;
+        game_lab::SG3CanvasPlacement placement;auto placed=game_lab::renderSG3SingleCellCanvas(tile,placement);
+        need(placed.valid()&&placed.pixelsBGRA[120*500+250]==0xff123456&&placed.pixelsBGRA[91*500+250]==0x80800000&&placed.pixelsBGRA[0]==0,"full tall canvas preserves transparent and premultiplied pixels with its base centre fixed");
+        auto tall=tile;tall.height=58;tall.pixelsBGRA.assign(78*58,0);tall.pixelsBGRA[38*78+39]=0xff123456;
+        auto taller=game_lab::renderSG3SingleCellCanvas(tall,placement);need(taller.pixelsBGRA[120*500+250]==0xff123456,"changing record height does not move its bottom-base centre");
+        auto doubledPlacement=placement;doubledPlacement.scale=2;doubledPlacement.width=1000;doubledPlacement.height=480;doubledPlacement.centerX=500;doubledPlacement.centerY=240;
+        auto doubledCanvas=game_lab::renderSG3SingleCellCanvas(tile,doubledPlacement);bool replicated=doubledCanvas.valid();
+        for(size_t y=0;y<240&&replicated;++y)for(size_t x=0;x<500&&replicated;++x)for(size_t sy=0;sy<2;++sy)for(size_t sx=0;sx<2;++sx)
+            replicated&=doubledCanvas.pixelsBGRA[(2*y+sy)*1000+2*x+sx]==placed.pixelsBGRA[y*500+x];
+        need(replicated,"nearest canvas scaling checks every replica");
+        auto clipping=placement;clipping.centerX=0;clipping.centerY=20;auto clipped=game_lab::renderSG3SingleCellCanvas(tile,clipping);
+        need(clipped.valid()&&clipped.pixelsBGRA[20*500]==0xff123456,"offscreen top/left clip safely while retaining the base centre");
+        for(int bad=0;bad<5;++bad){auto invalid=placement;if(bad==0)invalid.centerX=std::numeric_limits<double>::quiet_NaN();
+            if(bad==1)invalid.centerY=1000001;if(bad==2)invalid.scale=0;if(bad==3)invalid.width=2049;if(bad==4)invalid.height=0;
+            need(!game_lab::renderSG3SingleCellCanvas(tile,invalid).valid(),"invalid single-cell canvas budget or centre fails without stale image");}
         std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"self_authored\":true,\"real_data\":false}\n";
         return 0;
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
