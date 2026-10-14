@@ -1,8 +1,9 @@
 """Authored exact-match/alpha/phase fixtures; no original pixels or assets."""
-import unittest,sys,os,subprocess,json,tempfile
+import unittest,sys,os,subprocess,json,tempfile,struct
+from unittest.mock import patch
 from pathlib import Path
 import numpy as np
-from base_content_audit import diamond_mask,reference_base,match_masked_bases,load_pool,run,crop_reference_base,source_over_fixed_base
+from base_content_audit import diamond_mask,reference_base,match_masked_bases,load_pool,run,crop_reference_base,source_over_fixed_base,run_single_layer
 
 
 def own():
@@ -89,6 +90,91 @@ class BaseContentTests(unittest.TestCase):
     def test_cache_root_provenance_refuses_before_file_lookup(self):
         with tempfile.TemporaryDirectory()as folder:
             with self.assertRaisesRegex(ValueError,'provenance'):run(Path(folder),{'source_root':'/different','reference':'/missing'})
+
+    def cache_fixture(self,p,offset=0):
+        images=np.zeros((3,40,78,4),np.uint8)
+        for i in range(3):images[i][diamond_mask()]=[32*(i+1),0,0,255]
+        (p/'pixels').write_bytes(images.tobytes());(p/'raw').write_bytes(images[:1].tobytes())
+        (p/'single').write_text(f'DATA/own.sg3\t1\t78\t40\t{offset}\t0\t0\t0\t1\n')
+        (p/'regular').write_text(f'DATA/own.sg3\t1\t1\t256\t0\t{offset}\t1\t0\n')
+        return {'single':{'schema':'single','metadata':str(p/'single'),'raw':str(p/'raw'),'full':str(p/'pixels')},
+                'regular':{'schema':'regular','metadata':str(p/'regular'),'pixels':str(p/'pixels')}}
+
+    def test_negative_offsets_never_relabel_a_different_image(self):
+        with tempfile.TemporaryDirectory()as folder:
+            for schema,pool in self.cache_fixture(Path(folder),-24960).items():
+                with self.subTest(schema=schema),self.assertRaisesRegex(ValueError,'record extent'):load_pool(pool)
+
+    def test_valid_offsets_keep_record_bytes_and_labels(self):
+        with tempfile.TemporaryDirectory()as folder:
+            for schema,pool in self.cache_fixture(Path(folder),12480).items():
+                bases,labels=load_pool(pool)
+                self.assertTrue(np.all(bases[0,:,0]==64));self.assertEqual(labels[0]['id'],1)
+                self.assertEqual(len(bases),2 if schema=='single'else 1)
+                if schema=='single':self.assertTrue(np.all(bases[1,:,0]==32))
+
+    def test_record_end_truncation_out_of_bounds_and_split_pixels_refuse(self):
+        with tempfile.TemporaryDirectory()as folder:
+            p=Path(folder)
+            for offset in (24964,37440,37444,1):
+                for schema,pool in self.cache_fixture(p,offset).items():
+                    with self.subTest(schema=schema,offset=offset),self.assertRaisesRegex(ValueError,'record extent'):load_pool(pool)
+            for schema,pool in self.cache_fixture(p).items():
+                (p/'pixels').write_bytes((p/'pixels').read_bytes()[:12476])
+                with self.subTest(schema=schema),self.assertRaisesRegex(ValueError,'record extent'):load_pool(pool)
+
+    def test_full_regular_and_raw_storage_refuse_incomplete_pixels(self):
+        with tempfile.TemporaryDirectory()as folder:
+            p=Path(folder)
+            for schema in ('single','regular'):
+                pool=self.cache_fixture(p)[schema];(p/'pixels').write_bytes((p/'pixels').read_bytes()+b'x')
+                with self.subTest(schema=schema),self.assertRaisesRegex(ValueError,'byte extent'):load_pool(pool)
+            for size in (12476,12481,12484):
+                pool=self.cache_fixture(p)['single'];(p/'raw').write_bytes(bytes(size))
+                with self.subTest(raw_size=size),self.assertRaisesRegex(ValueError,'byte extent'):load_pool(pool)
+
+    def test_multibase_fixed_storage_and_offsets_refuse_invalid_extents(self):
+        with tempfile.TemporaryDirectory()as folder:
+            p=Path(folder);pool={'schema':'multibase','metadata':str(p/'meta'),'pixels':str(p/'pixels')}
+            header='archive\tid\tn\tx\ty\twidth\theight\toffset\topaque\tvariant\n'
+            for offset in (-6400,4,6400):
+                (p/'meta').write_text(header+f'DATA/own.sg3\t1\t2\t0\t0\t158\t80\t{offset}\t1\traw\n');(p/'pixels').write_bytes(bytes(6400))
+                with self.subTest(offset=offset),self.assertRaisesRegex(ValueError,'geometry/extent'):load_pool(pool)
+            (p/'meta').write_text(header+'DATA/own.sg3\t1\t2\t0\t0\t158\t80\t0\t1\traw\n')
+            for size in (6396,6401,6404):
+                (p/'pixels').write_bytes(bytes(size))
+                with self.subTest(size=size),self.assertRaisesRegex(ValueError,'byte extent'):load_pool(pool)
+
+    def layer_fixture(self,p,offset=0,selected=1):
+        from PIL import Image
+        images=np.zeros((3,40,78,4),np.uint8);images[:,diamond_mask()]=[8,0,0,16]
+        (p/'pixels').write_bytes(images.tobytes());(p/'map').write_bytes(b'own');(p/'own.sg3').write_bytes(b'own')
+        (p/'meta').write_text(f'own.sg3\t1\t1\t256\t0\t{offset}\t0\t{selected}\n')
+        Image.new('RGB',(156,80)).save(p/'reference.png')
+        return {'source_root':str(p),'map':'map','map_raw_width':4,'map_raw_offset':88,'base_pool':{},
+                'layers_pixels':str(p/'pixels'),'layers_metadata':str(p/'meta'),'expected_layers':selected,
+                'reference':str(p/'reference.png'),'targets':[]}
+
+    def replay_own_layer(self,p,manifest):
+        payload=bytearray(88+51984*4);struct.pack_into('<I',payload,84,140)
+        with patch('map_sg3_audit.decode_container',return_value=payload),patch('map_sg3_audit.city_fields'),patch('base_content_audit.load_pool',return_value=([],[])):
+            return run_single_layer(p.resolve(),manifest)
+
+    def test_layer_reader_valid_offsets_and_all_row_bounds(self):
+        with tempfile.TemporaryDirectory()as folder:
+            p=Path(folder)
+            self.assertEqual(self.replay_own_layer(p,self.layer_fixture(p,12480))['single_layer_count'],1)
+            for selected in (0,1):
+                for offset in (-24960,24964,37440,37444,1):
+                    manifest=self.layer_fixture(p,offset,selected)
+                    with self.subTest(selected=selected,offset=offset),self.assertRaisesRegex(ValueError,'record extent'):self.replay_own_layer(p,manifest)
+
+    def test_layer_reader_refuses_truncated_and_incomplete_pixel_storage(self):
+        with tempfile.TemporaryDirectory()as folder:
+            p=Path(folder)
+            for size,error in ((12476,'record extent'),(12479,'byte extent'),(37441,'byte extent')):
+                manifest=self.layer_fixture(p);(p/'pixels').write_bytes(bytes(size))
+                with self.subTest(size=size),self.assertRaisesRegex(ValueError,error):self.replay_own_layer(p,manifest)
 
     def test_unset_empty_ROOT_SKIP_without_site_packages(self):
         script=Path(__file__).with_name('base_content_audit.py')

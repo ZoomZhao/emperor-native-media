@@ -77,25 +77,42 @@ def source_over_fixed_base(base,layers):
     return result.astype(np.uint8)
 
 
+def _cache_bytes(path,label,expected_size=None):
+    """Open only complete BGRA storage; check declared extents before mapping."""
+    import numpy as np
+    size=Path(path).stat().st_size
+    if size%4 or (expected_size is not None and size!=expected_size):
+        raise ValueError(label+' byte extent')
+    return np.memmap(path,np.uint8,mode='r') if size else np.empty(0,np.uint8)
+
+
+def _cache_record(blob,offset,size,label):
+    """Validate both bounds before slicing so negative indices never wrap."""
+    if (offset<0 or size<0 or offset>len(blob) or size>len(blob)-offset
+            or offset%4 or size%4):
+        raise ValueError(label+' record extent')
+    record=blob[offset:offset+size]
+    if len(record)!=size:raise ValueError(label+' incomplete record')
+    return record
+
+
 def load_pool(pool):
     import numpy as np
     mask=diamond_mask();kind=pool['schema'];path=Path(pool['metadata'])
     if kind=='single':
         rows=[r.split('\t')for r in path.read_text().splitlines()]
-        raw=np.memmap(pool['raw'],np.uint8,mode='r',shape=(len(rows),40,78,4))
-        if Path(pool['raw']).stat().st_size!=len(rows)*12480:raise ValueError('raw single-cache byte extent')
-        full=np.memmap(pool['full'],np.uint8,mode='r');images=[];labels=[]
+        raw=_cache_bytes(pool['raw'],'raw single-cache',len(rows)*12480).reshape(len(rows),40,78,4)
+        full=_cache_bytes(pool['full'],'single cache');images=[];labels=[]
         for i,r in enumerate(rows):
             width,height,offset=map(int,r[2:5])
-            if width!=78 or height<40 or offset+width*height*4>len(full):raise ValueError('single cache extent')
-            canvas=full[offset:offset+width*height*4].reshape(height,width,4)
+            if width!=78 or height<40:raise ValueError('single cache geometry')
+            canvas=_cache_record(full,offset,width*height*4,'single cache').reshape(height,width,4)
             for variant,image in (('composite',canvas[-40:]),('raw',raw[i])):
                 images.append(image[mask]);labels.append({'archive':r[0],'id':int(r[1]),'resolved_id':int(r[8]),'variant':variant})
         return np.asarray(images,np.uint8),labels
     if kind=='multibase':
-        rows=list(csv.DictReader(path.open(),delimiter='\t'))
-        if Path(pool['pixels']).stat().st_size!=len(rows)*6400:raise ValueError('masked cache byte extent')
-        bases=np.memmap(pool['pixels'],np.uint8,mode='r',shape=(len(rows),1600,4));labels=[]
+        with path.open()as stream:rows=list(csv.DictReader(stream,delimiter='\t'))
+        bases=_cache_bytes(pool['pixels'],'masked cache',len(rows)*6400).reshape(len(rows),1600,4);labels=[]
         for i,row in enumerate(rows):
             n=int(row['n']);x,y=int(row['x']),int(row['y'])
             if not 2<=n<=6 or not 0<=x<n or not 0<=y<n or int(row['width'])!=80*n-2 or int(row['height'])<40*n or int(row['offset'])!=i*6400:
@@ -103,9 +120,9 @@ def load_pool(pool):
             labels.append({k:int(v)if k not in ('archive','variant')else v for k,v in row.items()if k not in ('offset','opaque')})
         return bases,labels
     if kind=='regular':
-        rows=[r.split('\t')for r in path.read_text().splitlines()];blob=np.memmap(pool['pixels'],np.uint8,mode='r');images=[];labels=[]
+        rows=[r.split('\t')for r in path.read_text().splitlines()];blob=_cache_bytes(pool['pixels'],'regular cache');images=[];labels=[]
         for row in rows:
-            offset=int(row[5]);image=blob[offset:offset+12480].reshape(40,78,4)
+            offset=int(row[5]);image=_cache_record(blob,offset,12480,'regular cache').reshape(40,78,4)
             legal=np.array_equal(image[:,:,3],mask.astype(np.uint8)*255)
             if legal!=bool(int(row[6])):raise ValueError('regular alpha geometry metadata disagrees')
             if legal:
@@ -150,10 +167,10 @@ def run_single_layer(root,manifest):
     if not 0<=raw_offset<=len(payload)-51984*4:raise ValueError('raw span bounds')
     bases,labels=load_pool(manifest['base_pool']);mask=diamond_mask()
     rows=[r.split('\t')for r in Path(manifest['layers_metadata']).read_text().splitlines()]
-    blob=np.memmap(manifest['layers_pixels'],np.uint8,mode='r');layers=[];layer_labels=[]
+    blob=_cache_bytes(manifest['layers_pixels'],'layer cache');layers=[];layer_labels=[]
     for row in rows:
+        image=_cache_record(blob,int(row[5]),12480,'layer cache').reshape(40,78,4)
         if not int(row[7]):continue
-        image=blob[int(row[5]):int(row[5])+12480].reshape(40,78,4)
         if np.any(image[:,:,3][~mask]!=0)or not np.any((image[:,:,3]>0)&(image[:,:,3]<255)):
             raise ValueError('frozen partial-alpha support differs')
         name=Path(row[0]);asset=(root/name).resolve()
