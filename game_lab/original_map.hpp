@@ -31,5 +31,15 @@ OriginalMapResult loadOriginalMapTerrain(const std::string& absolutePath);
 OriginalMapAnalysis analyzeOriginalMap(const OriginalMapTerrain&);
 std::string originalMapFlagLabel(unsigned bit);
 DecodedImage renderOriginalMapFlags(const OriginalMapTerrain&,int bit=-1,bool crop=false);
+// Flat diagnostic camera in validated active-crop coordinates. No screenshot
+// positions, original palette, elevation rules or SG3 selector are embedded.
+struct OriginalMapCamera {
+    double centerX=0,centerY=0;
+    uint32_t width=798,height=720,scale=1;
+    bool outlines=true;
+};
+struct OriginalMapPoint { double x=0,y=0; };
+std::optional<OriginalMapPoint> projectOriginalMapCell(const OriginalMapTerrain&,const OriginalMapCamera&,uint32_t activeX,uint32_t activeY);
+DecodedImage renderOriginalMapSpatialFlags(const OriginalMapTerrain&,const OriginalMapCamera&,int bit=-1);
 std::string describeOriginalMap(const OriginalMapResult&);
 } // namespace game_lab

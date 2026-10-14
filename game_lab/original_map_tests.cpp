@@ -4,6 +4,9 @@
 #include <iostream>
 #include <stdexcept>
 #include <unistd.h>
+#include <cmath>
+#include <algorithm>
+#include <limits>
 #include <zlib.h>
 namespace {
 using Bytes=std::vector<uint8_t>;size_t checks=0;
@@ -53,6 +56,35 @@ int main(){try{
  game_lab::OriginalMapTerrain other;other.activeSide=144;other.flags.assign(228u*228u,0x80000u);other.flags[114u*228u+114]=0;
  need(!game_lab::analyzeOriginalMap(other).cropSupported&&!game_lab::renderOriginalMapFlags(other,-1,true).valid()&&game_lab::renderOriginalMapFlags(other).valid(),"unpublished size remains raw diagnostic only");
  need(game_lab::originalMapFlagLabel(22).find("unknown")!=std::string::npos&&game_lab::originalMapFlagLabel(19).find("地图外")!=std::string::npos,"unknown and public bit labels distinguish evidence");
+ // Authored flat-camera fixtures. These are not original-renderer passes.
+ game_lab::OriginalMapTerrain spatial;spatial.activeSide=84;spatial.flags.assign(228u*228u,0x80000u);
+ auto setCell=[&](uint32_t x,uint32_t y,uint32_t value){spatial.flags[size_t(y+72)*228+x+72]=value;};
+ setCell(41,41,0xc0);setCell(41,42,0x80);setCell(42,41,0xc0);setCell(42,42,0x400080);
+ game_lab::OriginalMapCamera camera;camera.centerX=camera.centerY=41.5;camera.width=160;camera.height=80;camera.outlines=false;
+ auto p0=game_lab::projectOriginalMapCell(spatial,camera,41,41),px=game_lab::projectOriginalMapCell(spatial,camera,42,41),py=game_lab::projectOriginalMapCell(spatial,camera,41,42);
+ need(p0&&px&&py&&p0->x==80&&p0->y==20&&px->x-p0->x==40&&px->y-p0->y==20&&py->x-p0->x==-40&&py->y-p0->y==20,"canonical cell centres and both axes come from configurable active-crop camera");
+ auto spatialImage=game_lab::renderOriginalMapSpatialFlags(spatial,camera,6);size_t colored=0,roadPixels=0;
+ for(uint32_t pixel:spatialImage.pixelsBGRA){colored+=bool(pixel>>24);roadPixels+=pixel==0xff54b9e8u;}
+ need(spatialImage.valid()&&colored==6400&&roadPixels==3200&&spatialImage.pixelsBGRA[40*160+40]==0xff24272bu,"four published diamond masks preserve road/clear fields without overlap or invented artwork");
+ auto unknownSpatial=game_lab::renderOriginalMapSpatialFlags(spatial,camera,22);
+ need(unknownSpatial.valid()&&unknownSpatial.pixelsBGRA[60*160+80]==0xff54b9e8u&&unknownSpatial.pixelsBGRA[20*160+80]==0xff24272bu,"unknown high flag survives spatial projection as an explicitly unassigned bit plane");
+ auto panned=camera;panned.centerX+=.5;auto moved=game_lab::projectOriginalMapCell(spatial,panned,41,41);
+ need(moved&&moved->x==p0->x-20&&moved->y==p0->y-10,"camera movement is a planar translation, not a new orientation fit");
+ auto doubled=camera;doubled.scale=2;doubled.width=320;doubled.height=160;auto scaledImage=game_lab::renderOriginalMapSpatialFlags(spatial,doubled,6);
+ bool replicated=scaledImage.valid();for(size_t y=0;y<80&&replicated;++y)for(size_t x=0;x<160&&replicated;++x)for(size_t sy=0;sy<2;++sy)for(size_t sx=0;sx<2;++sx)
+  replicated&=scaledImage.pixelsBGRA[(2*y+sy)*320+2*x+sx]==spatialImage.pixelsBGRA[y*160+x];
+ need(replicated,"scale2 checks every replicated pixel and does not change source cell data");
+ auto outlined=camera;outlined.outlines=true;auto outlines=game_lab::renderOriginalMapSpatialFlags(spatial,outlined,6);
+ need(outlines.valid()&&outlines.pixelsBGRA!=spatialImage.pixelsBGRA&&spatial.flags[size_t(113)*228+113]==0xc0,"optional cell outlines change only authored diagnostic pixels, never MAP flags");
+ auto clipped=camera;clipped.centerX=clipped.centerY=0;auto clippedImage=game_lab::renderOriginalMapSpatialFlags(spatial,clipped,6);
+ need(clippedImage.valid()&&std::all_of(clippedImage.pixelsBGRA.begin(),clippedImage.pixelsBGRA.end(),[](uint32_t p){return p==0;}),"offscreen cells clip safely and are not wrapped to visible coordinates");
+ for(int test=0;test<7;++test){auto invalidCamera=camera;
+  if(test==0)invalidCamera.centerX=std::numeric_limits<double>::quiet_NaN();if(test==1)invalidCamera.centerY=-.1;
+  if(test==2)invalidCamera.centerX=84;if(test==3)invalidCamera.scale=0;if(test==4)invalidCamera.scale=5;
+  if(test==5)invalidCamera.width=0;if(test==6)invalidCamera.width=2049;
+  need(!game_lab::renderOriginalMapSpatialFlags(spatial,invalidCamera,6).valid(),"invalid/nonfinite camera or image budget fails without stale scene");}
+ need(!game_lab::projectOriginalMapCell(spatial,camera,84,41)&&!game_lab::renderOriginalMapSpatialFlags(spatial,camera,32).valid(),"out-of-grid cell and invalid spatial bit plane rejected");
+ need(!game_lab::renderOriginalMapSpatialFlags(other,camera).valid(),"unverified activity crop cannot supply a spatial grid");
  std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"self_authored\":true,\"original_data\":false}\n";
  }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}return 0;
 }

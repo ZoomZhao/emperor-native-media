@@ -3,6 +3,7 @@
 #include <array>
 #include <algorithm>
 #include <new>
+#include <cmath>
 #include <zlib.h>
 
 namespace game_lab {
@@ -25,6 +26,25 @@ constexpr std::array<const char*,32> flagLabels{{
 }};
 uint32_t annotatedMask() {
     uint32_t mask=0;for(unsigned bit=0;bit<32;++bit)if(flagLabels[bit])mask|=uint32_t(1)<<bit;return mask;
+}
+uint32_t diagnosticColor(uint32_t value,int bit) {
+    if(bit>=0)return (value&(uint32_t(1)<<bit))?0xff54b9e8u:0xff24272bu;
+    if(!value)return 0xffc9c5b7u;
+    const uint32_t mixed=value*2654435761u;
+    const uint32_t r=48+((mixed>>16)&127),g=48+((mixed>>8)&127),b=48+(mixed&127);
+    return 0xff000000u|(r<<16)|(g<<8)|b;
+}
+bool validCamera(const OriginalMapCamera& camera,const OriginalMapAnalysis& analysis,size_t& pixels) {
+    return analysis.cropValid() && std::isfinite(camera.centerX)&&std::isfinite(camera.centerY)&&
+        camera.centerX>=0&&camera.centerY>=0&&camera.centerX<analysis.cropSide&&camera.centerY<analysis.cropSide&&
+        camera.scale>=1&&camera.scale<=4&&camera.width<=2048&&camera.height<=2048&&
+        imagePixelCount(camera.width,camera.height,pixels)&&pixels<=2048u*2048u;
+}
+OriginalMapPoint projected(const OriginalMapCamera& camera,uint32_t x,uint32_t y) {
+    const double dx=double(x)-camera.centerX,dy=double(y)-camera.centerY;
+    // Canonical flat cell-centre basis, matching the public78x40 diamond.
+    return {(dx-dy)*40*camera.scale+double(camera.width)/2,
+            (dx+dy)*20*camera.scale+double(camera.height)/2};
 }
 }
 OriginalMapResult loadOriginalMapTerrain(const std::string& path) {
@@ -103,13 +123,42 @@ DecodedImage renderOriginalMapFlags(const OriginalMapTerrain& grid,int bit,bool 
         for(uint32_t y=0;y<side;++y)for(uint32_t x=0;x<side;++x) {
             const uint32_t value=grid.flags[size_t(y+origin)*OriginalMapTerrain::storageSide+x+origin];
             if(crop && (value&outsideFlag)){image.pixelsBGRA.push_back(0);continue;}
-            if(bit>=0)image.pixelsBGRA.push_back((value&(uint32_t(1)<<bit))?0xff54b9e8u:0xff24272bu);
-            else if(!value)image.pixelsBGRA.push_back(0xffc9c5b7u);
-            else {
-                // Independent numerical palette. No GPL/game colors or flag rules.
-                const uint32_t mixed=value*2654435761u;
-                const uint32_t r=48+((mixed>>16)&127),g=48+((mixed>>8)&127),b=48+(mixed&127);
-                image.pixelsBGRA.push_back(0xff000000u|(r<<16)|(g<<8)|b);
+            // Reuse the same independent numerical palette in both views.
+            image.pixelsBGRA.push_back(diagnosticColor(value,bit));
+        }
+        return image;
+    }catch(const std::bad_alloc&){return {};}
+}
+std::optional<OriginalMapPoint> projectOriginalMapCell(const OriginalMapTerrain& grid,const OriginalMapCamera& camera,
+                                                     uint32_t activeX,uint32_t activeY) {
+    const auto analysis=analyzeOriginalMap(grid);size_t count=0;
+    if(!validCamera(camera,analysis,count)||activeX>=analysis.cropSide||activeY>=analysis.cropSide)return std::nullopt;
+    return projected(camera,activeX,activeY);
+}
+DecodedImage renderOriginalMapSpatialFlags(const OriginalMapTerrain& grid,const OriginalMapCamera& camera,int bit) {
+    if(bit<-1||bit>31)return {};
+    const auto analysis=analyzeOriginalMap(grid);size_t count=0;if(!validCamera(camera,analysis,count))return {};
+    try {
+        DecodedImage image;image.width=camera.width;image.height=camera.height;image.pixelsBGRA.assign(count,0);
+        const int scale=int(camera.scale);
+        for(uint32_t y=0;y<analysis.cropSide;++y)for(uint32_t x=0;x<analysis.cropSide;++x) {
+            const uint32_t value=grid.flags[size_t(y+analysis.cropOrigin)*OriginalMapTerrain::storageSide+x+analysis.cropOrigin];
+            if(value&outsideFlag)continue;
+            const auto center=projected(camera,x,y);
+            const int left=int(std::lround(center.x))-39*scale,top=int(std::lround(center.y))-20*scale;
+            if(left>=int(camera.width)||top>=int(camera.height)||left+78*scale<=0||top+40*scale<=0)continue;
+            const uint32_t color=diagnosticColor(value,bit);
+            for(int row=0;row<40;++row) {
+                const int inset=row<20?38-2*row:2*row-40;
+                for(int column=inset;column<78-inset;++column) {
+                    const bool edge=column==inset||column+1==78-inset||row==0||row==39;
+                    const uint32_t pixel=camera.outlines&&edge?0xff959ea3u:color;
+                    for(int sy=0;sy<scale;++sy)for(int sx=0;sx<scale;++sx) {
+                        const int px=left+column*scale+sx,py=top+row*scale+sy;
+                        if(px>=0&&py>=0&&px<int(camera.width)&&py<int(camera.height))
+                            image.pixelsBGRA[size_t(py)*camera.width+size_t(px)]=pixel;
+                    }
+                }
             }
         }
         return image;

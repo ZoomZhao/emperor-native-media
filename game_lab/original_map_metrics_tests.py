@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix='emperor-map-metric-own-') as temp:
   assert report['acceptance_passed']==expected and not report['skipped'],name
   if name=='swapped_roles':assert report['terrain_grids_loaded']==0 and report['city_directory_maps']==1 and report['role_mismatches']==2
   if name=='incomplete_empire':assert report['complete_containers']==1 and report['map_files']==2
-  if name=='positive':assert report['terrain_grids_loaded']==1 and report['empire_roles_rejected']==1 and report['complete_containers']==2
+  if name=='positive':assert report['terrain_grids_loaded']==1 and report['empire_roles_rejected']==1 and report['complete_containers']==2 and report['spatial_MAP_views']==1 and report['spatial_native_images']==1
   checks+=1
  env=os.environ.copy();env.pop('EMPEROR_GAMEDATA_ROOT',None)
  result=subprocess.run([str(binary)],env=env,capture_output=True,text=True);report=json.loads(result.stdout)

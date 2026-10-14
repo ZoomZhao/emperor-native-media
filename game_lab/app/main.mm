@@ -18,6 +18,7 @@
 #include "city_warehouse_transfer.hpp"
 #include "city_warehouse_routes.hpp"
 #include <cstdio>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
@@ -53,6 +54,11 @@ public:
 private:
     NSImageView* __weak view_;
 };
+static bool readMapCameraNumber(NSTextField* field,double& value) {
+    NSString* text=[field.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    const char* raw=text.UTF8String;char* end=nullptr;if(!raw||!*raw)return false;
+    value=std::strtod(raw,&end);return end&&end!=raw&&*end=='\0'&&std::isfinite(value);
+}
 static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                           const std::vector<uint32_t>& pixels) {
     ViewImagePresenter presenter(view);
@@ -143,6 +149,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSPopUpButton* _originalMapPicker;
     NSPopUpButton* _originalMapBitPicker;
     NSButton* _originalMapCrop;
+    NSButton* _originalMapSpatial;
+    NSButton* _originalMapOutlines;
+    NSTextField* _originalMapCameraX;
+    NSTextField* _originalMapCameraY;
+    NSButton* _originalMapCameraApply;
     NSTextField* _originalMapInfo;
     NSImageView* _originalMapImage;
     std::vector<std::string> _originalMapFiles;
@@ -1346,16 +1357,31 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapBitPicker.autoresizingMask = NSViewMinYMargin;
     _originalMapBitPicker.accessibilityIdentifier = @"original-map-plane"; [_originalMapView addSubview:_originalMapBitPicker];
     _originalMapCrop = [NSButton checkboxWithTitle:@"已验证中心活动框裁剪（按地图外标志留空，保留边缘格）" target:self action:@selector(onOriginalMapPlaneChanged:)];
-    _originalMapCrop.frame = NSMakeRect(20, height - 114, 980, 24);
+    _originalMapCrop.frame = NSMakeRect(20, height - 114, 560, 24);
     _originalMapCrop.state = NSControlStateValueOn;
     _originalMapCrop.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     _originalMapCrop.accessibilityIdentifier = @"original-map-crop"; [_originalMapView addSubview:_originalMapCrop];
+    _originalMapSpatial=[NSButton checkboxWithTitle:@"等距空间对照（数值配色）" target:self action:@selector(onOriginalMapPlaneChanged:)];
+    _originalMapSpatial.frame=NSMakeRect(620,height-114,380,24);_originalMapSpatial.autoresizingMask=NSViewMinYMargin;
+    _originalMapSpatial.accessibilityIdentifier=@"original-map-spatial";[_originalMapView addSubview:_originalMapSpatial];
+    NSTextField* cameraLabel=[NSTextField labelWithString:@"相机中心 · 活动格 X / Y"];
+    cameraLabel.frame=NSMakeRect(20,height-146,240,24);cameraLabel.autoresizingMask=NSViewMinYMargin;[_originalMapView addSubview:cameraLabel];
+    _originalMapCameraX=[[NSTextField alloc] initWithFrame:NSMakeRect(264,height-148,104,26)];
+    _originalMapCameraY=[[NSTextField alloc] initWithFrame:NSMakeRect(382,height-148,104,26)];
+    for(NSTextField* field in @[_originalMapCameraX,_originalMapCameraY]){field.target=self;field.action=@selector(onOriginalMapPlaneChanged:);field.autoresizingMask=NSViewMinYMargin;[_originalMapView addSubview:field];}
+    _originalMapCameraX.accessibilityIdentifier=@"original-map-camera-x";_originalMapCameraY.accessibilityIdentifier=@"original-map-camera-y";
+    _originalMapCameraApply=[NSButton buttonWithTitle:@"应用相机" target:self action:@selector(onOriginalMapPlaneChanged:)];
+    _originalMapCameraApply.frame=NSMakeRect(506,height-148,100,26);_originalMapCameraApply.autoresizingMask=NSViewMinYMargin;
+    _originalMapCameraApply.accessibilityIdentifier=@"original-map-camera-apply";[_originalMapView addSubview:_originalMapCameraApply];
+    _originalMapOutlines=[NSButton checkboxWithTitle:@"显示格轮廓" target:self action:@selector(onOriginalMapPlaneChanged:)];
+    _originalMapOutlines.frame=NSMakeRect(620,height-146,300,24);_originalMapOutlines.state=NSControlStateValueOn;
+    _originalMapOutlines.autoresizingMask=NSViewMinYMargin;_originalMapOutlines.accessibilityIdentifier=@"original-map-outlines";[_originalMapView addSubview:_originalMapOutlines];
     _originalMapInfo = [NSTextField wrappingLabelWithString:@"等待地图载入"];
-    _originalMapInfo.frame = NSMakeRect(20, height - 202, 980, 78);
-    _originalMapInfo.maximumNumberOfLines = 4; _originalMapInfo.font = [NSFont systemFontOfSize:12];
+    _originalMapInfo.frame = NSMakeRect(20, height - 244, 980, 88);
+    _originalMapInfo.maximumNumberOfLines = 5; _originalMapInfo.font = [NSFont systemFontOfSize:12];
     _originalMapInfo.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     _originalMapInfo.accessibilityIdentifier = @"original-map-info"; [_originalMapView addSubview:_originalMapInfo];
-    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 238)];
+    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 280)];
     _originalMapImage.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _originalMapImage.imageScaling = NSImageScaleProportionallyUpOrDown;
     _originalMapImage.accessibilityIdentifier = @"original-map-grid"; [_originalMapView addSubview:_originalMapImage];
@@ -1367,29 +1393,42 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const NSInteger index = _originalMapPicker.indexOfSelectedItem;
     if(index < 0 || static_cast<size_t>(index) >= _originalMapFiles.size()) { _originalMapInfo.stringValue = @"没有选择 MAP"; return; }
     _originalMapResult = _media->originalMap(_originalMapFiles[static_cast<size_t>(index)]);
+    const double center=double(_originalMapResult.terrain.activeSide)/2;
+    _originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.2f",center];_originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.2f",center];
     [self onOriginalMapPlaneChanged:nil];
 }
 - (void)onOriginalMapPlaneChanged:(id)sender {
     (void)sender; _originalMapImage.image = nil;
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const auto& result = _originalMapResult;
+    const bool spatial=_originalMapSpatial.state==NSControlStateValueOn;
+    _originalMapCrop.enabled=!spatial;
+    _originalMapCameraX.enabled=spatial;_originalMapCameraY.enabled=spatial;_originalMapCameraApply.enabled=spatial;_originalMapOutlines.enabled=spatial;
     std::string text = game_lab::describeOriginalMap(result);
     if(result.terrain.valid()) {
         const int bit = static_cast<int>(_originalMapBitPicker.indexOfSelectedItem) - 1;
         const bool crop = _originalMapCrop.state == NSControlStateValueOn;
         const auto analysis = game_lab::analyzeOriginalMap(result.terrain);
-        const auto image = game_lab::renderOriginalMapFlags(result.terrain, bit, crop);
-        if(!presentPixels(_originalMapImage, image.width, image.height, image.pixelsBGRA)) text += crop ? "；裁剪验证未通过，关闭裁剪可查看完整诊断" : "；画面转换失败";
+        game_lab::OriginalMapCamera camera;camera.outlines=_originalMapOutlines.state==NSControlStateValueOn;
+        game_lab::DecodedImage image;
+        const bool cameraNumbers=readMapCameraNumber(_originalMapCameraX,camera.centerX)&&readMapCameraNumber(_originalMapCameraY,camera.centerY);
+        if(spatial){if(cameraNumbers)image=game_lab::renderOriginalMapSpatialFlags(result.terrain,camera,bit);}
+        else image=game_lab::renderOriginalMapFlags(result.terrain,bit,crop);
+        if(!presentPixels(_originalMapImage,image.width,image.height,image.pixelsBGRA))
+            text+=spatial?"；相机无效、活动框未验证或空间画面预算超限":crop?"；裁剪验证未通过，关闭裁剪可查看完整诊断":"；画面转换失败";
         else {
-            text += "；已原生显示";
-            _originalMapImage.accessibilityLabel = [NSString stringWithFormat:@"%@，地形标志网格 %u×%u，%@，%@", _originalMapPicker.titleOfSelectedItem, image.width, image.height, _originalMapBitPicker.titleOfSelectedItem, crop ? @"中心活动框裁剪" : @"完整存储网格"];
+            text+="；已原生显示";
+            if(spatial){
+                char cameraText[256];std::snprintf(cameraText,sizeof(cameraText),"；平面等距诊断，相机活动格(%.2f,%.2f)，格轮廓%s；SG3选图未知。",camera.centerX,camera.centerY,camera.outlines?"开":"关");text+=cameraText;
+                _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，等距空间诊断 %u×%u，相机 %.2f,%.2f，%@，格轮廓%@",_originalMapPicker.titleOfSelectedItem,image.width,image.height,camera.centerX,camera.centerY,_originalMapBitPicker.titleOfSelectedItem,camera.outlines?@"开":@"关"];
+            }else _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，地形标志网格 %u×%u，%@，%@",_originalMapPicker.titleOfSelectedItem,image.width,image.height,_originalMapBitPicker.titleOfSelectedItem,crop?@"中心活动框裁剪":@"完整存储网格"];
         }
         char details[256];
         std::snprintf(details, sizeof(details), "\n中心活动框起点(%u,%u)，边长%u；非地图外格%zu，框外%zu；未知位格%zu，未知mask 0x%08x。", analysis.cropOrigin, analysis.cropOrigin, analysis.cropSide, analysis.activeCells, analysis.outsideCropCells, analysis.unknownFlagCells, analysis.unknownBits);
         text += details;
         text += "\n完整消费 " + std::to_string(result.frames) + " 个压缩块，逻辑数据 " + std::to_string(result.decodedBytes) + " 字节；仅读取地形网格。";
     }
-    text += "\n诊断色与公开位标注不等于原版外观；投影/SG3图素映射未验证，不载入城市/建筑/单位。";
+    text += "\n数值配色不等于原版外观；等距对照使用规范平面格坐标，不含高程/遮挡规则；SG3选图未知，不载入城市/建筑/单位。";
     _originalMapInfo.stringValue = [NSString stringWithUTF8String:text.c_str()];
 }
 
