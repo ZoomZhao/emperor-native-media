@@ -145,7 +145,9 @@ DecodedImage renderOriginalMapSpatialFlags(const OriginalMapTerrain& grid,const 
             const uint32_t value=grid.flags[size_t(y+analysis.cropOrigin)*OriginalMapTerrain::storageSide+x+analysis.cropOrigin];
             if(value&outsideFlag)continue;
             const auto center=projected(camera,x,y);
-            const int left=int(std::lround(center.x))-39*scale,top=int(std::lround(center.y))-20*scale;
+            // Half-pixel ties go toward +infinity on both sides of zero;
+            // unlike lround, this preserves the phase under integer translations.
+            const int left=int(std::floor(center.x+.5))-39*scale,top=int(std::floor(center.y+.5))-20*scale;
             if(left>=int(camera.width)||top>=int(camera.height)||left+78*scale<=0||top+40*scale<=0)continue;
             const uint32_t color=diagnosticColor(value,bit);
             for(int row=0;row<40;++row) {

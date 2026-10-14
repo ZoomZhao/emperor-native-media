@@ -76,6 +76,28 @@ int main(){try{
  need(replicated,"scale2 checks every replicated pixel and does not change source cell data");
  auto outlined=camera;outlined.outlines=true;auto outlines=game_lab::renderOriginalMapSpatialFlags(spatial,outlined,6);
  need(outlines.valid()&&outlines.pixelsBGRA!=spatialImage.pixelsBGRA&&spatial.flags[size_t(113)*228+113]==0xc0,"optional cell outlines change only authored diagnostic pixels, never MAP flags");
+ // Fractional-camera raster translation across zero: every shared pixel must
+ // move by the exact integer basis step, including half-pixel ties.
+ game_lab::OriginalMapTerrain phaseGrid;phaseGrid.activeSide=84;phaseGrid.flags.assign(228u*228u,0x80000u);
+ phaseGrid.flags[72u*228u+72]=0xc0;
+ for(uint32_t scale=1;scale<=4;++scale)for(bool outlines:{false,true})for(int axis=0;axis<4;++axis) {
+  game_lab::OriginalMapCamera before;before.width=before.height=80*scale;before.scale=scale;before.outlines=outlines;
+  int cameraDX=0,cameraDY=0;
+  if(axis==0){before.centerX=.0125;cameraDX=1;}
+  if(axis==1){before.centerX=1.0125;cameraDY=1;}
+  if(axis>=2){before.centerX=before.centerY=1.0125;if(axis==2)cameraDX=-1;else cameraDY=-1;}
+  auto after=before;after.centerX+=cameraDX;after.centerY+=cameraDY;
+  const auto first=game_lab::renderOriginalMapSpatialFlags(phaseGrid,before,6),second=game_lab::renderOriginalMapSpatialFlags(phaseGrid,after,6);
+  const int dx=(cameraDY-cameraDX)*40*int(scale),dy=-(cameraDX+cameraDY)*20*int(scale);
+  size_t common=0,colored=0,differences=0;
+  for(int y=0;y<int(after.height);++y)for(int x=0;x<int(after.width);++x) {
+   const int ax=x-dx,ay=y-dy;if(ax<0||ay<0||ax>=int(before.width)||ay>=int(before.height))continue;
+   const auto oldPixel=first.pixelsBGRA[size_t(ay)*before.width+size_t(ax)],newPixel=second.pixelsBGRA[size_t(y)*after.width+size_t(x)];
+   ++common;colored+=bool(oldPixel>>24);differences+=oldPixel!=newPixel;
+  }
+  need(first.valid()&&second.valid()&&common==2400*scale*scale&&colored>0&&differences==0,
+       "fractional half-pixel raster crosses zero without phase jumps under integer camera translation");
+ }
  auto clipped=camera;clipped.centerX=clipped.centerY=0;auto clippedImage=game_lab::renderOriginalMapSpatialFlags(spatial,clipped,6);
  need(clippedImage.valid()&&std::all_of(clippedImage.pixelsBGRA.begin(),clippedImage.pixelsBGRA.end(),[](uint32_t p){return p==0;}),"offscreen cells clip safely and are not wrapped to visible coordinates");
  for(int test=0;test<7;++test){auto invalidCamera=camera;
