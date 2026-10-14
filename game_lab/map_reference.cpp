@@ -12,7 +12,7 @@ MapReferenceResult renderMapReferenceViewport(const OriginalMapTerrain& terrain,
        !std::isfinite(camera.centerX)||!std::isfinite(camera.centerY)||camera.centerX<0||camera.centerY<0||
        camera.centerX>=activity.cropSide||camera.centerY>=activity.cropSide||camera.scale<1||camera.scale>4||
        camera.width>2048||camera.height>2048||!imagePixelCount(camera.width,camera.height,pixels)||pixels>2048u*2048u||
-       archive.numImages!=archive.sprites.size())return result;
+       !archive.numImages||archive.numImages!=archive.sprites.size())return result;
     try {
         result.image.width=camera.width;result.image.height=camera.height;result.image.pixelsBGRA.assign(pixels,0);
         std::unordered_map<size_t,DecodedImage> cache;const int scale=int(camera.scale);

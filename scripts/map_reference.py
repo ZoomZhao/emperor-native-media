@@ -9,6 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('task',choices=['test','metrics','view']);p.add_argument('--mode',choices=['release','undefined'],default='release');p.add_argument('--build-dir',type=Path);p.add_argument('--data-root');p.add_argument('--map');p.add_argument('--sg3');p.add_argument('--raw-offset',type=int);p.add_argument('--raw-width',type=int);p.add_argument('--id-base',type=int);p.add_argument('--camera-x',type=float);p.add_argument('--camera-y',type=float);p.add_argument('--width',type=int);p.add_argument('--height',type=int);p.add_argument('--scale',type=int);p.add_argument('--output',type=Path);a=p.parse_args()
  if a.task=='metrics' and not os.environ.get('EMPEROR_GAMEDATA_ROOT'):print(json.dumps({'skipped':True,'reason':'EMPEROR_GAMEDATA_ROOT unset'}));return 0
+ if a.output and not a.output.is_absolute():p.error('--output requires an absolute path')
  build=(a.build_dir or Path(tempfile.mkdtemp(prefix='emperor-reference-'))).resolve();build.mkdir(parents=True,exist_ok=True);binary=build/('reference-'+a.task+'-'+a.mode)
  flags=['-O2']if a.mode=='release'else['-O1','-g','-fsanitize=undefined','-fno-sanitize-recover=all'];sources=['game_lab/original_map.cpp','game_lab/map_reference.cpp','game_lab/sg3.cpp','game_lab/resource_root.cpp'];frameworks=['-framework','CoreGraphics','-framework','CoreFoundation'];objc=[]
  if a.task=='test':sources+=['game_lab/map_reference_tests.cpp']
@@ -21,7 +22,7 @@ def main():
  if not data_root:p.error('--data-root required for view')
  command=[str(binary),'--data-root',data_root]
  for name in ['map','sg3','raw_offset','raw_width','id_base','camera_x','camera_y','width','height','scale']:command+=['--'+name.replace('_','-'),str(getattr(a,name))]
- if a.output:command+=['--output',str(a.output.resolve())]
+ if a.output:command+=['--output',str(a.output)]
  if a.task=='metrics':command+=['--no-window']
  else:
   bundle=build/'ExperimentalMapReference.app';contents=bundle/'Contents';(contents/'MacOS').mkdir(parents=True,exist_ok=True);exe=contents/'MacOS'/'Reference';exe.write_bytes(binary.read_bytes());exe.chmod(0o755)
