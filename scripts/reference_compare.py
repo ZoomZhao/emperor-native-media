@@ -412,3 +412,59 @@ def nearest_mask_distances(projected_points, target_mask):
         ix,iy=int(math.floor(x+.5)),int(math.floor(y+.5))
         result.append(float(distance[iy,ix]) if ix < mask.shape[1] and iy < mask.shape[0] else None)
     return result
+
+
+def base_interior_mask(mask):
+    """One logical pixel 4-neighbour erosion; borders stay outside the interior."""
+    mask = np.asarray(mask)
+    if (mask.ndim != 2 or mask.dtype != np.bool_ or not all(mask.shape)
+            or max(mask.shape) > 4096):
+        raise ValueError("bounded nonempty2D bool base mask required")
+    padded = np.pad(mask, 1)
+    return (mask & padded[:-2, 1:-1] & padded[2:, 1:-1]
+            & padded[1:-1, :-2] & padded[1:-1, 2:])
+
+
+def classify_spatial_composite(reference, decoded, eligible, final_kind,
+                               base_contributors, rle_contributors, bits=5):
+    """Disjoint caller-supplied paint classes; no renderer or selection inference.
+
+    Kind0 is unpainted,1 base interior,2 base boundary,3 final RLE paint.
+    Contributor counts record nontransparent source support before compositing.
+    A one-source mismatch cannot be changed by merely permuting those sources.
+    All masks come from source geometry, never from observed disagreements.
+    """
+    reference, decoded, eligible, final_kind, bases, rles = map(np.asarray,
+        (reference, decoded, eligible, final_kind, base_contributors, rle_contributors))
+    shape = reference.shape[:2]
+    if (reference.ndim != 3 or reference.shape[-1] != 3 or not all(shape)
+            or max(shape) > 4096 or reference.dtype != np.uint8
+            or decoded.shape != reference.shape or decoded.dtype != np.uint8
+            or eligible.shape != shape or eligible.dtype != np.bool_
+            or final_kind.shape != shape or final_kind.dtype != np.uint8
+            or bases.shape != shape or bases.dtype != np.uint16
+            or rles.shape != shape or rles.dtype != np.uint16
+            or not isinstance(bits, (int, np.integer)) or isinstance(bits, (bool, np.bool_))
+            or not 1 <= bits <= 8 or np.any(final_kind > 3)):
+        raise ValueError("bounded RGB, bool eligibility, kind0..3 and uint16 supports required")
+    contributors = bases.astype(np.uint32) + rles.astype(np.uint32)
+    if (np.any((final_kind == 0) != (contributors == 0))
+            or np.any(((final_kind == 1) | (final_kind == 2)) & (bases == 0))
+            or np.any((final_kind == 3) & (rles == 0))):
+        raise ValueError("paint kind and source support disagree")
+    equal = np.all((reference >> (8-bits)) == (decoded >> (8-bits)), axis=2)
+    def count(mask):
+        mask = mask & eligible
+        denominator = int(mask.sum()); matched = int((mask & equal).sum())
+        return {"equal": matched, "different": denominator-matched, "denominator": denominator}
+    masks = {
+        "base_interior_no_RLE_history": (final_kind == 1) & (rles == 0),
+        "base_boundary_no_RLE_history": (final_kind == 2) & (rles == 0),
+        "base_interior_after_earlier_RLE": (final_kind == 1) & (rles > 0),
+        "base_boundary_after_earlier_RLE": (final_kind == 2) & (rles > 0),
+        "final_RLE": final_kind == 3,
+        "unpainted_background": final_kind == 0,
+    }
+    return {"total": count(eligible), "partitions": {k: count(v) for k,v in masks.items()},
+            "one_provided_source": count(contributors == 1),
+            "multiple_provided_sources": count(contributors > 1)}

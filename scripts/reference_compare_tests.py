@@ -3,10 +3,52 @@ import unittest
 import numpy as np
 from reference_compare import (compare_rgb, compare_nearest_scaled_rgb, bottom_base_canvas_bounds, isometric_subbase_centres, diagonal_grid_matrix,
                                project_points, landmark_residuals, nearest_mask_distances,
-                               mask_translation_candidates,check_fixed_candidates,audit_static_labels,compare_cell_tints)
+                               mask_translation_candidates,check_fixed_candidates,audit_static_labels,compare_cell_tints,base_interior_mask,classify_spatial_composite)
 
 
 class ReferenceComparisonTests(unittest.TestCase):
+    def test_base_boundary_keeps_outer_edges_and_one_pixel_width(self):
+        diamond=np.zeros((40,78),bool)
+        for y in range(40):
+            left=38-2*y if y<20 else 2*y-40;diamond[y,left:78-left]=True
+        original=diamond.copy();inside=base_interior_mask(diamond)
+        self.assertEqual((int(diamond.sum()),int(inside.sum()),int((diamond&~inside).sum())),(1600,1444,156))
+        np.testing.assert_array_equal(diamond,original)
+        self.assertFalse(base_interior_mask(np.ones((1,1),bool)).any())
+
+    def test_spatial_partition_is_disjoint_with_history_and_background(self):
+        ref=np.zeros((1,6,3),np.uint8);src=ref.copy();src[0,1]=8;src[0,4]=8
+        kind=np.array([[1,2,1,2,3,0]],np.uint8)
+        bases=np.array([[1,1,1,1,1,0]],np.uint16);rles=np.array([[0,0,1,1,1,0]],np.uint16)
+        result=classify_spatial_composite(ref,src,np.ones((1,6),bool),kind,bases,rles)
+        self.assertEqual(result['total'],{'equal':4,'different':2,'denominator':6})
+        self.assertEqual(sum(x['denominator']for x in result['partitions'].values()),6)
+        self.assertTrue(all(x['denominator']==1 for x in result['partitions'].values()))
+        self.assertEqual(result['one_provided_source']['different'],1)
+        self.assertEqual(result['multiple_provided_sources']['different'],1)
+
+    def test_spatial_eligibility_and_quantization_do_not_create_masks(self):
+        ref=np.array([[[248,0,0],[0,0,0]]],np.uint8);src=np.array([[[255,0,0],[255,0,0]]],np.uint8)
+        eligible=np.array([[True,False]]);kind=np.array([[1,1]],np.uint8);base=np.ones((1,2),np.uint16);rle=np.zeros((1,2),np.uint16)
+        self.assertEqual(classify_spatial_composite(ref,src,eligible,kind,base,rle)['total'],{'equal':1,'different':0,'denominator':1})
+        self.assertEqual(classify_spatial_composite(ref,src,eligible,kind,base,rle,8)['total']['different'],1)
+        self.assertEqual(classify_spatial_composite(ref,src,np.zeros_like(eligible),kind,base,rle)['total']['denominator'],0)
+
+    def test_spatial_invalid_support_kind_and_dtype_refuse(self):
+        rgb=np.zeros((1,1,3),np.uint8);eligible=np.ones((1,1),bool);kind=np.ones((1,1),np.uint8);base=np.ones((1,1),np.uint16);rle=np.zeros((1,1),np.uint16)
+        for invalid in (np.zeros_like(kind),np.full_like(kind,4),np.full_like(kind,3)):
+            with self.assertRaises(ValueError):classify_spatial_composite(rgb,rgb,eligible,invalid,base,rle)
+        for bits in (True,0,9,5.0):
+            with self.assertRaises(ValueError):classify_spatial_composite(rgb,rgb,eligible,kind,base,rle,bits)
+        with self.assertRaises(ValueError):classify_spatial_composite(rgb,rgb,eligible,kind,base.astype(np.uint8),rle)
+        with self.assertRaises(ValueError):base_interior_mask(np.zeros((0,1),bool))
+
+    def test_spatial_support_addition_does_not_wrap_uint16(self):
+        rgb=np.zeros((1,1,3),np.uint8);mask=np.ones((1,1),bool);kind=np.full((1,1),3,np.uint8);counts=np.full((1,1),32768,np.uint16)
+        result=classify_spatial_composite(rgb,rgb,mask,kind,counts,counts)
+        self.assertEqual(result['multiple_provided_sources']['denominator'],1)
+        self.assertEqual(result['partitions']['final_RLE']['denominator'],1)
+
     def test_tint_preserves_unchanged_and_neutral_pixels(self):
         before=np.array([[[0,32,0],[24,0,24],[0,0,0],[0,0,0]]],np.uint8)
         preview=np.array([[[0,32,0],[24,0,24],[40,0,0],[8,0,0]]],np.uint8)
