@@ -89,6 +89,27 @@ All **22 hypotheses fail discovery**, with **0/220 point comparisons equal**. No
 
 The authored test suite passes **13/13 cases**: every layout's row 227/228, unsigned extrema and last byte; all 11 truncated endpoints; complete-set preflight; role/side/budget refusals; index 0/299/300 bounds; discovery-only failures that never inspect heldout indices; repeated-content counterexamples; two-read stability, late-checksum exclusion, bounded aggregate cardinality, root escape and unset/empty-root SKIP. These are parser regressions, not original-data passes. No CitySimulation/EMP1, native renderer, game input or capture changes occurred. With no structure-supported direct relation, this finite search stops. Packing, placement, layer consumption and a MAP-driven original scene remain unknown; verified joins are **0/167**.
 
+### Standard halves and bytes of the prefix-u32 candidate
+
+The same candidate interval **[1535,209471)** is **207,936=228²×4 bytes**. Before metadata relations were tested, the protocol fixed six overlapping unsigned components: LE low16/high16 and byte0..byte3. Old 10 source-content points alone provide discovery data; the new clear point's selected raw value remains unextracted throughout this check.
+
+| Standard component | Old 10 distinct values | Observed range / constant |
+|---|---:|---|
+| low16 | 9 | 49269..49301 |
+| high16 | 1 | 0 |
+| byte0 | 9 | 117..149 |
+| byte1 | 1 | 192 |
+| byte2 | 1 | 0 |
+| byte3 | 1 | 0 |
+
+Four explicit relations per component give **24 hypotheses**:direct archive-local image ID; the public 300-slot SG index's referenced ID; the source sprite's bitmap-record index at +56; and a zero-based image ordinal using the supplied bitmap's published firstImageIndex, count and lastImageIndex. The last check uses metadata bounds, not a fitted base, and has no ±1 variant. It supplies the observed source bitmap group for testing; it does not derive an Emperor group selector from opaque MAP bits.
+
+The nine distinct source records have one consistent bitmap group across **10/10 observations**, with bitmap index 1, firstImageIndex 201, last 504 and count 304. Every source ID is within that declared range. In this single supplied archive/group, high16 and byte1..3 are constant while low16/byte0 vary. The two repeated-content observations have equal raw u32 values and **6/6 equal components**. This establishes old-sample repeatability, not cross-group stability, a graphics-layer name or packed-index semantics.
+
+The fixed checks complete **24/24**, baseline 0/24, with **0/240 discovery comparisons matching and 0/24 survivors**. No candidate rule reaches heldout validation: the clear point is **0/1 evaluated**, not a validation failure. Independent original-byte reading verifies the 10 u32 values, their standard LE decomposition and existing centre fields at **110/110 comparisons**, with the input unchanged across two reads. Pointwise raw values, metadata and the protocol stay local and are excluded from Git. No new renderer, selector, fitting code, game input or captures were added.
+
+The [public SG Index description](https://github.com/bvschaik/citybuilding-tools/wiki/SG-file-format#index) explicitly attributes its market/slot22 example to **Caesar 3**; those category semantics are not Emperor facts. Its [bitmap table](https://github.com/bvschaik/citybuilding-tools/wiki/SG-file-format#bitmaps) supplies the range/count fields used above, and [image records](https://github.com/bvschaik/citybuilding-tools/wiki/SG-file-format#images) name the bitmap ID. Neither source documents this MAP packing. With no direct standard decomposition explanation, only the measured repeatability is retained; no constant-offset or linear search follows, and MAP→SG3 remains **0/167**.
+
 ## Flat spatial diagnostic and frozen Anyang geometry
 
 `renderOriginalMapSpatialFlags` uses the verified active crop, a configurable cell-centre camera and the canonical nominal (40,20)/(-40,20) logical-pixel basis with the public 78×40 diamond mask. Source terrain flags feed the existing numerical palette or a selected bit plane; off-map cells stay transparent. Optional authored outlines affect only diagnostic pixels. Camera coordinates must be finite and within the active side; scale 1..4 and the 2048×2048 pixel budget are bounded. No captured position, reference cell list, texture or SG3 selector is embedded in production code. Flat geometry does not implement elevation, occlusion, shoreline layers or original drawing rules.
