@@ -66,6 +66,29 @@ The new prediction checks improve **0/3→3/3 measured targets**: **0/3 complete
 
 Thus repeating these raw centre bytes does not reproduce the predicted complete canvas under the fixed regional geometry and visibility conditions. The three new actual content IDs remain **0/3 verified**: a failed predicted canvas is not a newly identified primitive label, proof of runtime randomness or proof that these bytes lack all selection roles. No selector is accepted, and MAP→SG3 remains **0/167**. This finite test is complete; its next discriminating evidence would need independently confirmed underlying content or original placement/layer consumption, rather than fitting a formula to these points.
 
+## Unexplained MAP spans: finite layout audit
+
+The pinned [public city reader](https://github.com/bvschaik/citybuilding-mappers/blob/bb97d7c7edf7c6608d5e9d3d6d5b63ba3686cda6/emperorfile.cpp#L101-L112) supplies aggregate skip bounds, with **N=228²=51,984**. It names only the last preterrain byte grid as edges. It does not separately read or prove four preceding u8 grids, nor the internal boundaries of its N+8+2N skip. The reshapes below remain candidates; no original graphical-layer semantics are assigned.
+
+| Unknown logical interval [start,end) | Length | Multiple / bounded candidate basis |
+|---|---:|---|
+| 8–84 | 76 | Header gap; no grid candidate |
+| 88–1535 | 1,447 | Prefix gap; no grid candidate |
+| 1535–209471 | 207,936 | Exactly 4N: four u8 unit partitions, two u16 pairs or one u32 array |
+| 677327–729311 | 51,984 | Exactly N after objects: one u8 candidate |
+| 781295–937255 | 155,960 | 3N+8: three u8 candidates around an 8-byte gap, following the public skip expression; internal split unproved |
+| 989239–1093607 | 104,368 | 2N+400 is arithmetic only, not an evidenced split; excluded from grid tests |
+
+The frozen protocol defines **11 layouts**: u8 offsets 1535,53519,105503,157487,677327,781295,833287,885271; u16 offsets 1535 and 105503; u32 offset 1535. Every layout has N values and an unsigned little-endian interpretation. The latter three overlap the prefix, so they are alternatives, not additional original data. No sliding offsets, arbitrary bit packing, sentinel guesses, fitted constants or linear transformations are permitted. The u32 prefix includes the earlier rejected unmodified direct-ID candidate; it is not new evidence that this is a graphical layer. The building seek at 1093607 is a stopping boundary; building records and the final 104368-byte gap are not reinterpreted here.
+
+The read-only `scripts/map_raw_spans.py` validates framing, city signature/side, fixed span extents and budgets before reporting candidates. **167/167 city sets and 1,837/1,837 candidate spans** pass, baseline 0/1,837. The same original file bytes are equal in **167/167 two-read checks**; this measures disk-input stability, not runtime state. The candidate at 781295 contains **8,681,328/8,681,328 zero bytes**; the candidate at 885271 contains **8,681,328/8,681,328 bytes equal 255**. These constants establish no sentinel meaning. Aggregate distinct-value sets cap at 65,536 and explicitly report a lower bound if exceeded; no raw or hash dump is emitted.
+
+Only the old **10 complete source-content matches** are discovery labels. The new clear match is reserved for validation, and the three later failed predictions remain unlabelled. Two fixed relations are allowed for each layout: the raw value equals the observed archive-local ID, or it is a valid zero-based slot in the public 300-entry SG index and that slot references the observed ID. The source archive is caller-supplied `China_Terrain.sg3`; matching a numeric ID in another archive would not identify the same content. No image payload is read, and no archive selector is inferred.
+
+All **22 hypotheses fail discovery**, with **0/220 point comparisons equal**. No candidate reaches validation, so the clear point is **0/1 evaluated**, not a failed holdout. The repeated-content pair is raw-equal in **11/11 layouts**. The prefix-u32 candidate has nine distinct raw values across nine observed contents; that old-sample consistency supplies no public encoding, and neither direct relation passes. No lookup table is manufactured from those observations.
+
+The authored test suite passes **13/13 cases**: every layout's row 227/228, unsigned extrema and last byte; all 11 truncated endpoints; complete-set preflight; role/side/budget refusals; index 0/299/300 bounds; discovery-only failures that never inspect heldout indices; repeated-content counterexamples; two-read stability, late-checksum exclusion, bounded aggregate cardinality, root escape and unset/empty-root SKIP. These are parser regressions, not original-data passes. No CitySimulation/EMP1, native renderer, game input or capture changes occurred. With no structure-supported direct relation, this finite search stops. Packing, placement, layer consumption and a MAP-driven original scene remain unknown; verified joins are **0/167**.
+
 ## Flat spatial diagnostic and frozen Anyang geometry
 
 `renderOriginalMapSpatialFlags` uses the verified active crop, a configurable cell-centre camera and the canonical nominal (40,20)/(-40,20) logical-pixel basis with the public 78×40 diamond mask. Source terrain flags feed the existing numerical palette or a selected bit plane; off-map cells stay transparent. Optional authored outlines affect only diagnostic pixels. Camera coordinates must be finite and within the active side; scale 1..4 and the 2048×2048 pixel budget are bounded. No captured position, reference cell list, texture or SG3 selector is embedded in production code. Flat geometry does not implement elevation, occlusion, shoreline layers or original drawing rules.
