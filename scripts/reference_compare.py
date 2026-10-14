@@ -23,6 +23,36 @@ class PixelComparison:
         return self.color_samples > 0 and self.normalized_equal_samples == self.color_samples
 
 
+@dataclass(frozen=True)
+class ScaledPixelComparison:
+    logical: PixelComparison
+    physical: PixelComparison
+    raw_pixels_equal_to_block_representative: int
+
+    @property
+    def raw_nearest_replication(self):
+        return self.raw_pixels_equal_to_block_representative == self.physical.opaque_pixels
+
+
+@dataclass(frozen=True)
+class MaskTranslationCandidate:
+    orientation_index: int
+    offset_xy: tuple
+    heldout_matches: int
+    heldout_total: int
+
+    @property
+    def heldout_passed(self):
+        return self.heldout_matches == self.heldout_total
+
+
+# All square-grid rotations/reflections. No game-camera orientation is selected.
+GRID_ORIENTATIONS = (
+    ((1,0),(0,1)), ((0,-1),(1,0)), ((-1,0),(0,-1)), ((0,1),(-1,0)),
+    ((-1,0),(0,1)), ((1,0),(0,-1)), ((0,1),(1,0)), ((0,-1),(-1,0)),
+)
+
+
 def compare_rgb(reference, decoded, opaque_mask, bits=5):
     """Exact integer verification after template search, plus full8-bit errors.
 
@@ -47,6 +77,84 @@ def compare_rgb(reference, decoded, opaque_mask, bits=5):
                            float(np.sqrt(np.mean(normalized.astype(float)**2))),
                            int(np.abs(normalized).max()),
                            float(np.sqrt(np.mean(raw.astype(float)**2))), int(np.abs(raw).max()))
+
+
+def compare_nearest_scaled_rgb(reference, decoded, opaque_mask, scale=2, bits=5):
+    """Report logical and physical denominators separately, checking every pixel.
+
+    The logical comparison uses one block representative. Physical equality and
+    raw block replication are independent checks; neither is inferred from it.
+    """
+    reference, decoded, mask = map(np.asarray, (reference, decoded, opaque_mask))
+    if (not isinstance(scale, (int,np.integer)) or isinstance(scale, (bool,np.bool_))
+            or not 1 <= scale <= 8 or decoded.ndim != 3 or decoded.shape[-1] != 3
+            or reference.shape != (decoded.shape[0]*scale, decoded.shape[1]*scale, 3)
+            or max(reference.shape[:2]) > 4096):
+        raise ValueError("matching nearest-scale image dimensions and integer scale1..8 required")
+    logical = compare_rgb(reference[::scale,::scale], decoded, mask, bits)
+    expanded_mask = np.repeat(np.repeat(mask,scale,axis=0),scale,axis=1)
+    expanded = np.repeat(np.repeat(decoded,scale,axis=0),scale,axis=1)
+    physical = compare_rgb(reference, expanded, expanded_mask, bits)
+    representative = np.repeat(np.repeat(reference[::scale,::scale],scale,axis=0),scale,axis=1)
+    repeated = int(np.all(reference == representative,axis=2)[expanded_mask].sum())
+    return ScaledPixelComparison(logical,physical,repeated)
+
+
+def mask_translation_candidates(mask, relative_offsets, training_indices, heldout_indices,
+                                orientations=GRID_ORIENTATIONS):
+    """Exhaustively retain every training fit and separately count held-out hits.
+
+    Supplied observations must all refer to true mask cells. This conditional
+    search neither establishes that semantic assumption nor picks a camera,
+    sprite ID, preferred orientation or winner among ambiguous translations.
+    """
+    mask, offsets = np.asarray(mask), np.asarray(relative_offsets)
+    if (mask.ndim != 2 or mask.dtype != np.bool_ or not all(mask.shape)
+            or max(mask.shape)>512 or offsets.ndim!=2 or offsets.shape[1]!=2
+            or not 2<=len(offsets)<=4096 or offsets.dtype.kind not in 'iu'
+            or np.any(offsets>512) or np.any(offsets < -512)):
+        raise ValueError("bounded bool mask and integer offsets required")
+    offsets=offsets.astype(np.int64)
+    if len(np.unique(offsets,axis=0))!=len(offsets):
+        raise ValueError("duplicate observations inflate the evidence count")
+    splits=[]
+    for indices in (training_indices,heldout_indices):
+        indices=np.asarray(indices)
+        if (indices.ndim!=1 or indices.dtype.kind not in 'iu' or not len(indices)
+                or np.any(indices>=len(offsets)) or np.any(indices<0)
+                or len(np.unique(indices))!=len(indices)):
+            raise ValueError("nonempty unique observation indices required")
+        splits.append(indices.astype(np.int64))
+    train,hold=splits
+    if set(train)&set(hold) or len(train)+len(hold)!=len(offsets):
+        raise ValueError("disjoint training/heldout partition required")
+    matrices=np.asarray(orientations)
+    if (matrices.ndim!=3 or matrices.shape[1:]!=(2,2) or not 1<=len(matrices)<=8
+            or matrices.dtype.kind not in 'iu' or np.any(matrices>1) or np.any(matrices< -1)
+            or not np.all(np.abs(matrices).sum(axis=1)==1)
+            or not np.all(np.abs(matrices).sum(axis=2)==1)
+            or len(np.unique(matrices.reshape(-1,4),axis=0))!=len(matrices)):
+        raise ValueError("unique square-grid signed-permutation orientations required")
+    if int(mask.sum())*len(offsets)*len(matrices)>8_000_000:
+        raise ValueError("candidate-operation budget")
+    ys,xs=np.where(mask);anchor_locations=np.column_stack((xs,ys))
+    candidates=[]
+    for index,matrix in enumerate(matrices.astype(np.int64)):
+        relative=offsets@matrix.T
+        # Enumerate from a TRAINING observation, even when relative origin is
+        # held out or outside the target mask. It must not leak holdout truth.
+        origins=anchor_locations-relative[train[0]]
+        x=origins[:,0,None]+relative[None,:,0]
+        y=origins[:,1,None]+relative[None,:,1]
+        inside=(x>=0)&(y>=0)&(x<mask.shape[1])&(y<mask.shape[0])
+        # Lookup only in-bounds coordinates. No clipping into a successful cell.
+        hits=np.zeros(inside.shape,bool)
+        hits[inside]=mask[y[inside],x[inside]]
+        fitting=np.flatnonzero(hits[:,train].all(axis=1))
+        for row in fitting:
+            candidates.append(MaskTranslationCandidate(index,tuple(map(int,origins[row])),
+                                                       int(hits[row,hold].sum()),len(hold)))
+    return tuple(candidates)
 
 
 def diagonal_grid_matrix(scale_u, scale_v, tx, ty):
