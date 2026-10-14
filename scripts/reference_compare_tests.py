@@ -3,10 +3,48 @@ import unittest
 import numpy as np
 from reference_compare import (compare_rgb, compare_nearest_scaled_rgb, diagonal_grid_matrix,
                                project_points, landmark_residuals, nearest_mask_distances,
-                               mask_translation_candidates,check_fixed_candidates,audit_static_labels)
+                               mask_translation_candidates,check_fixed_candidates,audit_static_labels,compare_cell_tints)
 
 
 class ReferenceComparisonTests(unittest.TestCase):
+    def test_tint_preserves_unchanged_and_neutral_pixels(self):
+        before=np.array([[[0,32,0],[24,0,24],[0,0,0],[0,0,0]]],np.uint8)
+        preview=np.array([[[0,32,0],[24,0,24],[40,0,0],[8,0,0]]],np.uint8)
+        masks=np.array([[[True,True,False,False]],[[False,False,True,True]]])
+        r=compare_cell_tints(before,preview,before,masks)
+        self.assertEqual((r[0].mask_pixels,r[0].preview_changed_pixels,r[0].green_pixels,r[0].neutral_pixels),(2,0,1,1))
+        self.assertEqual((r[1].red_pixels,r[1].neutral_pixels),(1,1))
+        self.assertEqual(sum(c.cancel_changed_pixels for c in r),0)
+
+    def test_tint_cancel_and_background_are_separate(self):
+        a=np.zeros((1,2,3),np.uint8);b=a.copy();b[0,0]=[40,0,0]
+        after=a.copy();after[0,1]=255;masks=np.array([[[True,False]]])
+        self.assertEqual(compare_cell_tints(a,b,after,masks)[0].cancel_changed_pixels,0)
+        after[0,0,0]=1
+        self.assertEqual(compare_cell_tints(a,b,after,masks)[0].cancel_changed_pixels,1)
+
+    def test_tint_margin_does_not_overflow_uint8(self):
+        a=np.array([[[255,254,0],[254,0,0]]],np.uint8);masks=np.ones((1,1,2),bool)
+        r=compare_cell_tints(a,a,a,masks)[0]
+        self.assertEqual((r.red_pixels,r.green_pixels,r.neutral_pixels),(1,0,1))
+        self.assertEqual(r.preview_changed_pixels,0)
+
+    def test_tint_duplicate_empty_or_overlap_masks_refuse(self):
+        a=np.zeros((2,2,3),np.uint8);m=np.zeros((2,2,2),bool);m[:,0,0]=True
+        with self.assertRaisesRegex(ValueError,'nonoverlapping'):compare_cell_tints(a,a,a,m)
+        m[1]=False
+        with self.assertRaisesRegex(ValueError,'nonempty'):compare_cell_tints(a,a,a,m)
+
+    def test_tint_bad_frames_margin_and_budget_refuse(self):
+        a=np.zeros((2,2,3),np.uint8);m=np.ones((1,2,2),bool)
+        for margin in (True,-1,256,8.0):
+            with self.assertRaises(ValueError):compare_cell_tints(a,a,a,m,margin)
+        with self.assertRaises(ValueError):compare_cell_tints(a.astype(float),a,a,m)
+        with self.assertRaises(ValueError):compare_cell_tints(a,a[:1],a,m)
+        with self.assertRaises(ValueError):compare_cell_tints(a,a,a,m.astype(np.uint8))
+        large=np.zeros((1024,1024,3),np.uint8)
+        with self.assertRaises(ValueError):compare_cell_tints(large,large,large,np.zeros((8,1024,1024),bool))
+
     def test_quantization_is_not_raw_equality(self):
         ref=np.array([[[248,120,8]]],np.uint8);decoded=np.array([[[255,123,9]]],np.uint8)
         r=compare_rgb(ref,decoded,np.ones((1,1),bool));self.assertTrue(r.normalized_exact)

@@ -64,6 +64,44 @@ class FixedCandidateSupport:
         return self.heldout_total > 0 and self.heldout_matches == self.heldout_total
 
 
+@dataclass(frozen=True)
+class CellTintComparison:
+    mask_pixels: int
+    preview_changed_pixels: int
+    red_pixels: int
+    green_pixels: int
+    neutral_pixels: int
+    cancel_changed_pixels: int
+
+
+def compare_cell_tints(before, preview, after, cell_masks, margin=8):
+    """Count tint evidence on caller-supplied masks, including neutral pixels.
+
+    No outline is inferred from changed pixels: a tinted pixel can already have
+    the same raw colour. Masks must be distinct/nonoverlapping. The counts do not
+    establish road meaning, a MAP coordinate, a selector or an acceptance rule.
+    """
+    before,preview,after=map(np.asarray,(before,preview,after))
+    masks=np.asarray(cell_masks)
+    if (before.ndim!=3 or before.shape[-1]!=3 or not all(before.shape)
+            or max(before.shape[:2])>4096 or before.shape!=preview.shape or before.shape!=after.shape
+            or any(a.dtype!=np.uint8 for a in (before,preview,after))
+            or masks.ndim!=3 or masks.dtype!=np.bool_ or masks.shape[1:]!=before.shape[:2]
+            or not 1<=len(masks)<=128 or masks.size>8_000_000
+            or not isinstance(margin,(int,np.integer)) or isinstance(margin,(bool,np.bool_))
+            or not 0<=margin<=255):
+        raise ValueError("bounded uint8 RGB frames, bool cell masks and integer margin0..255 required")
+    if not np.all(masks.any(axis=(1,2))) or np.any(masks.sum(axis=0,dtype=np.uint16)>1):
+        raise ValueError("nonempty nonoverlapping cell masks required")
+    changed=np.any(before!=preview,axis=2);cancel=np.any(before!=after,axis=2)
+    rgb=preview.astype(np.int16)
+    red=(rgb[:,:,0]>rgb[:,:,1]+margin)&(rgb[:,:,0]>rgb[:,:,2]+margin)
+    green=(rgb[:,:,1]>rgb[:,:,0]+margin)&(rgb[:,:,1]>rgb[:,:,2]+margin)
+    return tuple(CellTintComparison(int(m.sum()),int(changed[m].sum()),int(red[m].sum()),
+                                    int(green[m].sum()),int((~red&~green)[m].sum()),int(cancel[m].sum()))
+                 for m in masks)
+
+
 # All square-grid rotations/reflections. No game-camera orientation is selected.
 GRID_ORIENTATIONS = (
     ((1,0),(0,1)), ((0,-1),(1,0)), ((-1,0),(0,-1)), ((0,1),(-1,0)),
