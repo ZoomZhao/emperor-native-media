@@ -46,6 +46,23 @@ class MaskTranslationCandidate:
         return self.heldout_matches == self.heldout_total
 
 
+@dataclass(frozen=True)
+class FixedCandidateSupport:
+    candidate_index: int
+    training_matches: int
+    training_total: int
+    heldout_matches: int
+    heldout_total: int
+
+    @property
+    def training_passed(self):
+        return self.training_total > 0 and self.training_matches == self.training_total
+
+    @property
+    def heldout_passed(self):
+        return self.heldout_total > 0 and self.heldout_matches == self.heldout_total
+
+
 # All square-grid rotations/reflections. No game-camera orientation is selected.
 GRID_ORIENTATIONS = (
     ((1,0),(0,1)), ((0,-1),(1,0)), ((-1,0),(0,-1)), ((0,1),(-1,0)),
@@ -155,6 +172,44 @@ def mask_translation_candidates(mask, relative_offsets, training_indices, heldou
             candidates.append(MaskTranslationCandidate(index,tuple(map(int,origins[row])),
                                                        int(hits[row,hold].sum()),len(hold)))
     return tuple(candidates)
+
+
+def check_fixed_candidates(mask, candidate_coordinates, training_indices, heldout_indices):
+    """Check independently supplied feature cells without refitting any candidate.
+
+    Coordinates have shape(candidates, observations, xy). Rows stay in caller
+    order, including failures; held-out success cannot override failed training.
+    The caller owns the feature/field assumption and any acceptance decision.
+    """
+    mask, coords=np.asarray(mask),np.asarray(candidate_coordinates)
+    if (mask.ndim!=2 or mask.dtype!=np.bool_ or not all(mask.shape) or max(mask.shape)>512
+            or coords.ndim!=3 or coords.shape[2]!=2 or not 1<=coords.shape[0]<=4096
+            or not 2<=coords.shape[1]<=4096 or coords.dtype.kind not in 'iu'
+            or np.any(coords>8192) or np.any(coords < -8192)):
+        raise ValueError("bounded bool mask and fixed integer candidate coordinates required")
+    if coords.shape[0]*coords.shape[1]>8_000_000:
+        raise ValueError("fixed-candidate operation budget")
+    if any(len(np.unique(row,axis=0))!=coords.shape[1] for row in coords):
+        raise ValueError("duplicate feature coordinates inflate the evidence count")
+    splits=[]
+    for indices in (training_indices,heldout_indices):
+        indices=np.asarray(indices)
+        if (indices.ndim!=1 or indices.dtype.kind not in 'iu' or not len(indices)
+                or np.any(indices>=coords.shape[1]) or np.any(indices<0)
+                or len(np.unique(indices))!=len(indices)):
+            raise ValueError("nonempty unique feature indices required")
+        splits.append(indices.astype(np.int64))
+    train,hold=splits
+    if set(train)&set(hold) or len(train)+len(hold)!=coords.shape[1]:
+        raise ValueError("disjoint training/heldout partition required")
+    coords=coords.astype(np.int64)
+    x,y=coords[:,:,0],coords[:,:,1]
+    inside=(x>=0)&(y>=0)&(x<mask.shape[1])&(y<mask.shape[0])
+    hits=np.zeros(inside.shape,bool)
+    hits[inside]=mask[y[inside],x[inside]]
+    return tuple(FixedCandidateSupport(i,int(row[train].sum()),len(train),
+                                      int(row[hold].sum()),len(hold))
+                 for i,row in enumerate(hits))
 
 
 def diagonal_grid_matrix(scale_u, scale_v, tx, ty):

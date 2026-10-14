@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from reference_compare import (compare_rgb, compare_nearest_scaled_rgb, diagonal_grid_matrix,
                                project_points, landmark_residuals, nearest_mask_distances,
-                               mask_translation_candidates)
+                               mask_translation_candidates,check_fixed_candidates)
 
 
 class ReferenceComparisonTests(unittest.TestCase):
@@ -112,6 +112,42 @@ class ReferenceComparisonTests(unittest.TestCase):
         points=np.array([(x,y)for y in range(20)for x in range(20)],int)
         with self.assertRaisesRegex(ValueError,'budget'):
             mask_translation_candidates(np.ones((512,512),bool),points,list(range(399)),[399])
+
+    def test_fixed_candidates_preserve_failed_training_and_heldout_separately(self):
+        mask=np.zeros((4,4),bool);mask[0,0]=True;mask[1,1]=True;mask[2,2]=True
+        coords=[[[0,0],[1,1],[2,2]],[[0,0],[1,1],[3,3]],[[3,3],[0,3],[2,2]]]
+        r=check_fixed_candidates(mask,coords,[0,1],[2])
+        self.assertEqual([c.candidate_index for c in r],[0,1,2])
+        self.assertEqual([(c.training_passed,c.heldout_passed)for c in r],
+                         [(True,True),(True,False),(False,True)])
+
+    def test_fixed_candidates_do_not_select_a_winner_among_equal_support(self):
+        r=check_fixed_candidates(np.ones((4,4),bool),
+                                 [[[0,0],[1,1]],[[2,2],[3,3]]],[0],[1])
+        self.assertEqual(len(r),2)
+        self.assertTrue(all(c.training_passed and c.heldout_passed for c in r))
+
+    def test_fixed_candidate_outside_cells_do_not_wrap_or_clip(self):
+        coords=np.array([[[-1,0],[0,0]],[[2,1],[1,1]]],int);original=coords.copy()
+        coords.setflags(write=False)
+        r=check_fixed_candidates(np.ones((2,2),bool),coords,[0],[1])
+        self.assertEqual([c.training_matches for c in r],[0,0])
+        self.assertTrue(all(c.heldout_passed for c in r))
+        np.testing.assert_array_equal(coords,original)
+
+    def test_fixed_candidate_invalid_geometry_and_partition_refuse(self):
+        mask=np.ones((2,2),bool);coords=[[[0,0],[1,1]]]
+        for train,hold in [([0],[0]),([0],[]),([0],[2])]:
+            with self.assertRaises(ValueError):check_fixed_candidates(mask,coords,train,hold)
+        with self.assertRaises(ValueError):check_fixed_candidates(mask,np.array(coords,float),[0],[1])
+        with self.assertRaises(ValueError):check_fixed_candidates(mask.astype(np.uint8),coords,[0],[1])
+        with self.assertRaises(ValueError):check_fixed_candidates(mask,[[[8193,0],[1,1]]],[0],[1])
+        with self.assertRaises(ValueError):check_fixed_candidates(mask,[[[0,0],[0,0]]],[0],[1])
+
+    def test_fixed_candidate_budget_refuses_before_large_hit_arrays(self):
+        with self.assertRaisesRegex(ValueError,'budget'):
+            check_fixed_candidates(np.ones((2,2),bool),np.zeros((4096,2048,2),np.int16),
+                                   list(range(2047)),[2047])
 
 
 if __name__=='__main__':unittest.main()
