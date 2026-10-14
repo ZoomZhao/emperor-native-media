@@ -124,6 +124,27 @@ Full predicted-content results are **0/4 matches,4/4 conflicts,0/4 visibly obstr
 
 Thus the old matched contents and first feature holdout retain a precise offset relation, but the four new complete-paint predictions do not support it as a general current-picture selection rule. Their actual underlying contents remain unverified, as do base provenance and any original layer/state consumption. The candidate remains limited to the observed supplied archive/data version; no native selector or graphical-layer name is added. MAP→SG3 full-map joins remain **0/167**, with no original input, movement, capture, placement, save request or gameplay change in this check.
 
+### Fixed-ID base, RLE and sampling-phase diagnostic
+
+The same four predictions remain frozen:three grass points from the previous repeated-random observation, and one road point. They use **three unique records** (one repeated twice), all type30, **78×40**, declared3200-byte single bases. Two records have no RLE remainder and1600 opaque pixels; the road record has254 RLE bytes,77 extra opaque pixels and1677 full opaque pixels. Each full support bounding box is[0,0,78,40). All have **zero rows above the bottom40px base**. Thus geometric upper-canvas coverage is0/0, not a match; an RLE remainder must not be described as extra rows above this base.
+
+An independent read of the declared raw3200-byte RGB555 stream agrees with the current modern decoder's base at **4/4 records**, including one pre-existing complete positive. Fresh whole-RGBA versus the cached decode and base＋RLE recomposition each agree **4/4**. The road RLE support is[56,4,74,17), outside the1600-pixel diamond, with **0 base overlap**. No original file or screenshot is changed; the separate road-difference figure remains local.
+
+| Same fixed source/position | Raw base equal / opaque logical pixels | RLE equal / opaque logical pixels | Full result |
+|---|---:|---:|---|
+| Grass point1 | 0/1600 | 0/0:absent | Fail |
+| Grass point2 (same predicted record) | 0/1600 | 0/0:absent | Fail |
+| Grass point3 | 0/1600 | 0/0:absent | Fail |
+| Road point | 1366/1600 | 75/77 | Fail:1441/1677 equal,236 different |
+
+Four predetermined samples inside each unchanged2× logical block—(0,0),(0,1),(1,0),(1,1)—produce **identical counts at all four points**: **16/16 phase checks**, baseline0/16; no phase passes a complete image. These are repeated samples of the same capture, not independent observations or a position search. The original full-paint **0/4** result remains intact, and the existing same-view complete positive remains **1/1**.
+
+Every grass base pixel differs across all four10-row bands, respectively200/200,600/600,600/600,200/200; there is no support for blaming only canvas-top grass. The road base differs at0/200,26/600,112/600,96/200 by those same bands. Its234 differing base pixels occupy[35,16,78,40); only2 RLE pixels differ at[70,15,72,16). The local visual difference shows a strip along the lower-right road/grass boundary. The principal discrepancy is **inside the base**, while the extra RLE paint largely agrees. This supplies local content evidence for the fixed road prediction without establishing an engine-used ID, mandatory overlay, neighbour rule or complete match.
+
+The same `112-far-turn-after.png` capture identity is retained (08:50:32.690246 UTC, PID12997/window23690,2048×1592). Canonical crop coordinates, MAP raw values and the fixed B/translation recheck **4/4**; every predicted canvas lies inside the unchanged world ROI and outside predeclared UI rectangles, with0 UI/clip pixels. The three grass points are exactly the three prior random-key prediction points, not new locations. A local metadata-label error is corrected by a preserved-record reference:byte49 was wrongly called tile_size; it is unnamed in the public table, while the existing native parser's byte55 is1. Both0/1 were already allowed, so IDs, geometry and pixel results are unchanged; the native parser itself was correct.
+
+Named SG metadata still contains no published global-base field. The selected archive's55 nonzero lookup entries and all eight declared bitmap ranges lie in its local1443-image domain. The four previously checked top-level configuration candidates have neither a recognized MAP-container marker nor a Unicode BOM; three remain uninterpreted binary data, and this does not prove that no resource list exists elsewhere. No archive order or cumulative count was invented to obtain48921. Its provenance and current-renderer meaning remain unverified. No native selector, gameplay change, new original input or capture is added; verified MAP→SG3 joins stay **0/167**.
+
 ## Flat spatial diagnostic and frozen Anyang geometry
 
 `renderOriginalMapSpatialFlags` uses the verified active crop, a configurable cell-centre camera and the canonical nominal (40,20)/(-40,20) logical-pixel basis with the public 78×40 diamond mask. Source terrain flags feed the existing numerical palette or a selected bit plane; off-map cells stay transparent. Optional authored outlines affect only diagnostic pixels. Camera coordinates must be finite and within the active side; scale 1..4 and the 2048×2048 pixel budget are bounded. No captured position, reference cell list, texture or SG3 selector is embedded in production code. Flat geometry does not implement elevation, occlusion, shoreline layers or original drawing rules.
