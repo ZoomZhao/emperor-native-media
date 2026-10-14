@@ -6,6 +6,8 @@ Original Bink silent video is connected through an existing external FFmpeg inst
 
 The **原始地图** tab opens original city MAP terrain flags as a read-only grid with a verified centered active-box crop, an independent numerical palette and 32 annotated bit-plane views. Its **等距空间对照** view adds a configurable active-cell camera and optional cell outlines; fractional camera pans preserve the half-pixel raster phase across zero, and all 167 city maps create native spatial diagnostic images. The full 228×228 backing grid remains selectable; unknown bits are explicit. All 167 city maps now also retain raw object/edge grids and the public mapper variables `random` and `fertile`; those names do not establish game meanings or SG3 selection. Three frozen repeat-byte predictions on visibly clear grass all failed full-content equality; the new cells’ underlying content IDs remain unknown. One Anyang native window was checked against the frozen farther-road footprint: 4/4 cell centres agree at 0px error under the measured flat-plane model. Ground-image comparisons distinguish the 78×40 base from a taller record canvas; 10 reused full-ground positives pass the comparison gate. A declared-base pool now contains 2,983 decoded records, but all 16 fixed footprint cells remain unmatched. A newly frozen grass control without cardinal roads now has one full unique content match; the road-adjacent contrast remains unresolved. The sprite browser accepts an exact manual image ID and a nearest-pixel base-centred preview; MAP selection stays unknown. Its first window sample is displayed, with a strict screen-colour mismatch still under investigation. This numerical display does not restore city objects, original artwork, elevation or SG3 selection. [MAP format and scope](docs/MAP.md) distinguishes city maps from the unsupported empire map.
 
+The separate [experimental MAP reference viewer](docs/MAP.md#experimental-raw-map-reference-viewport) now reads an explicit raw byte offset/width and caller-supplied SG3 archive/ID base to draw a complete native viewport. Anyang displayed 390/390 visible candidate cells using 62 decoded records. It has no per-cell image overrides or screenshot textures. The observed base 48921 is an explicit experimental parameter, with no default or original-engine claim; the frozen viewport comparison agrees at 491,284/2,176,064 eligible pixels and fails complete agreement. Full-city joins remain 0/167.
+
 Current phase: **DATA FIRST**. Every change must raise a metric in [STATUS.md](STATUS.md) or remove a listed blocker. CitySimulation/EMP1 and the authored gameplay are frozen and retained; their tests do not measure original-game progress.
 
 Requires macOS 15+ and Apple command-line tools already installed.
@@ -17,6 +19,8 @@ make sg3-test
 EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make data-metrics
 make map-test
 make map-test-undefined
+make map-reference-test
+make map-reference-test-undefined
 make map-sg3-audit-test
 make map-raw-spans-test
 EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make map-raw-spans
@@ -33,6 +37,17 @@ EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData python3 game_lab/run_bink_tests
 ```
 
 Real-data tests read only `EMPEROR_GAMEDATA_ROOT` and skip cleanly when unset. No implicit repository asset lookup or global environment changes. Native App selection retains `--data-root` precedence. [SG3 format and scope](docs/SG3.md) defines the image denominator and remaining gaps. For out-of-tree MAP checks, use `python3 scripts/map_data.py test --build-dir /absolute/temporary/path` or `metrics --mode undefined --build-dir /absolute/temporary/path`.
+
+Run the experimental viewer with every diagnostic parameter explicit (this measured Anyang example is not an accepted selector):
+
+```sh
+python3 scripts/map_reference.py view --data-root /absolute/path/to/GameData \
+  --map Cities/Anyang.map --raw-offset 1535 --raw-width 4 \
+  --sg3 DATA/China_Terrain.sg3 --id-base 48921 \
+  --camera-x 69.5 --camera-y 41.5 --width 1588 --height 1432 --scale 2
+```
+
+For read-only real-data metrics, replace `view --data-root /absolute/path/to/GameData` with `metrics` and set `EMPEROR_GAMEDATA_ROOT` for that process. `--build-dir` retains an out-of-tree app; optional `--output` requires a fresh absolute PNG path outside GameData. Local images must stay outside Git.
 
 Offline Anyang comparison now has a measured minimap fit and 78 verified water-sprite placements from 40 visual IDs. Relative main-view steps are measured; the current conditional landmark replay and remaining anchor/shoreline limits are recorded in the linked MAP scope. [Registration and visual-match scope](docs/MAP.md#offline-anyang-registration-and-sg3-visual-samples) distinguishes logical color entries from repeated 2x pixels, raw/quantized errors and unproved MAP rules. A separately approved original pause/resume observation now shows changing content at78/78 fixed water positions with unchanged tree controls; a cancelled four-cell housing preview now verifies the measured ground-lattice phase, while absolute MAP cell anchors remain unproved. `scripts/reference_compare.py` has no file lookup or UI; its 41 authored tests (four new multibase-layout tests beyond the prior 37) preserve those boundaries, ambiguous candidates, fixed hypotheses and static-key counterexamples without returning an engine selector.
 

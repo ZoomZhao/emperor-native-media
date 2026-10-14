@@ -63,7 +63,20 @@ std::optional<OriginalMapCellLayers> parseOriginalMapCellLayers(const std::vecto
         return layers;
     }catch(const std::bad_alloc&){return std::nullopt;}
 }
-OriginalMapResult loadOriginalMapTerrain(const std::string& path) {
+std::optional<OriginalMapRawLayer> parseOriginalMapRawLayer(const std::vector<uint8_t>& payload,OriginalMapRawSpec spec) {
+    if((spec.width!=1&&spec.width!=2&&spec.width!=4)||payload.size()<88||payload.size()>maxDecoded||
+       !std::equal(citySignature.begin(),citySignature.end(),payload.begin()))return std::nullopt;
+    const auto side=detail::u32(payload.data()+sideOffset);
+    const size_t bytes=terrainCells*spec.width;
+    if(!side||side>228||spec.offset>payload.size()||bytes>payload.size()-spec.offset)return std::nullopt;
+    try {
+        OriginalMapRawLayer layer;layer.spec=spec;layer.values.resize(terrainCells);
+        for(size_t i=0;i<terrainCells;++i){const auto* p=payload.data()+spec.offset+i*spec.width;
+            layer.values[i]=spec.width==1?p[0]:spec.width==2?detail::u16(p):detail::u32(p);}
+        return layer;
+    }catch(const std::bad_alloc&){return std::nullopt;}
+}
+OriginalMapResult loadOriginalMapTerrain(const std::string& path,std::optional<OriginalMapRawSpec> diagnosticSpec) {
     OriginalMapResult result;
     std::vector<uint8_t> input;
     if(!detail::readFile(path,maxInput,input))return result;
@@ -106,6 +119,7 @@ OriginalMapResult loadOriginalMapTerrain(const std::string& path) {
         OriginalMapTerrain grid;grid.activeSide=side;grid.flags.resize(terrainCells);
         for(size_t index=0;index<terrainCells;++index)grid.flags[index]=detail::u32(decoded.data()+terrainOffset+index*4);
         result.cellLayers=parseOriginalMapCellLayers(decoded);
+        if(diagnosticSpec)result.diagnosticRawLayer=parseOriginalMapRawLayer(decoded,*diagnosticSpec);
         result.terrain=std::move(grid);result.status=OriginalMapStatus::LoadedTerrain;
     } catch(const std::bad_alloc&) {result.status=OriginalMapStatus::BudgetExceeded;}
     return result;

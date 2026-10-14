@@ -1,4 +1,4 @@
-.PHONY: all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics map-sg3-audit map-sg3-audit-test map-raw-spans map-raw-spans-test reference-compare-test input-test input-test-undefined input-window-test
+.PHONY: all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics map-sg3-audit map-sg3-audit-test map-raw-spans map-raw-spans-test map-reference-test map-reference-test-undefined reference-compare-test input-test input-test-undefined input-window-test
 all: game-app
 game-app:
 	/bin/sh game_lab/app/build.sh
@@ -24,6 +24,10 @@ map-raw-spans:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/map_raw_spans.py
 map-raw-spans-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/map_raw_spans_tests.py
+map-reference-test:
+	/usr/bin/python3 scripts/map_reference.py test
+map-reference-test-undefined:
+	/usr/bin/python3 scripts/map_reference.py test --mode undefined
 reference-compare-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/reference_compare_tests.py
 input-test:

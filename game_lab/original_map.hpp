@@ -23,10 +23,19 @@ struct OriginalMapCellLayers {
         mapperRandom.size()==cells&&mapperFertile.size()==cells; }
 };
 std::optional<OriginalMapCellLayers> parseOriginalMapCellLayers(const std::vector<uint8_t>& logicalPayload);
+// Caller-selected diagnostic reshape; neither location nor image semantics inferred.
+struct OriginalMapRawSpec { size_t offset=0; unsigned width=0; };
+struct OriginalMapRawLayer {
+    OriginalMapRawSpec spec;
+    std::vector<uint32_t> values;
+    bool valid() const { return (spec.width==1||spec.width==2||spec.width==4)&&values.size()==228u*228u; }
+};
+std::optional<OriginalMapRawLayer> parseOriginalMapRawLayer(const std::vector<uint8_t>& logicalPayload,OriginalMapRawSpec);
 struct OriginalMapResult {
     OriginalMapStatus status=OriginalMapStatus::ReadFailure;
     OriginalMapTerrain terrain;
     std::optional<OriginalMapCellLayers> cellLayers;
+    std::optional<OriginalMapRawLayer> diagnosticRawLayer;
     size_t inputBytes=0,decodedBytes=0,frames=0;
 };
 struct OriginalMapAnalysis {
@@ -38,7 +47,8 @@ struct OriginalMapAnalysis {
 };
 // Authored implementation from public format facts and byte validation.
 // No city state, game rules, GPL parser/renderer or original code.
-OriginalMapResult loadOriginalMapTerrain(const std::string& absolutePath);
+OriginalMapResult loadOriginalMapTerrain(const std::string& absolutePath,
+    std::optional<OriginalMapRawSpec> diagnosticSpec=std::nullopt);
 // Diagnostic colors encode values/bits only, not game terrain semantics.
 OriginalMapAnalysis analyzeOriginalMap(const OriginalMapTerrain&);
 std::string originalMapFlagLabel(unsigned bit);
