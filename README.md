@@ -36,6 +36,8 @@ Offline Anyang comparison now has a measured minimap fit and 78 verified water-s
 
 Three separately captured and cancelled Anyang housing footprints now support one canonical road-grid coordinate registration over12 tested cells (4 training,8 held out;this partition is not8 independently blind cells). The claim assumes the fixed measured basis, a flat translation model and tint-as-road/non-road. The fixed road orientation trial narrows2→1; the broader1,144→10→2→1 enumeration is retrospective. [Coordinate scope](docs/MAP.md#canonical-anyang-road-grid-correspondence) keeps the tested regional correspondence separate from internal camera naming, full-scene projection and the still-missing SG3 selector.
 
+A separately predicted52-step farther road turn now agrees at4/4 cells with0px footprint-box residual, without refitting. The two trials total **four footprints and16 cells**, not16 independent observations. [Farther-turn evidence](docs/MAP.md#frozen-farther-road-turn-verification) preserves failed tooltip registration/recapture attempts and keeps SG3 image selection unknown.
+
 The native SG3 parser also retains the five publicly named animation fields, verified against all72,370 logical records; [animation scope](docs/SG3.md#水面时间关系与动画元数据边界) keeps frame order, offset consumption, reversible endpoints and speed timing unmeasured.
 
 The read-only MAP→SG3 metadata audit verifies the published object-grid layout and SG3 lookup bounds, and rejects an unmodified direct-ID candidate with corpus counts. It reads no .555 pixels and produces no image join. [Mapping evidence and stop condition](docs/MAP.md#mapsg3-association-audit) distinguish field facts, candidate tests and unknown semantics.
