@@ -11,7 +11,7 @@ int main(){
  auto root=game_lab::ResourceRoot::fromAbsolute(env);if(!root.configured())return 2;
  size_t files=0,cities=0,empirePaths=0,loaded=0,unsupported=0,failed=0,cg=0,candidates=0,complete=0;
  size_t crops=0,cropCG=0,activeCells=0,outsideCells=0,unknownCells=0,spatialMaps=0,spatialCG=0;uint32_t unknownBits=0;std::array<size_t,32> unknownCounts{};
- size_t empireRejected=0,roleMismatches=0,unclassified=0;
+ size_t empireRejected=0,roleMismatches=0,unclassified=0,layerSets=0,layerCells=0;
  std::map<uint32_t,size_t> sides;
  for(const auto& entry:std::filesystem::recursive_directory_iterator(root.configuredDirectory())){
   if(!entry.is_regular_file())continue;auto relative=entry.path().lexically_relative(root.configuredDirectory()).generic_string();
@@ -29,7 +29,8 @@ int main(){
   const bool cityGrid=result.status==game_lab::OriginalMapStatus::LoadedTerrain;
   const bool otherRole=result.status==game_lab::OriginalMapStatus::UnsupportedRole;
   roleMismatches+=cityPath?!cityGrid:empirePath?!(otherRole&&completeContainer):false;
-  if(cityPath&&cityGrid){++loaded;++sides[result.terrain.activeSide];auto image=game_lab::renderOriginalMapFlags(result.terrain);
+  if(cityPath&&cityGrid){const bool completeLayers=result.cellLayers&&result.cellLayers->valid();layerSets+=completeLayers;if(completeLayers)layerCells+=game_lab::OriginalMapCellLayers::cells;
+   ++loaded;++sides[result.terrain.activeSide];auto image=game_lab::renderOriginalMapFlags(result.terrain);
    auto native=game_lab::createCGImageFromPremultipliedBGRA(image.width,image.height,image.pixelsBGRA);if(native){++cg;CGImageRelease(native);}
    const auto analysis=game_lab::analyzeOriginalMap(result.terrain);crops+=analysis.cropValid();activeCells+=analysis.activeCells;outsideCells+=analysis.outsideCropCells;unknownCells+=analysis.unknownFlagCells;unknownBits|=analysis.unknownBits;
    for(unsigned bit=0;bit<32;++bit)unknownCounts[bit]+=analysis.unknownBitOccurrences[bit];
@@ -41,7 +42,7 @@ int main(){
   empireRejected+=empirePath&&otherRole&&completeContainer;
  }
  const bool accepted=files>0&&cities>0&&complete==files&&loaded==cities&&cg==loaded&&
-   empireRejected==empirePaths&&!failed&&!roleMismatches&&!unclassified&&crops==loaded&&cropCG==loaded&&spatialMaps==loaded&&spatialCG==loaded;
+   empireRejected==empirePaths&&!failed&&!roleMismatches&&!unclassified&&crops==loaded&&cropCG==loaded&&spatialMaps==loaded&&spatialCG==loaded&&layerSets==loaded;
  std::cout<<"{\"skipped\":false,\"map_files\":"<<files<<",\"city_directory_maps\":"<<cities<<",\"empire_role_paths\":"<<empirePaths
    <<",\"complete_containers\":"<<complete<<",\"terrain_grids_loaded\":"<<loaded<<",\"native_images_created\":"<<cg<<",\"unsupported_roles\":"<<unsupported<<",\"failures\":"<<failed
    <<",\"empire_roles_rejected\":"<<empireRejected<<",\"role_mismatches\":"<<roleMismatches<<",\"unclassified_map_paths\":"<<unclassified<<",\"acceptance_passed\":"<<(accepted?"true":"false")
@@ -51,6 +52,7 @@ int main(){
   <<",\"unknown_flag_cells\":"<<unknownCells<<",\"unknown_bits_mask\":"<<unknownBits<<",\"unknown_bit_occurrences\":{";
  first=true;for(unsigned bit=0;bit<32;++bit)if(unknownCounts[bit]){if(!first)std::cout<<',';first=false;std::cout<<'"'<<bit<<"\":"<<unknownCounts[bit];}
  std::cout<<"},\"spatial_MAP_views\":"<<spatialMaps<<",\"spatial_native_images\":"<<spatialCG
+  <<",\"native_raw_layer_sets\":"<<layerSets<<",\"native_raw_cells_per_layer\":"<<layerCells<<",\"raw_layer_field_values\":"<<layerCells*4
   <<",\"spatial_scope\":\"flat numerical fields with configurable camera,notSG3artwork\",\"ChinaMapProj_companion_candidates\":"<<candidates<<",\"verified_SG3_tile_joins\":0,\"SG3_tile_mapping\":\"unverified\",\"complete_world_parse\":\"unmeasured\",\"original_palette_or_projection\":false}\n";
  return accepted?0:1;
 }

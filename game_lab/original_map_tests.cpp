@@ -27,6 +27,23 @@ int main(){try{
  auto loaded=game_lab::loadOriginalMapTerrain(file.string());need(loaded.status==game_lab::OriginalMapStatus::LoadedTerrain&&loaded.terrain.valid(),"complete city terrain load");
  need(loaded.terrain.activeSide==140&&loaded.terrain.flags[227]==227&&loaded.terrain.flags[228]==228&&loaded.terrain.flags.back()==0x80000001u,"active size and row-major 228 backing independent of 128 preview");
  need(loaded.decodedBytes==body.size()&&loaded.frames>1,"complete multi-chunk consumption");
+ need(!loaded.cellLayers,"terrain-only authored payload never claims complete extra layers");
+ Bytes layerPayload(game_lab::OriginalMapCellLayers::mapperFertileOffset+51984,0);
+ layerPayload[0]=5;layerPayload[2]=0xfe;layerPayload[3]=0xca;layerPayload[6]=2;put(layerPayload,84,140);
+ for(size_t i=0;i<51984;++i){put(layerPayload,game_lab::OriginalMapCellLayers::objectsOffset+4*i,uint32_t(i)|0x80000000u);
+  layerPayload[game_lab::OriginalMapCellLayers::edgesOffset+i]=uint8_t(i*3);
+  layerPayload[game_lab::OriginalMapCellLayers::mapperRandomOffset+i]=uint8_t(i);
+  layerPayload[game_lab::OriginalMapCellLayers::mapperFertileOffset+i]=uint8_t(255-i);}
+ auto layers=game_lab::parseOriginalMapCellLayers(layerPayload);
+ need(layers&&layers->valid()&&layers->objects[227]==(227u|0x80000000u)&&layers->objects[228]==(228u|0x80000000u)&&layers->objects.back()==(51983u|0x80000000u),"objects retain unsigned LE high bits and row boundaries");
+ need(layers->mapperRandom[0]==0&&layers->mapperRandom[255]==255&&layers->mapperRandom[256]==0&&layers->mapperRandom.back()==uint8_t(51983),"mapper random preserves every unsigned byte and backing endpoint");
+ need(layers->mapperFertile[0]==255&&layers->mapperFertile[255]==0&&layers->edges[228]==uint8_t(228*3),"mapper fertile/edges keep raw values without semantics or palette");
+ auto truncatedLayers=layerPayload;truncatedLayers.pop_back();need(!game_lab::parseOriginalMapCellLayers(truncatedLayers),"final byte truncation publishes no partial layer set");
+ for(int bad=0;bad<4;++bad){auto invalid=layerPayload;if(bad==0)invalid[0]=2;if(bad==1)put(invalid,84,0);if(bad==2)put(invalid,84,229);if(bad==3)invalid.resize(8u*1024u*1024u+1);need(!game_lab::parseOriginalMapCellLayers(invalid),"extra layers reject role,side and payload budget independently");}
+ auto completeLayerFile=encode(layerPayload);write(root/"layers.map",completeLayerFile);auto completeLayers=game_lab::loadOriginalMapTerrain((root/"layers.map").string());
+ need(completeLayers.status==game_lab::OriginalMapStatus::LoadedTerrain&&completeLayers.cellLayers&&completeLayers.cellLayers->mapperRandom==layers->mapperRandom,"complete container publishes all extra layers after framing validation");
+ completeLayerFile.back()^=1;write(root/"layers.map",completeLayerFile);auto corruptLayers=game_lab::loadOriginalMapTerrain((root/"layers.map").string());
+ need(corruptLayers.status==game_lab::OriginalMapStatus::InvalidContainer&&!corruptLayers.cellLayers,"late compressed corruption never exposes extra layers");
  auto image=game_lab::renderOriginalMapFlags(loaded.terrain);need(image.valid()&&image.width==228&&image.height==228,"native diagnostic raster dimensions");
  auto bit=game_lab::renderOriginalMapFlags(loaded.terrain,0);need(bit.pixelsBGRA[0]!=bit.pixelsBGRA[1]&&bit.pixelsBGRA[0]==bit.pixelsBGRA[2],"bit-plane uses original values only");
  auto high=game_lab::renderOriginalMapFlags(loaded.terrain,31);need(high.pixelsBGRA.back()!=high.pixelsBGRA[0],"highest uint32 flag bit displayed without signed shift");

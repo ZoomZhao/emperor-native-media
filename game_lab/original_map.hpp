@@ -12,9 +12,21 @@ struct OriginalMapTerrain {
     std::vector<uint32_t> flags;
     bool valid() const { return activeSide>0 && activeSide<=storageSide && flags.size()==size_t(storageSide)*storageSide; }
 };
+// Public modern mapper variable names only; runtime consumption is unknown.
+struct OriginalMapCellLayers {
+    static constexpr size_t cells=228u*228u;
+    static constexpr size_t edgesOffset=209471,objectsOffset=469391,
+        mapperRandomOffset=729311,mapperFertileOffset=937255;
+    std::vector<uint32_t> objects;
+    std::vector<uint8_t> edges,mapperRandom,mapperFertile;
+    bool valid() const { return objects.size()==cells&&edges.size()==cells&&
+        mapperRandom.size()==cells&&mapperFertile.size()==cells; }
+};
+std::optional<OriginalMapCellLayers> parseOriginalMapCellLayers(const std::vector<uint8_t>& logicalPayload);
 struct OriginalMapResult {
     OriginalMapStatus status=OriginalMapStatus::ReadFailure;
     OriginalMapTerrain terrain;
+    std::optional<OriginalMapCellLayers> cellLayers;
     size_t inputBytes=0,decodedBytes=0,frames=0;
 };
 struct OriginalMapAnalysis {
@@ -25,7 +37,7 @@ struct OriginalMapAnalysis {
     bool cropValid() const { return cropSupported && activeCells>0 && outsideCropCells==0; }
 };
 // Authored implementation from public format facts and byte validation.
-// No city state, objects, game rules, GPL parser/renderer or original code.
+// No city state, game rules, GPL parser/renderer or original code.
 OriginalMapResult loadOriginalMapTerrain(const std::string& absolutePath);
 // Diagnostic colors encode values/bits only, not game terrain semantics.
 OriginalMapAnalysis analyzeOriginalMap(const OriginalMapTerrain&);

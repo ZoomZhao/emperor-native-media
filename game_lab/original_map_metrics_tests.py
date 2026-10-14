@@ -9,7 +9,7 @@ def framed(body):
   chunk=body[start:start+32768];encoded=zlib.compress(chunk)
   out+=struct.pack('<III',0xabcdefff,len(encoded),len(chunk))+encoded
  return bytes(out)
-body=bytearray(261455+51984*4)
+body=bytearray(937255+51984)
 body[:8]=bytes.fromhex('0500feca00000200');struct.pack_into('<I',body,84,84)
 for i in range(51984):struct.pack_into('<I',body,261455+4*i,0x80000)
 struct.pack_into('<I',body,261455+4*(114*228+114),0)
@@ -22,7 +22,7 @@ with tempfile.TemporaryDirectory(prefix='emperor-map-metric-own-') as temp:
         ('incomplete_empire',{'Cities/test.map':city,'Campaigns/TEST/TESTP.map':struct.pack('<I',0xfedcbaaa)},False),
         ('late_city_checksum',{'Cities/test.map':city+framed(b'own suffix')[4:-1]+bytes([framed(b'own suffix')[-1]^1]),'Campaigns/TEST/TESTP.map':other},False),
         ('invalid_crop',{'Cities/test.map':framed(invalid_crop),'Campaigns/TEST/TESTP.map':other},False),
-        ('unclassified',{'test.map':city},False),('empty',{},False)]
+        ('unclassified',{'test.map':city},False),('missing_extra_layer',{'Cities/test.map':framed(body[:-1])},False),('empty',{},False)]
  for name,files,expected in cases:
   data=root/name;data.mkdir()
   for path,value in files.items():
@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix='emperor-map-metric-own-') as temp:
   assert report['acceptance_passed']==expected and not report['skipped'],name
   if name=='swapped_roles':assert report['terrain_grids_loaded']==0 and report['city_directory_maps']==1 and report['role_mismatches']==2
   if name=='incomplete_empire':assert report['complete_containers']==1 and report['map_files']==2
-  if name=='positive':assert report['terrain_grids_loaded']==1 and report['empire_roles_rejected']==1 and report['complete_containers']==2 and report['spatial_MAP_views']==1 and report['spatial_native_images']==1
+  if name=='positive':assert report['terrain_grids_loaded']==1 and report['empire_roles_rejected']==1 and report['complete_containers']==2 and report['spatial_MAP_views']==1 and report['spatial_native_images']==1 and report['native_raw_layer_sets']==1 and report['native_raw_cells_per_layer']==51984
   checks+=1
  env=os.environ.copy();env.pop('EMPEROR_GAMEDATA_ROOT',None)
  result=subprocess.run([str(binary)],env=env,capture_output=True,text=True);report=json.loads(result.stdout)

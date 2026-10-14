@@ -1477,7 +1477,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         char details[256];
         std::snprintf(details, sizeof(details), "\n中心活动框起点(%u,%u)，边长%u；非地图外格%zu，框外%zu；未知位格%zu，未知mask 0x%08x。", analysis.cropOrigin, analysis.cropOrigin, analysis.cropSide, analysis.activeCells, analysis.outsideCropCells, analysis.unknownFlagCells, analysis.unknownBits);
         text += details;
-        text += "\n完整消费 " + std::to_string(result.frames) + " 个压缩块，逻辑数据 " + std::to_string(result.decodedBytes) + " 字节；仅读取地形网格。";
+        text += "\n完整消费 " + std::to_string(result.frames) + " 个压缩块，逻辑数据 " + std::to_string(result.decodedBytes) + " 字节；只读原始网格，无城市状态绑定。";
     }
     text += "\n数值配色不等于原版外观；等距对照使用规范平面格坐标，不含高程/遮挡规则；SG3选图未知，不载入城市/建筑/单位。";
     _originalMapInfo.stringValue = [NSString stringWithUTF8String:text.c_str()];

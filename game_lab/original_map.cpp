@@ -47,6 +47,22 @@ OriginalMapPoint projected(const OriginalMapCamera& camera,uint32_t x,uint32_t y
             (dx+dy)*20*camera.scale+double(camera.height)/2};
 }
 }
+std::optional<OriginalMapCellLayers> parseOriginalMapCellLayers(const std::vector<uint8_t>& payload) {
+    const size_t end=OriginalMapCellLayers::mapperFertileOffset+OriginalMapCellLayers::cells;
+    if(payload.size()<end||payload.size()>maxDecoded||
+       !std::equal(citySignature.begin(),citySignature.end(),payload.begin()))return std::nullopt;
+    const uint32_t side=detail::u32(payload.data()+sideOffset);
+    if(!side||side>OriginalMapTerrain::storageSide)return std::nullopt;
+    try {
+        OriginalMapCellLayers layers;layers.objects.resize(terrainCells);
+        for(size_t i=0;i<terrainCells;++i)layers.objects[i]=detail::u32(payload.data()+OriginalMapCellLayers::objectsOffset+4*i);
+        auto copy=[&](size_t offset,std::vector<uint8_t>& target){target.assign(payload.begin()+offset,payload.begin()+offset+terrainCells);};
+        copy(OriginalMapCellLayers::edgesOffset,layers.edges);
+        copy(OriginalMapCellLayers::mapperRandomOffset,layers.mapperRandom);
+        copy(OriginalMapCellLayers::mapperFertileOffset,layers.mapperFertile);
+        return layers;
+    }catch(const std::bad_alloc&){return std::nullopt;}
+}
 OriginalMapResult loadOriginalMapTerrain(const std::string& path) {
     OriginalMapResult result;
     std::vector<uint8_t> input;
@@ -89,6 +105,7 @@ OriginalMapResult loadOriginalMapTerrain(const std::string& path) {
         if(!side || side>OriginalMapTerrain::storageSide) {result.status=OriginalMapStatus::InvalidGrid;return result;}
         OriginalMapTerrain grid;grid.activeSide=side;grid.flags.resize(terrainCells);
         for(size_t index=0;index<terrainCells;++index)grid.flags[index]=detail::u32(decoded.data()+terrainOffset+index*4);
+        result.cellLayers=parseOriginalMapCellLayers(decoded);
         result.terrain=std::move(grid);result.status=OriginalMapStatus::LoadedTerrain;
     } catch(const std::bad_alloc&) {result.status=OriginalMapStatus::BudgetExceeded;}
     return result;
@@ -168,7 +185,7 @@ DecodedImage renderOriginalMapSpatialFlags(const OriginalMapTerrain& grid,const 
 }
 std::string describeOriginalMap(const OriginalMapResult& result) {
     switch(result.status) {
-    case OriginalMapStatus::LoadedTerrain:return "原始城市地图地形网格：存储228×228，活动边长字段 "+std::to_string(result.terrain.activeSide)+"；只读，无城市状态绑定";
+    case OriginalMapStatus::LoadedTerrain:return "原始城市地图地形网格：存储228×228，活动边长字段 "+std::to_string(result.terrain.activeSide)+"；只读，无城市状态绑定；额外原始逐格字段"+(result.cellLayers?std::string("已完整保留，选图关系未知"):std::string("未完整保留"));
     case OriginalMapStatus::ReadFailure:return "地图文件不可读取或超出输入限制";
     case OriginalMapStatus::InvalidContainer:return "地图压缩容器不完整、校验失败或长度不符";
     case OriginalMapStatus::UnsupportedContainer:return "当前只支持已验证的单段压缩 MAP 容器";
