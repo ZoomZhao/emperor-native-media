@@ -16,6 +16,8 @@ The [finite failed-base content check](docs/SG3.md#冻结失败格的有限-base
 
 The [fixed raw-alpha layer check](docs/SG3.md#固定底图的单层原始-alpha-对照) also preserves0/172 exact target matches with the fixed MAP-predicted base and source alpha. Its geometric dust-bitmap candidates have no proved original ground binding. The four relevant SG3/555 files match the current Applications installation byte for byte; the remaining gap is actual image/layer consumption, not a demonstrated mismatch in these inputs.
 
+The [frozen grass temporal qualification](docs/MAP.md#frozen-grass-temporal-qualification) establishes10/10 unchanged complete footprints in two paused original frames. A normal viewer close and one original activation still leave the foreground keyboard guard failing, so running ground stability remains unmeasured and the original stays paused.
+
 Current phase: **DATA FIRST**. Every change must raise a metric in [STATUS.md](STATUS.md) or remove a listed blocker. CitySimulation/EMP1 and the authored gameplay are frozen and retained; their tests do not measure original-game progress.
 
 Requires macOS 15+ and Apple command-line tools already installed.
