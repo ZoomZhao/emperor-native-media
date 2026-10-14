@@ -35,7 +35,8 @@ int main(int argc,char** argv) { @autoreleasepool {
             number(object,@"frame_width"),number(object,@"frame_height"));
         r.normalizedX=number(object,@"normalized_x"); r.normalizedY=number(object,@"normalized_y");
         r.deadlineUnixSeconds=number(object,@"deadline_unix_seconds");
-        // No launching, activation, key events, capture, permission requests or game paths.
+        // No launching, activation, key events, permission requests or game paths.
+        // Only an identified system Dock window may supply an in-memory alpha witness.
         [NSApplication.sharedApplication setActivationPolicy:NSApplicationActivationPolicyProhibited];
         if (inspect) {
             NSData* data=[NSJSONSerialization dataWithJSONObject:inspectionJSON(r,currentSnapshot(r))

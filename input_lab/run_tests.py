@@ -32,7 +32,7 @@ def main():
         for framework in frameworks:
             command += ['-framework', framework]
         subprocess.run(command, check=True, timeout=60)
-    frameworks = ['AppKit', 'ApplicationServices']
+    frameworks = ['AppKit', 'ApplicationServices', 'ScreenCaptureKit']
     compile_source('cli.mm', build / 'scoped-click', frameworks)
     if args.request:
         subprocess.run([str(build / 'scoped-click')] + (['--inspect'] if args.inspect else []) + [str(args.request.resolve())], check=True, timeout=10)
@@ -68,7 +68,7 @@ def main():
                           'CFBundleVersion':'1', 'LSMinimumSystemVersion':'15.0', 'NSHighResolutionCapable':True}, handle)
         compile_source('fixture.mm', executable, frameworks)
         subprocess.run(['/usr/bin/codesign', '--force', '--sign', '-', str(bundle.parent)], check=True, timeout=10)
-        compile_source('integration_tests.mm', build / 'window-tests', frameworks + ['ScreenCaptureKit', 'ImageIO'])
+        compile_source('integration_tests.mm', build / 'window-tests', frameworks + ['ImageIO'])
         evidence = pathlib.Path(tempfile.mkdtemp(prefix='own-window-', dir=str(build)))
         subprocess.run([str(build / 'window-tests'), str(executable), str(evidence), str(build / 'scoped-click')], check=True, timeout=70)
         print(json.dumps({'evidence':str(evidence), 'mode':args.mode}))

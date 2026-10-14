@@ -105,6 +105,15 @@ int main(int argc,char** argv) { @autoreleasepool {
             (centre.x-window.frame.origin.x)/window.frame.size.width,
             (centre.y-window.frame.origin.y)/window.frame.size.height,NSDate.date.timeIntervalSince1970+30};
         require(CGPointEqualToPoint(target(request),centre),"AX and normalized target differ");
+        const auto baseline=snapshotMetadata(request);
+        require(baseline.selectedLayer && *baseline.selectedLayer==0,"ordinary-window regression not at layer0");
+        require(systemDockBackdrop(baseline,processIdentity(baseline.candidateOwnerPid)),"Dock rectangle blocker not reproduced");
+        bool priorRefused=false;
+        try {validate(request,baseline);}catch(const std::runtime_error& e){priorRefused=std::string(e.what())=="selected point obscured";}
+        require(priorRefused && countKind(@"mouse")==0,"baseline did not reproduce a no-input Dock refusal");
+        const auto corrected=currentSnapshot(request);validate(request,corrected);
+        require(corrected.transparentDock && corrected.transparentDock->patchMaxAlpha==0,"transparent Dock witness absent");
+        writeJSON(inspectionJSON(request,corrected),@"dock-witness.json");
         auto filter=[[SCContentFilter alloc] initWithDesktopIndependentWindow:window];
         NSTask* shot=[NSTask new]; shot.executableURL=[NSURL fileURLWithPath:@"/usr/sbin/screencapture"];
         shot.arguments=@[@"-x",@"-o",[NSString stringWithFormat:@"-l%u",request.window],file(@"own-window.png")];
@@ -183,6 +192,8 @@ int main(int argc,char** argv) { @autoreleasepool {
             [inspection[@"selected_window_id"] unsignedIntValue]==request.window &&
             [inspection[@"selected_alpha"] isKindOfClass:NSNumber.class] &&
             [inspection[@"candidate_alpha"] isKindOfClass:NSNumber.class] &&
+            [inspection[@"transparent_Dock_window_id"] unsignedIntValue]==baseline.hitWindow &&
+            [inspection[@"transparent_Dock_patch_max_alpha"] intValue]==0 &&
             [inspection[@"public_display_shield_window_id"] unsignedIntValue]==0 &&
             countKind(@"action")==before,"inspection fabricated metadata or submitted input");
         sender=[NSTask new]; sender.executableURL=[NSURL fileURLWithPath:[NSString stringWithUTF8String:argv[3]]];
@@ -207,7 +218,8 @@ int main(int argc,char** argv) { @autoreleasepool {
         require(!fixture.task.running && fixture.task.terminationStatus==0,"fixture did not exit normally0");
         writeJSON(@{@"outcome":@"PASS",@"pid_diagnostics":pidCases,@"live_guard_rejections":@(rejections),
             @"rejection_events":@0,@"session_actions":@1,@"session_window_events":@2,@"AX_actions":@1,
-            @"normal_exit_status":@0,@"forced_signals":@0,@"Wine_verified":@NO,@"inspection_passed":@YES},@"result.json");
+            @"normal_exit_status":@0,@"forced_signals":@0,@"Wine_verified":@NO,@"inspection_passed":@YES,
+            @"ordinary_window_layer":@0,@"Dock_false_refusals_reproduced":@1,@"Dock_transparent_witnesses":@1},@"result.json");
         std::cout << "PASS: guarded session 1/1, four live guard rejections emitted zero events; Wine unverified\n";
         return 0;
     } catch (const std::exception& error) {

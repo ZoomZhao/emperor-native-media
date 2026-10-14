@@ -80,6 +80,41 @@ int main() { @autoreleasepool {
         catch(const std::runtime_error& e){blocked=std::string(e.what())=="selected point obscured";}
         require(blocked&&sent==1,"same-owner high cover allowed");
         require(!candidateAtPoint(good.capturedFrame,1,cursorLevel-2,cursorLevel,CGPointMake(530,489),false),"lower back window occludes high app");
+        // A full-bounds Dock row is skipped only with fresh per-point transparency
+        // and an independent target AX witness; no other owner gets this exception.
+        Snapshot dockSnapshot=base;dockSnapshot.selectedLayer=0;dockSnapshot.selectedAlpha=1;
+        dockSnapshot.display=1;dockSnapshot.displayBounds=CGRectMake(0,0,1440,900);
+        dockSnapshot.hitWindow=88;dockSnapshot.candidateOwnerPid=456;
+        dockSnapshot.hitLayer=CGWindowLevelForKey(kCGDockWindowLevelKey);
+        dockSnapshot.candidateBounds=dockSnapshot.displayBounds;dockSnapshot.candidateAlpha=1;
+        Identity dock{456,501,42,1234,"/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"};
+        DockWitness witness{dock,88,dockSnapshot.candidateBounds,target(good),0,999.9};
+        require(transparentDockWitness(good,dockSnapshot,dock,witness),"proved transparent Dock point rejected");
+        struct DockCase {std::function<void(Snapshot&,Identity&,DockWitness&)> change;};
+        std::vector<DockCase> dockCases={
+            {[](auto&,auto& d,auto&){d.executable="/third-party/Dock";}},
+            {[](auto&,auto& d,auto&){d.uid++;}},
+            {[](auto&,auto& d,auto&){d.birthSeconds++;}},
+            {[](auto&,auto&,auto& w){w.observedUnixSeconds=999.74;}},
+            {[](auto&,auto&,auto& w){w.observedUnixSeconds=1000.01;}},
+            {[=](auto&,auto&,auto& w){w.observedUnixSeconds=nan;}},
+            {[](auto&,auto&,auto& w){w.patchMaxAlpha=1;}},
+            {[](auto&,auto&,auto& w){w.patchMaxAlpha=255;}},
+            {[](auto&,auto&,auto& w){w.window++;}},
+            {[](auto&,auto&,auto& w){w.bounds.size.width++;}},
+            {[](auto&,auto&,auto& w){w.point.x++;}},
+            {[](auto& s,auto&,auto&){s.hitPid=999;}},
+            {[](auto& s,auto&,auto&){s.hitFrame.origin.x++;}},
+            {[](auto& s,auto&,auto&){s.hitLayer++;}},
+            {[](auto& s,auto&,auto&){s.publicDisplayShield=s.hitWindow;}},
+            {[](auto& s,auto&,auto&){s.selectedLayer=CGWindowLevelForKey(kCGCursorWindowLevelKey);}},
+            {[](auto& s,auto&,auto&){s.selectedAlpha=std::nullopt;}},
+            {[](auto& s,auto&,auto&){s.candidateBounds.size.width--;}},
+        };
+        for(const auto& test:dockCases) {
+            auto s=dockSnapshot;auto d=dock;auto w=witness;test.change(s,d,w);
+            require(!transparentDockWitness(good,s,d,w),"unproved/opaque/foreign Dock candidate exempted");
+        }
         // Exact public API ID identifies a display-capture shield; level/name do not.
         Snapshot displayShield = base;
         displayShield.hitWindow = 88; displayShield.hitLayer = CGShieldingWindowLevel();
@@ -103,7 +138,8 @@ int main() { @autoreleasepool {
         require(missing[@"candidate_alpha"]==NSNull.null && missing[@"selected_layer"]==NSNull.null &&
             ![missing[@"input_sent"] boolValue],"missing metadata fabricated or inspection sent input");
         std::cout << "{\"valid_fake_submission\":1,\"rejections\":" << cases.size()
-            << ",\"occlusion_cases\":3,\"layer_regression_cases\":7,\"shield_diagnostic_cases\":5,\"rejected_fake_submissions\":0,\"UI_events_posted\":0}\n";
+            << ",\"occlusion_cases\":3,\"layer_regression_cases\":7,\"shield_diagnostic_cases\":5,\"Dock_witness_cases\":" << dockCases.size()+1
+            << ",\"rejected_fake_submissions\":0,\"UI_events_posted\":0}\n";
         return 0;
     } catch (const std::exception& e) {std::cerr << e.what() << '\n'; return 1;}
 }}

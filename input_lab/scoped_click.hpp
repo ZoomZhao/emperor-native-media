@@ -2,6 +2,7 @@
 #pragma once
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
+#import <ScreenCaptureKit/ScreenCaptureKit.h>
 #include <libproc.h>
 #include <sys/proc_info.h>
 #include <unistd.h>
@@ -13,6 +14,8 @@
 #include <thread>
 #include <type_traits>
 #include <optional>
+#include <algorithm>
+#include <vector>
 
 namespace scoped_input {
 struct Identity {
@@ -32,6 +35,14 @@ struct Request {
     double normalizedX = 0, normalizedY = 0;
     double deadlineUnixSeconds = 0;
 };
+struct DockWitness {
+    Identity owner;
+    CGWindowID window = 0;
+    CGRect bounds{};
+    CGPoint point{};
+    uint8_t patchMaxAlpha = 255;
+    double observedUnixSeconds = 0;
+};
 struct Snapshot {
     Identity owner;
     uid_t callerUid = 0;
@@ -49,6 +60,7 @@ struct Snapshot {
     CGDirectDisplayID display = 0;
     CGWindowID publicDisplayShield = 0;
     pid_t candidateOwnerPid = 0;
+    std::optional<DockWitness> transparentDock = std::nullopt;
 };
 inline const char* candidateRole(const Snapshot& s) {
     return s.display != 0 && s.publicDisplayShield != 0 && s.hitWindow == s.publicDisplayShield
@@ -70,6 +82,8 @@ inline NSDictionary* inspectionJSON(const Request& r, const Snapshot& s) {
         @"candidate_role":[NSString stringWithUTF8String:candidateRole(s)],
         @"display_id":@(s.display), @"display_bounds":frameJSON(s.displayBounds),
         @"public_display_shield_window_id":@(s.publicDisplayShield),
+        @"transparent_Dock_window_id":s.transparentDock?(id)@(s.transparentDock->window):NSNull.null,
+        @"transparent_Dock_patch_max_alpha":s.transparentDock?(id)@(s.transparentDock->patchMaxAlpha):NSNull.null,
         @"active":@(s.active), @"frontmost_pid":@(s.frontmostPid)};
 }
 inline void require(bool value, const char* why) {
@@ -133,7 +147,81 @@ inline Identity processIdentity(pid_t pid) {
         proc_pidpath(pid, path, sizeof(path)) > 0, "owned process unavailable");
     return {pid, info.pbi_uid, info.pbi_start_tvsec, info.pbi_start_tvusec, path};
 }
-inline Snapshot currentSnapshot(const Request& r) {
+inline bool systemDockBackdrop(const Snapshot& s,const Identity& dock) {
+    return dock.pid > 0 && dock.birthSeconds > 0 && dock.birthMicros < 1000000 &&
+        dock.uid == s.callerUid && dock.pid == s.candidateOwnerPid &&
+        dock.executable == "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock" &&
+        s.display != 0 && s.hitWindow != s.publicDisplayShield &&
+        s.hitLayer == CGWindowLevelForKey(kCGDockWindowLevelKey) &&
+        validFrame(s.candidateBounds) && CGRectEqualToRect(s.candidateBounds,s.displayBounds) &&
+        s.candidateAlpha && *s.candidateAlpha > 0;
+}
+inline bool transparentDockWitness(const Request& r,const Snapshot& s,const Identity& dock,const DockWitness& w) {
+    const double age = s.nowUnixSeconds - w.observedUnixSeconds;
+    return systemDockBackdrop(s,dock) && sameIdentity(dock,w.owner) &&
+        s.inputPermission && s.active && s.frontmostPid == r.owner.pid &&
+        sameIdentity(r.owner,s.owner) && s.callerUid == r.owner.uid &&
+        s.window == r.window && s.windowPid == r.owner.pid &&
+        CGRectEqualToRect(s.frame,r.capturedFrame) && s.hitPid == r.owner.pid &&
+        CGRectEqualToRect(s.hitFrame,r.capturedFrame) && s.selectedLayer && *s.selectedLayer == 0 &&
+        s.selectedAlpha && *s.selectedAlpha > 0 && w.window == s.hitWindow &&
+        CGRectEqualToRect(w.bounds,s.candidateBounds) && CGPointEqualToPoint(w.point,target(r)) &&
+        w.patchMaxAlpha == 0 && std::isfinite(age) && age >= 0 && age <= 0.25;
+}
+// A point-alpha witness is acquired only for the protected system Dock window.
+// No image leaves memory; unavailable capture/identity keeps the original refusal.
+inline std::optional<DockWitness> captureDockWitness(const Snapshot& s,CGPoint point) {
+    if(!CGPreflightScreenCaptureAccess())return std::nullopt;
+    Identity dock;
+    try {dock=processIdentity(s.candidateOwnerPid);}catch(const std::exception&){return std::nullopt;}
+    if(!systemDockBackdrop(s,dock))return std::nullopt;
+    auto wait=[](dispatch_semaphore_t signal) {
+        auto until=std::chrono::steady_clock::now()+std::chrono::seconds(2);
+        while(dispatch_semaphore_wait(signal,DISPATCH_TIME_NOW)) {
+            if(std::chrono::steady_clock::now()>=until)return false;
+            [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.01]];
+        }
+        return true;
+    };
+    __block SCShareableContent* content=nil; __block NSError* error=nil;
+    auto signal=dispatch_semaphore_create(0);
+    [SCShareableContent getShareableContentExcludingDesktopWindows:NO onScreenWindowsOnly:YES
+        completionHandler:^(SCShareableContent* value,NSError* failure){content=value;error=failure;dispatch_semaphore_signal(signal);}];
+    if(!wait(signal) || error || !content)return std::nullopt;
+    SCWindow* window=nil;
+    for(SCWindow* candidate in content.windows)
+        if(candidate.windowID==s.hitWindow && candidate.owningApplication.processID==dock.pid &&
+            candidate.isOnScreen && candidate.windowLayer==s.hitLayer && CGRectEqualToRect(candidate.frame,s.candidateBounds))window=candidate;
+    if(!window)return std::nullopt;
+    auto filter=[[SCContentFilter alloc] initWithDesktopIndependentWindow:window];
+    const double scale=filter.pointPixelScale, width=window.frame.size.width*scale, height=window.frame.size.height*scale;
+    if(!std::isfinite(scale) || scale <= 0 || width < 3 || height < 3 || width > 4096 || height > 4096 ||
+        std::floor(width)!=width || std::floor(height)!=height ||
+        filter.contentRect.size.width!=window.frame.size.width || filter.contentRect.size.height!=window.frame.size.height)return std::nullopt;
+    auto config=[SCStreamConfiguration new];config.width=size_t(width);config.height=size_t(height);
+    config.showsCursor=NO;config.showMouseClicks=NO;config.capturesAudio=NO;config.captureMicrophone=NO;
+    config.ignoreShadowsSingleWindow=YES;config.includeChildWindows=NO;config.shouldBeOpaque=NO;
+    // ARC owns the NSImage even when an asynchronous callback arrives after timeout.
+    __block NSImage* retained=nil;error=nil;signal=dispatch_semaphore_create(0);
+    [SCScreenshotManager captureImageWithFilter:filter configuration:config
+        completionHandler:^(CGImageRef image,NSError* failure){if(image)retained=[[NSImage alloc] initWithCGImage:image size:NSZeroSize];error=failure;dispatch_semaphore_signal(signal);}];
+    if(!wait(signal) || error || !retained)return std::nullopt;
+    CGImageRef image=[retained CGImageForProposedRect:nullptr context:nil hints:nil];
+    if(!image || CGImageGetWidth(image)!=config.width || CGImageGetHeight(image)!=config.height)return std::nullopt;
+    const double px=(point.x-window.frame.origin.x)*scale, py=(point.y-window.frame.origin.y)*scale;
+    if(px < 1 || py < 1 || px >= width-1 || py >= height-1)return std::nullopt;
+    std::vector<uint8_t> pixels(size_t(width)*size_t(height)*4);
+    auto rgb=CGColorSpaceCreateDeviceRGB();
+    auto context=CGBitmapContextCreate(pixels.data(),size_t(width),size_t(height),8,size_t(width)*4,rgb,
+        kCGImageAlphaPremultipliedLast|kCGBitmapByteOrder32Big);CGColorSpaceRelease(rgb);
+    if(!context)return std::nullopt;
+    CGContextDrawImage(context,CGRectMake(0,0,width,height),image);CGContextRelease(context);
+    uint8_t maximum=0;
+    for(int y=int(py)-1;y<=int(py)+1;++y)for(int x=int(px)-1;x<=int(px)+1;++x)
+        maximum=std::max(maximum,pixels[4*(size_t(y)*size_t(width)+size_t(x))+3]);
+    return DockWitness{dock,s.hitWindow,s.candidateBounds,point,maximum,NSDate.date.timeIntervalSince1970};
+}
+inline Snapshot snapshotMetadata(const Request& r,const std::optional<DockWitness>& witness=std::nullopt) {
     const CGPoint p = target(r);
     Snapshot s;
     s.inputPermission = CGPreflightPostEventAccess() && AXIsProcessTrusted(); // No requests.
@@ -144,8 +232,7 @@ inline Snapshot currentSnapshot(const Request& r) {
     s.active = app && app.active;
     s.frontmostPid = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
     s.leftButtonDown = CGEventSourceButtonState(kCGEventSourceStateCombinedSessionState, kCGMouseButtonLeft);
-    // AX hit-testing supplies a separate owner/frame witness. Rectangle metadata
-    // may include transparent backdrops; unresolved front candidates still block.
+    // AX hit-testing supplies a separate owner/frame witness; all unresolved covers block.
     auto system=AXUIElementCreateSystemWide(); AXUIElementRef hit=nullptr;
     AXError hitError=AXUIElementCopyElementAtPosition(system,p.x,p.y,&hit); CFRelease(system);
     if (hitError==kAXErrorSuccess && hit) {
@@ -186,6 +273,11 @@ inline Snapshot currentSnapshot(const Request& r) {
         if ([alpha isKindOfClass:NSNumber.class] && std::isfinite([alpha doubleValue])) s.selectedAlpha=[alpha doubleValue];
     }
     require(s.selectedLayer.has_value(),"selected layer unavailable");
+    uint32_t displayCount=0;CGDirectDisplayID display=0;
+    if(CGGetDisplaysWithPoint(p,1,&display,&displayCount)==kCGErrorSuccess && displayCount==1) {
+        s.display=display;s.displayBounds=CGDisplayBounds(display);s.publicDisplayShield=CGShieldingWindowID(display);
+    }
+    s.nowUnixSeconds=NSDate.date.timeIntervalSince1970;
     CGEventRef cursorEvent=CGEventCreate(nullptr);
     CGPoint cursorPoint=cursorEvent?CGEventGetLocation(cursorEvent):CGPointMake(NAN,NAN);
     if (cursorEvent) CFRelease(cursorEvent);
@@ -206,16 +298,23 @@ inline Snapshot currentSnapshot(const Request& r) {
         if (!candidateAtPoint(bounds,[alpha doubleValue],layer,*s.selectedLayer,p,cursor)) continue;
         s.hitWindow=[row[(__bridge NSString*)kCGWindowNumber] unsignedIntValue];
         s.candidateOwnerPid=ownerPid; s.hitLayer=layer; s.candidateBounds=bounds; s.candidateAlpha=[alpha doubleValue];
+        if(witness && s.hitWindow==witness->window) {
+            try {
+                if(transparentDockWitness(r,s,processIdentity(ownerPid),*witness)) {s.transparentDock=witness;continue;}
+            }catch(const std::exception&) {} // No new witness from stale or unavailable identity.
+        }
         break;
     }
-    uint32_t displayCount = 0;
-    CGDirectDisplayID display = 0;
-    if (CGGetDisplaysWithPoint(p,1,&display,&displayCount) == kCGErrorSuccess && displayCount == 1) {
-        s.display = display;
-        s.displayBounds = CGDisplayBounds(display);
-        s.publicDisplayShield = CGShieldingWindowID(display); // Does not capture/release a display.
+    return s;
+}
+inline Snapshot currentSnapshot(const Request& r) {
+    auto s=snapshotMetadata(r);
+    // Avoid collecting any pixel witness unless all selected-target AX checks agree.
+    if(s.active && s.frontmostPid==r.owner.pid && sameIdentity(s.owner,r.owner) &&
+        s.hitPid==r.owner.pid && CGRectEqualToRect(s.hitFrame,r.capturedFrame) &&
+        s.selectedLayer && *s.selectedLayer==0) {
+        if(auto witness=captureDockWitness(s,target(r)))return snapshotMetadata(r,witness);
     }
-    s.nowUnixSeconds = NSDate.date.timeIntervalSince1970;
     return s;
 }
 struct EventDeleter { void operator()(CGEventRef event) const { if (event) CFRelease(event); } };

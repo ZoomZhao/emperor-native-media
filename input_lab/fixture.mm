@@ -23,7 +23,7 @@ static void emit(NSDictionary* value) {
         backing:NSBackingStoreBuffered defer:NO];
     self.window.title = @"Codex Authored Input Fixture";
     self.window.releasedWhenClosed = NO;
-    self.window.level = CGWindowLevelForKey(kCGCursorWindowLevelKey);
+    self.window.level = NSNormalWindowLevel;
     NSButton* button = [NSButton buttonWithTitle:@"Scoped click test" target:self action:@selector(clicked:)];
     button.frame = NSMakeRect(180,160,260,80); button.accessibilityIdentifier = @"probe-button";
     [self.window.contentView addSubview:button]; [self.window makeKeyAndOrderFront:nil];
