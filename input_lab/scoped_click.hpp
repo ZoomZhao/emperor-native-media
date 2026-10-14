@@ -35,14 +35,20 @@ struct Request {
     double normalizedX = 0, normalizedY = 0;
     double deadlineUnixSeconds = 0;
 };
+using DockClock = std::chrono::steady_clock;
+struct DockTimeNow { DockClock::time_point operator()() const {return DockClock::now();} };
 struct DockWitness {
     Identity owner;
     CGWindowID window = 0;
     CGRect bounds{};
     CGPoint point{};
     uint8_t patchMaxAlpha = 255;
-    double observedUnixSeconds = 0;
+    std::optional<DockClock::time_point> captureRequestedAt = std::nullopt;
 };
+inline bool freshDockWitness(const DockWitness& w,DockClock::time_point now) {
+    return w.captureRequestedAt && now >= *w.captureRequestedAt &&
+        now - *w.captureRequestedAt <= std::chrono::milliseconds(250);
+}
 struct Snapshot {
     Identity owner;
     uid_t callerUid = 0;
@@ -62,6 +68,17 @@ struct Snapshot {
     pid_t candidateOwnerPid = 0;
     std::optional<DockWitness> transparentDock = std::nullopt;
 };
+// Both the actual screenshot pipeline and the delayed-frame regression use this
+// producer: a slow callback/processing step cannot replace the request timestamp.
+template<class Capture,class ClockReader=DockTimeNow>
+inline std::optional<DockWitness> timedDockCapture(const Snapshot& s,const Identity& dock,CGPoint point,
+    Capture capture,ClockReader now={}) {
+    const auto captureRequestedAt=now();
+    const auto maximum=capture();
+    if(!maximum)return std::nullopt;
+    const DockWitness witness{dock,s.hitWindow,s.candidateBounds,point,*maximum,captureRequestedAt};
+    return freshDockWitness(witness,now()) ? std::optional<DockWitness>(witness) : std::nullopt;
+}
 inline const char* candidateRole(const Snapshot& s) {
     return s.display != 0 && s.publicDisplayShield != 0 && s.hitWindow == s.publicDisplayShield
         ? "public_display_capture_shield" : "unclassified_window";
@@ -137,8 +154,13 @@ inline CGPoint validate(const Request& r, const Snapshot& s) {
     return p;
 }
 // Both the real sender and no-UI regression use this exact rejection boundary.
-template<class Sender> inline void dispatchChecked(const Request& r, const Snapshot& s, Sender send) {
-    send(validate(r, s));
+template<class Sender,class ClockReader=DockTimeNow>
+inline void dispatchChecked(const Request& r, const Snapshot& s, Sender send,ClockReader now={}) {
+    const CGPoint point=validate(r,s);
+    // Recheck after all validation, immediately before invoking the event sender.
+    require(!s.transparentDock || freshDockWitness(*s.transparentDock,now()),
+        "Dock transparency witness expired or unavailable");
+    send(point);
 }
 inline Identity processIdentity(pid_t pid) {
     proc_bsdinfo info{};
@@ -156,8 +178,9 @@ inline bool systemDockBackdrop(const Snapshot& s,const Identity& dock) {
         validFrame(s.candidateBounds) && CGRectEqualToRect(s.candidateBounds,s.displayBounds) &&
         s.candidateAlpha && *s.candidateAlpha > 0;
 }
-inline bool transparentDockWitness(const Request& r,const Snapshot& s,const Identity& dock,const DockWitness& w) {
-    const double age = s.nowUnixSeconds - w.observedUnixSeconds;
+template<class ClockReader=DockTimeNow>
+inline bool transparentDockWitness(const Request& r,const Snapshot& s,const Identity& dock,const DockWitness& w,
+    ClockReader now={}) {
     return systemDockBackdrop(s,dock) && sameIdentity(dock,w.owner) &&
         s.inputPermission && s.active && s.frontmostPid == r.owner.pid &&
         sameIdentity(r.owner,s.owner) && s.callerUid == r.owner.uid &&
@@ -166,7 +189,7 @@ inline bool transparentDockWitness(const Request& r,const Snapshot& s,const Iden
         CGRectEqualToRect(s.hitFrame,r.capturedFrame) && s.selectedLayer && *s.selectedLayer == 0 &&
         s.selectedAlpha && *s.selectedAlpha > 0 && w.window == s.hitWindow &&
         CGRectEqualToRect(w.bounds,s.candidateBounds) && CGPointEqualToPoint(w.point,target(r)) &&
-        w.patchMaxAlpha == 0 && std::isfinite(age) && age >= 0 && age <= 0.25;
+        w.patchMaxAlpha == 0 && freshDockWitness(w,now());
 }
 // A point-alpha witness is acquired only for the protected system Dock window.
 // No image leaves memory; unavailable capture/identity keeps the original refusal.
@@ -201,25 +224,28 @@ inline std::optional<DockWitness> captureDockWitness(const Snapshot& s,CGPoint p
     auto config=[SCStreamConfiguration new];config.width=size_t(width);config.height=size_t(height);
     config.showsCursor=NO;config.showMouseClicks=NO;config.capturesAudio=NO;config.captureMicrophone=NO;
     config.ignoreShadowsSingleWindow=YES;config.includeChildWindows=NO;config.shouldBeOpaque=NO;
-    // ARC owns the NSImage even when an asynchronous callback arrives after timeout.
-    __block NSImage* retained=nil;error=nil;signal=dispatch_semaphore_create(0);
-    [SCScreenshotManager captureImageWithFilter:filter configuration:config
-        completionHandler:^(CGImageRef image,NSError* failure){if(image)retained=[[NSImage alloc] initWithCGImage:image size:NSZeroSize];error=failure;dispatch_semaphore_signal(signal);}];
-    if(!wait(signal) || error || !retained)return std::nullopt;
-    CGImageRef image=[retained CGImageForProposedRect:nullptr context:nil hints:nil];
-    if(!image || CGImageGetWidth(image)!=config.width || CGImageGetHeight(image)!=config.height)return std::nullopt;
-    const double px=(point.x-window.frame.origin.x)*scale, py=(point.y-window.frame.origin.y)*scale;
-    if(px < 1 || py < 1 || px >= width-1 || py >= height-1)return std::nullopt;
-    std::vector<uint8_t> pixels(size_t(width)*size_t(height)*4);
-    auto rgb=CGColorSpaceCreateDeviceRGB();
-    auto context=CGBitmapContextCreate(pixels.data(),size_t(width),size_t(height),8,size_t(width)*4,rgb,
-        kCGImageAlphaPremultipliedLast|kCGBitmapByteOrder32Big);CGColorSpaceRelease(rgb);
-    if(!context)return std::nullopt;
-    CGContextDrawImage(context,CGRectMake(0,0,width,height),image);CGContextRelease(context);
-    uint8_t maximum=0;
-    for(int y=int(py)-1;y<=int(py)+1;++y)for(int x=int(px)-1;x<=int(px)+1;++x)
-        maximum=std::max(maximum,pixels[4*(size_t(y)*size_t(width)+size_t(x))+3]);
-    return DockWitness{dock,s.hitWindow,s.candidateBounds,point,maximum,NSDate.date.timeIntervalSince1970};
+    return timedDockCapture(s,dock,point,[&]() -> std::optional<uint8_t> {
+        // ARC owns the NSImage even when a callback arrives after timeout.
+        __block NSImage* retained=nil;__block NSError* imageError=nil;
+        auto screenshotSignal=dispatch_semaphore_create(0);
+        [SCScreenshotManager captureImageWithFilter:filter configuration:config
+            completionHandler:^(CGImageRef image,NSError* failure){if(image)retained=[[NSImage alloc] initWithCGImage:image size:NSZeroSize];imageError=failure;dispatch_semaphore_signal(screenshotSignal);}];
+        if(!wait(screenshotSignal) || imageError || !retained)return std::nullopt;
+        CGImageRef image=[retained CGImageForProposedRect:nullptr context:nil hints:nil];
+        if(!image || CGImageGetWidth(image)!=config.width || CGImageGetHeight(image)!=config.height)return std::nullopt;
+        const double px=(point.x-window.frame.origin.x)*scale, py=(point.y-window.frame.origin.y)*scale;
+        if(px < 1 || py < 1 || px >= width-1 || py >= height-1)return std::nullopt;
+        std::vector<uint8_t> pixels(size_t(width)*size_t(height)*4);
+        auto rgb=CGColorSpaceCreateDeviceRGB();
+        auto context=CGBitmapContextCreate(pixels.data(),size_t(width),size_t(height),8,size_t(width)*4,rgb,
+            kCGImageAlphaPremultipliedLast|kCGBitmapByteOrder32Big);CGColorSpaceRelease(rgb);
+        if(!context)return std::nullopt;
+        CGContextDrawImage(context,CGRectMake(0,0,width,height),image);CGContextRelease(context);
+        uint8_t maximum=0;
+        for(int y=int(py)-1;y<=int(py)+1;++y)for(int x=int(px)-1;x<=int(px)+1;++x)
+            maximum=std::max(maximum,pixels[4*(size_t(y)*size_t(width)+size_t(x))+3]);
+        return maximum;
+    });
 }
 inline Snapshot snapshotMetadata(const Request& r,const std::optional<DockWitness>& witness=std::nullopt) {
     const CGPoint p = target(r);

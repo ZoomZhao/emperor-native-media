@@ -88,16 +88,18 @@ int main() { @autoreleasepool {
         dockSnapshot.hitLayer=CGWindowLevelForKey(kCGDockWindowLevelKey);
         dockSnapshot.candidateBounds=dockSnapshot.displayBounds;dockSnapshot.candidateAlpha=1;
         Identity dock{456,501,42,1234,"/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"};
-        DockWitness witness{dock,88,dockSnapshot.candidateBounds,target(good),0,999.9};
-        require(transparentDockWitness(good,dockSnapshot,dock,witness),"proved transparent Dock point rejected");
+        const auto acquired=DockClock::time_point(std::chrono::seconds(1000));
+        const auto checked=acquired+std::chrono::milliseconds(100);
+        DockWitness witness{dock,88,dockSnapshot.candidateBounds,target(good),0,acquired};
+        require(transparentDockWitness(good,dockSnapshot,dock,witness,[=]{return checked;}),"proved transparent Dock point rejected");
         struct DockCase {std::function<void(Snapshot&,Identity&,DockWitness&)> change;};
         std::vector<DockCase> dockCases={
             {[](auto&,auto& d,auto&){d.executable="/third-party/Dock";}},
             {[](auto&,auto& d,auto&){d.uid++;}},
             {[](auto&,auto& d,auto&){d.birthSeconds++;}},
-            {[](auto&,auto&,auto& w){w.observedUnixSeconds=999.74;}},
-            {[](auto&,auto&,auto& w){w.observedUnixSeconds=1000.01;}},
-            {[=](auto&,auto&,auto& w){w.observedUnixSeconds=nan;}},
+            {[=](auto&,auto&,auto& w){w.captureRequestedAt=acquired-std::chrono::milliseconds(151);}},
+            {[=](auto&,auto&,auto& w){w.captureRequestedAt=checked+std::chrono::milliseconds(1);}},
+            {[](auto&,auto&,auto& w){w.captureRequestedAt=std::nullopt;}},
             {[](auto&,auto&,auto& w){w.patchMaxAlpha=1;}},
             {[](auto&,auto&,auto& w){w.patchMaxAlpha=255;}},
             {[](auto&,auto&,auto& w){w.window++;}},
@@ -113,8 +115,49 @@ int main() { @autoreleasepool {
         };
         for(const auto& test:dockCases) {
             auto s=dockSnapshot;auto d=dock;auto w=witness;test.change(s,d,w);
-            require(!transparentDockWitness(good,s,d,w),"unproved/opaque/foreign Dock candidate exempted");
+            require(!transparentDockWitness(good,s,d,w,[=]{return checked;}),"unproved/opaque/foreign Dock candidate exempted");
         }
+        // Acquisition starts at0ms; callback/processing resumes at400ms. Never
+        // restamp the frame: the410ms observation must refuse it, with no UI.
+        unsigned freshnessChecks=0;
+        auto freshnessNeed=[&](bool result,const char* message){require(result,message);++freshnessChecks;};
+        auto captureClock=acquired;
+        const auto delayedCapture=timedDockCapture(dockSnapshot,dock,target(good),[&]() -> std::optional<uint8_t> {
+            captureClock+=std::chrono::milliseconds(400);return uint8_t(0);
+        },[&]{return captureClock;});
+        freshnessNeed(!delayedCapture,"400ms capture processing was restamped and accepted");
+        captureClock=acquired;
+        const auto timelyCapture=timedDockCapture(dockSnapshot,dock,target(good),[&]() -> std::optional<uint8_t> {
+            captureClock+=std::chrono::milliseconds(200);return uint8_t(0);
+        },[&]{return captureClock;});
+        freshnessNeed(timelyCapture && timelyCapture->captureRequestedAt==acquired,
+            "capture producer did not preserve its request timestamp");
+        const auto unknownCapture=timedDockCapture(dockSnapshot,dock,target(good),[]() -> std::optional<uint8_t> {
+            return std::nullopt;
+        },[&]{return captureClock;});
+        freshnessNeed(!unknownCapture,"missing capture evidence accepted");
+        freshnessNeed(!transparentDockWitness(good,dockSnapshot,dock,witness,[=]{return acquired+std::chrono::milliseconds(410);}),
+            "400ms processing delay refreshed an old Dock frame");
+        freshnessNeed(freshDockWitness(witness,acquired+std::chrono::milliseconds(250)),"250ms boundary incorrectly refused");
+        freshnessNeed(!freshDockWitness(witness,acquired+std::chrono::milliseconds(251)),"expired boundary accepted");
+        freshnessNeed(!freshDockWitness(witness,acquired-std::chrono::milliseconds(1)),"future request timestamp accepted");
+        auto resolved=base;resolved.transparentDock=witness;
+        unsigned finalSends=0;
+        dispatchChecked(good,resolved,[&](CGPoint){++finalSends;},[=]{return checked;});
+        freshnessNeed(finalSends==1,"fresh final-dispatch control refused");
+        auto refusedAtDispatch=[&](Snapshot stale,DockClock::time_point now) {
+            bool refused=false;
+            try {dispatchChecked(good,stale,[&](CGPoint){++finalSends;},[=]{return now;});}
+            catch(const std::runtime_error& e){refused=std::string(e.what())=="Dock transparency witness expired or unavailable";}
+            freshnessNeed(refused && finalSends==1,"late/unknown witness dispatched an event");
+        };
+        // The same resolved snapshot ages after metadata validation but before send.
+        refusedAtDispatch(resolved,acquired+std::chrono::milliseconds(410));
+        resolved.transparentDock->captureRequestedAt=std::nullopt;refusedAtDispatch(resolved,checked);
+        resolved.transparentDock->captureRequestedAt=checked+std::chrono::milliseconds(1);refusedAtDispatch(resolved,checked);
+        // Deadline wall time cannot refresh a monotonic capture-age witness.
+        resolved.transparentDock=witness;resolved.nowUnixSeconds=1000.40;
+        refusedAtDispatch(resolved,acquired+std::chrono::milliseconds(410));
         // Exact public API ID identifies a display-capture shield; level/name do not.
         Snapshot displayShield = base;
         displayShield.hitWindow = 88; displayShield.hitLayer = CGShieldingWindowLevel();
@@ -139,6 +182,7 @@ int main() { @autoreleasepool {
             ![missing[@"input_sent"] boolValue],"missing metadata fabricated or inspection sent input");
         std::cout << "{\"valid_fake_submission\":1,\"rejections\":" << cases.size()
             << ",\"occlusion_cases\":3,\"layer_regression_cases\":7,\"shield_diagnostic_cases\":5,\"Dock_witness_cases\":" << dockCases.size()+1
+            << ",\"Dock_freshness_checks\":" << freshnessChecks
             << ",\"rejected_fake_submissions\":0,\"UI_events_posted\":0}\n";
         return 0;
     } catch (const std::exception& e) {std::cerr << e.what() << '\n'; return 1;}
