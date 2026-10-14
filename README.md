@@ -10,6 +10,8 @@ The separate [experimental MAP reference viewer](docs/MAP.md#experimental-raw-ma
 
 The [frozen spatial error audit](docs/MAP.md#spatial-error-classes-and-fixed-neighbour-rle-check) preserves that score and finds most disagreement in base interiors with no RLE support. The known positive plus three fixed neighbours retain full content equality; no anchor/order repair is supported. The candidate denominator contains no unpainted background or nominal unsupported geometry. Current-city state versus the static MAP and effective base selection remain unresolved.
 
+The [read-only SAV source audit](docs/SAV.md) now verifies existing save containers and independently locates terrain through SAV-specific public markers. Two automatic saves updated during the current run uniquely match Anyang among 167 city MAPs, with all51,984 terrain values unchanged. Their one following u32 candidate span is zero at all nine fixed comparison points and has no proved graphics meaning. They precede the frozen screenshot; current effective base reconstruction remains unverified. This tool does not restore saves in the native app.
+
 Current phase: **DATA FIRST**. Every change must raise a metric in [STATUS.md](STATUS.md) or remove a listed blocker. CitySimulation/EMP1 and the authored gameplay are frozen and retained; their tests do not measure original-game progress.
 
 Requires macOS 15+ and Apple command-line tools already installed.
@@ -23,6 +25,8 @@ make map-test
 make map-test-undefined
 make map-reference-test
 make map-reference-test-undefined
+make save-state-audit-test
+EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make save-state-audit
 make map-sg3-audit-test
 make map-raw-spans-test
 EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make map-raw-spans
