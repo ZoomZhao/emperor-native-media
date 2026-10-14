@@ -1,7 +1,7 @@
 """Entirely authored fixtures for geometry and quantized-vs-raw comparison."""
 import unittest
 import numpy as np
-from reference_compare import (compare_rgb, compare_nearest_scaled_rgb, bottom_base_canvas_bounds, diagonal_grid_matrix,
+from reference_compare import (compare_rgb, compare_nearest_scaled_rgb, bottom_base_canvas_bounds, isometric_subbase_centres, diagonal_grid_matrix,
                                project_points, landmark_residuals, nearest_mask_distances,
                                mask_translation_candidates,check_fixed_candidates,audit_static_labels,compare_cell_tints)
 
@@ -88,6 +88,28 @@ class ReferenceComparisonTests(unittest.TestCase):
         mask=np.zeros((10,10),bool);mask[4,4]=True;mask[4,5]=True
         self.assertEqual(nearest_mask_distances([[4,4],[4,7],[-.1,4],[10,4]],mask),[0.,3.,None,None])
         with self.assertRaises(ValueError):nearest_mask_distances([[0,0]],np.zeros((10,10),bool))
+
+    def test_public_two_by_two_base_layout_uses_actual_height(self):
+        self.assertEqual(isometric_subbase_centres(158,100),
+                         ((0,0,79,40),(0,1,39,60),(1,0,119,60),(1,1,79,80)))
+        self.assertEqual(isometric_subbase_centres(78,49),((0,0,39,29),))
+
+    def test_public_three_by_three_layout_retains_each_square_once(self):
+        a=isometric_subbase_centres(238,120)
+        self.assertEqual(len(a),9)
+        self.assertEqual({(x,y)for x,y,_,_ in a},{(x,y)for x in range(3)for y in range(3)})
+        self.assertEqual(a[0],(0,0,119,20));self.assertEqual(a[-1],(2,2,119,100))
+
+    def test_subbase_target_alignment_is_semantic_not_fitted(self):
+        layout=isometric_subbase_centres(158,100);target=np.array([400,600])
+        for _,_,cx,cy in layout:
+            origin=target-2*np.array([cx,cy])
+            np.testing.assert_array_equal(origin+2*np.array([cx,cy]),target)
+        self.assertEqual(len({(cx,cy)for _,_,cx,cy in layout}),4)
+
+    def test_subbase_wrong_size_short_canvas_and_budgets_refuse(self):
+        for w,h in [(157,80),(158,79),(58,30),(158.,80),(True,80),(1358,680),(158,4097)]:
+            with self.assertRaises(ValueError):isometric_subbase_centres(w,h)
 
     def test_bottom_base_handles_tall_canvas_without_recentering_ground(self):
         self.assertEqual(bottom_base_canvas_bounds((100,100),(78,40),(78,40)),(22,60,178,140))

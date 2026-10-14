@@ -135,6 +135,25 @@ def compare_rgb(reference, decoded, opaque_mask, bits=5):
                            float(np.sqrt(np.mean(raw.astype(float)**2))), int(np.abs(raw).max()))
 
 
+def isometric_subbase_centres(canvas_width, canvas_height):
+    """Public Emperor base-layout coordinates, not an original MAP placement.
+
+    Callers must independently verify type30 and uncompressedLength=n*n*3200.
+    Each tuple is(squareX,squareY,sourceCenterX,sourceCenterY), in encoded row
+    order. No image lookup, candidate selection or pixel-offset search occurs.
+    """
+    if any(not isinstance(v,(int,np.integer)) or isinstance(v,(bool,np.bool_))
+           or not 1 <= v <= 4096 for v in (canvas_width,canvas_height)):
+        raise ValueError("bounded integer canvas dimensions required")
+    n=(int(canvas_width)+2)//80
+    if not 1 <= n <= 16 or canvas_width!=80*n-2 or canvas_height<40*n:
+        raise ValueError("declared Emperor base dimensions required")
+    padding=int(canvas_height)-40*n
+    return tuple((x,row-x,(n-1+x-(row-x))*40+39,padding+row*20+20)
+                 for row in range(2*n-1)
+                 for x in range(max(0,row-n+1),min(n-1,row)+1))
+
+
 def bottom_base_canvas_bounds(center_xy, canvas_size, base_size, scale=2):
     """Integer sampling rectangle for an explicitly bottom-aligned base.
 

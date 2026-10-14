@@ -12,6 +12,8 @@
 
 新增 `sg3SingleCellGeometry` 仅识别有效逻辑记录／负相对镜像源的type30、宽78、高≥40、uncompressedLength3200、tileSize0/1；返回源画布尺寸和底部base几何中心，不读取动画偏移作为静态origin。`renderSG3SingleCellCanvas` 接受调用者中心，在透明、有预算限制的视口复制整幅解码画布，使用最近邻、明确越界裁剪，不作MAP选图。原生浏览器可手动输入逻辑ID并选择单格基底对照；未证的选图和原版锚点在界面保留未知。Release/UBSan各78/78自造检查通过；实际2,983/2,983候选均生成画布及CGImage。旧正对照9/9纳入、10/10完整匹配，重新固定比较的16格仍0/16。首次原生窗口展示1/1，但屏幕5位掩码比较225/8,224像素不一致、8位最大误差1，尚未通过；不能把呈现差异报作解码失败或完整场景成功。 独审已确认实际producer buffer→CGImage provider全字节一致，差异发生在之后；一次自造显示对照的provider16,384/16,384像素精确，AppKit缓存65,536/65,536像素保留2×重复，默认／显式BGRA截图一致，四个内部色阶区域缓存→截图最大误差均1。不会修改源色或放宽阈值追求屏幕0；解码精确度和严格屏幕差异分开报告。详见[高画布限定结果](MAP.md#declared-tall-canvas-pool-and-fixed-sixteen-cell-result)。
 
+公开多格base以行序拼接单格diamond；通用比较助手新增 `isometric_subbase_centres`，仅按宽80n−2、高≥40n推导源图中的n²个基底中心，要求调用者另证type30与n²×3200字节。它不定义MAP锚点、不选素材、不做任意像素偏移搜索。自造比较检查现41/41；真实元数据支持2..6格边长布局。本轮只解码20条数据标签land1/land2的2×2画布，四个公开子格位置对齐两处合计160次，完整画布／完整子基底均0；一个同视口无道路四邻格的新单格对照则有1个唯一完整内容匹配。详见[道路邻接对照与有界多格假设](MAP.md#same-view-clear-ground-control-and-bounded-multibase-hypothesis)；未知选图和原版放置规则保留。
+
 本地58个索引中两份旧头值74480由公开兼容规则接受。9,059条mask均在颜色流后按RLE完整消费；把alpha字段当绝对文件偏移有7,918条不满足合同。保留该元数据，不猜测其原版内存意义。输出为预乘BGRA；F81F只用于旧原始type0色键，压缩字面保留（[公开问题9](https://github.com/bvschaik/citybuilding-tools/issues/9)）。
 
 运行 `make sg3-test` 和 `EMPEROR_GAMEDATA_ROOT=/absolute/GameData make data-metrics`。未设置变量正常SKIP，真实资产只读；只输出汇总数字，不导出图像或dump。窗口动态列出全部SG3，按逻辑ID原生显示；失败清空旧图。
