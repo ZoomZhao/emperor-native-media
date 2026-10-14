@@ -12,6 +12,8 @@ The [frozen spatial error audit](docs/MAP.md#spatial-error-classes-and-fixed-nei
 
 The [read-only SAV source audit](docs/SAV.md) now verifies existing save containers and independently locates terrain through SAV-specific public markers. Two automatic saves updated during the current run uniquely match Anyang among 167 city MAPs, with all51,984 terrain values unchanged. Their one following u32 candidate span is zero at all nine fixed comparison points and has no proved graphics meaning. They precede the frozen screenshot; current effective base reconstruction remains unverified. This tool does not restore saves in the native app.
 
+The [finite failed-base content check](docs/SG3.md#冻结失败格的有限-base-内容识别) preserves one complete RLE-free failed footprint and its same-view positive. Reusing the 2,983-record pool and extending only declared multibase subpieces plus exact-alpha natural78×40 RLE bases finds0/32,585 exact variants at the target; the positive remains ID361. This does not establish absence from all resources or exclude missing transparent layers. The cache verifier has11 authored regressions and clean unset-root SKIP.
+
 Current phase: **DATA FIRST**. Every change must raise a metric in [STATUS.md](STATUS.md) or remove a listed blocker. CitySimulation/EMP1 and the authored gameplay are frozen and retained; their tests do not measure original-game progress.
 
 Requires macOS 15+ and Apple command-line tools already installed.
@@ -26,6 +28,7 @@ make map-test-undefined
 make map-reference-test
 make map-reference-test-undefined
 make save-state-audit-test
+make base-content-audit-test
 EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make save-state-audit
 make map-sg3-audit-test
 make map-raw-spans-test

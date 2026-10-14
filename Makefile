@@ -1,4 +1,4 @@
-.PHONY: all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics map-sg3-audit map-sg3-audit-test map-raw-spans map-raw-spans-test map-reference-test map-reference-test-undefined save-state-audit save-state-audit-test reference-compare-test input-test input-test-undefined input-window-test
+.PHONY: all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics map-sg3-audit map-sg3-audit-test map-raw-spans map-raw-spans-test map-reference-test map-reference-test-undefined save-state-audit save-state-audit-test base-content-audit-test reference-compare-test input-test input-test-undefined input-window-test
 all: game-app
 game-app:
 	/bin/sh game_lab/app/build.sh
@@ -32,6 +32,8 @@ save-state-audit:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/save_state_audit.py
 save-state-audit-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/save_state_audit_tests.py
+base-content-audit-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/base_content_audit_tests.py
 reference-compare-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/reference_compare_tests.py
 input-test:
