@@ -1,6 +1,8 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <array>
+#include <optional>
 #include <vector>
 #include "asset_limits.hpp"
 
@@ -51,6 +53,8 @@ struct SG3Archive {
     uint32_t numFiles = 0;
     uint32_t numImages = 0;
     uint32_t capacity = 0;
+    // Published SG header lookup slots; Emperor category meanings are unassigned.
+    std::array<uint16_t,300> imageIndex{};
     std::vector<SG3Bitmap> bitmaps;
     std::vector<SG3Sprite> sprites;
     std::vector<uint8_t> rawData;
@@ -102,6 +106,8 @@ DecodedImage decodeJPEG(const std::vector<uint8_t>& bytes);
 DecodedImage loadJPEG(const std::string& path);
 Raw555Image loadRaw555(const std::string& path, uint32_t width, uint32_t height);
 SG3Archive loadSG3(const std::string& path);
+// Numeric archive-local lookup only. ID0 is absent, capacity is not in-use count.
+std::optional<size_t> sg3LogicalIndexForGroup(const SG3Archive&,size_t groupSlot);
 DecodedWav loadWAV(const std::string& path);
 CityMap loadCityMap(const std::string& path);
 std::vector<std::string> loadEmperorText(const std::string& path);

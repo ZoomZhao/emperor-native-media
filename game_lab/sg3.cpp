@@ -146,6 +146,7 @@ SG3Archive loadSG3(const std::string& path) {
     try {
         SG3Archive a;a.fileSize=uint32_t(bytes.size());a.version=version;a.numFiles=bitmapCount;
         a.numImages=count;a.capacity=capacity;a.bitmaps.reserve(bitmapCount);a.sprites.reserve(count);
+        for(size_t slot=0;slot<a.imageIndex.size();++slot)a.imageIndex[slot]=detail::u16(bytes.data()+80+2*slot);
         for(size_t i=0;i<bitmapCount;++i) {
             const char* name=reinterpret_cast<const char*>(bytes.data()+680+i*200);
             size_t n=0;while(n<65 && name[n])++n;
@@ -165,6 +166,12 @@ SG3Archive loadSG3(const std::string& path) {
         }
         return a;
     } catch(const std::bad_alloc&){return {};}
+}
+std::optional<size_t> sg3LogicalIndexForGroup(const SG3Archive& archive,size_t slot) {
+    if(slot>=archive.imageIndex.size())return std::nullopt;
+    const size_t id=archive.imageIndex[slot];
+    if(!id || id>archive.numImages || id>archive.sprites.size())return std::nullopt;
+    return id-1;
 }
 SG3DecodeResult decodeSG3Sprite(const SG3Archive& a,size_t index,const std::string& internal) {
     SG3DecodeResult result;

@@ -17,6 +17,7 @@ All measured files use little-endian outer marker `0xfedcbaaa` and a single sequ
 | Signature | `05 00 fe ca 00 00 02 00` |
 | Active-side field | little-endian uint32 at offset 84 |
 | Terrain flags | offset 261,455; 51,984 little-endian uint32 values, row-major 228×228 backing grid |
+| Objects (public field name; image semantics unknown) | offset 469,391 = 261,455 + 4×51,984; 51,984 little-endian uint32 values, row-major 228×228 |
 | Active-side distribution | 84:1, 112:16, 140:67, 170:72, 226:11 |
 
 The public modern [Emperor format reader](https://github.com/bvschaik/citybuilding-mappers/blob/master/emperorfile.cpp), [framing reader](https://github.com/bvschaik/citybuilding-mappers/blob/master/zlibfile.cpp) and [integer-grid reader](https://github.com/bvschaik/citybuilding-mappers/blob/master/gamefile.cpp) establish these format facts. That project is GPL-2.0-or-later. **Its implementation, palettes and coordinate projection were not copied or ported.** This repository keeps its MIT license; the bounded sequential decoder and numerical palette are independently authored. No original executable, disassembly, translated library or old reverse-engineering analysis was used.
@@ -60,6 +61,23 @@ Observed **unannotated bits: 6**, covering **77,341/2,107,836 non-off-map cells*
 | 29 | 58,572 |
 | 30 | 5 |
 
+## MAP→SG3 association audit
+
+The pinned modern [MAP reader](https://github.com/bvschaik/citybuilding-mappers/blob/bb97d7c7edf7c6608d5e9d3d6d5b63ba3686cda6/emperorfile.cpp#L96) reads terrain then objects; the [integer-grid reader](https://github.com/bvschaik/citybuilding-mappers/blob/bb97d7c7edf7c6608d5e9d3d6d5b63ba3686cda6/gamefile.cpp#L76) gives unsigned little-endian storage in y-then-x order. Thus objects begin at469,391. Independent complete-container checks read that extent in **167/167** city maps. Among **2,107,836 non-off-map cells**, **368,394** contain nonzero objects, with **17 distinct values**, maximum66. The public name establishes a field layout, not a relation to graphics IDs.
+
+Two explicit unmodified-ID candidates were tested against **58 archives /72,370 in-use logical images**, whose largest archive ID is **12,887**:
+
+| Candidate interpretation | Cross-file result | Conclusion and limit |
+|---|---|---|
+| Treat 51,984 uint32 LE values beginning at1,535 (261,455−5×51,984) as direct archive-local image IDs | **2,107,808/2,107,808 nonzero active values** exceed12,887, across **167/167** maps; maximum262,315. Even a naïve dense concatenation of72,370 IDs is exceeded by123,422 cells in160/167 maps | This unmodified direct-ID interpretation is rejected. Width32 and cell shape are experimental here; the public reader skips this region. Packed fields, sentinels, transformations and other namespaces remain unclassified |
+| Treat nonzero objects as unshifted image IDs of type30 isometric base tiles | Every one of17 values numerically fits **all58 archives**, so **0/17** values select a unique archive. **0/17** have a same-ID declared type30 record in any archive | Range fit proves no join; the specific direct type30 candidate is rejected. This does not reject category codes, ordinary object sprites, group-relative/packed rules or other transformations |
+
+The native SG3 parser now exposes the published **300 uint16 lookup slots at offset80**; **1,783/1,783** nonzero references across **58/58** archives are in-use IDs. This removes the parser's skipped-table blocker. [SG3 lookup scope](SG3.md) explains why the Caesar3 category example does not supply Emperor category meanings or a MAP archive selector.
+
+Run `make map-sg3-audit-test` for **16 authored boundary cases** and `EMPEROR_GAMEDATA_ROOT=/absolute/GameData make map-sg3-audit` for read-only aggregates. Unset/empty ENV returns successful SKIP before searching files. Complete framing, late checksum failure, field bounds, active/off-map filtering, metadata versions, capacity versus in-use IDs, ambiguous archive matches and malformed/root-escape rejection are covered. `acceptance_passed` means complete object layouts and valid SG lookup references, never accepted mappings. No .555 pixels, game process, VM or UI are used; no grid/pixel dump is emitted. SG3 Release/UBSan each pass53 authored checks.
+
+**Stop condition:** no renderer binding until an Emperor source defines the relevant MAP field→group/image-ID relation, the archive/bank selector, and any packing, sentinel or variant rules. Length, range fit, archive order and Caesar3 slot meanings cannot supply those definitions. Verified joins stay **0/167**; original projection remains unknown. CitySimulation/EMP1 remain frozen.
+
 The public MAP reader identifies terrain flags and other auxiliary grids, but does not establish an SG3 archive/image-ID join. The skipped auxiliary area is 5×51,984 bytes; the public reader annotates its last byte grid as edges. The remaining layout is unclassified here, rather than assumed to be five separate byte grids or an image-ID grid. Numerical range, filename order or visual resemblance cannot establish IDs. **Verified MAP→SG3 tile joins remain 0/167**; the original image mapping and screen projection are unknown. Diagnostic bit annotations/crops must not be described as original artwork.
 
 
@@ -67,13 +85,13 @@ The independent DATA FIRST work remains evidence collection for the following co
 
 | Required MAP→SG3 contract | Established evidence | Missing evidence / acceptance condition |
 |---|---|---|
-| Image-selection field/grid | Terrain flags at261,455;228×228 uint32; skipped auxiliary area5×51,984 bytes; public reader labels its last byte grid as edges | A public format declaration must identify any image-ID field's offset, width, signedness and cell order. Do not relabel the whole skipped area as five independent grids or an image-ID array from its length |
-| Archive and logical-ID namespace | SG3 logical records are per archive; width/height at20/22, type at50, bitmap ID at56; companion pixels and relative mirrors are supported | An explicit archive/base-ID/global-ID contract linking a MAP value to an SG3 logical ID. Bitmap ID56 and archive enumeration order do not prove this join |
+| Image-selection field/grid | Terrain at261,455 and objects at469,391 are uint32 LE,228×228 row-major; object extent167/167. Raw32 candidate at1,535 rejected on167/167 maps; skipped region remains unclassified | A public format declaration must identify any image-ID field's offset, width, signedness and cell order. Do not relabel the whole skipped area as five independent grids or an image-ID array from its length |
+| Archive and logical-ID namespace | SG3 IDs are archive-local; lookup300 uint16 slots@80 now exposed,1,783/1,783 references valid; object values fit all58 archives but choose none uniquely | An explicit archive/base-ID/global-ID contract linking a MAP value to an SG3 logical ID. Bitmap ID56 and archive enumeration order do not prove this join |
 | Terrain variants/adjacency | Partial public flag labels and edge annotation; unannotated bits10,15,22,23,29,30 appear in77,341 cells | Published meanings and combination/variant selection rules with independently checkable samples; raw flag frequency and sprite resemblance are insufficient |
 | Cell placement and draw order | Storage grid/crop established; SG3 supports78×40 diamonds | Verified original projection origin, axes, anchoring, elevation and overlap order, plus a visibly entered matching city/MAP for comparison; diamond dimensions alone do not establish the transform |
 | Companion completeness |192 nonempty SG3 records require absent `ChinaMapProj.555`; same-corpus candidate count0 | A legally supplied matching companion with proven bitmap association; no substitute image or guessed mapping |
 
-These gaps explain **verified tile joins0/167** despite167/167 native terrain displays. Existing locally retained public-format material can supply field definitions; any new parser must be gated on that evidence and license terms. No new MAP field interpretation, speculative tile mapping or CitySimulation/EMP1 model was added.
+These gaps explain **verified tile joins0/167** despite167/167 native terrain displays. Existing locally retained public-format material can supply field definitions; any new parser must be gated on that evidence and license terms. The object layout and rejected candidates above narrow the blocker; no semantic tile mapping or CitySimulation/EMP1 model was added.
 
 Metric acceptance is gated by path role and complete container independently: city grid/CGImage/crop counts cannot be supplied by an empire path; all discovered containers must complete, empire paths must be explicitly excluded from city parsing, and unknown paths or an empty city corpus fail acceptance. Unset root is SKIP, never a real-data pass. `python3 scripts/map_data.py metrics-test` and `--mode undefined` exercise eight authored cases per mode, including swapped roles, incomplete empire, late city corruption, invalid crop, unclassified path, empty data and unset-root SKIP. The real corpus independently passes city **167/167**, empire exclusion **1/1**, complete containers **168/168**, role errors **0** and crops **167/167** in both modes; correcting the gate did not change these measured numerators.
 

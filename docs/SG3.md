@@ -4,6 +4,8 @@
 
 索引起点 40680 = 80 字节头 + 600 字节索引 + 200×200 字节保留 bitmap 表。213/214 的图像记录分别为64/72字节；跳过 dummy ID0，保留其后使用中的逻辑 ID，包括镜像引用。头部容量槽位与使用中的计数分别读取，STATUS 分母用后者。
 
+公开的 [Index 字段](https://github.com/bvschaik/citybuilding-tools/wiki/SG-file-format#index) 位于80，含300个 uint16 LE 图像ID。原生解析器现保留在 `SG3Archive::imageIndex`；`sg3LogicalIndexForGroup` 只作包内数字查找，返回排除dummy后的零基数组索引，拒绝ID0、越界slot、超过使用计数及不一致数组。容量范围不代表有效ID。真实58/58包的17,400个slot中，1,783个非零引用全部有效；Release/UBSan各53项自造检查通过。公开文档的市场slot示例来自Caesar3；Emperor的类别含义、MAP字段到slot的关系及选包规则仍未验证，不能套用。
+
 尺寸在20/22，类型与压缩标志合读为 uint16（50）；bitmap ID在56。支持原始555、透明RLE、78×40 Emperor diamond、向前已有记录的负相对镜像，以及214 alpha。外部文件按 bitmap 名称定位并修正一字节偏移；禁止逃出所选目录。等距尺寸由78×40合同确定，避免58×30的120像素歧义。
 
 本地58个索引中两份旧头值74480由公开兼容规则接受。9,059条mask均在颜色流后按RLE完整消费；把alpha字段当绝对文件偏移有7,918条不满足合同。保留该元数据，不猜测其原版内存意义。输出为预乘BGRA；F81F只用于旧原始type0色键，压缩字面保留（[公开问题9](https://github.com/bvschaik/citybuilding-tools/issues/9)）。

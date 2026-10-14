@@ -17,6 +17,8 @@ make sg3-test
 EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make data-metrics
 make map-test
 make map-test-undefined
+make map-sg3-audit-test
+EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make map-sg3-audit
 make input-test
 make input-test-undefined
 # Explicit own-window UI test; requires existing AX/input/capture permissions:
@@ -27,6 +29,8 @@ EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData python3 game_lab/run_bink_tests
 ```
 
 Real-data tests read only `EMPEROR_GAMEDATA_ROOT` and skip cleanly when unset. No implicit repository asset lookup or global environment changes. Native App selection retains `--data-root` precedence. [SG3 format and scope](docs/SG3.md) defines the image denominator and remaining gaps. For out-of-tree MAP checks, use `python3 scripts/map_data.py test --build-dir /absolute/temporary/path` or `metrics --mode undefined --build-dir /absolute/temporary/path`.
+
+The read-only MAP→SG3 metadata audit verifies the published object-grid layout and SG3 lookup bounds, and rejects an unmodified direct-ID candidate with corpus counts. It reads no .555 pixels and produces no image join. [Mapping evidence and stop condition](docs/MAP.md#mapsg3-association-audit) distinguish field facts, candidate tests and unknown semantics.
 
 The reusable [scoped input driver](input_lab/scoped_click.hpp) and own-AppKit regression diagnose the current mouse-routing blocker without GameData or original-game startup. Tests build in a temporary directory by default; `--build-dir` keeps local evidence, `--window` opts into one authored window and its capture, and missing existing permissions produce SKIP without requesting access. [MAP input scope](docs/MAP.md) documents the single-click request and the still-unverified Wine boundary. Use `python3 input_lab/run_tests.py --request /absolute/local/request.json --inspect` for a read-only snapshot of AX/CG owners, bounds, layer/alpha and the public display-shield ID; it sends no input. Missing values remain null. Application windows at the numeric cursor level remain eligible; foreign front covers still block. Transparent Dock backdrops are unresolved, so Wine clicking is unverified. The user-opened `/Applications/皇帝龙之崛起.app` normal window is the observation baseline; keep its prefix/cwd and avoid the prior Shared ddraw override route.
 

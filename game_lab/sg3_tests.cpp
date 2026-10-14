@@ -35,6 +35,16 @@ int main() {
         save(data,{0x1f,0xf8,0,0x7c});save(idx,index(213,{s}));
         auto a=game_lab::loadSG3(idx.string());need(a.version==213 && a.capacity==2 && a.numImages==1 && a.sprites[0].width==2 && a.sprites[0].type==1,"real published offsets and dummy exclusion");
         auto d=game_lab::decodeSG3Sprite(a,0,data.string());need(d.image.valid() && d.image.pixelsBGRA[0]==0xfff700ff && d.image.pixelsBGRA[1]==0xffff0000,"555 literal colors preserved");
+        // Distinguish header slot, logical ID, dummy ID0, and capacity slots.
+        auto groupFixture=index(214,{s,s});put32(groupFixture,12,10);
+        put16(groupFixture,80,1);put16(groupFixture,80+2*299,2);put16(groupFixture,80+2*298,3);
+        save(idx,groupFixture);a=game_lab::loadSG3(idx.string());
+        need(a.imageIndex[0]==1 && a.imageIndex[299]==2,"300 uint16 header lookup slots and little-endian endpoints");
+        need(game_lab::sg3LogicalIndexForGroup(a,0)==size_t(0) && game_lab::sg3LogicalIndexForGroup(a,299)==size_t(1),"lookup logical IDs excludes dummy and preserves zero-based sprite index");
+        need(!game_lab::sg3LogicalIndexForGroup(a,1),"unused zero group never aliases dummy or ID1");
+        need(!game_lab::sg3LogicalIndexForGroup(a,298),"in-capacity but unused image ID rejected by group lookup");
+        need(!game_lab::sg3LogicalIndexForGroup(a,300),"out-of-range header slot rejected");
+        a.sprites.resize(1);need(!game_lab::sg3LogicalIndexForGroup(a,299),"inconsistent archive cannot return an out-of-range vector index");
         s.type=0;save(idx,index(213,{s}));a=game_lab::loadSG3(idx.string());d=game_lab::decodeSG3Sprite(a,0,data.string());need(d.image.pixelsBGRA[0]==0,"old type0 color key only");
         s.width=2;s.height=2;s.type=256;s.length=8;
         save(data,{1,0x1f,0xf8,255,2,1,0xe0,3});save(idx,index(214,{s}));a=game_lab::loadSG3(idx.string());
