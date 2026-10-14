@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from reference_compare import (compare_rgb, compare_nearest_scaled_rgb, diagonal_grid_matrix,
                                project_points, landmark_residuals, nearest_mask_distances,
-                               mask_translation_candidates,check_fixed_candidates)
+                               mask_translation_candidates,check_fixed_candidates,audit_static_labels)
 
 
 class ReferenceComparisonTests(unittest.TestCase):
@@ -148,6 +148,42 @@ class ReferenceComparisonTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'budget'):
             check_fixed_candidates(np.ones((2,2),bool),np.zeros((4096,2048,2),np.int16),
                                    list(range(2047)),[2047])
+
+    def test_static_same_key_different_labels_refutes_single_value(self):
+        r=audit_static_labels(['a','a','a'],[10,20,30],[0,1],[2])
+        self.assertEqual(r['training']['ambiguous_keys'],1)
+        self.assertEqual(r['training']['minimum_single_label_disagreements'],1)
+        self.assertEqual(r['first_training_counterexample_indices'],[0,1])
+        self.assertEqual(r['heldout_with_ambiguous_training_key'],1)
+        self.assertEqual(r['heldout_new_labels_for_seen_key'],1)
+
+    def test_static_consistency_counts_without_returning_an_engine_selector(self):
+        r=audit_static_labels([(1,2),(3,4),(1,2),(3,4)],[7,8,7,8],[0,1],[2,3])
+        self.assertEqual(r['joint']['minimum_single_label_disagreements'],0)
+        self.assertEqual(r['heldout_unique_key_disagreements'],0)
+        self.assertEqual(r['heldout_with_unique_training_key'],2)
+        self.assertNotIn('mapping',r);self.assertNotIn('verified_rule',r)
+
+    def test_static_unseen_keys_are_unknown_not_passes(self):
+        r=audit_static_labels(['a','b'],[10,20],[0],[1])
+        self.assertEqual(r['heldout_unseen_keys'],1)
+        self.assertEqual(r['heldout_with_unique_training_key'],0)
+
+    def test_static_heldout_conflicts_do_not_leak_into_training(self):
+        r=audit_static_labels(['a','a','a'],[10,20,30],[0],[1,2])
+        self.assertEqual(r['training']['ambiguous_keys'],0)
+        self.assertEqual(r['heldout']['ambiguous_keys'],1)
+        self.assertEqual(r['heldout_unique_key_disagreements'],2)
+        self.assertEqual(r['joint']['minimum_single_label_disagreements'],2)
+        self.assertIsNone(r['first_training_counterexample_indices'])
+
+    def test_static_invalid_partitions_missing_or_unbounded_categories_refuse(self):
+        for train,hold in [([0],[0]),([0],[]),([0],[2])]:
+            with self.assertRaises(ValueError):audit_static_labels(['a','b'],[1,2],train,hold)
+        for key in [None,float('nan'),['a'],'a'*257,()]:
+            with self.assertRaises(ValueError):audit_static_labels([key,'b'],[1,2],[0],[1])
+        with self.assertRaises(ValueError):audit_static_labels(['a']*4097,[1]*4097,[0],list(range(1,4097)))
+        with self.assertRaises(ValueError):audit_static_labels(['a','b'],[1],[0],[1])
 
 
 if __name__=='__main__':unittest.main()

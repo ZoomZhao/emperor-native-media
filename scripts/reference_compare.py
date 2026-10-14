@@ -4,6 +4,7 @@ Scientific callers supply arrays and measured correspondences. No file lookup,
 UI, game execution or artwork export is performed here.
 """
 from dataclasses import dataclass
+from collections import Counter
 import math
 import numpy as np
 
@@ -175,7 +176,7 @@ def mask_translation_candidates(mask, relative_offsets, training_indices, heldou
 
 
 def check_fixed_candidates(mask, candidate_coordinates, training_indices, heldout_indices):
-    """Check independently supplied feature cells without refitting any candidate.
+    """Check supplied feature cells without refitting any candidate.
 
     Coordinates have shape(candidates, observations, xy). Rows stay in caller
     order, including failures; held-out success cannot override failed training.
@@ -210,6 +211,73 @@ def check_fixed_candidates(mask, candidate_coordinates, training_indices, heldou
     return tuple(FixedCandidateSupport(i,int(row[train].sum()),len(train),
                                       int(row[hold].sum()),len(hold))
                  for i,row in enumerate(hits))
+
+
+def audit_static_labels(keys, labels, training_indices, heldout_indices):
+    """Falsify a single label per supplied static key; never return a selector.
+
+    Reports are conditional on caller-supplied coordinates/features/observations.
+    Consistency cannot prove a game rule. Unseen keys and ambiguous training keys
+    remain explicit instead of being memorized or treated as successful tests.
+    """
+    keys,labels=list(keys),list(labels)
+    if not 2<=len(keys)<=4096 or len(keys)!=len(labels):
+        raise ValueError("matching bounded categorical observations required")
+
+    def category(value,depth=0):
+        if isinstance(value,(int,np.integer)) and not isinstance(value,(bool,np.bool_)):
+            value=int(value)
+            if -(2**63)<=value<2**63:return value
+        if isinstance(value,str) and 1<=len(value)<=256:return value
+        if isinstance(value,tuple) and depth<3 and 1<=len(value)<=32:
+            return tuple(category(v,depth+1)for v in value)
+        raise ValueError("known bounded integer/string/tuple categories required")
+
+    keys=[category(k)for k in keys];labels=[category(v)for v in labels]
+    partitions=[]
+    for indices in (training_indices,heldout_indices):
+        indices=np.asarray(indices)
+        if (indices.ndim!=1 or indices.dtype.kind not in 'iu' or not len(indices)
+                or np.any(indices<0) or np.any(indices>=len(keys))
+                or len(np.unique(indices))!=len(indices)):
+            raise ValueError("nonempty unique categorical indices required")
+        partitions.append(indices.astype(np.int64))
+    train,hold=partitions
+    if set(train)&set(hold) or len(train)+len(hold)!=len(keys):
+        raise ValueError("disjoint categorical training/heldout partition required")
+
+    def groups(indices):
+        result={}
+        for i in indices:result.setdefault(keys[i],Counter())[labels[i]]+=1
+        return result
+
+    def summarize(group):
+        return {'distinct_keys':len(group),'ambiguous_keys':sum(len(v)>1 for v in group.values()),
+                'max_distinct_labels_per_key':max(map(len,group.values())),
+                'minimum_single_label_disagreements':sum(sum(v.values())-max(v.values())for v in group.values())}
+
+    tg,hg=groups(train),groups(hold)
+    result={'training_observations':len(train),'heldout_observations':len(hold),
+            'training':summarize(tg),'heldout':summarize(hg),
+            'joint':summarize(groups(range(len(keys)))),
+            'heldout_unseen_keys':0,'heldout_with_ambiguous_training_key':0,
+            'heldout_with_unique_training_key':0,'heldout_unique_key_disagreements':0,
+            'heldout_new_labels_for_seen_key':0,'first_training_counterexample_indices':None}
+    first={}
+    for i in train:
+        prior=first.setdefault(keys[i],int(i))
+        if labels[prior]!=labels[i] and result['first_training_counterexample_indices'] is None:
+            result['first_training_counterexample_indices']=[prior,int(i)]
+    for i in hold:
+        if keys[i] not in tg:
+            result['heldout_unseen_keys']+=1;continue
+        prior=tg[keys[i]]
+        if len(prior)>1:result['heldout_with_ambiguous_training_key']+=1
+        else:
+            result['heldout_with_unique_training_key']+=1
+            result['heldout_unique_key_disagreements']+=int(labels[i] not in prior)
+        result['heldout_new_labels_for_seen_key']+=int(labels[i] not in prior)
+    return result
 
 
 def diagonal_grid_matrix(scale_u, scale_v, tx, ty):
