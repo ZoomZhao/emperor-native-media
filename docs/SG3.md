@@ -10,7 +10,7 @@
 
 78×40是单格 **base** 尺寸，并非所有单格记录的整幅画布尺寸。复用9条已匹配地面正样本，宽均为78，高46×2／49×7，均含3200字节base与额外RLE top；故严格78×40整图池遗漏9/9。当前现代解码与旧导出9/9一致，按画布底部base中心放置恢复10/10旧画面匹配；整幅画布中心放置0/10。这核验了解码几何与比较方法，不给出原版MAP静态origin。分离base/top再透明覆盖重组9/9等于整图，这9条的base/top像素无重叠且非透明alpha均255，未证多记录合成或分数alpha混合。尺寸、2×换算、窗口裁剪与正对照门禁详见 [MAP正对照](MAP.md#positive-control-gate-for-the-finite-canvas-negative)。
 
-新增 `sg3SingleCellGeometry` 仅识别有效逻辑记录／负相对镜像源的type30、宽78、高≥40、uncompressedLength3200、tileSize0/1；返回源画布尺寸和底部base几何中心，不读取动画偏移作为静态origin。`renderSG3SingleCellCanvas` 接受调用者中心，在透明、有预算限制的视口复制整幅解码画布，使用最近邻、明确越界裁剪，不作MAP选图。原生浏览器可手动输入逻辑ID并选择单格基底对照；未证的选图和原版锚点在界面保留未知。Release/UBSan各78/78自造检查通过；实际2,983/2,983候选均生成画布及CGImage。旧正对照9/9纳入、10/10完整匹配，重新固定比较的16格仍0/16。首次原生窗口展示1/1，但屏幕5位掩码比较225/8,224像素不一致、8位最大误差1，尚未通过；不能把呈现差异报作解码失败或完整场景成功。详见[高画布限定结果](MAP.md#declared-tall-canvas-pool-and-fixed-sixteen-cell-result)。
+新增 `sg3SingleCellGeometry` 仅识别有效逻辑记录／负相对镜像源的type30、宽78、高≥40、uncompressedLength3200、tileSize0/1；返回源画布尺寸和底部base几何中心，不读取动画偏移作为静态origin。`renderSG3SingleCellCanvas` 接受调用者中心，在透明、有预算限制的视口复制整幅解码画布，使用最近邻、明确越界裁剪，不作MAP选图。原生浏览器可手动输入逻辑ID并选择单格基底对照；未证的选图和原版锚点在界面保留未知。Release/UBSan各78/78自造检查通过；实际2,983/2,983候选均生成画布及CGImage。旧正对照9/9纳入、10/10完整匹配，重新固定比较的16格仍0/16。首次原生窗口展示1/1，但屏幕5位掩码比较225/8,224像素不一致、8位最大误差1，尚未通过；不能把呈现差异报作解码失败或完整场景成功。 独审已确认实际producer buffer→CGImage provider全字节一致，差异发生在之后；一次自造显示对照的provider16,384/16,384像素精确，AppKit缓存65,536/65,536像素保留2×重复，默认／显式BGRA截图一致，四个内部色阶区域缓存→截图最大误差均1。不会修改源色或放宽阈值追求屏幕0；解码精确度和严格屏幕差异分开报告。详见[高画布限定结果](MAP.md#declared-tall-canvas-pool-and-fixed-sixteen-cell-result)。
 
 本地58个索引中两份旧头值74480由公开兼容规则接受。9,059条mask均在颜色流后按RLE完整消费；把alpha字段当绝对文件偏移有7,918条不满足合同。保留该元数据，不猜测其原版内存意义。输出为预乘BGRA；F81F只用于旧原始type0色键，压缩字面保留（[公开问题9](https://github.com/bvschaik/citybuilding-tools/issues/9)）。
 
