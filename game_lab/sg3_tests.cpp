@@ -20,7 +20,10 @@ Bytes index(uint32_t version,const std::vector<game_lab::SG3Sprite>& sprites,con
     for(size_t i=0;i<sprites.size();++i) {
         const auto& s=sprites[i];size_t p=40680+(i+1)*step;
         put32(b,p,s.offset);put32(b,p+4,s.length);put32(b,p+8,s.uncompressedLength);put32(b,p+16,uint32_t(s.mirrorOffset));
-        put16(b,p+20,s.width);put16(b,p+22,s.height);put16(b,p+50,s.type);b[p+52]=s.external;b[p+55]=s.tileSize;
+        put16(b,p+20,s.width);put16(b,p+22,s.height);put16(b,p+30,s.animationSpriteCount);
+        put16(b,p+34,uint16_t(s.animationOffsetX));put16(b,p+36,uint16_t(s.animationOffsetY));
+        b[p+48]=s.animationReversible;b[p+58]=s.animationSpeedId;
+        put16(b,p+50,s.type);b[p+52]=s.external;b[p+55]=s.tileSize;
         if(version==214){put32(b,p+64,s.alphaOffset);put32(b,p+68,s.alphaLength);}
     }
     return b;
@@ -35,6 +38,26 @@ int main() {
         save(data,{0x1f,0xf8,0,0x7c});save(idx,index(213,{s}));
         auto a=game_lab::loadSG3(idx.string());need(a.version==213 && a.capacity==2 && a.numImages==1 && a.sprites[0].width==2 && a.sprites[0].type==1,"real published offsets and dummy exclusion");
         auto d=game_lab::decodeSG3Sprite(a,0,data.string());need(d.image.valid() && d.image.pixelsBGRA[0]==0xfff700ff && d.image.pixelsBGRA[1]==0xffff0000,"555 literal colors preserved");
+        // Names/widths from the public SG image table, independent of playback.
+        for(uint32_t version : {213u,214u}) {
+            auto metadata=s;metadata.animationSpriteCount=version==213?65535:0x1234;
+            metadata.animationOffsetX=version==213?-32768:32767;
+            metadata.animationOffsetY=version==213?32767:-32768;
+            metadata.animationReversible=version==213?255:0x7d;metadata.animationSpeedId=version==213?0xa5:255;
+            auto raw=index(version,{metadata});
+            put16(raw,40680+30,1234); // Poison dummy animation metadata.
+            const size_t record=40680+(version==213?64:72);
+            put16(raw,record+24,0x1234);put16(raw,record+26,0x5678);
+            save(idx,raw);auto loaded=game_lab::loadSG3(idx.string());
+            need(loaded.sprites.size()==1,"animation metadata retains logical record extent");
+            const auto& actual=loaded.sprites[0];
+            need(actual.animationSpriteCount==metadata.animationSpriteCount && actual.animationOffsetX==metadata.animationOffsetX &&
+                 actual.animationOffsetY==metadata.animationOffsetY && actual.animationReversible==metadata.animationReversible &&
+                 actual.animationSpeedId==metadata.animationSpeedId,"animation fields use published widths, signedness, offsets and raw byte IDs");
+            const auto staticImage=game_lab::decodeSG3Sprite(loaded,0,data.string());
+            need(staticImage.image.pixelsBGRA==d.image.pixelsBGRA,
+                 "animation metadata does not imply a frame range, speed table, static origin or changed pixels");
+        }
         // Distinguish header slot, logical ID, dummy ID0, and capacity slots.
         auto groupFixture=index(214,{s,s});put32(groupFixture,12,10);
         put16(groupFixture,80,1);put16(groupFixture,80+2*299,2);put16(groupFixture,80+2*298,3);

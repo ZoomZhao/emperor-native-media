@@ -16,7 +16,8 @@ int main() {
     const auto start=std::chrono::steady_clock::now();
     size_t archives=0,parsedArchives=0,images=0,decoded=0,presentable=0,capacity=0,
         mirrored=0,alpha=0,external=0,unsupported=0,invalidRecord=0,invalidPayload=0,
-        empty=0,missing=0,maps=0,mapPreviews=0,videos=0;
+        empty=0,missing=0,maps=0,mapPreviews=0,videos=0,
+        animationRecordsCompared=0,animationRecordsMatched=0,animationFieldsMatched=0;
     struct Counts {size_t decoded=0,total=0;};std::map<uint16_t,Counts> types;
     bool binki=false;
     try {
@@ -31,8 +32,23 @@ int main() {
                 if(archive.sprites.empty())continue;
                 ++parsedArchives;capacity+=archive.capacity;
                 auto companion=std::filesystem::path(path);companion.replace_extension(".555");
+                // Check all five named fields against independently read SG bytes.
+                // Emit aggregates only; no per-record data or playback interpretation.
+                std::ifstream metadata(path,std::ios::binary);
+                const size_t recordSize=archive.version==213?64:72;
                 for(size_t i=0;i<archive.sprites.size();++i) {
                     const auto& s=archive.sprites[i];++images;++types[s.type].total;
+                    uint8_t raw[29]{};
+                    metadata.seekg(std::streamoff(40680+(i+1)*recordSize+30));
+                    metadata.read(reinterpret_cast<char*>(raw),sizeof(raw));
+                    if(metadata.gcount()==sizeof(raw)) {
+                        ++animationRecordsCompared;
+                        auto u16=[&](size_t at){return uint16_t(uint16_t(raw[at])|(uint16_t(raw[at+1])<<8));};
+                        size_t matched=(s.animationSpriteCount==u16(0))+
+                            (uint16_t(s.animationOffsetX)==u16(4))+(uint16_t(s.animationOffsetY)==u16(6))+
+                            (s.animationReversible==raw[18])+(s.animationSpeedId==raw[28]);
+                        animationFieldsMatched+=matched;animationRecordsMatched+=matched==5;
+                    }
                     const auto result=game_lab::decodeSG3Sprite(archive,i,companion.string());
                     if(result.status==game_lab::SG3DecodeStatus::Decoded && result.image.valid()) {
                         ++decoded;++types[s.type].decoded;mirrored+=result.mirrored;alpha+=s.alphaLength!=0;external+=s.external!=0;
@@ -53,6 +69,10 @@ int main() {
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     std::cout<<"{\"skipped\":false,\"sg3_archives\":"<<archives<<",\"sg3_parsed_archives\":"<<parsedArchives
       <<",\"in_use_logical_images\":"<<images<<",\"capacity_slots_not_denominator\":"<<capacity
+      <<",\"animation_metadata_records_compared\":"<<animationRecordsCompared
+      <<",\"animation_metadata_records_matched\":"<<animationRecordsMatched
+      <<",\"animation_metadata_fields_per_record\":5,\"animation_metadata_fields_matched\":"<<animationFieldsMatched
+      <<",\"animation_playback_semantics\":\"unmeasured\""
       <<",\"decoded_images\":"<<decoded<<",\"cg_images_created\":"<<presentable
       <<",\"decoded_mirrors\":"<<mirrored<<",\"decoded_alpha_records\":"<<alpha<<",\"decoded_external_records\":"<<external
       <<",\"unsupported\":"<<unsupported<<",\"empty_logical_records\":"<<empty
@@ -65,5 +85,5 @@ int main() {
       <<",\"video_playback\":\"unmeasured\",\"original_visual_agreement\":\"unmeasured\",\"elapsed_seconds\":"
       <<std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count()<<"}\n";
     // An inventory reports partial support; it is not an all-images pass claim.
-    return 0;
+    return animationRecordsMatched==images ? 0 : 1;
 }

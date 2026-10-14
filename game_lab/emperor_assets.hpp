@@ -35,8 +35,11 @@ struct SG3Sprite {
     uint32_t uncompressedLength = 0;
     int16_t width = 0;
     int16_t height = 0;
-    int16_t originX = 0;
-    int16_t originY = 0;
+    // Raw published animation fields; no playback or static MAP-anchor rule.
+    uint16_t animationSpriteCount = 0;
+    int16_t animationOffsetX = 0;
+    int16_t animationOffsetY = 0;
+    uint8_t animationReversible = 0, animationSpeedId = 0;
     uint16_t type = 0;
     uint16_t flags = 0;
     uint8_t bitmapId = 0;
