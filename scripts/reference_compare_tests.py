@@ -1,7 +1,7 @@
 """Entirely authored fixtures for geometry and quantized-vs-raw comparison."""
 import unittest
 import numpy as np
-from reference_compare import (compare_rgb, compare_nearest_scaled_rgb, diagonal_grid_matrix,
+from reference_compare import (compare_rgb, compare_nearest_scaled_rgb, bottom_base_canvas_bounds, diagonal_grid_matrix,
                                project_points, landmark_residuals, nearest_mask_distances,
                                mask_translation_candidates,check_fixed_candidates,audit_static_labels,compare_cell_tints)
 
@@ -88,6 +88,35 @@ class ReferenceComparisonTests(unittest.TestCase):
         mask=np.zeros((10,10),bool);mask[4,4]=True;mask[4,5]=True
         self.assertEqual(nearest_mask_distances([[4,4],[4,7],[-.1,4],[10,4]],mask),[0.,3.,None,None])
         with self.assertRaises(ValueError):nearest_mask_distances([[0,0]],np.zeros((10,10),bool))
+
+    def test_bottom_base_handles_tall_canvas_without_recentering_ground(self):
+        self.assertEqual(bottom_base_canvas_bounds((100,100),(78,40),(78,40)),(22,60,178,140))
+        self.assertEqual(bottom_base_canvas_bounds((100,100),(78,49),(78,40)),(22,42,178,140))
+        self.assertEqual(bottom_base_canvas_bounds((100,100),(78,46),(78,40)),(22,48,178,140))
+        self.assertEqual(bottom_base_canvas_bounds((50,50),(78,46),(78,40),1),(11,24,89,70))
+
+    def test_bottom_base_sampling_preserves_authored_positive_and_exposes_wrong_centre(self):
+        tile=np.arange(9*6*3,dtype=np.uint8).reshape(9,6,3)
+        image=np.zeros((50,50,3),np.uint8)
+        image[16:34,14:26]=np.repeat(np.repeat(tile,2,0),2,1)
+        l,t,r,b=bottom_base_canvas_bounds((20,30),(6,9),(6,4))
+        exact=compare_nearest_scaled_rgb(image[t:b,l:r],tile,np.ones((9,6),bool))
+        wrong=compare_nearest_scaled_rgb(image[21:39,14:26],tile,np.ones((9,6),bool))
+        self.assertTrue(exact.physical.normalized_exact)
+        self.assertTrue(exact.raw_nearest_replication)
+        self.assertFalse(wrong.physical.normalized_exact)
+
+    def test_bottom_base_negative_coordinates_are_not_clipped_or_shifted(self):
+        self.assertEqual(bottom_base_canvas_bounds((0,0),(6,9),(6,4)),(-6,-14,6,4))
+        with self.assertRaises(ValueError):bottom_base_canvas_bounds((.5,0),(6,9),(6,4))
+
+    def test_bottom_base_bad_sizes_scale_and_nonfinite_centres_refuse(self):
+        for center,canvas,base,scale in [((float('nan'),0),(6,9),(6,4),2),
+                ((0,float('inf')),(6,9),(6,4),2),((0,0),(6,9),(6,10),2),
+                ((0,0),(6,9),(7,4),2),((0,0),(6.,9),(6,4),2),
+                ((0,0),(6,9),(6,4),True),((0,0),(6,9),(6,4),2.),
+                ((0,0),(6,0),(6,4),2),((0,0),(4096,9),(6,4),2)]:
+            with self.assertRaises(ValueError):bottom_base_canvas_bounds(center,canvas,base,scale)
 
     def test_scaled_counts_distinguish_repeated_physical_pixels(self):
         decoded=np.array([[[64,80,96],[96,80,64]]],np.uint8)

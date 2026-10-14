@@ -8,6 +8,8 @@
 
 尺寸在20/22，类型与压缩标志合读为 uint16（50）；bitmap ID在56。此前 `originX/Y` 名称误导：公开表将34/36明确命名为**动画图像X/Y偏移**，不是静态MAP绘制origin。原生结构现改为 `animationOffsetX/Y`。本地更早证据还曾把24/26误标为origin；该字节位置错误已修正并重验，像素计数和矩阵不变。40个已匹配水面ID及4个树模板的34/36字段均为(0,0)，只保留原值，不作为静态锚点证据；24/26未在本审计中解释或用于配准。支持原始555、透明RLE、78×40 Emperor diamond、向前已有记录的负相对镜像，以及214 alpha。外部文件按 bitmap 名称定位并修正一字节偏移；禁止逃出所选目录。等距尺寸由78×40合同确定，避免58×30的120像素歧义。
 
+78×40是单格 **base** 尺寸，并非所有单格记录的整幅画布尺寸。复用9条已匹配地面正样本，宽均为78，高46×2／49×7，均含3200字节base与额外RLE top；故严格78×40整图池遗漏9/9。当前现代解码与旧导出9/9一致，按画布底部base中心放置恢复10/10旧画面匹配；整幅画布中心放置0/10。这核验了解码几何与比较方法，不给出原版MAP静态origin。分离base/top再透明覆盖重组9/9等于整图，这9条的base/top像素无重叠且非透明alpha均255，未证多记录合成或分数alpha混合。尺寸、2×换算、窗口裁剪与正对照门禁详见 [MAP正对照](MAP.md#positive-control-gate-for-the-finite-canvas-negative)。
+
 本地58个索引中两份旧头值74480由公开兼容规则接受。9,059条mask均在颜色流后按RLE完整消费；把alpha字段当绝对文件偏移有7,918条不满足合同。保留该元数据，不猜测其原版内存意义。输出为预乘BGRA；F81F只用于旧原始type0色键，压缩字面保留（[公开问题9](https://github.com/bvschaik/citybuilding-tools/issues/9)）。
 
 运行 `make sg3-test` 和 `EMPEROR_GAMEDATA_ROOT=/absolute/GameData make data-metrics`。未设置变量正常SKIP，真实资产只读；只输出汇总数字，不导出图像或dump。窗口动态列出全部SG3，按逻辑ID原生显示；失败清空旧图。

@@ -135,6 +135,33 @@ def compare_rgb(reference, decoded, opaque_mask, bits=5):
                            float(np.sqrt(np.mean(raw.astype(float)**2))), int(np.abs(raw).max()))
 
 
+def bottom_base_canvas_bounds(center_xy, canvas_size, base_size, scale=2):
+    """Integer sampling rectangle for an explicitly bottom-aligned base.
+
+    Sizes are logical(width,height); centre is in physical reference pixels.
+    Callers choose this decoded-geometry convention. It is not an original MAP
+    draw-anchor rule, and animation offsets are never used as static origins.
+    """
+    sizes = (*canvas_size, *base_size)
+    if (len(canvas_size) != 2 or len(base_size) != 2
+            or any(not isinstance(v,(int,np.integer)) or isinstance(v,(bool,np.bool_))
+                   or not 1 <= v <= 4096 for v in sizes)
+            or not isinstance(scale,(int,np.integer)) or isinstance(scale,(bool,np.bool_))
+            or not 1 <= scale <= 8 or len(center_xy) != 2):
+        raise ValueError("positive integer sizes, finite centre and integer scale1..8 required")
+    w,h,bw,bh = sizes
+    if bw > w or bh > h or max(w,h)*scale > 4096:
+        raise ValueError("base must fit the bounded canvas")
+    cx,cy = map(float,center_xy)
+    if not math.isfinite(cx) or not math.isfinite(cy):
+        raise ValueError("finite centre required")
+    bounds = (cx-w*scale/2, cy-(h-bh/2)*scale,
+              cx+w*scale/2, cy+bh*scale/2)
+    if any(not v.is_integer() for v in bounds):
+        raise ValueError("sampling bounds must lie on integer physical pixels")
+    return tuple(map(int,bounds))
+
+
 def compare_nearest_scaled_rgb(reference, decoded, opaque_mask, scale=2, bits=5):
     """Report logical and physical denominators separately, checking every pixel.
 
