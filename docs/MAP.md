@@ -717,6 +717,27 @@ The preserved unique user save was normally loaded and visibly paused by03:48UTC
 
 Run `make pak-payload-audit-test` for authored fixtures or `EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make pak-payload-audit` for aggregate-only original package checks. No global environment is changed. The observation does not enable a native default image selector or modify frozen gameplay.
 
+### Original campaign load-source positive control
+
+The later explicitly approved control uses two distinct existing original city MAPs: Anyang (active side 140) and Dunhuang (170). Their terrain arrays differ at 20,399/51,984 values. After a new unique user-city preservation save, the original Campaign Creator produced two independently named packages with the same explicit first Standard Mission and Population 1001 goal. Both complete packages pass framing, and their sole city parts equal their selected original decoded MAPs at **1,878,928/1,878,928** and **1,879,384/1,879,384 bytes**, respectively (**2/2**). No package bytes or original MAPs were patched. The two non-city parts also differ between projects; this is a whole-map loading control, not an isolated-field causal trial.
+
+Before the first gameplay load, one complete inner minimap rectangle containing 76,720 pixels and two criteria were frozen: A→B must change at least 15% of raw RGBA pixels, and A1→A2 must retain at least 99% exact equality. Each phase used the same normal single-player/custom-campaign/explicit-first-mission path in one normally reopened instance of the same Applications original. The package hash was checked before each phase; loading times and the package-selection/mission/pause screenshot chain remain private. The pointer was outside the minimap, with no viewport panning, ground placement, fitted translation, color adjustment or mismatch mask.
+
+| Frozen whole-minimap comparison | Measured result | Predeclared criterion |
+|---|---:|---:|
+| A1→B changed pixels |67,924/76,720 (88.53%)|at least 15%|
+| A1→A2 equal pixels |76,680/76,720 (99.948%)|at least 99%|
+
+Normal loads advance **0/3→3/3** and both frozen minimap comparisons pass **2/2** by 08:11 UTC on 2026-10-15. B visibly changes from green terrain/eastern river to desert with different river/road geography; A2 recovers A's minimap without masking its 40 differing pixels. Mission titles are not loading proof.
+
+An additional preregistered SAV diagnostic gate is available only **2/3**: unique new A1/A2 saves each match Anyang at 51,984/51,984 terrain values, while B has 9 occurrences of the old terrain marker and the conservative existing reader refuses it. That gate is not relaxed or reported as passed. A separately added read-only check completely validates each SAV compression container, then finds the entire known selected MAP terrain span **207,936/207,936 bytes exactly once in each of 3/3 phase saves**; B contains zero occurrences of the whole Anyang terrain span. This supplementary whole-field byte identity supports input provenance, not a new SAV locator/parser contract or native save-coverage increase. The combined preregistered result is therefore incomplete; the 2/2 minimap result and supplementary check are reported separately.
+
+Together the distinct whole terrains and retained city payloads establish a positive loading control on this scoped normal campaign path. They do not identify the candidate image-field consumer, SG3 namespace, draw layers, animation or the reason for the earlier single-byte trial's 0/1 predicted response. Complete same-city MAP→SG3 scenes remain **0/167**, with no default selector. The two new packages and three trial saves are derivatives and add no supplied-original corpus coverage.
+
+The new unique user preservation save was normally restored and visibly paused by 08:14:58 UTC. Its private backup remains byte-identical **1/1**; all four frozen static ground regions recover **4/4**, with 145,600/145,600 raw pixels, without camera adjustment. Funds 20,000/population 0 and April 599 BCE match the pretrial view: loading ran briefly before pause, with zero visible month advancement, not an exact simulation-instant claim. All 204 pre-existing MAP/campaign files in the selected application root remain byte-identical. Normal original execution updated two existing automatic saves and the account DAT; no manual existing-save overwrite or gameplay placement was sent. The original remains open and paused. Screenshots, packages, saves, byte buffers and hash manifests stay outside Git.
+
+Read-only supplied-root regression retains 31/31 PAKs, 108/108 parts, 46/46 city extents and 6/6 SAV containers/grid spans; unset/empty roots for both audit entry points give 4/4 successful SKIPs. Production parsers, native App code, CitySimulation and EMP1 are unchanged.
+
 ## Scoped input diagnosis and verified limits
 
 The authored driver is `input_lab/scoped_click.hpp`, shared by the CLI and regression. It requires exact PID/UID/birth/executable identity, explicit window ID, unchanged point frame, active/frontmost app, AX owner/frame, matching front CG candidate, no held left button and0.5–1200s remaining. It never launches/activates an app, posts keys, requests permissions or reads game data. A submitted down is balanced by an up after250ms. Focus cannot be atomically locked during that interval, so observed behavior remains necessary.
