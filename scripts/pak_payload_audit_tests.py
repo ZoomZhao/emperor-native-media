@@ -30,11 +30,15 @@ def package(payloads, extra_slots=()):
     for part in payloads:
         starts.append(len(out))
         out.extend(framed(part))
-    slots = starts[1:] + list(extra_slots)
+    # Stored +52 is the last active offset index, not table capacity.
+    active = starts[1:] or [len(out)]
+    last_slot = len(active) - 1
+    slots = active + list(extra_slots)
     if len(slots) > 11:
         raise ValueError("authored fixture slots")
     out.extend(struct.pack("<17I", 0xAAABCDEF, 0x3C, *slots,
-                           *([0] * (15 - len(slots)))))
+                           *([0] * (11 - len(slots))), last_slot,
+                           0xAAABCDEF, 4, 0xAAAABBCC))
     return bytes(out)
 
 
@@ -127,6 +131,78 @@ class PakTests(unittest.TestCase):
             (root / "Campaigns" / "escape.pak").symlink_to(outside)
             with self.assertRaises(audit.AuditError):
                 audit.audit_root(root)
+
+    def test_inactive_interior_pointer_ignored_but_same_active_pointer_rejected(self):
+        payloads = (b"settings", b"empire", b"third payload" * 100)
+        good = package(payloads)
+        footer = len(good) - 68
+        third = struct.unpack_from("<I", good, footer + 12)[0]
+        ghost = third + 13  # Strictly inside the first compression stream.
+        data = bytearray(package(payloads, (ghost,)))
+        self.assertEqual(audit.decode_parts(data), payloads)
+        struct.pack_into("<I", data, len(data) - 68 + 52, 2)
+        with self.assertRaises(audit.AuditError):
+            audit.decode_parts(data)
+
+    def test_inactive_valid_frame_boundary_does_not_split_a_part(self):
+        payloads = (b"settings", b"empire", b"third" * 7000)
+        good = package(payloads); footer = len(good) - 68
+        third = struct.unpack_from("<I", good, footer + 12)[0]
+        encoded = struct.unpack_from("<I", good, third + 4)[0]
+        inner_boundary = third + 12 + encoded
+        self.assertLess(inner_boundary, footer)
+        self.assertEqual(audit.decode_parts(package(payloads, (inner_boundary,))), payloads)
+
+    def test_active_offset_index_lower_and_upper_bounds(self):
+        for count in (1, 2, 12):
+            payloads = tuple(("part%d" % n).encode() for n in range(count))
+            self.assertEqual(audit.decode_parts(package(payloads)), payloads)
+        good = package((b"authored",))
+        for index in (11, 0xFFFFFFFF):
+            broken = bytearray(good)
+            struct.pack_into("<I", broken, len(broken) - 68 + 52, index)
+            with self.subTest(index=index), self.assertRaisesRegex(audit.AuditError, "index"):
+                audit.decode_parts(broken)
+
+    def test_terminal_footer_profile_required(self):
+        good = package((b"authored",))
+        for offset in (56, 60, 64):
+            broken = bytearray(good)
+            struct.pack_into("<I", broken, len(broken) - 68 + offset, 0)
+            with self.subTest(offset=offset), self.assertRaisesRegex(audit.AuditError, "terminal"):
+                audit.decode_parts(broken)
+
+    def test_active_outside_offsets_rejected_without_fallback(self):
+        good = package((b"one", b"two")); footer = len(good) - 68
+        for value in (0, 1, footer + 1, 0xFFFFFFFF):
+            broken = bytearray(good)
+            struct.pack_into("<I", broken, footer + 8, value)
+            with self.subTest(value=value), self.assertRaisesRegex(audit.AuditError, "outside"):
+                audit.decode_parts(broken)
+
+    def test_duplicate_and_terminal_active_slots_are_empty_spans(self):
+        payloads = (b"one", b"two", b"three"); good = package(payloads)
+        footer = len(good) - 68
+        third = struct.unpack_from("<I", good, footer + 12)[0]
+        data = bytearray(package(payloads, (third, footer)))
+        struct.pack_into("<I", data, footer + 52, 3)
+        self.assertEqual(audit.decode_parts(data), payloads)
+
+    def test_active_pointer_cannot_follow_terminal_offset_back_into_body(self):
+        good = package((b"one", b"two", b"three")); footer = len(good) - 68
+        broken = bytearray(good)
+        struct.pack_into("<I", broken, footer + 8, footer)
+        with self.assertRaisesRegex(audit.AuditError, "nonmonotone"):
+            audit.decode_parts(broken)
+
+    def test_count_excluded_offsets_cannot_hide_bad_later_data(self):
+        payloads = (b"one", b"two", b"third" * 7000)
+        good = package(payloads); footer = len(good) - 68
+        third = struct.unpack_from("<I", good, footer + 12)[0]
+        broken = bytearray(package(payloads, (third + 13,)))
+        broken[-69] ^= 1
+        with self.assertRaisesRegex(audit.AuditError, "checksum"):
+            audit.decode_parts(broken)
 
     def test_unset_empty_and_invalid_root_cli(self):
         script = Path(audit.__file__)

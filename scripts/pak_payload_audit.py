@@ -1,8 +1,9 @@
 """Bounded, read-only Emperor PAK framing and city-role audit.
 
 Independently authored from public format facts in citybuilding-mappers/zlibfile.cpp.
-No original game code or GPL implementation is included. Unknown footer fields
-and campaign/mission semantics are not interpreted. Real input only comes from
+No original game code or GPL implementation is included. The active-offset
+footer profile is independently checked against file bytes; campaign/mission
+semantics are not interpreted. Real input only comes from
 EMPEROR_GAMEDATA_ROOT; unset/empty is successful SKIP.
 """
 from pathlib import Path
@@ -29,19 +30,27 @@ def decode_parts(data):
     footer = len(data) - FOOTER_BYTES
     if struct.unpack_from("<II", data, footer) != (0xAAABCDEF, 0x3C):
         raise AuditError("unsupported PAK multipart footer")
+    last_slot, marker, size, terminal = struct.unpack_from("<4I", data, footer + 52)
+    if (marker, size, terminal) != (0xAAABCDEF, 4, 0xAAAABBCC):
+        raise AuditError("unsupported PAK terminal footer profile")
+    if last_slot >= OFFSET_SLOTS:
+        raise AuditError("PAK active offset index outside table")
     slots = struct.unpack_from("<" + str(OFFSET_SLOTS) + "I", data, footer + 8)
-    # Public multipart framing permits zero, consecutive duplicate and stale
-    # >=footer slots. They are not part extents; all bytes before footer still
-    # have to belong to completely verified compression frames.
-    starts = [4]
-    for i, value in enumerate(slots):
-        previous = slots[i - 1] if i else 4
-        if value == 0 or value == previous or value >= footer:
-            continue
-        if value <= starts[-1]:
+    # Observed Emperor footer +52 stores the last active offset-slot index.
+    # Later fixed-capacity slots can contain stale offsets, even inside a frame.
+    # Never discover part boundaries by scanning for markers or successful zlib.
+    bounds = [4]
+    for value in slots[:last_slot + 1]:
+        if not 4 <= value <= footer:
+            raise AuditError("PAK active part offset outside framed body")
+        if value < bounds[-1]:
             raise AuditError("PAK nonmonotone part offsets")
-        starts.append(value)
-    bounds = starts + [footer]
+        if value != bounds[-1]:
+            bounds.append(value)
+    if bounds[-1] != footer:
+        bounds.append(footer)
+    if len(bounds) < 2:
+        raise AuditError("PAK empty framed body")
     parts, total = [], 0
     for start, end in zip(bounds, bounds[1:]):
         if not 4 <= start < end <= footer:

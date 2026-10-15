@@ -11,7 +11,7 @@
 | Original regional registration | **0/16→16/16** cells in4 cancelled footprints; farther4/4 at0px. Fixed flat basis/tint assumptions; internal camera conventions and broader projection unknown. |
 | Experimental raw-reference viewport | Native390/390 visible cells,62 decodes; **491,284/2,176,064** eligible pixels equal. Offset1535/base48921 explicit hypotheses; complete agreement fails. |
 | Fixed source / coverage checks | New repeated-ID point **0/1→1/1**, expanded diagnostic2/4; different-ID3470/1. Type30 pools4,114/4,114; two stopped targets each0/32,585 variants. No absence-from-all-resources claim. |
-| **New: PAK input audit** | Complete packages **0/31→30/31**;105/105 parts in those30,45/45 city payload extents. One selected-part boundary fails;60 non-city parts uninterpreted. Authored12/12; unset/empty2/2 SKIP. |
+| **New: PAK input audit** | Complete packages **30/31→31/31**;108/108 parts,46/46 city payload extents. Footer active-offset blocker removed; prior30/30 packages/105/105 decoded parts unchanged.62 non-city parts uninterpreted. Authored20/20; unset/empty2/2 SKIP. |
 | **New: bounded field-consumer trial** | Native A/M decoded-part differences **[0,0,1] bytes**. Fresh A→M→A **0/3→3/3**, target full ID361:5,994/5,994 pixels; controls12/12, heldout316,800/316,800 raw pixels. Predicted M→362 **0/1**: no visible effect at one cell/load path; no regeneration/ignored-field rule. |
 | **MAP→SG3 complete joins** | **0/167**. Current-image consumer, namespace, layer composition and draw order remain unproved; no default selector enabled. |
 | Original display / time controls | Water-table OFF1/1; fixed predictions remain1/2. Pause/resume water changes78/78 with6/6 tree controls stable; frame-chain timing semantics unmeasured. |
@@ -20,4 +20,4 @@
 
 SG3 denominator: header in-use logical records, excluding dummy0 and capacity slots, including mirrors;71,943 nonempty records. Synthetic regression passes are not original-data progress. Earlier runner/VM, input-guard, source-pool and per-type details remain in format docs and recoverable Git history.
 
-Next: resolve the actual ground-image consumer/layers using bounded evidence; inspect the one unsupported PAK boundary; obtain the missing SG3 companion; implement original audio/synchronization. Keep CitySimulation/EMP1 and authored gameplay frozen. Clean room; original assets and all derivatives stay outside Git. Real-data tests use only process-local `EMPEROR_GAMEDATA_ROOT`, successful SKIP when unset/empty.
+Next: resolve the actual ground-image consumer/layers using bounded evidence; obtain the missing SG3 companion; implement original audio/synchronization. Keep CitySimulation/EMP1 and authored gameplay frozen. Clean room; original assets and all derivatives stay outside Git. Real-data tests use only process-local `EMPEROR_GAMEDATA_ROOT`, successful SKIP when unset/empty.
