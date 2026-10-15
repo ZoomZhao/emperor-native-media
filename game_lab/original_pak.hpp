@@ -1,5 +1,6 @@
 #pragma once
 #include "original_map.hpp"
+#include "original_save.hpp"
 #include "resource_root.hpp"
 
 namespace game_lab {
@@ -18,7 +19,7 @@ OriginalPakResult decodeOriginalPak(const std::vector<uint8_t>&);
 OriginalPakResult loadOriginalPak(const std::string& absolutePath);
 std::string describeOriginalPak(const OriginalPakResult&);
 
-enum class OriginalMapSourceKind { MapFile,PakSummary,PakCity };
+enum class OriginalMapSourceKind { MapFile,PakSummary,PakCity,SaveFile };
 struct OriginalMapSource {
     OriginalMapSourceKind kind=OriginalMapSourceKind::MapFile;
     std::string relativePath,label;
@@ -26,12 +27,13 @@ struct OriginalMapSource {
 };
 struct OriginalMapCatalog {
     std::vector<OriginalMapSource> sources;
-    size_t looseMaps=0,pakFiles=0,completePaks=0,pakParts=0,pakDecodedBytes=0,cityCandidates=0,cityMaps=0;
+    size_t looseMaps=0,saveFiles=0,pakFiles=0,completePaks=0,pakParts=0,pakDecodedBytes=0,cityCandidates=0,cityMaps=0;
     bool complete=false;
     std::string error;
 };
 struct OriginalMapSelection {
     OriginalMapResult map;
+    std::optional<OriginalSaveCellLayers> saveLayers;
     std::string sourceInfo;
     bool packageSummary=false;
 };

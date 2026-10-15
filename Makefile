@@ -1,4 +1,4 @@
-.PHONY: all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics map-sg3-audit map-sg3-audit-test map-raw-spans map-raw-spans-test map-reference-test map-reference-test-undefined save-state-audit save-state-audit-test pak-payload-audit pak-payload-audit-test pak-native-test pak-native-test-undefined pak-native-metrics base-content-audit-test reference-compare-test input-test input-test-undefined input-window-test
+.PHONY: all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics map-sg3-audit map-sg3-audit-test map-raw-spans map-raw-spans-test map-reference-test map-reference-test-undefined save-state-audit save-state-audit-test pak-payload-audit pak-payload-audit-test pak-native-test pak-native-test-undefined pak-native-metrics save-native-test save-native-test-undefined save-native-metrics base-content-audit-test reference-compare-test input-test input-test-undefined input-window-test
 all: game-app
 game-app:
 	/bin/sh game_lab/app/build.sh
@@ -28,6 +28,12 @@ map-reference-test:
 	/usr/bin/python3 scripts/map_reference.py test
 map-reference-test-undefined:
 	/usr/bin/python3 scripts/map_reference.py test --mode undefined
+save-native-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/save_data.py test
+save-native-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/save_data.py test --mode undefined
+save-native-metrics:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/save_data.py metrics
 pak-native-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/pak_data.py test
 pak-native-test-undefined:

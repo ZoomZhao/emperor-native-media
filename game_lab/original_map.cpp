@@ -157,8 +157,9 @@ std::string originalMapFlagLabel(unsigned bit) {
     if(bit>=32)return "无效位";
     return flagLabels[bit]?std::string("公开标注：")+flagLabels[bit]:"unknown：无公开标注";
 }
-DecodedImage renderOriginalMapFlags(const OriginalMapTerrain& grid,int bit,bool crop) {
-    if(!grid.valid() || bit<-1 || bit>31)return {};
+DecodedImage renderOriginalMapFlags(const OriginalMapTerrain& grid,int bit,bool crop) {return renderOriginalMapValues(grid,grid.flags,bit,crop);}
+DecodedImage renderOriginalMapValues(const OriginalMapTerrain& grid,const std::vector<uint32_t>& values,int bit,bool crop) {
+    if(!grid.valid() || values.size()!=grid.flags.size() || bit<-1 || bit>31)return {};
     const auto analysis=analyzeOriginalMap(grid);if(crop && !analysis.cropValid())return {};
     try {
         const uint32_t side=crop?analysis.cropSide:OriginalMapTerrain::storageSide;
@@ -168,7 +169,7 @@ DecodedImage renderOriginalMapFlags(const OriginalMapTerrain& grid,int bit,bool 
             const uint32_t value=grid.flags[size_t(y+origin)*OriginalMapTerrain::storageSide+x+origin];
             if(crop && (value&outsideFlag)){image.pixelsBGRA.push_back(0);continue;}
             // Reuse the same independent numerical palette in both views.
-            image.pixelsBGRA.push_back(diagnosticColor(value,bit));
+            image.pixelsBGRA.push_back(diagnosticColor(values[size_t(y+origin)*OriginalMapTerrain::storageSide+x+origin],bit));
         }
         return image;
     }catch(const std::bad_alloc&){return {};}

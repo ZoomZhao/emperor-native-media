@@ -64,6 +64,8 @@ OriginalMapResult loadOriginalMapTerrain(const std::string& absolutePath,
 OriginalMapAnalysis analyzeOriginalMap(const OriginalMapTerrain&);
 std::string originalMapFlagLabel(unsigned bit);
 DecodedImage renderOriginalMapFlags(const OriginalMapTerrain&,int bit=-1,bool crop=false);
+// Raw diagnostic values use only the terrain off-map mask, never their own bits.
+DecodedImage renderOriginalMapValues(const OriginalMapTerrain&,const std::vector<uint32_t>&,int bit=-1,bool crop=false);
 // Flat diagnostic camera in validated active-crop coordinates. No screenshot
 // positions, original palette, elevation rules or SG3 selector are embedded.
 struct OriginalMapCamera {

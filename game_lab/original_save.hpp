@@ -1,0 +1,26 @@
+#pragma once
+#include "original_map.hpp"
+namespace game_lab {
+enum class OriginalSaveStatus { LoadedSnapshot,ReadFailure,ChangedDuringRead,InvalidContainer,UnsupportedRole,UnsupportedAnchors,InvalidGrid,BudgetExceeded };
+struct OriginalSaveCellLayers {
+    static constexpr size_t cells=228u*228u;
+    std::vector<uint32_t> followingU32Unknown,mapperObjects;
+    std::vector<uint8_t> mapperRandom,mapperStone,mapperFertile;
+    bool valid() const{return followingU32Unknown.size()==cells&&mapperObjects.size()==cells&&mapperRandom.size()==cells&&mapperStone.size()==cells&&mapperFertile.size()==cells;}
+};
+struct OriginalSaveResult {
+    OriginalSaveStatus status=OriginalSaveStatus::ReadFailure;
+    OriginalMapTerrain terrain;
+    OriginalSaveCellLayers layers;
+    size_t inputBytes=0,decodedBytes=0,frames=0,sizeOffset=0,terrainOffset=0;
+    bool readStable=false;
+};
+// Conservative SAV13 data profile from published marker/skip facts. No building,
+// walker, clock, engine selector or authored city model is parsed or mutated.
+OriginalSaveResult decodeOriginalSave(const std::vector<uint8_t>&);
+OriginalSaveResult loadOriginalSave(const std::string& absolutePath);
+std::string describeOriginalSave(const OriginalSaveResult&);
+// field0=unknown following u32;1=objects;2=random;3=fertile;4=stone.
+std::vector<uint32_t> originalSaveFieldValues(const OriginalSaveCellLayers&,unsigned field);
+std::string originalSaveFieldLabel(unsigned field);
+}

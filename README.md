@@ -14,7 +14,7 @@ The separate [experimental MAP reference viewer](docs/MAP.md#experimental-raw-ma
 
 The [frozen spatial error audit](docs/MAP.md#spatial-error-classes-and-fixed-neighbour-rle-check) preserves that score and finds most disagreement in base interiors with no RLE support. The known positive plus three fixed neighbours retain full content equality; no anchor/order repair is supported. The candidate denominator contains no unpainted background or nominal unsupported geometry. Current-city state versus the static MAP and effective base selection remain unresolved.
 
-The [read-only SAV source audit](docs/SAV.md) now verifies existing save containers and independently locates terrain through SAV-specific public markers. Two automatic saves updated during the current run uniquely match Anyang among 167 city MAPs, with all51,984 terrain values unchanged. Their one following u32 candidate span is zero at all nine fixed comparison points and has no proved graphics meaning. They precede the frozen screenshot; current effective base reconstruction remains unverified. This tool does not restore saves in the native app.
+The [native SAV13 snapshot reader](docs/SAV.md#native-sav13-snapshot-loading) now reads existing saves through the same explicit data root: **0/6→6/6** supplied-root files and **0/9→9/9** current-instance files, including the unique preserved user slot. Terrain plus five raw grids produce90/90 native images and90/90 actual-window source/field views; an independent full-grid comparison covers4,678,560 unsigned values. This is a saved snapshot, not current memory or restored buildings/walkers/rules. The preserved slot’s terrain/objects/random/fertile arrays each remain51,984/51,984 equal to Anyang MAP; its following u32 span is still semantically unknown, including2,399 nonzero values over the full backing grid. No new effective SG3 selector is inferred.
 
 The [finite failed-base content check](docs/SG3.md#冻结失败格的有限-base-内容识别) preserves one complete RLE-free failed footprint and its same-view positive. Reusing the 2,983-record pool and extending only declared multibase subpieces plus exact-alpha natural78×40 RLE bases finds0/32,585 exact variants at the target; the positive remains ID361. This does not establish absence from all resources or exclude missing transparent layers. The cache verifier has23 authored regressions and clean unset-root SKIP. BGRA cache reads reject negative or overflowing offsets, truncated records and incomplete pixels; both frozen real-cache protocols retain identical complete results after this P2 fix.
 
@@ -24,7 +24,7 @@ The [frozen grass qualification](docs/MAP.md#frozen-grass-temporal-qualification
 
 The [PAK input gate and controlled consumer trial](docs/MAP.md#multipart-pak-input-gate-and-controlled-consumer-trial) now verifies **31/31 original packages** (previous30/31),108 complete parts and46 city payloads. A bounded footer active-offset profile removes the stale-table boundary failure; the earlier30 packages/105 payload parts remain byte-identical after decoding. A separately approved native Campaign Creator pair preserves exactly one changed city byte, with both other parts identical. Three fresh normal game loads complete A→M→A, but the target remains full ID361 in3/3 loads, with12/12 controls and316,800/316,800 heldout pixels stable. The predicted M→ID362 change is0/1 for this cell/load path; no runtime reconstruction or universal ignored-field rule is inferred. Full-city joins remain0/167. The user city was restored from its unique new save and left visibly paused; its original MAP and all32 pre-existing campaign files remain unchanged.
 
-The [native PAK source selector](docs/MAP.md#native-pak-source-selection) closes the prior Python-only gap: **0/31→31/31** packages and **0/46→46/46** embedded city grids, raw-layer sets and CGImages. The real native window verifies31/31 package summaries and46/46 current-source city images from245 entries (168 loose MAP＋31 package summaries＋46 package cities). Package-info and failed selections clear the old image. The view uses numerical field colors; campaign/mission semantics,62 non-city parts and original SG3 selection remain unproved. `--data-root` remains explicit, with no extraction or asset export.
+The [native PAK source selector](docs/MAP.md#native-pak-source-selection) closes the prior Python-only gap: **0/31→31/31** packages and **0/46→46/46** embedded city grids, raw-layer sets and CGImages. The real native window verifies31/31 package summaries and46/46 current-source city images from the245-entry MAP/PAK subtotal (168 loose MAP＋31 package summaries＋46 package cities), with SAV entries added separately. Package-info and failed selections clear the old image. The view uses numerical field colors; campaign/mission semantics,62 non-city parts and original SG3 selection remain unproved. `--data-root` remains explicit, with no extraction or asset export.
 
 Current phase: **DATA FIRST**. Every change must raise a metric in [STATUS.md](STATUS.md) or remove a listed blocker. CitySimulation/EMP1 and the authored gameplay are frozen and retained; their tests do not measure original-game progress.
 
@@ -40,6 +40,9 @@ make map-test-undefined
 make map-reference-test
 make map-reference-test-undefined
 make save-state-audit-test
+make save-native-test
+make save-native-test-undefined
+EMPEROR_GAMEDATA_ROOT=/absolute/path/to/GameData make save-native-metrics
 make pak-payload-audit-test
 make pak-native-test
 make pak-native-test-undefined
