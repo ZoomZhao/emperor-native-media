@@ -45,6 +45,9 @@ struct PlaybackStatus {
     PlaybackState state = PlaybackState::Muted;
     std::string message = "默认静音；取消静音后点击播放";
 };
+struct OriginalMapCatalog;
+struct OriginalMapSource;
+struct OriginalMapSelection;
 class AppMedia final : public PlaybackListener {
 public:
     AppMedia(ResourceRoot root, AudioFactory& factory) : root_(std::move(root)), factory_(factory) {}
@@ -56,6 +59,8 @@ public:
     Raw555Image raw555(const std::string& relative, uint32_t width, uint32_t height) const;
     CityMap cityMap(const std::string& relative) const;
     std::vector<std::string> originalMapFiles() const;
+    OriginalMapCatalog originalMapCatalog() const;
+    OriginalMapSelection originalMapSource(const OriginalMapSource&) const;
     OriginalMapResult originalMap(const std::string& relative) const;
     SG3Archive sg3(const std::string& relative) const;
     std::vector<std::string> sg3Packages() const;

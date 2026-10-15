@@ -45,6 +45,17 @@ struct OriginalMapAnalysis {
     std::array<size_t,32> unknownBitOccurrences{};
     bool cropValid() const { return cropSupported && activeCells>0 && outsideCropCells==0; }
 };
+// Shared bounded compressed-data and city-payload stages. Non-city PAK parts
+// may be complete containers without being city maps; no partial bytes publish.
+struct OriginalMapContainerResult {
+    bool complete=false;
+    OriginalMapStatus failure=OriginalMapStatus::InvalidContainer;
+    std::vector<uint8_t> payload;
+    size_t inputBytes=0,frames=0;
+};
+OriginalMapContainerResult decodeOriginalMapContainer(const std::vector<uint8_t>&);
+OriginalMapResult parseOriginalMapPayload(const std::vector<uint8_t>&,
+    std::optional<OriginalMapRawSpec> diagnosticSpec=std::nullopt);
 // Authored implementation from public format facts and byte validation.
 // No city state, game rules, GPL parser/renderer or original code.
 OriginalMapResult loadOriginalMapTerrain(const std::string& absolutePath,

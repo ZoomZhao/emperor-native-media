@@ -76,40 +76,45 @@ std::optional<OriginalMapRawLayer> parseOriginalMapRawLayer(const std::vector<ui
         return layer;
     }catch(const std::bad_alloc&){return std::nullopt;}
 }
-OriginalMapResult loadOriginalMapTerrain(const std::string& path,std::optional<OriginalMapRawSpec> diagnosticSpec) {
-    OriginalMapResult result;
-    std::vector<uint8_t> input;
-    if(!detail::readFile(path,maxInput,input))return result;
-    result.inputBytes=input.size();
-    if(input.size()<4 || detail::u32(input.data())!=0xfedcbaaa) {
-        result.status=OriginalMapStatus::InvalidContainer;return result;
-    }
+OriginalMapContainerResult decodeOriginalMapContainer(const std::vector<uint8_t>& input) {
+    OriginalMapContainerResult result;result.inputBytes=input.size();
+    if(input.size()>maxInput){result.failure=OriginalMapStatus::BudgetExceeded;return result;}
+    if(input.size()<4||detail::u32(input.data())!=0xfedcbaaa)return result;
     try {
         std::vector<uint8_t> decoded;
         size_t cursor=4;
         while(cursor<input.size()) {
-            if(result.frames==maxFrames){result.status=OriginalMapStatus::BudgetExceeded;return result;}
-            if(input.size()-cursor<12){result.status=OriginalMapStatus::InvalidContainer;return result;}
+            if(result.frames==maxFrames){result.failure=OriginalMapStatus::BudgetExceeded;return result;}
+            if(input.size()-cursor<12){result.failure=OriginalMapStatus::InvalidContainer;return result;}
             const auto* record=input.data()+cursor;
-            if(detail::u32(record)!=0xabcdefff){result.status=OriginalMapStatus::UnsupportedContainer;return result;}
+            if(detail::u32(record)!=0xabcdefff){result.failure=OriginalMapStatus::UnsupportedContainer;return result;}
             const size_t encoded=detail::u32(record+4),declared=detail::u32(record+8);
             if(!encoded || encoded>2*maxChunk || !declared || declared>maxChunk || declared>maxDecoded-decoded.size()) {
-                result.status=OriginalMapStatus::BudgetExceeded;return result;
+                result.failure=OriginalMapStatus::BudgetExceeded;return result;
             }
-            if(encoded>input.size()-cursor-12){result.status=OriginalMapStatus::InvalidContainer;return result;}
+            if(encoded>input.size()-cursor-12){result.failure=OriginalMapStatus::InvalidContainer;return result;}
             std::array<uint8_t,maxChunk+1> output{};
             z_stream stream{};
             stream.next_in=const_cast<Bytef*>(record+12);stream.avail_in=uInt(encoded);
             stream.next_out=output.data();stream.avail_out=output.size();
-            if(inflateInit(&stream)!=Z_OK){result.status=OriginalMapStatus::InvalidContainer;return result;}
+            if(inflateInit(&stream)!=Z_OK){result.failure=OriginalMapStatus::InvalidContainer;return result;}
             const int status=inflate(&stream,Z_FINISH);
             const bool good=status==Z_STREAM_END && stream.total_out==declared && stream.total_in==encoded;
             inflateEnd(&stream);
-            if(!good){result.status=OriginalMapStatus::InvalidContainer;return result;}
+            if(!good){result.failure=OriginalMapStatus::InvalidContainer;return result;}
             decoded.insert(decoded.end(),output.begin(),output.begin()+declared);
             cursor+=12+encoded;++result.frames;
         }
-        result.decodedBytes=decoded.size();
+        if(!result.frames){result.failure=OriginalMapStatus::InvalidContainer;return result;}
+        result.payload=std::move(decoded);result.complete=true;
+    }catch(const std::bad_alloc&){result.failure=OriginalMapStatus::BudgetExceeded;}
+    return result;
+}
+OriginalMapResult parseOriginalMapPayload(const std::vector<uint8_t>& decoded,std::optional<OriginalMapRawSpec> diagnosticSpec) {
+    OriginalMapResult result;
+    if(decoded.size()>maxDecoded){result.status=OriginalMapStatus::BudgetExceeded;return result;}
+    result.decodedBytes=decoded.size();
+    try {
         if(decoded.size()<citySignature.size() || !std::equal(citySignature.begin(),citySignature.end(),decoded.begin())) {
             result.status=OriginalMapStatus::UnsupportedRole;return result;
         }
@@ -123,6 +128,14 @@ OriginalMapResult loadOriginalMapTerrain(const std::string& path,std::optional<O
         result.terrain=std::move(grid);result.status=OriginalMapStatus::LoadedTerrain;
     } catch(const std::bad_alloc&) {result.status=OriginalMapStatus::BudgetExceeded;}
     return result;
+}
+OriginalMapResult loadOriginalMapTerrain(const std::string& path,std::optional<OriginalMapRawSpec> diagnosticSpec) {
+    OriginalMapResult result;std::vector<uint8_t> input;
+    if(!detail::readFile(path,maxInput,input))return result;
+    auto container=decodeOriginalMapContainer(input);
+    if(!container.complete){result.status=container.failure;result.inputBytes=container.inputBytes;result.frames=container.frames;return result;}
+    result=parseOriginalMapPayload(container.payload,diagnosticSpec);
+    result.inputBytes=container.inputBytes;result.frames=container.frames;return result;
 }
 OriginalMapAnalysis analyzeOriginalMap(const OriginalMapTerrain& grid) {
     OriginalMapAnalysis result;if(!grid.valid())return result;
@@ -202,7 +215,7 @@ std::string describeOriginalMap(const OriginalMapResult& result) {
     case OriginalMapStatus::LoadedTerrain:return "原始城市地图地形网格：存储228×228，活动边长字段 "+std::to_string(result.terrain.activeSide)+"；只读，无城市状态绑定；额外原始逐格字段"+(result.cellLayers?std::string("已完整保留，选图关系未知"):std::string("未完整保留"));
     case OriginalMapStatus::ReadFailure:return "地图文件不可读取或超出输入限制";
     case OriginalMapStatus::InvalidContainer:return "地图压缩容器不完整、校验失败或长度不符";
-    case OriginalMapStatus::UnsupportedContainer:return "当前只支持已验证的单段压缩 MAP 容器";
+    case OriginalMapStatus::UnsupportedContainer:return "未支持的压缩容器或记录结构";
     case OriginalMapStatus::UnsupportedRole:return "非已验证城市地图头；帝国地图等内部布局尚未支持";
     case OriginalMapStatus::InvalidGrid:return "城市地图尺寸或地形网格范围无效";
     case OriginalMapStatus::BudgetExceeded:return "地图读取/解码预算超限或分配失败";

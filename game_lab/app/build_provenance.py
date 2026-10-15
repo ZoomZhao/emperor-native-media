@@ -12,7 +12,8 @@ sources = [
     'game_lab/app/main.mm', 'game_lab/app/city_goal_feedback.hpp', 'game_lab/app/city_goal_feedback_adapter.hpp',
     'game_lab/app/build.sh', 'game_lab/app/build_provenance.py',
     'game_lab/app/Info.plist', 'game_lab/app/av_audio_backend.hpp', 'game_lab/app/av_audio_backend.mm',
-    'game_lab/app_media.hpp', 'game_lab/app_media.cpp',
+    'game_lab/app_media.hpp', 'game_lab/app_media.cpp', 'game_lab/app_pak.cpp',
+    'game_lab/original_pak.hpp', 'game_lab/original_pak.cpp',
     'game_lab/movie_session.hpp', 'game_lab/movie_session.mm',
     'game_lab/bink_preview.hpp', 'stream_lab/bink_process.hpp',
     'game_lab/image_presentation.hpp', 'game_lab/cg_image_conversion.hpp',
@@ -41,7 +42,7 @@ sources = [
 ]
 compiled = [
     'game_lab/app/main.mm', 'game_lab/app/av_audio_backend.mm',
-    'game_lab/app_media.cpp', 'game_lab/movie_session.mm',
+    'game_lab/app_media.cpp', 'game_lab/app_pak.cpp', 'game_lab/original_pak.cpp', 'game_lab/movie_session.mm',
     'game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
     'game_lab/resource_root.cpp', 'surface_lab/surface.cpp',
     'game_lab/candidate_import.cpp', 'game_lab/sg3.cpp', 'game_lab/original_map.cpp', 'file_io/src/strict_zlib.cpp', 'file_io/src/framed_reader.cpp',

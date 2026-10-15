@@ -1,6 +1,7 @@
 #import <AppKit/AppKit.h>
 #include "av_audio_backend.hpp"
 #include "../app_media.hpp"
+#include "../original_pak.hpp"
 #include "../movie_session.hpp"
 #include "../emperor_assets.hpp"
 #include "../resource_root.hpp"
@@ -168,7 +169,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSButton* _originalMapCameraApply;
     NSTextField* _originalMapInfo;
     NSImageView* _originalMapImage;
-    std::vector<std::string> _originalMapFiles;
+    std::vector<game_lab::OriginalMapSource> _originalMapSources;
+    std::string _originalMapSourceInfo;
+    BOOL _originalMapPackageSummary;
     game_lab::OriginalMapResult _originalMapResult;
     NSView* _candidateView;
     NSTextView* _candidateReport;
@@ -1384,15 +1387,16 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
     _originalMapView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     const CGFloat height = _originalMapView.bounds.size.height;
-    NSTextField* title = [NSTextField labelWithString:@"原始城市地图 · 只读地形标志网格"];
+    NSTextField* title = [NSTextField labelWithString:@"原始城市地图 · MAP 与战役包（只读数值地形）"];
     title.frame = NSMakeRect(20, height - 38, 960, 26);
     title.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     title.font = [NSFont boldSystemFontOfSize:17]; [_originalMapView addSubview:title];
     _originalMapPicker = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(20, height - 80, 560, 30) pullsDown:NO];
-    _originalMapFiles = _media->originalMapFiles();
-    for(const auto& path : _originalMapFiles) [_originalMapPicker addItemWithTitle:[NSString stringWithUTF8String:path.c_str()]];
-    if(_originalMapFiles.empty()) [_originalMapPicker addItemWithTitle:@"数据目录没有 MAP"];
-    for(size_t i = 0; i < _originalMapFiles.size(); ++i) if(_originalMapFiles[i].rfind("Cities/", 0) == 0) {
+    const auto catalog = _media->originalMapCatalog();
+    _originalMapSources = catalog.sources;
+    for(const auto& source : _originalMapSources) [_originalMapPicker addItemWithTitle:[NSString stringWithUTF8String:source.label.c_str()]];
+    if(_originalMapSources.empty()) [_originalMapPicker addItemWithTitle:catalog.error.empty()?@"数据目录没有 MAP 或战役包":[NSString stringWithUTF8String:catalog.error.c_str()]];
+    for(size_t i = 0; i < _originalMapSources.size(); ++i) if(_originalMapSources[i].kind==game_lab::OriginalMapSourceKind::MapFile&&_originalMapSources[i].relativePath.rfind("Cities/", 0) == 0) {
         [_originalMapPicker selectItemAtIndex:static_cast<NSInteger>(i)]; break;
     }
     _originalMapPicker.target = self; _originalMapPicker.action = @selector(onOriginalMapChanged:);
@@ -1429,7 +1433,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapOutlines.autoresizingMask=NSViewMinYMargin;_originalMapOutlines.accessibilityIdentifier=@"original-map-outlines";[_originalMapView addSubview:_originalMapOutlines];
     _originalMapInfo = [NSTextField wrappingLabelWithString:@"等待地图载入"];
     _originalMapInfo.frame = NSMakeRect(20, height - 244, 980, 88);
-    _originalMapInfo.maximumNumberOfLines = 5; _originalMapInfo.font = [NSFont systemFontOfSize:12];
+    _originalMapInfo.maximumNumberOfLines = 6; _originalMapInfo.font = [NSFont systemFontOfSize:12];
     _originalMapInfo.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     _originalMapInfo.accessibilityIdentifier = @"original-map-info"; [_originalMapView addSubview:_originalMapInfo];
     _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 280)];
@@ -1442,8 +1446,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     (void)sender; _originalMapResult = {}; _originalMapImage.image = nil;
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const NSInteger index = _originalMapPicker.indexOfSelectedItem;
-    if(index < 0 || static_cast<size_t>(index) >= _originalMapFiles.size()) { _originalMapInfo.stringValue = @"没有选择 MAP"; return; }
-    _originalMapResult = _media->originalMap(_originalMapFiles[static_cast<size_t>(index)]);
+    _originalMapSourceInfo.clear();_originalMapPackageSummary=NO;
+    if(index < 0 || static_cast<size_t>(index) >= _originalMapSources.size()) { _originalMapInfo.stringValue = @"没有选择地图来源"; return; }
+    auto selection = _media->originalMapSource(_originalMapSources[static_cast<size_t>(index)]);
+    _originalMapResult = std::move(selection.map);
+    _originalMapSourceInfo = std::move(selection.sourceInfo);
+    _originalMapPackageSummary = selection.packageSummary;
+    if(_originalMapResult.terrain.valid()&&!game_lab::analyzeOriginalMap(_originalMapResult.terrain).cropValid()) _originalMapCrop.state=NSControlStateValueOff;
     const double center=double(_originalMapResult.terrain.activeSide)/2;
     _originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.2f",center];_originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.2f",center];
     [self onOriginalMapPlaneChanged:nil];
@@ -1455,7 +1464,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const bool spatial=_originalMapSpatial.state==NSControlStateValueOn;
     _originalMapCrop.enabled=!spatial;
     _originalMapCameraX.enabled=spatial;_originalMapCameraY.enabled=spatial;_originalMapCameraApply.enabled=spatial;_originalMapOutlines.enabled=spatial;
-    std::string text = game_lab::describeOriginalMap(result);
+    std::string text = _originalMapSourceInfo;
+    if(!_originalMapPackageSummary) text += game_lab::describeOriginalMap(result);
     if(result.terrain.valid()) {
         const int bit = static_cast<int>(_originalMapBitPicker.indexOfSelectedItem) - 1;
         const bool crop = _originalMapCrop.state == NSControlStateValueOn;
