@@ -15,7 +15,7 @@ sources = [
     'game_lab/app_media.hpp', 'game_lab/app_media.cpp', 'game_lab/app_pak.cpp',
     'game_lab/original_pak.hpp', 'game_lab/original_pak.cpp', 'game_lab/original_save.hpp', 'game_lab/original_save.cpp',
     'game_lab/movie_session.hpp', 'game_lab/movie_session.mm',
-    'game_lab/bink_preview.hpp', 'stream_lab/bink_process.hpp',
+    'game_lab/bink_preview.hpp', 'game_lab/bink_audio.hpp', 'stream_lab/bink_process.hpp',
     'game_lab/image_presentation.hpp', 'game_lab/cg_image_conversion.hpp',
     'game_lab/app_launch.hpp',
     'game_lab/map_geometry.hpp', 'game_lab/map_viewport.hpp',

@@ -143,8 +143,11 @@ int main(int argc,char** argv){@autoreleasepool{
         auto seek=session.performSync(media_demo::Action::Seek,info.frames-1,&presenter);
         require(seek.snapshot.frame==info.frames-1&&seek.presented,"Bink seek displays last original frame");
         session.performSync(media_demo::Action::Play,0,&presenter);
-        std::this_thread::sleep_for(std::chrono::milliseconds(40));
         auto ended=session.performSync(media_demo::Action::Tick,0,&presenter);
+        const auto drainDeadline=std::chrono::steady_clock::now()+std::chrono::seconds(3);
+        while(ended.snapshot.state==media_demo::State::Playing&&std::chrono::steady_clock::now()<drainDeadline){
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));ended=session.performSync(media_demo::Action::Tick,0,&presenter);}
+
         require(ended.snapshot.state==media_demo::State::Ended&&ended.snapshot.resourcesZero(),"Bink EOF releases child and frame cache");
         session.close();require(session.resourcesZero(),"project Bink session closes cleanly");
         controlledChildCleanup();

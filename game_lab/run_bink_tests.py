@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build modern source only; test the explicit original-data corpus read-only.
 
---window shows and naturally plays the real silent video in an AppKit window.
+--window shows native Bink playback; --av tests low-gain output and pause/resume.
 Existing FFmpeg is an external dependency; nothing is installed or bundled.
 """
 import argparse
@@ -26,11 +26,18 @@ FRAMEWORKS = ["AppKit", "Foundation", "AVFoundation", "AudioToolbox",
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--window", action="store_true")
+    parser.add_argument("--av", action="store_true", help="native low-gain output and pause/resume checks; requires --window")
+    parser.add_argument("--audio-data", action="store_true")
+    parser.add_argument("--ubsan", action="store_true")
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--legacy-mov", action="store_true")
     parser.add_argument("--build-only", action="store_true")
     parser.add_argument("--app-build-check", action="store_true")
     options = parser.parse_args()
+    if options.audio_data and (options.window or options.legacy_mov):
+        parser.error("--audio-data is a separate data-test entry point")
+    if options.av and not options.window:
+        parser.error("--av requires --window")
     supplied = os.environ.get("EMPEROR_GAMEDATA_ROOT", "")
     if not supplied and not options.build_only and not options.app_build_check:
         print("SKIP: EMPEROR_GAMEDATA_ROOT is unset")
@@ -40,13 +47,13 @@ def main():
     build.mkdir(parents=True, exist_ok=True)
     if options.app_build_check:
         entry, target = "game_lab/app/main.mm", build / "EmperorApp-source-check"
-        extra = ["game_lab/app/av_audio_backend.mm", "game_lab/candidate_import.cpp"]
+        extra = ["game_lab/app/av_audio_backend.mm", "game_lab/candidate_import.cpp", "game_lab/app_pak.cpp", "game_lab/original_pak.cpp", "game_lab/original_save.cpp"]
     else:
-        entry = "game_lab/bink_window_test.mm" if options.window else "game_lab/bink_data_tests.mm"
+        entry = "game_lab/bink_window_test.mm" if options.window else "game_lab/bink_audio_data_tests.mm" if options.audio_data else "game_lab/bink_data_tests.mm"
         target = build / ("bink-window-test" if options.window else "bink-data-tests")
         extra = []
     command = ["/usr/bin/clang++", "-std=c++17", "-fobjc-arc", "-fno-modules",
-               "-O2", "-mmacosx-version-min=15.0", "-Wall", "-Wextra", "-Werror",
+               *( ["-O1", "-g", "-fsanitize=undefined", "-fno-sanitize-recover=all"] if options.ubsan else ["-O2"] ), "-mmacosx-version-min=15.0", "-Wall", "-Wextra", "-Werror",
                "-I", str(root), "-I", str(root / "file_io/include"),
                *[str(root / source) for source in [entry, *extra, *SOURCES]]]
     for framework in FRAMEWORKS:
@@ -68,7 +75,9 @@ def main():
     if options.smoke:
         if not options.window:
             parser.error("--smoke requires --window")
-        arguments.append("--smoke")
+        arguments.append("--av-smoke" if options.av else "--smoke")
+    elif options.av:
+        arguments.append("--av")
     if options.legacy_mov:
         if options.window:
             parser.error("--legacy-mov is a separate data-test regression")

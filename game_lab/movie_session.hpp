@@ -20,6 +20,7 @@ struct MovieSessionStats {
     std::atomic<size_t> active{0}, pending{0}, delivery{0}, maxActive{0}, maxPending{0}, maxDelivery{0};
     std::atomic<bool> resourcesZero{true}, hasController{false}, delayEntered{false}, workerFinished{false};
 };
+class MovieAudioGain;
 struct MovieSessionState;
 struct MovieTermination;
 enum class TerminationStatus { NotRequested, Pending, Completed, Failed, TimedOut };
@@ -121,6 +122,7 @@ public:
     MovieDelivery performSync(media_demo::Action action, uint64_t seekFrame = 0,
                               ImagePresenter* presenter = nullptr);
     void close();
+    void setAudioGain(double gain); // owner context; default is muted
 
     uint64_t revision() const { return revision_; }
     std::string currentRelativePath() const { return relativePath_; }

@@ -379,7 +379,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSView* root = _window.contentView;
     
     // Top Navigation Bar
-    _navBar = [NSSegmentedControl segmentedControlWithLabels:@[@"主界面", @"城市营建（自写）", @"图素与贴图", @"国风音乐台", @"游戏文本资料库", @"影片首帧预览", @"候选存档", @"原始地图"]
+    _navBar = [NSSegmentedControl segmentedControlWithLabels:@[@"主界面", @"城市营建（自写）", @"图素与贴图", @"国风音乐台", @"游戏文本资料库", @"影片音画预览", @"候选存档", @"原始地图"]
                                                 trackingMode:NSSegmentSwitchTrackingSelectOne
                                                       target:self
                                                       action:@selector(onTabChanged:)];
@@ -410,6 +410,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [bottomBar addSubview:_muteButton];
     
     _volumeSlider = [[NSSlider alloc] initWithFrame:NSMakeRect(190, 14, 120, 20)];
+    _volumeSlider.accessibilityIdentifier = @"application-volume";
+    _muteButton.accessibilityIdentifier = @"application-mute";
     _volumeSlider.minValue = 0.0;
     _volumeSlider.maxValue = 1.0;
     _volumeSlider.doubleValue = 0.8;
@@ -466,6 +468,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)refreshAudioStatus {
     _musicStatusLabel.stringValue = [NSString stringWithUTF8String:_media->status().message.c_str()];
     _playPauseButton.title = _media->musicPlaying() ? @"⏸ 暂停" : @"▶ 播放";
+    if (_movieSession) _movieSession->setAudioGain(_media->audioGain());
     _muteButton.title = _media->muted() ? @"🔇 取消静音" : @"🔊 静音";
 }
 
@@ -485,12 +488,15 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)toggleMute:(id)sender {
     (void)sender;
+    _media->setVolume(_volumeSlider.doubleValue);
     _media->setMuted(!_media->muted());
+    if (_movieSession) _movieSession->setAudioGain(_media->audioGain());
 }
 
 - (void)onVolumeChanged:(id)sender {
     (void)sender;
     _media->setVolume(_volumeSlider.doubleValue);
+    if (_movieSession) _movieSession->setAudioGain(_media->audioGain());
 }
 
 // ----------------------------------------------------
@@ -534,7 +540,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         @{@"title": @"🖼 图素与贴图", @"action": NSStringFromSelector(@selector(gotoSprites:))},
         @{@"title": @"🎵 国风民乐鉴赏", @"action": NSStringFromSelector(@selector(gotoMusic:))},
         @{@"title": @"📜 游戏文本与对话", @"action": NSStringFromSelector(@selector(gotoTexts:))},
-        @{@"title": @"🎬 影片首帧预览", @"action": NSStringFromSelector(@selector(gotoMovies:))},
+        @{@"title": @"🎬 影片音画预览", @"action": NSStringFromSelector(@selector(gotoMovies:))},
         @{@"title": @"🔔 播放音效 (祈福)", @"action": NSStringFromSelector(@selector(playBlessSFX:))},
         @{@"title": @"❌ 退出应用", @"action": NSStringFromSelector(@selector(terminate:))}
     ];
@@ -1573,18 +1579,18 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 // ----------------------------------------------------
-// Tab 5: Silent original Bink video (external FFmpeg) and AVFoundation MOV
+// Tab 5: Native Bink audio/video (external FFmpeg) and legacy MOV preview
 // ----------------------------------------------------
 - (void)setupMovieView {
     _movieView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
     _movieView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 
-    NSTextField* title = [NSTextField labelWithString:@"影片静默预览"];
+    NSTextField* title = [NSTextField labelWithString:@"影片音画预览"];
     title.frame = NSMakeRect(20, 670, 600, 30);
     title.font = [NSFont boldSystemFontOfSize:18];
     [_movieView addSubview:title];
 
-    NSTextField* desc = [NSTextField labelWithString:@"Bink 视频使用本机已安装的 FFmpeg；支持播放、暂停和跳转，当前保持静音。"];
+    NSTextField* desc = [NSTextField labelWithString:@"Bink 视频使用本机已安装的 FFmpeg；支持播放、暂停和跳转，原生音频跟随底部静音与音量设置。"];
     desc.frame = NSMakeRect(20, 642, 600, 20);
     desc.font = [NSFont systemFontOfSize:12];
     desc.textColor = [NSColor colorWithCalibratedWhite:0.75 alpha:1.0];
@@ -1598,6 +1604,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _moviePathField = [[NSTextField alloc] initWithFrame:NSMakeRect(135, 600, 360, 26)];
     _moviePathField.placeholderString = @"Binks/…/*.bik";
     _moviePathField.font = [NSFont systemFontOfSize:13];
+    _moviePathField.accessibilityIdentifier = @"movie-path";
     [_movieView addSubview:_moviePathField];
 
     NSButton* loadBtn = [NSButton buttonWithTitle:@"加载首帧" target:self action:@selector(onLoadMoviePoster:)];
@@ -1613,21 +1620,25 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _moviePlayButton = [NSButton buttonWithTitle:@"播放" target:self action:@selector(onMoviePlay:)];
     _moviePlayButton.frame = NSMakeRect(20, 558, 75, 30);
     _moviePlayButton.bezelStyle = NSBezelStyleRounded;
+    _moviePlayButton.accessibilityIdentifier = @"movie-play";
     [_movieView addSubview:_moviePlayButton];
 
     _moviePauseButton = [NSButton buttonWithTitle:@"暂停" target:self action:@selector(onMoviePause:)];
     _moviePauseButton.frame = NSMakeRect(100, 558, 75, 30);
     _moviePauseButton.bezelStyle = NSBezelStyleRounded;
+    _moviePauseButton.accessibilityIdentifier = @"movie-pause";
     [_movieView addSubview:_moviePauseButton];
 
     _movieStopButton = [NSButton buttonWithTitle:@"停止" target:self action:@selector(onMovieStop:)];
     _movieStopButton.frame = NSMakeRect(180, 558, 75, 30);
     _movieStopButton.bezelStyle = NSBezelStyleRounded;
+    _movieStopButton.accessibilityIdentifier = @"movie-stop";
     [_movieView addSubview:_movieStopButton];
 
     _moviePositionLabel = [NSTextField labelWithString:@"尚未加载影片"];
     _moviePositionLabel.frame = NSMakeRect(265, 563, 140, 22);
     _moviePositionLabel.font = [NSFont monospacedDigitSystemFontOfSize:13 weight:NSFontWeightRegular];
+    _moviePositionLabel.accessibilityIdentifier = @"movie-position";
     [_movieView addSubview:_moviePositionLabel];
 
     _movieSeekSlider = [[AppMovieSeekSlider alloc] initWithFrame:NSMakeRect(410, 560, 260, 26)];
@@ -1639,10 +1650,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _movieSeekSlider.action = @selector(onMovieSeek:);
     [_movieView addSubview:_movieSeekSlider];
 
-    _movieStatusLabel = [NSTextField labelWithString:@"待机 · 点击加载首帧或播放开始静默预览"];
+    _movieStatusLabel = [NSTextField labelWithString:@"待机 · 点击加载首帧或播放开始音画预览"];
     _movieStatusLabel.frame = NSMakeRect(20, 526, 700, 22);
     _movieStatusLabel.font = [NSFont systemFontOfSize:12];
     _movieStatusLabel.textColor = [NSColor colorWithCalibratedWhite:0.8 alpha:1.0];
+    _movieStatusLabel.accessibilityIdentifier = @"movie-status";
     [_movieView addSubview:_movieStatusLabel];
 
     _movieImageView = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 220, 384, 288)];

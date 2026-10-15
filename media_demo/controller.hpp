@@ -22,6 +22,11 @@ struct Snapshot {
     State state=State::Ready;uint64_t epoch=1,frame=0,pcmFrames=0,mediaPCM=0,basePCM=0,durationPCM=0;
     size_t queuedVideo=0,pcmSources=0,gpuTickets=0,readers=0,nativePCMBytes=0,videoBytes=0,pcmBytes=0,
         pcmQueue=0,pcmEvents=0,gpuSurfaces=0,gpuBytes=0;bool clearImage=false,deviceBlocked=false;
+    // Native Bink PCM metrics; zero/false for the legacy offline MOV branch.
+    uint32_t audioRate=0,audioChannels=0;
+    bool nativeAudio=false,audioEOF=false,audioDrained=false;
+    uint64_t audioDecodedFrames=0,audioSubmittedFrames=0,audioReturnedFrames=0,audioClockFrames=0,audioClockObservations=0,audioResumeBackstepFrames=0;
+    double avDifferenceSeconds=0,maxAVDifferenceSeconds=0,audioGain=0;
     HostClock::Reading clock{};ControllerStats stats;
     std::vector<uint8_t> bgra;
     uint32_t imageWidth=32,imageHeight=24,fpsNumerator=30,fpsDenominator=1;

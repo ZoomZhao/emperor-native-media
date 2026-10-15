@@ -120,6 +120,7 @@ DecodedImage AppMedia::moviePoster(const std::string& relative) const {
 }
 std::unique_ptr<MovieSession> AppMedia::createMovieSession(const std::string& relative) const {
     auto session = std::make_unique<MovieSession>(root_);
+    session->setAudioGain(policy_.gain());
     if (!relative.empty()) {
         session->openMovie(relative);
     }

@@ -77,6 +77,7 @@ public:
     void setVolume(double volume);
     void stopAll();
     bool muted() const { return policy_.muted(); }
+    double audioGain() const { return policy_.gain(); }
     bool musicPlaying() const { return music_ && music_->playing(); }
     const PlaybackStatus& status() const { return status_; }
     // Controls and events use one serialized context. The callback runs inline;

@@ -25,7 +25,7 @@ std::string formatMovieStatus(const MovieDelivery& d) {
     if (d.errorKind != MovieErrorKind::None) return std::string(movieErrorKindName(d.errorKind))+"："+d.errorMessage;
     if (d.presentation == PresentationResult::ConversionFailure) return "画面转换失败，请重试";
     if (d.snapshot.state == media_demo::State::Failed) return d.snapshot.message;
-    return d.poster ? "首帧已加载" : std::string(media_demo::stateName(d.snapshot.state))+" · 静默预览";
+    return d.poster ? "首帧已加载" : std::string(media_demo::stateName(d.snapshot.state))+" · "+d.snapshot.message;
 }
 static MovieErrorKind decodeKind(const std::string& detail) {
     return detail.find("metadata load timeout")!=std::string::npos ? MovieErrorKind::MetadataTimeout : MovieErrorKind::DecodeFailure;
@@ -34,7 +34,8 @@ struct MovieSessionState : std::enable_shared_from_this<MovieSessionState> {
     ResourceRoot root;
     dispatch_queue_t worker=dispatch_queue_create("local.emperor.movie-worker",DISPATCH_QUEUE_SERIAL);
     std::unique_ptr<media_demo::Controller> controller; // worker only
-    std::unique_ptr<BinkPreview> bink; // worker-owned, video only
+    std::shared_ptr<MovieAudioGain> audioGain=std::make_shared<MovieAudioGain>();
+    std::unique_ptr<BinkPreview> bink; // worker-owned video and native PCM
     std::shared_ptr<MovieSessionStats> stats=std::make_shared<MovieSessionStats>();
     std::atomic<uint64_t> revision{1};
     uint32_t delayMs=0; bool holdMetadata=false, failClose=false; // owner only
@@ -112,7 +113,7 @@ struct MovieSessionState : std::enable_shared_from_this<MovieSessionState> {
                 }
             }else{
                 if(stream_lab::hasBinkSignature(resolved)){
-                    bink=std::make_unique<BinkPreview>(resolved);stats->hasController=true;
+                    bink=std::make_unique<BinkPreview>(resolved,audioGain);stats->hasController=true;
                     d.snapshot=onlyOpen?bink->snapshot():bink->perform(media_demo::Action::Play,0,control);
                     stats->resourcesZero=d.snapshot.resourcesZero();
                     if(d.snapshot.state==media_demo::State::Failed){d.errorMessage=d.snapshot.message;d.errorKind=decodeKind(d.errorMessage);}
@@ -176,6 +177,7 @@ void MovieSession::setTestDelayMs(uint32_t ms){state_->delayMs=std::min(ms,500u)
 void MovieSession::holdMetadataForTest(bool hold){state_->holdMetadata=hold;}
 void MovieSession::failNextCloseForTest(){state_->failClose=true;}
 bool MovieSession::hasActiveController()const{return state_->stats->hasController;}
+void MovieSession::setAudioGain(double gain){state_->audioGain->set(gain);}
 bool MovieSession::resourcesZero()const{return state_->stats->resourcesZero;}
 void MovieSession::accept(MovieDelivery& d,ImagePresenter* presenter){
     if(d.revision!=revision_){++staleDeliveries_;return;}
