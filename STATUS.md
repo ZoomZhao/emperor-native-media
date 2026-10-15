@@ -13,7 +13,7 @@
 | **Complete same-city MAP→SG3 scenes** | **0/167**. Effective source/namespace, layer composition and draw order remain unproved; no default selector. A retained-byte trial's predicted visual change0/1 does not identify its consumer. |
 | [Original campaign load control](docs/MAP.md#original-campaign-load-source-positive-control) | **0/3→3/3** A→B→A loads;**2/2** frozen whole-minimap comparisons. [SAV structural validation](docs/SAV.md#unique-validated-terrain-anchor) **2/3→3/3**, 18/18 numerical CGImages; original 15 inputs unchanged. Scene joins remain 0/167. |
 | Blocked-read cancellation regression | Review failure5/5 → local fix **5/5** per mode; partial PCM/BGRA lifecycle **18/18**, process boundaries **6/6** each. Independent confirmation pending. |
-| Final delivery integration | Same-bundle entries **5/5**. Existing App aggregate **0/1→1/1** after source-list repair; authored App integration **2/2** modes,9,780 assertions each after fixture repair. Production parsers/gameplay unchanged. |
+| Final App delivery | New B **1/1 source,6/6 GUI fields** (previous window views unmeasured); SAV windows **19/19**,114/114 field views including trial derivatives. Same-binary entries **5/5**; shared checks13/13; source hashes73/73＋strict signature. |
 
 SG3 includes mirrors/427 empty IDs, excluding dummy0/capacity; empty records are not successes. MAP/PAK counts use the supplied original corpus; App-root trial files add no original coverage. Synthetic passes are regression evidence.
 

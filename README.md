@@ -7,7 +7,7 @@ Load legally owned **original Emperor: Rise of the Middle Kingdom data** through
 On this machine, use this single launch command:
 
 ```sh
-"/Users/zoomzhao/Documents/Codex/2026-10-14/task/final-integration-20261015/release-final/EmperorApp.app/Contents/MacOS/EmperorApp" --data-root "/Users/zoomzhao/Workspace/lzjq/GameData"
+"/Users/zoomzhao/Documents/Codex/2026-10-14/task/sav-app-delivery-20261015/release-final/EmperorApp.app/Contents/MacOS/EmperorApp" --data-root "/Users/zoomzhao/Workspace/lzjq/GameData"
 ```
 
 The App path above is the final local delivery, outside Git and GameData. Assets are not bundled. The data root is explicit; another legally owned directory requires changing that argument. The App starts muted; the bottom mute/volume controls also govern Bink audio. macOS15+ and the existing external FFmpeg are required for Bink playback; missing software is reported, never installed automatically.
@@ -32,7 +32,7 @@ This produces `EmperorApp.app` in that directory. It does not start the original
 
 The experimental raw-reference viewer uses caller-supplied hypotheses and is not the original scene renderer. Its frozen viewport agrees at491,284/2,176,064 eligible pixels. Regional flat-grid registration covers16/16 cells in4 cancelled footprints; this does not establish elevation, full draw anchors or effective sprite selection. Detailed evidence and historical attempts stay in the format documents, not this entry page.
 
-An [original campaign load control](docs/MAP.md#original-campaign-load-source-positive-control) now records **3/3 A→B→A loads** and **2/2 frozen whole-minimap comparisons**. The extra SAV check initially accepted 2/3 saves; [unique structural-candidate validation](docs/SAV.md#unique-validated-terrain-anchor) now accepts **3/3** without MAP content selecting the anchor. Rebuild from source to include this parser repair; the verified local App path above retains the previous build. This supports loading the selected terrain in that trial; the persisted image/layer consumer remains unproved.
+An [original campaign load control](docs/MAP.md#original-campaign-load-source-positive-control) now records **3/3 A→B→A loads** and **2/2 frozen whole-minimap comparisons**. The extra SAV check initially accepted 2/3 saves; [unique structural-candidate validation](docs/SAV.md#unique-validated-terrain-anchor) now accepts **3/3** without MAP content selecting the anchor. The App at the single launch path above includes this repair: new B passes 6/6 actual 170×170 field views, and the two tested roots pass 19/19 SAV sources and 114/114 field views (including trial derivatives). Its source manifest and strict signature are verified; the old delivery remains preserved separately. This supports loading the selected terrain in that trial; the persisted image/layer consumer remains unproved.
 
 ## Existing checks
 
