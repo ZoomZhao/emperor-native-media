@@ -23,6 +23,10 @@
 
 extern char** environ;
 namespace stream_lab {
+// Cancellation interrupts an owned read; it is not malformed decoder output.
+class BinkReadCancelled : public std::runtime_error {
+public: BinkReadCancelled():std::runtime_error("external Bink decode cancelled"){}
+};
 constexpr size_t maxBinkFrameBytes = 8u * 1024u * 1024u;
 struct BinkInfo {
     uint32_t width=0,height=0,fpsNumerator=0,fpsDenominator=0;
@@ -107,10 +111,11 @@ public:
     size_t nextAudio(std::vector<int16_t>& samples,const std::function<bool()>& cancelled){
         if(!audioMode_)throw std::runtime_error("not an audio decoder");
         if(eof_){samples.clear();return 0;}
-        samples.resize(4096*info_.audioChannels);
-        const size_t bytes=readBytes(reinterpret_cast<uint8_t*>(samples.data()),samples.size()*2,true,true,cancelled);
+        if(pendingPCM_.empty())pendingPCM_.resize(4096*info_.audioChannels);
+        const size_t bytes=readBytes(reinterpret_cast<uint8_t*>(pendingPCM_.data()),pendingPCM_.size()*2,true,true,cancelled,received_);
         if(bytes%(2*info_.audioChannels))throw std::runtime_error("Bink partial PCM sample frame");
-        samples.resize(bytes/2);return bytes/(2*info_.audioChannels);
+        pendingPCM_.resize(bytes/2);samples=std::move(pendingPCM_);received_=0;
+        return bytes/(2*info_.audioChannels);
     }
 private:
     static std::string decoderPath(){
@@ -160,9 +165,9 @@ public:
             if(readExact(&byte,1,true,cancelled))throw std::runtime_error("Bink decoded bytes exceed declared frame count");
             eof_=true;return false;
         }
-        video_lab::Frame value;value.pts=next_;value.bgra.resize(info_.frameBytes());
-        readExact(value.bgra.data(),value.bgra.size(),false,cancelled);
-        ++next_;frame=std::move(value);return true;
+        if(pendingVideo_.bgra.empty()){pendingVideo_.pts=next_;pendingVideo_.bgra.resize(info_.frameBytes());}
+        readExact(pendingVideo_.bgra.data(),pendingVideo_.bgra.size(),false,cancelled);
+        ++next_;frame=std::move(pendingVideo_);received_=0;return true;
     }
     void close() noexcept {
         if(output_>=0)::close(output_);if(errors_>=0)::close(errors_);output_=errors_=-1;
@@ -182,12 +187,16 @@ public:
                 usleep(1000);
             }
         }
+        pendingVideo_={};std::vector<int16_t>().swap(pendingPCM_);received_=0;
     }
     bool active() const{return pid_>0;}
     BinkInfo info() const{return info_;}
 private:
     using Clock=std::chrono::steady_clock;
     pid_t pid_=-1;int output_=-1,errors_=-1;BinkInfo info_{};uint64_t next_=0;bool eof_=false,audioMode_=false;
+    // A cancelled read retains its prefix and cursor in process-owned storage.
+    // A caller may supply a different output object after Pause/Resume.
+    video_lab::Frame pendingVideo_;std::vector<int16_t> pendingPCM_;size_t received_=0;
     std::string errorText_;
     void drainErrors(){
         char text[1024];
@@ -195,18 +204,19 @@ private:
             if(errorText_.size()<8192)errorText_.append(text,std::min(size_t(n),8192-errorText_.size()));}
     }
     bool readExact(uint8_t* bytes,size_t size,bool allowEof,const std::function<bool()>& cancelled){
-        return readBytes(bytes,size,allowEof,false,cancelled)!=0;
+        return readBytes(bytes,size,allowEof,false,cancelled,received_)!=0;
     }
-    size_t readBytes(uint8_t* bytes,size_t size,bool allowEof,bool partial,const std::function<bool()>& cancelled){
-        const auto deadline=Clock::now()+std::chrono::seconds(5);size_t received=0;
+    size_t readBytes(uint8_t* bytes,size_t size,bool allowEof,bool partial,const std::function<bool()>& cancelled,size_t& received){
+        if(received>size)throw std::runtime_error("Bink read continuation layout changed");
+        const auto deadline=Clock::now()+std::chrono::seconds(5);
         for(;;){
-            if(cancelled&&cancelled())throw std::runtime_error("external Bink decode cancelled");
+            if(cancelled&&cancelled())throw BinkReadCancelled();
             if(Clock::now()>=deadline)throw std::runtime_error("external Bink frame read timeout (5000 ms)");
             drainErrors();const auto n=read(output_,bytes+received,size-received);
             if(n>0){received+=size_t(n);if(received==size)return received;continue;}
             if(n==0){
                 int status=0;pid_t done;
-                do{if(cancelled&&cancelled())throw std::runtime_error("external Bink decode cancelled during EOF");
+                do{if(cancelled&&cancelled())throw BinkReadCancelled();
                     drainErrors();done=waitpid(pid_,&status,WNOHANG);
                     if(done==0){if(Clock::now()>=deadline)throw std::runtime_error("external Bink decoder exit timeout");usleep(1000);}}
                 while(done==0||(done<0&&errno==EINTR));

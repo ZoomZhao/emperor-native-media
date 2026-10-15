@@ -60,7 +60,7 @@ public:
             check(AudioQueueGetProperty(queue_,kAudioQueueProperty_IsRunning,&running,&size),"drain status");
             if(!running){drained_=true;lastClock_=submitted_;}}
     }
-    uint64_t currentFrames(){if(!queue_||paused_||drained_)return lastClock_;lastClock_=readClock();return lastClock_;}
+    uint64_t currentFrames(bool observe=true){if(!observe||!queue_||paused_||drained_)return lastClock_;lastClock_=readClock();return lastClock_;}
     void close() noexcept {
         closing_=true;gain_->detach();
         if(queue_){AudioQueueStop(queue_,true);AudioQueueDispose(queue_,true);queue_=nullptr;timeline_=nullptr;}
@@ -109,6 +109,9 @@ private:
             const auto result=AudioQueueEnqueueBuffer(queue_,slot.buffer,0,nullptr);
             if(result!=noErr){slot.busy=false;check(result,"enqueue");}
             submitted_+=count;
+            // Ownership moved from the decoder's pending packet. Release it
+            // after enqueue so continuation storage still costs one packet.
+            std::vector<int16_t>().swap(packet_);
         }
     }
     uint64_t readClock(){

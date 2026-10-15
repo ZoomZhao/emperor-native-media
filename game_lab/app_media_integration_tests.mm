@@ -275,15 +275,23 @@ std::vector<uint8_t> syntheticMap() {
 }
 std::vector<uint8_t> syntheticSG3() {
     constexpr size_t tableOffset = 40680, recordSize = 64;
-    std::vector<uint8_t> bytes(tableOffset + recordSize, 0);
+    // Published SG3 v213 layout: capacity includes dummy ID0; numImages does
+    // not. The one logical sprite starts after that dummy, never at its slot.
+    std::vector<uint8_t> bytes(tableOffset + 2 * recordSize, 0);
+    set32(bytes, 0, static_cast<uint32_t>(bytes.size()));
     set32(bytes, 4, 213);
+    set32(bytes, 12, 2);
     set32(bytes, 16, 1);
-    set32(bytes, tableOffset + 0, 0);
-    set32(bytes, tableOffset + 4, 512);
-    set32(bytes, tableOffset + 8, 512);
-    set16(bytes, tableOffset + 12, 16);
-    set16(bytes, tableOffset + 14, 16);
-    set16(bytes, tableOffset + 20, 16);
+    set32(bytes, 20, 1);
+    set16(bytes, tableOffset + 20, 999); // Poison dummy dimensions/type.
+    set16(bytes, tableOffset + 50, 999);
+    constexpr size_t image = tableOffset + recordSize;
+    set32(bytes, image + 0, 0);
+    set32(bytes, image + 4, 512);
+    set32(bytes, image + 8, 512);
+    set16(bytes, image + 20, 16);
+    set16(bytes, image + 22, 16);
+    set16(bytes, image + 50, 1);
     return bytes;
 }
 std::vector<uint8_t> synthetic555() {
@@ -534,8 +542,15 @@ void integration() {
         write(files/"DATA/test.sg3", syntheticSG3());
         write(files/"DATA/test.555", synthetic555());
         auto archive = app.sg3("DATA/test.sg3");
-        require(archive.version == 213 && archive.sprites.size() == 1,
+        require(archive.version == 213 && archive.capacity == 2 && archive.numImages == 1 &&
+                archive.sprites.size() == 1 && archive.sprites[0].width == 16 &&
+                archive.sprites[0].height == 16 && archive.sprites[0].type == 1,
                 "AppMedia sg3 loads valid archive header and sprite table");
+        auto truncatedIndex = syntheticSG3();
+        truncatedIndex.resize(40680 + 64);
+        write(files/"DATA/truncated-index.sg3", truncatedIndex);
+        require(app.sg3("DATA/truncated-index.sg3").sprites.empty(),
+                "AppMedia still rejects an index missing its logical record");
         auto spr = app.sprite(archive.sprites[0], "DATA/test.555");
         require(spr.valid() && spr.width == 16 && spr.height == 16,
                 "AppMedia sprite extracts 16x16 raw555 from companion");
@@ -887,7 +902,14 @@ void integration() {
         require(!sim.build(128, 128, game_lab::BuildingType::House, buildMsg), "Out of bounds build rejected");
         require(!sim.demolish(128, 128, buildMsg), "Out of bounds demolish rejected");
 
-        // 9. Monthly tick advance & economic cycle
+        // 9. Monthly tick advance & economic cycle. This frozen authored
+        // model requires workers; the earlier fixture had zero residents.
+        // Populate its existing housing using the already-tested EMP1 fixture
+        // field, preserving the positive harvest assertion and all model rules.
+        auto populated = sim.saveSnapshot();
+        set32(populated, 12, 20);
+        require(sim.loadSnapshot(populated) && sim.stats().population == 20,
+                "Authored monthly fixture supplies workers within existing housing capacity");
         const int prevFood = sim.stats().foodSupply;
         const int prevPop = sim.stats().population;
         sim.advanceMonth();
