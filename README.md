@@ -32,7 +32,7 @@ This produces `EmperorApp.app` in that directory. It does not start the original
 
 The experimental raw-reference viewer uses caller-supplied hypotheses and is not the original scene renderer. Its frozen viewport agrees at491,284/2,176,064 eligible pixels. Regional flat-grid registration covers16/16 cells in4 cancelled footprints; this does not establish elevation, full draw anchors or effective sprite selection. Detailed evidence and historical attempts stay in the format documents, not this entry page.
 
-An [original campaign load control](docs/MAP.md#original-campaign-load-source-positive-control) now records **3/3 A→B→A loads** and **2/2 frozen whole-minimap comparisons**. Its extra SAV-marker check is available for 2/3 saves; the B terrain byte span was verified separately. This supports loading the selected terrain in that trial; the persisted image/layer consumer remains unproved.
+An [original campaign load control](docs/MAP.md#original-campaign-load-source-positive-control) now records **3/3 A→B→A loads** and **2/2 frozen whole-minimap comparisons**. The extra SAV check initially accepted 2/3 saves; [unique structural-candidate validation](docs/SAV.md#unique-validated-terrain-anchor) now accepts **3/3** without MAP content selecting the anchor. Rebuild from source to include this parser repair; the verified local App path above retains the previous build. This supports loading the selected terrain in that trial; the persisted image/layer consumer remains unproved.
 
 ## Existing checks
 

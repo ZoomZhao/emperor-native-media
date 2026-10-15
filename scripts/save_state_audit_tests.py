@@ -10,10 +10,10 @@ def fixture(side=4):
     start=256;terrain=np.full((228,228),0x80005,dtype='<u4');origin=(228-side)//2
     terrain[origin:origin+side,origin:origin+side]=128
     follow=np.zeros((228,228),dtype='<u4');follow[origin,origin]=0xffffffff
-    data=bytearray(start+8*audit.CELLS);data[:2]=b'\x13\0';struct.pack_into('<I',data,48,side);data[64:80]=audit.BRIEF
+    data=bytearray(start+audit.REQUIRED_GRID_BYTES);data[:2]=b'\x13\0';struct.pack_into('<I',data,48,side);data[64:80]=audit.BRIEF
     # A repeated descriptive string with an invalid preceding size is allowed.
     data[112:128]=audit.BRIEF;struct.pack_into('<I',data,96,0xffffffff)
-    data[start:start+4*audit.CELLS]=terrain.tobytes();data[start+4*audit.CELLS:]=follow.tobytes()
+    data[start:start+4*audit.CELLS]=terrain.tobytes();data[start+4*audit.CELLS:start+8*audit.CELLS]=follow.tobytes()
     return bytes(data)
 
 
@@ -56,11 +56,34 @@ class SavedStateTests(unittest.TestCase):
         struct.pack_into('<I',payload,48,4);struct.pack_into('<I',payload,96,4)
         with self.assertRaisesRegex(ValueError,'ambiguous'):audit.parse_save(framed(payload))
 
-    def test_duplicate_terrain_marker_refuses_instead_of_fitting_MAP(self):
+    def test_later_incomplete_marker_does_not_become_an_anchor(self):
         payload=fixture()+audit.TERRAIN_MARKER
-        with self.assertRaisesRegex(ValueError,'terrain anchor ambiguous'):audit.parse_save(framed(payload))
+        saved=audit.parse_save(framed(payload))
+        self.assertEqual(saved.terrain_offset,256)
+        self.assertEqual(saved.selected('following_u32',[(0,0)]),[0xffffffff])
 
-    def test_following_span_truncation_refuses(self):
+    def test_earlier_full_span_decoy_fails_declared_crop(self):
+        payload=bytearray(fixture());payload[180:196]=audit.TERRAIN_MARKER
+        self.assertEqual(audit.parse_save(framed(payload)).terrain_offset,256)
+
+    def test_multiple_complete_candidates_refuse_without_content_ranking(self):
+        first=fixture();second_base=len(first)+4
+        payload=bytearray(first+bytes(4)+first[256:])
+        struct.pack_into('<I',payload,second_base+4*(112*228+112),129)
+        with self.assertRaisesRegex(ValueError,'valid terrain anchor ambiguous'):
+            audit.parse_save(framed(payload))
+
+    def test_truncated_second_candidate_cannot_override_complete_first(self):
+        first=fixture();payload=first+bytes(4)+first[256:-1]
+        self.assertEqual(audit.parse_save(framed(payload)).terrain_offset,256)
+
+    def test_terrain_marker_budget_precedes_candidate_validation(self):
+        first=fixture();payload=bytearray(first[:128]+bytes(30000)+first[128:])
+        for i in range(1025):payload[1000+20*i:1016+20*i]=audit.TERRAIN_MARKER
+        with self.assertRaisesRegex(ValueError,'marker cardinality budget'):
+            audit.parse_save(framed(payload))
+
+    def test_last_known_objects_span_truncation_refuses(self):
         with self.assertRaisesRegex(ValueError,'complete grid spans'):audit.parse_save(framed(fixture()[:-1]))
 
     def test_crop_side_cannot_be_invented_from_reference_MAP(self):

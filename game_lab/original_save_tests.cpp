@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <cstring>
+#include <algorithm>
 #include <unistd.h>
 #include <zlib.h>
 namespace {
@@ -33,7 +34,10 @@ int main(){try{
  special.pop_back();need(!renderOriginalMapValues(saved.terrain,special).valid(),"incomplete raw value raster rejected");need(originalSaveFieldValues(saved.layers,5).empty(),"unknown field selector rejected");
  auto moved=decodeOriginalSave(frame(payload(50003)));need(moved.status==OriginalSaveStatus::LoadedSnapshot&&moved.terrainOffset==50003&&moved.terrain.flags==saved.terrain.flags&&moved.layers.mapperObjects==saved.layers.mapperObjects,"marker offsets change without borrowing fixed MAP coordinates");
  auto duplicate=body;put(duplicate,700,112);std::memcpy(duplicate.data()+716,"Brief descriptio",16);need(decodeOriginalSave(frame(duplicate)).status==OriginalSaveStatus::UnsupportedAnchors,"duplicate plausible size anchor refused");
- auto terrainDuplicate=body;std::memcpy(terrainDuplicate.data()+base+300000,body.data()+base-4,16);need(decodeOriginalSave(frame(terrainDuplicate)).status==OriginalSaveStatus::UnsupportedAnchors,"duplicate terrain marker refused, no MAP similarity choice");
+ auto terrainDuplicate=body;std::memcpy(terrainDuplicate.data()+base+300000,body.data()+base-4,16);auto one=decodeOriginalSave(frame(terrainDuplicate));need(one.status==OriginalSaveStatus::LoadedSnapshot&&one.terrainOffset==base&&one.terrain.flags==saved.terrain.flags,"later marker without full known spans is not a second anchor");
+ auto preceding=body;std::memcpy(preceding.data()+1000,body.data()+base-4,16);one=decodeOriginalSave(frame(preceding));need(one.status==OriginalSaveStatus::LoadedSnapshot&&one.terrainOffset==base&&one.terrain.flags==saved.terrain.flags,"earlier complete-span decoy fails crop; never choose first marker");
+ auto ambiguous=body;const size_t secondBase=ambiguous.size()+4;ambiguous.resize(secondBase+2226670);std::copy_n(body.begin()+base,2226670,ambiguous.begin()+secondBase);put(ambiguous,secondBase+4*(114*228+114),0x80000080u);auto multiple=decodeOriginalSave(frame(ambiguous));need(multiple.status==OriginalSaveStatus::UnsupportedAnchors&&multiple.terrain.flags.empty()&&!multiple.layers.valid()&&multiple.decodedBytes==0,"two complete compatible candidates refuse without ranking or partial publication");
+ ambiguous.pop_back();one=decodeOriginalSave(frame(ambiguous));need(one.status==OriginalSaveStatus::LoadedSnapshot&&one.terrainOffset==base,"truncated second candidate cannot override complete first candidate");
  auto missing=body;missing[143]='X';need(decodeOriginalSave(frame(missing)).status==OriginalSaveStatus::UnsupportedAnchors,"missing size marker not guessed");missing=body;put(missing,base,0x80000);need(decodeOriginalSave(frame(missing)).status==OriginalSaveStatus::UnsupportedAnchors,"missing terrain marker not guessed");
  for(uint32_t side:{0u,229u}){auto x=body;put(x,127,side);need(decodeOriginalSave(frame(x)).status==OriginalSaveStatus::UnsupportedAnchors,"invalid size anchor rejected");}
  auto badCrop=body;put(badCrop,127,140);need(decodeOriginalSave(frame(badCrop)).status==OriginalSaveStatus::InvalidGrid,"declared crop must match actual min/max flags");
@@ -45,6 +49,7 @@ int main(){try{
  auto declared=bytes;put(declared,12,32767);need(decodeOriginalSave(declared).status==OriginalSaveStatus::InvalidContainer,"declared frame length verified");
  need(decodeOriginalSave(Bytes(4u*1024u*1024u+1)).status==OriginalSaveStatus::BudgetExceeded,"encoded input budget");need(decodeOriginalSave(frame(Bytes(8u*1024u*1024u+1))).status==OriginalSaveStatus::BudgetExceeded,"decoded/frame count budget");
  auto many=payload(50003);for(size_t i=0;i<1025;++i){const size_t pos=100+32*i;put(many,pos,112);std::memcpy(many.data()+pos+16,"Brief descriptio",16);}need(decodeOriginalSave(frame(many)).status==OriginalSaveStatus::BudgetExceeded,"marker cardinality budget rejects excess matches");
+ auto terrainMany=payload(50003);for(size_t i=0;i<1025;++i)std::memcpy(terrainMany.data()+1000+20*i,body.data()+base-4,16);auto excess=decodeOriginalSave(frame(terrainMany));need(excess.status==OriginalSaveStatus::BudgetExceeded&&excess.terrain.flags.empty()&&!excess.layers.valid(),"terrain marker budget enforced before candidate validation");
  auto rootPath=std::filesystem::temp_directory_path()/("emperor-sav-self-"+std::to_string(getpid()));need(std::filesystem::create_directory(rootPath),"fresh owned fixture root");std::filesystem::create_directories(rootPath/"Save/owner");write(rootPath/"Save/owner/.sav",bytes);
  auto file=loadOriginalSave((rootPath/"Save/owner/.sav").string());need(file.status==OriginalSaveStatus::LoadedSnapshot&&file.readStable&&file.layers.mapperObjects==saved.layers.mapperObjects,"two stable complete file reads publish same snapshot");
  need(loadOriginalSave(rootPath.string()).status==OriginalSaveStatus::ReadFailure,"directory not treated as save file");std::filesystem::create_symlink(rootPath/"Save/owner/.sav",rootPath/"link.sav");need(loadOriginalSave((rootPath/"link.sav").string()).status==OriginalSaveStatus::ReadFailure,"direct file API refuses leaf symlink");

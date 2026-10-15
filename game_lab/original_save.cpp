@@ -22,6 +22,21 @@ bool positions(const std::vector<uint8_t>& data,const std::array<uint8_t,16>& ne
         if(hits.size()==maxMarkers)return false;hits.push_back(size_t(found-data.begin()));cursor=found+1;
     }return true;
 }
+// The final objects span bounds all six published raw-field extents.
+// Marker bytes alone are not an anchor: a complete compatible grid is required.
+bool compatibleTerrain(const std::vector<uint8_t>& data,size_t base,uint32_t side){
+    constexpr size_t needed=objectsOffset+4*cells;
+    if(base>data.size()||needed>data.size()-base)return false;
+    const uint32_t origin=(228-side)/2,end=origin+side-1;
+    uint32_t minX=228,minY=228,maxX=0,maxY=0;bool active=false;
+    for(size_t i=0;i<cells;++i){
+        if(detail::u32(data.data()+base+4*i)&0x80000u)continue;
+        const auto x=uint32_t(i%228),y=uint32_t(i/228);
+        if(x<origin||y<origin||x>end||y>end)return false;
+        active=true;minX=std::min(minX,x);minY=std::min(minY,y);maxX=std::max(maxX,x);maxY=std::max(maxY,y);
+    }
+    return active&&minX==origin&&minY==origin&&maxX==end&&maxY==end;
+}
 struct File {int fd;explicit File(const std::string& p):fd(open(p.c_str(),O_RDONLY|O_CLOEXEC|O_NONBLOCK|O_NOFOLLOW)){}~File(){if(fd>=0)close(fd);}};
 bool same(const struct stat& a,const struct stat& b){return a.st_dev==b.st_dev&&a.st_ino==b.st_ino&&a.st_size==b.st_size&&a.st_mtimespec.tv_sec==b.st_mtimespec.tv_sec&&a.st_mtimespec.tv_nsec==b.st_mtimespec.tv_nsec;}
 bool readExact(int fd,std::vector<uint8_t>& bytes){
@@ -42,15 +57,14 @@ OriginalSaveResult decodeOriginalSave(const std::vector<uint8_t>& input){
         if(valid!=1){result.status=OriginalSaveStatus::UnsupportedAnchors;return result;}
         std::vector<size_t> terrainHits;
         if(!positions(data,terrainMarker,sizeOffset+4,terrainHits)){result.status=OriginalSaveStatus::BudgetExceeded;return result;}
-        if(terrainHits.size()!=1){result.status=OriginalSaveStatus::UnsupportedAnchors;return result;}
-        const size_t base=terrainHits[0]+4;
-        constexpr size_t needed=objectsOffset+4*cells;
-        if(base>data.size()||needed>data.size()-base){result.status=OriginalSaveStatus::InvalidGrid;return result;}
+        if(terrainHits.empty()){result.status=OriginalSaveStatus::UnsupportedAnchors;return result;}
+        size_t base=0,validTerrain=0;
+        // Check every bounded hit before accepting a unique structural candidate.
+        // No first-hit, content ranking, MAP lookup or city-specific exception.
+        for(auto hit:terrainHits)if(compatibleTerrain(data,hit+4,side)){base=hit+4;++validTerrain;}
+        if(validTerrain!=1){result.status=validTerrain?OriginalSaveStatus::UnsupportedAnchors:OriginalSaveStatus::InvalidGrid;return result;}
         OriginalMapTerrain terrain;terrain.activeSide=side;terrain.flags.resize(cells);
-        uint32_t minX=228,minY=228,maxX=0,maxY=0;size_t active=0;
-        for(size_t i=0;i<cells;++i){const auto value=detail::u32(data.data()+base+4*i);terrain.flags[i]=value;if(value&0x80000u)continue;const auto x=uint32_t(i%228),y=uint32_t(i/228);++active;minX=std::min(minX,x);minY=std::min(minY,y);maxX=std::max(maxX,x);maxY=std::max(maxY,y);}
-        const uint32_t origin=(228-side)/2;
-        if(!active||minX!=origin||minY!=origin||maxX!=origin+side-1||maxY!=origin+side-1){result.status=OriginalSaveStatus::InvalidGrid;return result;}
+        for(size_t i=0;i<cells;++i)terrain.flags[i]=detail::u32(data.data()+base+4*i);
         OriginalSaveCellLayers layers;layers.followingU32Unknown.resize(cells);layers.mapperObjects.resize(cells);
         for(size_t i=0;i<cells;++i){layers.followingU32Unknown[i]=detail::u32(data.data()+base+following+4*i);layers.mapperObjects[i]=detail::u32(data.data()+base+objectsOffset+4*i);}
         const auto copy=[&](size_t relative,std::vector<uint8_t>& values){values.assign(data.begin()+base+relative,data.begin()+base+relative+cells);};
@@ -79,7 +93,7 @@ std::string describeOriginalSave(const OriginalSaveResult& save){
     case OriginalSaveStatus::ChangedDuringRead:return "SAV 读取期间已改变；未发布混合快照";
     case OriginalSaveStatus::InvalidContainer:return "SAV 压缩帧校验或边界失败；未发布部分快照";
     case OriginalSaveStatus::UnsupportedRole:return "不是已支持的 SAV13 数据角色";
-    case OriginalSaveStatus::UnsupportedAnchors:return "SAV 尺寸/地形锚点缺失或不唯一；没有按 MAP 相似度挑选";
+    case OriginalSaveStatus::UnsupportedAnchors:return "SAV 尺寸/有效地形锚点缺失或不唯一；没有按 MAP 相似度挑选";
     case OriginalSaveStatus::InvalidGrid:return "SAV 原始字段范围或活动框不兼容；未发布部分快照";
     case OriginalSaveStatus::BudgetExceeded:return "SAV 输入、标记或解码预算超限";
     case OriginalSaveStatus::LoadedSnapshot:break;

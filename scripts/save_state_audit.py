@@ -13,6 +13,9 @@ MAX_DECODED=8*1024*1024
 CELLS=228*228
 BRIEF=b'Brief descriptio'
 TERRAIN_MARKER=bytes.fromhex('00000000050008000500080005000800')
+# The complete known SAV raw profile ends after the objects u32 grid.
+# This bounds terrain, following_u32, random, stone, fertile and objects.
+REQUIRED_GRID_BYTES=2018734+4*CELLS
 
 
 def decode_save_container(data):
@@ -79,17 +82,23 @@ def parse_save(data):
     if len(anchors)!=1:raise ValueError('SAV size anchor ambiguous/unavailable')
     size_offset,side=anchors[0]
     markers=marker_positions(payload,TERRAIN_MARKER,size_offset+4)
-    # Conservative scope: do not choose among duplicate data markers by MAP similarity.
-    if len(markers)!=1:raise ValueError('SAV terrain anchor ambiguous/unavailable')
-    terrain_offset=markers[0]+4;following_offset=terrain_offset+4*CELLS
-    if following_offset+4*CELLS>len(payload):raise ValueError('SAV complete grid spans unavailable')
-    result=SaveDiagnostic(payload,frames,side,size_offset,terrain_offset,following_offset)
+    if not markers:raise ValueError('SAV terrain anchor unavailable')
     import numpy as np
-    terrain=result.grid('terrain');active=np.argwhere((terrain&0x80000)==0);origin=(228-side)//2
-    if (not len(active) or not np.array_equal(active.min(axis=0),[origin,origin])
-            or not np.array_equal(active.max(axis=0),[origin+side-1,origin+side-1])):
-        raise ValueError('SAV declared centered crop disagrees')
-    return result
+    valid=[];origin=(228-side)//2
+    for position in markers:
+        base=position+4
+        if base+REQUIRED_GRID_BYTES>len(payload):continue
+        terrain=np.frombuffer(payload,'<u4',CELLS,base).reshape(228,228)
+        active=np.argwhere((terrain&0x80000)==0)
+        if (len(active) and np.array_equal(active.min(axis=0),[origin,origin])
+                and np.array_equal(active.max(axis=0),[origin+side-1,origin+side-1])):
+            valid.append(base)
+    # No MAP content, name, ranking or first-hit selection participates here.
+    if len(valid)>1:raise ValueError('SAV valid terrain anchor ambiguous')
+    if not valid:raise ValueError('SAV complete grid spans/crop incompatible')
+    terrain_offset=valid[0];following_offset=terrain_offset+4*CELLS
+    return SaveDiagnostic(payload,frames,side,size_offset,terrain_offset,following_offset)
+
 
 
 def rooted(root,relative):
