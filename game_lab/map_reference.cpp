@@ -58,3 +58,55 @@ MapReferenceResult renderMapReferenceViewport(const OriginalMapTerrain& terrain,
     }catch(const std::bad_alloc&){return {};}
 }
 }
+
+namespace game_lab {
+DecodedImage decodeSG3DiagnosticComponent(const SG3Archive& archive,size_t index,
+        const std::string& internal,SG3DiagnosticComponent component) {
+    if(archive.numImages!=archive.sprites.size() || !sg3SingleCellGeometry(archive,index))return {};
+    const auto& record=archive.sprites[index];
+    if(record.mirrorOffset || record.external || record.alphaLength)return {};
+    auto full=decodeSG3Sprite(archive,index,internal).image;
+    if(!full.valid())return {};
+    if(component==SG3DiagnosticComponent::Full)return full;
+    if(component!=SG3DiagnosticComponent::Top)return {};
+    // Reuse the native public RLE reader at the original stream boundary.
+    // No subtraction of base alpha: a natural top may overlap its own base.
+    if(record.length==record.uncompressedLength) {
+        DecodedImage empty;empty.width=78;empty.height=uint32_t(record.height);
+        empty.pixelsBGRA.assign(size_t(empty.width)*empty.height,0);return empty;
+    }
+    if(uint64_t(record.offset)+record.uncompressedLength>UINT32_MAX)return {};
+    auto topArchive=archive;auto& top=topArchive.sprites[index];
+    top.type=256;top.offset+=top.uncompressedLength;top.length-=top.uncompressedLength;
+    top.uncompressedLength=0;
+    return decodeSG3Sprite(topArchive,index,internal).image;
+}
+SG3DiagnosticResult renderSG3DiagnosticScene(const SG3Archive& archive,const std::string& internal,
+        const SG3DiagnosticScene& scene) {
+    size_t count=0;
+    if(scene.width>2048 || scene.height>2048 || !imagePixelCount(scene.width,scene.height,count) ||
+       scene.scale<1 || scene.scale>4 || scene.layers.empty() || scene.layers.size()>128)return {};
+    try {
+        SG3DiagnosticResult out;out.image.width=scene.width;out.image.height=scene.height;
+        out.image.pixelsBGRA.assign(count,0);out.producer.assign(count,0);
+        out.visiblePerLayer.assign(scene.layers.size(),0);
+        for(size_t layer=0;layer<scene.layers.size();++layer) {
+            const auto& spec=scene.layers[layer];
+            if(!spec.logicalID || spec.logicalID>archive.numImages)return {};
+            auto source=decodeSG3DiagnosticComponent(archive,spec.logicalID-1,internal,spec.component);
+            if(!source.valid())return {};
+            for(auto pixel:source.pixelsBGRA)if((pixel>>24)!=0 && (pixel>>24)!=255)return {};
+            SG3CanvasPlacement placement;placement.width=scene.width;placement.height=scene.height;
+            placement.scale=scene.scale;placement.centerX=spec.centerX;placement.centerY=spec.centerY;
+            auto canvas=renderSG3SingleCellCanvas(source,placement);
+            if(!canvas.valid())return {};
+            ++out.decodedLayers;
+            for(size_t p=0;p<count;++p)if(canvas.pixelsBGRA[p]>>24) {
+                out.image.pixelsBGRA[p]=canvas.pixelsBGRA[p];out.producer[p]=uint16_t(layer+1);
+            }
+        }
+        for(auto producer:out.producer)if(producer){++out.coveredPixels;++out.visiblePerLayer[producer-1];}
+        return out;
+    }catch(const std::bad_alloc&){return {};}
+}
+}

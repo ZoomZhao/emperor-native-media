@@ -1081,6 +1081,59 @@ Other scene layers can occlude these sources;these full conflicts are still repo
 The explicit manifest replay adds `conditional_models` with four actual exploratory predictions,source hypotheses marked false for exact/confirmed status,complete component controls and every fixed-region score. Earlier strict-path `conditional_predictions_constructed=false` fields retain their historical meaning;the new exploratory field explicitly records its four constructions. The integrated run reproduces4/4 models,36/36 region partitions and72/72 RGB5/RGB8 fixed-denominator identities. Removing the new field preserves the entire earlier JSON exactly. Authored regressions pass14/14,including full natural source paint,pre-state retention outside the removed top,unknown underlay propagation and unknown pixels counting as unexplained. Unset/empty-root SKIPs remain2/2. All masks,pixels,protocols and per-pixel errors stay local outside Git;there is no original UI,new sample,dependency or runtime/gameplay change.
 
 
+### Pixel provenance and pure SG3 native local delivery
+
+The earlier best32,000-pixel conditional edit prediction is **not a complete native reconstruction**. A source-alpha trace labels every final pixel with its last SG3 layer,retained image3,or unknown;it does not infer provenance from matching colours. The audit reads SG3 source geometry without reading screenshot pixels. In the full ROI,only **10,816/32,000** pixels came from SG3,**21,184/32,000** retained the pre-state screenshot,and0 were unknown. The whole86,400-pixel context retained73,592 pre-state pixels and generated12,808 from SG3. Its36/32,000 error count therefore describes an **edit prediction using an observed initial condition**. It cannot be presented as32,000 pixels reconstructed from original assets.
+
+The same seven explicitly declared source/component layers now render directly through the existing macOS `map_reference_view` path. A new generic `SG3DiagnosticScene` calls the existing native SG3 decoder and `renderSG3SingleCellCanvas`,then the App's shared `createCGImageFromPremultipliedBGRA` and ImageIO PNG writer. It accepts no screenshot or background image. The canvas starts transparent;unknown pixels stay alpha0. Natural top extraction reuses the native public RLE reader at the record's original base/top boundary,including any top/base overlap,without subtracting a visibility mask. Its bounded diagnostic scope is internal,nonmirrored,binary-alpha type30 single cells;unsupported records fail without fallback. CitySimulation,EMP1,the production App and native SG3 decoder remain unchanged.
+
+The actual scene manifest stays private. It declares the existing candidate IDs,centres,components and fixed order as hypotheses,not MAP/SAV parsing or production selection. The fixed360×240 context is the earlier86,400-pixel target,and its unchanged200×160 ROI is32,000 pixels;source canvases are only clipped at this predeclared viewport,not at disagreement. Final ROI provenance is:
+
+| Final source | Earlier conditional edit | Pure native SG3 output |
+|---|---:|---:|
+| Rear240 complete | 160 | 3,132 |
+| Rear244 complete | 852 | 5,844 |
+| Rear246 complete | 1,000 | 6,188 |
+| Road794 complete | 4,600 | 4,600 |
+| Front240 natural top | 948 | 948 |
+| Front242 natural top | 1,152 | 1,152 |
+| Unconfirmed front246 natural top | 2,104 | 2,104 |
+| **SG3-generated total /32,000** | **10,816/32,000** | **23,968/32,000** |
+| Retained pre-state screenshot | 21,184/32,000 | **0/32,000** |
+| Transparent unknown | 0/32,000 | **8,032/32,000** |
+
+This is **1/1 measured local native diagnostic delivery**,7/7 declared layers and1/1 CGImage/PNG,not a new complete city. The native renderer records a uint16 final-producer label per pixel:0 unknown,1..N the manifest layer index. An optional fresh private `--producer-output` exports row-major u16LE labels. All86,400/86,400 native labels agree with the independent source-alpha trace,and every86,400/86,400 output RGBA pixel agrees with independently decoded original-file composition. App-root and supplied-root runs produce identical86,400/86,400 RGBA pixels and source counts;they are two installations of the same tested scene,not two independent scenes. Original files remain read-only.
+
+The PNG preserves the native decoder's RGB8 expansion and uses the shared DeviceRGB CGImage contract. Scoring subsequently recovers RGB555,zero-fills RGB8,and applies the **unchanged** ColorSync Display P3→sRGB hypothesis to a comparison copy of the native PNG. That copy agrees86,400/86,400 pixels with independently converted-source composition,and841/841 prior colour controls remain. This is not a claim that the PNG's native raw channels already equal the sRGB screenshot or that the real capture path is proved. Screenshot pixels enter only this separate scoring step.
+
+| Full target region | Denominator | Pure SG3 coverage | RGB5 equal | RGB5 conflicts | Transparent unknown |
+|---|---:|---:|---:|---:|---:|
+| Complete ROI | 32,000 | **23,968/32,000** | **23,436/32,000** | **532/32,000** | **8,032/32,000** |
+| Separated ROI,all prior identification regions excluded | 24,496 | 16,464/24,496 | 15,984/24,496 | 480/24,496 | 8,032/24,496 |
+| Complete context | 86,400 | **31,156/86,400** | 28,580/86,400 | 2,576/86,400 | 55,244/86,400 |
+| Complete road canvas | 12,480 | 9,704/12,480 | 9,684/12,480 | 20/12,480 | 2,776/12,480 |
+
+Coverage is not correctness. Every row keeps **equal＋conflict＋unknown=full denominator**. ROI unexplained is8,564/32,000,not532/23,968 presented as a complete-scene score. Raw8 known conflicts are2,028 ROI,1,556 separated ROI,4,376 context and648 road. Unconverted native channels agree only12/23,968 RGB5 and0/23,968 RGB8 in the ROI;that representation-confounded control is retained separately. Pure-source conflicts include larger differences (ROI max146,context218),not merely the older36 one-channel residuals. No colour/alpha/order/offset adjustment follows. Every prior conditional result and its48/52/8/12 source diagnostics remains unchanged. Complete native target match stays0/1,complete MAP→SG3 scenes **0/167**;selection,unidentified cover and actual order remain unknown.
+
+### Native diagnostic scene entry and checks
+
+The existing launcher supports a user-facing native window with an explicit data root:
+
+```sh
+python3 -B scripts/map_reference.py scene --data-root /absolute/owned/data --scene-manifest /absolute/private/scene.json
+```
+
+For a read-only offscreen test/export,only the process-local root is used:
+
+```sh
+EMPEROR_GAMEDATA_ROOT=/absolute/owned/data python3 -B scripts/map_reference.py scene-metrics --scene-manifest /absolute/private/scene.json --output /absolute/private/fresh.png --producer-output /absolute/private/fresh.u16le
+```
+
+The generic JSON schema is exactly `schema:"sg3-diagnostic-scene-v1"`,`diagnostic:true`,`archive` as one root-relative SG3 path,integer `width`/`height`1..2048,`scale`1..4,and1..128 ordered `layers`. Each layer has only `id` (logical1-based),`component` (`full` or `top`),and `centre` (two integer physical canvas coordinates using the bottom-base convention). No default source or selector exists. Unknown fields,including background/pixel paths,refuse. Output files must be fresh absolute paths outside the original data root. The current native run is offscreen CGImage/PNG evidence;interactive-window appearance is not claimed as tested. The manifest,PNG,producer map and scoring derivatives stay outside Git.
+
+Related authored checks pass **42/42** for the extended reference/scene path in each of Release and UBSan,**78/78** SG3 checks in each mode,and**4,138/4,138** shared CGImage checks. New scene fixtures cover natural top/base overlap,empty top/missing dependency,transparent unknown,exact producer counts,declared order,invalid ID/component/centre,budgets and unsupported alpha. Four CLI faults (background input,boolean dimension,unknown component,traversal) refuse4/4. `scene-metrics` unset/empty roots SKIP2/2 under `python -S`,before manifest access or compilation. Existing MAP-reference tests remain covered. No original UI,new user sampling,dependency or gameplay change occurs.
+
+
 ### Read-only ground-layer replay
 
 `scripts/ground_layer_audit.py` is an explicit private-manifest entry,not a renderer or graphics selector. On each run it re-reads original SG3/555,independently decodes the declared components,and compares all complete raw/full BGRA bytes against the native cache:586/586 including794. It regenerates the source palette with the fixed public API helper,checks frozen profile SHA256 and841/841 prior colour controls,derives identification geometry from source alpha,and scores every candidate plus all five whole hypotheses. It retains the complete candidate error rows,top conflicts and the loose opacity bound in private JSON. A changed identification gate refuses;it never substitutes a minimum. All input paths and derivatives stay outside Git and all user data stays read-only.

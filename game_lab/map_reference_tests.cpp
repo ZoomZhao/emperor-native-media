@@ -4,9 +4,41 @@
 #include <iostream>
 #include <stdexcept>
 #include <limits>
+#include <algorithm>
 #include <zlib.h>
 #include <unistd.h>
 namespace {using Bytes=std::vector<uint8_t>;size_t checks=0;void need(bool x,const char*s){++checks;if(!x)throw std::runtime_error(s);}void put(Bytes&b,size_t p,uint32_t n,unsigned w=4){for(unsigned i=0;i<w;++i)b[p+i]=uint8_t(n>>(8*i));}void write(const std::filesystem::path&p,const Bytes&b){std::ofstream f(p,std::ios::binary);f.write(reinterpret_cast<const char*>(b.data()),b.size());if(!f)throw std::runtime_error("fixture write");}Bytes body(size_t n){Bytes b(n);b[0]=5;b[2]=254;b[3]=202;b[6]=2;put(b,84,84);return b;}Bytes framed(const Bytes&b){Bytes out(4);put(out,0,0xfedcbaaa);for(size_t p=0;p<b.size();p+=32768){size_t n=std::min(size_t(32768),b.size()-p);Bytes compressed(compressBound(n));uLongf size=compressed.size();if(compress2(compressed.data(),&size,b.data()+p,n,9)!=Z_OK)throw std::runtime_error("zlib");size_t q=out.size();out.resize(q+12+size);put(out,q,0xabcdefff);put(out,q+4,uint32_t(size));put(out,q+8,uint32_t(n));std::copy(compressed.begin(),compressed.begin()+size,out.begin()+q+12);}return out;}}
+void diagnosticSceneTests(const std::filesystem::path& root) {
+ using namespace game_lab;
+ SG3Sprite first;first.width=78;first.height=46;first.type=30;first.uncompressedLength=3200;first.length=3210;first.tileSize=1;
+ auto second=first;second.height=40;second.offset=3210;second.length=3200;
+ SG3Archive archive;archive.numImages=2;archive.sprites={first,second};
+ Bytes bytes(6410);for(size_t i=0;i<1600;++i){put(bytes,i*2,0x7c00,2);put(bytes,3210+i*2,0x03e0,2);}
+ const Bytes top={1,0xe0,3,255,255,255,250,1,31,0};std::copy(top.begin(),top.end(),bytes.begin()+3200);
+ auto file=root/"scene-own.555";write(file,bytes);
+ auto decodedTop=decodeSG3DiagnosticComponent(archive,0,file.string(),SG3DiagnosticComponent::Top);
+ need(decodedTop.valid()&&decodedTop.pixelsBGRA[0]==0xff00ff00u&&decodedTop.pixelsBGRA[6*78+38]==0xff0000ffu,"complete original RLE top includes overlap with public base");
+ need(std::count_if(decodedTop.pixelsBGRA.begin(),decodedTop.pixelsBGRA.end(),[](uint32_t p){return p>>24;})==2,"top does not include raw base or inferred visibility");
+ SG3DiagnosticScene scene;scene.width=300;scene.height=200;scene.scale=2;
+ scene.layers={{1,SG3DiagnosticComponent::Full,150,100},{1,SG3DiagnosticComponent::Top,150,100}};
+ auto out=renderSG3DiagnosticScene(archive,file.string(),scene);
+ need(out.image.valid()&&out.decodedLayers==2&&out.coveredPixels==6404,"native diagnostic full and top source coverage");
+ need(out.visiblePerLayer==std::vector<size_t>({6396,8}),"exact last natural-alpha producer counts");
+ need(out.image.pixelsBGRA.front()==0&&out.producer.front()==0,"unknown starts transparent without screenshot fill");
+ need(out.producer[48*300+72]==2&&out.producer[100*300+150]==1,"2x bottom-base placement and provenance");
+ scene.layers={{1,SG3DiagnosticComponent::Full,150,100},{2,SG3DiagnosticComponent::Full,150,100}};
+ out=renderSG3DiagnosticScene(archive,file.string(),scene);need(out.image.pixelsBGRA[100*300+150]==0xff00ff00u,"declared later source paints over earlier source");
+ std::reverse(scene.layers.begin(),scene.layers.end());out=renderSG3DiagnosticScene(archive,file.string(),scene);need(out.image.pixelsBGRA[100*300+150]==0xffff0000u,"input order preserved without score-based ordering");
+ scene.layers={{2,SG3DiagnosticComponent::Top,150,100}};out=renderSG3DiagnosticScene(archive,file.string(),scene);
+ need(out.image.valid()&&out.coveredPixels==0&&out.visiblePerLayer==std::vector<size_t>({0}),"empty natural top is entirely unknown,not invented base");
+ need(!decodeSG3DiagnosticComponent(archive,1,(root/"absent.555").string(),SG3DiagnosticComponent::Top).valid(),"empty top still validates original source dependency");
+ scene.layers[0].logicalID=0;out=renderSG3DiagnosticScene(archive,file.string(),scene);need(!out.image.valid()&&out.producer.empty(),"bad ID clears whole scene without stale image");
+ scene.layers[0].logicalID=1;scene.layers[0].component=SG3DiagnosticComponent(8);need(!renderSG3DiagnosticScene(archive,file.string(),scene).image.valid(),"unknown component refused");
+ scene.layers[0].component=SG3DiagnosticComponent::Full;scene.layers[0].centerX=std::numeric_limits<double>::quiet_NaN();need(!renderSG3DiagnosticScene(archive,file.string(),scene).image.valid(),"invalid scene centre refused");
+ scene.layers[0].centerX=150;scene.width=2049;need(!renderSG3DiagnosticScene(archive,file.string(),scene).image.valid(),"scene canvas budget enforced");
+ scene.width=300;scene.layers.resize(129,scene.layers.front());need(!renderSG3DiagnosticScene(archive,file.string(),scene).image.valid(),"scene layer budget enforced");
+ archive.sprites[0].alphaLength=1;need(!decodeSG3DiagnosticComponent(archive,0,file.string(),SG3DiagnosticComponent::Full).valid(),"partial-alpha diagnostic source is unsupported,not silently made opaque");
+}
 int main(){try{
  for(unsigned width:{1u,2u,4u}){auto b=body(512+51984u*width);const uint32_t maximum=width==4?UINT32_MAX:(1u<<(8*width))-1;put(b,512+227*width,maximum,width);put(b,512+228*width,maximum-1,width);put(b,512+51983*width,maximum-2,width);auto l=game_lab::parseOriginalMapRawLayer(b,{512,width});need(l&&l->valid()&&l->values[227]==maximum&&l->values[228]==maximum-1&&l->values.back()==maximum-2,"raw unsigned LE row boundaries/end");b.pop_back();need(!game_lab::parseOriginalMapRawLayer(b,{512,width}),"raw final byte truncation");}
  auto b=body(512+51984*4);need(!game_lab::parseOriginalMapRawLayer(b,{512,3}),"unsupported raw width");need(!game_lab::parseOriginalMapRawLayer(b,{std::numeric_limits<size_t>::max(),4}),"offset overflow before allocation");b[0]=2;need(!game_lab::parseOriginalMapRawLayer(b,{512,4}),"unsupported role");b[0]=5;put(b,84,0);need(!game_lab::parseOriginalMapRawLayer(b,{512,4}),"invalid side");
@@ -20,5 +52,6 @@ int main(){try{
  auto outside=game_lab::renderMapReferenceViewport(terrain,raw,archive,(root/"own.555").string(),99999,cam);need(outside.image.valid()&&outside.stats.activeCells==4&&outside.stats.outsideArchive==4&&outside.stats.validIDs==0&&outside.stats.drawnCells==0,"valid archive all-outside remains a diagnostic");
  auto render=game_lab::renderMapReferenceViewport(terrain,raw,archive,(root/"own.555").string(),1000,cam);need(render.image.valid()&&render.experimental,"bounded candidate viewport");need(render.stats.activeCells==4&&render.stats.validIDs==3&&render.stats.geometrySupported==2&&render.stats.unknownGeometry==1&&render.stats.outsideArchive==1,"reference domains/geometry kept distinct");need(render.stats.uniqueDecoded==1&&render.stats.drawnCells==2&&render.stats.visibleCells==2,"unique decode cache and cell uses");size_t opaque=0;for(auto c:render.image.pixelsBGRA)opaque+=bool(c>>24);need(opaque==3200,"shared canvas has only two authored diamonds");need(render.image.pixelsBGRA[80*300+150]==0xffff0000u,"unsigned delta and projected natural pixel");
  auto missing=game_lab::renderMapReferenceViewport(terrain,raw,archive,(root/"missing.555").string(),1000,cam);need(missing.stats.decodeFailures==2&&missing.stats.drawnCells==0,"missing source never drawn");need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",INT64_MAX,cam).image.valid(),"signed base bounded before arithmetic");cam.centerX=std::numeric_limits<double>::quiet_NaN();need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",1000,cam).image.valid(),"invalid camera clears output");cam.centerX=.5;cam.width=2049;need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",1000,cam).image.valid(),"viewport budget");
+ diagnosticSceneTests(root);
  std::filesystem::remove_all(root);std::cout<<"{\"passed\":true,\"assertions\":"<<checks<<",\"original_data\":false}\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}}

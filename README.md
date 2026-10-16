@@ -63,4 +63,14 @@ The [separated neighbour discovery](docs/MAP.md#separated-neighbour-identificati
 
 The [four conditional replacement models](docs/MAP.md#four-conditional-old-top-replacement-predictions) retain centre241/325 and propose rear244/246/240 as **unconfirmed** sources with48 retained identification errors. Complete natural sources cover2,116/2,116 old241-top pixels;no post-state background fills a hole. The241 branch predicts1,508/1,512 nonpainted changes and496/496 outside-canvas changes. With two front tops its separated validation has396/24,496 errors;an explicit additional unconfirmed front246 branch has24/24,496. Complete ROI errors are408/32,000 and36/32,000,respectively;both325 controls and every old score remain. All four predictions still fail,source identities/order remain unproved,and scenes stay0/167. The read-only replay retains full component conflicts and passes14 focused regressions.
 
+The [pixel-provenance audit and pure native delivery](docs/MAP.md#pixel-provenance-and-pure-sg3-native-local-delivery) distinguish these results explicitly:the earlier best32k edit prediction generated10,816 pixels from SG3 and retained21,184 pre-state screenshot pixels. A new **pure SG3** diagnostic output uses0 screenshot pixels:23,968/32,000 ROI pixels are asset-generated,with23,436 matching,532 conflicts and8,032 transparent unknown under the fixed comparison contract. All86,400 native RGBA pixels and producer labels match an independent original-file composition. Seven explicit hypothetical layers render through the existing native reference viewer/CGImage path;the private scene is not an automatic MAP/SAV selector. Both coverage and conflicts remain visible;complete scenes stay0/167.
+
+To view an explicit local diagnostic scene through the existing native entry:
+
+```sh
+python3 -B scripts/map_reference.py scene --data-root /absolute/owned/data --scene-manifest /absolute/private/scene.json
+```
+
+The [scene schema and offscreen command](docs/MAP.md#native-diagnostic-scene-entry-and-checks) keep inputs metadata-only and output unknown regions transparent. The current measured delivery is offscreen CGImage/PNG;original SG3/555 files and private images/manifests stay outside the App bundle and Git.
+
 Follow [AGENTS.md](AGENTS.md): clean room; no original decompiled/disassembled code, original fragments or retired static execution route. Keep all original data read-only and all assets, derivatives, screenshots, dumps and binaries outside Git. Every change must raise a measured [STATUS.md](STATUS.md) result or remove its named blocker. Our source is [MIT](LICENSE); parser credits and external dependency licenses remain in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

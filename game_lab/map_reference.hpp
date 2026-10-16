@@ -15,4 +15,29 @@ struct MapReferenceResult {
 // captured coordinates, per-cell overrides, or pixels from an original screenshot.
 MapReferenceResult renderMapReferenceViewport(const OriginalMapTerrain&,const OriginalMapRawLayer&,
     const SG3Archive&,const std::string& internal555,int64_t idBase,const OriginalMapCamera&);
+
+enum class SG3DiagnosticComponent { Full, Top };
+struct SG3DiagnosticLayer {
+    uint32_t logicalID=0;
+    SG3DiagnosticComponent component=SG3DiagnosticComponent::Full;
+    double centerX=0,centerY=0;
+};
+struct SG3DiagnosticScene {
+    uint32_t width=0,height=0,scale=1;
+    std::vector<SG3DiagnosticLayer> layers;
+};
+struct SG3DiagnosticResult {
+    DecodedImage image;
+    // Final natural-alpha producer: layer index+1, or0 for transparent/unknown.
+    std::vector<uint16_t> producer;
+    std::vector<size_t> visiblePerLayer;
+    size_t coveredPixels=0,decodedLayers=0;
+};
+// Explicit hypotheses only. No MAP/SAV selector, screenshot/background input,
+// colour correction, inferred visibility mask or original draw-order contract.
+// Bounded internal, nonmirrored, binary-alpha type30 single-cell components.
+DecodedImage decodeSG3DiagnosticComponent(const SG3Archive&,size_t logicalIndex,
+    const std::string& internal555,SG3DiagnosticComponent);
+SG3DiagnosticResult renderSG3DiagnosticScene(const SG3Archive&,const std::string& internal555,
+    const SG3DiagnosticScene&);
 }
