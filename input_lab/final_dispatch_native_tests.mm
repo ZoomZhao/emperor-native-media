@@ -23,7 +23,7 @@ static int64_t clock(void* user) {auto& s=*static_cast<State*>(user);return s.ki
 int main() { @autoreleasepool {
     try {
         unsigned passed=0;NSMutableArray* results=[NSMutableArray new];
-        for(const char* name:{"positive","gate_first","gate_second","late","clock_missing","focus","frame","owner","deadline","replaced_preview","wrong_point","dock_expiry","sender_partial"}) {
+        for(const char* name:{"positive","gate_first","gate_second","late","clock_missing","focus","frame","owner","deadline","replaced_preview","wrong_point","dock_expiry","late_focus","late_window","late_frame","late_occlusion","sender_partial"}) {
             State state{name};
             NSMutableDictionary* request=[@{@"pid":@123,@"uid":@501,@"birth_seconds":@42,@"birth_micros":@1234,@"executable":@"/synthetic/Fixture",@"window_id":@77,
                 @"frame_x":@220,@"frame_y":@242,@"frame_width":@640,@"frame_height":@448,@"normalized_x":@0.484375,@"normalized_y":@(247.0/448.0)}mutableCopy];
@@ -37,9 +37,10 @@ int main() { @autoreleasepool {
             if(state.kind=="positive")require(code==0 && state.gates==2 && state.sends==1 && state.fakeEvents==2,"positive dispatch count failed");
             else if(state.kind=="sender_partial")require(code==1 && state.sends==1 && state.fakeEvents==1 && [report[@"status"]isEqual:@"uncertain_after_sender_entry"],"partial failure overclaimed");
             else require(code==1 && state.sends==0 && state.fakeEvents==0,"refusal invoked fake sender");
+            if(state.kind.rfind("late_",0)==0)require([report[@"native_snapshot_reads"]intValue]==2,"latest snapshot was not read");
             [results addObject:@{@"case":[NSString stringWithUTF8String:name],@"gates":@(state.gates),@"sender_calls":@(state.sends),@"fake_events":@(state.fakeEvents)}];++passed;
         }
-        NSDictionary* output=@{@"passed":@YES,@"mode":@"undefined",@"scope":@"standalone native boundary; Python FFI remains Release only",@"authored_cases_passed":@[@(passed),@13],@"cases":results,@"OS_event_posts":@0,@"captures":@0,@"original_game_launches":@0};
+        NSDictionary* output=@{@"passed":@YES,@"mode":@"undefined",@"scope":@"standalone native boundary; Python FFI remains Release only",@"authored_cases_passed":@[@(passed),@17],@"cases":results,@"OS_event_posts":@0,@"captures":@0,@"original_game_launches":@0};
         NSData* bytes=[NSJSONSerialization dataWithJSONObject:output options:NSJSONWritingSortedKeys error:nil];
         std::cout.write((const char*)bytes.bytes,bytes.length);std::cout<<'\n';return 0;
     }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

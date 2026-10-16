@@ -16,7 +16,7 @@ static uint64_t integer(NSDictionary* o,NSString* k,uint64_t bound) {
 }
 extern "C" int run_dry_final(const char* json,GateCallback check,SendCallback emit,ClockCallback clock,void* user,char* output,size_t capacity) {
     @autoreleasepool {
-        unsigned gateCalls=0,senderCalls=0;std::string reason;bool passed=false;
+        unsigned gateCalls=0,senderCalls=0,snapshotReads=0;std::string reason;bool passed=false;
         try {
             require(json && check && emit && clock,"complete dry-run callbacks required");
             const size_t length=strnlen(json,8193);require(length<=8192,"fixture command budget");
@@ -36,6 +36,13 @@ extern "C" int run_dry_final(const char* json,GateCallback check,SendCallback em
             s.hitFrame=r.capturedFrame;s.candidateOwnerPid=r.owner.pid;
             NSString* fault=object[@"native_fault"];
             auto snapshot=[&] {
+                ++snapshotReads;
+                if(gateCalls>=2) {
+                    if([fault isEqual:@"late_focus"])s.active=false;
+                    if([fault isEqual:@"late_window"])s.window=r.window+1;
+                    if([fault isEqual:@"late_frame"])s.frame.origin.x+=1;
+                    if([fault isEqual:@"late_occlusion"])s.hitWindow=r.window+1;
+                }
                 if([fault isEqual:@"focus"])s.active=false;
                 if([fault isEqual:@"frame"])s.frame.origin.x+=1;
                 if([fault isEqual:@"owner"])s.owner.birthMicros+=1;
@@ -55,7 +62,7 @@ extern "C" int run_dry_final(const char* json,GateCallback check,SendCallback em
             },now);
             passed=true;
         }catch(const std::exception& error) {reason=error.what();}
-        NSDictionary* report=@{@"passed":@(passed),@"mode":@"dry-run",@"gate_calls":@(gateCalls),@"sender_callback_calls":@(senderCalls),
+        NSDictionary* report=@{@"passed":@(passed),@"mode":@"dry-run",@"gate_calls":@(gateCalls),@"sender_callback_calls":@(senderCalls),@"native_snapshot_reads":@(snapshotReads),
             @"status":passed?@"completed":senderCalls?@"uncertain_after_sender_entry":@"refused_before_sender",
             @"reason":[NSString stringWithUTF8String:reason.c_str()],@"native_event_posts":@0};
         NSData* result=[NSJSONSerialization dataWithJSONObject:report options:NSJSONWritingSortedKeys error:nil];

@@ -20,8 +20,9 @@ inline void dispatchFinalChecked(const Request& r,SnapshotReader snapshot,Gate g
         const FinalReceipt confirmed=gate(current);
         require(CGPointEqualToPoint(confirmed.point,receipt.point) &&
             confirmed.previewRequestedAt==receipt.previewRequestedAt,"final proof was replaced at boundary");
-        // Validation may be expensive: recheck the original native guard too.
-        dispatchChecked(r,observed,[&](CGPoint finalPoint) {
+        // The validator may yield or take time. Never reuse its earlier snapshot.
+        const auto latest=snapshot();
+        dispatchChecked(r,latest,[&](CGPoint finalPoint) {
             const auto checked=now();
             require(checked>=receipt.previewRequestedAt &&
                 checked-receipt.previewRequestedAt<=std::chrono::milliseconds(250),

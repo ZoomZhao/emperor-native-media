@@ -50,14 +50,14 @@ def main():
         return images,frozen,contexts,journal,clock,provider
     images,frozen,contexts,journal,clock,provider=setup();attempt=FinalClickAttempt(images,frozen,contexts,journal);sender=FakeClickSender();adapter=NativeDryRunAdapter(library)
     result=attempt.run(adapter,provider,sender,clock)
-    assert result['passed']and result['gate_calls']==2 and result['validation_calls']==2 and result['sender_callback_calls']==1
+    assert result['passed']and result['gate_calls']==2 and result['validation_calls']==2 and result['sender_callback_calls']==1 and result['native_snapshot_reads']==2
     assert len(sender.events)==2 and sender.calls==1 and result['native_event_posts']==0
     assert all(event['point']==frozen['click_global']for event in sender.events)
     reused=attempt.run(adapter,provider,sender,clock);assert reused['native_calls_this_run']==0 and adapter.calls==1 and sender.calls==1
     clone=FinalClickAttempt(images,frozen,contexts,journal);duplicate=clone.run(adapter,provider,sender,clock)
     assert duplicate['status']=='refused_reused_frozen_trial'and adapter.calls==1 and sender.calls==1
     results.append({'case':'accepted_exact_once','passed':True,'native_calls':1,'gate_calls':2,'sender_calls':1,'fake_events':2,'reuse_calls':0})
-    failures=('wrong_point','wrong_cell','expired','cancel_before','cancel_after_validation','camera_after_validation','pointer_after_validation','missing_evidence','old_passed_json','cancelled_frame','final_frame','native_focus','native_frame','native_owner','native_deadline','native_wrong_point','expires_after_validation','missing_clock','metadata_tamper','pixels_tamper')
+    failures=('wrong_point','wrong_cell','expired','cancel_before','cancel_after_validation','camera_after_validation','pointer_after_validation','missing_evidence','old_passed_json','cancelled_frame','final_frame','native_focus','native_frame','native_owner','native_deadline','native_wrong_point','expires_after_validation','missing_clock','metadata_tamper','pixels_tamper','late_focus','late_window','late_frame','late_occlusion')
     for kind in failures:
         images,frozen,contexts,journal,clock,provider=setup();hook=None;fault='';point=None
         if kind=='wrong_point':contexts[-1]['cursor_global']=[131,140]
@@ -78,6 +78,7 @@ def main():
         elif kind=='camera_after_validation':hook=lambda:contexts[-1].update(camera_epoch=9)
         elif kind=='pointer_after_validation':hook=lambda:contexts[-1].update(pointer_epoch=9)
         elif kind=='metadata_tamper':hook=lambda:attempt.frozen.update(id='tampered')
+        elif kind.startswith('late_'):fault=kind
         elif kind=='pixels_tamper':
             def tamper():
                 image=attempt.images[0];image.setflags(write=True);image[0,0,0]^=1;image.setflags(write=False)
@@ -86,6 +87,7 @@ def main():
         result=attempt.run(adapter,provider,sender,clock,hook)
         assert not result.get('passed',False)and sender.calls==0 and len(sender.events)==0,(kind,result)
         assert result.get('sender_callback_calls',0)==0,(kind,result)
+        if kind.startswith('late_'):assert result['native_snapshot_reads']==2,(kind,result)
         native_calls=adapter.calls;attempt.run(adapter,provider,sender,clock)
         assert adapter.calls==native_calls and sender.calls==0 and frozen==frozen_before
         results.append({'case':kind,'refused':True,'sender_calls':0,'fake_events':0,'native_calls':native_calls,'status':result['status']})
