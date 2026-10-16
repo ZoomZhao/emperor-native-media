@@ -6,10 +6,11 @@ import struct
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
-from ground_layer_audit import decode_components, identify, place_mask, score, exposed_geometry, centre_removal_necessary
+from ground_layer_audit import decode_components, identify, place_mask, score, exposed_geometry, centre_removal_necessary, rear_source_identification
 from base_content_audit import diamond_mask
 
 
@@ -110,6 +111,42 @@ class GroundLayerTests(unittest.TestCase):
                                            {1: full, 2: bare}, {1: top, 2: np.zeros_like(top)},
                                            nonpaint, outside)
         self.assertEqual(result['all_candidate_errors'], changed['all_candidate_errors'])
+
+    def test_rear_no_exact_source_does_not_promote_minimum_or_use_post(self):
+        full = np.zeros((40, 78, 4), np.uint8)
+        full[..., 3][diamond_mask()] = 255
+        full[..., 0][diamond_mask()] = 8
+        pre = np.zeros((1592, 2048, 3), np.uint8)
+        sources = {241: full, 325: full.copy()}
+        result = rear_source_identification(pre, pre.copy(), pre.copy(), [241, 325], sources)
+        self.assertEqual(result['centre_branches_retained'], [241, 325])
+        self.assertEqual([r['state'] for r in result['rear_sources']], ['no_exact_source'] * 3)
+        for row in result['rear_sources']:
+            self.assertGreater(row['identification_pixels'], 0)
+            self.assertEqual(row['exact_IDs'], [])
+            self.assertEqual(row['minimum_IDs_not_promoted'], [241, 325])
+            self.assertEqual(row['centre_branch_opacity_overlap'], 0)
+        self.assertFalse(result['conditional_prediction_gate_passed'])
+        self.assertFalse(result['conditional_predictions_constructed'])
+        changed = rear_source_identification(pre, np.full_like(pre, 255), pre.copy(), [241, 325], sources)
+        self.assertEqual([r['all_candidate_errors'] for r in result['rear_sources']],
+                         [r['all_candidate_errors'] for r in changed['rear_sources']])
+
+    def test_rear_zero_information_does_not_pass_empty_comparison(self):
+        # Force complete occlusion. Real78-wide cells can retain narrow grid gaps.
+        full = np.full((40, 78, 4), 255, np.uint8)
+        pre = np.zeros((1592, 2048, 3), np.uint8)
+        def covered(shape, mask, centre):
+            return np.ones(shape, bool), (0, 0, shape[1], shape[0])
+        with patch('ground_layer_audit.place_mask', side_effect=covered):
+            result = rear_source_identification(pre, pre.copy(), pre.copy(), [241, 325], {241: full, 325: full.copy()})
+        for row in result['rear_sources']:
+            self.assertEqual(row['state'], 'zero_information')
+            self.assertEqual(row['identification_pixels'], 0)
+            self.assertEqual(row['all_candidate_errors'], [])
+            self.assertEqual(row['exact_IDs'], [])
+            self.assertIsNone(row['minimum_errors_diagnostic_only'])
+        self.assertFalse(result['conditional_predictions_constructed'])
 
     def test_unset_empty_root_skip_without_dependencies_or_manifest(self):
         script = Path(__file__).with_name('ground_layer_audit.py')

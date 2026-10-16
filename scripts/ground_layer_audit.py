@@ -196,6 +196,59 @@ def centre_removal_necessary(pre, post, control, domain, fulls, tops, nonpaint, 
             'post_state_used_as_erase_backdrop': False}
 
 
+def rear_source_identification(pre, post, control, domain, fulls, centre_branches=(241, 325)):
+    """Three frozen rear positions; complete possible occlusion, pre-state only.
+
+    Centre aliases coexist in the occlusion union. Neither near matches nor post
+    pixels fill missing reveal material. Empty exposure is unknown, never a hit.
+    """
+    import numpy as np
+    from base_content_audit import diamond_mask
+    shape = pre.shape[:2]
+    union = np.zeros((59, 78), bool)
+    for image_id in domain:
+        full = fulls[image_id]
+        union[-len(full):] |= full[..., 3] == 255
+    centre_union = np.zeros(shape, bool)
+    for image_id in centre_branches:
+        support, _ = place_mask(shape, fulls[image_id][..., 3] == 255, (798, 1216))
+        centre_union |= support
+    geometry = []
+    for cx, cy in ((718, 1176), (878, 1176), (798, 1136)):
+        other = np.zeros(shape, bool)
+        for dx, dy in OFFSETS:
+            position = (cx + dx, cy + dy)
+            if position == (798, 1216):
+                other |= centre_union
+            else:
+                support, _ = place_mask(shape, union, position)
+                other |= support
+        public, _ = place_mask(shape, diamond_mask(), (cx, cy))
+        region = public & ~other
+        require(not np.any(region & centre_union), 'rear identification overlaps centre branches')
+        geometry.append(((cx, cy), region, ~other))
+    rows = []
+    for centre, region, exposed in geometry:
+        candidates = identify(pre, {i: fulls[i] for i in domain}, centre, region, exposed) if region.any() else []
+        exact = [r['ID'] for r in candidates if r['exact']]
+        minimum = min((r['RGB5_errors'] for r in candidates), default=None)
+        state = 'zero_information' if not region.any() else ('no_exact_source' if not exact else 'unique' if len(exact) == 1 else 'ambiguous')
+        rows.append({'centre': centre, 'identification_pixels': int(region.sum()),
+                     'state': state, 'exact_IDs': exact, 'all_candidate_errors': candidates,
+                     'minimum_errors_diagnostic_only': minimum,
+                     'minimum_IDs_not_promoted': [r['ID'] for r in candidates if r['RGB5_errors'] == minimum],
+                     'control1_stability': score(control, pre, region),
+                     'post2_stability_diagnostic_only': score(post, pre, region),
+                     'centre_branch_opacity_overlap': 0})
+    return {'role': 'within-discovery rear-material identification,not scene validation',
+            'centre_branches_retained': list(centre_branches), 'domain_per_cell': len(domain),
+            'rear_sources': rows, 'post_state_used_for_identity': False,
+            'conditional_prediction_gate_passed': all(r['state'] == 'unique' for r in rows),
+            'conditional_predictions_constructed': False,
+            'reveal_material': 'unknown unless independently identified;no pixels fabricated',
+            'no_minimum_promoted_or_colour_tolerance': True}
+
+
 def read_sources(root, manifest):
     import numpy as np
     from base_content_audit import _cache_bytes, _cache_record
@@ -369,6 +422,7 @@ def run(root, manifest):
                               'outside_reachable': [int(np.count_nonzero(alltop & outside)), int(outside.sum())],
                               'mutually_exclusive_ID_union_is_not_a_composition': True},
             'centre_removal': centre_removal_necessary(pre, post, control, domain, fulls, tops, N, outside),
+            'rear_material': rear_source_identification(pre, post, control, domain, fulls),
             'engine_source_rule_or_absolute_saved_cell_binding_proved': False}
 
 
@@ -392,7 +446,8 @@ def main():
                           'exact_neighbours': [r['exact_IDs'] for r in result['identification']],
                           'models': result['models'], 'opacity_bound': result['opacity_bound'],
                           'centre_base_IDs': result['centre_removal']['exact_base_IDs'],
-                          'centre_removal_prediction': result['centre_removal']['removal_prediction_constructed']}))
+                          'centre_removal_prediction': result['centre_removal']['removal_prediction_constructed'],
+                          'rear_exact_IDs': [r['exact_IDs'] for r in result['rear_material']['rear_sources']]}))
         return 0
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         print(json.dumps({'error': str(error)}))
