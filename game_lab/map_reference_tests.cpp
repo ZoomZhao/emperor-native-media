@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <limits>
 #include <algorithm>
+#include <iterator>
 #include <zlib.h>
 #include <unistd.h>
 namespace {using Bytes=std::vector<uint8_t>;size_t checks=0;void need(bool x,const char*s){++checks;if(!x)throw std::runtime_error(s);}void put(Bytes&b,size_t p,uint32_t n,unsigned w=4){for(unsigned i=0;i<w;++i)b[p+i]=uint8_t(n>>(8*i));}void write(const std::filesystem::path&p,const Bytes&b){std::ofstream f(p,std::ios::binary);f.write(reinterpret_cast<const char*>(b.data()),b.size());if(!f)throw std::runtime_error("fixture write");}Bytes body(size_t n){Bytes b(n);b[0]=5;b[2]=254;b[3]=202;b[6]=2;put(b,84,84);return b;}Bytes framed(const Bytes&b){Bytes out(4);put(out,0,0xfedcbaaa);for(size_t p=0;p<b.size();p+=32768){size_t n=std::min(size_t(32768),b.size()-p);Bytes compressed(compressBound(n));uLongf size=compressed.size();if(compress2(compressed.data(),&size,b.data()+p,n,9)!=Z_OK)throw std::runtime_error("zlib");size_t q=out.size();out.resize(q+12+size);put(out,q,0xabcdefff);put(out,q+4,uint32_t(size));put(out,q+8,uint32_t(n));std::copy(compressed.begin(),compressed.begin()+size,out.begin()+q+12);}return out;}}
@@ -39,6 +40,41 @@ void diagnosticSceneTests(const std::filesystem::path& root) {
  scene.width=300;scene.layers.resize(129,scene.layers.front());need(!renderSG3DiagnosticScene(archive,file.string(),scene).image.valid(),"scene layer budget enforced");
  archive.sprites[0].alphaLength=1;need(!decodeSG3DiagnosticComponent(archive,0,file.string(),SG3DiagnosticComponent::Full).valid(),"partial-alpha diagnostic source is unsupported,not silently made opaque");
 }
+void outputPathTests(const std::filesystem::path& root) {
+ namespace fs=std::filesystem;
+ const auto data=root/"protected-data",out=root/"path-outputs",link=root/"path-link";
+ fs::create_directories(data);fs::create_directories(out/"child");fs::create_directory_symlink(out,link);
+ const auto png=out/"fresh.png",producer=out/"fresh.u16le";
+ auto normalized=game_lab::freshReferenceOutputs(data.string(),{png.string(),producer.string()});
+ need(normalized==std::vector<std::string>({(fs::canonical(out)/"fresh.png").string(),(fs::canonical(out)/"fresh.u16le").string()}),"different fresh outputs return canonical-parent targets without creating them");
+ need(!fs::exists(png)&&!fs::exists(producer),"output preflight has no creation side effects");
+ auto refuses=[&](const std::vector<std::string>& paths,const char* expected) {
+     std::string reason;try{game_lab::freshReferenceOutputs(data.string(),paths);}catch(const std::exception& error){reason=error.what();}
+     need(reason.find(expected)!=std::string::npos,"unsafe output set refused with expected reason");
+ };
+ for(const auto& alias:std::vector<fs::path>{png,out/"."/"fresh.png",out/"child"/".."/"fresh.png",link/"fresh.png"}) {
+     refuses({png.string(),alias.string()},"distinct");
+     need(!fs::exists(png),"alias rejection occurs before either output is created");
+ }
+ const auto real=root/"real";fs::create_directories(real/"deep");fs::create_directory_symlink(real/"deep",out/"jump");
+ refuses({(real/"combined.png").string(),(out/"jump"/".."/"combined.png").string()},"distinct");
+ need(!fs::exists(real/"combined.png")&&!fs::exists(out/"combined.png"),"symlink then dotdot uses actual traversal,not lexical cancellation");
+ const auto old=out/"old.png",hard=out/"hard.png",symbolic=out/"symbolic.png";
+ const Bytes sentinel={137,80,78,71,13,10,26,10,42,43,44};write(old,sentinel);fs::create_hard_link(old,hard);fs::create_symlink(old,symbolic);
+ refuses({old.string(),hard.string()},"distinct");
+ refuses({old.string(),symbolic.string()},"distinct");
+ refuses({png.string(),hard.string()},"fresh");need(!fs::exists(png),"existing producer refuses before PNG creation");
+ refuses({old.string(),producer.string()},"fresh");need(!fs::exists(producer),"existing PNG refuses before producer creation");
+ for(const auto& path:std::vector<fs::path>{old,hard,symbolic}) {
+     std::ifstream file(path,std::ios::binary);Bytes bytes((std::istreambuf_iterator<char>(file)),std::istreambuf_iterator<char>());
+     need(bytes==sentinel,"existing PNG and same-inode aliases remain byte-identical after refusal");
+ }
+ const auto dangling=out/"dangling.png";fs::create_symlink(out/"absent-target",dangling);
+ refuses({png.string(),dangling.string()},"fresh");need(fs::is_symlink(dangling)&&!fs::exists(png),"dangling final symlink preserved and no new output created");
+ fs::create_directory_symlink(data,root/"data-link");
+ refuses({(root/"data-link"/"no-write.png").string(),producer.string()},"inside data root");
+ need(!fs::exists(data/"no-write.png")&&!fs::exists(producer),"protected root remains read-only through parent alias");
+}
 int main(){try{
  for(unsigned width:{1u,2u,4u}){auto b=body(512+51984u*width);const uint32_t maximum=width==4?UINT32_MAX:(1u<<(8*width))-1;put(b,512+227*width,maximum,width);put(b,512+228*width,maximum-1,width);put(b,512+51983*width,maximum-2,width);auto l=game_lab::parseOriginalMapRawLayer(b,{512,width});need(l&&l->valid()&&l->values[227]==maximum&&l->values[228]==maximum-1&&l->values.back()==maximum-2,"raw unsigned LE row boundaries/end");b.pop_back();need(!game_lab::parseOriginalMapRawLayer(b,{512,width}),"raw final byte truncation");}
  auto b=body(512+51984*4);need(!game_lab::parseOriginalMapRawLayer(b,{512,3}),"unsupported raw width");need(!game_lab::parseOriginalMapRawLayer(b,{std::numeric_limits<size_t>::max(),4}),"offset overflow before allocation");b[0]=2;need(!game_lab::parseOriginalMapRawLayer(b,{512,4}),"unsupported role");b[0]=5;put(b,84,0);need(!game_lab::parseOriginalMapRawLayer(b,{512,4}),"invalid side");
@@ -53,5 +89,6 @@ int main(){try{
  auto render=game_lab::renderMapReferenceViewport(terrain,raw,archive,(root/"own.555").string(),1000,cam);need(render.image.valid()&&render.experimental,"bounded candidate viewport");need(render.stats.activeCells==4&&render.stats.validIDs==3&&render.stats.geometrySupported==2&&render.stats.unknownGeometry==1&&render.stats.outsideArchive==1,"reference domains/geometry kept distinct");need(render.stats.uniqueDecoded==1&&render.stats.drawnCells==2&&render.stats.visibleCells==2,"unique decode cache and cell uses");size_t opaque=0;for(auto c:render.image.pixelsBGRA)opaque+=bool(c>>24);need(opaque==3200,"shared canvas has only two authored diamonds");need(render.image.pixelsBGRA[80*300+150]==0xffff0000u,"unsigned delta and projected natural pixel");
  auto missing=game_lab::renderMapReferenceViewport(terrain,raw,archive,(root/"missing.555").string(),1000,cam);need(missing.stats.decodeFailures==2&&missing.stats.drawnCells==0,"missing source never drawn");need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",INT64_MAX,cam).image.valid(),"signed base bounded before arithmetic");cam.centerX=std::numeric_limits<double>::quiet_NaN();need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",1000,cam).image.valid(),"invalid camera clears output");cam.centerX=.5;cam.width=2049;need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",1000,cam).image.valid(),"viewport budget");
  diagnosticSceneTests(root);
+ outputPathTests(root);
  std::filesystem::remove_all(root);std::cout<<"{\"passed\":true,\"assertions\":"<<checks<<",\"original_data\":false}\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}}

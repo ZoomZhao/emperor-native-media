@@ -40,4 +40,9 @@ DecodedImage decodeSG3DiagnosticComponent(const SG3Archive&,size_t logicalIndex,
     const std::string& internal555,SG3DiagnosticComponent);
 SG3DiagnosticResult renderSG3DiagnosticScene(const SG3Archive&,const std::string& internal555,
     const SG3DiagnosticScene&);
+// Validate the complete output set before any writer runs. Resolve actual parent
+// directories first (including symlinks and dot segments), then compare targets
+// and existing-file identities. Returns normalized fresh paths; never writes.
+std::vector<std::string> freshReferenceOutputs(const std::string& dataRoot,
+    const std::vector<std::string>& requested);
 }

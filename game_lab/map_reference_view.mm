@@ -25,14 +25,9 @@
 namespace {
 long long integer(const std::string&s){size_t n=0;auto v=std::stoll(s,&n,10);if(n!=s.size())throw std::runtime_error("whole integer required");return v;}
 double real(const std::string&s){size_t n=0;auto v=std::stod(s,&n);if(n!=s.size())throw std::runtime_error("whole number required");return v;}
-void freshOutput(const std::string&path,const std::string&root){
-    const auto out=std::filesystem::path(path);if(!out.is_absolute()||std::filesystem::symlink_status(out).type()!=std::filesystem::file_type::not_found)throw std::runtime_error("fresh absolute output path required");
-    const auto parent=std::filesystem::canonical(out.parent_path());auto rel=parent.lexically_relative(root);
-    if(rel.empty()||(!rel.empty()&&*rel.begin()!=".."))throw std::runtime_error("output inside data root refused");
-}
 void savePNG(const std::string&path,const std::string&root,CGImageRef image){
-    freshOutput(path,root);
-    NSURL*url=[NSURL fileURLWithPath:[NSString stringWithUTF8String:path.c_str()]];CGImageDestinationRef d=CGImageDestinationCreateWithURL((__bridge CFURLRef)url,CFSTR("public.png"),1,nullptr);if(!d)throw std::runtime_error("PNG destination failed");CGImageDestinationAddImage(d,image,nullptr);bool good=CGImageDestinationFinalize(d);CFRelease(d);if(!good)throw std::runtime_error("PNG finalization failed");
+    const auto target=game_lab::freshReferenceOutputs(root,{path}).front();
+    NSURL*url=[NSURL fileURLWithPath:[NSString stringWithUTF8String:target.c_str()]];CGImageDestinationRef d=CGImageDestinationCreateWithURL((__bridge CFURLRef)url,CFSTR("public.png"),1,nullptr);if(!d)throw std::runtime_error("PNG destination failed");CGImageDestinationAddImage(d,image,nullptr);bool good=CGImageDestinationFinalize(d);CFRelease(d);if(!good)throw std::runtime_error("PNG finalization failed");
 }
 long long jsonInteger(id value,long long low,long long high) {
     if(![value isKindOfClass:[NSNumber class]] || CFGetTypeID((__bridge CFTypeRef)value)==CFBooleanGetTypeID())throw std::runtime_error("scene integer required");
@@ -46,6 +41,12 @@ int diagnosticScene(const std::map<std::string,std::string>& args,bool show) {
     for(const auto&[key,value]:args){(void)value;if(key!="--data-root"&&key!="--scene-manifest"&&key!="--output"&&key!="--producer-output")throw std::runtime_error("scene mode only accepts root/manifest/output");}
     if(!args.count("--data-root"))throw std::runtime_error("explicit data root required");
     auto root=game_lab::ResourceRoot::fromAbsolute(args.at("--data-root"));if(!root.configured())throw std::runtime_error("existing absolute data root required");
+    std::vector<std::string> requested;
+    if(args.count("--output"))requested.push_back(args.at("--output"));
+    if(args.count("--producer-output"))requested.push_back(args.at("--producer-output"));
+    const auto outputs=game_lab::freshReferenceOutputs(root.configuredDirectory(),requested);
+    const std::string pngOutput=args.count("--output")?outputs.front():std::string{};
+    const std::string producerOutput=args.count("--producer-output")?outputs.back():std::string{};
     auto path=std::filesystem::path(args.at("--scene-manifest"));if(!path.is_absolute()||std::filesystem::file_size(path)>65536)throw std::runtime_error("bounded absolute scene manifest required");
     NSData* data=[NSData dataWithContentsOfFile:[NSString stringWithUTF8String:path.c_str()]];
     NSError* error=nil;id object=data?[NSJSONSerialization JSONObjectWithData:data options:0 error:&error]:nil;
@@ -69,14 +70,9 @@ int diagnosticScene(const std::map<std::string,std::string>& args,bool show) {
     auto archive=game_lab::loadSG3(archivePath);auto internal=std::filesystem::path(archivePath);internal.replace_extension(".555");
     auto rendered=game_lab::renderSG3DiagnosticScene(archive,internal.string(),scene);if(!rendered.image.valid())throw std::runtime_error("diagnostic source/scene refused;no fallback image");
     CGImageRef cg=game_lab::createCGImageFromPremultipliedBGRA(scene.width,scene.height,rendered.image.pixelsBGRA);if(!cg)throw std::runtime_error("scene CGImage failed");
-    if(args.count("--output"))freshOutput(args.at("--output"),root.configuredDirectory());
-    if(args.count("--producer-output")) {
-        freshOutput(args.at("--producer-output"),root.configuredDirectory());
-        if(args.count("--output")&&std::filesystem::path(args.at("--output"))==std::filesystem::path(args.at("--producer-output")))throw std::runtime_error("distinct PNG/producer outputs required");
-    }
-    if(args.count("--output"))savePNG(args.at("--output"),root.configuredDirectory(),cg);
-    if(args.count("--producer-output")) {
-        std::ofstream file(args.at("--producer-output"),std::ios::binary);
+    if(!pngOutput.empty())savePNG(pngOutput,root.configuredDirectory(),cg);
+    if(!producerOutput.empty()) {
+        std::ofstream file(producerOutput,std::ios::binary);
         for(auto producer:rendered.producer){const char bytes[]={char(producer),char(producer>>8)};file.write(bytes,2);}
         file.close();if(!file)throw std::runtime_error("producer output failed");
     }

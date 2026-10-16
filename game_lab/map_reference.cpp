@@ -4,6 +4,8 @@
 #include <cmath>
 #include <limits>
 #include <unordered_map>
+#include <filesystem>
+#include <stdexcept>
 namespace game_lab {
 MapReferenceResult renderMapReferenceViewport(const OriginalMapTerrain& terrain,const OriginalMapRawLayer& raw,
         const SG3Archive& archive,const std::string& internal555,int64_t base,const OriginalMapCamera& camera) {
@@ -108,5 +110,40 @@ SG3DiagnosticResult renderSG3DiagnosticScene(const SG3Archive& archive,const std
         for(auto producer:out.producer)if(producer){++out.coveredPixels;++out.visiblePerLayer[producer-1];}
         return out;
     }catch(const std::bad_alloc&){return {};}
+}
+}
+
+namespace game_lab {
+std::vector<std::string> freshReferenceOutputs(const std::string& dataRoot,
+        const std::vector<std::string>& requested) {
+    namespace fs=std::filesystem;
+    if(!fs::path(dataRoot).is_absolute())throw std::runtime_error("absolute data root required");
+    const auto root=fs::canonical(dataRoot);
+    std::vector<fs::path> paths;std::vector<std::string> targets;
+    for(const auto& name:requested) {
+        fs::path path(name);
+        if(name.find('\0')!=std::string::npos || !path.is_absolute() || path.filename().empty() ||
+           path.filename()=="." || path.filename()=="..")throw std::runtime_error("fresh absolute output file required");
+        // Canonicalize the parent before lexical operations: symlink/.. follows
+        // filesystem traversal, not merely string cancellation.
+        const auto parent=fs::canonical(path.parent_path());
+        if(!fs::is_directory(parent))throw std::runtime_error("output parent must be a directory");
+        const auto relative=parent.lexically_relative(root);
+        if(relative.empty() || *relative.begin()!="..")throw std::runtime_error("output inside data root refused");
+        const auto target=(parent/path.filename()).string();
+        for(size_t i=0;i<targets.size();++i) {
+            std::error_code error;
+            const bool sameExistingFile=fs::equivalent(path,paths[i],error);
+            if(target==targets[i] || (!error && sameExistingFile))
+                throw std::runtime_error("distinct PNG/producer output targets required");
+        }
+        paths.push_back(path);targets.push_back(target);
+    }
+    // Check every destination before allowing either writer to create a file.
+    // symlink_status also rejects dangling final symlinks.
+    for(const auto& path:paths)
+        if(fs::symlink_status(path).type()!=fs::file_type::not_found)
+            throw std::runtime_error("fresh absolute output path required");
+    return targets;
 }
 }
