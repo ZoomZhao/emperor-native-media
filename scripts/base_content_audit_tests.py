@@ -3,7 +3,7 @@ import unittest,sys,os,subprocess,json,tempfile,struct
 from unittest.mock import patch
 from pathlib import Path
 import numpy as np
-from base_content_audit import diamond_mask,reference_base,match_masked_bases,load_pool,run,crop_reference_base,source_over_fixed_base,run_single_layer,match_causal_bases,verify_single_cell_cache
+from base_content_audit import diamond_mask,reference_base,match_masked_bases,load_pool,run,crop_reference_base,source_over_fixed_base,run_single_layer,match_causal_bases,verify_single_cell_cache,opaque_colour_envelope
 
 
 def own():
@@ -265,6 +265,73 @@ class BaseContentTests(unittest.TestCase):
                 file.write_bytes(blob)
             meta.write_text(original.replace('\t12792\t','\t0\t'))
             with self.assertRaisesRegex(ValueError,'geometry/order'):verify_single_cell_cache(a,b)
+
+    def colour_fixture(self):
+        frame=np.full((1,2,3),[8,16,24],np.uint8);mask=np.ones((1,2),bool)
+        image=np.full((1,2,4),[24,16,8,255],np.uint8)
+        return frame,mask,np.zeros_like(mask),image
+
+    def test_colour_union_can_pass_without_any_consistent_source(self):
+        frame,need,guard,image=self.colour_fixture();a=image.copy();b=image.copy()
+        a[0,1]=[0,0,0,255];b[0,0]=[0,0,0,255]
+        c=[{'label':{'id':i,'pose':0},'image':im,'top_left':[0,0]}for i,im in enumerate((a,b))]
+        r=opaque_colour_envelope(frame,need,guard,c)
+        self.assertEqual(r['matching_candidate_indices'],[[0],[1]])
+        self.assertEqual(r['summary']['necessary_condition'],'not_excluded')
+        self.assertEqual(r['summary']['whole_visible_component_candidates'],[])
+        self.assertFalse(r['summary']['actual_assignment_or_order_proven'])
+        self.assertEqual([z['required_conflict_indices']for z in r['candidates']],[[1],[0]])
+
+    def test_colour_support_without_correct_colour_is_excluded(self):
+        frame,need,guard,image=self.colour_fixture();image[:,:,:3]=0
+        r=opaque_colour_envelope(frame,need,guard,[{'label':'wrong','image':image,'top_left':[0,0]}])
+        self.assertEqual(r['summary']['geometric_support_reachable'],2)
+        self.assertEqual(r['summary']['opaque_colour_explainable'],0)
+        self.assertEqual(r['unexplained_positions'],[[0,0],[1,0]])
+        self.assertEqual(r['summary']['necessary_condition'],'excluded')
+
+    def test_colour_matches_retain_protected_region_conflicts(self):
+        frame,need,guard,image=self.colour_fixture();need[0,1]=False;guard[0,1]=True;image[0,1]=[0,0,0,255]
+        r=opaque_colour_envelope(frame,need,guard,[{'label':'retained','image':image,'top_left':[0,0]}])
+        self.assertEqual(r['matching_candidate_indices'],[[0]])
+        self.assertEqual(r['candidates'][0]['protected_conflict_positions'],[[1,0]])
+        self.assertEqual(r['candidates'][0]['visible_opaque_mismatch_positions'],[[1,0]])
+
+    def test_colour_partial_alpha_stays_unknown_without_a_blend_formula(self):
+        frame,need,guard,image=self.colour_fixture();image[:]=[4,8,12,128]
+        r=opaque_colour_envelope(frame,need,guard,[{'label':'unknown','image':image,'top_left':[0,0]}])
+        self.assertEqual(r['summary']['unknown_only'],2);self.assertEqual(r['unexplained_positions'],[])
+        self.assertEqual(r['summary']['necessary_condition'],'unknown');self.assertFalse(r['summary']['blend_formula_used'])
+        self.assertEqual(r['unknown_candidate_indices'],[[0],[0]])
+
+    def test_colour_duplicates_whole_candidates_and_empty_sources_stay_distinct(self):
+        frame,need,guard,image=self.colour_fixture()
+        c=[{'label':i,'image':im,'top_left':[0,0]}for i,im in enumerate((image,image,np.zeros_like(image)))]
+        r=opaque_colour_envelope(frame,need,guard,c)
+        self.assertEqual(r['matching_candidate_indices'],[[0,1],[0,1]])
+        self.assertEqual(r['summary']['whole_visible_component_candidates'],[0,1]);self.assertEqual(len(r['candidates']),3)
+        self.assertEqual(r['candidates'][2]['visible_opaque_pixels'],0)
+
+    def test_colour_clips_only_at_fixed_frame_bounds(self):
+        frame,need,guard,image=self.colour_fixture();image[0,0]=[0,0,0,255]
+        r=opaque_colour_envelope(frame,need,guard,[{'label':1,'image':image,'top_left':[-1,0]}])
+        self.assertEqual(r['matching_candidate_indices'],[[0],[]]);self.assertEqual(r['unexplained_positions'],[[1,0]])
+        self.assertEqual(r['summary']['whole_visible_component_candidates'],[0])
+
+    def test_colour_RGB5_contract_is_fixed_for_all_candidates(self):
+        frame,need,guard,image=self.colour_fixture();image[:]=[31,23,15,255]
+        r=opaque_colour_envelope(frame,need,guard,[{'label':1,'image':image,'top_left':[0,0]}])
+        self.assertEqual(r['summary']['opaque_colour_explainable'],2);self.assertEqual(r['summary']['RGB_bits'],5)
+
+    def test_colour_bounds_masks_and_source_contract_refuse(self):
+        frame,need,guard,image=self.colour_fixture();candidate={'label':1,'image':image,'top_left':[0,0]}
+        for target,protected in ((need.astype('u1'),guard),(need,need),(guard,guard)):
+            with self.assertRaises(ValueError):opaque_colour_envelope(frame,target,protected,[candidate])
+        for position in ([True,0],[0.0,0]):
+            with self.assertRaises(ValueError):opaque_colour_envelope(frame,need,guard,[dict(candidate,top_left=position)])
+        bad=image.copy();bad[0,0]=[1,0,0,0]
+        with self.assertRaises(ValueError):opaque_colour_envelope(frame,need,guard,[dict(candidate,image=bad)])
+        with self.assertRaises(ValueError):opaque_colour_envelope(frame,need,guard,[candidate]*4097)
 
     def test_unset_empty_ROOT_SKIP_without_site_packages(self):
         script=Path(__file__).with_name('base_content_audit.py')

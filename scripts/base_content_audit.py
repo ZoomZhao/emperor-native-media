@@ -152,6 +152,75 @@ def _cache_record(blob,offset,size,label):
 
 
 
+
+def opaque_colour_envelope(reference,required,protected,candidates):
+    """Necessary colour support at caller-frozen placements; no layer solver.
+
+    Opaque BGRA paint produces one fixed RGB5 colour. Partial alpha is unknown:
+    no engine blend formula is invented. Every candidate and conflict is retained,
+    even when per-pixel union success requires mutually exclusive source IDs.
+    Returned coordinates/details are private evidence, not aggregate CLI output.
+    """
+    import numpy as np
+    reference,required,protected=map(np.asarray,(reference,required,protected))
+    if (reference.ndim!=3 or reference.shape[2]!=3 or reference.dtype!=np.uint8
+            or max(reference.shape[:2])>4096 or min(reference.shape[:2])<1
+            or required.shape!=reference.shape[:2]or protected.shape!=required.shape
+            or required.dtype!=bool or protected.dtype!=bool or not np.any(required)
+            or np.any(required&protected)or not isinstance(candidates,(list,tuple))or len(candidates)>4096):
+        raise ValueError('bounded RGB frame, disjoint boolean masks and candidate list required')
+    height,width=required.shape;positions=np.argwhere(required);n=len(positions)
+    indices=np.full(required.shape,-1,np.int32);indices[required]=np.arange(n)
+    matches=[[]for _ in positions];unknowns=[[]for _ in positions]
+    support=np.zeros(required.shape,bool);rows=[];total_pixels=0;whole=[]
+    def points(mask,x,y):return [[int(x+col),int(y+row)]for row,col in np.argwhere(mask)]
+    for ci,candidate in enumerate(candidates):
+        image=np.asarray(candidate['image']);pos=candidate['top_left']
+        if (image.ndim!=3 or image.shape[2]!=4 or image.dtype!=np.uint8
+                or min(image.shape[:2])<1 or max(image.shape[:2])>4096
+                or len(pos)!=2 or any(type(v)is not int for v in pos)
+                or np.any(image[:,:,:3]>image[:,:,3,None])):
+            raise ValueError('bounded premultiplied BGRA source and integer fixed placement required')
+        h,w=image.shape[:2];total_pixels+=h*w
+        if total_pixels>128*1024*1024:raise ValueError('source pixel budget exceeded')
+        x,y=pos;l,t=max(0,x),max(0,y);r,b=min(width,x+w),min(height,y+h)
+        item={'index':ci,'label':candidate['label'],'top_left':[x,y],
+              'source_size':[w,h],'visible_opaque_pixels':0,'visible_partial_alpha_pixels':0,
+              'required_match_indices':[],'required_conflict_indices':[],'required_unknown_indices':[],
+              'protected_conflict_positions':[],'protected_unknown_positions':[],
+              'protected_matching_pixels':0,'visible_opaque_mismatch_positions':[],
+              'whole_visible_component_candidate':False}
+        if r>l and b>t:
+            source=image[t-y:b-y,l-x:r-x];alpha=source[:,:,3]
+            opaque=alpha==255;partial=(alpha>0)&~opaque
+            same=opaque&np.all((source[:,:,2::-1]>>3)==(reference[t:b,l:r]>>3),axis=2)
+            bad=opaque&~same;need=required[t:b,l:r];guard=protected[t:b,l:r];ix=indices[t:b,l:r]
+            support[t:b,l:r]|=alpha>0
+            mi=ix[need&same].tolist();ui=ix[need&partial].tolist()
+            for k in mi:matches[k].append(ci)
+            for k in ui:unknowns[k].append(ci)
+            item.update(visible_opaque_pixels=int(opaque.sum()),visible_partial_alpha_pixels=int(partial.sum()),
+                        required_match_indices=mi,required_conflict_indices=ix[need&bad].tolist(),required_unknown_indices=ui,
+                        protected_conflict_positions=points(guard&bad,l,t),protected_unknown_positions=points(guard&partial,l,t),
+                        protected_matching_pixels=int((guard&same).sum()),visible_opaque_mismatch_positions=points(bad,l,t))
+            if np.any(opaque)and not np.any(bad)and not np.any(partial):
+                item['whole_visible_component_candidate']=True;whole.append(ci)
+        rows.append(item)
+    explained=[i for i,v in enumerate(matches)if v]
+    unresolved=[i for i in range(n)if not matches[i]and unknowns[i]]
+    impossible=[i for i in range(n)if not matches[i]and not unknowns[i]]
+    necessary='excluded' if impossible else ('unknown' if unresolved else 'not_excluded')
+    xy=[[int(col),int(row)]for row,col in positions]
+    summary={'required_pixels':n,'geometric_support_reachable':int(support[required].sum()),
+             'opaque_colour_explainable':len(explained),'unknown_only':len(unresolved),'certainly_unexplained':len(impossible),
+             'candidate_placements':len(rows),'protected_pixels':int(protected.sum()),
+             'whole_visible_component_candidates':whole,'necessary_condition':necessary,
+             'RGB_bits':5,'blend_formula_used':False,'actual_assignment_or_order_proven':False}
+    return {'summary':summary,'required_positions':xy,'matching_candidate_indices':matches,
+            'unknown_candidate_indices':unknowns,'unexplained_positions':[xy[i]for i in impossible],
+            'unknown_only_positions':[xy[i]for i in unresolved],'candidates':rows}
+
+
 def verify_single_cell_cache(cached,fresh):
     """Compare every full BGRA byte against a caller's fresh native export.
 
