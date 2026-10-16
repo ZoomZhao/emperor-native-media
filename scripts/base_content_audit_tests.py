@@ -3,7 +3,7 @@ import unittest,sys,os,subprocess,json,tempfile,struct
 from unittest.mock import patch
 from pathlib import Path
 import numpy as np
-from base_content_audit import diamond_mask,reference_base,match_masked_bases,load_pool,run,crop_reference_base,source_over_fixed_base,run_single_layer,match_causal_bases
+from base_content_audit import diamond_mask,reference_base,match_masked_bases,load_pool,run,crop_reference_base,source_over_fixed_base,run_single_layer,match_causal_bases,verify_single_cell_cache
 
 
 def own():
@@ -211,6 +211,60 @@ class BaseContentTests(unittest.TestCase):
         self.assertEqual(r['unknown_nonopaque_candidates'],1);self.assertEqual(r['causal_subset_matches'],[])
         for bad in (base,base[None].astype(float),np.zeros((1,1599,4),np.uint8)):
             with self.assertRaises(ValueError):match_causal_bases(before,after,bad)
+
+    def complete_export_pair(self,p):
+        pools=[]
+        for name in ('cached','native'):
+            d=p/name;d.mkdir();rows=[];blob=bytearray();raw=bytearray()
+            for logical,height in ((201,41),(1443,40)):
+                off=len(blob);canvas=np.zeros((height,78,4),np.uint8)
+                canvas[-40:][diamond_mask()]=[8,16,24,255]
+                rows.append(f'own.sg3\t{logical}\t78\t{height}\t{off}\t1600\t0\t0\t{logical}\t0\t0')
+                blob.extend(canvas.tobytes());raw.extend(canvas[-40:].tobytes())
+            (d/'meta').write_text('\n'.join(rows)+'\n');(d/'full').write_bytes(blob);(d/'raw').write_bytes(raw)
+            pools.append({'schema':'single','metadata':str(d/'meta'),'full':str(d/'full'),'raw':str(d/'raw')})
+        return pools
+
+    def test_complete_native_replay_counts_only_actual_full_byte_comparisons(self):
+        with tempfile.TemporaryDirectory()as folder:
+            a,b=self.complete_export_pair(Path(folder));r=verify_single_cell_cache(a,b)
+            self.assertEqual(r['full_canvases_verified'],[2,2]);self.assertEqual(r['raw_bases_verified'],[2,2])
+            self.assertEqual(r['full_canvas_bytes_compared'],78*(41+40)*4)
+
+    def test_complete_native_replay_rejects_each_canvas_and_each_BGRA_channel(self):
+        with tempfile.TemporaryDirectory()as folder:
+            a,b=self.complete_export_pair(Path(folder));file=Path(a['full']);original=file.read_bytes()
+            # Includes transparent top, an opaque unselected pixel, and the final
+            # pixel. Low-bit mutations must fail without RGB5 quantization.
+            for off,size in ((0,78*41*4),(78*41*4,78*40*4)):
+                for pos in (off,off+(41-40)*78*4+38*4,off+size-4):
+                    for channel in range(4):
+                        changed=bytearray(original);changed[pos+channel]^=1;file.write_bytes(changed)
+                        with self.subTest(offset=pos,channel=channel),self.assertRaisesRegex(ValueError,'full canvas differs'):
+                            verify_single_cell_cache(a,b)
+            file.write_bytes(original);self.assertEqual(verify_single_cell_cache(a,b)['full_canvases_verified'],[2,2])
+
+    def test_complete_native_replay_rejects_raw_corruption_in_every_record(self):
+        with tempfile.TemporaryDirectory()as folder:
+            a,b=self.complete_export_pair(Path(folder));file=Path(a['raw']);original=file.read_bytes()
+            for off in (0,12480):
+                changed=bytearray(original);changed[off+12479]^=1;file.write_bytes(changed)
+                with self.subTest(offset=off),self.assertRaisesRegex(ValueError,'raw base differs'):verify_single_cell_cache(a,b)
+
+    def test_complete_native_replay_rejects_relabelled_incomplete_or_extra_storage(self):
+        with tempfile.TemporaryDirectory()as folder:
+            a,b=self.complete_export_pair(Path(folder));meta=Path(a['metadata']);original=meta.read_text()
+            meta.write_text(original.replace('\t201\t','\t202\t'))
+            with self.assertRaisesRegex(ValueError,'metadata differs'):verify_single_cell_cache(a,b)
+            meta.write_text(original)
+            for key in ('full','raw'):
+                file=Path(a[key]);blob=file.read_bytes()
+                for data in (blob[:-4],blob+b'\0'*4):
+                    file.write_bytes(data)
+                    with self.subTest(key=key,length=len(data)),self.assertRaisesRegex(ValueError,'byte extent'):verify_single_cell_cache(a,b)
+                file.write_bytes(blob)
+            meta.write_text(original.replace('\t12792\t','\t0\t'))
+            with self.assertRaisesRegex(ValueError,'geometry/order'):verify_single_cell_cache(a,b)
 
     def test_unset_empty_ROOT_SKIP_without_site_packages(self):
         script=Path(__file__).with_name('base_content_audit.py')

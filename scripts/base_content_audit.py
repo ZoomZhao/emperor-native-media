@@ -151,6 +151,53 @@ def _cache_record(blob,offset,size,label):
     return record
 
 
+
+def verify_single_cell_cache(cached,fresh):
+    """Compare every full BGRA byte against a caller's fresh native export.
+
+    No screenshot, causal subset, RGB quantization or candidate filtering is used.
+    A successful count is returned only after both complete cache streams match.
+    Fresh-native execution/provenance belongs to the caller, not this function.
+    """
+    import numpy as np
+    exports=[]
+    for pool in (cached,fresh):
+        if pool['schema']!='single':raise ValueError('single-cell cache schema required')
+        rows=[line.split('\t')for line in Path(pool['metadata']).read_text().splitlines()]
+        if not 1<=len(rows)<=65536:raise ValueError('bounded nonempty cache records required')
+        extent=0;keys=set();records=[]
+        for row in rows:
+            if len(row)!=11:raise ValueError('complete single-cell metadata required')
+            logical,width,height,offset,opaque,partial,mirror,resolved,animation,speed=map(int,row[1:])
+            key=(row[0],logical)
+            if (not row[0]or key in keys or min(logical,resolved)<1 or width!=78 or not 40<=height<=4096
+                    or offset!=extent or min(opaque,partial)<0 or opaque+partial>width*height
+                    or mirror not in (0,1)or not 0<=animation<=65535 or not 0<=speed<=255):
+                raise ValueError('single-cell metadata geometry/order differs')
+            size=width*height*4;records.append((offset,size));extent+=size;keys.add(key)
+        if max(extent,len(rows)*12480)>512*1024*1024:raise ValueError('cache byte budget exceeded')
+        full=_cache_bytes(pool['full'],'complete full cache',extent)
+        raw=_cache_bytes(pool['raw'],'complete raw cache',len(rows)*12480)
+        exports.append((rows,records,full,raw))
+    old,new=exports
+    if old[0]!=new[0]:raise ValueError('complete cache metadata differs from fresh native export')
+    full_checked=raw_checked=0
+    for i,(offset,size)in enumerate(new[1]):
+        label=new[0][i][0]+':'+new[0][i][1]
+        if not np.array_equal(_cache_record(old[2],offset,size,'cached canvas'),
+                              _cache_record(new[2],offset,size,'fresh canvas')):
+            raise ValueError('full canvas differs from fresh native export at '+label)
+        full_checked+=1
+        if not np.array_equal(_cache_record(old[3],i*12480,12480,'cached raw base'),
+                              _cache_record(new[3],i*12480,12480,'fresh raw base')):
+            raise ValueError('raw base differs from fresh native export at '+label)
+        raw_checked+=1
+    total=len(new[0])
+    return {'full_canvases_verified':[full_checked,total],'raw_bases_verified':[raw_checked,total],
+            'metadata_records_verified':[total,total],'full_canvas_bytes_compared':len(new[2]),
+            'raw_base_bytes_compared':len(new[3]),'comparison':'all BGRA bytes; no pixel mask or quantization'}
+
+
 def load_pool(pool):
     import numpy as np
     mask=diamond_mask();kind=pool['schema'];path=Path(pool['metadata'])
