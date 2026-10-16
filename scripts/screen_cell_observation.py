@@ -46,13 +46,38 @@ def replay(root,manifest):
     return result
 
 
+def replay_final(root,manifest):
+    """Explicit final-click mode; historical measurement alone never suffices."""
+    from PIL import Image
+    import numpy as np
+    from screen_cell import validate_final_click
+    measured=replay(root,manifest)
+    evidence=manifest['final_click'];images=[]
+    if not measured['mouse_is_center']or measured['center_physical']!=evidence['frozen']['center']or measured['relative_screen_cell']!=evidence['frozen']['cell']:
+        raise ValueError('recorded hover is not at the frozen final click centre')
+    for index,key in enumerate(('before','hover','cancelled','final_hover')):
+        record=json.loads(Path(manifest[key]).read_text())
+        context=evidence['contexts'][index]
+        with Image.open(record['capture'])as image:
+            if max(image.size)>4096:raise ValueError('capture budget')
+            if (record['final_click_context']!=context or not record['same_owner_front_frame']or context['owner']!=record['owner']or context['window']!=record['window']
+                    or context['frame']!=record['frame']or context['capture_pixels']!=list(image.size)
+                    or context['scale']!=manifest['measured_scale']):
+                raise ValueError('final-click context differs from actual capture metadata')
+            images.append(np.asarray(image.convert('RGB')))
+    frozen=evidence['frozen']
+    if any(frozen[key]!=manifest[key]for key in ('phase','basis','probe_bounds','world_bounds')):
+        raise ValueError('final-click lattice/control bounds differ from frozen manifest')
+    return validate_final_click(*images,frozen,evidence['contexts'],evidence['journal'])
+
+
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--manifest',type=Path,required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--manifest',type=Path,required=True);parser.add_argument('--final-click',action='store_true');args=parser.parse_args()
     root=Path(os.environ['EMPEROR_GAMEDATA_ROOT'])
     if not root.is_absolute()or not root.is_dir():parser.error('existing absolute source root required')
-    try:result=replay(root.resolve(),json.loads(args.manifest.read_text()))
-    except (ValueError,KeyError,OSError)as error:
+    try:result=(replay_final if args.final_click else replay)(root.resolve(),json.loads(args.manifest.read_text()))
+    except (ValueError,KeyError,TypeError,IndexError,OSError)as error:
         print(json.dumps({'passed':False,'reason':str(error)}));return 1
-    print(json.dumps({'passed':True,'registration':result}));return 0
+    print(json.dumps({'passed':True,'mode':'final-click'if args.final_click else 'measurement','registration':result}));return 0
 
 if __name__=='__main__':raise SystemExit(main())

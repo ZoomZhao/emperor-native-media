@@ -151,3 +151,72 @@ def compare_fixed_sprite(before,after,decoded_bgra,center,space,phase,basis,worl
             'canvas_mismatch_positions_local':np.argwhere(canvas_bad).tolist(),
             'background_source_match_required':False,'comparison_failure_retained':True,
             'absolute_no_occlusion_claimed':False,'engine_selected_ID_proved':False}
+
+
+def validate_final_click(before,hover,cancelled,final_hover,frozen,contexts,journal):
+    """Pure evidence gate; never sends input or extrapolates an unobserved point.
+
+    Requires complete centred hover/cancel/reselect/final-hover evidence at the
+    exact frozen click point. Contexts are before, hover, cancelled, final_hover,
+    dispatch, from one monotonic producer. Any pointer/camera epoch change or
+    unjournalled action invalidates this proof. The actual guarded sender must
+    call this with its freshly sampled dispatch context, not reuse a result.
+    """
+    stages=('before','hover','cancelled','final_hover','dispatch')
+    try:
+        if not isinstance(contexts,list)or len(contexts)!=5:raise ValueError('five final-click contexts required')
+        if not isinstance(frozen,dict)or not isinstance(journal,dict):raise ValueError('final-click evidence required')
+        identity_keys=('owner','window','frame','capture_pixels','scale','camera_epoch','pointer_epoch','clock_id')
+        if any(key not in frozen for key in (*identity_keys,'id','cell','center','click_global','phase','basis','probe_bounds','world_bounds')):
+            raise ValueError('missing frozen final-click evidence')
+        if not isinstance(frozen['id'],str)or not frozen['id']or not isinstance(frozen['clock_id'],str)or not frozen['clock_id']:
+            raise ValueError('nonempty frozen/clock identity required')
+        owner=frozen['owner'];owner_keys=('pid','uid','birth_seconds','birth_micros','executable')
+        if not isinstance(owner,dict)or set(owner)!=set(owner_keys):raise ValueError('complete process birth/path identity required')
+        if any(type(owner[k])is not int or owner[k]<0 for k in owner_keys[:-1])or owner['pid']==0 or not isinstance(owner['executable'],str)or not owner['executable'].startswith('/'):
+            raise ValueError('complete process birth/path identity required')
+        if type(frozen['window'])is not int or frozen['window']<=0:raise ValueError('window identity required')
+        for key in ('camera_epoch','pointer_epoch'):
+            if type(frozen[key])is not int or frozen[key]<0:raise ValueError('measured camera/pointer epoch required')
+        space=CaptureSpace(frozen['frame'],frozen['capture_pixels'],frozen['scale'])
+        cell=_integers(frozen['cell'],2,4096);center=_integers(frozen['center'],2)
+        if cell_center(cell,frozen['phase'],frozen['basis'])!=center:raise ValueError('frozen cell/centre differs from fixed lattice')
+        if space.screen_to_pixel(frozen['click_global'])!=center:raise ValueError('frozen click is not the frozen centre')
+        times=[];serials=[]
+        for stage,context in zip(stages,contexts):
+            if not isinstance(context,dict)or context['stage']!=stage or context['freeze_id']!=frozen['id']:
+                raise ValueError('context is not bound to this frozen trial')
+            if context['identity_frame_front_verified']is not True:raise ValueError('current owner/frame/front evidence missing')
+            if any(context[key]!=frozen[key]for key in identity_keys):raise ValueError('owner/frame/scale/camera/pointer context changed')
+            if CaptureSpace(context['frame'],context['capture_pixels'],context['scale'])!=space or any(type(context[k])is not int for k in ('window','camera_epoch','pointer_epoch')):
+                raise ValueError('measured final-click context required')
+            if space.screen_to_pixel(context['cursor_global'])!=center:raise ValueError('observed pointer differs from final click point')
+            t=context['monotonic_ns'];serial=context['event_serial']
+            if type(t)is not int or t<=0 or type(serial)is not int or serial<0:raise ValueError('monotonic time/event serial required')
+            times.append(t);serials.append(serial)
+        if any(b<=a for a,b in zip(times,times[1:]))or times[-1]-times[0]>30_000_000_000 or times[-1]-times[-2]>250_000_000:
+            raise ValueError('expired or unordered final-click registration')
+        if serials!=[serials[0],serials[0]+1,serials[0]+2,serials[0]+3,serials[0]+3]:
+            raise ValueError('intervening or missing final-click action')
+        if journal['complete']is not True or journal['clock_id']!=frozen['clock_id'] or journal['freeze_id']!=frozen['id']:
+            raise ValueError('complete same-clock action journal required')
+        events=journal['events']
+        if not isinstance(events,list)or len(events)!=3:raise ValueError('exact select/cancel/reselect journal required')
+        for i,(event,kind)in enumerate(zip(events,('select_road_tool','cancel_tool','select_road_tool'))):
+            if (event['kind']!=kind or any(type(event[k])is not int for k in ('serial','monotonic_ns','pointer_epoch','camera_epoch')) or event['serial']!=serials[i+1]
+                    or not times[i]<event['monotonic_ns']<times[i+1]
+                    or event['pointer_epoch']!=frozen['pointer_epoch'] or event['camera_epoch']!=frozen['camera_epoch']
+                    or space.screen_to_pixel(event['cursor_global'])!=center):
+                raise ValueError('tool/cancel action moved point/camera or lacks complete evidence')
+        args=(before,hover,cancelled,[space]*3,frozen['click_global'],frozen['phase'],frozen['basis'],[cell],frozen['probe_bounds'],frozen['world_bounds'])
+        measured=register_hover_cell(*args)
+        final=register_hover_cell(before,final_hover,cancelled,*args[3:])
+        for result in (measured,final):
+            if not result['mouse_is_center']or result['mouse_physical']!=list(center)or result['center_physical']!=list(center)or result['relative_screen_cell']!=list(cell):
+                raise ValueError('final preview point/cell is not the frozen centre')
+    except (KeyError,TypeError,IndexError)as error:
+        raise ValueError('missing or malformed final-click evidence')from error
+    return {'passed':True,'frozen_id':frozen['id'],'cell':list(cell),'center_physical':list(center),
+            'preview_point_equals_click_point':True,'mouse_is_center':True,'frozen_cell_confirmed':True,
+            'cancel_reselect_point_unchanged':True,'final_preview_age_ns':times[-1]-times[-2],
+            'background_source_match_required':False,'input_sent':False,'reusable_click_permit':False}

@@ -421,4 +421,93 @@ class ScreenCellRegistrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'not an integer lattice centre'):compare_fixed_sprite(*args)
 
 
+class FinalClickBindingTests(unittest.TestCase):
+    def fixture(self,scale=1):
+        import copy
+        args=ScreenCellRegistrationTests().fixture(scale)
+        before,hover,cancelled,spaces,point,phase,basis,cells,probe,world=args;space=spaces[0]
+        owner={'pid':123,'uid':501,'birth_seconds':100,'birth_micros':20,'executable':'/authored/fixture'}
+        frozen={'id':'authored-frozen-trial','owner':owner,'window':7,'frame':[10,20,400,256],
+                'capture_pixels':list(space.capture_pixels),'scale':scale,'camera_epoch':3,'pointer_epoch':4,
+                'clock_id':'authored-process-monotonic-clock','cell':[0,0],'center':[120*scale,120*scale],
+                'click_global':point,'phase':phase,'basis':basis,'probe_bounds':probe,'world_bounds':world}
+        contexts=[]
+        for stage,t,serial in zip(('before','hover','cancelled','final_hover','dispatch'),
+                                  (1000000000,1100000000,1200000000,1300000000,1400000000),(10,11,12,13,13)):
+            context={k:copy.deepcopy(frozen[k])for k in ('owner','window','frame','capture_pixels','scale','camera_epoch','pointer_epoch','clock_id')}
+            context.update(stage=stage,freeze_id=frozen['id'],cursor_global=point.copy(),
+                           identity_frame_front_verified=True,monotonic_ns=t,event_serial=serial);contexts.append(context)
+        events=[{'kind':kind,'serial':11+i,'monotonic_ns':1050000000+100000000*i,
+                 'pointer_epoch':4,'camera_epoch':3,'cursor_global':point.copy()}
+                for i,kind in enumerate(('select_road_tool','cancel_tool','select_road_tool'))]
+        journal={'complete':True,'clock_id':frozen['clock_id'],'freeze_id':frozen['id'],'events':events}
+        return [before,hover,cancelled,hover.copy(),frozen,contexts,journal]
+
+    def test_exact_point_same_cell_after_cancel_and_reselect_passes_without_background(self):
+        from screen_cell import validate_final_click
+        for scale in (1,2):
+            result=validate_final_click(*self.fixture(scale))
+            self.assertTrue(result['mouse_is_center']);self.assertTrue(result['frozen_cell_confirmed'])
+            self.assertTrue(result['cancel_reselect_point_unchanged']);self.assertFalse(result['input_sent'])
+            self.assertFalse(result['reusable_click_permit']);self.assertFalse(result['background_source_match_required'])
+
+    def test_wrong_observed_point_is_not_replaced_by_a_calculated_centre(self):
+        from screen_cell import validate_final_click
+        for stage in (1,2,3,4):
+            args=self.fixture();args[5][stage]['cursor_global']=[130,120]
+            with self.subTest(stage=stage),self.assertRaisesRegex(ValueError,'pointer differs'):
+                validate_final_click(*args)
+        args=self.fixture();args[4]['click_global']=[130,120]
+        with self.assertRaisesRegex(ValueError,'click is not'):validate_final_click(*args)
+
+    def test_wrong_frozen_cell_and_wrong_final_footprint_are_refused(self):
+        from screen_cell import validate_final_click
+        args=self.fixture();args[4]['cell']=[1,0]
+        with self.assertRaisesRegex(ValueError,'cell/centre'):validate_final_click(*args)
+        args=self.fixture();args[3]=np.roll(args[3],40,axis=1)
+        with self.assertRaises(ValueError):validate_final_click(*args)
+
+    def test_expired_registration_and_clock_or_event_reuse_are_refused(self):
+        from screen_cell import validate_final_click
+        for kind in ('old_final','old_registration','unordered','clock','serial'):
+            args=self.fixture();contexts=args[5]
+            if kind=='old_final':contexts[4]['monotonic_ns']=contexts[3]['monotonic_ns']+250000001
+            elif kind=='old_registration':contexts[3]['monotonic_ns']=31000000000;contexts[4]['monotonic_ns']=31100000001
+            elif kind=='unordered':contexts[4]['monotonic_ns']=contexts[3]['monotonic_ns']
+            elif kind=='clock':contexts[4]['clock_id']='other-process-clock'
+            else:contexts[4]['event_serial']+=1
+            with self.subTest(kind=kind),self.assertRaises(ValueError):validate_final_click(*args)
+        args=self.fixture();args[5][4]['monotonic_ns']=args[5][3]['monotonic_ns']+250000000
+        self.assertTrue(validate_final_click(*args)['passed'])
+
+    def test_missing_evidence_never_defaults_to_a_click_confirmation(self):
+        from screen_cell import validate_final_click
+        for target,key in ((4,'pointer_epoch'),(4,'cell'),(4,'clock_id'),(5,'identity_frame_front_verified'),(6,'complete'),(6,'events')):
+            args=self.fixture();record=args[target][4]if target==5 else args[target];del record[key]
+            with self.subTest(target=target,key=key),self.assertRaises(ValueError):validate_final_click(*args)
+        args=self.fixture();args[5]=[]
+        with self.assertRaises(ValueError):validate_final_click(*args)
+
+    def test_window_scale_camera_and_pointer_movement_invalidate_confirmation(self):
+        from screen_cell import validate_final_click
+        for key,value in (('window',8),('scale',2),('frame',[11,20,400,256]),('camera_epoch',4),('pointer_epoch',5),('owner',{}),('identity_frame_front_verified',False)):
+            args=self.fixture();args[5][4][key]=value
+            with self.subTest(key=key),self.assertRaises(ValueError):validate_final_click(*args)
+        # Moving away and returning is still a different pointer epoch.
+        args=self.fixture();args[6]['events'][2]['pointer_epoch']=6
+        with self.assertRaises(ValueError):validate_final_click(*args)
+
+    def test_cancel_or_journal_failure_and_reselection_movement_are_refused(self):
+        from screen_cell import validate_final_click
+        for kind in ('cancel','final_controls','incomplete','extra_action','reselect_point','event_time'):
+            args=self.fixture()
+            if kind=='cancel':args[2]=args[2].copy();args[2][0,0]=1
+            elif kind=='final_controls':args[3][0,0]=1
+            elif kind=='incomplete':args[6]['complete']=False
+            elif kind=='extra_action':args[6]['events'].append(dict(args[6]['events'][-1]))
+            elif kind=='reselect_point':args[6]['events'][2]['cursor_global']=[131,140]
+            else:args[6]['events'][2]['monotonic_ns']=args[5][3]['monotonic_ns']+1
+            with self.subTest(kind=kind),self.assertRaises(ValueError):validate_final_click(*args)
+
+
 if __name__=='__main__':unittest.main()
