@@ -317,4 +317,108 @@ class ReferenceComparisonTests(unittest.TestCase):
         with self.assertRaises(ValueError):audit_static_labels(['a','b'],[1],[0],[1])
 
 
+class ScreenCellRegistrationTests(unittest.TestCase):
+    def fixture(self,scale=1):
+        from screen_cell import CaptureSpace
+        width,height=400*scale,256*scale;space=CaptureSpace((10,20,400,256),(width,height),scale)
+        a=np.zeros((height,width,3),np.uint8);b=a.copy();diamond=np.zeros((40,78),bool)
+        for y in range(40):
+            edge=38-2*y if y<20 else 2*y-40;diamond[y,edge:78-edge]=True
+        mask=np.repeat(np.repeat(diamond,scale,0),scale,1);b[100*scale:140*scale,81*scale:159*scale][mask]=[0,248,0]
+        return a,b,a.copy(),[space]*3,[130,140],[120*scale,120*scale],[[40*scale,-40*scale],[20*scale,20*scale]],[[0,0],[1,0],[0,1]],[30*scale,70*scale,250*scale,210*scale],[0,0,width,height]
+
+    def test_recorded_point_is_not_a_centre_or_a_scale_correction(self):
+        from screen_cell import CaptureSpace,require_cell_center,cell_center
+        space=CaptureSpace((211,60,1024,796),(2048,1592),2);point=space.screen_to_pixel([850,328])
+        self.assertEqual(point,(1278,536))
+        with self.assertRaisesRegex(ValueError,'not an integer lattice centre'):require_cell_center(point,[-482,16],[[80,-80],[40,40]])
+        center=cell_center([18,-4],[-482,16],[[80,-80],[40,40]])
+        self.assertEqual(center,(1278,576));self.assertEqual(space.pixel_to_screen(center),(850,348))
+        self.assertEqual(require_cell_center(center,[-482,16],[[80,-80],[40,40]]),(18,-4))
+
+    def test_exact_roundtrip_preserves_half_points_and_rejects_subpixels(self):
+        from screen_cell import CaptureSpace
+        space=CaptureSpace((10,20,100,100),(200,200),2)
+        self.assertEqual(space.screen_to_pixel([10.5,20.5]),(1,1));self.assertEqual(space.pixel_to_screen([1,1]),(10.5,20.5))
+        for p in ([10.25,20],[9,20],[110,20],[True,20],[float('nan'),20]):
+            with self.assertRaises(ValueError):space.screen_to_pixel(p)
+
+    def test_unknown_or_unequal_scale_and_singular_lattice_refuse(self):
+        from screen_cell import CaptureSpace,require_cell_center
+        for pixels,scale in (((2048,1592),None),((2048,796),2),((2048,1592),1)):
+            with self.assertRaises(ValueError):CaptureSpace((211,60,1024,796),pixels,scale)
+        with self.assertRaises(ValueError):require_cell_center([0,0],[0,0],[[1,2],[2,4]])
+        with self.assertRaises(ValueError):CaptureSpace(None,(200,200),2)
+        with self.assertRaises(ValueError):require_cell_center([0,0],[0,0],None)
+
+    def test_complete_hover_is_registered_without_any_sprite_identity(self):
+        from screen_cell import register_hover_cell
+        for scale in (1,2):
+            r=register_hover_cell(*self.fixture(scale));self.assertEqual(r['center_physical'],[120*scale,120*scale]);self.assertEqual(r['footprint_pixels'],1600*scale*scale)
+            self.assertTrue(r['mouse_is_center']);self.assertFalse(r['source_identity_required']);self.assertFalse(r['absence_of_occlusion_proved'])
+
+    def test_corner_hover_does_not_turn_mouse_point_into_centre(self):
+        from screen_cell import register_hover_cell
+        args=list(self.fixture());args[4]=[130,120];r=register_hover_cell(*args)
+        self.assertFalse(r['mouse_is_center']);self.assertEqual(r['mouse_physical'],[120,100]);self.assertEqual(r['center_physical'],[120,120])
+
+    def test_changed_window_origin_is_refused_not_fitted(self):
+        from screen_cell import CaptureSpace,register_hover_cell
+        args=list(self.fixture());args[3]=list(args[3]);args[3][1]=CaptureSpace((11,20,400,256),(400,256),1)
+        with self.assertRaisesRegex(ValueError,'geometry changed'):register_hover_cell(*args)
+
+    def test_incomplete_or_shifted_hover_never_refits_phase(self):
+        from screen_cell import register_hover_cell
+        for kind in ('missing','shifted','no_pointer'):
+            args=list(self.fixture());args[1]=args[1].copy()
+            if kind=='missing':args[1][100,119]=0
+            elif kind=='shifted':args[1]=np.roll(args[1],1,axis=1)
+            else:args[4]=[20,30]
+            with self.subTest(kind=kind),self.assertRaises(ValueError):register_hover_cell(*args)
+
+    def test_control_change_or_failed_cancel_is_unknown(self):
+        from screen_cell import register_hover_cell
+        for stage in (1,2):
+            args=list(self.fixture());args[stage]=args[stage].copy();args[stage][0,0]=1
+            with self.subTest(stage=stage),self.assertRaisesRegex(ValueError,'unknown'):register_hover_cell(*args)
+
+    def test_whole_prediction_failures_survive_unidentified_background(self):
+        # No requirement that this authored before-background matches any asset.
+        from screen_cell import register_hover_cell
+        args=self.fixture();self.assertEqual(register_hover_cell(*args)['relative_screen_cell'],[0,0])
+        source=np.full((40,78,3),[248,120,8],np.uint8);opaque=np.ones((40,78),bool)
+        after=np.repeat(np.repeat(source,2,0),2,1)
+        good=compare_nearest_scaled_rgb(after,source,opaque)
+        self.assertTrue(good.physical.normalized_exact)
+        after[1,1,0]=0;failed=compare_nearest_scaled_rgb(after,source,opaque)
+        self.assertFalse(failed.physical.normalized_exact);self.assertEqual(failed.physical.color_samples,40*78*4*3)
+
+
+    def prediction_fixture(self):
+        from screen_cell import CaptureSpace
+        space=CaptureSpace((0,0,200,100),(400,200),2);before=np.full((200,400,3),[13,37,59],np.uint8)
+        source=np.zeros((40,78,4),np.uint8);source[20,38:40]=[8,120,248,255]
+        after=before.copy();after[100:102,198:202]=[248,120,8]
+        return before,after,source,[200,100],space,[200,100],[[80,-80],[40,40]],[0,0,400,200]
+
+    def test_whole_source_and_simple_overlay_are_distinct_without_background_match(self):
+        from screen_cell import compare_fixed_sprite
+        args=list(self.prediction_fixture());r=compare_fixed_sprite(*args)
+        self.assertEqual(r['opaque_prediction']['denominator'],8);self.assertTrue(r['opaque_prediction']['passed'])
+        self.assertEqual(r['source_over_before_canvas_prediction']['denominator'],12480);self.assertTrue(r['source_over_before_canvas_prediction']['passed'])
+        args[1]=args[1].copy();args[1][60,122]=0;r=compare_fixed_sprite(*args)
+        self.assertTrue(r['opaque_prediction']['passed']);self.assertFalse(r['source_over_before_canvas_prediction']['passed'])
+        args[1][101,201]=0;r=compare_fixed_sprite(*args)
+        self.assertEqual(r['opaque_prediction']['different_pixels'],1);self.assertFalse(r['opaque_prediction']['passed'])
+        self.assertTrue(r['comparison_failure_retained']);self.assertFalse(r['background_source_match_required'])
+        self.assertEqual(r['opaque_mismatch_positions_local'],[[41,79]])
+
+    def test_unknown_sprite_alpha_and_illegal_centre_refuse_without_colour_fitting(self):
+        from screen_cell import compare_fixed_sprite
+        args=list(self.prediction_fixture());args[2]=args[2].copy();args[2][20,38]=[4,60,124,128]
+        with self.assertRaisesRegex(ValueError,'formula is unknown'):compare_fixed_sprite(*args)
+        args=list(self.prediction_fixture());args[3]=[200,80]
+        with self.assertRaisesRegex(ValueError,'not an integer lattice centre'):compare_fixed_sprite(*args)
+
+
 if __name__=='__main__':unittest.main()
