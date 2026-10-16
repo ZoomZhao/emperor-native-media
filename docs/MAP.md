@@ -1145,6 +1145,59 @@ The extended authored native suite passes **67/67** in both Release and UBSan,in
 A new read-only original-data run verifies unchanged native RGBA **86,400/86,400**,unchanged producer labels **86,400/86,400**,and identical PNG file bytes. The uploaded original PNG is unchanged and not uploaded again. Pure-source coverage remains23,968/32,000,with532 conflicts and8,032 unknown;complete scenes remain0/167. The fixture reports and new images stay local outside Git. No framework,dependency,original UI or gameplay change is introduced.
 
 
+### Peripheral base coverage with pre-state source hypotheses
+
+The seven-layer pure-source baseline leaves8,032/32,000 ROI pixels transparent. Position discovery uses only that native alpha and the public78×40 base diamond on the unchanged relative lattice (centre798,1216;basis(80,40),(-80,40)). It reads no reference colours or post-state differences. Thirteen public-base cells intersect the fixed ROI,and every baseline unknown has **exactly one** public-base owner. Nine positions have positive unknown ownership,so **nine are necessary and sufficient for public-base completion**:three already rendered as top-only plus six peripheral positions. This minimum is scoped to filling the public base owners,**not** a minimum over arbitrary RLE-top combinations.
+
+| Base-owning position | Baseline unknown pixels | Existing component |
+|---|---:|---|
+| (718,1096) | 120 | absent |
+| (878,1096) | 120 | absent |
+| (638,1136) | 24 | absent |
+| (958,1136) | 32 | absent |
+| (638,1216) | 32 | absent |
+| (958,1216) | 16 | absent |
+| (718,1256) | 3,056 | top240 |
+| (878,1256) | 3,480 | top242 |
+| (798,1296) | 1,152 | unconfirmed top246 |
+| **Total** | **8,032** | three existing positions plus six new |
+
+The three existing positions can add7,688 public-base pixels without new source identities:240/242 retain their exact identification-region evidence,and246 remains an explicit8/624-error hypothesis. For each of the six new positions,source-independent geometry freezes1,748 visible pre-state pixels **outside the full ROI** and outside the complete possible opacity of the other eight same-family neighbours. Every candidate's complete exposed paint is checked. Image3 alone supplies colours;the domain stays585. All **3,510/3,510** candidate rows are retained,including failed and tied candidates.
+
+| New position | Pre-state candidate evidence /1,748 | Next distinct error count | Treatment before post scoring |
+|---|---:|---:|---|
+| (718,1096) | min ID271,1,668 errors | 1,672 | no evidence;unknown |
+| (878,1096) | ID244,16 errors | 1,284 | unique unconfirmed hypothesis |
+| (638,1136) | min ID271,1,668 errors | 1,672 | no evidence;unknown |
+| (958,1136) | ID243,20 errors | 252 | separate unconfirmed exploratory branch |
+| (638,1216) | IDs241/325,0 errors each | 224 | both exact-region aliases retained as two branches |
+| (958,1216) | ID246,12 errors | 1,296 | unique unconfirmed hypothesis |
+
+The accepted near-source proposals have only single-channel raw8 one-step RGB5 errors and maximum exposed channel difference1;`exact=false` and all errors remain. The two failed positions have maximum exposed difference117 and nearly tied,mostly wrong candidates;no source is selected. A primary conservative prefilter used≤1% RGB5 errors and runner gap≥25% of the exposed region. ID243 fails that prefilter (20vs252),but its unique12.6× lead and only one-channel1 errors support a separately declared exploratory test under the user's broader hypothesis scope. That additional branch was frozen **before any new post-state prediction score**,without changing the original gate or strict predicate. It is never silently added to the primary models. The241/325 aliases belong to the **new left peripheral position(638,1216)**;post-state scores do not resolve them or the earlier centre ambiguity.
+
+Seven private diagnostic manifests are frozen:the untouched seven-layer baseline;upgrade front240/242 to complete sources;also upgrade unconfirmed front246;then add peripheral244/246 and each left241/325 alias,with and without the separate243 proposal. Order is fixed by increasing screen-centre y thenx. Equal-y canvases at160-pixel horizontal spacing are disjoint. Complete natural sources replace top-only components or add new cells;no colour,alpha,offset or order tuning follows the scores. The existing native entry renders all seven manifests directly from the original SG3/555 root with **0 screenshot inputs**. No renderer or framework change is needed.
+
+All scores below use the unchanged fixed ColorSync comparison contract;native PNG channels retain their existing representation,and the real capture colour path remains unproved.
+
+| Frozen native model | SG3 coverage /32,000 | RGB5 equal /32,000 | RGB5 conflicts /32,000 | Transparent unknown /32,000 | Separated-ROI errors /24,496 |
+|---|---:|---:|---:|---:|---:|
+| Seven-layer baseline | 23,968 | 23,436 | 532 | 8,032 | 480 |
+| Front240/242 complete | 30,504 | 29,808 | 696 | 1,496 | 644 |
+| Also front246 complete | 31,656 | 30,956 | 700 | 344 | 648 |
+| Peripheral left241,without243 | 31,824 | 31,452 | 372 | 176 | 320 |
+| Peripheral left241,with243 hypothesis | **31,856** | **31,588** | **268** | **144** | **216** |
+| Peripheral left325,without243 | 31,824 | 31,268 | 556 | 176 | 504 |
+| Peripheral left325,with243 hypothesis | **31,856** | **31,404** | **452** | **144** | **400** |
+
+Matching/conflict/unknown still sum to32,000 in every row;the separated score also retains unknown in its denominator. All new identification regions lie outside the ROI,so its earlier excluded7,504 pixels and24,496 denominator stay unchanged. Both243 variants increase real asset-generated coverage **23,968→31,856/32,000 (+7,888)**. Remaining144 unknown pixels exactly equal the unselected base-owner portions at(718,1096)120 and(638,1136)24. They remain transparent. The left241+243 branch's newly covered7,888 pixels have7,720 matches and168 conflicts;the original23,968 covered pixels retain100 errors,so268 total. All seven models lose0 baseline covered pixels and introduce0 errors at the baseline's previously correct ROI/context pixels. The original baseline is preserved bit-for-bit;no better branch becomes a confirmed selector.
+
+The whole context remains86,400 pixels. Left241+243 covers58,988 with53,968 matches,5,020 conflicts and27,412 unknown;left325+243 covers58,644 with51,980 matches,6,664 conflicts and27,756 unknown. The larger context therefore retains substantial conflicts. For left241+243,304 errors remain in the baseline-covered31,156 pixels and4,716 occur in27,832 newly covered pixels;none is omitted. Whole-ROI raw8 conflicts remain2,208 and2,384 respectively,with144 unknown each. Source choice,occlusion and actual draw order are still unproved;full local matches are0/7 and complete MAP→SG3 scenes **0/167**.
+
+Complete unmasked new-source RGB5 errors are also preserved,with pre3/post2 equal for each component:front ID240:2,204/8,380;front ID242:2,200/8,288;front ID246:1,872/8,900;peripheral ID244:2,088/8,788;peripheral ID246:2,324/8,900;left ID241:2,400/8,516;left ID325:3,144/6,400;ID243:2,328/8,516. These negatives include pixels that other scene layers may occlude;they are not changed into fitted transparency. All old seven-layer errors,the prior48/52/8/12 diagnostics,the3510 candidate rows and the241/325 ambiguity remain available in private evidence.
+
+Verification uses the existing native executable and existing comparison functions. All seven output RGBA canvases and native producer maps independently match original-file composition: **604,800/604,800 each**. The baseline matches its prior86,400 RGBA pixels and86,400 producer labels. All98/98 RGB5/RGB8 full-denominator identities pass,and144/144 final unknowns have the declared geometric owners. The existing reviewed native/reference67-per-mode tests are unchanged;no new test framework,dependency,UI,capture,upload or renderer code is added. Private manifests,images,per-pixel maps and replay programs remain outside Git;only these aggregate facts update existing documents.
+
+
 ### Read-only ground-layer replay
 
 `scripts/ground_layer_audit.py` is an explicit private-manifest entry,not a renderer or graphics selector. On each run it re-reads original SG3/555,independently decodes the declared components,and compares all complete raw/full BGRA bytes against the native cache:586/586 including794. It regenerates the source palette with the fixed public API helper,checks frozen profile SHA256 and841/841 prior colour controls,derives identification geometry from source alpha,and scores every candidate plus all five whole hypotheses. It retains the complete candidate error rows,top conflicts and the loose opacity bound in private JSON. A changed identification gate refuses;it never substitutes a minimum. All input paths and derivatives stay outside Git and all user data stays read-only.
