@@ -1,4 +1,4 @@
-"""Read-only replay of the bounded three-neighbour ground discovery.
+"""Read-only bounded ground discovery and conditional scene-edit replay.
 
 Explicit private manifest; no asset selector, scene renderer or input automation.
 Published SG3 base/RLE bytes and complete source alpha only. All image inputs,
@@ -139,7 +139,7 @@ def identify(frame, fulls, centre, identification, exposed):
     return rows
 
 
-def centre_removal_necessary(pre, post, control, domain, fulls, tops, nonpaint, outside):
+def centre_removal_necessary(pre, post, control, domain, fulls, tops, nonpaint, outside, geometry_out=None):
     """Pre-state identity before a removal geometry test; never erase from post.
 
     Own public base and own top are structurally disjoint. A geometric success
@@ -181,6 +181,8 @@ def centre_removal_necessary(pre, post, control, domain, fulls, tops, nonpaint, 
                          'whole_top_pre': score(rgb, pre[y0:y1, x0:x1], local),
                          'whole_top_post': score(rgb, post[y0:y1, x0:x1], local)})
     require(not np.any(identification & (nonpaint | outside)), 'centre identity/validation overlap')
+    if geometry_out is not None:
+        geometry_out['centre'] = identification
     return {'role': 'within-discovery necessary check;not independent scene validation',
             'centre': centre, 'identification_pixels': int(identification.sum()),
             'exact_base_IDs': exact, 'all_candidate_errors': rows,
@@ -196,7 +198,7 @@ def centre_removal_necessary(pre, post, control, domain, fulls, tops, nonpaint, 
             'post_state_used_as_erase_backdrop': False}
 
 
-def rear_source_identification(pre, post, control, domain, fulls, centre_branches=(241, 325)):
+def rear_source_identification(pre, post, control, domain, fulls, centre_branches=(241, 325), geometry_out=None):
     """Three frozen rear positions; complete possible occlusion, pre-state only.
 
     Centre aliases coexist in the occlusion union. Neither near matches nor post
@@ -227,6 +229,8 @@ def rear_source_identification(pre, post, control, domain, fulls, centre_branche
         region = public & ~other
         require(not np.any(region & centre_union), 'rear identification overlaps centre branches')
         geometry.append(((cx, cy), region, ~other))
+    if geometry_out is not None:
+        geometry_out['rear'] = [region for _, region, _ in geometry]
     rows = []
     for centre, region, exposed in geometry:
         candidates = identify(pre, {i: fulls[i] for i in domain}, centre, region, exposed) if region.any() else []
@@ -247,6 +251,84 @@ def rear_source_identification(pre, post, control, domain, fulls, centre_branche
             'conditional_predictions_constructed': False,
             'reveal_material': 'unknown unless independently identified;no pixels fabricated',
             'no_minimum_promoted_or_colour_tolerance': True}
+
+
+def paint_complete(rgb, known, source, centre):
+    import numpy as np
+    require(source.dtype==np.uint8 and source.ndim==3 and source.shape[1:]==(78,4)
+                                    and 40<=source.shape[0]<=59 and np.all(np.isin(source[...,3],[0,255])), 'complete natural binary source required')
+    support,bounds=place_mask(known.shape,source[...,3]==255,centre)
+    x0,y0,x1,y1=bounds;local=support[y0:y1,x0:x1];target=rgb[y0:y1,x0:x1]
+    target[local]=source[...,2::-1].repeat(2,0).repeat(2,1)[local];known[support]=True
+    return support,bounds
+
+def restore_removed_top(pre, old_top, under, under_known):
+    import numpy as np
+    require(pre.dtype==under.dtype==np.uint8 and pre.shape==under.shape
+                                    and old_top.shape==under_known.shape==pre.shape[:2]
+                                    and old_top.dtype==under_known.dtype==bool,'fixed pre/source-alpha underlay geometry')
+    rgb=pre.copy();known=np.ones(old_top.shape,bool)
+    rgb[old_top]=under[old_top];known[old_top]=under_known[old_top]
+    return rgb,known
+
+def score_known(rgb, actual, known, region):
+    import numpy as np
+    require(known.dtype==region.dtype==bool and known.shape==region.shape==actual.shape[:2], 'known/region geometry')
+    measured=score(rgb,actual,known&region);predictable=measured.pop('pixels');denominator=int(region.sum())
+    measured['RGB5_errors_known']=measured.pop('RGB5_errors')
+    return {'denominator':denominator,'predictable':predictable,'unknown':denominator-predictable,
+                                    **measured,'RGB5_not_explained':denominator-measured['RGB5_equal'],
+                                    'RGB8_errors_known':predictable-measured['RGB8_equal'],
+                                    'RGB8_not_explained':denominator-measured['RGB8_equal']}
+
+def conditional_models(pre, post, fulls, tops, identification):
+    import numpy as np
+    shape=pre.shape[:2];under=np.zeros_like(pre);under_known=np.zeros(shape,bool)
+    require(identification.dtype == bool and identification.shape == shape, 'source-only identification mask')
+    sources=[(240,(798,1136)),(244,(718,1176)),(246,(878,1176))]
+    full_source_controls=[]
+    for image_id,centre in sources:
+        support,bounds=paint_complete(under,under_known,fulls[image_id],centre)
+        x0,y0,x1,y1=bounds;source=fulls[image_id];rgb=source[...,2::-1].repeat(2,0).repeat(2,1);local=support[y0:y1,x0:x1]
+        full_source_controls.append({'ID':image_id,'centre':centre,'exact':False,'bounds':bounds,
+                    'before':score(rgb,pre[y0:y1,x0:x1],local),'after':score(rgb,post[y0:y1,x0:x1],local)})
+    old241,_=place_mask(shape,tops[241][...,3]==255,(798,1216));R=rectangle(shape,ROAD);V=rectangle(shape,VALIDATION);W=rectangle(shape,CONTEXT)
+    require(not np.any(identification&old241),'old top and identification must be separate')
+    road,_=place_mask(shape,fulls[794][...,3]==255,(798,1216));P=np.zeros(shape,bool)
+    from base_content_audit import diamond_mask
+    P,_=place_mask(shape,diamond_mask(),(798,1216));changed=np.any(pre!=post,2);changed5=np.any((pre>>3)!=(post>>3),2)
+    U=P&~changed;N=R&~road&changed5;O=W&~R&changed5
+    regions={'road':R,'validation':V,'context':W,'separated_validation':V&~identification,
+                                        'separated_context':W&~identification,'old241_top':old241,'nonpaint':N,'outside':O,'unchanged_public':U}
+    models=[]
+    for old_id in (241,325):
+        old,_=place_mask(shape,tops[old_id][...,3]==255,(798,1216))
+        for optional in (False,True):
+            predicted,known=restore_removed_top(pre,old,under,under_known)
+            paint_complete(predicted,known,fulls[794],(798,1216))
+            for image_id,centre in ((240,(718,1256)),(242,(878,1256))):paint_complete(predicted,known,tops[image_id],centre)
+            if optional:paint_complete(predicted,known,tops[246],(798,1296))
+            name='centre%d-%s'%(old_id,'three-front246-hypothesis'if optional else'two-front')
+            models.append({'name':name,'centre_branch':old_id,'optional_front246_exact':False if optional else None,
+                                                                        'scores':{key:score_known(predicted,post,known,region)for key,region in regions.items()}})
+    optional=tops[246];support,bounds=place_mask(shape,optional[...,3]==255,(798,1296));x0,y0,x1,y1=bounds
+    rgb=optional[...,2::-1].repeat(2,0).repeat(2,1);local=support[y0:y1,x0:x1]
+    result={'role':'four frozen conditional edit hypotheses,not confirmed scene/source rule',
+                                    'conditional_predictions_constructed':True,'source_identity_or_selection_rule_confirmed':False,
+            'strict_identity_results_preserved':True,
+            'rear_hypotheses_exact':False,'rear_pre_RGB5_errors_retained':[16,20,12],
+            'rear_hypotheses':[{'ID':244,'centre':[718,1176],'exact':False,'pre_errors':[16,2844]},
+                               {'ID':246,'centre':[878,1176],'exact':False,'pre_errors':[20,2688]},
+                               {'ID':240,'centre':[798,1136],'exact':False,'pre_errors':[12,1824]}],
+                                    'centre_branches_retained':[241,325],'single_order':'rear240,244,246;pre-state minus old-top alpha;road794;front240,242;optionalfront246',
+                                    'underlay_opaque':int(under_known.sum()),'underlay_covers_old241_top':[int(np.count_nonzero(old241&under_known)),int(old241.sum())],
+                                    'identification_pixels_in_context':int(np.count_nonzero(identification&W)),
+                                    'identification_pixels_in_validation':int(np.count_nonzero(identification&V)),
+                                    'full_rear_source_controls':full_source_controls,
+                                    'optional_front246_whole_top':{'exact':False,'identification_errors':[8,624],'bounds':bounds,'before':score(rgb,pre[y0:y1,x0:x1],local),'after':score(rgb,post[y0:y1,x0:x1],local)},
+                                    'models':models,'post_used_to_erase_or_fill':False,'source_alpha_or_order_fit':False,
+                                    'unknown_counted_as_unexplained_in_full_denominator':True}
+    return result
 
 
 def read_sources(root, manifest):
@@ -408,6 +490,11 @@ def run(root, manifest):
                        'unchanged_public': score(predicted, reference, crop(U)),
                        'changed_nonpaint': score(predicted, reference, crop(N))})
     selected_support = components[0]['mask'] | components[1]['mask']
+    geometry_masks = {}
+    centre_result = centre_removal_necessary(pre, post, control, domain, fulls, tops, N, outside, geometry_out=geometry_masks)
+    rear_result = rear_source_identification(pre, post, control, domain, fulls, geometry_out=geometry_masks)
+    all_identification = np.logical_or.reduce(geometries + [geometry_masks['centre']] + geometry_masks['rear'])
+    conditional_result = conditional_models(pre, post, fulls, tops, all_identification)
     return {'role': 'spatially separated discovery,not blind scene validation',
             'frames': 'before3 to after2;control1 stability only', 'domain': len(domain),
             'direct_full_and_base_native_checks': [586, 586], 'conversion': conversion,
@@ -421,8 +508,9 @@ def run(root, manifest):
                               'N_reachable': [int(np.count_nonzero(alltop & N)), int(N.sum())],
                               'outside_reachable': [int(np.count_nonzero(alltop & outside)), int(outside.sum())],
                               'mutually_exclusive_ID_union_is_not_a_composition': True},
-            'centre_removal': centre_removal_necessary(pre, post, control, domain, fulls, tops, N, outside),
-            'rear_material': rear_source_identification(pre, post, control, domain, fulls),
+            'centre_removal': centre_result,
+            'rear_material': rear_result,
+            'conditional_models': conditional_result,
             'engine_source_rule_or_absolute_saved_cell_binding_proved': False}
 
 
@@ -447,7 +535,8 @@ def main():
                           'models': result['models'], 'opacity_bound': result['opacity_bound'],
                           'centre_base_IDs': result['centre_removal']['exact_base_IDs'],
                           'centre_removal_prediction': result['centre_removal']['removal_prediction_constructed'],
-                          'rear_exact_IDs': [r['exact_IDs'] for r in result['rear_material']['rear_sources']]}))
+                          'rear_exact_IDs': [r['exact_IDs'] for r in result['rear_material']['rear_sources']],
+                          'conditional_models': len(result['conditional_models']['models'])}))
         return 0
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         print(json.dumps({'error': str(error)}))

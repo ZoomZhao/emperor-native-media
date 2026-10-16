@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import numpy as np
 
-from ground_layer_audit import decode_components, identify, place_mask, score, exposed_geometry, centre_removal_necessary, rear_source_identification
+from ground_layer_audit import decode_components, identify, place_mask, score, exposed_geometry, centre_removal_necessary, rear_source_identification, paint_complete, restore_removed_top, score_known
 from base_content_audit import diamond_mask
 
 
@@ -147,6 +147,47 @@ class GroundLayerTests(unittest.TestCase):
             self.assertEqual(row['exact_IDs'], [])
             self.assertIsNone(row['minimum_errors_diagnostic_only'])
         self.assertFalse(result['conditional_predictions_constructed'])
+
+    def test_unknown_matches_never_reduce_the_complete_denominator(self):
+        predicted = np.zeros((2, 2, 3), np.uint8)
+        actual = predicted.copy()
+        actual[0, 1] = 8
+        known = np.array([[True, True], [False, False]])
+        result = score_known(predicted, actual, known, np.ones((2, 2), bool))
+        self.assertEqual((result['denominator'], result['predictable'], result['unknown']), (4, 2, 2))
+        self.assertEqual((result['RGB5_equal'], result['RGB5_errors_known'], result['RGB5_not_explained']), (1, 1, 3))
+        self.assertEqual(result['RGB8_not_explained'], 3)
+
+    def test_old_top_holes_use_only_the_underlay_and_preserve_other_pre_pixels(self):
+        pre = np.full((2, 2, 3), 24, np.uint8)
+        under = np.full_like(pre, 80)
+        old = np.array([[True, True], [False, False]])
+        under_known = np.array([[True, False], [False, False]])
+        original = pre.copy()
+        rgb, known = restore_removed_top(pre, old, under, under_known)
+        self.assertTrue(np.array_equal(rgb[~old], pre[~old]))
+        self.assertTrue(np.array_equal(rgb[old], under[old]))
+        self.assertEqual(known.tolist(), [[True, False], [True, True]])
+        self.assertTrue(np.array_equal(pre, original))
+        # A perfect raw value at an unknown hole still cannot become a pass.
+        result = score_known(rgb, rgb.copy(), known, old)
+        self.assertEqual((result['RGB5_equal'], result['unknown'], result['denominator']), (1, 1, 2))
+
+    def test_complete_source_alpha_is_painted_without_a_visibility_crop(self):
+        source = np.zeros((46, 78, 4), np.uint8)
+        source[0, 0] = [8, 16, 24, 255]
+        source[-1, -1] = [24, 16, 8, 255]
+        original = source.copy()
+        rgb = np.zeros((200, 300, 3), np.uint8)
+        known = np.zeros(rgb.shape[:2], bool)
+        support, _ = paint_complete(rgb, known, source, (150, 100))
+        self.assertEqual(int(known.sum()), 8)
+        self.assertTrue(np.array_equal(support, known))
+        self.assertTrue(np.all(np.any(rgb[support] != 0, axis=1)))
+        self.assertTrue(np.array_equal(source, original))
+        source[0, 0, 3] = 128
+        with self.assertRaisesRegex(ValueError, 'natural binary'):
+            paint_complete(rgb, known, source, (150, 100))
 
     def test_unset_empty_root_skip_without_dependencies_or_manifest(self):
         script = Path(__file__).with_name('ground_layer_audit.py')

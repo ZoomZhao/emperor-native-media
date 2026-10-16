@@ -1044,6 +1044,43 @@ The finite identification scope increases **unmeasured→3/3 rear positions chec
 The existing manifest replay adds `rear_material`,retaining all585 rows at each of the three positions,explicit no-exact/zero-information states,both centre branches and a false `conditional_predictions_constructed`. It re-reads the same original inputs and reproduces **1,755/1,755** rear candidate error rows. Removing that added field leaves the entire preceding result exactly equal. Authored checks pass **11/11**;new checks enforce no minimum promotion,no post-state identity selection and no empty-comparison pass when exposure is absent. The successful unset/empty-root SKIPs remain2/2. All pixels and detailed results stay outside Git;there is no original UI,new sample,dependency or runtime change.
 
 
+### Four conditional old-top replacement predictions
+
+Approximate pre-state sources may be proposed as explicit **unconfirmed hypotheses** for a falsifiable model test. Exact source identification remains a separate predicate. The earlier zero-exact results,strict identity gates and every error row stay unchanged;they do not prohibit this exploratory path. Fixed rear hypotheses are244 at(718,1176),246 at(878,1176),240 at(798,1136),with **16/2,844＋20/2,688＋12/1,824=48** pre-state RGB5 errors and `exact=false`. Their maximum exposed raw8 errors are1,and the independently reviewed runner-up gaps are1,800/1,484/1,736 errors;neither fact relaxes exact matching. No post-state score selected these records.
+
+The four models are frozen before prediction scoring:centre241 or325,each with two front tops240/242 or those two plus an **independent unconfirmed front246** branch. Front246 retains8/624 identification errors and `exact=false`. Front240/242 have exact support only in their prior identification regions;their complete top layers remain hypotheses with280 retained conflicts. The colour profiles,ColorSync conversion,2× scale,relative grid,source natural alpha and all positions stay fixed.
+
+There is one declared drawing order:complete rear240,244,246 by increasing screen-centre y,then the retained pre-state,complete road794,front top240/242,and optional front246 last by increasing y. Left/right same-y supports are disjoint,so their order has no effect. This is an explicit conditional order,not a proved engine contract;no alternatives or fitting follow the scores. The complete rear sources first compose over an **unknown** underlay. Image3 retains its initial paint outside each branch's complete old natural top alpha;inside that source-defined removal silhouette,only the composed underlay supplies pixels. Uncovered holes remain unknown. Entire road/front components are then drawn with their original binary alpha. No post2 pixel supplies background,erasure or a visibility mask.
+
+This is a **partial scene-edit model** using a pre-state initial condition,not a city reconstructed from assets alone. The retained pre-state matte comes only from the declared old-source removal silhouette,not source disagreement. Complete rear components are composed without alpha cropping;their full source conflicts are reported separately even where the retained initial scene covers them. The underlay paints23,556 pixels and covers **2,116/2,116** old241-top pixels. All four final models predict **32,000/32,000** ROI and86,400/86,400 context pixels with0 unknown. The implementation still reports unknown separately and counts it as unexplained in every fixed denominator;matching unknown raw values cannot become successes.
+
+The union of all previously declared rear,centre and three front identification regions is excluded from the separate validation score. It occupies7,504 pixels in the32,000-pixel ROI and9,080 in the86,400-pixel context,leaving **24,496** and77,320 respectively. It touches0 old241-top pixels. All geometry is fixed before predictions;whole ROI/context scores also retain the identification pixels. This remains within-discovery separated validation,**not a blind independent city test**,because these frames and several earlier road regions were already studied.
+
+All entries below are **RGB5 errors** with RGB8 errors in parentheses. Unknown is0 for every entry;none of these complete predicates passes.
+
+| Frozen model | Separated validation /24,496 | Whole ROI /32,000 | Whole context /86,400 | Road canvas /12,480 |
+|---|---:|---:|---:|---:|
+| Centre241,two front tops | 396 (828) | 408 (972) | 516 (1,136) | 408 (916) |
+| Centre241,plus front246 hypothesis | **24 (656)** | **36 (800)** | **216 (1,052)** | **20 (580)** |
+| Centre325,two front tops | 2,400 (2,716) | 2,412 (2,860) | 2,520 (3,024) | 1,916 (2,328) |
+| Centre325,plus front246 hypothesis | 2,028 (2,544) | 2,040 (2,688) | 2,220 (2,940) | 1,528 (1,992) |
+
+Both241 models agree **1,508/1,512 RGB5** (1,408/1,512 RGB8) on the non794paint changes and **496/496 RGB5** (476/496 RGB8) outside the road canvas. Over the entire old241 top,their reconstructed prediction agrees2,112/2,116 RGB5 and1,984/2,116 RGB8. Thus the fixed two-front baseline's nonpaint/outside agreement improves **0/1,512→1,508/1,512** and **0/496→496/496** under this conditional replacement model. The325 models retain0/1,512 and0/496 respectively;the325/two-front model exactly reproduces the earlier whole two-top result. Adding front246 raises unchanged-public prediction1,464/1,856→1,852/1,856 RGB5,but is never silently included in the two-front models. The four models are all retained;no winning branch is promoted to actual centre identity,production source selection or a complete scene. Complete conditional predictions remain **0/4**,complete MAP→SG3 scenes **0/167**.
+
+Complete unmasked component checks also remain negative:
+
+| Component hypothesis | All opaque physical pixels | Pre3 RGB5 errors | Post2 RGB5 errors |
+|---|---:|---:|---:|
+| Full rear240 at(798,1136) | 8,380 | 2,684/8,380 | 2,524/8,380 |
+| Full rear244 at(718,1176) | 8,788 | 2,088/8,788 | 1,236/8,788 |
+| Full rear246 at(878,1176) | 8,900 | 2,456/8,900 | 1,464/8,900 |
+| Optional front246 top at(798,1296) | 2,500 | 92/2,500 | 92/2,500 |
+
+Other scene layers can occlude these sources;these full conflicts are still reported and never converted into fitted transparency. The original48 rear identification errors,centre241's52/2,116 pre-top conflicts,front246's8/624 identification errors,the earlier front240/242 component conflicts and12 road-colour errors all remain in the unchanged preceding result. Original residuals are distinct measurements,not a promise that each contributes directly to the final composite count. The actual selector,capture precision and complete layer-order contract remain unknown;no further colour,threshold,alpha,source,position or order adjustment is attempted here.
+
+The explicit manifest replay adds `conditional_models` with four actual exploratory predictions,source hypotheses marked false for exact/confirmed status,complete component controls and every fixed-region score. Earlier strict-path `conditional_predictions_constructed=false` fields retain their historical meaning;the new exploratory field explicitly records its four constructions. The integrated run reproduces4/4 models,36/36 region partitions and72/72 RGB5/RGB8 fixed-denominator identities. Removing the new field preserves the entire earlier JSON exactly. Authored regressions pass14/14,including full natural source paint,pre-state retention outside the removed top,unknown underlay propagation and unknown pixels counting as unexplained. Unset/empty-root SKIPs remain2/2. All masks,pixels,protocols and per-pixel errors stay local outside Git;there is no original UI,new sample,dependency or runtime/gameplay change.
+
+
 ### Read-only ground-layer replay
 
 `scripts/ground_layer_audit.py` is an explicit private-manifest entry,not a renderer or graphics selector. On each run it re-reads original SG3/555,independently decodes the declared components,and compares all complete raw/full BGRA bytes against the native cache:586/586 including794. It regenerates the source palette with the fixed public API helper,checks frozen profile SHA256 and841/841 prior colour controls,derives identification geometry from source alpha,and scores every candidate plus all five whole hypotheses. It retains the complete candidate error rows,top conflicts and the loose opacity bound in private JSON. A changed identification gate refuses;it never substitutes a minimum. All input paths and derivatives stay outside Git and all user data stays read-only.
