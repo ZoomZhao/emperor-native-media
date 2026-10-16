@@ -845,6 +845,55 @@ The existing failed road pair is also replayed through this comparator without a
 All preparation above can be completed offline: archived geometry validation, observation schema/limits, source decoding/provenance, fixed prediction generation, authored negative controls and replay. No game edit is required. A later actual trial needs separately authorized scope: the same original application through normal UI, fresh identity/geometry, one chosen-site one-cell road, at most two uniquely named new pre/post manual saves, local capture brackets, preserved existing city and no overwrites or extra placements. Confirm pause from the visible banner around menus; do not claim an exact simulation instant. Parse and report all pre/post saved-field changes independently, restore the preserved city, exit normally and verify owned descendants/state differences. No such operation is authorized or executed by this offline protocol. Actual source assignment/order remains an interpretation gap, not a prerequisite for acquiring a falsifiable whole-image result. Complete road layers remain0/1 and MAP→SG3 scenes0/167.
 
 
+## Manual road counterexample and bounded discovery
+
+The baseline was one historical discovery sample:1,014/1,014 changed logical base pixels matched794, while its complete source/overlay predictions failed. Transfer to a distinct scene was unmeasured. A user-supplied manual sample now completes **1/1 distinct comparison**, retaining its failed frozen prediction before treating the same material as discovery data. This work launches0 original applications, sends0 inputs and closes0 applications; the user's running instance is not an owned test process. No new capture, placement, save or reload is performed by this analysis. Images, saves, native caches, mismatch positions and executable analysis scripts remain private and outside Git; repository changes contain aggregate evidence only.
+
+The3/3 locally materialized original PNGs are readable2048×1592 images;2/2 uniquely named `1.sav`/`2.sav` files are stable across repeated filesystem-identity and byte checks. Their UTC modification times are13:12:29.943205 and13:12:57.594207 on2026-10-16. Screenshot filename clocks alone do not prove timezone or an exact saved instant. The112-side SAV13 files each contain136 frames and the same unique validated terrain offset2,203,755. Across the existing six numerical fields, only1/51,984 terrain value changes:storage(118,122),active(60,64),128→192,xor64. The other five fields preserve259,920/259,920 values; all eight immediate terrain neighbors remain128. This does not parse the remaining saved state or prove which exact screenshot instant each save represents.
+
+Content supports a before/after/before ordering:images1/3 lack the isolated road and show funds2000;image2 has that road and funds1998. The third image's loading action was not observed and is not asserted. Images1/3 match26,000/26,000 raw pixels in the initial target ROI; three fixed remote controls preserve42,400/42,400 raw pixels in every pair. The two green hover changes each equal the complete public6,400-pixel diamond at2×, centred(958,1136) and(1198,856). **Neither hover is the road target, and neither covers its declared canvas.** They check scale/lattice geometry; they are not proof of the actual road's absolute saved coordinate.
+
+The source-independent image-local hypothesis remains centre(798,1216),scale2,phase(-482,16),basis((80,-80),(40,40)),relative screen cell(23,7),bottom-base bounds[720,1176,876,1256]. This is a declared placement on the measured lattice, not a fresh registered mouse point or an independently proved mapping from SAV(60,64). No global Quartz frame is invented. Absence of buildings/UI at the isolated patch does not prove absence of grass/foreground cover or the original draw anchor. The frozen source remains `DATA/China_Terrain.sg3` logical794,78×40,1,614 opaque logical pixels,binary alpha; neither candidate, anchor, colour nor mask is refitted after this result.
+
+| Fixed794 predicate | RGB5 equal / physical denominator | Raw8 equal / denominator |
+|---|---:|---:|
+| All changed public-base pixels | 8/4,544 | 0/4,544 |
+| All unchanged public-base pixels | 0/1,856 | 0/1,856 |
+| Whole public base | 8/6,400 | 0/6,400 |
+| A:all opaque source pixels | 8/6,456 | 0/6,456 |
+| B:source-over-observed-before,whole canvas | 4,520/12,480 | 4,508/12,480 |
+
+Thus the complete declared794 appearance passes **0/1** distinct scenes. Using image1 or3 as before gives identical scores; they are not two independent trials. The raw before/after change in the initial26,000-pixel target ROI is6,600; expanding the spatial inspection reveals12 more pixels above its top edge, giving6,612/57,600 changed pixels with bounds[720,1148,876,1248]. Of these,6,116 lie inside the frozen source canvas and **496 outside**; all are retained. The full world ROI contains34,772/2,274,016 changed pixels for1→2,partitioned spatially into6,612 road-region,15,360 save-toast and two6,400 hover-region changes. For3→2 it contains28,372/2,274,016,with no first-hover change. Unaccounted changes outside these regions are0 in both pairs. This is spatial accounting, not an engine explanation or a fitted visibility mask; no mismatch is removed from A/B.
+
+The declared model fails here; it does **not** establish that the engine never used794. The actual SAV→screen anchor, draw anchor, source selection, foreground composition and elevation remain unresolved. A later independently supported anchor convention could be tested as a new hypothesis, preserving this old failure rather than relabelling it a passed frozen prediction.
+
+The old140-side sample and new112-side sample share some saved conditions and differ in others. Comparing the same relative3×3 neighborhoods at their respective changed active cells(66,30) and(60,64) gives:
+
+| Existing raw field | Equal old/new neighborhood values /9 | Target values old→new |
+|---|---:|---|
+| terrain before road | 9/9 | 128→128 |
+| followingU32Unknown | 9/9 | 0→0 |
+| mapperRandom | 0/9 | 76→138 |
+| mapperStone | 9/9 | 255→255 |
+| mapperFertile | 8/9 | 100→100 |
+| mapperObjects | 9/9 | 0→0 |
+
+Both interventions change128→192 with eight neighbors128. Those terrain conditions alone do not guarantee that the declared794 comparison transfers. Two samples do not establish random/fertile causality, a biome rule or an ID selector. The new before save also matches all155,952/155,952 values of the existing objects/random/fertile arrays in `Cities/Banpo.map` and its tutorial-PAK duplicate; its terrain matches51,983/51,984. The other terrain difference isactive(38,17),MAP512 versus SAV4,194,816,xor4,194,304. The after save adds the road difference,matching51,982/51,984 terrain values. These are numerical controls, not a full city/consumer identification; duplicate package content is not an independent city, and complete same-city MAP→SG3 scenes remain **0/167**.
+
+After preserving the fixed794 failure, this same new material is explicitly discovery data. The first domain is the already decoded1,206 `China_Terrain.sg3` single-cell records. The only expansion is the previously measured2,983-record domain across11 of the58 archives, selected by the same public type30,width78,height≥40,uncompressedLength3200,tileSize0/1 contract with resolved mirrors. The question is whether archive choice supplies a whole one-cell appearance; archive/bitmap names do not prove road semantics. No new format, arbitrary crop, multibase arrangement, offset, colour, alpha formula or source combination is introduced. The second domain includes the first; their counts must not be added as independent candidates.
+
+All11 archives are freshly exported through the existing native parser under UBSan. Complete metadata, full canvases and raw bases each verify2,983/2,983 against the existing cache,comparing51,722,736 full-canvas and37,227,840 raw-base bytes. All22/22 SG3/555 resource pairs match between selected roots; the old/new794 canvas alone preserves12,480/12,480 bytes. All2,983 full canvases fit the declared world region and have no partial-alpha uncertainty; all2,983 before canvases are byte-identical between images1/3. These checks supply provenance and comparison integrity, not a rendering success.
+
+| Discovery domain | Whole opaque source matches | Whole source-over-before matches | All changed public-base pixels match | Whole public-base matches |
+|---|---:|---:|---:|---:|
+| China_Terrain single cells | 0/1,206 | 0/1,206 | 0/1,206 | 0/1,206 |
+| Existing11-archive single cells,total including above | 0/2,983 | 0/2,983 | 0/2,983 | 0/2,983 |
+
+The changed-base denominator is1,136/1,600 logical pixels,or4,544/6,400 physical pixels. It is derived from the two observations, not source disagreement; even passing it would not imply a whole source. The complete-canvas and causal predicates are computed separately and every candidate failure is retained. No ID is promoted, no closest candidate becomes a selector, and no further domain expansion follows from this negative. These results refute only the bounded comparisons at the declared placement; other anchors, untested formats and composition remain open.
+
+Private replay uses the existing `base_content_audit.py --manifest /absolute/private/manifest.json` in `causal-base` mode with explicit before/after paths,centre,source-root provenance and single-cell native pool metadata/full/raw paths; each domain has its own expected candidate count and twice that many composite/raw variants. Fresh native exports and `verify_single_cell_cache` check every complete BGRA byte before content comparison. Whole A/B use the complete source alpha and bottom-base placement defined above,without masking unchanged disagreements. No production parser, renderer, input automation or game logic is changed. The existing authored checks pass39/39 base-content and64/64 reference tests; these do not add original coverage. Both private real-data causal-pool replays return the retained negative2/2. Unset/empty `EMPEROR_GAMEDATA_ROOT` gives2/2 successful SKIPs with `python -S`,before nonexistent manifest/dependency access. This raises a previously unmeasured independent comparison to1/1 measured; it adds0 complete original scenes and supplies no new authorization for original UI operations.
+
+
 ### Sending boundary and unavailable live producer
 
 The d1296b8 independent review accepts the offline exact-point predicate; it does not establish a trusted live producer or an end-to-end sender. The baseline existing CLI only receives owner/frame/normalized-point/deadline JSON and independently samples native identity/focus/occlusion. It has no callback for a final hover, continuous pointer/camera epochs or complete action journal. The retained historical UI wrapper reads a `passed` JSON file and then starts a separate click process; that sequence cannot carry the final proof and is **not a final-road sender**. These tools were inspected as source only, without launch, capture or input.
