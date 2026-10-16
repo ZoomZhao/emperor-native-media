@@ -9,7 +9,7 @@ import unittest
 
 import numpy as np
 
-from ground_layer_audit import decode_components, identify, place_mask, score, exposed_geometry
+from ground_layer_audit import decode_components, identify, place_mask, score, exposed_geometry, centre_removal_necessary
 from base_content_audit import diamond_mask
 
 
@@ -79,6 +79,37 @@ class GroundLayerTests(unittest.TestCase):
         for centre in ((0, 0), (90, 90)):
             with self.subTest(centre=centre), self.assertRaisesRegex(ValueError, 'no clipping'):
                 place_mask((100, 100), diamond_mask(), centre)
+
+    def test_geometry_cannot_choose_one_of_two_base_aliases_or_erase_unknown(self):
+        full = np.zeros((54, 78, 4), np.uint8)
+        full[-40:, :, 3][diamond_mask()] = 255
+        full[0, :2] = [255, 0, 0, 255]
+        bare = full.copy()
+        bare[0] = 0
+        top = np.zeros_like(full)
+        top[0, :2] = full[0, :2]
+        pre = np.zeros((1592, 2048, 3), np.uint8)
+        post = pre.copy()
+        nonpaint = np.zeros(pre.shape[:2], bool)
+        outside = np.zeros_like(nonpaint)
+        nonpaint[1148:1150, 720:722] = True
+        outside[1148:1150, 722:724] = True
+        post[nonpaint | outside] = 200
+        result = centre_removal_necessary(pre, post, pre.copy(), [1, 2],
+                                          {1: full, 2: bare}, {1: top, 2: np.zeros_like(top)},
+                                          nonpaint, outside)
+        self.assertEqual(result['exact_base_IDs'], [1, 2])
+        self.assertEqual([b['geometry_necessary_pass'] for b in result['base_compatible_branches']], [True, False])
+        self.assertFalse(result['unique_identity_proved'])
+        self.assertFalse(result['removal_prediction_constructed'])
+        self.assertFalse(result['post_state_used_as_erase_backdrop'])
+        self.assertFalse(result['base_compatible_branches'][1]['has_top_information'])
+        # Changing post cannot change a pre-only source identification.
+        post[:] = 255
+        changed = centre_removal_necessary(pre, post, pre.copy(), [1, 2],
+                                           {1: full, 2: bare}, {1: top, 2: np.zeros_like(top)},
+                                           nonpaint, outside)
+        self.assertEqual(result['all_candidate_errors'], changed['all_candidate_errors'])
 
     def test_unset_empty_root_skip_without_dependencies_or_manifest(self):
         script = Path(__file__).with_name('ground_layer_audit.py')

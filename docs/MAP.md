@@ -1007,6 +1007,26 @@ A final **necessary opacity bound**,not a combination search,unions all585 compl
 
 The concrete missing evidence is the actual drawing source/removal behaviour for those nonpainted and outside-canvas changes,and the source-selection/coverage condition governing the remaining ground. Neither two selected tops nor near-match246 supplies it. Absolute saved-cell binding and the actual capture path also remain unproved. No new original UI operation,screenshot,dependency or user sample is used;CitySimulation/EMP1 and runtime rendering remain frozen.
 
+### Centre old-top removal necessary check
+
+A directly motivated follow-up checks whether replacing the centre ground could remove its old top,explaining changes outside794 paint. It keeps the same585-record source domain,colour contract,scale and centre(798,1216). Before source comparison,the new structural split fixes centre identification to **own public base minus all possible same-family neighbour opacity**,using the same eight offsets. Every possible centre top is disjoint from this region. This new discovery split includes pixels inside the earlier validation rectangle;it is not another independent scene or blind validation.
+
+Image3 alone supplies **1,748** exposed identification pixels. All585 candidates are checked over that same complete region;**two candidates,241 and325,each match1,748/1,748 RGB5** and1,652/1,748 RGB8. They are aliases on this observed region,not a claim that their complete source bases are identical. Image1 preserves1,748/1,748 raw pixels there;post2 differs at1,748/1,748 RGB5 pixels,but never selects the identity. The predeclared unique-source gate therefore remains **0/1**,with both candidates retained. The identification region touches0 pixels of every centre top and0/2,008 pixels of the1512＋496 validation regions.
+
+Necessary geometry is now measured **2/2 branches**:
+
+| Pre-state-compatible branch | Complete natural top | Non794paint change reach /1,512 | Outside-roadcanvas change reach /496 | Necessary geometry |
+|---|---:|---:|---:|---|
+| ID241,height54,bounds[720,1148,876,1256] | 2,116 physical pixels | 1,512/1,512 | 496/496 | compatible |
+| ID325,height40 | 0 pixels | 0/1,512 | 0/496 | cannot explain removal changes |
+
+This sharply differs from the front-top-only negative:241's unchanged natural alpha reaches **2,008/2,008** remaining change pixels. It keeps that conditional removal hypothesis possible. It does **not** allow post-state geometry to select241 from the independently ambiguous pre-state IDs. The complete241 top still disagrees with pre3 at **52/2,116 RGB5 pixels** (only4/52 have maximum raw channel error1);agreement is2,064/2,116 RGB5 and1,948/2,116 RGB8. Against post2 it agrees4/2,116 RGB5 and0/2,116 RGB8. Every conflict is retained;325's empty top is zero information,not a0/0 pass.
+
+No erase/replacement prediction is constructed. The frozen identity gate is unresolved,and independently identified sources for what removal would reveal are **unknown**. Post2 is never used as an erase backdrop;no arbitrary colour,other source or nearest candidate fills the gap. Thus the241 removal branch is neither confirmed nor excluded by this check. Further progress needs an independent top/source identity or selector,and independently identified underlying material at declared positions before a complete redraw can be assessed. No additional position,family,combination or channel-error search follows. Previous five whole predictions,all280 front-top conflicts and **0/167** scenes remain unchanged.
+
+The same manifest replay now includes `centre_removal`:all585 candidate rows,both identity branches,complete top scores,reachability,unknown reveal status and an explicit false `removal_prediction_constructed`. The integrated run reproduces **585/585** centre errors from the initial frozen calculation and preserves the entire previous JSON result apart from this added field. Authored checks pass **9/9**;the new regression makes exactly one of two pre-state aliases geometrically sufficient and verifies that this cannot establish unique identity,create erase pixels or change identification when post pixels change. Unset/empty-root SKIPs remain2/2. This is a bounded necessary-condition measurement,not new explained scene coverage.
+
+
 ### Read-only ground-layer replay
 
 `scripts/ground_layer_audit.py` is an explicit private-manifest entry,not a renderer or graphics selector. On each run it re-reads original SG3/555,independently decodes the declared components,and compares all complete raw/full BGRA bytes against the native cache:586/586 including794. It regenerates the source palette with the fixed public API helper,checks frozen profile SHA256 and841/841 prior colour controls,derives identification geometry from source alpha,and scores every candidate plus all five whole hypotheses. It retains the complete candidate error rows,top conflicts and the loose opacity bound in private JSON. A changed identification gate refuses;it never substitutes a minimum. All input paths and derivatives stay outside Git and all user data stays read-only.

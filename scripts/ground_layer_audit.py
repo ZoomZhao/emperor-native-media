@@ -139,6 +139,63 @@ def identify(frame, fulls, centre, identification, exposed):
     return rows
 
 
+def centre_removal_necessary(pre, post, control, domain, fulls, tops, nonpaint, outside):
+    """Pre-state identity before a removal geometry test; never erase from post.
+
+    Own public base and own top are structurally disjoint. A geometric success
+    cannot select among base aliases. Unknown reveal sources produce no pixels.
+    """
+    import numpy as np
+    from base_content_audit import diamond_mask
+    shape = pre.shape[:2]
+    centre = (798, 1216)
+    union = np.zeros((59, 78), bool)
+    for image_id in domain:
+        full = fulls[image_id]
+        union[-len(full):] |= full[..., 3] == 255
+    other = np.zeros(shape, bool)
+    for dx, dy in OFFSETS:
+        support, _ = place_mask(shape, union, (centre[0] + dx, centre[1] + dy))
+        other |= support
+    public, _ = place_mask(shape, diamond_mask(), centre)
+    identification = public & ~other
+    require(identification.any(), 'centre identification has no information')
+    # Identity reads pre only. Every candidate paints the same complete I region.
+    rows = identify(pre, {i: fulls[i] for i in domain}, centre, identification, identification)
+    exact = [r['ID'] for r in rows if r['exact']]
+    branches = []
+    for image_id in domain:
+        support, bounds = place_mask(shape, tops[image_id][..., 3] == 255, centre)
+        require(not np.any(support & identification), 'centre top overlaps identification')
+        if image_id not in exact:
+            continue
+        x0, y0, x1, y1 = bounds
+        local = support[y0:y1, x0:x1]
+        rgb = tops[image_id][..., 2::-1].repeat(2, 0).repeat(2, 1)
+        reach_N, reach_O = int(np.count_nonzero(support & nonpaint)), int(np.count_nonzero(support & outside))
+        branches.append({'ID': image_id, 'bounds': bounds, 'top_pixels': int(support.sum()),
+                         'has_top_information': bool(support.any()),
+                         'nonpaint_reach': [reach_N, int(nonpaint.sum())],
+                         'outside_reach': [reach_O, int(outside.sum())],
+                         'geometry_necessary_pass': reach_N == int(nonpaint.sum()) and reach_O == int(outside.sum()),
+                         'whole_top_pre': score(rgb, pre[y0:y1, x0:x1], local),
+                         'whole_top_post': score(rgb, post[y0:y1, x0:x1], local)})
+    require(not np.any(identification & (nonpaint | outside)), 'centre identity/validation overlap')
+    return {'role': 'within-discovery necessary check;not independent scene validation',
+            'centre': centre, 'identification_pixels': int(identification.sum()),
+            'exact_base_IDs': exact, 'all_candidate_errors': rows,
+            'control1_identification': score(control, pre, identification),
+            'post2_identification_diagnostic_only': score(post, pre, identification),
+            'identification_disjoint_every_centre_top': True,
+            'identification_validation_overlap': 0, 'base_compatible_branches': branches,
+            'unique_identity_proved': len(exact) == 1,
+            'geometry_never_selects_identity': True,
+            'reveal_sources': 'unknown;no independent source assignment supplied',
+            'removal_prediction_constructed': False,
+            'stop_reason': 'base identity ambiguous or absent' if len(exact) != 1 else 'reveal sources unknown',
+            'post_state_used_as_erase_backdrop': False}
+
+
 def read_sources(root, manifest):
     import numpy as np
     from base_content_audit import _cache_bytes, _cache_record
@@ -311,6 +368,7 @@ def run(root, manifest):
                               'N_reachable': [int(np.count_nonzero(alltop & N)), int(N.sum())],
                               'outside_reachable': [int(np.count_nonzero(alltop & outside)), int(outside.sum())],
                               'mutually_exclusive_ID_union_is_not_a_composition': True},
+            'centre_removal': centre_removal_necessary(pre, post, control, domain, fulls, tops, N, outside),
             'engine_source_rule_or_absolute_saved_cell_binding_proved': False}
 
 
@@ -332,7 +390,9 @@ def main():
         output.write_text(json.dumps(result, indent=2) + '\n')
         print(json.dumps({'completed': True, 'domain': result['domain'],
                           'exact_neighbours': [r['exact_IDs'] for r in result['identification']],
-                          'models': result['models'], 'opacity_bound': result['opacity_bound']}))
+                          'models': result['models'], 'opacity_bound': result['opacity_bound'],
+                          'centre_base_IDs': result['centre_removal']['exact_base_IDs'],
+                          'centre_removal_prediction': result['centre_removal']['removal_prediction_constructed']}))
         return 0
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         print(json.dumps({'error': str(error)}))
