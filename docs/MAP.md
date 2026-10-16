@@ -855,6 +855,8 @@ Content supports a before/after/before ordering:images1/3 lack the isolated road
 
 The source-independent image-local hypothesis remains centre(798,1216),scale2,phase(-482,16),basis((80,-80),(40,40)),relative screen cell(23,7),bottom-base bounds[720,1176,876,1256]. This is a declared placement on the measured lattice, not a fresh registered mouse point or an independently proved mapping from SAV(60,64). No global Quartz frame is invented. Absence of buildings/UI at the isolated patch does not prove absence of grass/foreground cover or the original draw anchor. The frozen source remains `DATA/China_Terrain.sg3` logical794,78×40,1,614 opaque logical pixels,binary alpha; neither candidate, anchor, colour nor mask is refitted after this result.
 
+This retained table compares stored channels before the [forward source calibration](#forward-source-representation-and-unchanged-pixel-partition). Its source8/colour representation is confounded; it is not an exclusion of794.
+
 | Fixed794 predicate | RGB5 equal / physical denominator | Raw8 equal / denominator |
 |---|---:|---:|
 | All changed public-base pixels | 8/4,544 | 0/4,544 |
@@ -914,6 +916,34 @@ After the one prescribed new-image conversion,both exact predicates still return
 All2,983 untreated base minima exceed3,200 errors; after conversion3/2,983 fall in641..3,200 and2,980/2,983 remain above3,200. At the three untreated global minima,0/18,936 wrong base pixels differ by at most one raw8 step and17,532/18,936 exceed one RGB5 step. At the converted minimum,1,108/1,256 wrong pixels exceed one RGB5 step. These are broad numerical disagreements,not only a few channel-boundary pixels; magnitude alone cannot distinguish pattern,cover and representation. The ROI includes unchanged ground,so a minimum is not the isolated road's identity. At unchanged declared794,the separate converted opaque prediction has2,036/6,456 errors,versus6,448/6,456 in stored channels;both fail. The old8/6,456 equality and its frozen mismatch evidence are preserved,with no promoted ID or revised centre.
 
 Colour compatibility therefore remains a named blocker:profiles differ and the fixed transform measurably changes errors. No previously established SG3 ID is available for a fixed new menu/UI graphic,so that extra source control is unmeasured; no UI asset search is added. Source formats,composition,cover and actual anchors remain unresolved,with no further expansion. Private data-mode calibration entry points SKIP4/4 for unset/empty `EMPEROR_GAMEDATA_ROOT` under `python -S`. All ICC/pixel/error derivatives remain outside Git;original UI operations are0. No parser,renderer,input automation,CitySimulation or EMP1 changes;complete scenes stay0/167.
+
+
+## Forward source representation and unchanged-pixel partition
+
+The earlier stored-channel and inverse-ICC negatives are preserved numerical results,not evidence that794 is generally inapplicable. Their interpretation is confounded by differing PNG representations and the source's8-bit expansion. Ten existing exact ground controls now supply an explicit source model:recover each RGB555 value `q` from native RGB8 with `q = decoded >> 3`,then use **`q << 3`**. This agrees82,556/82,556 opaque physical RGB8 pixels across10/10 controls,where native bit-replicated RGB8 agrees0/82,556. The native decoder is unchanged; the observation supports this comparison representation on those samples,not every unobserved engine path or colour level.
+
+[PNG3's cICP definition](https://www.w3.org/TR/png-3/#cICP-chunk) gives the old[12,13,0,1] tag Display P3 and highest colour-chunk precedence when understood. The embedded Display ICC and the standard Display P3 profile have identical nine colourant coefficients,but are not numerically interchangeable:over all32,768 zero-filled RGB555 triplets,their fixed forward sRGB outputs differ at247/32,768 RGB8 triplets and7/32,768 RGB5 triplets,by at most one raw channel step. Their ICC versions/media-white encodings also differ. No profile is selected by target score. The new **primary cICP hypothesis** is fixed as zero-filled RGB8→standard Display P3→sRGB,perceptual intent0,flags0,LittleCMS2.17/Pillow11.3.0,then2× nearest-neighbor replication and RGB5 comparison. The standard profile is the existing system `Display P3.icc`; no fitted matrix,intent,tolerance or decoder change is introduced.
+
+Source and reference receive the same fixed forward transform. All10 old controls preserve82,556/82,556 RGB8 pixels;348 is uniquely recovered at its prior position among241,623 source/position pairs. This checks conversion consistency only,**not the actual macOS capture model**. In the unchanged new-image domain,complete opaque-source and public-base exact matches remain0/17,972,575 each,with minimum base errors1,128/6,400. All errors/positions remain private; no minimum or partial candidate becomes a match. A direct Python comparison rechecks35,796/35,796 complete error counts. No source domain,placement range,UI operation or user sampling is added.
+
+At the unchanged declared centre(798,1216),794's separate forward hypothesis agrees4,580/6,456 opaque RGB5 pixels and9,092/12,480 whole source-over-before canvas pixels;both complete predicates still fail. The following partitions are defined from observed raw before/after change and declared source alpha/public geometry,not from source disagreement. All units are physical pixels at2×:
+
+| Disjoint region / observation | Historical pair | New pair,forward cICP |
+|---|---:|---:|
+| Changed public base,source RGB5 equal / region | 4,056/4,056 | 4,524/4,544 |
+| Unchanged public base,source RGB5 equal / region | 0/2,344 | 0/1,856 |
+| Painted outside public base,changed,source RGB5 equal / region | 56/56 | 56/56 |
+| No source paint,changed raw pixels | 1,348 | 1,516 |
+| No source paint,RGB5 overlay errors | 1,348 | 1,512 |
+| No source paint,unchanged pixels correctly retained | 4,676/4,676 | 4,508/4,508 |
+
+Both unchanged-painted regions preserve every before/after raw pixel:2,344/2,344 old and1,856/1,856 new. All of them disagree with the declared opaque road; raw channel errors can reach192 old/202 new. In contrast,the20/4,544 new changed-base errors each differ by only **one raw8 channel step**,all retained as errors. The new opaque errors therefore partition exactly as **1,876 = 1,856 unchanged + 20 changed**. Whole-canvas errors partition as **3,388 = 1,856 + 20 + 1,512 outside paint**. Historical opaque errors are2,344 unchanged/0 changed,and whole-canvas errors are3,692 =2,344+1,348. The new496 changes outside the complete canvas also remain recorded. No mismatch is converted into source transparency or discarded.
+
+The shared observation is changed ground supporting much of the road content while unchanged observed content contradicts the simple opaque overlay. **If794 is used**,an independently evidenced coverage/composition rule would have to explain those retained pixels and the changes outside its paint. This is compatible with cover,not proof of a particular covering asset,layer order,source selection or engine rule. No layer combinations are searched. The raw comparison's8/6,456 equality and both inverse-ICC failures remain historical,representation-confounded tests; they do not globally exclude794. The new4524/4544 is also not an exact changed-subset success or a confirmed scene.
+
+The remaining road blockers are distinct:an actual source/coverage/order relation for the1,856 unchanged-painted and1,512 nonpainted disagreements;captured-channel precision/model for the20 one-step disagreements;and an independent binding of SAV(60,64) to the declared screen cell. The latter is not needed for independent image comparison,but content agreement alone cannot establish it. Complete scenes stay0/167.
+
+A useful next step requires evidence before another trial:(1)a public draw contract or independently identified source/placement predicting those retained regions plus a control region;or (2)a documented macOS forward colour implementation with profiles,intent,quantization order,old348 and untouched controls fixed before testing the existing20 pixels. A change of implementation would remain a capture hypothesis,not proof of the real path,and any residual remains a failure. Absolute anchoring needs separately identified saved-cell/projection evidence. Without such evidence,do not repeat ID/position permutations,layer combinations or tolerant matching. No new screenshot,UI action or user sampling is requested here. All pixels,profiles,caches and per-pixel partitions remain outside Git;only aggregate facts enter these existing documents.
 
 
 ### Sending boundary and unavailable live producer
