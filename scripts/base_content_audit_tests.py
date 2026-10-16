@@ -3,7 +3,7 @@ import unittest,sys,os,subprocess,json,tempfile,struct
 from unittest.mock import patch
 from pathlib import Path
 import numpy as np
-from base_content_audit import diamond_mask,reference_base,match_masked_bases,load_pool,run,crop_reference_base,source_over_fixed_base,run_single_layer
+from base_content_audit import diamond_mask,reference_base,match_masked_bases,load_pool,run,crop_reference_base,source_over_fixed_base,run_single_layer,match_causal_bases
 
 
 def own():
@@ -175,6 +175,42 @@ class BaseContentTests(unittest.TestCase):
             for size,error in ((12476,'record extent'),(12479,'byte extent'),(37441,'byte extent')):
                 manifest=self.layer_fixture(p);(p/'pixels').write_bytes(bytes(size))
                 with self.subTest(size=size),self.assertRaisesRegex(ValueError,error):self.replay_own_layer(p,manifest)
+
+    def test_causal_subset_never_hides_unchanged_mismatches(self):
+        before,base=own();after=before.copy();y,x=np.argwhere(diamond_mask())[900]
+        after[2*y:2*y+2,2*x:2*x+2]=[8,32,56]
+        partial=base.copy();partial[900]=[56,32,8,255];partial[901,:3]=0
+        r=match_causal_bases(before,after,np.stack([partial,partial]))
+        self.assertEqual(r['raw_changed_logical_pixels'],1)
+        self.assertEqual(len(r['causal_subset_matches']),2)
+        self.assertEqual(r['causal_subset_matches'][0]['unchanged_base_mismatches'],1)
+        self.assertEqual(r['complete_base_matching_indices'],[])
+        self.assertFalse(r['visibility_mask_inferred']);self.assertFalse(r['engine_selected_ID_proven'])
+
+    def test_causal_subset_full_match_is_separate_and_all_changes_required(self):
+        before,base=own();after=before.copy();coords=np.argwhere(diamond_mask())
+        for i in (100,900):
+            y,x=coords[i];after[2*y:2*y+2,2*x:2*x+2]=[8,32,56]
+        good=base.copy();good[[100,900]]=[56,32,8,255]
+        bad=good.copy();bad[900]=base[900]
+        r=match_causal_bases(before,after,np.stack([bad,good]))
+        self.assertEqual([h['index']for h in r['causal_subset_matches']],[1])
+        self.assertEqual(r['complete_base_matching_indices'],[1])
+        np.testing.assert_array_equal(base[0],[9,123,255,255])
+
+    def test_causal_subset_requires_information_and_unmodified_physical_samples(self):
+        before,base=own()
+        with self.assertRaisesRegex(ValueError,'discriminating'):match_causal_bases(before,before,base[None])
+        after=before.copy();y,x=np.argwhere(diamond_mask())[900];after[2*y,2*x,0]^=8
+        with self.assertRaisesRegex(ValueError,'raw nearest'):match_causal_bases(before,after,base[None])
+
+    def test_causal_subset_nonopaque_never_becomes_an_inferred_mask(self):
+        before,base=own();after=before.copy();y,x=np.argwhere(diamond_mask())[900]
+        after[2*y:2*y+2,2*x:2*x+2]=[8,32,56];base[900]=[56,32,8,255];base[901,3]=0
+        r=match_causal_bases(before,after,base[None])
+        self.assertEqual(r['unknown_nonopaque_candidates'],1);self.assertEqual(r['causal_subset_matches'],[])
+        for bad in (base,base[None].astype(float),np.zeros((1,1599,4),np.uint8)):
+            with self.assertRaises(ValueError):match_causal_bases(before,after,bad)
 
     def test_unset_empty_ROOT_SKIP_without_site_packages(self):
         script=Path(__file__).with_name('base_content_audit.py')

@@ -59,6 +59,61 @@ def match_masked_bases(reference,bases,hasher=None):
             'RGB_bits':5,'finite_domain_only':True}
 
 
+def match_causal_bases(before,after,bases):
+    """Localize source content using an observed change, never infer visibility.
+
+    The public base footprint and caller placement are fixed. A candidate must
+    explain every changed RGB5 sample. Unchanged positions are still checked and
+    reported; they are never turned into alpha, occlusion or a complete layer.
+    """
+    import numpy as np
+    a,b=reference_base(before),reference_base(after);bases=np.asarray(bases)
+    if bases.ndim!=3 or bases.shape[1:]!=(1600,4)or bases.dtype!=np.uint8 or len(bases)>65536:
+        raise ValueError('bounded uint8 BGRA masked base candidates required')
+    mask=diamond_mask();raw_a=np.asarray(before)[::2,::2][mask];raw_b=np.asarray(after)[::2,::2][mask]
+    changed=np.any(raw_a!=raw_b,axis=1);discriminating=np.any(a!=b,axis=1)
+    if not np.any(discriminating):raise ValueError('a discriminating RGB5 change is required')
+    hits=[];unknown=0;complete=[]
+    for i,base in enumerate(bases):
+        if not np.all(base[:,3]==255):unknown+=1;continue
+        bad=np.any((base[:,2::-1]>>3)!=b,axis=1)
+        if np.any(bad[changed]):continue
+        count=int(bad.sum());hits.append({'index':i,'whole_base_mismatches':count,
+                                         'unchanged_base_mismatches':int(bad[~changed].sum())})
+        if not count:complete.append(i)
+    return {'candidate_count':len(bases),'unknown_nonopaque_candidates':unknown,
+            'raw_changed_logical_pixels':int(changed.sum()),'RGB5_changed_logical_pixels':int(discriminating.sum()),
+            'logical_pixels':1600,'physical_pixels':6400,'causal_subset_matches':hits,
+            'complete_base_matching_indices':complete,'finite_domain_only':True,'RGB_bits':5,
+            'visibility_mask_inferred':False,'engine_selected_ID_proven':False}
+
+
+def run_causal_base(root,manifest):
+    """Explicit private paired captures/cache; no asset selector or renderer."""
+    import numpy as np
+    from PIL import Image
+    if Path(manifest['source_root']).resolve()!=root:raise ValueError('cache provenance root differs')
+    if manifest['pool']['schema']!='single' or manifest['variant']!='composite':
+        raise ValueError('declared single-cell composite pool required')
+    bases,labels=load_pool(manifest['pool'])
+    if len(bases)!=manifest['expected_variants']:raise ValueError('frozen pool size differs')
+    selected=[i for i,label in enumerate(labels)if label['variant']=='composite']
+    if len(selected)!=manifest['expected_candidates']:raise ValueError('frozen candidate count differs')
+    for archive in {labels[i]['archive']for i in selected}:
+        name=Path(archive);asset=(root/name).resolve()
+        if name.is_absolute()or '..'in name.parts or not asset.is_relative_to(root)or not asset.is_file():
+            raise ValueError('cached archive outside source root')
+    references=[]
+    for key in ('before','after'):
+        with Image.open(manifest[key])as image:
+            if max(image.size)>4096:raise ValueError('bounded RGB frame required')
+            references.append(crop_reference_base(np.asarray(image.convert('RGB')),manifest['center']))
+    result=match_causal_bases(*references,bases[selected])
+    for hit in result['causal_subset_matches']:hit['source']=labels[selected[hit.pop('index')]]
+    result['complete_base_matches']=[labels[selected[i]]for i in result.pop('complete_base_matching_indices')]
+    return result
+
+
 def source_over_fixed_base(base,layers):
     """One fixed opaque BGRA base, native premultiplied layers, no fitted alpha.
 
@@ -202,7 +257,7 @@ def main():
     if not root.is_absolute()or not root.is_dir():parser.error('existing absolute root required')
     try:
         manifest=json.loads(args.manifest.read_text())
-        function=run_single_layer if manifest.get('mode')=='single-layer'else run
+        function={'single-layer':run_single_layer,'causal-base':run_causal_base}.get(manifest.get('mode'),run)
         print(json.dumps(function(root.resolve(),manifest),ensure_ascii=False))
     except ValueError as error:print(str(error),file=__import__('sys').stderr);return 1
     return 0
