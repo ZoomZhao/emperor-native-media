@@ -968,6 +968,62 @@ The new ColorSync opaque errors partition as **1,868=1,856 unchanged+12 changed*
 The same qualitative gap remains:if794 is used,a real coverage/source/order relation must explain retained content and changes outside its paint. The actual source selector and covering layers are not proved. Full prediction is still0/1 for the new declared scene,and the12 numerical residuals remain failures;neither the implemented converter nor partial colour agreement proves the real capture pipeline or absolute SAV(60,64) binding. Earlier stored/inverse/LittleCMS negatives remain separate,representation-confounded comparisons,not global exclusions of794. The prior2,983×6,025 position searches are not rerun or attributed to ColorSync;only these declared fixed positions are scored. No further profile,intent,rounding,layer or location trial follows from this result. No original UI,screenshot,dependency or runtime-code change occurs;complete scenes stay0/167. The private API/data entry points pass8/8 unset/empty-root SKIPs.
 
 
+## Separated neighbour identification and complete top coverage
+
+This bounded discovery uses only the three existing manual captures,original SG3/555 bytes and the frozen ColorSync representation. **Image3→image2 is the main pre/post comparison.** Image3 is visually pre-road;an actual reload is not asserted. Image1 has a hover reaching the validation edge and is used only for untouched identification-region stability. Identification and validation are spatially separated within discovery,**not blind end-to-end validation**.
+
+The existing domain is585 nonmirrored type30 single-cell records in `China_Terrain.sg3`,bitmap1/6 (`China_land1.bmp`/`China_land2.bmp`),width78,height40..59. Public base plus public RLE top directly reconstructs585/585 native complete canvases and585/585 raw bases;228/585 tops are nonempty and0/585 overlap their own public base. This content-defined component split adds no source family. The same RGB555<<3→ColorSync Display P3→sRGB contract is unchanged:3,657 unique ground colours are converted and all841/841 prior colour controls agree. Animation offsets are not static anchors.
+
+Three declared front-neighbour centres are left(718,1256),right(878,1256),front(798,1296),using the retained relative screen lattice. The road centre remains(798,1216);absolute SAV(60,64) binding is still unproved. The validation rectangle is[700,1120,900,1280],32,000 physical pixels;the full context is[620,1120,980,1360],86,400 pixels. Identification uses the public diamond outside validation and outside the **complete possible source-alpha union** of the other nearby same-family cells. It then compares every candidate's complete exposed paint,including any top there. No post-state colour,source disagreement or inferred visibility mask selects these regions. This conservative exposure guarantee is conditional on the declared flat585-record ground family;unknown other source families/layers remain unknown.
+
+| Identification from image3 only | Exposed physical pixels | Exact candidates /585 | RGB5 errors of diagnostic minimum |
+|---|---:|---:|---:|
+| Left | 224 | 1: ID240 | 0/224 |
+| Right | 252 | 1: ID242 | 0/252 |
+| Front | 624 | 0 | ID246,8/624;not accepted |
+
+For the two selected records,the complete exposed paint equals those224/252 identification pixels. Their raw8 errors remain16/224 and4/252. Every region is disjoint from validation and stable in both image1↔3 and image2↔3:224/224,252/252,624/624. Stability is a control,not an independent holdout. Third-cell246 has48/624 raw8 errors;its8 RGB5 errors each have maximum raw channel difference1. It is never promoted,used in composition or allowed to relax the exact gate. All585 candidates per cell,including ambiguity and no-solution,remain in the private replay result. Within this conditional domain,exact independently identified neighbours increase **0/3→2/3**;this does not identify the engine's selector.
+
+Only the two exact discoveries enter a frozen validation hypothesis:observed image3 backdrop,then complete794,then complete natural RLE top240 and242. No previous layer is erased or restored;unidentified old-ground removal is not supplied. Both whole top canvases fit the context,their supports overlap0 pixels and touch0 identification pixels. There is no order search,source displacement,colour/threshold/alpha fitting or per-pixel source mosaic. Complete top checks against both pre3 and post2 retain the same failures:
+
+| Whole component | Opaque physical pixels | RGB5 equal | RGB8 equal | RGB5 conflicts |
+|---|---:|---:|---:|---:|
+| ID240,bounds[640,1204,796,1296] | 1,980 | 1,848/1,980 | 1,728/1,980 | 132/1,980 |
+| ID242,bounds[800,1198,956,1296] | 1,888 | 1,740/1,888 | 1,656/1,888 | 148/1,888 |
+
+All280 component conflicts remain;only16/280 have maximum raw channel difference1. Thus these tops are partial support,not confirmed whole foreground layers. All five frozen hypotheses are reported below as RGB5 equality,with RGB8 equality in parentheses;the full context prevents success from hiding conflicts outside the smaller validation rectangle.
+
+| Hypothesis | Road canvas /12,480 | Validation /32,000 | Context /86,400 |
+|---|---:|---:|---:|
+| Before only | 6,368 (6,364) | 25,392 (25,388) | 79,792 (79,788) |
+| Road794 only | 9,100 (8,800) | 28,124 (27,824) | 82,524 (82,224) |
+| Road794＋top240 | 9,792 (9,424) | 28,816 (28,440) | 83,176 (82,756) |
+| Road794＋top242 | 9,872 (9,528) | 28,896 (28,524) | 83,228 (82,844) |
+| Road794＋both tops | **10,564 (10,152)** | **29,588 (29,140)** | **83,880 (83,376)** |
+
+Under this two-top hypothesis,the unchanged-painted region improves **0/1,856→1,464/1,856 RGB5-correct** (left692,right772). Natural alpha reaches1,636/1,856;172 reached pixels conflict and220 are uncovered. Reachability is not explained coverage. Both tops reach **0/1,512** changed nonpainted pixels. Whole-road errors remain **1,916=392 unchanged+12 changed-painted+1,512 nonpainted**. The validation has2,412/32,000 errors,including496 outside the road canvas;the context has2,520/86,400,including108 additional top conflicts outside validation. These108 plus172 are the complete280 conflicts. The12 prior numerical residuals remain errors;no single-channel tolerance is introduced. Complete predictions remain **0/1**,complete MAP→SG3 scenes **0/167**.
+
+A final **necessary opacity bound**,not a combination search,unions all585 complete RLE-top alphas at each of the same three centres:1,755 placements. Mutually exclusive IDs coexist only in this deliberately loose geometric upper bound. It can reach1,856/1,856 unchanged-painted positions but only **636/1,512** changed nonpainted positions;**876/1,512 are unreachable**. It reaches **0/496** changes outside the road canvas. No colours or per-pixel source assignments enter this bound,and the union is never accepted as a realizable composition. Therefore the declared front-top-only family cannot explain the complete change,irrespective of its colour errors. This is the diagnostic stopping point;no expanded positions,source families or combinations follow.
+
+The concrete missing evidence is the actual drawing source/removal behaviour for those nonpainted and outside-canvas changes,and the source-selection/coverage condition governing the remaining ground. Neither two selected tops nor near-match246 supplies it. Absolute saved-cell binding and the actual capture path also remain unproved. No new original UI operation,screenshot,dependency or user sample is used;CitySimulation/EMP1 and runtime rendering remain frozen.
+
+### Read-only ground-layer replay
+
+`scripts/ground_layer_audit.py` is an explicit private-manifest entry,not a renderer or graphics selector. On each run it re-reads original SG3/555,independently decodes the declared components,and compares all complete raw/full BGRA bytes against the native cache:586/586 including794. It regenerates the source palette with the fixed public API helper,checks frozen profile SHA256 and841/841 prior colour controls,derives identification geometry from source alpha,and scores every candidate plus all five whole hypotheses. It retains the complete candidate error rows,top conflicts and the loose opacity bound in private JSON. A changed identification gate refuses;it never substitutes a minimum. All input paths and derivatives stay outside Git and all user data stays read-only.
+
+Build the authored public-API helper and run the focused checks with existing tools:
+
+```sh
+clang++ -std=c++17 scripts/colorsync_rgb8.cpp -framework ColorSync -framework CoreFoundation -o /absolute/private/colorsync-rgb8
+python3 -B scripts/ground_layer_audit_tests.py
+EMPEROR_GAMEDATA_ROOT=/absolute/owned/data python3 -B scripts/ground_layer_audit.py --manifest /absolute/private/manifest.json --output /absolute/private/result.json
+```
+
+The manifest requires `source_root` equal to that process-local root;explicit `control1`,`after2`,`before3` PNG paths;`native_cache` with `metadata`,`full`,`raw`;and `colorsync` with `executable`,`source_profile`,`target_profile`,each profile's `_sha256` field,plus `control_input`/`control_output` RGB8 files for the841 prior colours. These are the already retained profiles/controls,not score-selected substitutes. The cache TSV schema is the existing11-field single-cell native export. Output inside the repository or original-data root refuses. No root fallback or dependency installation exists.
+
+The real replay reproduces **1,755/1,755** complete candidate error rows,**5/5** whole-model RGB5/RGB8 totals,**2/2** complete component scores and**1/1** opacity bound. Authored regressions pass8/8,including whole-top conflicts,strict boundary errors,malformed RLE,base/top overlap,geometry and no-clipping refusals. Unset/empty roots each SKIP before optional imports or manifest access under `python -S` (2/2);the compiled helper also SKIPs2/2. These synthetic checks are integrity evidence,not new original-data coverage.
+
+
 ### Sending boundary and unavailable live producer
 
 The d1296b8 independent review accepts the offline exact-point predicate; it does not establish a trusted live producer or an end-to-end sender. The baseline existing CLI only receives owner/frame/normalized-point/deadline JSON and independently samples native identity/focus/occlusion. It has no callback for a final hover, continuous pointer/camera epochs or complete action journal. The retained historical UI wrapper reads a `passed` JSON file and then starts a separate click process; that sequence cannot carry the final proof and is **not a final-road sender**. These tools were inspected as source only, without launch, capture or input.

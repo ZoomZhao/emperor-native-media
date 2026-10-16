@@ -151,3 +151,10 @@ A follow-up converts **every794 source pixel**,with source RGB8=`RGB555<<3` and 
 | Whole source-over-before canvas | 9,100/12,480 | 8,800/12,480 |
 
 All20 prior changed-region errors disappear,while12 new RGB5 errors appear at three input colours,each with maximum raw channel error1;none is dropped. Thus4,524/4,544 was not simply promoted to4,544/4,544. A same-byte-profile LittleCMS whole-source control retains the prior RGB5 scores,so its preserved baseline is explicit. Whole ColorSync prediction still fails:3,380 errors=1,856 unchanged-painted+12 changed-painted+1,512 nonpainted. Other840-colour controls and every raw/inverse/LittleCMS result remain preserved. No candidate or position search is rerun for ColorSync,and no other parameters are tried. Captured-channel precision/model,coverage/order and absolute saved-cell anchoring remain unproved;complete scenes stay0/167. Profiles,pixels,API helper and all per-pixel differences remain private.
+
+
+### Complete base/top decomposition in the separated ground discovery
+
+The [bounded neighbour replay](MAP.md#separated-neighbour-identification-and-complete-top-coverage) directly reconstructs all585 declared nonmirrored type30 `China_land1.bmp`/`China_land2.bmp` single-cell canvases from their3,200-byte public base plus the remaining public RLE stream. Complete native base/full byte checks pass585/585 each;228/585 tops are nonempty,0/585 overlap their own public base. This content-defined split does not use animation offsets or add a source family. Frozen RGB555<<3/ColorSync conversion preserves841/841 colour controls. `scripts/colorsync_rgb8.cpp` retains the authored public API helper so the read-only manifest replay can regenerate that representation;profiles and derived pixels stay private.
+
+Whole natural tops240/242 retain132/1,980 and148/1,888 RGB5 conflicts. Their partial coverage and the1,755-placement opacity upper bound are recorded in MAP;neither proves the original drawing order,an actual selector or a complete scene. Static RLE decomposition supplies no animation playback semantics. No runtime parser/renderer or CitySimulation/EMP1 changes follow.
