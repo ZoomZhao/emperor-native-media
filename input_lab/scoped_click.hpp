@@ -345,7 +345,8 @@ inline Snapshot currentSnapshot(const Request& r) {
 }
 struct EventDeleter { void operator()(CGEventRef event) const { if (event) CFRelease(event); } };
 using Event = std::unique_ptr<std::remove_pointer_t<CGEventRef>, EventDeleter>;
-inline CGPoint postClick(const Request& r) {
+template<class Dispatch>
+inline CGPoint postClickUsing(const Request& r,Dispatch dispatch) {
     const CGPoint p = target(r);
     Event down(CGEventCreateMouseEvent(nullptr, kCGEventLeftMouseDown, p, kCGMouseButtonLeft));
     Event up(CGEventCreateMouseEvent(nullptr, kCGEventLeftMouseUp, p, kCGMouseButtonLeft));
@@ -357,12 +358,15 @@ inline CGPoint postClick(const Request& r) {
         CGEventSetIntegerValueField(event, kCGMouseEventWindowUnderMousePointerThatCanHandleThisEvent, r.window);
     }
     // Fresh identity/focus/geometry/occlusion snapshot immediately before submitting.
-    dispatchChecked(r, currentSnapshot(r), [&](CGPoint) {
+    dispatch([&](CGPoint) {
         CGEventPost(kCGSessionEventTap, down.get());
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
         // Always balance a submitted down, even if focus changes during the hold.
         CGEventPost(kCGSessionEventTap, up.get());
     });
     return p; // Submission is not proof that an application acted on the click.
+}
+inline CGPoint postClick(const Request& r) {
+    return postClickUsing(r,[&](auto send) {dispatchChecked(r,currentSnapshot(r),send);});
 }
 } // namespace scoped_input

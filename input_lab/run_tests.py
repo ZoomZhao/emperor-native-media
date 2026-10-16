@@ -15,8 +15,11 @@ def main():
     parser.add_argument('--window', action='store_true', help='opt in to own AppKit window/input/capture test')
     parser.add_argument('--build-dir', type=pathlib.Path)
     parser.add_argument('--request', type=pathlib.Path, help='submit one existing-window click instead of running tests')
+    parser.add_argument('--final-road', action='store_true', help='explicit final-road route; refuses until a live evidence producer exists')
     parser.add_argument('--inspect', action='store_true', help='with --request, read guard metadata without sending input')
     args = parser.parse_args()
+    if args.final_road and (not args.request or args.inspect):
+        parser.error('--final-road requires --request and excludes --inspect')
     if args.inspect and not args.request:
         parser.error('--inspect requires --request')
     if args.window and args.request:
@@ -35,7 +38,7 @@ def main():
     frameworks = ['AppKit', 'ApplicationServices', 'ScreenCaptureKit']
     compile_source('cli.mm', build / 'scoped-click', frameworks)
     if args.request:
-        subprocess.run([str(build / 'scoped-click')] + (['--inspect'] if args.inspect else []) + [str(args.request.resolve())], check=True, timeout=10)
+        subprocess.run([str(build / 'scoped-click')] + (['--inspect'] if args.inspect else ['--final-road'] if args.final_road else []) + [str(args.request.resolve())], check=True, timeout=10)
         return
     compile_source('guard_tests.mm', build / 'guard-tests', frameworks)
     result = subprocess.run([str(build / 'guard-tests')], check=True, capture_output=True, text=True, timeout=10)
@@ -54,8 +57,13 @@ def main():
         check = subprocess.run([str(build / 'scoped-click'), str(path)], capture_output=True, text=True, timeout=10)
         if check.returncode != 1 or check.stdout or check.stderr.strip() != reason:
             raise RuntimeError('CLI invalid request rejection mismatch')
+    # Unsupported final-road mode must refuse without any process/capture/input call.
+    blocked = subprocess.run([str(build / 'scoped-click'), '--final-road', '/nonexistent'], capture_output=True, text=True, timeout=10)
+    if blocked.returncode != 1 or blocked.stdout or blocked.stderr.strip() != 'live final-road dispatch unavailable: no continuous same-process preview/camera/pointer producer':
+        raise RuntimeError('unsupported final-road route did not refuse')
     summary = json.loads(result.stdout)
     summary['CLI_parser_rejections'] = len(invalid)
+    summary['unsupported_final_road_no_send_refusals'] = 1
     print(json.dumps(summary))
     (build / 'guard-result.json').write_text(json.dumps(summary, indent=2)+'\n', encoding='utf-8')
     if args.window:

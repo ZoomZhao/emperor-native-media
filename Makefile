@@ -1,4 +1,4 @@
-.PHONY: bink-cancel-test bink-cancel-test-undefined all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics map-sg3-audit map-sg3-audit-test map-raw-spans map-raw-spans-test map-reference-test map-reference-test-undefined save-state-audit save-state-audit-test pak-payload-audit pak-payload-audit-test pak-native-test pak-native-test-undefined pak-native-metrics save-native-test save-native-test-undefined save-native-metrics base-content-audit-test reference-compare-test input-test input-test-undefined input-window-test
+.PHONY: final-dispatch-test final-dispatch-test-undefined bink-cancel-test bink-cancel-test-undefined all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics map-sg3-audit map-sg3-audit-test map-raw-spans map-raw-spans-test map-reference-test map-reference-test-undefined save-state-audit save-state-audit-test pak-payload-audit pak-payload-audit-test pak-native-test pak-native-test-undefined pak-native-metrics save-native-test save-native-test-undefined save-native-metrics base-content-audit-test reference-compare-test input-test input-test-undefined input-window-test
 all: game-app
 game-app:
 	/bin/sh game_lab/app/build.sh
@@ -63,3 +63,9 @@ bink-cancel-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 game_lab/bink_cancellation/run.py
 bink-cancel-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 game_lab/bink_cancellation/run.py --mode undefined
+
+final-dispatch-test:
+	PYTHONDONTWRITEBYTECODE=1 python3 input_lab/final_dispatch_tests.py
+
+final-dispatch-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 python3 input_lab/final_dispatch_tests.py --mode undefined

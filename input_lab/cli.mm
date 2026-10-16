@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include "scoped_click.hpp"
+#include "final_dispatch.hpp"
 #include <iostream>
 #include <limits>
 using namespace scoped_input;
@@ -16,7 +16,9 @@ static uint64_t integer(NSDictionary* object,NSString* key,uint64_t maximum) {
 int main(int argc,char** argv) { @autoreleasepool {
     try {
         bool inspect = argc == 3 && std::string(argv[1]) == "--inspect";
-        require(argc==2 || inspect,"usage: scoped-click [--inspect] /absolute/local/request.json");
+        bool finalRoad=argc==3 && std::string(argv[1])=="--final-road";
+        require(argc==2 || inspect || finalRoad,"usage: scoped-click [--inspect|--final-road] /absolute/local/request.json");
+        if(finalRoad)refuseUnsupportedFinalRoad(); // Refuse before file reads, TCC, snapshots or event allocation.
         NSString* path=[NSString stringWithUTF8String:argv[inspect?2:1]];
         require(path.isAbsolutePath,"absolute request path required");
         NSData* bytes=[NSData dataWithContentsOfFile:path];
