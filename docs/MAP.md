@@ -1402,7 +1402,7 @@ For the192 pixels in three previously unidentified omitted-base positions,a sepa
 
 The first pre-class does not transfer unchanged:its signature preserves only **20/1,748** pixels after A,then returns to **1,748/1,748** after B;its entire6,400-pixel base returns to the initial raw image. The existing pre-placement hover/repeated-preview frames agree at this owner before A,so no new UI is needed to establish this instability. Its own six fields agree across the three saves, **12/12 adjacent-state value comparisons**. Cause and post-source identity remain unknown;no frame-chain or post-ID search follows. Thus144 residuals cannot be used to reject its actual post-state base. The other two owners preserve6,400/6,400 base pixels and1,748/1,748 signature pixels,yet their fixed base materials miss48/48 residuals. The earlier known front-base hypotheses still miss64/64. No top/base is added to a compositor,no complete material prediction passes0/3,and every original residual and denominator stays retained.
 
-The minimal causal observation remains a **proposal only**:one separately authorized road at the recorded A side-front-right source238 candidate cell could test whether its144 spill positions respond to that cell/context. The following read-only check now recovers the paused-view mapping and supplies a bounded S0 stability control;it does not execute that probe or explain the A-post/B-return material change.
+The following read-only check recovers the paused-view mapping and supplies a bounded S0 stability control. A subsequent authorized single-cell observation executes the retained source238 proposal;its material-gate failure is recorded under [Single-cell contextual response](#single-cell-contextual-response),without explaining the historical A-post/B-return change.
 
 
 ## Paused read-only screen stability
@@ -1421,4 +1421,30 @@ Coordinate recovery is **0/1→1/1**. At the mapped positions,the old pre-road S
 
 This closes the local mapping gap and measures paused **S0** stability only. The historical A-post owner signature still agrees merely20/1,748 with initial,returning to1,748/1,748 after B;the owner's own six fields remain equal12/12 adjacent-state comparisons. Neither the restored S0 pixels nor the238 candidate makes that material static across edits. The effective source,temporal/context cause and complete layer consumption remain unproved;no post-ID/frame search follows.
 
-The unexecuted probe's two observable outcomes remain:(A) at least1/144 frozen spill positions responds to changing candidate cell(63,66) or its context;(B)0/144 responds while the target visibly changes. Changed material/registration controls or a failed target change make the result unknown. Change does not establish an SG3 record/draw rule;no-change cannot distinguish clipping from another covering layer. A future separately authorized action still requires fresh same-view/exact-point hover qualification. Inventory existing saves,reserve two fresh collision-checked names,make the before save a preservation point,and freeze the complete1,752 support,the144 subset and controls before one placement. Cancel normally,capture/save after,and verify one target terrain delta plus unchanged complete other five fields. Normally load before,pause and check visible controls and the old-save inventory;retain both new slots and local evidence without promising exact memory/tick rollback. This correction performs **0 new UI actions and0 new captures**. Complete scenes stay0/167,and all screenshots/metadata/pixel masks remain private.
+The retained proposal freezes two observable outcomes:(A) at least1/144 spill positions responds to changing candidate cell(63,66) or its context;(B)0/144 responds while the target visibly changes,with stable material/registration controls. Changed controls or a failed target change make the causal interpretation unknown. This coordinate correction performs0 new UI and0 new captures;the subsequent execution below does not reuse its old screenshot as fresh click authority.
+
+
+## Single-cell contextual response
+
+A separately authorized **one-cell** original observation now raises paired collection **0/1→1/1**. Fresh owner/window and scene checks match the preserved paused world2,274,016/2,274,016 and pause banner82,248/82,248. The two chosen normal-UI save names are collision-checked2/2 before creation;the before slot preserves the current state. Full source238 support1,752,the earlier144 subset,the6,400-pixel neighbouring base,its1,748-pixel common signature and three control rectangles are frozen before game input. The retained238 candidate matches1,748/1,748 exposed pre-content pixels;its runtime identity and full-top consumption remain unproved.
+
+The tooltip confirms the Road tool. A fresh hover at the registered active(63,66),storage(121,124),screen(878,1416) produces the complete expected6,400-pixel diamond with0 mask disagreements. The three controls remain92,500/92,500 exact,and the144 subset/owner signature remain unchanged through preview. A second fresh preview is checked0.221 seconds after capture completion,then the scoped helper submits the sole road click. The20-second observation freshness limit is not the unsupported continuous-producer250ms protocol. Normal right-click cancellation and a sidebar pointer give a neutral post-frame;no extra road or post-selected source/mask is added.
+
+The two normal saves verify the target terrain delta **128→192 at1/51,984 storage values**,with the complete other five arrays **259,920/259,920 equal**. Original raw RGBA comparisons retain every frozen pixel:
+
+| Frozen support | Changed / all physical positions |
+|---|---:|
+| Complete candidate238 natural-top support |1,512/1,752|
+| Earlier spill subset |0/144|
+| Target public base |4,004/6,400|
+| Neighbouring owner public base |5,916/6,400|
+| Neighbouring owner exposed signature |1,728/1,748|
+| Three static control rectangles |0/92,500|
+
+Pillow scalar reads and NumPy agree **8/8** support counts. Saving the after slot preserves all these target/material/control pixels;only the screen-fixed save notification changes elsewhere. That notification is also observed after the before save,outside every frozen support/control. No world material is hidden to make an equality score pass. These are one intervention and2× raster pixels,not144 independent causal experiments.
+
+The result is **usable stable-material causal trials0/1,unknown1/1**. Although the target changes and144 positions do not,the predeclared neighbouring material gate fails:its signature retains only20/1,748 initial pixels while its own six saved values remain6/6 equal. The three distant controls and pause banner remain stable. Thus0/144 is an observed response count,not proof of clipping,another covering layer,source identity,animation or a neighbour-selection rule. The earlier A-post20/1,748 and B-return1,748/1,748 remain separate observations. No post-source ID search,field-to-ID fitting or complete-source prediction follows.
+
+Normal loading of the new before slot restores the initial world **2,274,016/2,274,016**,all frozen masks and the pause banner. Fresh restored-world controls are checked before sending P;the conservative load-start→pause-dispatch upper bound is **2.238 seconds within5 seconds**. This does not measure engine-running duration or promise exact memory/tick rollback. Old saves remain **24/24 byte-identical**,the new pair2/2 stays retained,and the application remains open/paused. Totals are1 road,2 fresh named saves,1 preservation load,0 launches and0 closes. Subsequent work is offline only.
+
+The [new trial SAV check](SAV.md#single-cell-road-snapshot-pair) independently compares native12/12 arrays,623,808/623,808 unsigned values and12/12 numerical CGImages. Four local real-data check entries SKIP8/8 under unset/empty roots before optional data access. Trial derivatives do not enlarge the original supplied-city corpus;selector remains unsupported and complete scenes0/167. Only aggregate metrics enter Git;captures,original/new saves,pixel masks,hashes,native comparison data and binaries stay private.
