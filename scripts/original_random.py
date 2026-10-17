@@ -11,13 +11,15 @@ def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('task',choices=['test']);p.add_argument('--mode',choices=['release','undefined'],default='release');p.add_argument('--build-dir',type=Path);a=p.parse_args()
  build=(a.build_dir or Path(tempfile.mkdtemp(prefix='emperor-random-'))).resolve();build.mkdir(parents=True,exist_ok=True);binary=build/('original_random-'+a.mode)
  flags=['-O2']if a.mode=='release'else['-O1','-g','-fsanitize=undefined','-fno-sanitize-recover=all']
- sources=['game_lab/original_random.cpp','game_lab/original_random_tests.cpp']
- subprocess.run(['/usr/bin/clang++','-std=c++17','-Wall','-Wextra','-Werror',*flags,*[str(ROOT/s)for s in sources],'-o',str(binary)],check=True)
+ sources=['game_lab/original_map.cpp','game_lab/original_save.cpp','game_lab/original_random.cpp','game_lab/original_random_tests.cpp']
+ subprocess.run(['/usr/bin/clang++','-std=c++17','-Wall','-Wextra','-Werror',*flags,*[str(ROOT/s)for s in sources],'-lz','-o',str(binary)],check=True)
  run=subprocess.run([str(binary)],capture_output=True,text=True)
  passed=run.returncode==0
- report={'passed':passed,'assertions':0,'mode':a.mode}
+ report={'passed':passed,'assertions':0,'mode':a.mode,'original_data':False}
  try:
-  detail=json.loads(run.stdout.strip().splitlines()[-1]);report['assertions']=detail.get('assertions',0);passed=passed and detail.get('passed') is True
+  detail=json.loads(run.stdout.strip().splitlines()[-1]);report['assertions']=detail.get('assertions',0);report['original_data']=detail.get('original_data',False)
+  if report['original_data']:report['saves_checked']=detail.get('saves_checked',0);report['stream_indices']=detail.get('stream_indices',[])
+  passed=passed and detail.get('passed') is True
  except Exception:passed=False
  report['passed']=passed
  print(json.dumps(report))
