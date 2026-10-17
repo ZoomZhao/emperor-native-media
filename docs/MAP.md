@@ -1306,7 +1306,7 @@ Independent review of41d0cec finds a further output-integrity P2: fresh `Scene.P
 
 The writer now uses `ExclusiveReferenceOutputs`: retain path-only validation, then reserve **every** destination with `openat(O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW)` before any payload is written. Directory and file descriptors stay held. The kernel decides whether spellings alias on the actual filesystem; no ASCII case-fold or Unicode normalization guess is used. Existing directory identities also enforce the data-root boundary through case/Unicode parent aliases. ImageIO encodes PNG into memory, and PNG/producer bytes go only through the reserved descriptors; neither writer reopens a pathname or truncates an existing file. Commit checks output-name identities and syncs all payloads. On refusal or write failure, rollback removes only reservations still identifying their owned fresh inodes. A replaced output entry is preserved, and writes to its old held descriptor cannot modify the replacement input inode.
 
-Local core checks increase **87/87→101/101**, and CLI contract methods **8/8→12/12**, in each Release/UBSan build. On the actual local filesystem, new case/Unicode aliases refuse4/4 schema cases per build; existing alias sentinels remain intact4/4, genuinely distinct spellings succeed4/4, and data-root directory aliases refuse4/4. Core checks additionally cover abandoned/writer-failed output rollback and a replaced input inode. The original reviewer reproducer also passes61/61 cases in each build. Three real SAV-cell outputs still match **460,800/460,800 RGBA pixels and460,800/460,800 producer labels**; all **6/6** checked SAV/SG3/555 inputs remain unchanged. No original UI action occurs. **Independent re-review of this repair remains pending**; local regressions do not themselves clear the independent P2 acceptance gate.
+Local core checks increase **87/87→101/101**, and CLI contract methods **8/8→12/12**, in each Release/UBSan build. On the actual local filesystem, new case/Unicode aliases refuse4/4 schema cases per build; existing alias sentinels remain intact4/4, genuinely distinct spellings succeed4/4, and data-root directory aliases refuse4/4. Core checks additionally cover abandoned/writer-failed output rollback and a replaced input inode. The original reviewer reproducer also passes61/61 cases in each build. Three real SAV-cell outputs still match **460,800/460,800 RGBA pixels and460,800/460,800 producer labels**; all **6/6** checked SAV/SG3/555 inputs remain unchanged. No original UI action occurs. Independent re-review accepts06ba5aa,b79f5fa and73f4a8d with **P1=0/P2=0**;the filesystem-alias output P2 is closed. Local regression and independent acceptance remain distinct evidence.
 
 
 ## Complete conflict attribution and source-class limits
@@ -1374,3 +1374,32 @@ The retained four-layer A/B result stays **256/21,472 conflicts**, with no delet
 In canonical RGB5,12/256 differ by one level,44/256 by2–3,128/256 by4–7,and72/256 by8–18. Thus **244/256** exceed one RGB5 level. Raw stored channels also preserve all256 conflicts;only8/256 have one RGB555-sized step. At2× these256 physical errors occupy64 logical raster positions, not256 independent colour probes. All remain failures, including the small-distance subset.
 
 There are48 distinct declared source RGB555 colours at the conflicts. **47/48** also appear correctly elsewhere in the complete paint; these account for **252/256 error pixels**. The same decoded source colour therefore has both correct and different observed target outputs in this fixed cohort. A deterministic colour-only correction cannot reconcile those locations while preserving their correct controls. The other4/256 pixels lack that same-input control and stay unresolved; no colour patch is applied. This supports ending further uniform ColorSync/quantization fitting for this residual. Together with256/256 single declared contributors and3,832/3,832 exact overlaps, the useful remaining question is effective material/source or omitted cover, not another permutation of these four layers or a new hand-built scene. No actual missing-source identity is inferred.
+
+
+## Bounded omitted-top exclusion
+
+The retained **256/21,472** A/B conflicts are tested against the same585-source natural-alpha domain at the eight already fixed neighbour coordinates. Five positions are omitted from the current four-component diagnostic; all **5,850/5,850** omitted candidate/position cases have zero residual reach. A looser check uses all eight positions and excludes the position of each error's current producer, so an alternative source at that same position cannot be mislabelled as an extra occluder. That bound also reaches **0/256** residual pixels. Already known old centre tops reach0/256. No source,position,colour or alpha fit is added.
+
+Dense public/RLE masks and a separate sparse check from native cached alpha agree **9,360/9,360 candidate/position cases**. The source cache matches586/586. The mutually exclusive candidate union is only an upper bound;here even that bound is empty. This closes the **bounded missing-neighbour-top explanation**,not all possible material,placement or larger-namespace explanations. All256 regions were already used in discovery;this remains exploratory.
+
+Every residual lies in exactly one neighbouring public base. The current RLE producer and base-owner relations are:
+
+| Sample / RLE producer role | Public-base owner offset from centre | Residual pixels |
+|---|---|---:|
+| A / side-front left |(−1,+1)|24|
+| A / side-front right |(+1,−1)|144|
+| A / diagonal front |(0,+1)|40|
+| A / diagonal front |(+1,0)|24|
+| B / side-front right |(+1,−1)|24|
+
+For the192 pixels in three previously unidentified omitted-base positions,a separate material check freezes pre-source classes using the existing585 candidates. The entire candidate-identification support has **0 residual overlap**;all **1,755/1,755 rows** are retained,and each position has one exact pre-consistent class on1,748 common base pixels. No post/residual colour selects a source. Complete source and raw-base predictions remain failures:
+
+| Base-owner position | Complete post source RGB8 equal | Complete post base RGB8 equal | Fixed residual material equal |
+|---|---:|---:|---:|
+| A(+1,−1) |1,152/8,296|864/6,400|0/144|
+| A(−1,+1) |5,948/8,288|4,212/6,400|0/24|
+| B(+1,−1) |6,720/8,844|4,360/6,400|0/24|
+
+The first pre-class does not transfer unchanged:its signature preserves only **20/1,748** pixels after A,then returns to **1,748/1,748** after B;its entire6,400-pixel base returns to the initial raw image. The existing pre-placement hover/repeated-preview frames agree at this owner before A,so no new UI is needed to establish this instability. Its own six fields agree across the three saves, **12/12 adjacent-state value comparisons**. Cause and post-source identity remain unknown;no frame-chain or post-ID search follows. Thus144 residuals cannot be used to reject its actual post-state base. The other two owners preserve6,400/6,400 base pixels and1,748/1,748 signature pixels,yet their fixed base materials miss48/48 residuals. The earlier known front-base hypotheses still miss64/64. No top/base is added to a compositor,no complete material prediction passes0/3,and every original residual and denominator stays retained.
+
+The next minimal original observation is a **proposal only**:first record a neutral paused repeat pair with the unstable lateral-base signature and static controls. If stable,a separately authorized one-cell road probe at the recorded A side-front-right source238 cell can test whether its144 spill pixels respond to that cell. Freeze the complete1,752-pixel natural top and all144 pixels before the action;use two fresh before/after saves,the former also as preservation,and verify the sole target terrain delta plus unchanged other five arrays. Changed registration/material controls make the result unknown. Normally restore the before slot and pause. This would measure causal responsibility,not prove a clipping or source-ID rule. No new original UI,save,launch or map edit is executed in this offline audit.
