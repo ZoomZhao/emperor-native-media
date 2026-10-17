@@ -148,7 +148,7 @@ The existing manual `1.sav`/`2.sav` pair supplies **1/1 complete comparison**, b
 | Opaque 708,025-byte skipped table | **2/708,025** |
 | Other twelve regions combined | **0/1,508,145** |
 
-The six known arrays occupy779,760 bytes and contain1 changed byte; their complement contains **10/3,651,235 changed bytes**. The prior numerical result remains: only1/51,984 terrain value changes at active(60,64), storage(118,122), and the other five arrays preserve259,920/259,920 values. Therefore “only terrain changed” is valid only within those six arrays, not for the entire save. The other ten bytes are opaque differences, not evidence of another graphics grid or proof that terrain alone caused the appearance change. Their contents and positions remain private.
+The six known arrays occupy779,760 bytes and contain1 changed byte; their complement contains **10/3,651,235 changed bytes**. The prior numerical result remains: only1/51,984 terrain value changes at active(60,64), storage(118,122), and the other five arrays preserve259,920/259,920 values. Therefore “only terrain changed” is valid only within those six arrays, not for the entire save. The other ten bytes are opaque differences, not evidence of another graphics grid or proof that terrain alone caused the appearance change. Their byte contents and detailed pointwise evidence remain private.
 
 The mode is replayable without screenshots or source-ID labels:
 
@@ -161,3 +161,35 @@ The private manifest requires exactly `before`, `after` (relative paths beneath 
 Authored comparisons pass **24/24** (the prior13 plus11 byte-partition/pair regressions); existing SAV parsing remains16/16. Checks cover every region endpoint, opaque changes outside known fields, full unsigned arrays, alignment refusal, truncation, late checksum failure, invalid/extra manifest fields, target bounds/on-map flags, final source mutation and read-only CLI output. Unset/empty `EMPEROR_GAMEDATA_ROOT` succeeds with SKIP before reading arguments, files or importing NumPy, including the new mode. Synthetic checks add no original corpus or scene coverage.
 
 The independently reviewed new-scene SAV→screen origin remains unproved; the old Anyang registration cannot be transplanted. All currently used screenshot regions have participated in discovery,241/325 remain aliases, and near candidates remain inexact. No static key fitting or post-selected image is accepted as a rule or held-out result. The minimum new observation is a provenance-matched paused save/capture bracket with independent coordinate anchors A/B in the same view (an asymmetric displacement that distinguishes the frozen orientations), followed by an untouched selector cell C. Freeze pairing, supported field/namespace contract, geometry and prediction before revealing C. A public persisted-image/selection contract is still needed to make that prediction; absent it, the selector remains unsupported. These are missing evidence, not permission to operate the user's running game. Complete same-city MAP→SG3 scenes remain **0/167**.
+
+### Opaque-change controls and fixed-window transfer
+
+The ten opaque changes above are now compared against already existing paused-save, reload and single-road controls. This is a read-only continuation on existing files, not a new original-game experiment or a second raw-field parser. The same `--snapshot-pair` mode handles **4/4** explicit transitions across six files. In total **17,723,968/17,723,968** decoded byte positions are checked and **401/401** changes accounted for; transitions share states and are not four independent cities.
+
+| Existing transition | Changed bytes / complete decoded bytes | Within six known arrays / outside them |
+|---|---:|---:|
+| Paused S0a→S0b, no world input | **0/4,430,991** | 0 / 0 |
+| S0a→Sload, reload then pause | **380/4,430,991** | 10 / 370 |
+| Sload→Spos, one road | **10/4,430,991** | 1 / 9 |
+| Manual1→2, one-road discovery sample | **11/4,430,995** | 1 / 10 |
+
+N0 strengthens the earlier six-array control to **4,430,991/4,430,991 identical decoded bytes**. R0's380 changes occupy the opaque prefix141, following-u32 grid10, opaque table225 and tail4. The historical road's ten changes occupy prefix8, terrain1 and table1; the manual road retains prefix8, terrain1 and table2. Independent stdlib byte-by-byte counts agree with all four current-tool results. This does not extend exact static-image agreement beyond the previously frozen regions or prove the unparsed bytes' runtime consumers.
+
+For the manual sample's ten opaque differences, six frozen four-byte diagnostic windows cover the changed bytes. With **S** the published size anchor and **T** the independently validated terrain anchor, their half-open ranges are:
+
+| Opaque diagnostic window | Relative byte range |
+|---|---|
+| Prefix A | [S−12273,S−12269) |
+| Prefix B | [S−1753,S−1749) |
+| Prefix C | [S−1729,S−1725) |
+| Prefix D | [S−1721,S−1717) |
+| Prefix E | [S−1713,S−1709) |
+| Table F | [T＋1383678,T＋1383682) |
+
+These windows cover the eight changed prefix bytes and two changed table bytes. Their four-byte width is an inspection convention, **not a proved original field width, alignment, signedness or record boundary**; a narrower or packed interpretation remains unresolved. The F window lies in the public708,025-byte skipped table near its end. Fixed neighbouring bytes and ASCII checks supply no named record contract. All pointwise original values, adjacent bytes and detailed probes remain private; the production reader does not expose any of these windows as named fields.
+
+Interpreted only as fixed LE32 windows, A/E numerically agree with the already observed funds in both road pairs:2000→1998 in the manual sample and20000→19998 in the earlier accepted trial, **8/8 window/state comparisons**. All five prefix-window delta patterns also repeat **10/10 comparisons** across the two roads, while those five windows remain unchanged in N0 and R0. These are correlations, not five money-field definitions. A subsequent frozen check of every existing application-root SAV finds the six windows inside the same public opaque regions at **120/120 placements across20/20 paths**. A and E are equal in only **16/20** paths, with **4/20 counterexamples** to an unconditional duplicate-word interpretation. The20 paths include preservation/trial files and do not count as20 distinct cities. No alternate offset, packing, formula or semantic name is fitted after those failures.
+
+F stays fixed in N0 but changes on reload without a road and in both road transitions, with distinct increments. This rejects a literal one-step-per-road counter for that window; it does not exclude a general counter, elapsed-time/frame quantity, history field or another state variable. The two N0 files have different filesystem modification times about181 seconds apart but identical decoded contents, so these stored windows are not an unconditional increment-per-manual-save counter or a refreshed per-second wall-clock timestamp in this control. Other time representations remain unknown. For F alone, four declared LE32 checksum hypotheses—CRC32/Adler32 of either the complete decoded payload or the whole opaque table, each with the candidate four bytes zeroed—match **0/24** comparisons across the six files. Only those four literal variants are rejected; arbitrary checksum scopes, encodings and widths are not excluded.
+
+No reviewed public field name has been established for any window: **0/6 semantic identities verified**, graphics selector still unsupported, complete scenes **0/167**. The most useful remaining no-UI action after the controls was the corpus transfer check; it is now complete and supplies the four alias counterexamples above. More unique static keys or value coincidences cannot furnish a selector prediction. The unresolved work needs a public supported field/namespace contract, or independently paired original observations that distinguish the remaining interpretations, plus the new-scene A/B coordinate anchors and untouched C already specified. No original executable, decompiled/disassembled material or new game operation is used. Existing checker/parser regressions remain24/24 and16/16; no speculative semantic parser or extra framework is added.
