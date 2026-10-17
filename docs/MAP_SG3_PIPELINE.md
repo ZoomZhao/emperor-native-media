@@ -127,19 +127,72 @@ missing `MAP cell → SG3` link. The codes the engine actually uses for ground a
 0x61B, 0x61C, 0x61D, 0x61E, 0x61F, 0x620, 0x621, 0x623, 0x624, 0x625, 0x627` (24 codes), plus the
 non-ground neighbours `0x401`, `0x451`, `0x452`, `0x4BB`.
 
-### `China_Terrain.sg3` slot → image id
+### SG3 archive header and record layout
 
-Header index at file offset 80, 300 × u16, 55 non-zero slots:
+`China_Terrain.sg3`: version `213`, capacity 10,000, image `count` 1,443, 8 bitmaps; header/record
+table starts at file offset 40,680, record stride 64 bytes, records addressed directly by
+`image_id` (`offset = 40,680 + image_id * 64`, id 0 unused). Bitmap names start at offset 680
+(200 bytes each): `Zeus_system.bmp`, `China_land1.bmp`, `China_Overlay.bmp`, `China_Land3.bmp`,
+`China_Trees.bmp`, `China_QuarryTileSet.bmp`, `China_land2.bmp`, `Pinnacle.bmp`.
 
-```
- 1:201   2:202   3:247   4:336   5:386   6:458   7:472   8:486
- 9:1442 10:1441 11:500  12:501  13:1440 14:1138 15:1126 16:505
-17:515  18:525  19:533  20:541  21:554  22:556  23:564  24:566
-25:1443 26:574  27:736  28:664  29:646  30:782  31:800  32:869
-33:878  34:1066 35:849  36:927  37:945  38:1006 39:963  40:972
-41:542  42:306  43:321  44:1152 45:1176 46:1200 47:1224 48:1248
-49:1272 50:1296 51:1320 52:1344 53:1368 54:1392 55:1416
-```
+Verified record fields (byte offset → meaning):
+
+| Offset | Width | Meaning |
+|---:|---:|---|
+| 0 | u32 | absolute pixel-data offset in the file |
+| 4 | u32 | stored length |
+| 8 | u32 | uncompressed base length (3,200 for terrain records) |
+| 20 | u16 | canvas width (`78` for single-cell terrain) |
+| 22 | u16 | canvas height (40–83 for single-cell terrain) |
+| 24 | u16 | sheet x |
+| 26 | u16 | sheet y |
+| **28** | **u16** | **ordinal — zero for plain records, `1..55` for the group bases** |
+| 50 | u8 | type (`30` = terrain/ground) |
+| 51 | u8 | compression flag |
+
+### The link: header slot == record ordinal
+
+Header index at file offset 80, 300 × u16, **55 non-zero slots**. Each slot names a record id, and
+that record's ordinal field at byte 28 **equals the slot number** — verified **55/55**:
+
+| Slot | Id | Ord | W×H | | Slot | Id | Ord | W×H |
+|---:|---:|---:|---|---|---:|---:|---:|---|
+| 1 | 201 | 1 | 78×40 | | 29 | 646 | 29 | 78×40 |
+| 2 | 202 | 2 | 78×41 | | 30 | 782 | 30 | 78×40 |
+| 3 | 247 | 3 | 78×41 | | 31 | 800 | 31 | 78×40 |
+| 4 | 336 | 4 | 78×47 | | 32 | 869 | 32 | 78×40 |
+| 5 | 386 | 5 | 78×40 | | 33 | 878 | 33 | 78×40 |
+| 6 | 458 | 6 | 78×52 | | 34 | 1066 | 34 | 78×40 |
+| 7 | 472 | 7 | 78×51 | | 35 | 849 | 35 | 78×40 |
+| 8 | 486 | 8 | 78×50 | | 36 | 927 | 36 | 78×72 |
+| 9 | 1442 | 9 | 398×468 | | 37 | 945 | 37 | 78×83 |
+| 10 | 1441 | 10 | 398×544 | | 38 | 1006 | 38 | 78×40 |
+| 11 | 500 | 11 | 78×40 | | 39 | 963 | 39 | 78×50 |
+| 12 | 501 | 12 | 78×40 | | 40 | 972 | 40 | 78×40 |
+| 13 | 1440 | 13 | 398×520 | | 41 | 542 | 41 | 78×40 |
+| 14 | 1138 | 14 | 78×45 | | 42 | 306 | 42 | 78×40 |
+| 15 | 1126 | 15 | 78×59 | | 43 | 321 | 43 | 78×40 |
+| 16 | 505 | 16 | 78×42 | | 44 | 1152 | 44 | 78×40 |
+| 17 | 515 | 17 | 78×56 | | 45 | 1176 | 45 | 78×40 |
+| 18 | 525 | 18 | 78×58 | | 46 | 1200 | 46 | 78×40 |
+| 19 | 533 | 19 | 78×52 | | 47 | 1224 | 47 | 78×40 |
+| 20 | 541 | 20 | 78×40 | | 48 | 1248 | 48 | 78×40 |
+| 21 | 554 | 21 | 78×42 | | 49 | 1272 | 49 | 78×40 |
+| 22 | 556 | 22 | 78×42 | | 50 | 1296 | 50 | 78×40 |
+| 23 | 564 | 23 | 78×42 | | 51 | 1320 | 51 | 78×40 |
+| 24 | 566 | 24 | 78×42 | | 52 | 1344 | 52 | 78×40 |
+| 25 | 1443 | 25 | 398×475 | | 53 | 1368 | 53 | 78×40 |
+| 26 | 574 | 26 | 78×40 | | 54 | 1392 | 54 | 78×40 |
+| 27 | 736 | 27 | 78×40 | | 55 | 1416 | 55 | 78×40 |
+| 28 | 664 | 28 | 78×40 | | | | | |
+
+**Therefore the tile code is `(tileset << 9) | ordinal`, and the sprite for a code is the record
+whose ordinal field equals the code's low 9 bits.** Ground code `0x603` (bare/cleared ground) is
+`China_Terrain.sg3` record ordinal 3 = id 247, 78×41, type 30.
+
+A group base is followed by its variant records (a row of ~8 consecutive ids laid out on the same
+sheet row), which is exactly what `tileImage(code) + variant` selects. Slots 9, 10, 13 and 25 are
+large composite records (398 px wide) rather than single-cell ground tiles.
 
 ## Terrain art is polymorphic
 
@@ -173,16 +226,80 @@ strategies (climate / map mode) can pick different China_Terrain codes for the s
 * Off-map cells (terrain bit `0x80000`, index ≥ `0xFFF0000`) draw code `0x603` with a
   coordinate-derived variant.
 
+## Terrain flags → ground code (the complete dispatch chain)
+
+The ground code for a cell is chosen by a **priority chain** in `FUN_0053EC90 @0x0053EC90`, which
+runs the setters below in order and stops at the first that returns non-zero. Every setter writes
+`0x00FE9880[cell] = tileImage(code) + variant` and marks the cell drawn (`0x00FDCD70 |= 0x40`).
+
+| Order | Setter | Terrain test | Ground code |
+|---:|---|---|---|
+| 1 | `FUN_004EDC30 @0x004EDC30` | `& 0x100` (else `& 0x10000` special) | `0x61C + 0x30 + random % 0x18` |
+| — | *(gate)* | only when `(terrain & 0x8C008) == 0` | — |
+| 2 | `FUN_0053F240` | *not yet read* | — |
+| 3 | `FUN_00540330` | *not yet read* | — |
+| 4 | `FUN_0053FC30 @0x0053FC30` | `& 0x4` **and** `0x00FE9880[cell] == 0` | `0x61B` / `0x61A` / `0x605` / `0x61C` by shore context |
+| 5 | `FUN_0053F520 @0x0053F520` | `& 0x1` | delegated to `0x004BC6A0` (`0x60x ± 9/7`) |
+| 6 | `FUN_0053F660 @0x0053F660` | `& 0x2` | `0x606` / `0x607` (`& 0x300002 == 0x100002`) / `0x608` (`== 0x200002`) |
+| 7 | `FUN_0053F790 @0x0053F790` | `& 0x101000 == 0x101000` | `0x60F` |
+| 8 | `FUN_0053F560 @0x0053F560` | `& 0x80000000` | `0x60E` |
+| 9 | `FUN_0053F840 @0x0053F840` | `& 0x20000` | `0x628` / `0x626` / `0x622` (or `0x603` when `5 < level+? < 0x22`) |
+| 10 | `FUN_0053FA20 @0x0053FA20` | `& 0x2000000` **and** `0x00FE9880[cell] == 0` | `0x60D` / `0x60A` / `0x609` / `0x619` by `0x00F37DA0` bits 8/10/20/40 |
+| 11 | `FUN_00413A00 @0x00413A00` | *not yet read* | — |
+| 12 | `FUN_00540360 @0x00540360` | `& 0x1000` | `0x612 + (random & 7)` |
+| 13 | `FUN_00540300 @0x00540300` | `& 0x40` | delegated to `0x004B6F90` |
+| 14 | `FUN_0053FB30 @0x0053FB30` | `& 0x10000` **and** `(terrain & 0x48) == 0` | `0x61B` (+ optional `FUN_004BCE20()`) |
+| 15 | `FUN_005400F0` | *not yet read* | — |
+| 16 | `FUN_00540140 @0x00540140` | `& 0x20` | `0x401 + 2..7` (tileset 2, `China_General`) |
+| 17 | `FUN_0053EE00 @0x0053EE00` | `(terrain & 0x10001) == 0` **and** `& 0x80` | `0x602` / `0x604` |
+| 18 | **`FUN_0053F090 @0x0053F090` (fallback, plain land)** | `(terrain & 0xAEFEDE6F) == 0` | **`0x603`** `+ (random & 7)` |
+
+Additional writers outside the chain:
+
+* `FUN_0053EAA0`/`FUN_0053EAE0 @0x0053EAA0` — sets `0x601` when the cell is higher than a neighbour
+  and the cell level is 0 (`0x00F1E780`-independent).
+* `FUN_0042C480 @0x0042C480` — building cleared: `0x603 + (random & 7)`.
+* `FUN_004B5E50 @0x004B5E50` — `0x612 + (random & 7)`.
+* `FUN_004EDBA0 @0x004EDBA0` — `0x62B` (`& 0x100`) / `0x62A`.
+* `FUN_0046F9B0 @0x0046F9B0` — off-map cells: `0x603 + (x + y) % 0x3A`.
+
+### Plain land is code `0x603`
+
+`FUN_0053F090` is the last link of the chain, so anything that reaches it is ordinary land. It emits
+code `0x603` and, when the cell belongs to a large uniform block (`random & 0xF8`, `& 6`, `& 4`, `& 2`),
+it switches to the 2×2 / 3×3 / 4×4 block art using larger variant offsets
+(`+8 + (random&3)*4`, `+0x18 + (random&1)*9`, `+0x2A`). Those offsets are the only reason the drawn
+record is not always exactly the ordinal record; they walk the sheet's 9-wide rows, so the variant
+space is 0…0x39 rather than 0…7.
+
+### Derived rule for a native renderer
+
+```
+code  = 0x600 | ordinal                       // ordinal from the table above
+image = China_Terrain.sg3 record(ordinal) + variant_offset
+```
+
+Because the code's low 9 bits *equal* the record's own ordinal field (verified 55/55), the chain
+above is a complete, testable `MAP → SG3` contract:
+
+| Terrain | Code | Ordinal | `China_Terrain.sg3` id |
+|---|---|---|---|
+| plain land (fallback) | `0x603` | 3 | 247 (78×41, type 30) |
+| land, high vs neighbour | `0x601` | 1 | 201 (78×40) |
+| `& 0x80` fertile/irrigated | `0x602` / `0x604` | 2 / 4 | 202 (78×41) / 336 (78×47) |
+| `& 0x2` | `0x606`/`0x607`/`0x608` | 6/7/8 | 458 (78×52) / 472 (78×51) / 486 (78×50) |
+| `& 0x1000` | `0x612` | 18 | 525 (78×58) |
+| `& 0x10000` | `0x61B` | 27 | 736 |
+
 ## Open items
 
-1. **Enumerate order vs SG3 index.** The loader assigns `code = (tileset << 9) | i` in the order the
-   archive's image records are enumerated. Acceptance for M1: reproduce the exact drawn image id for
-   one known Anyang cell.
-2. **Precomputed or derived at draw time.** Establish whether the base terrain image is written into
-   `0x00FE9880` at load, or computed during the draw pass — this decides whether neighbour context
-   (shorelines) affects the base ground.
-3. **Random source.** Confirm whether `0x00F1E780` is filled from the MAP `mapperRandom` grid.
-4. **Port** the formula into `game_lab` and emit image ids for all 9,940 active Anyang cells, then
-   compare against the original Anyang frame.
+1. Read the five setters still marked *not yet read* (`FUN_0053F240`, `FUN_00540330`, `FUN_00413A00`,
+   `FUN_005400F0`, and confirm `FUN_004EDC30`'s `0x10000` branch) to complete the table.
+2. Confirm the enumeration order assumption: registration walks the header index in slot order, so
+   entry `k` ↔ slot `k` ↔ record ordinal `k`. Evidence: the 55 records' own ordinal fields match
+   their slots exactly, and the tie-break `entry[0]` ⇔ slot 1 ⇔ id 201 is consistent with
+   `tileImage(0x601) == 201 - 201 + 3*0x4000`.
+3. Confirm `0x00F1E780` is filled from the MAP random grid (logical payload offset 729,311).
+4. Port the table into `game_lab` and emit image ids for all active Anyang cells (M2/M3).
 
-Until items 1–2 are closed, the `MAP → SG3` join count in `STATUS.md` is unchanged.
+The MAP → SG3 join count in `STATUS.md` is unchanged until the port reproduces a city end to end.
