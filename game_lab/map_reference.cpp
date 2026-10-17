@@ -6,6 +6,10 @@
 #include <unordered_map>
 #include <filesystem>
 #include <stdexcept>
+#include <cerrno>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 namespace game_lab {
 MapReferenceResult renderMapReferenceViewport(const OriginalMapTerrain& terrain,const OriginalMapRawLayer& raw,
         const SG3Archive& archive,const std::string& internal555,int64_t base,const OriginalMapCamera& camera) {
@@ -147,8 +151,12 @@ std::vector<std::string> freshReferenceOutputs(const std::string& dataRoot,
         // filesystem traversal, not merely string cancellation.
         const auto parent=fs::canonical(path.parent_path());
         if(!fs::is_directory(parent))throw std::runtime_error("output parent must be a directory");
-        const auto relative=parent.lexically_relative(root);
-        if(relative.empty() || *relative.begin()!="..")throw std::runtime_error("output inside data root refused");
+        // Existing directory identities also protect case/normalization aliases
+        // of the data-root path; lexical prefix spelling is not the boundary.
+        for(auto ancestor=parent;;ancestor=ancestor.parent_path()) {
+            if(fs::equivalent(ancestor,root))throw std::runtime_error("output inside data root refused");
+            if(ancestor==ancestor.parent_path())break;
+        }
         const auto target=(parent/path.filename()).string();
         for(size_t i=0;i<targets.size();++i) {
             std::error_code error;
@@ -164,5 +172,62 @@ std::vector<std::string> freshReferenceOutputs(const std::string& dataRoot,
         if(fs::symlink_status(path).type()!=fs::file_type::not_found)
             throw std::runtime_error("fresh absolute output path required");
     return targets;
+}
+}
+
+namespace game_lab {
+ExclusiveReferenceOutputs::ExclusiveReferenceOutputs(const std::string& root,
+        const std::vector<std::string>& requested) {
+    const auto paths=freshReferenceOutputs(root,requested);
+    files_.reserve(paths.size());
+    try {
+        for(const auto& name:paths) {
+            const std::filesystem::path path(name);
+            files_.emplace_back();auto& file=files_.back();file.leaf=path.filename().string();
+            file.parent=::open(path.parent_path().c_str(),O_RDONLY|O_DIRECTORY|O_CLOEXEC);
+            if(file.parent<0)throw std::runtime_error("output parent open failed");
+            file.fd=::openat(file.parent,file.leaf.c_str(),O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);
+            if(file.fd<0)throw std::runtime_error("exclusive fresh output reservation refused;filesystem alias or existing target");
+            struct stat identity{};
+            if(::fstat(file.fd,&identity)!=0 || !S_ISREG(identity.st_mode))throw std::runtime_error("reserved output identity failed");
+            file.device=uint64_t(identity.st_dev);file.inode=uint64_t(identity.st_ino);
+        }
+    }catch(...){cleanup();throw;}
+}
+ExclusiveReferenceOutputs::~ExclusiveReferenceOutputs(){cleanup();}
+void ExclusiveReferenceOutputs::cleanup() noexcept {
+    for(auto& file:files_) {
+        if(!committed_ && file.parent>=0 && file.fd>=0) {
+            struct stat current{};
+            if(::fstatat(file.parent,file.leaf.c_str(),&current,AT_SYMLINK_NOFOLLOW)==0 &&
+               uint64_t(current.st_dev)==file.device && uint64_t(current.st_ino)==file.inode)
+                (void)::unlinkat(file.parent,file.leaf.c_str(),0);
+        }
+        if(file.fd>=0){(void)::close(file.fd);file.fd=-1;}
+        if(file.parent>=0){(void)::close(file.parent);file.parent=-1;}
+    }
+}
+void ExclusiveReferenceOutputs::write(size_t index,const uint8_t* bytes,size_t count) {
+    if(committed_ || index>=files_.size() || (count && !bytes))throw std::runtime_error("invalid reserved output write");
+    size_t offset=0;
+    while(offset<count) {
+        const auto amount=std::min(count-offset,size_t(65536));
+        const auto written=::write(files_[index].fd,bytes+offset,amount);
+        if(written<0 && errno==EINTR)continue;
+        if(written<=0)throw std::runtime_error("reserved output write failed");
+        offset+=size_t(written);
+    }
+}
+void ExclusiveReferenceOutputs::commit() {
+    if(committed_)throw std::runtime_error("output set already committed");
+    for(const auto& file:files_) {
+        struct stat current{};
+        if(::fstatat(file.parent,file.leaf.c_str(),&current,AT_SYMLINK_NOFOLLOW)!=0 ||
+           uint64_t(current.st_dev)!=file.device || uint64_t(current.st_ino)!=file.inode)
+            throw std::runtime_error("reserved output name identity changed");
+        int result;do{result=::fsync(file.fd);}while(result!=0 && errno==EINTR);
+        if(result!=0)throw std::runtime_error("reserved output sync failed");
+    }
+    committed_=true;cleanup();
 }
 }

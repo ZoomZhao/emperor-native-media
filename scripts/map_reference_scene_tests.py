@@ -74,6 +74,7 @@ class SceneCLI(unittest.TestCase):
         manifest.write_text(json.dumps(doc))
         output = output or self.work / ('out%d.png' % self.serial)
         producer = producer or self.work / ('out%d.u16le' % self.serial)
+        existing = {path: path.read_bytes() for path in (output, producer) if path.is_file()}
         result = subprocess.run([str(BINARY), '--data-root', str(self.root),
                                  '--scene-manifest', str(manifest), '--no-window',
                                  '--output', str(output), '--producer-output', str(producer)],
@@ -84,8 +85,11 @@ class SceneCLI(unittest.TestCase):
             self.assertEqual(len(producer.read_bytes()), 300 * 200 * 2)
             return json.loads(result.stdout), output.read_bytes(), producer.read_bytes()
         self.assertNotEqual(result.returncode, 0, result.stdout)
-        self.assertFalse(output.exists(), result.stderr)
-        self.assertFalse(producer.exists(), result.stderr)
+        for path in (output, producer):
+            if path in existing:
+                self.assertEqual(path.read_bytes(), existing[path], result.stderr)
+            else:
+                self.assertFalse(path.exists(), result.stderr)
         return result.stderr
 
     def test_registered_and_pixel_scenes_are_identical(self):
@@ -153,6 +157,67 @@ class SceneCLI(unittest.TestCase):
         self.run_scene(self.doc, False, output, self.work / '.' / 'alias.png')
         (self.work / 'data-alias').symlink_to(self.root, target_is_directory=True)
         self.run_scene(self.doc, False, self.work / 'data-alias' / 'no.png')
+
+    def schema_document(self, saved):
+        doc = copy.deepcopy(self.doc)
+        if not saved:
+            doc['schema'] = 'sg3-diagnostic-scene-v1'
+            del doc['save'], doc['registration']
+            doc['layers'][0] = {'id': 1, 'component': 'full', 'centre': [150, 100]}
+        return doc
+
+    def test_fresh_case_and_unicode_outputs_follow_filesystem_identity(self):
+        pairs = [('Scene.PNG', 'scene.png'), ('Caf\u00e9.png', 'Cafe\u0301.png')]
+        original = {name: (self.root / name).read_bytes() for name in ('own.sav', 'own.sg3', 'own.555')}
+        for saved in (False, True):
+            for first, second in pairs:
+                prefix = str(saved) + '-'
+                output, producer = self.work / (prefix + first), self.work / (prefix + second)
+                output.write_bytes(b'filesystem-probe')
+                equivalent = producer.exists() and output.samefile(producer)
+                output.unlink()
+                with self.subTest(saved=saved, first=first, equivalent=equivalent):
+                    self.run_scene(self.schema_document(saved), not equivalent, output, producer)
+                    self.assertEqual({name: (self.root / name).read_bytes() for name in original}, original)
+
+    def test_distinct_case_unicode_targets_keep_png_and_producer(self):
+        for saved in (False, True):
+            for first, second in [('Scene.PNG', 'scene.u16le'), ('Caf\u00e9.png', 'Cafe\u0301.u16le')]:
+                prefix = str(saved) + '-'
+                self.run_scene(self.schema_document(saved), True,
+                               self.work / (prefix + first), self.work / (prefix + second))
+
+    def test_existing_case_unicode_alias_payloads_are_preserved(self):
+        for saved in (False, True):
+            for index, (first, second) in enumerate([('Scene.PNG', 'scene.png'), ('Caf\u00e9.png', 'Cafe\u0301.png')]):
+                prefix = str(saved) + '-existing-'
+                old = self.work / (prefix + first)
+                alias = self.work / (prefix + second)
+                sentinel = b'preserved-existing-input'
+                old.write_bytes(sentinel)
+                equivalent = alias.exists() and old.samefile(alias)
+                output = self.work / ('fresh-%s-%d.png' % (saved, index))
+                self.run_scene(self.schema_document(saved), not equivalent, output, alias)
+                self.assertEqual(old.read_bytes(), sentinel)
+
+    def test_case_unicode_data_root_aliases_refuse_writes(self):
+        for saved in (False, True):
+            for first, second in [('CaseData', 'casedata'), ('Caf\u00e9Data', 'Cafe\u0301Data')]:
+                prefix = str(saved) + '-'
+                moved = self.work / (prefix + first)
+                self.root.rename(moved)
+                self.root = moved
+                alias = self.work / (prefix + second)
+                if not alias.exists():
+                    alias.mkdir()  # distinct filesystem spelling is outside root
+                equivalent = alias.samefile(self.root)
+                output = alias / 'no-write.png'
+                producer = self.work / ('root-alias-%d.u16le' % self.serial)
+                if equivalent:
+                    self.run_scene(self.schema_document(saved), False, output, producer)
+                    self.assertFalse(output.exists())
+                else:
+                    self.run_scene(self.schema_document(saved), True, output, producer)
 
     def test_crop_origin_uses_declared_active_coordinates(self):
         doc = copy.deepcopy(self.doc)

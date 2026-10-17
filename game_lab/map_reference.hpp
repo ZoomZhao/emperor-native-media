@@ -50,9 +50,27 @@ DecodedImage decodeSG3DiagnosticComponent(const SG3Archive&,size_t logicalIndex,
     const std::string& internal555,SG3DiagnosticComponent);
 SG3DiagnosticResult renderSG3DiagnosticScene(const SG3Archive&,const std::string& internal555,
     const SG3DiagnosticScene&);
-// Validate the complete output set before any writer runs. Resolve actual parent
+// Path-only preflight; fresh filesystem-equivalent leaves require the exclusive
+// reservation below. Resolve actual parent
 // directories first (including symlinks and dot segments), then compare targets
 // and existing-file identities. Returns normalized fresh paths; never writes.
 std::vector<std::string> freshReferenceOutputs(const std::string& dataRoot,
     const std::vector<std::string>& requested);
+// Reserve every destination with openat(O_CREAT|O_EXCL|O_NOFOLLOW) before any
+// payload writer runs. Kernel filesystem identity handles case/Unicode aliases.
+// Writers use held file descriptors only; failure removes only owned fresh files.
+class ExclusiveReferenceOutputs {
+public:
+    ExclusiveReferenceOutputs(const std::string& dataRoot,const std::vector<std::string>& requested);
+    ~ExclusiveReferenceOutputs();
+    ExclusiveReferenceOutputs(const ExclusiveReferenceOutputs&)=delete;
+    ExclusiveReferenceOutputs& operator=(const ExclusiveReferenceOutputs&)=delete;
+    void write(size_t index,const uint8_t* bytes,size_t count);
+    void commit();
+private:
+    struct File { std::string leaf; int parent=-1,fd=-1; uint64_t device=0,inode=0; };
+    std::vector<File> files_;
+    bool committed_=false;
+    void cleanup() noexcept;
+};
 }

@@ -26,9 +26,17 @@
 namespace {
 long long integer(const std::string&s){size_t n=0;auto v=std::stoll(s,&n,10);if(n!=s.size())throw std::runtime_error("whole integer required");return v;}
 double real(const std::string&s){size_t n=0;auto v=std::stod(s,&n);if(n!=s.size())throw std::runtime_error("whole number required");return v;}
-void savePNG(const std::string&path,const std::string&root,CGImageRef image){
-    const auto target=game_lab::freshReferenceOutputs(root,{path}).front();
-    NSURL*url=[NSURL fileURLWithPath:[NSString stringWithUTF8String:target.c_str()]];CGImageDestinationRef d=CGImageDestinationCreateWithURL((__bridge CFURLRef)url,CFSTR("public.png"),1,nullptr);if(!d)throw std::runtime_error("PNG destination failed");CGImageDestinationAddImage(d,image,nullptr);bool good=CGImageDestinationFinalize(d);CFRelease(d);if(!good)throw std::runtime_error("PNG finalization failed");
+void writePNG(game_lab::ExclusiveReferenceOutputs& outputs,size_t index,CGImageRef image) {
+    NSMutableData* bytes=[NSMutableData data];
+    CGImageDestinationRef destination=CGImageDestinationCreateWithData((__bridge CFMutableDataRef)bytes,CFSTR("public.png"),1,nullptr);
+    if(!destination)throw std::runtime_error("PNG destination failed");
+    CGImageDestinationAddImage(destination,image,nullptr);
+    const bool good=CGImageDestinationFinalize(destination);CFRelease(destination);
+    if(!good)throw std::runtime_error("PNG finalization failed");
+    outputs.write(index,static_cast<const uint8_t*>(bytes.bytes),bytes.length);
+}
+void savePNG(const std::string& path,const std::string& root,CGImageRef image) {
+    game_lab::ExclusiveReferenceOutputs outputs(root,{path});writePNG(outputs,0,image);outputs.commit();
 }
 long long jsonInteger(id value,long long low,long long high) {
     if(![value isKindOfClass:[NSNumber class]] || CFGetTypeID((__bridge CFTypeRef)value)==CFBooleanGetTypeID())throw std::runtime_error("scene integer required");
@@ -53,9 +61,6 @@ int diagnosticScene(const std::map<std::string,std::string>& args,bool show) {
     std::vector<std::string> requested;
     if(args.count("--output"))requested.push_back(args.at("--output"));
     if(args.count("--producer-output"))requested.push_back(args.at("--producer-output"));
-    const auto outputs=game_lab::freshReferenceOutputs(root.configuredDirectory(),requested);
-    const std::string pngOutput=args.count("--output")?outputs.front():std::string{};
-    const std::string producerOutput=args.count("--producer-output")?outputs.back():std::string{};
     auto path=std::filesystem::path(args.at("--scene-manifest"));if(!path.is_absolute()||std::filesystem::file_size(path)>65536)throw std::runtime_error("bounded absolute scene manifest required");
     NSData* data=[NSData dataWithContentsOfFile:[NSString stringWithUTF8String:path.c_str()]];
     NSError* error=nil;id object=data?[NSJSONSerialization JSONObjectWithData:data options:0 error:&error]:nil;
@@ -105,12 +110,17 @@ int diagnosticScene(const std::map<std::string,std::string>& args,bool show) {
     auto archive=game_lab::loadSG3(archivePath);auto internal=std::filesystem::path(archivePath);internal.replace_extension(".555");
     auto rendered=game_lab::renderSG3DiagnosticScene(archive,internal.string(),scene);if(!rendered.image.valid())throw std::runtime_error("diagnostic source/scene refused;no fallback image");
     CGImageRef cg=game_lab::createCGImageFromPremultipliedBGRA(scene.width,scene.height,rendered.image.pixelsBGRA);if(!cg)throw std::runtime_error("scene CGImage failed");
-    if(!pngOutput.empty())savePNG(pngOutput,root.configuredDirectory(),cg);
-    if(!producerOutput.empty()) {
-        std::ofstream file(producerOutput,std::ios::binary);
-        for(auto producer:rendered.producer){const char bytes[]={char(producer),char(producer>>8)};file.write(bytes,2);}
-        file.close();if(!file)throw std::runtime_error("producer output failed");
+    game_lab::ExclusiveReferenceOutputs outputs(root.configuredDirectory(),requested);
+    if(args.count("--output"))writePNG(outputs,0,cg);
+    if(args.count("--producer-output")) {
+        std::array<uint8_t,8192> bytes{};
+        for(size_t offset=0;offset<rendered.producer.size();offset+=bytes.size()/2) {
+            const auto count=std::min(bytes.size()/2,rendered.producer.size()-offset);
+            for(size_t p=0;p<count;++p){const auto value=rendered.producer[offset+p];bytes[2*p]=uint8_t(value);bytes[2*p+1]=uint8_t(value>>8);}
+            outputs.write(args.count("--output")?1:0,bytes.data(),2*count);
+        }
     }
+    outputs.commit();
     std::cout<<"{\"sav_coordinates\":"<<(savedCells?"true":"false")<<",\"validated_sav_cells\":"<<(savedCells?scene.layers.size():0)<<",\"selector_status\":\"unsupported\",\"diagnostic_scene\":true,\"native_image_created\":true,\"screenshot_inputs\":0,\"source_rule_confirmed\":false,\"decoded_layers\":"<<rendered.decodedLayers<<",\"covered\":"<<rendered.coveredPixels<<",\"unknown\":"<<rendered.image.pixelsBGRA.size()-rendered.coveredPixels<<",\"denominator\":"<<rendered.image.pixelsBGRA.size()<<",\"visible_per_layer\":[";
     for(size_t i=0;i<rendered.visiblePerLayer.size();++i){if(i)std::cout<<',';std::cout<<rendered.visiblePerLayer[i];}std::cout<<"]}\n"<<std::flush;
     if(!show){CGImageRelease(cg);return 0;}

@@ -102,6 +102,51 @@ void outputPathTests(const std::filesystem::path& root) {
  refuses({(root/"data-link"/"no-write.png").string(),producer.string()},"inside data root");
  need(!fs::exists(data/"no-write.png")&&!fs::exists(producer),"protected root remains read-only through parent alias");
 }
+void exclusiveOutputTests(const std::filesystem::path& root) {
+ namespace fs=std::filesystem;using game_lab::ExclusiveReferenceOutputs;
+ const auto data=root/"exclusive-data",out=root/"exclusive-out";fs::create_directories(data);fs::create_directories(out);
+ auto read=[](const fs::path& path){std::ifstream file(path,std::ios::binary);return Bytes((std::istreambuf_iterator<char>(file)),std::istreambuf_iterator<char>());};
+ const Bytes png={137,80,78,71,13,10,26,10},producer={1,0,2,0};
+ const auto a=out/"normal.png",b=out/"normal.u16le";
+ {ExclusiveReferenceOutputs files(data.string(),{a.string(),b.string()});files.write(0,png.data(),png.size());files.write(1,producer.data(),producer.size());files.commit();}
+ need(read(a)==png&&read(b)==producer,"different reserved targets retain separate committed payloads");
+ const auto abandoned=out/"abandoned.png",abandoned2=out/"abandoned.u16le";
+ {ExclusiveReferenceOutputs files(data.string(),{abandoned.string(),abandoned2.string()});files.write(0,png.data(),png.size());}
+ need(!fs::exists(abandoned)&&!fs::exists(abandoned2),"uncommitted owned fresh outputs roll back together");
+ try{ExclusiveReferenceOutputs files(data.string(),{abandoned.string(),abandoned2.string()});files.write(0,png.data(),png.size());files.write(9,nullptr,0);}catch(const std::exception&){}
+ need(!fs::exists(abandoned)&&!fs::exists(abandoned2),"writer failure leaves no partial PNG or producer");
+ const std::vector<std::pair<std::string,std::string>> aliases={{"Scene.PNG","scene.png"},{u8"Caf\u00e9.png",u8"Cafe\u0301.png"}};
+ for(size_t n=0;n<aliases.size();++n) {
+     const auto& names=aliases[n];const auto first=out/names.first,second=out/names.second;
+     write(first,png);const bool same=fs::exists(second)&&fs::equivalent(first,second);fs::remove(first);
+     bool refused=false;
+     try{ExclusiveReferenceOutputs files(data.string(),{first.string(),second.string()});files.write(0,png.data(),png.size());files.write(1,producer.data(),producer.size());files.commit();}catch(const std::exception&){refused=true;}
+     need(refused==same,"kernel filesystem semantics decide fresh case/Unicode aliases without text folding");
+     if(same)need(!fs::exists(first)&&!fs::exists(second),"fresh filesystem alias refuses before payloads and rolls back reservation");
+     else {need(read(first)==png&&read(second)==producer,"filesystem-distinct spellings remain valid outputs");fs::remove(first);fs::remove(second);}
+     const auto sentinel=Bytes{17,23,41,59};write(first,sentinel);
+     refused=false;try{ExclusiveReferenceOutputs files(data.string(),{abandoned.string(),second.string()});}catch(const std::exception&){refused=true;}
+     if(same)need(refused&&!fs::exists(abandoned)&&read(first)==sentinel,"pre-existing case/Unicode alias is never truncated");
+     else need(!refused&&read(first)==sentinel,"distinct spelling leaves existing unrelated file unchanged");
+     fs::remove(first);
+ }
+ for(const auto& names:std::vector<std::pair<std::string,std::string>>{{"CaseData","casedata"},{u8"Caf\u00e9Data",u8"Cafe\u0301Data"}}) {
+     const auto owned=root/names.first,alias=root/names.second;fs::create_directory(owned);
+     if(!fs::exists(alias))fs::create_directory(alias);
+     const bool same=fs::equivalent(owned,alias);bool refused=false;
+     try{ExclusiveReferenceOutputs files(owned.string(),{(alias/"no-write.png").string()});}catch(const std::exception&){refused=true;}
+     need(refused==same&&!fs::exists(alias/"no-write.png"),"data-root directory identities protect case/Unicode aliases under actual filesystem semantics");
+ }
+ const auto protectedInput=data/"input.bin",replaced=out/"replaced.png",other=out/"replaced.u16le";const Bytes sentinel={19,31,43};write(protectedInput,sentinel);
+ bool identityRefused=false;
+ {ExclusiveReferenceOutputs files(data.string(),{replaced.string(),other.string()});
+  fs::remove(replaced);fs::create_hard_link(protectedInput,replaced);
+  files.write(0,png.data(),png.size()); // held descriptor writes only its unlinked fresh inode
+  try{files.commit();}catch(const std::exception&){identityRefused=true;}}
+ need(identityRefused,"output-name replacement refuses final commit");
+ need(read(protectedInput)==sentinel&&read(replaced)==sentinel,"held descriptor cannot truncate a replacement input inode");
+ need(fs::exists(replaced)&&!fs::exists(other),"rollback preserves replacement entry and removes only the other owned fresh file");
+}
 int main(){try{
  for(unsigned width:{1u,2u,4u}){auto b=body(512+51984u*width);const uint32_t maximum=width==4?UINT32_MAX:(1u<<(8*width))-1;put(b,512+227*width,maximum,width);put(b,512+228*width,maximum-1,width);put(b,512+51983*width,maximum-2,width);auto l=game_lab::parseOriginalMapRawLayer(b,{512,width});need(l&&l->valid()&&l->values[227]==maximum&&l->values[228]==maximum-1&&l->values.back()==maximum-2,"raw unsigned LE row boundaries/end");b.pop_back();need(!game_lab::parseOriginalMapRawLayer(b,{512,width}),"raw final byte truncation");}
  auto b=body(512+51984*4);need(!game_lab::parseOriginalMapRawLayer(b,{512,3}),"unsupported raw width");need(!game_lab::parseOriginalMapRawLayer(b,{std::numeric_limits<size_t>::max(),4}),"offset overflow before allocation");b[0]=2;need(!game_lab::parseOriginalMapRawLayer(b,{512,4}),"unsupported role");b[0]=5;put(b,84,0);need(!game_lab::parseOriginalMapRawLayer(b,{512,4}),"invalid side");
@@ -118,5 +163,6 @@ int main(){try{
  diagnosticSceneTests(root);
  registeredCellTests();
  outputPathTests(root);
+ exclusiveOutputTests(root);
  std::filesystem::remove_all(root);std::cout<<"{\"passed\":true,\"assertions\":"<<checks<<",\"original_data\":false}\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}}
