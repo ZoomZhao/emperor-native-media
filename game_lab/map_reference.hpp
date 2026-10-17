@@ -1,6 +1,10 @@
 #pragma once
 #include "original_map.hpp"
+#include "original_ground.hpp"
 #include <cstdint>
+#include <string>
+#include <utility>
+#include <vector>
 namespace game_lab {
 struct MapReferenceStats {
     size_t activeCells=0,validIDs=0,geometrySupported=0,outsideArchive=0,unknownGeometry=0,culled=0,
@@ -15,6 +19,18 @@ struct MapReferenceResult {
 // captured coordinates, per-cell overrides, or pixels from an original screenshot.
 MapReferenceResult renderMapReferenceViewport(const OriginalMapTerrain&,const OriginalMapRawLayer&,
     const SG3Archive&,const std::string& internal555,int64_t idBase,const OriginalMapCamera&);
+
+struct MapGroundStats {
+    size_t activeCells=0,knownCells=0,unknownCells=0,noGroundCells=0,blockCells=0,unresolvedCodes=0,
+           geometrySupported=0,culled=0,visibleCells=0,drawnCells=0,decodeFailures=0,
+           uniqueDecoded=0,cacheBytes=0;
+    std::vector<std::pair<std::string,size_t>> branchCells;
+};
+struct MapGroundResult { DecodedImage image; MapGroundStats stats; bool experimental=true; };
+// Engine selector: the ground code per cell comes from selectGroundTileCode, not
+// from a caller-supplied raw byte/base. Random variants come from the MAP random grid.
+MapGroundResult renderMapGroundViewport(const OriginalMapTerrain&, const std::vector<uint8_t>& randomGrid,
+    const SG3Archive&, const std::string& internal555, const OriginalMapCamera&);
 
 enum class SG3DiagnosticComponent { Full, Top };
 struct SG3DiagnosticLayer {

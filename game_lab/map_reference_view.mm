@@ -130,11 +130,39 @@ int diagnosticScene(const std::map<std::string,std::string>& args,bool show) {
     NSTextField*label=[NSTextField wrappingLabelWithString:@"Explicit SG3 hypotheses; transparent pixels are unknown. No screenshot background; no MAP/SAV automatic selector."];label.frame=NSMakeRect(8,h+4,w-16,46);label.font=[NSFont systemFontOfSize:11];[window.contentView addSubview:label];
     ReferenceImageView*view=[[ReferenceImageView alloc]initWithFrame:NSMakeRect(0,0,w,h)];view.candidate=[[NSImage alloc]initWithCGImage:cg size:NSMakeSize(w,h)];[window.contentView addSubview:view];CGImageRelease(cg);[window makeKeyAndOrderFront:nil];[NSApp activateIgnoringOtherApps:YES];[NSApp run];return 0;
 }
+int groundSelectorView(const std::map<std::string,std::string>& args,bool show) {
+    for(const auto&[key,value]:args){(void)value;if(key!="--data-root"&&key!="--map"&&key!="--sg3"&&key!="--camera-x"&&key!="--camera-y"&&key!="--width"&&key!="--height"&&key!="--scale"&&key!="--output")throw std::runtime_error("ground selector mode only accepts root/map/archive/camera/size/output");}
+    for(const auto&k:{"--data-root","--map","--sg3","--camera-x","--camera-y","--width","--height","--scale"})if(!args.count(k))throw std::runtime_error("ground selector needs data root/map/archive/camera/size");
+    auto root=game_lab::ResourceRoot::fromAbsolute(args.at("--data-root"));if(!root.configured())throw std::runtime_error("existing absolute data root required");
+    const auto vw=integer(args.at("--width")),vh=integer(args.at("--height")),scale=integer(args.at("--scale"));
+    if(vw<1||vw>2048||vh<1||vh>2048||scale<1||scale>4)throw std::runtime_error("camera integer bounds");
+    const auto mapPath=root.resolve(args.at("--map")),archivePath=root.resolve(args.at("--sg3"));if(mapPath.empty()||archivePath.empty())throw std::runtime_error("relative map/archive path outside root or missing");
+    // loadOriginalMapTerrain already runs decodeOriginalMapContainer +
+    // parseOriginalMapPayload, which publishes the per-cell layers the selector needs.
+    auto map=game_lab::loadOriginalMapTerrain(mapPath);
+    if(map.status!=game_lab::OriginalMapStatus::LoadedTerrain||!map.cellLayers||!map.cellLayers->valid())throw std::runtime_error("complete MAP terrain and cell layers required");
+    auto archive=game_lab::loadSG3(archivePath);if(!archive.numImages||archive.numImages!=archive.sprites.size())throw std::runtime_error("empty or invalid SG3 archive");
+    auto internal=std::filesystem::path(archivePath);internal.replace_extension(".555");
+    game_lab::OriginalMapCamera camera;camera.centerX=real(args.at("--camera-x"));camera.centerY=real(args.at("--camera-y"));camera.width=uint32_t(vw);camera.height=uint32_t(vh);camera.scale=uint32_t(scale);camera.outlines=false;
+    const auto rendered=game_lab::renderMapGroundViewport(map.terrain,map.cellLayers->mapperRandom,archive,internal.string(),camera);if(!rendered.image.valid())throw std::runtime_error("experimental ground selector viewport rejected");
+    CGImageRef cg=game_lab::createCGImageFromPremultipliedBGRA(rendered.image.width,rendered.image.height,rendered.image.pixelsBGRA);if(!cg)throw std::runtime_error("CGImage failed");
+    const auto&s=rendered.stats;size_t plainIndex=0;const bool plainResolved=game_lab::resolveGroundTileCode(archive,0x603u,plainIndex);
+    std::cout<<"{\"selector\":\"original-exe-dispatch-chain\",\"experimental\":true,\"cell_fields\":\"MAP terrain flags + mapperRandom\",\"random_grid_cells\":"<<map.cellLayers->mapperRandom.size()<<",\"active_cells\":"<<s.activeCells<<",\"known_cells\":"<<s.knownCells<<",\"unknown_cells\":"<<s.unknownCells<<",\"no_ground_cells\":"<<s.noGroundCells<<",\"block_cells\":"<<s.blockCells<<",\"unresolved_codes\":"<<s.unresolvedCodes<<",\"geometry_supported_cells\":"<<s.geometrySupported<<",\"culled\":"<<s.culled<<",\"visible_cells\":"<<s.visibleCells<<",\"drawn_cells\":"<<s.drawnCells<<",\"decode_failures\":"<<s.decodeFailures<<",\"unique_decoded_IDs\":"<<s.uniqueDecoded<<",\"cache_bytes\":"<<s.cacheBytes<<",\"branch_cells\":[";
+    for(size_t i=0;i<s.branchCells.size();++i){if(i)std::cout<<',';std::cout<<"{\"branch\":\""<<s.branchCells[i].first<<"\",\"cells\":"<<s.branchCells[i].second<<"}";}
+    std::cout<<"]"<<",\"plain_land_code_0x603_archive_index\":"<<(plainResolved?std::to_string(plainIndex):std::string("null"))<<",\"plain_land_code_0x603_width\":"<<(plainResolved?int(archive.sprites[plainIndex].width):-1)<<",\"native_image_created\":true,\"pixel_width\":"<<vw<<",\"pixel_height\":"<<vh<<"}\n"<<std::flush;
+    if(args.count("--output"))savePNG(args.at("--output"),root.configuredDirectory(),cg);
+    if(!show){CGImageRelease(cg);return 0;}
+    [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];ReferenceDelegate*delegate=[ReferenceDelegate new];NSApp.delegate=delegate;
+    const CGFloat displayW=CGFloat(vw)/scale,displayH=CGFloat(vh)/scale;NSWindow*window=[[NSWindow alloc]initWithContentRect:NSMakeRect(80,80,displayW,displayH+54)styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable backing:NSBackingStoreBuffered defer:NO];window.title=@"EXPERIMENTAL — original ground dispatch chain — unverified";
+    NSTextField*label=[NSTextField wrappingLabelWithString:[NSString stringWithFormat:@"Original-dispatch ground selector · %@ · random grid %zu cells\n%zu drawn / %zu visible; known %zu, unknown %zu, unresolved %zu.",[NSString stringWithUTF8String:args.at("--sg3").c_str()],map.cellLayers->mapperRandom.size(),s.drawnCells,s.visibleCells,s.knownCells,s.unknownCells,s.unresolvedCodes]];label.frame=NSMakeRect(8,displayH+4,displayW-16,46);label.font=[NSFont systemFontOfSize:11];[window.contentView addSubview:label];
+    ReferenceImageView*view=[[ReferenceImageView alloc]initWithFrame:NSMakeRect(0,0,displayW,displayH)];view.candidate=[[NSImage alloc]initWithCGImage:cg size:NSMakeSize(displayW,displayH)];[window.contentView addSubview:view];CGImageRelease(cg);[window makeKeyAndOrderFront:nil];[NSApp activateIgnoringOtherApps:YES];[NSApp run];return 0;
+}
 }
 int main(int argc,char**argv){@autoreleasepool{try{
-    std::map<std::string,std::string> args;bool show=true;
-    for(int i=1;i<argc;++i){std::string key=argv[i];if(key=="--no-window"){show=false;continue;}if(key.rfind("--",0)!=0||i+1>=argc||args.count(key))throw std::runtime_error("unique named option/value required");args[key]=argv[++i];}
+    std::map<std::string,std::string> args;bool show=true;bool groundSelector=false;
+    for(int i=1;i<argc;++i){std::string key=argv[i];if(key=="--no-window"){show=false;continue;}if(key=="--ground-selector"){groundSelector=true;continue;}if(key.rfind("--",0)!=0||i+1>=argc||args.count(key))throw std::runtime_error("unique named option/value required");args[key]=argv[++i];}
     if(args.count("--scene-manifest"))return diagnosticScene(args,show);
+    if(groundSelector)return groundSelectorView(args,show);
     for(const auto&k:{"--data-root","--map","--raw-offset","--raw-width","--sg3","--id-base","--camera-x","--camera-y","--width","--height","--scale"})if(!args.count(k))throw std::runtime_error("all raw/archive/base/camera options must be explicit");
     for(const auto&[k,v]:args){(void)v;if(k!="--data-root"&&k!="--map"&&k!="--raw-offset"&&k!="--raw-width"&&k!="--sg3"&&k!="--id-base"&&k!="--camera-x"&&k!="--camera-y"&&k!="--width"&&k!="--height"&&k!="--scale"&&k!="--output")throw std::runtime_error("unknown option");}
     auto root=game_lab::ResourceRoot::fromAbsolute(args["--data-root"]);if(!root.configured())throw std::runtime_error("existing absolute data root required");

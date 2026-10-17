@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <map>
 #include <unordered_map>
 #include <filesystem>
 #include <stdexcept>
@@ -60,6 +61,75 @@ MapReferenceResult renderMapReferenceViewport(const OriginalMapTerrain& terrain,
                 }
             }
         }
+        return result;
+    }catch(const std::bad_alloc&){return {};}
+}
+MapGroundResult renderMapGroundViewport(const OriginalMapTerrain& terrain,const std::vector<uint8_t>& randomGrid,
+        const SG3Archive& archive,const std::string& internal555,const OriginalMapCamera& camera) {
+    MapGroundResult result;const auto activity=analyzeOriginalMap(terrain);size_t pixels=0;
+    if(!terrain.valid()||randomGrid.size()!=OriginalMapCellLayers::cells||!activity.cropValid()||
+       !std::isfinite(camera.centerX)||!std::isfinite(camera.centerY)||camera.centerX<0||camera.centerY<0||
+       camera.centerX>=activity.cropSide||camera.centerY>=activity.cropSide||camera.scale<1||camera.scale>4||
+       camera.width>2048||camera.height>2048||!imagePixelCount(camera.width,camera.height,pixels)||pixels>2048u*2048u||
+       !archive.numImages||archive.numImages!=archive.sprites.size())return result;
+    try {
+        result.image.width=camera.width;result.image.height=camera.height;result.image.pixelsBGRA.assign(pixels,0);
+        std::unordered_map<size_t,DecodedImage> cache;const int scale=int(camera.scale);
+        std::map<std::string,size_t> branches;
+        // Same authored flat diagnostic painter order as renderMapReferenceViewport.
+        for(uint32_t depth=0;depth<2*activity.cropSide-1;++depth)for(uint32_t x=0;x<activity.cropSide;++x) {
+            if(depth<x||depth-x>=activity.cropSide)continue;const uint32_t y=depth-x;
+            const size_t cell=size_t(y+activity.cropOrigin)*OriginalMapTerrain::storageSide+x+activity.cropOrigin;
+            if(terrain.flags[cell]&0x80000u)continue;++result.stats.activeCells;
+            // The engine chain reads the runtime terrain flags, the per-cell random
+            // byte and the 8 surrounding terrain cells; all three come straight
+            // from the parsed MAP bytes.
+            const auto selection=selectGroundTileCode(groundCodeRequest(terrain.flags,randomGrid,cell));
+            ++branches[selection.branch];
+            // A determinate no-ground cell is a distinct outcome: the chain ran but
+            // no setter wrote 0x00FE9880, so it is counted apart from unknownCells.
+            if(selection.noGround){++result.stats.noGroundCells;continue;}
+            if(!selection.known){++result.stats.unknownCells;continue;}
+            ++result.stats.knownCells;
+            if(selection.block)++result.stats.blockCells;
+            size_t index=0;
+            // unresolvedCodes keeps no-slot and no-supported-geometry cells visible;
+            // MapGroundStats deliberately exposes no second geometry-failure counter.
+            // The setter's variant offsets the resolved record in id space; code
+            // stays the pure base code.
+            if(!resolveGroundTileCode(archive,selection.code,selection.variant,index)){++result.stats.unresolvedCodes;continue;}
+            const auto geometry=sg3SingleCellGeometry(archive,index);
+            if(!geometry||geometry->height>4096){++result.stats.unresolvedCodes;continue;}
+            ++result.stats.geometrySupported;
+            const double dx=double(x)-camera.centerX,dy=double(y)-camera.centerY;
+            const double px=(dx-dy)*40*scale+double(camera.width)/2,py=(dx+dy)*20*scale+double(camera.height)/2;
+            const int left=int(std::floor(px+.5))-39*scale,top=int(std::floor(py+.5))-(int(geometry->height)-20)*scale;
+            if(left>=int(camera.width)||top>=int(camera.height)||left+78*scale<=0||top+int(geometry->height)*scale<=0){++result.stats.culled;continue;}
+            ++result.stats.visibleCells;
+            auto found=cache.find(index);
+            if(found==cache.end()) {
+                auto decoded=decodeSG3Sprite(archive,index,internal555);
+                if(!decoded.image.valid()){++result.stats.decodeFailures;continue;}
+                const size_t bytes=decoded.image.pixelsBGRA.size()*4;
+                if(bytes>64u*1024u*1024u-result.stats.cacheBytes){result.image={};return result;}
+                result.stats.cacheBytes+=bytes;found=cache.emplace(index,std::move(decoded.image)).first;++result.stats.uniqueDecoded;
+            }
+            const auto& image=found->second;++result.stats.drawnCells;
+            for(uint32_t row=0;row<image.height;++row)for(uint32_t col=0;col<image.width;++col) {
+                const uint32_t source=image.pixelsBGRA[size_t(row)*image.width+col];const uint32_t alpha=source>>24;if(!alpha)continue;
+                for(int sy=0;sy<scale;++sy)for(int sx=0;sx<scale;++sx) {
+                    const int xx=left+int(col)*scale+sx,yy=top+int(row)*scale+sy;
+                    if(xx<0||yy<0||xx>=int(camera.width)||yy>=int(camera.height))continue;
+                    auto& target=result.image.pixelsBGRA[size_t(yy)*camera.width+size_t(xx)];
+                    if(alpha==255){target=source;continue;}
+                    uint32_t mixed=0;for(unsigned shift:{0u,8u,16u,24u}) {
+                        const uint32_t src=(source>>shift)&255,dst=(target>>shift)&255;
+                        mixed|=(src+(dst*(255-alpha)+127)/255)<<shift;
+                    }target=mixed;
+                }
+            }
+        }
+        result.stats.branchCells.assign(branches.begin(),branches.end());
         return result;
     }catch(const std::bad_alloc&){return {};}
 }
