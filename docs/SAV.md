@@ -132,3 +132,32 @@ The first normal load briefly progressed from April to May599BCE before its init
 All **13/13 pre-existing SAV files** and **210/210 pre-existing MAP/campaign files** in the active installation remain unchanged; those denominators include earlier trial files. The only observed pre-existing file change is `Save/zoom.dat`, whose byte semantics remain unparsed. Exactly four new test slots were created. The original exited through its normal confirmation; all **7/7 recorded task processes** and their descendants are absent, with **0** remaining and no forced termination or broad Wine kill. Captures, original data, local exact evidence copies and verification code remain outside Git.
 
 Independent acceptance reports **P1=0/P2=0**, with the original verifier and independent recomputation agreeing. This is a measured snapshot/coordinate control, not a new graphics parser or authored-gameplay substitute. **SAV image-field correspondence remains0/1; complete same-city MAP→SG3 scenes remain0/167.** The next useful evidence is still a documented persisted image/layer contract; no further original-game trial follows from this result.
+
+## Complete aligned SAV change accounting
+
+The existing field checker now also supports an explicit pair of SAVs without a MAP identity assumption. This closes an unmeasured comparison boundary: previously only six known arrays were compared, not the remaining decoded bytes. It does not identify a graphics field. The new mode reuses the same bounded SAV framing, unique structural anchor selection, canonical cell validation, root containment and stable two-read/final-recheck functions; no duplicate raw-field exporter or selector is added.
+
+The pinned public mapper's [SAV read/skip lengths](https://github.com/bvschaik/citybuilding-mappers/blob/bb97d7c7edf7c6608d5e9d3d6d5b63ba3686cda6/emperorfile.cpp#L137-L151) define twelve consecutive spans beginning at terrain. The existing size/terrain anchors delimit two preceding regions; the remaining tail is a fifteenth region. Each byte belongs to exactly one region. Skipped int/table/fertility/grid sections keep opaque labels: no interior grid reshape, new per-cell interpretation, image namespace or semantic meaning is inferred. Exact aligned-byte comparison requires identical declared side, both anchor offsets and decoded length; changed layouts return unsupported comparison rather than a padded or fitted alignment.
+
+The existing manual `1.sav`/`2.sav` pair supplies **1/1 complete comparison**, baseline unmeasured. All **4,430,995/4,430,995** decoded byte positions are checked, including bytes outside the six known arrays. The **11/11** changed bytes are fully accounted for:
+
+| Public structural scope | Changed bytes / bytes in that scope |
+|---|---:|
+| Opaque prefix before the size anchor | **8/2,006,889** |
+| Terrain | **1/207,936** |
+| Opaque 708,025-byte skipped table | **2/708,025** |
+| Other twelve regions combined | **0/1,508,145** |
+
+The six known arrays occupy779,760 bytes and contain1 changed byte; their complement contains **10/3,651,235 changed bytes**. The prior numerical result remains: only1/51,984 terrain value changes at active(60,64), storage(118,122), and the other five arrays preserve259,920/259,920 values. Therefore “only terrain changed” is valid only within those six arrays, not for the entire save. The other ten bytes are opaque differences, not evidence of another graphics grid or proof that terrain alone caused the appearance change. Their contents and positions remain private.
+
+The mode is replayable without screenshots or source-ID labels:
+
+```sh
+EMPEROR_GAMEDATA_ROOT=/absolute/owned/root python3 -B scripts/map_save_compare.py --snapshot-pair --manifest /absolute/private/snapshot-pair.json
+```
+
+The private manifest requires exactly `before`, `after` (relative paths beneath the environment root) and `target` (an integer active `[x,y]`). Caller-supplied layouts, labels, source IDs or offsets are refused. Output contains aggregate region/field counts and explicit `selector_status=unsupported`; it supplies no raw bytes, hashes, pointwise values or pixel data. Existing MAP-pair mode is unchanged. Both files remain byte-identical across the complete audit, **2/2**. A separate stdlib-only verifier independently decodes the original frames and confirms **15/15** regions and **11/11** changes, and recomputes the **6/6** unsigned-field comparison counts over **311,904/311,904** positions. Original UI operations remain0.
+
+Authored comparisons pass **24/24** (the prior13 plus11 byte-partition/pair regressions); existing SAV parsing remains16/16. Checks cover every region endpoint, opaque changes outside known fields, full unsigned arrays, alignment refusal, truncation, late checksum failure, invalid/extra manifest fields, target bounds/on-map flags, final source mutation and read-only CLI output. Unset/empty `EMPEROR_GAMEDATA_ROOT` succeeds with SKIP before reading arguments, files or importing NumPy, including the new mode. Synthetic checks add no original corpus or scene coverage.
+
+The independently reviewed new-scene SAV→screen origin remains unproved; the old Anyang registration cannot be transplanted. All currently used screenshot regions have participated in discovery,241/325 remain aliases, and near candidates remain inexact. No static key fitting or post-selected image is accepted as a rule or held-out result. The minimum new observation is a provenance-matched paused save/capture bracket with independent coordinate anchors A/B in the same view (an asymmetric displacement that distinguishes the frozen orientations), followed by an untouched selector cell C. Freeze pairing, supported field/namespace contract, geometry and prediction before revealing C. A public persisted-image/selection contract is still needed to make that prediction; absent it, the selector remains unsupported. These are missing evidence, not permission to operate the user's running game. Complete same-city MAP→SG3 scenes remain **0/167**.

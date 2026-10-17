@@ -187,5 +187,144 @@ class ComparisonTests(unittest.TestCase):
             self.assertTrue(json.loads(run.stdout)['skipped'])
 
 
+
+class SnapshotByteChangeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.a = fixture() + bytes(17)
+        data = bytearray(cls.a)
+        data[256 + 4 * (113 * 228 + 113)] ^= 64
+        data[20] ^= 1
+        data[256 + 675792 + 100] ^= 1
+        cls.b = bytes(data)
+        cls.before, cls.after = (parse_save(framed(v)) for v in (cls.a, cls.b))
+
+    def result(self):
+        return audit.compare_saved_bytes(self.before, self.after, [1, 1])
+
+    def test_complete_partition_uses_existing_field_boundaries(self):
+        regions = audit.saved_byte_partition(self.before)
+        self.assertEqual(regions[0][1], 0)
+        self.assertEqual(regions[-1][2], len(self.a))
+        self.assertTrue(all(a[2] == b[1] for a, b in zip(regions, regions[1:])))
+        self.assertEqual(sum(end - start for _, start, end in regions), len(self.a))
+        spans = {name: (start - 256, end - start) for name, start, end in regions}
+        for name, (_, offset, width) in audit.COMMON.items():
+            self.assertEqual(spans[name], (offset, width * 51984))
+        for name, (offset, width) in audit.SAVED_ONLY.items():
+            self.assertEqual(spans[name], (offset, width * 51984))
+
+    def test_unknown_byte_changes_survive_complete_accounting_without_semantics(self):
+        result = self.result()
+        self.assertEqual(result['changed_bytes'], 3)
+        self.assertEqual(result['accounted_changed_bytes'], 3)
+        self.assertEqual(result['six_field_changed_bytes'], 1)
+        self.assertEqual(result['outside_six_field_changed_bytes'], 2)
+        self.assertEqual(result['six_field_bytes'], 779760)
+        regions = {r['region']: r['changed_bytes'] for r in result['partition_regions']}
+        self.assertEqual(regions['opaque_prefix_before_size'], 1)
+        self.assertEqual(regions['opaque_table_skip'], 1)
+        self.assertEqual(result['selector_status'], 'unsupported')
+        self.assertFalse(result['graphics_field_counterpart_identified'])
+        self.assertFalse(result['absolute_screen_binding_verified'])
+        self.assertFalse(result['snapshot_instant_pairing_verified'])
+
+    def test_every_region_first_last_byte_is_counted_once(self):
+        from dataclasses import replace
+        positions = {p for _, start, end in audit.saved_byte_partition(self.before)
+                     for p in (start, end - 1) if start < end}
+        data = bytearray(self.a)
+        for position in positions:
+            data[position] ^= 1
+        result = audit.compare_saved_bytes(self.before, replace(self.before, payload=bytes(data)), [1, 1])
+        self.assertEqual(result['changed_bytes'], len(positions))
+        self.assertEqual(sum(r['changed_bytes'] for r in result['partition_regions']), len(positions))
+
+    def test_alignment_changes_refuse_without_search_or_padding(self):
+        from dataclasses import replace
+        for after in (replace(self.after, side=6), replace(self.after, size_offset=49),
+                      replace(self.after, terrain_offset=257), replace(self.after, payload=self.b + b'x')):
+            with self.assertRaisesRegex(ValueError, 'byte alignment'):
+                audit.compare_saved_bytes(self.before, after, [1, 1])
+
+    def test_complete_public_extents_and_anchor_order_required(self):
+        from dataclasses import replace
+        with self.assertRaisesRegex(ValueError, 'complete public'):
+            audit.saved_byte_partition(replace(self.before, payload=self.a[:256 + 2226670 - 1]))
+        with self.assertRaisesRegex(ValueError, 'ordered'):
+            audit.saved_byte_partition(replace(self.before, size_offset=257))
+
+    def test_full_unsigned_arrays_include_unselected_endpoint(self):
+        from dataclasses import replace
+        data = bytearray(self.b)
+        struct.pack_into('<I', data, 256 + 2018734 + 4 * 51983, 0xffffffff)
+        result = audit.compare_saved_bytes(self.before, replace(self.after, payload=bytes(data)), [1, 1])
+        self.assertEqual(result['six_fields']['objects']['equal_values'], 51983)
+        self.assertFalse(result['six_fields']['objects']['target_changed'])
+        self.assertTrue(result['only_target_terrain_value_changed'])
+
+    def test_integer_active_target_and_on_map_flag_required(self):
+        from dataclasses import replace
+        for point in ([-1, 0], [4, 0], [True, 0], [1.0, 1], [1]):
+            with self.assertRaises(ValueError):
+                audit.compare_saved_bytes(self.before, self.after, point)
+        data = bytearray(self.a)
+        struct.pack_into('<I', data, 256 + 4 * (113 * 228 + 113), 0x80080)
+        with self.assertRaisesRegex(ValueError, 'on-map'):
+            audit.compare_saved_bytes(replace(self.before, payload=bytes(data)), self.after, [1, 1])
+
+    def test_snapshot_manifest_rejects_labels_and_arbitrary_descriptors(self):
+        good = {'before': 'a', 'after': 'b', 'target': [1, 1]}
+        for manifest in ([], {}, dict(good, labels=[]), dict(good, offset=1535),
+                         dict(good, before='b'), dict(good, before=1)):
+            with self.assertRaises(ValueError):
+                audit.audit_snapshot_pair(Path('/unused'), manifest)
+
+    def test_final_pair_recheck_and_late_checksum_refusal(self):
+        manifest = {'before': 'a', 'after': 'b', 'target': [1, 1]}
+        a, b = framed(self.a), framed(self.b)
+        with patch.object(audit, 'stable_bytes', side_effect=[a, b, a + b'x']):
+            with self.assertRaisesRegex(ValueError, 'across complete audit'):
+                audit.audit_snapshot_pair(Path('/unused'), manifest)
+        bad = bytearray(b)
+        bad[-1] ^= 1
+        with patch.object(audit, 'stable_bytes', side_effect=[a, bytes(bad)]):
+            with self.assertRaisesRegex(ValueError, 'checksum'):
+                audit.audit_snapshot_pair(Path('/unused'), manifest)
+
+    def test_cli_pair_is_read_only_and_outputs_aggregates(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            a, b = root / 'a.sav', root / 'b.sav'
+            a.write_bytes(framed(self.a))
+            b.write_bytes(framed(self.b))
+            original = [p.read_bytes() for p in (a, b)]
+            manifest = root / 'manifest.json'
+            manifest.write_text(json.dumps({'before': a.name, 'after': b.name, 'target': [1, 1]}))
+            run = subprocess.run([sys.executable, '-B', str(Path(audit.__file__)), '--snapshot-pair',
+                                  '--manifest', str(manifest)],
+                                 env=dict(os.environ, EMPEROR_GAMEDATA_ROOT=str(root)),
+                                 capture_output=True, text=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            result = json.loads(run.stdout)
+            self.assertEqual(result['input_files_unchanged'], [2, 2])
+            self.assertEqual(result['selector_status'], 'unsupported')
+            self.assertEqual([p.read_bytes() for p in (a, b)], original)
+            for forbidden in ('"payload":', 'sha256', '"pixels":', 'a.sav', '4294967295'):
+                self.assertNotIn(forbidden, run.stdout)
+
+    def test_snapshot_pair_unset_empty_skips_with_no_numpy_or_manifest(self):
+        for value in (None, ''):
+            env = os.environ.copy()
+            env.pop('EMPEROR_GAMEDATA_ROOT', None)
+            if value is not None:
+                env['EMPEROR_GAMEDATA_ROOT'] = value
+            run = subprocess.run([sys.executable, '-S', '-B', str(Path(audit.__file__)),
+                                  '--snapshot-pair', '--manifest', '/missing'],
+                                 env=env, capture_output=True, text=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertTrue(json.loads(run.stdout)['skipped'])
+
+
 if __name__ == '__main__':
     unittest.main()

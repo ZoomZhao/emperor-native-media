@@ -182,6 +182,96 @@ def audit(root, manifest):
             'original_game_inputs': 0}
 
 
+# Published SAV read/skip lengths, pinned modern mapper lines137-151.
+# Skipped spans remain opaque; they are not new grid/image interpretations.
+SAV_BYTE_SPANS = (
+    ('terrain', 4 * CELLS), ('following_u32_unknown', 4 * CELLS),
+    ('random', CELLS), ('opaque_second_int_skip', 4 * CELLS),
+    ('opaque_table_skip', 708025), ('opaque_fertility_skip', CELLS),
+    ('opaque_grid_extra_skip', 75184), ('stone', CELLS),
+    ('opaque_int_extra_skip', 260027), ('fertile', CELLS),
+    ('opaque_before_objects_skip', 143754), ('objects', 4 * CELLS),
+)
+
+
+def saved_byte_partition(saved):
+    if not 0 <= saved.size_offset < saved.terrain_offset <= len(saved.payload):
+        raise ValueError('ordered SAV anchors required')
+    regions = [('opaque_prefix_before_size', 0, saved.size_offset),
+               ('opaque_size_to_terrain', saved.size_offset, saved.terrain_offset)]
+    position = saved.terrain_offset
+    for name, length in SAV_BYTE_SPANS:
+        end = position + length
+        if end > len(saved.payload):
+            raise ValueError('complete public read/skip spans required')
+        regions.append((name, position, end))
+        position = end
+    regions.append(('opaque_remaining_tail', position, len(saved.payload)))
+    return regions
+
+
+def compare_saved_bytes(before, after, target):
+    """Exact aligned-byte comparison; no padding, offset fitting or opaque decode."""
+    import numpy as np
+    if ((before.side, before.size_offset, before.terrain_offset, len(before.payload))
+            != (after.side, after.size_offset, after.terrain_offset, len(after.payload))):
+        raise ValueError('byte alignment requires identical side, anchors and decoded length')
+    centres, _ = sample_indices({'target': [target]}, before.side)['target']
+    y, x = centres[0]
+    regions = saved_byte_partition(before)
+    if regions != saved_byte_partition(after):
+        raise ValueError('structural byte partition differs')
+    changed = np.frombuffer(before.payload, 'u1') != np.frombuffer(after.payload, 'u1')
+    known = np.zeros(len(changed), dtype=bool)
+    descriptors = {name: (offset, width) for name, (_, offset, width) in COMMON.items()}
+    descriptors.update(SAVED_ONLY)
+    fields = {}
+    for name, (offset, width) in descriptors.items():
+        start = before.terrain_offset + offset
+        known[start:start + width * CELLS] = True
+        a, b = (grid(saved.payload, start, width) for saved in (before, after))
+        if name == 'terrain' and (int(a[y, x]) | int(b[y, x])) & 0x80000:
+            raise ValueError('target outside on-map terrain')
+        fields[name] = counts(a, b)
+        fields[name]['target_changed'] = bool(a[y, x] != b[y, x])
+    rows = [{'region': name, 'bytes': end - start,
+             'changed_bytes': int(changed[start:end].sum())} for name, start, end in regions]
+    total = int(changed.sum())
+    if (sum(row['bytes'] for row in rows) != len(changed)
+            or sum(row['changed_bytes'] for row in rows) != total):
+        raise ValueError('complete byte partition accounting failed')
+    return {'decoded_bytes_compared': len(changed), 'changed_bytes': total,
+            'accounted_changed_bytes': total, 'partition_regions': rows,
+            'six_field_bytes': int(known.sum()), 'six_field_changed_bytes': int(changed[known].sum()),
+            'outside_six_field_bytes': int((~known).sum()),
+            'outside_six_field_changed_bytes': int(changed[~known].sum()),
+            'six_fields': fields,
+            'only_target_terrain_value_changed': (fields['terrain']['equal_values'] == CELLS - 1
+                                                  and fields['terrain']['target_changed']),
+            'selector_status': 'unsupported', 'graphics_field_counterpart_identified': False,
+            'absolute_screen_binding_verified': False, 'snapshot_instant_pairing_verified': False,
+            'scope': 'aligned raw snapshot bytes only; opaque changes have no graphics or causal meaning',
+            'original_game_inputs': 0}
+
+
+def audit_snapshot_pair(root, manifest):
+    if not isinstance(manifest, dict) or set(manifest) != {'before', 'after', 'target'}:
+        raise ValueError('explicit before/after/target snapshot manifest required')
+    for name in ('before', 'after'):
+        if not isinstance(manifest[name], str) or not 0 < len(manifest[name]) <= 1024:
+            raise ValueError('bounded relative save name required')
+    if manifest['before'] == manifest['after']:
+        raise ValueError('two explicit save paths required')
+    originals = {name: stable_bytes(root, manifest[name]) for name in ('before', 'after')}
+    before, after = (parse_save(originals[name]) for name in ('before', 'after'))
+    result = compare_saved_bytes(before, after, manifest['target'])
+    for name, data in originals.items():
+        if stable_bytes(root, manifest[name]) != data:
+            raise ValueError('input changed across complete audit')
+    result['input_files_unchanged'] = [2, 2]
+    return result
+
+
 def main():
     env = os.environ.get('EMPEROR_GAMEDATA_ROOT')
     if not env:
@@ -189,6 +279,8 @@ def main():
         return 0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, required=True)
+    parser.add_argument('--snapshot-pair', action='store_true',
+                        help='compare two SAVs and all aligned decoded bytes; no MAP identity or selector inferred')
     args = parser.parse_args()
     root = Path(env)
     try:
@@ -196,7 +288,8 @@ def main():
             raise ValueError('existing absolute environment root required')
         if args.manifest.stat().st_size > 65536:
             raise ValueError('manifest budget')
-        result = audit(root.resolve(), json.loads(args.manifest.read_text()))
+        runner = audit_snapshot_pair if args.snapshot_pair else audit
+        result = runner(root.resolve(), json.loads(args.manifest.read_text()))
         print(json.dumps(result, ensure_ascii=False))
     except (ValueError, OSError, KeyError, TypeError) as error:
         print(str(error), file=__import__('sys').stderr)
