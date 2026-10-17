@@ -26,6 +26,16 @@ struct SG3DiagnosticScene {
     uint32_t width=0,height=0,scale=1;
     std::vector<SG3DiagnosticLayer> layers;
 };
+// Caller-declared integer active-cell to physical-pixel affine registration.
+// canvasOrigin is the physical-pixel top-left of the diagnostic canvas. The
+// registration is an explicit hypothesis, never recovered from SAV fields.
+struct SG3DiagnosticRegistration {
+    std::array<std::array<int64_t,3>,2> matrix{};
+    std::array<int64_t,2> canvasOrigin{};
+};
+// Validated crop/on-map cell only; no resource ID selection or elevation rule.
+std::optional<OriginalMapPoint> projectSG3DiagnosticCell(const OriginalMapTerrain&,
+    const SG3DiagnosticRegistration&,int64_t activeX,int64_t activeY);
 struct SG3DiagnosticResult {
     DecodedImage image;
     // Final natural-alpha producer: layer index+1, or0 for transparent/unknown.

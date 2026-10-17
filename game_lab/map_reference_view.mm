@@ -2,6 +2,7 @@
 #import <AppKit/AppKit.h>
 #import <ImageIO/ImageIO.h>
 #include "map_reference.hpp"
+#include "original_save.hpp"
 #include "cg_image_conversion.hpp"
 #include "resource_root.hpp"
 #include <filesystem>
@@ -37,6 +38,14 @@ long long jsonInteger(id value,long long low,long long high) {
 void keys(NSDictionary* value,NSArray* expected) {
     if(![[NSSet setWithArray:value.allKeys]isEqualToSet:[NSSet setWithArray:expected]])throw std::runtime_error("scene fields must be exact;no background/pixel input");
 }
+std::string sceneRelativePath(id value) {
+    if(![value isKindOfClass:[NSString class]])throw std::runtime_error("root-relative scene path required");
+    NSData* utf8=[value dataUsingEncoding:NSUTF8StringEncoding];
+    if(!utf8 || !utf8.length)return {};
+    // Preserve embedded NUL so ResourceRoot rejects it rather than accepting a
+    // truncated prefix through NSString's null-terminated UTF8String accessor.
+    return std::string(static_cast<const char*>(utf8.bytes),utf8.length);
+}
 int diagnosticScene(const std::map<std::string,std::string>& args,bool show) {
     for(const auto&[key,value]:args){(void)value;if(key!="--data-root"&&key!="--scene-manifest"&&key!="--output"&&key!="--producer-output")throw std::runtime_error("scene mode only accepts root/manifest/output");}
     if(!args.count("--data-root"))throw std::runtime_error("explicit data root required");
@@ -51,21 +60,47 @@ int diagnosticScene(const std::map<std::string,std::string>& args,bool show) {
     NSData* data=[NSData dataWithContentsOfFile:[NSString stringWithUTF8String:path.c_str()]];
     NSError* error=nil;id object=data?[NSJSONSerialization JSONObjectWithData:data options:0 error:&error]:nil;
     if(error||![object isKindOfClass:[NSDictionary class]])throw std::runtime_error("scene JSON dictionary required");
-    NSDictionary* doc=object;keys(doc,@[@"schema",@"diagnostic",@"archive",@"width",@"height",@"scale",@"layers"]);
+    NSDictionary* doc=object;
+    const bool savedCells=[doc[@"schema"]isEqual:@"sg3-diagnostic-sav-scene-v1"];
+    if(savedCells)keys(doc,@[@"schema",@"diagnostic",@"archive",@"width",@"height",@"scale",@"save",@"registration",@"layers"]);
+    else keys(doc,@[@"schema",@"diagnostic",@"archive",@"width",@"height",@"scale",@"layers"]);
     id diagnostic=doc[@"diagnostic"];
-    if(![doc[@"schema"]isEqual:@"sg3-diagnostic-scene-v1"]||![diagnostic isKindOfClass:[NSNumber class]]||CFGetTypeID((__bridge CFTypeRef)diagnostic)!=CFBooleanGetTypeID()||![diagnostic boolValue])throw std::runtime_error("explicit diagnostic schema required");
-    if(![doc[@"archive"]isKindOfClass:[NSString class]])throw std::runtime_error("relative SG3 archive required");
-    const auto archivePath=root.resolve([doc[@"archive"]UTF8String]);if(archivePath.empty())throw std::runtime_error("scene archive outside data root or missing");
+    if((!savedCells && ![doc[@"schema"]isEqual:@"sg3-diagnostic-scene-v1"])||![diagnostic isKindOfClass:[NSNumber class]]||CFGetTypeID((__bridge CFTypeRef)diagnostic)!=CFBooleanGetTypeID()||![diagnostic boolValue])throw std::runtime_error("explicit diagnostic schema required");
+    const auto archivePath=root.resolve(sceneRelativePath(doc[@"archive"]));if(archivePath.empty())throw std::runtime_error("scene archive outside data root or missing");
+    game_lab::OriginalSaveResult saved;
+    game_lab::SG3DiagnosticRegistration registration;
+    if(savedCells) {
+        const auto savePath=root.resolve(sceneRelativePath(doc[@"save"]));if(savePath.empty())throw std::runtime_error("scene SAV outside data root or missing");
+        saved=game_lab::loadOriginalSave(savePath);
+        if(saved.status!=game_lab::OriginalSaveStatus::LoadedSnapshot || !saved.readStable || !saved.layers.valid())throw std::runtime_error("complete stable SAV snapshot required");
+        id value=doc[@"registration"];if(![value isKindOfClass:[NSDictionary class]])throw std::runtime_error("registration dictionary required");
+        NSDictionary* reg=value;keys(reg,@[@"matrix",@"canvas_origin"]);
+        id matrix=reg[@"matrix"];if(![matrix isKindOfClass:[NSArray class]]||[matrix count]!=2)throw std::runtime_error("registration matrix needs2 rows");
+        for(size_t row=0;row<2;++row) {
+            id entries=matrix[row];if(![entries isKindOfClass:[NSArray class]]||[entries count]!=3)throw std::runtime_error("registration matrix needs3 columns");
+            for(size_t col=0;col<3;++col)registration.matrix[row][col]=jsonInteger(entries[col],col==2?-1000000:-4096,col==2?1000000:4096);
+        }
+        id origin=reg[@"canvas_origin"];if(![origin isKindOfClass:[NSArray class]]||[origin count]!=2)throw std::runtime_error("canvas origin needs2 integers");
+        for(size_t row=0;row<2;++row)registration.canvasOrigin[row]=jsonInteger(origin[row],-1000000,1000000);
+    }
     game_lab::SG3DiagnosticScene scene;scene.width=uint32_t(jsonInteger(doc[@"width"],1,2048));scene.height=uint32_t(jsonInteger(doc[@"height"],1,2048));scene.scale=uint32_t(jsonInteger(doc[@"scale"],1,4));
     id layers=doc[@"layers"];if(![layers isKindOfClass:[NSArray class]]||[layers count]<1||[layers count]>128)throw std::runtime_error("scene needs1..128 explicit layers");
     for(id item in layers) {
         if(![item isKindOfClass:[NSDictionary class]])throw std::runtime_error("layer dictionary required");
-        NSDictionary* layer=item;keys(layer,@[@"id",@"component",@"centre"]);
+        NSDictionary* layer=item;keys(layer,savedCells?@[@"id",@"component",@"cell"]:@[@"id",@"component",@"centre"]);
         game_lab::SG3DiagnosticLayer spec;spec.logicalID=uint32_t(jsonInteger(layer[@"id"],1,UINT32_MAX));
         id component=layer[@"component"];if([component isEqual:@"full"])spec.component=game_lab::SG3DiagnosticComponent::Full;
         else if([component isEqual:@"top"])spec.component=game_lab::SG3DiagnosticComponent::Top;else throw std::runtime_error("component must be full or natural top");
-        id centre=layer[@"centre"];if(![centre isKindOfClass:[NSArray class]]||[centre count]!=2)throw std::runtime_error("layer centre needs2 integers");
-        spec.centerX=double(jsonInteger(centre[0],-1000000,1000000));spec.centerY=double(jsonInteger(centre[1],-1000000,1000000));scene.layers.push_back(spec);
+        if(savedCells) {
+            id cell=layer[@"cell"];if(![cell isKindOfClass:[NSArray class]]||[cell count]!=2)throw std::runtime_error("layer cell needs2 integers");
+            const auto point=game_lab::projectSG3DiagnosticCell(saved.terrain,registration,jsonInteger(cell[0],0,227),jsonInteger(cell[1],0,227));
+            if(!point)throw std::runtime_error("unsupported registration or SAV cell outside active on-map crop");
+            spec.centerX=point->x;spec.centerY=point->y;
+        }else {
+            id centre=layer[@"centre"];if(![centre isKindOfClass:[NSArray class]]||[centre count]!=2)throw std::runtime_error("layer centre needs2 integers");
+            spec.centerX=double(jsonInteger(centre[0],-1000000,1000000));spec.centerY=double(jsonInteger(centre[1],-1000000,1000000));
+        }
+        scene.layers.push_back(spec);
     }
     auto archive=game_lab::loadSG3(archivePath);auto internal=std::filesystem::path(archivePath);internal.replace_extension(".555");
     auto rendered=game_lab::renderSG3DiagnosticScene(archive,internal.string(),scene);if(!rendered.image.valid())throw std::runtime_error("diagnostic source/scene refused;no fallback image");
@@ -76,7 +111,7 @@ int diagnosticScene(const std::map<std::string,std::string>& args,bool show) {
         for(auto producer:rendered.producer){const char bytes[]={char(producer),char(producer>>8)};file.write(bytes,2);}
         file.close();if(!file)throw std::runtime_error("producer output failed");
     }
-    std::cout<<"{\"diagnostic_scene\":true,\"native_image_created\":true,\"screenshot_inputs\":0,\"source_rule_confirmed\":false,\"decoded_layers\":"<<rendered.decodedLayers<<",\"covered\":"<<rendered.coveredPixels<<",\"unknown\":"<<rendered.image.pixelsBGRA.size()-rendered.coveredPixels<<",\"denominator\":"<<rendered.image.pixelsBGRA.size()<<",\"visible_per_layer\":[";
+    std::cout<<"{\"sav_coordinates\":"<<(savedCells?"true":"false")<<",\"validated_sav_cells\":"<<(savedCells?scene.layers.size():0)<<",\"selector_status\":\"unsupported\",\"diagnostic_scene\":true,\"native_image_created\":true,\"screenshot_inputs\":0,\"source_rule_confirmed\":false,\"decoded_layers\":"<<rendered.decodedLayers<<",\"covered\":"<<rendered.coveredPixels<<",\"unknown\":"<<rendered.image.pixelsBGRA.size()-rendered.coveredPixels<<",\"denominator\":"<<rendered.image.pixelsBGRA.size()<<",\"visible_per_layer\":[";
     for(size_t i=0;i<rendered.visiblePerLayer.size();++i){if(i)std::cout<<',';std::cout<<rendered.visiblePerLayer[i];}std::cout<<"]}\n"<<std::flush;
     if(!show){CGImageRelease(cg);return 0;}
     [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];ReferenceDelegate*delegate=[ReferenceDelegate new];NSApp.delegate=delegate;

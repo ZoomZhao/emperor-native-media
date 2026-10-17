@@ -40,6 +40,33 @@ void diagnosticSceneTests(const std::filesystem::path& root) {
  scene.width=300;scene.layers.resize(129,scene.layers.front());need(!renderSG3DiagnosticScene(archive,file.string(),scene).image.valid(),"scene layer budget enforced");
  archive.sprites[0].alphaLength=1;need(!decodeSG3DiagnosticComponent(archive,0,file.string(),SG3DiagnosticComponent::Full).valid(),"partial-alpha diagnostic source is unsupported,not silently made opaque");
 }
+void registeredCellTests() {
+ using namespace game_lab;
+ OriginalMapTerrain terrain;terrain.activeSide=112;terrain.flags.assign(51984,0x80000);
+ for(unsigned y=58;y<170;++y)for(unsigned x=58;x<170;++x)terrain.flags[y*228+x]=128;
+ const auto original=terrain.flags;
+ SG3DiagnosticRegistration reg;reg.matrix={{{40,-40,190},{20,20,0}}};
+ auto point=projectSG3DiagnosticCell(terrain,reg,2,3);
+ need(point&&point->x==150&&point->y==100,"active SAV cell projects through explicit integer registration");
+ reg.canvasOrigin={100,40};point=projectSG3DiagnosticCell(terrain,reg,2,3);
+ need(point&&point->x==50&&point->y==60,"physical canvas origin subtracted once; scale is already in matrix");
+ need(terrain.flags==original,"registration never alters terrain values");
+ for(const auto& xy:std::vector<std::pair<int64_t,int64_t>>{{-1,0},{0,-1},{112,0},{0,112},{INT64_MAX,0}})
+     need(!projectSG3DiagnosticCell(terrain,reg,xy.first,xy.second),"out-of-crop coordinates refused before indexing");
+ terrain.flags[60*228+60]=0x80000;
+ need(!projectSG3DiagnosticCell(terrain,reg,2,2),"internal off-map cell refused");terrain.flags=original;
+ auto bad=reg;bad.matrix[1]=bad.matrix[0];need(!projectSG3DiagnosticCell(terrain,bad,2,3),"singular registration refused");
+ for(int64_t huge:{INT64_MIN,INT64_MAX}) {
+     bad=reg;bad.matrix[0][0]=huge;need(!projectSG3DiagnosticCell(terrain,bad,2,3),"linear arithmetic budget before product");
+     bad=reg;bad.matrix[0][2]=huge;need(!projectSG3DiagnosticCell(terrain,bad,2,3),"translation budget before sum");
+     bad=reg;bad.canvasOrigin[1]=huge;need(!projectSG3DiagnosticCell(terrain,bad,2,3),"canvas origin budget before subtraction");
+ }
+ bad=reg;bad.matrix[0][2]=1000000;bad.canvasOrigin[0]=-1000000;
+ need(!projectSG3DiagnosticCell(terrain,bad,2,3),"projected centre budget enforced");
+ terrain.flags[0]=0;need(!projectSG3DiagnosticCell(terrain,reg,2,3),"on-map flag outside crop refuses entire registration");
+ terrain.flags=original;terrain.activeSide=113;need(!projectSG3DiagnosticCell(terrain,reg,2,3),"unsupported crop refused");
+ terrain.flags.clear();need(!projectSG3DiagnosticCell(terrain,reg,2,3),"incomplete terrain refused");
+}
 void outputPathTests(const std::filesystem::path& root) {
  namespace fs=std::filesystem;
  const auto data=root/"protected-data",out=root/"path-outputs",link=root/"path-link";
@@ -89,6 +116,7 @@ int main(){try{
  auto render=game_lab::renderMapReferenceViewport(terrain,raw,archive,(root/"own.555").string(),1000,cam);need(render.image.valid()&&render.experimental,"bounded candidate viewport");need(render.stats.activeCells==4&&render.stats.validIDs==3&&render.stats.geometrySupported==2&&render.stats.unknownGeometry==1&&render.stats.outsideArchive==1,"reference domains/geometry kept distinct");need(render.stats.uniqueDecoded==1&&render.stats.drawnCells==2&&render.stats.visibleCells==2,"unique decode cache and cell uses");size_t opaque=0;for(auto c:render.image.pixelsBGRA)opaque+=bool(c>>24);need(opaque==3200,"shared canvas has only two authored diamonds");need(render.image.pixelsBGRA[80*300+150]==0xffff0000u,"unsigned delta and projected natural pixel");
  auto missing=game_lab::renderMapReferenceViewport(terrain,raw,archive,(root/"missing.555").string(),1000,cam);need(missing.stats.decodeFailures==2&&missing.stats.drawnCells==0,"missing source never drawn");need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",INT64_MAX,cam).image.valid(),"signed base bounded before arithmetic");cam.centerX=std::numeric_limits<double>::quiet_NaN();need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",1000,cam).image.valid(),"invalid camera clears output");cam.centerX=.5;cam.width=2049;need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",1000,cam).image.valid(),"viewport budget");
  diagnosticSceneTests(root);
+ registeredCellTests();
  outputPathTests(root);
  std::filesystem::remove_all(root);std::cout<<"{\"passed\":true,\"assertions\":"<<checks<<",\"original_data\":false}\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}}

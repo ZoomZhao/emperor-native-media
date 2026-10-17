@@ -83,6 +83,25 @@ DecodedImage decodeSG3DiagnosticComponent(const SG3Archive& archive,size_t index
     top.uncompressedLength=0;
     return decodeSG3Sprite(topArchive,index,internal).image;
 }
+std::optional<OriginalMapPoint> projectSG3DiagnosticCell(const OriginalMapTerrain& terrain,
+        const SG3DiagnosticRegistration& registration,int64_t x,int64_t y) {
+    const auto crop=analyzeOriginalMap(terrain);
+    if(!crop.cropValid() || x<0 || y<0 || x>=crop.cropSide || y>=crop.cropSide)return std::nullopt;
+    const auto cell=size_t(y+crop.cropOrigin)*OriginalMapTerrain::storageSide+size_t(x+crop.cropOrigin);
+    if(terrain.flags[cell]&0x80000u)return std::nullopt;
+    const auto& m=registration.matrix;
+    for(size_t row=0;row<2;++row) {
+        for(size_t col=0;col<2;++col)if(m[row][col]<-4096 || m[row][col]>4096)return std::nullopt;
+        if(m[row][2]<-1000000 || m[row][2]>1000000 ||
+           registration.canvasOrigin[row]<-1000000 || registration.canvasOrigin[row]>1000000)return std::nullopt;
+    }
+    // Operand bounds above make all products and sums safe in int64_t.
+    if(m[0][0]*m[1][1]-m[0][1]*m[1][0]==0)return std::nullopt;
+    const auto px=m[0][0]*x+m[0][1]*y+m[0][2]-registration.canvasOrigin[0];
+    const auto py=m[1][0]*x+m[1][1]*y+m[1][2]-registration.canvasOrigin[1];
+    if(px<-1000000 || px>1000000 || py<-1000000 || py>1000000)return std::nullopt;
+    return OriginalMapPoint{double(px),double(py)};
+}
 SG3DiagnosticResult renderSG3DiagnosticScene(const SG3Archive& archive,const std::string& internal,
         const SG3DiagnosticScene& scene) {
     size_t count=0;
