@@ -10,11 +10,78 @@ from unittest.mock import patch
 
 import numpy as np
 
-from ground_layer_audit import decode_components, identify, place_mask, score, exposed_geometry, centre_removal_necessary, rear_source_identification, paint_complete, restore_removed_top, score_known
+from ground_layer_audit import decode_components, identify, place_mask, score, exposed_geometry, centre_removal_necessary, rear_source_identification, paint_complete, restore_removed_top, score_known, audit_natural_layer_order
 from base_content_audit import diamond_mask
 
 
 class GroundLayerTests(unittest.TestCase):
+    def test_order_cannot_repair_single_contributor_material(self):
+        rgb = np.zeros((1, 2, 3), np.uint8)
+        actual = rgb.copy()
+        actual[0, 1] = 8
+        alpha = np.ones((1, 2), bool)
+        result = audit_natural_layer_order([rgb], [alpha], actual)
+        self.assertEqual((result['paint_pixels'], result['conflicts'],
+                          result['single_contributor_conflicts']), (2, 1, 1))
+        self.assertFalse(result['order_only_necessary_pass'])
+        self.assertFalse(result['order_selected'])
+        self.assertEqual(result['necessary_order_edges'], [])
+
+    def test_unique_overlap_colour_constrains_earlier_writer(self):
+        correct = np.zeros((1, 2, 3), np.uint8)
+        wrong = np.full_like(correct, 8)
+        alpha = np.ones((1, 2), bool)
+        result = audit_natural_layer_order([correct, wrong], [alpha, alpha], correct)
+        self.assertEqual((result['overlap_pixels'], result['overlap_conflicts']), (2, 2))
+        self.assertEqual(result['necessary_order_edges'],
+                         [{'before': 2, 'after': 1, 'pixels': 2, 'declared_order_satisfies': False}])
+        self.assertTrue(result['order_only_necessary_pass'])
+        self.assertFalse(result['source_selected'])
+
+    def test_contradictory_unique_overlap_witnesses_form_cycle(self):
+        first = np.zeros((1, 2, 3), np.uint8)
+        second = np.full_like(first, 8)
+        actual = first.copy()
+        actual[0, 1] = 8
+        alpha = np.ones((1, 2), bool)
+        result = audit_natural_layer_order([first, second], [alpha, alpha], actual)
+        self.assertTrue(result['necessary_order_cycle'])
+        self.assertEqual(result['no_exact_contributor_pixels'], 0)
+        self.assertFalse(result['order_only_necessary_pass'])
+        self.assertEqual(len(result['necessary_order_edges']), 2)
+
+    def test_equal_colour_aliases_never_choose_an_order(self):
+        rgb = np.zeros((1, 2, 3), np.uint8)
+        alpha = np.ones((1, 2), bool)
+        result = audit_natural_layer_order([rgb, rgb.copy()], [alpha, alpha], rgb)
+        self.assertEqual(result['ambiguous_exact_contributor_pixels'], 2)
+        self.assertEqual(result['necessary_order_edges'], [])
+        self.assertEqual(result['conflicts'], 0)
+        self.assertFalse(result['order_selected'])
+
+    def test_natural_audit_preserves_paint_unknown_and_readonly_inputs(self):
+        rgb = np.zeros((2, 2, 3), np.uint8)
+        actual = np.full_like(rgb, 8)
+        alpha = np.array([[True, False], [False, True]])
+        for value in (rgb, actual, alpha):
+            value.flags.writeable = False
+        result = audit_natural_layer_order([rgb], [alpha], actual)
+        self.assertEqual((result['canvas_pixels'], result['paint_pixels'], result['unknown_pixels']), (4, 2, 2))
+        self.assertEqual((result['conflicts'], result['last_writer'][0]['conflicts']), (2, 2))
+        self.assertEqual(result['no_exact_contributor_pixels'], 2)
+
+    def test_natural_order_audit_refuses_malformed_or_unbounded_inputs(self):
+        rgb = np.zeros((2, 2, 3), np.uint8)
+        alpha = np.ones((2, 2), bool)
+        cases = [([], [], rgb), ([rgb], [], rgb), ([rgb], [alpha.astype(np.uint8)], rgb),
+                 ([rgb.astype(float)], [alpha], rgb), ([rgb], [alpha[:, :1]], rgb),
+                 ([rgb], [alpha], rgb[:, :, :2]), ([rgb], [alpha], rgb.astype(float)),
+                 ([rgb] * 129, [alpha] * 129, rgb)]
+        for rgbs, alphas, actual in cases:
+            with self.subTest(length=len(rgbs)), self.assertRaises(ValueError):
+                audit_natural_layer_order(rgbs, alphas, actual)
+
+
     def record(self, stream=b''):
         record = bytearray(64)
         struct.pack_into('<III', record, 0, 0, 3200 + len(stream), 3200)

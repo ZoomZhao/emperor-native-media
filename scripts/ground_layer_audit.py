@@ -123,6 +123,84 @@ def score(rgb, actual, mask):
             'max_raw_error': int(delta[bad].max()) if bad.any() else 0}
 
 
+def audit_natural_layer_order(rgbs, alphas, actual):
+    """Complete declared natural supports; diagnose order without choosing one.
+
+    RGB arrays already share a caller-declared comparison space. A source may
+    constrain order only where it is the unique exact contributor. Missing
+    material and ambiguous contributors remain explicit; no pixel mask is fit.
+    """
+    import numpy as np
+    require(isinstance(actual, np.ndarray) and actual.dtype == np.uint8
+            and actual.ndim == 3 and actual.shape[2] == 3
+            and 0 < actual.shape[0] <= 2048 and 0 < actual.shape[1] <= 2048,
+            'bounded RGB8 target required')
+    require(len(rgbs) == len(alphas) and 0 < len(rgbs) <= 128
+            and len(rgbs) * actual.shape[0] * actual.shape[1] <= 16 * 1024 * 1024,
+            'natural layer audit budget')
+    for rgb, alpha in zip(rgbs, alphas):
+        require(isinstance(rgb, np.ndarray) and rgb.dtype == np.uint8
+                and rgb.shape == actual.shape and isinstance(alpha, np.ndarray)
+                and alpha.dtype == np.bool_ and alpha.shape == actual.shape[:2],
+                'RGB8 source and boolean natural alpha shapes')
+    shape = actual.shape[:2]
+    count = np.zeros(shape, np.uint16)
+    matches = np.zeros(shape, np.uint16)
+    unique = np.zeros(shape, np.uint16)
+    producer = np.zeros(shape, np.uint16)
+    last_equal = np.zeros(shape, bool)
+    for index, (rgb, alpha) in enumerate(zip(rgbs, alphas), 1):
+        equal = alpha & np.all(rgb == actual, 2)
+        unique[equal] = index
+        count += alpha
+        matches += equal
+        producer[alpha] = index
+        last_equal[alpha] = equal[alpha]
+    paint = count > 0
+    bad = paint & ~last_equal
+    edges = []
+    successors = [set() for _ in rgbs]
+    for winner in range(len(rgbs)):
+        witness = (matches == 1) & (unique == winner + 1)
+        for earlier, alpha in enumerate(alphas):
+            if earlier == winner:
+                continue
+            pixels = int(np.count_nonzero(witness & alpha))
+            if pixels:
+                successors[earlier].add(winner)
+                edges.append({'before': earlier + 1, 'after': winner + 1,
+                              'pixels': pixels, 'declared_order_satisfies': earlier < winner})
+    # A cycle of necessary edges disproves a single order, without permutation
+    # search. Absence of a cycle is only necessary when colour aliases exist.
+    incoming = [0] * len(rgbs)
+    for group in successors:
+        for target in group:
+            incoming[target] += 1
+    queue = [i for i, degree in enumerate(incoming) if degree == 0]
+    visited = 0
+    while queue:
+        source = queue.pop()
+        visited += 1
+        for target in successors[source]:
+            incoming[target] -= 1
+            if incoming[target] == 0:
+                queue.append(target)
+    impossible_material = int(np.count_nonzero(paint & (matches == 0)))
+    return {'canvas_pixels': int(paint.size), 'paint_pixels': int(paint.sum()),
+            'unknown_pixels': int((~paint).sum()), 'conflicts': int(bad.sum()),
+            'overlap_pixels': int(np.count_nonzero(count > 1)),
+            'overlap_conflicts': int(np.count_nonzero(bad & (count > 1))),
+            'single_contributor_conflicts': int(np.count_nonzero(bad & (count == 1))),
+            'no_exact_contributor_pixels': impossible_material,
+            'ambiguous_exact_contributor_pixels': int(np.count_nonzero(paint & (matches > 1))),
+            'last_writer': [{'layer': i + 1, 'paint_pixels': int(np.count_nonzero(producer == i + 1)),
+                             'conflicts': int(np.count_nonzero(bad & (producer == i + 1)))}
+                            for i in range(len(rgbs))],
+            'necessary_order_edges': edges, 'necessary_order_cycle': visited != len(rgbs),
+            'order_only_necessary_pass': impossible_material == 0 and visited == len(rgbs),
+            'order_selected': False, 'source_selected': False}
+
+
 def identify(frame, fulls, centre, identification, exposed):
     """Every complete exposed paint is scored; minima never become hits."""
     rows = []
