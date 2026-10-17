@@ -1,7 +1,7 @@
 """Entirely authored fixtures for geometry and quantized-vs-raw comparison."""
 import unittest
 import numpy as np
-from reference_compare import (compare_rgb, compare_nearest_scaled_rgb, bottom_base_canvas_bounds, isometric_subbase_centres, diagonal_grid_matrix,
+from reference_compare import (fit_flat_grid_registration, GRID_ORIENTATIONS, compare_rgb, compare_nearest_scaled_rgb, bottom_base_canvas_bounds, isometric_subbase_centres, diagonal_grid_matrix,
                                project_points, landmark_residuals, nearest_mask_distances,
                                mask_translation_candidates,check_fixed_candidates,audit_static_labels,compare_cell_tints,base_interior_mask,classify_spatial_composite)
 
@@ -509,5 +509,66 @@ class FinalClickBindingTests(unittest.TestCase):
             else:args[6]['events'][2]['monotonic_ns']=args[5][3]['monotonic_ns']+1
             with self.subTest(kind=kind),self.assertRaises(ValueError):validate_final_click(*args)
 
+
+
+
+class FlatGridRegistrationTests(unittest.TestCase):
+    def test_every_rotation_and_reflection_recovers_from_asymmetric_anchors(self):
+        cells=np.array([[3,4],[4,0]])
+        basis=np.array([[12,-12],[6,6]])
+        for index,orientation in enumerate(GRID_ORIENTATIONS):
+            linear=basis@np.asarray(orientation)
+            centres=cells@linear.T+[400,500]
+            fits=fit_flat_grid_registration(cells,centres,basis)
+            self.assertEqual(len(fits),1)
+            self.assertEqual(fits[0].orientation_index,index)
+            expected=np.column_stack((linear,[400,500]))
+            np.testing.assert_array_equal(fits[0].matrix,expected)
+
+    def test_axis_aligned_pair_keeps_both_fits_without_picking_holdout_winner(self):
+        fits=fit_flat_grid_registration([[3,4],[4,4]],[[388,542],[400,548]],[[12,-12],[6,6]])
+        self.assertEqual(len(fits),2)
+        predictions=[tuple(project_points([[4,5]],f.matrix)[0])for f in fits]
+        self.assertEqual(len(set(predictions)),2)
+
+    def test_diagonal_symmetric_pair_remains_ambiguous(self):
+        fits=fit_flat_grid_registration([[3,4],[4,5]],[[388,542],[388,554]],[[12,-12],[6,6]])
+        self.assertEqual(len(fits),2)
+
+    def test_single_pixel_error_returns_no_fit_not_a_refitted_basis(self):
+        self.assertEqual(fit_flat_grid_registration([[3,4],[4,0]],[[388,542],[448,525]],[[12,-12],[6,6]]),())
+        self.assertEqual(fit_flat_grid_registration([[3,4],[4,0]],[[388,542],[448,524]],[[13,-13],[6,6]]),())
+
+    def test_frozen_fit_projects_an_unused_cell_without_reading_a_third_anchor(self):
+        fits=fit_flat_grid_registration([[3,4],[4,0]],[[388,542],[448,524]],[[12,-12],[6,6]])
+        self.assertEqual(len(fits),1)
+        np.testing.assert_array_equal(project_points([[3,8]],fits[0].matrix),[[340,566]])
+        with self.assertRaises(ValueError):
+            fit_flat_grid_registration([[3,4],[4,0],[3,8]],[[388,542],[448,524],[340,566]],[[12,-12],[6,6]])
+
+    def test_malformed_shapes_noninteger_and_boolean_inputs_refuse(self):
+        good=([[3,4],[4,0]],[[388,542],[448,524]],[[12,-12],[6,6]])
+        bad=[([],good[1],good[2]),(good[0],[[1,2]],good[2]),
+             (good[0],good[1],[[12,-12]]),([[3.,4.],[4.,0.]],good[1],good[2]),
+             (good[0],np.array(good[1],float),good[2]),(good[0],good[1],np.array(good[2],bool)),
+             (good[0],good[1],[[float('nan'),0],[0,1]]),
+             ([[True,4],[4,0]],good[1],good[2]),
+             (good[0],good[1],[[True,-12],[6,6]])]
+        for args in bad:
+            with self.assertRaises(ValueError):fit_flat_grid_registration(*args)
+
+    def test_budgets_refuse_unsigned_wrap_and_extreme_multiplication(self):
+        good=([[3,4],[4,0]],[[388,542],[448,524]],[[12,-12],[6,6]])
+        for args in ((np.full((2,2),np.iinfo(np.uint64).max,np.uint64),good[1],good[2]),
+                     ([[4097,0],[1,0]],good[1],good[2]),
+                     (good[0],[[8193,0],[1,0]],good[2]),
+                     (good[0],good[1],[[4097,1],[1,1]])):
+            with self.assertRaises(ValueError):fit_flat_grid_registration(*args)
+
+    def test_duplicate_anchors_and_singular_basis_refuse(self):
+        for args in (([[3,4],[3,4]],[[388,542],[448,524]],[[12,-12],[6,6]]),
+                     ([[3,4],[4,0]],[[388,542],[388,542]],[[12,-12],[6,6]]),
+                     ([[3,4],[4,0]],[[388,542],[448,524]],[[2,4],[1,2]])):
+            with self.assertRaises(ValueError):fit_flat_grid_registration(*args)
 
 if __name__=='__main__':unittest.main()

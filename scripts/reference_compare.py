@@ -109,6 +109,43 @@ GRID_ORIENTATIONS = (
 )
 
 
+@dataclass(frozen=True)
+class FlatGridRegistration:
+    orientation_index: int
+    matrix: tuple
+
+
+def fit_flat_grid_registration(grid_cells, screen_centres, basis):
+    """Retain all exact D4/translation fits of exactly two measured anchors.
+
+    The caller supplies a fixed flat basis; scale, shear, source IDs and draw
+    anchors are not fitted. No held-out point is accepted by this calibration
+    API, and no winner is selected when multiple orientations remain possible.
+    """
+    supplied = (grid_cells, screen_centres, basis)
+    cells, centres, basis = map(np.asarray, supplied)
+    if (cells.shape != (2, 2) or centres.shape != (2, 2) or basis.shape != (2, 2)
+            or any(a.dtype.kind not in 'iu' for a in (cells, centres, basis))
+            or np.any(cells > 4096) or np.any(cells < -4096)
+            or np.any(centres > 8192) or np.any(centres < -8192)
+            or np.any(basis > 4096) or np.any(basis < -4096)
+            or any(isinstance(v, (bool, np.bool_))
+                   for a in supplied for v in np.asarray(a, dtype=object).flat)):
+        raise ValueError('two bounded integer anchor pairs and a fixed2x2 basis required')
+    cells, centres, basis = (a.astype(np.int64) for a in (cells, centres, basis))
+    if (np.array_equal(cells[0], cells[1]) or np.array_equal(centres[0], centres[1])
+            or basis[0, 0] * basis[1, 1] == basis[0, 1] * basis[1, 0]):
+        raise ValueError('distinct anchors and nonsingular fixed basis required')
+    fits = []
+    for index, orientation in enumerate(GRID_ORIENTATIONS):
+        linear = basis @ np.asarray(orientation, dtype=np.int64)
+        translation = centres[0] - linear @ cells[0]
+        if np.array_equal(linear @ cells[1] + translation, centres[1]):
+            matrix = tuple(tuple(map(int, (*linear[row], translation[row]))) for row in range(2))
+            fits.append(FlatGridRegistration(index, matrix))
+    return tuple(fits)
+
+
 def compare_rgb(reference, decoded, opaque_mask, bits=5):
     """Exact integer verification after template search, plus full8-bit errors.
 
