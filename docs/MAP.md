@@ -1344,3 +1344,33 @@ The A/B overlap witnesses are consistent with the conditional partial order cent
 The alias is material: the full public bases agree only839/1,600 logical pixels, and the complete natural tops contain2,116 versus0 physical pixels. All **5,160/5,160** full-content/alpha differences fall inside the fixed possible-neighbour union; guaranteed exposed distinguishing pixels are **0/5,160**. Repeating the same1,748-pixel exposed comparison cannot choose the hidden top.
 
 A separately registered geometry-only check retains that failure and asks whether the unique left/front pair permits a prediction invariant to both right aliases. Both right supports are disjoint from that pair's overlap, but **28/28** natural overlap pixels lie inside the old, already scored C source canvas. The fixed unused region below that canvas has **0/28** overlap pixels and zero informative order samples. It also stops before a new post-region score. C remains globally unblinded; no new blind validation, complete scene or coverage gain is claimed. The256/21,472 A/B failures and their full denominators remain unchanged. Source selection or missing covering material is the active blocker; sorting these four layers and repeating colour fits cannot resolve it. All original inputs remain read-only and the original application receives0 new UI actions.
+
+
+## Registered same-key visible-content check
+
+The initial15-observation cohort had no repeated complete six-field tuple, so its sufficiency test had0/0 opportunities. A new **field/geometry-only** protocol now fixes the smallest canonical rectangle spanning the twelve previously registered spatial observations:3×10 cells in the **same** paired SAV/paused screenshot. The existing A/B registration matrix is unchanged; every maximal source canvas must fit the predeclared world rectangle. No corresponding image or source-pixel buffer is opened for this trial until all repeated groups and their same-content hypotheses are frozen. This is a registered necessary-condition test of a per-cell tuple, not a random-field algorithm fit or a new scene.
+
+All **30/30 cells** are on-map and visible under that fixed geometry. Their six fields produce **28 distinct tuples and2 repeated groups**, each with two members: **4 cells,2 eligible pairs**, out of435 possible cell pairs. All groups are retained; no image-selected group, enlarged range or other scene is substituted. Independent scalar unsigned reads reproduce **180/180 field values and2/2 groups**, and the SAV is byte-identical to its retained paired snapshot. The earlier native complete-array transport applies to the same file bytes.
+
+Only after the freeze, the existing bounded585-source identification and source-independent neighbour-alpha exclusion are applied to the four members. Every candidate's complete exposed natural paint is scored; all **2,340/2,340 candidate rows** remain private. Four members have exact recognized visible content, **4/4**, each with one candidate within this family. Each has the same fixed1,748-pixel common visible base; source RGB555 zero-filled/raw capture and fixed ColorSync/embedded-ICC canonical comparisons are both exact **6,992/6,992** identification pixels. Native cache checks remain586/586 and colour controls841/841; no colour, alpha, position or source-domain fit occurs.
+
+The frozen same-key predictions agree **2/2 pairs**, **3,496/3,496 common-signature pixels** in each raw and canonical representation. There are **0/2 different recognized visible classes and0/2 unknown pair outcomes**. A future zero-exact-candidate result would stay unknown rather than become different-source evidence. Here the two positive comparisons fail to falsify the per-cell tuple's necessary visible-content condition; they do not establish that the six values determine complete SG3 identity, hidden RLE tops, cover/order or a namespace. No automatic selector is created.
+
+These are two pair checks within one city, one saved state and one fixed view. The four cell signatures contain437 logical source pixels each repeated2×2; they are not6,992 independent samples. One member already had a visible-class observation in the earlier cohort; membership is selected from fields and fixed geometry without filtering by that label. The other previously inspected regions and C's globally unblinded status are not renamed as new blind validation. Original inputs remain read-only; original UI/save actions and manual scene coverage gains are all0. Complete same-city scenes remain **0/167**, selector unsupported.
+
+### Residual magnitude and colour-only repair
+
+The retained four-layer A/B result stays **256/21,472 conflicts**, with no deleted denominator or tolerance. Independent recomputation from the native PNG/producers reproduces both the raw/canonical error masks **21,472/21,472** and the full magnitude histograms **2/2**. Maximum absolute channel differences in canonical RGB8 range **8–140**; they are not all one-level errors:
+
+| Maximum channel distance | Physical conflict pixels /256 |
+|---|---:|
+| RGB8 distance1 |0/256|
+| RGB8 distance2–7 |0/256|
+| RGB8 distance8–15 |12/256|
+| RGB8 distance16–31 |48/256|
+| RGB8 distance32–63 |124/256|
+| RGB8 distance64–140 |72/256|
+
+In canonical RGB5,12/256 differ by one level,44/256 by2–3,128/256 by4–7,and72/256 by8–18. Thus **244/256** exceed one RGB5 level. Raw stored channels also preserve all256 conflicts;only8/256 have one RGB555-sized step. At2× these256 physical errors occupy64 logical raster positions, not256 independent colour probes. All remain failures, including the small-distance subset.
+
+There are48 distinct declared source RGB555 colours at the conflicts. **47/48** also appear correctly elsewhere in the complete paint; these account for **252/256 error pixels**. The same decoded source colour therefore has both correct and different observed target outputs in this fixed cohort. A deterministic colour-only correction cannot reconcile those locations while preserving their correct controls. The other4/256 pixels lack that same-input control and stay unresolved; no colour patch is applied. This supports ending further uniform ColorSync/quantization fitting for this residual. Together with256/256 single declared contributors and3,832/3,832 exact overlaps, the useful remaining question is effective material/source or omitted cover, not another permutation of these four layers or a new hand-built scene. No actual missing-source identity is inferred.
