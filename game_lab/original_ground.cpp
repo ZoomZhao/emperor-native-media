@@ -42,12 +42,21 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     //    is set, which is the only MAP-visible precondition. The written value
     //    (0x61C + 0x30 + random%0x18, or 0x62A/0x62B) needs runtime objects.
     if(terrain&0x100u)return {0,false,false,"0x100-special"};
-    // (gate) FUN_0053EC90 @0x0053EC90 runs setters 2..18 only when the terrain
-    //    flags are clear of 0x8C008 = 0x8 | 0x4000 | 0x8000 | 0x80000 (the "test
-    //    edi,0x8c008" immediately after setter 1). Those cells leave 0x00FE9880
-    //    untouched, so no ground code is produced. Note 0x800 is *not* part of
-    //    the gate; setter 3 handles it further down.
-    if(terrain&0x8C008u)return {0,false,false,"gate-0x8C008"};
+    // (gate) FUN_0053EC90 @0x0053EC90 runs setters 2..18 only when setter 1
+    //    (FUN_004EDC30) returned 0 *and* the terrain flags are clear of
+    //    0x8C008 = 0x8 | 0x4000 | 0x8000 | 0x80000: `0x0053ECB2 test al,al; jne
+    //    0x53EDF5` then `0x0053ECBA test edi,0x8c008; jne 0x53EDF5`. Reaching this
+    //    line already means 0x100 is clear (the 0x100-special branch returned
+    //    above), and for a 0x100-clear cell FUN_004EDC30 @0x004EDC30 returns 0 in
+    //    every mode: mode 2 jumps straight to the return-0 exit `0x004EDC71`
+    //    (`test ah,1; je 0x4EDC71`), while modes 0/1 can only store inside
+    //    `test bl,bl; jne 0x4EDC79` where bl is the FUN_004EDA50 accept test, and
+    //    that test refuses when 0x100 is clear (mode 0 additionally needs all 8
+    //    neighbours to carry 0x100, so it too returns 0). Setter 1 therefore never
+    //    writes 0x00FE9880 for a gate cell, the gate skips setters 2..18, and the
+    //    cell is left without a ground code: a determinate no-ground cell. Note
+    //    0x800 is *not* part of the gate; setter 3 handles it further down.
+    if(terrain&0x8C008u)return {0,false,false,"no-ground",true};
     // 2. FUN_0053F240 @0x0053F240. The guard reads per-cell river/edge descriptors
     //    0x00BB92F4[cell] and 0x00B866B4[cell] that an earlier runtime pass
     //    (FUN_0053EAE0 @0x0053EAE0) fills from the river/edge tables of

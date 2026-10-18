@@ -157,10 +157,12 @@ void groundSelectorTests() {
      need(plain.block==((random&0xF8u)==0u),"plain-land block flag follows random&0xF8");
  }
  // The 0x8C008 gate (bits 0x8|0x4000|0x8000|0x80000) lets later setters run
- // only when all four bits are clear.
+ // only when all four bits are clear. A cell reaching the gate has 0x100 clear,
+ // so setter 1 (FUN_004EDC30) provably returned 0 without writing: the gate is a
+ // determinate no-ground, counted apart from unknown.
  for(uint32_t flagged:{0x8u,0x4000u,0x8000u,0x80000u}) {
      const auto gated=selectGroundTileCode(GroundCodeRequest{flagged,0});
-     need(!gated.known&&gated.code==0&&std::string(gated.branch)=="gate-0x8C008","0x8C008 gate refuses every later setter");
+     need(gated.noGround&&!gated.known&&gated.code==0&&std::string(gated.branch)=="no-ground","the 0x8C008 gate skips every setter with no img write: determinate no-ground");
  }
  // 0x800 is setter 3 territory, not a gate bit; it must reach the 0x800 branch.
  const auto water=selectGroundTileCode(GroundCodeRequest{0x800u,0});
@@ -271,11 +273,12 @@ void groundSelectorTests() {
  need(plain.stats.activeCells==84*84&&plain.stats.knownCells==84*84&&plain.stats.unknownCells==0,"plain land is fully known");
  need(plain.stats.blockCells==84*84&&plain.stats.unresolvedCodes==0&&plain.stats.geometrySupported==84*84,"block flag and supported geometry counted");
  need(plain.stats.branchCells.size()==1&&plain.stats.branchCells[0].first=="plain-land"&&plain.stats.branchCells[0].second==84*84,"branch histogram names plain-land");
- // Gate-failed terrain is unknown, never guessed, and still names its branch.
+ // Gate-failed terrain is a determinate no-ground (setter 1 provably wrote
+ // nothing), counted apart from unknown and never drawn.
  for(unsigned y=72;y<156;++y)for(unsigned x=72;x<156;++x)terrain.flags[size_t(y)*228+x]=0x8;
  const auto gated=renderMapGroundViewport(terrain,std::vector<uint8_t>(51984,0),archive,"",camera);
- need(gated.image.valid()&&gated.stats.activeCells==84*84&&gated.stats.knownCells==0&&gated.stats.unknownCells==84*84&&gated.stats.drawnCells==0,"gate-failed cells are counted unknown and never drawn");
- need(gated.stats.branchCells.size()==1&&gated.stats.branchCells[0].first=="gate-0x8C008","gate-failed cells name the refusing branch");
+ need(gated.image.valid()&&gated.stats.activeCells==84*84&&gated.stats.noGroundCells==84*84&&gated.stats.knownCells==0&&gated.stats.unknownCells==0&&gated.stats.drawnCells==0,"gate-failed cells are a determinate no-ground and never drawn");
+ need(gated.stats.branchCells.size()==1&&gated.stats.branchCells[0].first=="no-ground","gate-failed cells name the no-ground branch");
  // A determinate no-ground cell is counted apart from unknown, never guessed, and
  // still names its branch.
  for(unsigned y=72;y<156;++y)for(unsigned x=72;x<156;++x)terrain.flags[size_t(y)*228+x]=0x200;

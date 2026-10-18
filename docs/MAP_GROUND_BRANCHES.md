@@ -181,3 +181,59 @@ The MAP `mapperRandom` grid (payload offset 729,311) is therefore **not** consum
   (used by items 3/7) and `0x00E9F8E0` to any MAP grid is untraced.
 * The `0x00FE9880[cell]==0` precondition that lets setters #4/#10 run is assumed from the chain gate; its
   interaction with the rest of `FUN_0053EC90` was not re-read here.
+
+## Load path: the per-cell arrays are not terrain-derived
+
+The remaining unmodelled branches of `FUN_0053EC90` read per-cell arrays that a
+bare city `.map` cannot supply. Established on the owned exe (SHA-256
+`0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`):
+
+- The entire per-cell working set is **zeroed** by the map reset
+  `FUN_004B08A0 @0x004B08A0`. The loops are dword loops, so the counts read as
+  `i = n; *p++ = 0` give: `0x00FE9880` 0xcb10 = **4 B/cell**, `0x00F6A9E0` 0xcb10
+  = 4 B/cell, `0x00FC3750` 0x6588 = **2 B/cell**, and `0x00F9D620`, `0x00FDCD70`,
+  `0x00F1E780`, `0x00F2B290`, `0x00F11C70`, `0x00F05160` 0x32c4 = 1 B/cell, plus
+  `0x00EAC3F0`, `0x00FAA130`, `0x00EEBB40`, `0x00EDF030`, `0x00ED2520`,
+  `0x00EC5A10` and more.
+- A second baseline path copies `.data` templates into the working arrays:
+  `FUN_004191f0 @0x004191f0` is a memcpy whose **first argument is the source**,
+  e.g. `FUN_004191f0(&DAT_00e46b70, &DAT_00fc3750, 0x32c40)`,
+  `FUN_004191f0(&DAT_00dbb1c0, &DAT_00f9d620, 0xcb10)`,
+  `FUN_004191f0(&DAT_00dae6b0, &DAT_00fdcd70, 0xcb10)`,
+  `FUN_004191f0(&DAT_00de12f0, &DAT_00f37da0, 0x32c40)`. Direction is proved by the
+  reversed call at file line 326260, which saves working state back into the
+  template. All four templates lie in `.data` beyond `SizeOfRawData`, i.e. they
+  are zero-filled at load.
+- The state is then restored from a serialised blob by
+  `FUN_0052FDA0 @0x0052FDA0` (e.g. `0xcb10` bytes into `0x00F1E780`). The byte grid
+  at that address is the same field the save files carry, and the repo reproduces
+  it byte-exactly for 6/6 supplied saves (`make original-random-test`).
+- `0x00FC3750[cell]` is a **loaded-blob per-cell object/descriptor id** resolved
+  through `FUN_0047F1B0 @0x0047f1b0`, not a function of terrain.
+
+Consequence: branches that read these arrays are not MAP-terrain-determinable.
+In particular setter 3 (`terrain & 0x800` -> `FUN_00540330` -> `FUN_00524E90(0)`)
+**does** write `tileImage(0x435)` when `0x00FC3750[cell] == 0`, so it is not a
+no-ground case either; it stays unmodelled and measured 0 cells across all 167
+maps, so no metric moves.
+
+### The `0x8C008` gate is a determinate no-ground
+
+`FUN_0053EC90` disassembles as `0x0053ECBA test edi,0x8c008` / `0x0053ECC0 jne
+0x53EDF5`, i.e. a gate hit skips setters 2..18. That line is only reached when
+`0x100` is clear (the `0x100-special` path returns earlier), and for a `0x100`-clear
+cell `FUN_004EDC30 @0x004EDC30` returns 0 with no store in every mode: mode 2 exits
+at `0x004EDC68`, and modes 0/1 store only under `0x004EDC79`, whose accept test
+`FUN_004EDA50 @0x004EDA50` refuses when `0x100` is clear. So setter 1 writes
+nothing, setters 2..18 are skipped, and `0x00FE9880[cell]` keeps its prior value:
+the cell is **determinately not drawn**. This was previously misclassified as an
+unknown.
+
+### MAP-only ceiling, measured over all 167 `Cities/*.map`
+
+`active 2,107,836`; `known 1,552,542` (73.66 %), every emitted code resolving in
+`China_Terrain.sg3` with 0 unmatched; `unknown 440,357` (the runtime-array
+branches above); determinate `no-ground` 114,937, including 19,645 gate cells
+across 58 maps; `decode_failures` 0 for every city. Completing the remaining
+440,357 cells therefore requires the serialised per-cell state, not more terrain
+analysis.
