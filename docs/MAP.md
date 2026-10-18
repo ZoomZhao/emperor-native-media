@@ -1533,3 +1533,24 @@ The local P1 repair stops processing a group member immediately on size,tileset 
 36 new authored assertions cover both mixed-size orders andvisible/culled,missing/truncated/successful single/composite resources. The suite passes292/292 without a data root,965/965 with supplied real data in both Release andUBSan,and292/292 under libc++ debug bounds hardening. The reviewer-supplied reproduction driver,locally rerun on the fixed source,reports0 findings;its72/72 complete BGRA canvas cases still agree across4,688,550 pixels. That oracle uses authored fixtures andthe declared native placement/order convention,not original-game screenshots. ASan initialization on this host was unavailable in the original review;no ASan pass or independent external re-review of this repair is claimed here.
 
 The App adapter now verifies the accounting identity per city. Repeating the complete167-city corpus with actual pre-cull payload decoding preserves139/167 complete grids,2,106,879/2,107,808 decoded cells and929 unsupported cells,with0 payload failures or unresolved indices. The unchanged numerator now has stronger byte-validation evidence;it still is not original-screen accuracy. The App labels these cells “已解码”. Its new delivery must be rebuilt from this fixed core;pre-fix bundles andtest evidence are retained privately as historical artifacts. Only authored code,regressions andaggregate results enter Git.
+
+
+## Residual stored-surface payload classification
+
+The App adapter metrics now re-read each rejected active cell rather than assigning a whole connected component its first reported reason. On the same167-city corpus, **929/929** unsupported cells reconcile with the renderer count; their **56/56** referenced logical SG3 records independently decode into valid pixels. This removes missing/corrupt pixel payloads as the blocker for these929 cells,without accepting any placement. Stored-surface coverage remains139/167 cities and2,106,879/2,107,808 cells;selector accuracy and original-screen comparison remain separate.
+
+| Residual geometry class | Cells |
+|---|---:|
+| Namespace2,type30:record side2 / subTile side1 |16|
+| Namespace3,type30:record side2 / subTile side1 |5|
+| Namespace3,type30:record side2 / subTile side3 |63|
+| Namespace3,type30:record side2 / subTile side5 |200|
+| Namespace3,type30:record side3 / subTile side1 |2|
+| Namespace2,non-block raw type/flags0 |275|
+| Namespace2,non-block raw type/flags256 |144|
+| Namespace8,non-block raw type/flags1 |224|
+| **Total** |**929**|
+
+Here type/flags is the parser's raw16-bit field at SG3 record+50;256 is not a newly named image kind. Non-block entries report subTile side0 in the aggregate output to mean not classified by a ground-block rule,not a zero byte in the source. Mirror chains use the same validated backward-reference contract as the modern decoder. The classifier refuses additional geometry reasons rather than silently extending the two observed categories. It checks each city's classified count against geometryUnsupported,and keeps unsupported pixels transparent in the App.
+
+Reproduce with `EMPEROR_GAMEDATA_ROOT=/absolute/owned/root python3 -B scripts/app_map_surface.py metrics` (also `--mode undefined`). This audit reads data bytes and existing native parsers;it does not read or run the original executable. No original asset,pixel dump or per-cell listing is committed. The remaining blocker is a verified cell/record anchor and composition contract for286 conflicting-side cells and643 non-ground-block cells. A convenient visual placement or a payload decode alone does not establish that contract.

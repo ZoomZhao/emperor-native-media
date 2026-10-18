@@ -8,6 +8,9 @@
 #include <cstdlib>
 #include <algorithm>
 #include <iomanip>
+#include <map>
+#include <set>
+#include <tuple>
 #include <zlib.h>
 namespace {
 using Bytes=std::vector<uint8_t>;
@@ -46,6 +49,12 @@ void metrics(const std::string& path){
     using namespace game_lab;namespace fs=std::filesystem;const auto root=ResourceRoot::fromAbsolute(path);if(!root.configured())throw std::runtime_error("explicit existing data root required");
     AppMapSurface app(root);size_t cities=0,complete=0,images=0,nonzero=0,decoded=0,residue=0,excluded=0;
     std::string firstPartial;
+    // Inspect unsupported geometry without assigning a guessed placement. Every
+    // rejected cell is reclassified individually,not by a component's first reason.
+    std::map<uint32_t,SG3Archive> residualArchives;
+    std::set<uint32_t> decodedResidualWords;
+    std::map<std::tuple<uint32_t,uint16_t,uint32_t,uint32_t>,size_t> residualClasses;
+    size_t residualPayloadCells=0,residualClassified=0;
     for(const auto& file:fs::directory_iterator(fs::path(root.configuredDirectory())/"Cities")){
         if(file.path().extension()!=".map")continue;
         const auto relative=fs::relative(file.path(),root.configuredDirectory()).generic_string();const auto absolute=root.resolve(relative);if(absolute.empty())throw std::runtime_error("MAP escapes root");
@@ -57,10 +66,52 @@ void metrics(const std::string& path){
         const auto& s=out.stats;nonzero+=s.nonzeroCells;decoded+=s.decodedCells;residue+=s.geometryUnsupported+s.unresolvedIndices+s.archiveUnavailable+s.decodeFailures;
         if(s.decodedCells+s.geometryUnsupported+s.unresolvedIndices+s.archiveUnavailable+s.decodeFailures!=s.nonzeroCells)throw std::runtime_error("surface accounting is not exclusive: "+relative);
         if(s.decodedCells<s.nonzeroCells&&firstPartial.empty())firstPartial=relative;
+        std::map<uint32_t,uint32_t> rejectedRecords;
+        for(const auto& mismatch:s.compositeMismatches){
+            const std::string reason=mismatch.reason;
+            if(reason!="subTile group side != record cols"&&reason!="record does not declare an s*s block")
+                throw std::runtime_error("residual classification needs an additional geometry reason");
+            const auto word=(mismatch.tileset<<14)|(mismatch.recordId-201);
+            const auto inserted=rejectedRecords.emplace(word,mismatch.cols);
+            if(!inserted.second&&inserted.first->second!=mismatch.cols)throw std::runtime_error("inconsistent residual record geometry");
+        }
+        if(!rejectedRecords.empty()){
+            const auto state=loadOriginalTerrainState(absolute);if(!state)throw std::runtime_error("residual state reload failed");
+            const auto activity=analyzeOriginalMap(map.terrain);size_t classified=0;
+            for(uint32_t y=0;y<activity.cropSide;++y)for(uint32_t x=0;x<activity.cropSide;++x){
+                const size_t cell=size_t(y+activity.cropOrigin)*228+x+activity.cropOrigin;
+                if(map.terrain.flags[cell]&0x80000u)continue;
+                const auto word=state->image[cell];const auto rejected=rejectedRecords.find(word);if(rejected==rejectedRecords.end())continue;
+                const auto cols=rejected->second,side=uint32_t(state->subTile[cell]&15u)+1u;
+                if(cols&&side==cols)continue; // accepted cells sharing the same record
+                const auto slot=word>>14;auto found=residualArchives.find(slot);
+                if(found==residualArchives.end()){
+                    const auto leaf=mapImageGridArchiveName(slot);if(!leaf)throw std::runtime_error("unknown residual archive");
+                    found=residualArchives.emplace(slot,loadSG3(root.resolve(std::string("DATA/")+leaf))).first;
+                }
+                const auto& archive=found->second;size_t index=(word&0x3fffu)+200;
+                if(index>=archive.sprites.size())throw std::runtime_error("residual record out of bounds");
+                if(!decodedResidualWords.count(word)){
+                    auto companion=fs::path("DATA")/mapImageGridArchiveName(slot);companion.replace_extension(".555");
+                    const auto pixels=decodeSG3Sprite(archive,index,root.resolve(companion.generic_string()));
+                    if(pixels.status!=SG3DecodeStatus::Decoded||!pixels.image.valid())throw std::runtime_error("residual payload does not decode");
+                    decodedResidualWords.insert(word);
+                }
+                while(archive.sprites[index].mirrorOffset){const auto delta=archive.sprites[index].mirrorOffset;
+                    if(delta>=0||int64_t(index)+delta<0)throw std::runtime_error("invalid residual mirror");index=size_t(int64_t(index)+delta);}
+                ++residualClasses[{slot,archive.sprites[index].type,cols,cols?side:0}];++classified;++residualPayloadCells;
+            }
+            if(classified!=s.geometryUnsupported)throw std::runtime_error("residual per-cell classification does not reconcile");
+            residualClassified+=classified;
+        }
         if(s.decodedCells==s.nonzeroCells&&!s.geometryUnsupported&&!s.unresolvedIndices&&!s.archiveUnavailable&&!s.decodeFailures)++complete;
     }
     if(!cities)throw std::runtime_error("no city MAP corpus");
-    std::cout<<"{\"passed\":true,\"App_surface_sources\":"<<cities<<",\"native_CGImages\":"<<images<<",\"complete_storage_surfaces\":"<<complete<<",\"nonzero_cells\":"<<nonzero<<",\"decoded_cells\":"<<decoded<<",\"residue\":"<<residue<<",\"excluded_non_city\":"<<excluded<<",\"first_partial_source\":"<<std::quoted(firstPartial)<<",\"selector_accuracy_measured\":false,\"original_screen_accuracy_measured\":false}\n";
+    std::cout<<"{\"passed\":true,\"App_surface_sources\":"<<cities<<",\"native_CGImages\":"<<images<<",\"complete_storage_surfaces\":"<<complete<<",\"nonzero_cells\":"<<nonzero<<",\"decoded_cells\":"<<decoded<<",\"residue\":"<<residue<<",\"residual_classified_cells\":"<<residualClassified<<",\"residual_payload_decoded_cells\":"<<residualPayloadCells<<",\"residual_unique_decoded_records\":"<<decodedResidualWords.size()<<",\"residual_classes\":[";
+    bool comma=false;for(const auto& entry:residualClasses){const auto& [slot,type,cols,side]=entry.first;
+        if(comma)std::cout<<',';comma=true;
+        std::cout<<"{\"tileset\":"<<slot<<",\"raw_type_flags\":"<<type<<",\"record_side\":"<<cols<<",\"subTile_side\":"<<side<<",\"cells\":"<<entry.second<<'}';}
+    std::cout<<"],\"excluded_non_city\":"<<excluded<<",\"first_partial_source\":"<<std::quoted(firstPartial)<<",\"selector_accuracy_measured\":false,\"original_screen_accuracy_measured\":false}\n";
 }
 }
 int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--metrics"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true}\n";return 0;}metrics(root);}
