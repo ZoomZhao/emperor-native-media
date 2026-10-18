@@ -169,6 +169,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTextField* _originalMapCameraY;
     NSButton* _originalMapCameraApply;
     NSTextField* _originalMapInfo;
+    NSTextView* _originalMapUnknowns;
     NSImageView* _originalMapImage;
     std::vector<game_lab::OriginalMapSource> _originalMapSources;
     std::string _originalMapSourceInfo;
@@ -1453,7 +1454,19 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapInfo.maximumNumberOfLines = 6; _originalMapInfo.font = [NSFont systemFontOfSize:12];
     _originalMapInfo.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     _originalMapInfo.accessibilityIdentifier = @"original-map-info"; [_originalMapView addSubview:_originalMapInfo];
-    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 280)];
+    NSScrollView* unknownScroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,height-352,980,100)];
+    unknownScroll.hasVerticalScroller=YES;unknownScroll.borderType=NSBezelBorder;
+    unknownScroll.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
+    _originalMapUnknowns=[[NSTextView alloc] initWithFrame:unknownScroll.bounds];
+    _originalMapUnknowns.editable=NO;_originalMapUnknowns.selectable=YES;
+    _originalMapUnknowns.verticallyResizable=YES;_originalMapUnknowns.horizontallyResizable=NO;
+    _originalMapUnknowns.font=[NSFont systemFontOfSize:12];
+    _originalMapUnknowns.textContainer.widthTracksTextView=YES;
+    _originalMapUnknowns.autoresizingMask=NSViewWidthSizable;
+    _originalMapUnknowns.accessibilityIdentifier=@"original-map-unknown-cells";
+    _originalMapUnknowns.accessibilityLabel=@"未覆盖格分类与0基活动坐标";
+    unknownScroll.documentView=_originalMapUnknowns;[_originalMapView addSubview:unknownScroll];
+    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 388)];
     _originalMapImage.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _originalMapImage.imageScaling = NSImageScaleProportionallyUpOrDown;
     _originalMapImage.accessibilityIdentifier = @"original-map-grid"; [_originalMapView addSubview:_originalMapImage];
@@ -1461,6 +1474,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 - (void)onOriginalMapChanged:(id)sender {
     (void)sender; _originalMapResult = {}; _originalMapImage.image = nil;
+    _originalMapUnknowns.string=@"地图来源已切换；等待新地表结果，不沿用旧坐标。";
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const NSInteger index = _originalMapPicker.indexOfSelectedItem;
     _originalMapSourceInfo.clear();_originalMapPackageSummary=NO;_originalSaveLayers.reset();
@@ -1489,6 +1503,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 - (void)onOriginalMapPlaneChanged:(id)sender {
     (void)sender; _originalMapImage.image = nil;
+    _originalMapUnknowns.string=@"当前为数值视图；不提供已验证的原版地表覆盖。";
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const auto& result = _originalMapResult;
     const bool surface=_originalMapBitPicker.indexOfSelectedItem==38;
@@ -1511,9 +1526,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         game_lab::DecodedImage image;
         const bool cameraNumbers=readMapCameraNumber(_originalMapCameraX,camera.centerX)&&readMapCameraNumber(_originalMapCameraY,camera.centerY);
         if(surface){
+            _originalMapUnknowns.string=@"相机无效或地表结果不可用；未刷新坐标，不沿用旧列表。";
             if(cameraNumbers){
                 auto rendered=_originalMapSurface->render(camera);image=std::move(rendered.image);
                 const auto& s=rendered.stats;
+                if(image.valid())_originalMapUnknowns.string=[NSString stringWithUTF8String:game_lab::describeAppSurfaceDiagnostics(_originalMapSurface->diagnostics(s)).c_str()];
                 text+="\n存储 surface："+std::to_string(s.decodedCells)+"/"+std::to_string(s.nonzeroCells)+" 非零格已解码；视口绘制 "+std::to_string(s.drawnCells)+" 格";
                 text+="；未支持几何 "+std::to_string(s.geometryUnsupported)+"，缺档案 "+std::to_string(s.archiveUnavailable)+"，未解析索引 "+std::to_string(s.unresolvedIndices)+"，解码失败 "+std::to_string(s.decodeFailures);
             }

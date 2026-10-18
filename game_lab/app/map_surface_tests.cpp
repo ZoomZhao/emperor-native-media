@@ -79,6 +79,7 @@ void authored(const std::filesystem::path& root){
     auto map=loadOriginalMapTerrain((root/"Cities/own.map").string());need(map.status==OriginalMapStatus::LoadedTerrain,"owned MAP parses");
     need(app.select("Cities/own.map",map.terrain),"App selects same complete MAP");OriginalMapCamera c;c.centerX=c.centerY=42;c.width=256;c.height=192;
     auto image=app.render(c);need(image.image.valid()&&image.stats.nonzeroCells==1&&image.stats.decodedCells==1,"stored surface is rendered rather than numerical flags");
+    need(app.diagnostics(image.stats).totalUnknown==0&&app.diagnostics(image.stats).cells.empty(),"complete source has no invented issue coordinates");
     need(std::count(image.image.pixelsBGRA.begin(),image.image.pixelsBGRA.end(),0xff00ff00u)==1600,"owned RGB555 art reaches exact native pixels");
     auto cg=createCGImageFromPremultipliedBGRA(image.image.width,image.image.height,image.image.pixelsBGRA);need(cg!=nullptr,"App CGImage creation");if(cg)CGImageRelease(cg);
     need(!app.select("../outside.map",map.terrain)&&!app.available()&&!app.render(c).image.valid(),"unsafe selection clears previous surface");
@@ -87,6 +88,13 @@ void authored(const std::filesystem::path& root){
     need(!app.select("Cities/own.map",wrong),"different field snapshot refused");
     AppMapSurface missing(configured);std::filesystem::rename(root/"DATA",root/"assets-absent");need(missing.select("Cities/own.map",map.terrain),"missing assets keep measured unknown surface");
     auto unknown=missing.render(c);need(unknown.image.valid()&&unknown.stats.archiveUnavailable==1&&unknown.stats.decodedCells==0,"missing archive is counted,not substituted");
+    const auto missingIssues=missing.diagnostics(unknown.stats);
+    need(missingIssues.cells.size()==1&&missingIssues.unlocated==0&&missingIssues.cells[0].x==42&&missingIssues.cells[0].y==42&&missingIssues.cells[0].kind==AppSurfaceIssueKind::ArchiveUnavailable,"missing archive has source-bound active coordinates and class");
+    need(describeAppSurfaceDiagnostics(missingIssues).find("活动(42,42)")!=std::string::npos,"diagnostic text exposes zero-based coordinates");
+    need(describeAppSurfaceDiagnostics(missingIssues,0).find("0/1")!=std::string::npos,"bounded issue list declares omitted rows");
+    missing.clear();need(missing.diagnostics(unknown.stats).cells.empty()&&missing.diagnostics(unknown.stats).unlocated==1,"cleared source cannot reuse old coordinates");
+    auto onlyFailure=image.stats;onlyFailure.decodedCells=0;onlyFailure.decodeFailures=1;
+    need(app.diagnostics(onlyFailure).unlocated==1&&app.diagnostics(onlyFailure).cells.empty(),"decode failure without per-cell evidence remains explicitly unlocated");
     need(std::all_of(unknown.image.pixelsBGRA.begin(),unknown.image.pixelsBGRA.end(),[](uint32_t p){return p==0;}),"unknown surface remains transparent");
     auto state=*loadOriginalTerrainState((root/"Cities/own.map").string());auto terrain=map.terrain;
     const size_t anchor=114*228+114;
@@ -109,6 +117,22 @@ void authored(const std::filesystem::path& root){
     need(markerConstraint(broken,anchor+228)&&markerConstraint(broken,anchor+229),"marker constraint distinguishes column-zero last row");
     broken=state;broken.draw[anchor+229]|=64;
     need(!markerConstraint(broken,anchor+228)&&!markerConstraint(broken,anchor+229),"bottom-right marker hypothesis is falsifiable");
+    for(bool foreign:{false,true}){
+        const auto own=root/(foreign?"foreign":"conflict");fixture(own);
+        constexpr size_t table=40680,q=table+201*64;Bytes sg(table+203*64);
+        put(sg,0,uint32_t(sg.size()));put(sg,4,213);put(sg,12,203);put(sg,16,202);
+        put(sg,q+4,foreign?8:12800);put(sg,q+8,foreign?0:12800);put(sg,q+20,foreign?2:158,2);put(sg,q+22,foreign?2:80,2);put(sg,q+50,foreign?0:30,2);sg[q+55]=foreign?0:2;
+        write(own/"DATA/China_Terrain.sg3",sg);write(own/"DATA/China_Terrain.555",Bytes(foreign?8:12800,0));
+        AppMapSurface inspect(ResourceRoot::fromAbsolute(own.string()));need(inspect.select("Cities/own.map",map.terrain),"owned issue source selects");
+        auto rejected=inspect.render(c);auto issues=inspect.diagnostics(rejected.stats);
+        need(issues.totalUnknown==1&&issues.cells.size()==1&&issues.unlocated==0&&issues.cells[0].x==42&&issues.cells[0].y==42&&issues.cells[0].kind==(foreign?AppSurfaceIssueKind::BlockGeometryUnsupported:AppSurfaceIssueKind::GroupSideConflict),"geometry issue class and coordinates reflect the actual rejection");
+    }
+    const auto unused=root/"outside-index";fixture(unused);
+    Bytes limited(40680+203*64);put(limited,0,uint32_t(limited.size()));put(limited,4,213);put(limited,12,203);put(limited,16,200);
+    write(unused/"DATA/China_Terrain.sg3",limited);AppMapSurface outside(ResourceRoot::fromAbsolute(unused.string()));
+    need(outside.select("Cities/own.map",map.terrain),"archive with absent referenced logical ID remains inspectable");
+    const auto absent=outside.diagnostics(outside.render(c).stats);
+    need(absent.cells.size()==1&&absent.unlocated==0&&absent.cells[0].kind==AppSurfaceIssueKind::IndexUnresolved&&absent.cells[0].x==42&&absent.cells[0].y==42,"invalid logical index is located without inventing geometry");
     std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"original_data\":false}\n";
 }
 void metrics(const std::string& path){
@@ -123,6 +147,7 @@ void metrics(const std::string& path){
     size_t residualPayloadCells=0,residualClassified=0;
     size_t groupedCells=0,storedGroups=0,mirroredCells=0,cropTouchingCells=0;
     size_t markerMatches=0,controlCities=0,controlCells=0,controlMatches=0,controlGroups=0;
+    size_t locatedIssues=0,unlocatedIssues=0,sideIssues=0,blockIssues=0;
     std::map<std::pair<uint32_t,uint8_t>,size_t> controlMarkerFailures;
     std::string firstControlFailure;
     std::vector<std::string> cityConstraints;
@@ -135,6 +160,16 @@ void metrics(const std::string& path){
         auto out=app.render(c);if(!out.image.valid())throw std::runtime_error("App surface render failed: "+relative);
         auto cg=createCGImageFromPremultipliedBGRA(out.image.width,out.image.height,out.image.pixelsBGRA);if(!cg)throw std::runtime_error("CGImage failed: "+relative);CGImageRelease(cg);++images;++cities;
         const auto& s=out.stats;nonzero+=s.nonzeroCells;decoded+=s.decodedCells;residue+=s.geometryUnsupported+s.unresolvedIndices+s.archiveUnavailable+s.decodeFailures;
+        const auto diagnostics=app.diagnostics(s);locatedIssues+=diagnostics.cells.size();unlocatedIssues+=diagnostics.unlocated;
+        if(diagnostics.cells.size()+diagnostics.unlocated!=diagnostics.totalUnknown)throw std::runtime_error("issue accounting is not exclusive");
+        const auto active=analyzeOriginalMap(map.terrain);const auto issueState=diagnostics.cells.empty()?std::optional<OriginalTerrainState>():loadOriginalTerrainState(absolute);
+        std::set<std::pair<uint32_t,uint32_t>> positions;
+        for(const auto& issue:diagnostics.cells){
+            if(!issueState||issue.x>=active.cropSide||issue.y>=active.cropSide||!positions.emplace(issue.x,issue.y).second)throw std::runtime_error("issue coordinate missing,duplicated or out of range");
+            const size_t cell=size_t(issue.y+active.cropOrigin)*228+issue.x+active.cropOrigin;
+            if((map.terrain.flags[cell]&0x80000u)||issueState->image[cell]!=issue.storedWord)throw std::runtime_error("issue coordinate does not bind the selected MAP");
+            if(issue.kind==AppSurfaceIssueKind::GroupSideConflict)++sideIssues;if(issue.kind==AppSurfaceIssueKind::BlockGeometryUnsupported)++blockIssues;
+        }
         if(s.decodedCells+s.geometryUnsupported+s.unresolvedIndices+s.archiveUnavailable+s.decodeFailures!=s.nonzeroCells)throw std::runtime_error("surface accounting is not exclusive: "+relative);
         if(s.decodedCells<s.nonzeroCells&&firstPartial.empty())firstPartial=relative;
         std::map<uint32_t,uint32_t> rejectedRecords;
@@ -209,7 +244,9 @@ void metrics(const std::string& path){
     bool comma=false;for(const auto& entry:residualClasses){const auto& [slot,type,cols,side]=entry.first;
         if(comma)std::cout<<',';comma=true;
         std::cout<<"{\"tileset\":"<<slot<<",\"raw_type_flags\":"<<type<<",\"record_side\":"<<cols<<",\"subTile_side\":"<<side<<",\"cells\":"<<entry.second<<'}';}
-    std::cout<<"],\"residual_complete_group_cells\":"<<groupedCells<<",\"residual_complete_groups\":"<<storedGroups
+    std::cout<<"],\"located_issue_cells\":"<<locatedIssues<<",\"unlocated_issue_cells\":"<<unlocatedIssues
+        <<",\"side_conflict_issue_cells\":"<<sideIssues<<",\"block_geometry_issue_cells\":"<<blockIssues
+        <<",\"residual_complete_group_cells\":"<<groupedCells<<",\"residual_complete_groups\":"<<storedGroups
         <<",\"residual_mirrored_cells\":"<<mirroredCells<<",\"residual_crop_touching_cells\":"<<cropTouchingCells
         <<",\"residual_marker_constraint_cells\":"<<markerMatches
         <<",\"complete_city_marker_controls\":{\"cities\":"<<controlCities<<",\"complete_group_cells\":"<<controlCells

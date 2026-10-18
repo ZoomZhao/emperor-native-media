@@ -45,7 +45,7 @@ def run(binary,build):
             residual=0 if kind=='accepted' else 1 if kind=='mixed_sides' else 4
             logical=0 if kind=='accepted' else 2 if kind=='mirror' else 1
             expected_type=0 if kind in ['plain','mirror'] else 256 if kind=='rle' else 30
-            row['passed']=r.returncode==0 and d['residue']==d['residual_classified_cells']==d['residual_payload_decoded_cells']==residual and d['residual_unique_decoded_records']==logical and d['decoded_cells']==4-residual and d['residual_mirrored_cells']==(2 if kind=='mirror' else 0)
+            row['passed']=r.returncode==0 and d['residue']==d['residual_classified_cells']==d['residual_payload_decoded_cells']==residual and d['residual_unique_decoded_records']==logical and d['decoded_cells']==4-residual and d['residual_mirrored_cells']==(2 if kind=='mirror' else 0) and d['located_issue_cells']==residual and d['unlocated_issue_cells']==0
             if residual:row['passed']=row['passed'] and d['residual_classes'][0]['cells']==residual and d['residual_classes'][0]['raw_type_flags']==expected_type
         results.append(row)
     if not all(row['passed'] for row in results):

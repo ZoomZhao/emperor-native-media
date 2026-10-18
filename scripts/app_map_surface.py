@@ -19,6 +19,10 @@ def constraint_summary(metrics):
     held=[r for r in rows if r not in discovery]
     overlap=[r for r in held if r['city'].removesuffix('_S') in families]
     strict=[r for r in held if r not in overlap]
+    # Filename-family sensitivity,not a claim of independent historical cities.
+    broad=lambda name:name.removesuffix('_S').replace('Chang-an Han','Chang-an').replace('Chang-an Sui','Chang-an')
+    broad_known={broad(r['city']) for r in discovery}
+    broad_strict=[r for r in held if broad(r['city']) not in broad_known]
     def summarize(group):
         fields=['cells','side_conflict_cells','complete_group_cells','complete_groups','mirrored_cells','crop_touching_cells','marker_constraint_cells']
         return {'cities':[r['city'] for r in group],
@@ -29,6 +33,8 @@ def constraint_summary(metrics):
             'split':'SHA256 city-stem UTF-8 first-byte parity;even discovery;odd holdout;exclude discovery _S families from strict holdout',
             'discovery':summarize(discovery),'initial_holdout':summarize(held),
             'family_overlap_excluded':summarize(overlap),'strict_holdout':summarize(strict),
+            'family_definition':'strip terminal _S only;broader shared provenance is unproved',
+            'Chang_an_merged_sensitivity':summarize(broad_strict),
             'all_residual_cells':metrics['residue'],
             'all_complete_group_cells':metrics['residual_complete_group_cells'],
             'all_complete_groups':metrics['residual_complete_groups'],

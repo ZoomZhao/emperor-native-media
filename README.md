@@ -5,12 +5,12 @@ Load legally owned original Emperor data with `--data-root`, render it natively 
 ## Launch the local App
 
 ```sh
-"/Users/zoomzhao/Documents/Codex/2026-10-14/task/native-surface-app-20261018/release/EmperorApp.app/Contents/MacOS/EmperorApp" --data-root "/Users/zoomzhao/Workspace/lzjq/GameData"
+"/Users/zoomzhao/Documents/Codex/2026-10-14/task/native-surface-diagnostics-20261018/release/EmperorApp.app/Contents/MacOS/EmperorApp" --data-root "/Users/zoomzhao/Workspace/lzjq/GameData"
 ```
 
-This delivery stays outside Git and GameData; the earlier App is preserved. No game assets are bundled. Another legally owned directory requires changing the explicit argument. macOS15+ is required. The App starts muted; Bink playback uses the existing external FFmpeg and reports missing dependencies without installing them.
+This diagnostics delivery stays outside Git and GameData; the earlier `native-surface-app-20261018/release/EmperorApp.app` is preserved. No game assets are bundled. Another legally owned directory requires changing the explicit argument. macOS15+ is required. The App starts muted; Bink playback uses the existing external FFmpeg and reports missing dependencies without installing them.
 
-Open **原始地图** and select a standalone city MAP. The default **原始地表图素（MAP 存储 surface）** view reads its saved surface-image grid and renders SG3/555 pixels. Camera X/Y moves the viewport. Missing resources, unsupported geometry and decode failures remain counted; unknown pixels are transparent. Numerical terrain/bit views remain available. PAK and SAV selections retain their numerical views; they do not acquire an unproved stored-surface binding.
+Open **原始地图** and select a standalone city MAP. The default **原始地表图素（MAP 存储 surface）** view reads its saved surface-image grid and renders SG3/555 pixels. Camera X/Y moves the viewport. Missing resources, unsupported geometry and decode failures remain counted; unknown pixels are transparent. The scrollable **未覆盖格分类与0基活动坐标** list shows each located failure,its class and active X/Y;enter those coordinates in the camera fields to inspect the area. Unknown locations stay explicitly counted,and source/plane/invalid-camera changes clear old coordinates. This is a diagnostic list,not a guessed drawing overlay. Numerical terrain/bit views remain available. PAK and SAV selections retain their numerical views; they do not acquire an unproved stored-surface binding.
 
 The App adapter reads167/167 city sources and creates167/167 native CGImages. Actual App checks cover6/6 complete/partial surface, numerical fallback, PAK clearing, SAV restrictions and return transitions;344/344 tested input files remain unchanged. The source manifest covers81/81 files and27 compiled units;strict signing and source correspondence are checked. These are delivery checks, not original-screen accuracy.
 
