@@ -11,11 +11,56 @@
 #include <map>
 #include <set>
 #include <tuple>
+#include <sstream>
 #include <zlib.h>
 namespace {
 using Bytes=std::vector<uint8_t>;
 size_t checks=0;
 void need(bool value,const char* message){++checks;if(!value)throw std::runtime_error(message);}
+using GroupKey=std::tuple<uint32_t,int,int>;
+GroupKey storedGroupKey(const game_lab::OriginalTerrainState& state,size_t cell){
+    return {state.image[cell],int(cell%228)-int(state.draw[cell]&7),
+        int(cell/228)-int((state.draw[cell]>>3)&7)};
+}
+bool markerConstraint(const game_lab::OriginalTerrainState& state,size_t cell){
+    const auto n=uint32_t(state.subTile[cell]&15)+1;
+    return bool(state.draw[cell]&64)==((state.draw[cell]&7)==0&&uint32_t((state.draw[cell]>>3)&7)==n-1);
+}
+struct StoredGroupAudit {
+    const game_lab::OriginalMapTerrain& terrain;
+    const game_lab::OriginalTerrainState& state;
+    uint32_t origin,side;
+    std::map<GroupKey,size_t> members;
+    StoredGroupAudit(const game_lab::OriginalMapTerrain& t,const game_lab::OriginalTerrainState& s):terrain(t),state(s){
+        const auto activity=game_lab::analyzeOriginalMap(t);origin=activity.cropOrigin;side=activity.cropSide;
+        for(uint32_t y=origin;y<origin+side;++y)for(uint32_t x=origin;x<origin+side;++x){
+            const size_t cell=size_t(y)*228+x;
+            if(!(terrain.flags[cell]&0x80000u)&&state.image[cell])++members[storedGroupKey(state,cell)];
+        }
+    }
+    bool touchesInactive(size_t cell)const{
+        const auto [word,ax,ay]=storedGroupKey(state,cell);(void)word;
+        const int n=int(state.subTile[cell]&15)+1;
+        for(int y=0;y<n;++y)for(int x=0;x<n;++x){
+            const int px=ax+x,py=ay+y;
+            if(px<int(origin)||py<int(origin)||px>=int(origin+side)||py>=int(origin+side)||
+                (terrain.flags[size_t(py)*228+size_t(px)]&0x80000u))return true;
+        }
+        return false;
+    }
+    bool complete(size_t cell)const{
+        const auto key=storedGroupKey(state,cell);const auto [word,ax,ay]=key;
+        const uint32_t n=uint32_t(state.subTile[cell]&15)+1;
+        if((state.draw[cell]&7)>=n||((state.draw[cell]>>3)&7)>=n||touchesInactive(cell))return false;
+        const auto found=members.find(key);if(found==members.end()||found->second!=size_t(n)*n)return false;
+        for(uint32_t y=0;y<n;++y)for(uint32_t x=0;x<n;++x){
+            const size_t next=size_t(ay+int(y))*228+size_t(ax+int(x));
+            if(state.image[next]!=word||uint32_t(state.subTile[next]&15)+1!=n||
+                (state.draw[next]&63)!=x+8*y)return false;
+        }
+        return true;
+    }
+};
 void put(Bytes& b,size_t p,uint32_t n,unsigned width=4){for(unsigned i=0;i<width;++i)b.at(p+i)=uint8_t(n>>(8*i));}
 void write(const std::filesystem::path& p,const Bytes& b){std::filesystem::create_directories(p.parent_path());std::ofstream f(p,std::ios::binary);f.write(reinterpret_cast<const char*>(b.data()),b.size());if(!f)throw std::runtime_error("owned fixture write");}
 Bytes framed(const Bytes& b){Bytes out(4);put(out,0,0xfedcbaaa);for(size_t p=0;p<b.size();p+=32768){auto n=std::min(size_t(32768),b.size()-p);Bytes z(compressBound(n));uLongf length=z.size();if(compress2(z.data(),&length,b.data()+p,n,9)!=Z_OK)throw std::runtime_error("fixture compression");size_t q=out.size();out.resize(q+12+length);put(out,q,0xabcdefff);put(out,q+4,uint32_t(length));put(out,q+8,uint32_t(n));std::copy(z.begin(),z.begin()+length,out.begin()+q+12);}return out;}
@@ -43,6 +88,27 @@ void authored(const std::filesystem::path& root){
     AppMapSurface missing(configured);std::filesystem::rename(root/"DATA",root/"assets-absent");need(missing.select("Cities/own.map",map.terrain),"missing assets keep measured unknown surface");
     auto unknown=missing.render(c);need(unknown.image.valid()&&unknown.stats.archiveUnavailable==1&&unknown.stats.decodedCells==0,"missing archive is counted,not substituted");
     need(std::all_of(unknown.image.pixelsBGRA.begin(),unknown.image.pixelsBGRA.end(),[](uint32_t p){return p==0;}),"unknown surface remains transparent");
+    auto state=*loadOriginalTerrainState((root/"Cities/own.map").string());auto terrain=map.terrain;
+    const size_t anchor=114*228+114;
+    for(size_t y=0;y<2;++y)for(size_t x=0;x<2;++x){const size_t i=anchor+y*228+x;
+        terrain.flags[i]=128;state.image[i]=3u<<14;state.subTile[i]=1;state.draw[i]=uint8_t(x+8*y);}
+    need(StoredGroupAudit(terrain,state).complete(anchor+229),"complete stored 2x2 group has one implied anchor");
+    auto broken=state;broken.image[anchor+229]++;
+    need(!StoredGroupAudit(terrain,broken).complete(anchor),"foreign image breaks stored group");
+    broken=state;broken.subTile[anchor+229]=2;
+    need(!StoredGroupAudit(terrain,broken).complete(anchor),"mixed stored sides rejected");
+    broken=state;broken.draw[anchor+229]=0;
+    need(!StoredGroupAudit(terrain,broken).complete(anchor),"duplicate offset rejects missing member");
+    broken=state;auto extra=terrain;extra.flags[anchor+2]=128;broken.image[anchor+2]=3u<<14;broken.draw[anchor+2]=2;
+    need(!StoredGroupAudit(extra,broken).complete(anchor),"extra cell sharing implied anchor rejected");
+    auto inactive=terrain;inactive.flags[anchor+229]|=0x80000u;
+    need(!StoredGroupAudit(inactive,state).complete(anchor)&&StoredGroupAudit(inactive,state).touchesInactive(anchor),"inactive footprint cannot be complete");
+    broken=state;for(size_t y=0;y<2;++y)for(size_t x=0;x<2;++x)broken.draw[anchor+y*228+x]|=64;
+    need(StoredGroupAudit(terrain,broken).complete(anchor),"uninterpreted upper draw bits do not change low-six group constraint");
+    broken=state;broken.draw[anchor+228]|=64;
+    need(markerConstraint(broken,anchor+228)&&markerConstraint(broken,anchor+229),"marker constraint distinguishes column-zero last row");
+    broken=state;broken.draw[anchor+229]|=64;
+    need(!markerConstraint(broken,anchor+228)&&!markerConstraint(broken,anchor+229),"bottom-right marker hypothesis is falsifiable");
     std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"original_data\":false}\n";
 }
 void metrics(const std::string& path){
@@ -55,6 +121,11 @@ void metrics(const std::string& path){
     std::set<uint32_t> decodedResidualWords;
     std::map<std::tuple<uint32_t,uint16_t,uint32_t,uint32_t>,size_t> residualClasses;
     size_t residualPayloadCells=0,residualClassified=0;
+    size_t groupedCells=0,storedGroups=0,mirroredCells=0,cropTouchingCells=0;
+    size_t markerMatches=0,controlCities=0,controlCells=0,controlMatches=0,controlGroups=0;
+    std::map<std::pair<uint32_t,uint8_t>,size_t> controlMarkerFailures;
+    std::string firstControlFailure;
+    std::vector<std::string> cityConstraints;
     for(const auto& file:fs::directory_iterator(fs::path(root.configuredDirectory())/"Cities")){
         if(file.path().extension()!=".map")continue;
         const auto relative=fs::relative(file.path(),root.configuredDirectory()).generic_string();const auto absolute=root.resolve(relative);if(absolute.empty())throw std::runtime_error("MAP escapes root");
@@ -78,6 +149,8 @@ void metrics(const std::string& path){
         if(!rejectedRecords.empty()){
             const auto state=loadOriginalTerrainState(absolute);if(!state)throw std::runtime_error("residual state reload failed");
             const auto activity=analyzeOriginalMap(map.terrain);size_t classified=0;
+            StoredGroupAudit groupAudit(map.terrain,*state);std::set<GroupKey> cityGroups;
+            size_t cityGrouped=0,cityMirrored=0,cityCrop=0,cityConflict=0,citySingle=0,cityDrawBit6=0,cityMarkerMatches=0;
             for(uint32_t y=0;y<activity.cropSide;++y)for(uint32_t x=0;x<activity.cropSide;++x){
                 const size_t cell=size_t(y+activity.cropOrigin)*228+x+activity.cropOrigin;
                 if(map.terrain.flags[cell]&0x80000u)continue;
@@ -91,6 +164,7 @@ void metrics(const std::string& path){
                 }
                 const auto& archive=found->second;size_t index=(word&0x3fffu)+200;
                 if(index>=archive.sprites.size())throw std::runtime_error("residual record out of bounds");
+                if(archive.sprites[index].mirrorOffset)++cityMirrored;
                 if(!decodedResidualWords.count(word)){
                     auto companion=fs::path("DATA")/mapImageGridArchiveName(slot);companion.replace_extension(".555");
                     const auto pixels=decodeSG3Sprite(archive,index,root.resolve(companion.generic_string()));
@@ -100,9 +174,33 @@ void metrics(const std::string& path){
                 while(archive.sprites[index].mirrorOffset){const auto delta=archive.sprites[index].mirrorOffset;
                     if(delta>=0||int64_t(index)+delta<0)throw std::runtime_error("invalid residual mirror");index=size_t(int64_t(index)+delta);}
                 ++residualClasses[{slot,archive.sprites[index].type,cols,cols?side:0}];++classified;++residualPayloadCells;
+                if(groupAudit.complete(cell)){++cityGrouped;cityGroups.insert(storedGroupKey(*state,cell));}
+                if(groupAudit.touchesInactive(cell))++cityCrop;
+                if(cols)++cityConflict;
+                if(side==1)++citySingle;
+                if(state->draw[cell]&64)++cityDrawBit6;
+                if(markerConstraint(*state,cell))++cityMarkerMatches;
             }
             if(classified!=s.geometryUnsupported)throw std::runtime_error("residual per-cell classification does not reconcile");
             residualClassified+=classified;
+            groupedCells+=cityGrouped;storedGroups+=cityGroups.size();mirroredCells+=cityMirrored;cropTouchingCells+=cityCrop;
+            markerMatches+=cityMarkerMatches;
+            std::ostringstream row;row<<"{\"city\":"<<std::quoted(file.path().stem().string())<<",\"cells\":"<<classified
+                <<",\"side_conflict_cells\":"<<cityConflict<<",\"complete_group_cells\":"<<cityGrouped<<",\"complete_groups\":"<<cityGroups.size()
+                <<",\"mirrored_cells\":"<<cityMirrored<<",\"crop_touching_cells\":"<<cityCrop
+                <<",\"singleton_cells\":"<<citySingle<<",\"draw_bit6_cells\":"<<cityDrawBit6
+                <<",\"marker_constraint_cells\":"<<cityMarkerMatches<<'}';cityConstraints.push_back(row.str());
+        }
+        if(s.decodedCells==s.nonzeroCells){
+            ++controlCities;const auto state=loadOriginalTerrainState(absolute);if(!state)throw std::runtime_error("control state reload failed");
+            const auto activity=analyzeOriginalMap(map.terrain);StoredGroupAudit audit(map.terrain,*state);std::set<GroupKey> groups;
+            for(uint32_t y=activity.cropOrigin;y<activity.cropOrigin+activity.cropSide;++y)
+                for(uint32_t x=activity.cropOrigin;x<activity.cropOrigin+activity.cropSide;++x){const size_t cell=size_t(y)*228+x;
+                    if((map.terrain.flags[cell]&0x80000u)||!state->image[cell]||!audit.complete(cell))continue;
+                    ++controlCells;if(markerConstraint(*state,cell))++controlMatches;
+                    else{++controlMarkerFailures[{uint32_t(state->subTile[cell]&15)+1,state->draw[cell]}];if(firstControlFailure.empty())firstControlFailure=relative;}
+                    groups.insert(storedGroupKey(*state,cell));}
+            controlGroups+=groups.size();
         }
         if(s.decodedCells==s.nonzeroCells&&!s.geometryUnsupported&&!s.unresolvedIndices&&!s.archiveUnavailable&&!s.decodeFailures)++complete;
     }
@@ -111,6 +209,17 @@ void metrics(const std::string& path){
     bool comma=false;for(const auto& entry:residualClasses){const auto& [slot,type,cols,side]=entry.first;
         if(comma)std::cout<<',';comma=true;
         std::cout<<"{\"tileset\":"<<slot<<",\"raw_type_flags\":"<<type<<",\"record_side\":"<<cols<<",\"subTile_side\":"<<side<<",\"cells\":"<<entry.second<<'}';}
+    std::cout<<"],\"residual_complete_group_cells\":"<<groupedCells<<",\"residual_complete_groups\":"<<storedGroups
+        <<",\"residual_mirrored_cells\":"<<mirroredCells<<",\"residual_crop_touching_cells\":"<<cropTouchingCells
+        <<",\"residual_marker_constraint_cells\":"<<markerMatches
+        <<",\"complete_city_marker_controls\":{\"cities\":"<<controlCities<<",\"complete_group_cells\":"<<controlCells
+        <<",\"marker_constraint_cells\":"<<controlMatches<<",\"groups\":"<<controlGroups
+        <<",\"first_failure_source\":"<<std::quoted(firstControlFailure)<<",\"failure_classes\":[";
+    comma=false;for(const auto& entry:controlMarkerFailures){if(comma)std::cout<<',';comma=true;
+        std::cout<<"{\"subTile_side\":"<<entry.first.first<<",\"draw\":"<<unsigned(entry.first.second)<<",\"cells\":"<<entry.second<<'}';}
+    std::cout<<"]},\"residual_city_constraints\":[";
+    std::sort(cityConstraints.begin(),cityConstraints.end());
+    for(size_t i=0;i<cityConstraints.size();++i){if(i)std::cout<<',';std::cout<<cityConstraints[i];}
     std::cout<<"],\"excluded_non_city\":"<<excluded<<",\"first_partial_source\":"<<std::quoted(firstPartial)<<",\"selector_accuracy_measured\":false,\"original_screen_accuracy_measured\":false}\n";
 }
 }

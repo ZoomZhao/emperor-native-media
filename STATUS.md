@@ -7,7 +7,7 @@
 | [SG3/555](docs/SG3.md) | **71,751/72,370** native images;58/58 indexes.427 empty＋192 missing companion images. Animation metadata72,370/72,370;playback semantics unmeasured. |
 | [MAP / PAK](docs/MAP.md) | **168/168** MAP containers,167/167 city grids/images;32/32 planes.31/31 PAKs,108 parts,46 embedded city grids;62 other parts uninterpreted. |
 | [SAV](docs/SAV.md) | **6/6＋9/9** supplied files across separate roots;90/90 numerical fields,4,678,560/4,678,560 values checked. Buildings/walkers/current memory unparsed. |
-| **Stored surface rendering coverage** | **139/167** complete stored grids;**2,106,879/2,107,808** nonzero cells actually decoded (99.9559%),including offscreen payload validation.929 remain:286 subTile conflicts＋643 non-block cells. Residual payload audit **0/929→929/929**,56/56 referenced records decode;placement remains unknown. |
+| **Stored surface rendering coverage** | **139/167** complete stored grids;**2,106,879/2,107,808** nonzero cells actually decoded (99.9559%),including offscreen payload validation.929 remain:286 subTile conflicts＋643 non-block cells. Residual payload audit **0/929→929/929**,56/56 logical records decode. Stored groups **0/929→929/929** cells,426/426 complete;strict holdout480/480 across8 city families. Placement unknown. |
 | **Reconstructed terrain→image accuracy** | **1,299,617/1,514,539** emitted codes match storage (85.809%);214,922 mismatches. Separate from rendering stored IDs. |
 | **Original-screen city comparison** | **0/167** complete city pictures verified. Coverage is not pixel agreement or playability;camera/elevation,composition,objects,units andruntime state remain unproved. |
 | [Native App surface](README.md) | **0/1→1/1** App entry;167/167 sources/CGImages,6/6 GUI transitions,344/344 tested inputs unchanged. Manifest81/81,27 compiled units＋strict signature. PAK/SAV remain numerical. |
@@ -17,6 +17,6 @@
 | [Bink](docs/BINK.md) | **1/1** native intro;5,101/5,101 video＋7,499,520/7,499,520 PCM frames. Physical speaker/display latency unmeasured. |
 | [Filesystem output safety](docs/MAP.md#filesystem-equivalent-output-reservation) | Exclusive-reservation P2 independently closed;case/Unicode aliases refused. Separate from the newly repaired composite/decode defects above. |
 
-Next: establish anchor/composition rules for the929 classified residual cells;payload decoding is verified,placement remains unknown. Score the reconstructed selector separately,and obtain independent original-screen comparisons before claiming visual accuracy. CitySimulation/EMP1 remain frozen.
+Next: establish screen anchor/composition rules for426 stored groups. Global bit6 marker hypothesis fails266/1,678,159 complete-city controls;retain unknown placement. Score the reconstructed selector separately,and obtain independent original-screen comparisons before claiming visual accuracy. CitySimulation/EMP1 remain frozen.
 
 Counts distinguish original-data evidence andsynthetic regressions. Real-data tests use process-local `EMPEROR_GAMEDATA_ROOT` andsuccessful unset/empty SKIP. Original assets,derivatives,captures,hash dumps andbinaries remain outside Git. This continuation only tests the native App;it does not launch or operate the original. Test App instances exit normally.
