@@ -44,8 +44,8 @@ A flat cell index is `y * 228 + x`. Every layer below is the same flat N-element
 | `0x00FE9880` | u32 | **surface / ground image id actually drawn for the cell** |
 | `0x00F6A9E0` | u32 | runtime terrain flags; bit values match the MAP terrain field |
 | `0x00F1E780` | u8 | per-cell random byte; supplies sprite variants |
-| `0x00F9D620` | u8 | per-cell sub-tile / object index |
-| `0x00FDCD70` | u8 | per-cell draw-state flags (`0x40`, `0x80`, …) |
+| `0x00F9D620` | u8 | per-cell ground group side (low nibble = side-1); bit 5 copies random byte 0 |
+| `0x00FDCD70` | u8 | per-cell draw state: block column in bits 0..2, row in bits 3..5 |
 | `0x00FC3750` | i16 | building / object id |
 
 `FUN_004048E0 @0x004048E0` is the map reset: it zero-fills each parallel grid with element sizes
@@ -303,10 +303,10 @@ order (logical payload offsets; `original_terrain.hpp` carries the same table):
 | Payload offset | Target VA | Width | Grid |
 |---:|---|---:|---|
 | 1,535 | `0x00FE9880` | u32 | **surface image id** |
-| 209,471 | `0x00FDCD70` | u8 | draw-state flags |
+| 209,471 | `0x00FDCD70` | u8 | draw state: block column/row + per-cell draw flag |
 | 261,455 | `0x00F6A9E0` | u32 | terrain flags (equals the MAP terrain field) |
 | 469,391 | `0x00F37DA0` | u32 | feature/orientation bits |
-| 677,327 | `0x00F9D620` | u8 | sub-tile / object index |
+| 677,327 | `0x00F9D620` | u8 | ground group side (low nibble = side-1) |
 | 729,311 | `0x00F1E780` | u8 | per-cell random byte |
 | 781,295 | `0x00F05160` | u8 | unmodelled |
 | 833,279/833,283 | `0x0101D0AC`/`0x0101D0B0` | u32 | unmodelled pair |
@@ -369,6 +369,77 @@ type-30 + 419 non-type-30 object art, all 4,224 tileset-6 cells across 3 318×16
 records, and all 12,416 tileset-8 cells across 37 such records). Those are real stored
 art, not empty slots, and stay `geometry_unsupported`, not silently dropped. `5/167`
 cities reach a fully single-cell render (`MP13`, `MP25`, `MP28`, `SA-Qufu`, `Baoji`).
+
+## Composite ground blocks: per-cell offset and group side
+
+The stored surface grid contains multi-cell (composite) ground art: a type-30 record
+that packs an `s*s` block (`width == s*80-2`, `height >= s*40`,
+`uncompressedLength == s*s*3200`, `tileSize in {0,s}`). The engine does **not** need a
+component bounding box to place those blocks; the cell itself carries its position:
+
+* `0x00FDCD70` (u8 per cell) — **draw state**. Bits 0..2 are the cell's **column** and
+  bits 3..5 its **row** inside the square ground group. Bit 6 (`0x40`) is the
+  "single-cell draw pending" state written by the ground dispatch (e.g.
+  `0x0042274D`, `0x0042383D`); block members keep it clear. Verified on all
+  **5,727/5,727** blocks of the 167-city corpus (the set the earlier bounding-box rule
+  accepted): `draw&7 == x-blockX` and `(draw>>3)&7 == y-blockY`, **0 exceptions**.
+* `0x00F9D620` (u8 per cell) — **group side code**, not a sub-tile index. The low
+  nibble is `s-1` (verified on the same 5,727 blocks: 4,210 × side 2, 447 × side 3,
+  1,020 × side 4, 50 × side 5; and on all 219 other multi-cell components, where
+  `low nibble+1 == max(draw column,row)+1` in every one). It is constant across a
+  block, so it cannot enumerate `s*s` sub-tiles. The renderer reads the low nibble
+  as a placement variant 0..5 and applies a per-variant screen offset
+  (`FUN_0046B1C0 @0x0046B1C0`, dispatch at `0x0046B200`); in every block that
+  variant is `s-1`. Bit 5 is copied from the random byte:
+  `or byte [cell+0x00F9D620],0x20` at `0x004B39CB` inside `FUN_004B3970 @0x004B3970`
+  is gated on `0x00F1E780 & 1`; the payload agrees on **2,107,821/2,107,836** active
+  cells (15 exceptions where bit 5 is clear despite random bit 0). Bit 4 is set only
+  at runtime (`0x004B8AB0`, `or 0x10`), bit 6 at `0x00424A60`, and the reset path
+  `0x004B3670` clears the low nibble; none of those bits appear in a stored city.
+* Placement therefore is `anchor = cell - (draw&7, (draw>>3)&7)` and is accepted only
+  when `(subTile&0x0F)+1` equals the record's declared side `s`, every offset is
+  inside the block, the anchor is inside the active crop, all cells of one anchor
+  agree on one record, the anchor cell itself still carries that record, and no two
+  accepted block footprints overlap. Anything else stays `geometry_unsupported` and
+  is named in `composite_mismatches` with its reason; there is no guessed anchor.
+
+Measured on all 167 `Cities/*.map`, whole crop, camera-free, after this rule
+(same harness and archive map as the stored-grid sweep):
+
+| Metric | Before (bbox rule) | After (per-cell offset) |
+|---|---:|---:|
+| decoded cells / 2,107,808 nonzero | 2,104,636 (99.850 %) | **2,106,879 (99.956 %)** |
+| `geometry_unsupported` | 3,172 | **929** |
+| composite blocks | 5,727 | **6,169** |
+| confirmed / recovered cells | 38,433 / 0 | 38,433 / **2,243** |
+| `composite_mismatched_cells` | 2,529 | **286** |
+| `composite_foreign_cells` | 643 | 643 |
+| cities at 100 % | 85/167 | **139/167** |
+
+The 2,243 recovered cells are complete blocks that the old component-bbox rule
+rejected only because a same-word component merged into an irregular shape or a
+non-divisible bbox; all 6,169 accepted groups have every `s*s` offset present and a
+surviving anchor, so **0 partial blocks** occur in the corpus (the rule still accepts
+a partial group, and the authored tests cover one). No two accepted block footprints
+overlap in any city.
+
+The remaining 929 cells are two named groups:
+
+* **286** multi-tile cells whose group side contradicts the record: 200 cells are
+  eight 5x5 groups drawn with a 2x2 record (farm/field tiling), 63 are five 3x3
+  groups with a 2x2 record, and 23 are isolated cells whose subTile says side 1 while
+  the record declares a 2x2/3x3 block. Tiling a smaller record over a larger group is
+  not established, so these stay unresolved.
+* **643** cells (`composite_foreign_cells`) in 364 components across 23 cities. Their
+  records do not declare an `s*s` block at all: record types 0, 1 and 256, e.g.
+  type 0 `120x84`, type 1 `51x51`, type 256 `100x75`. They are real stored art
+  (objects/overlays), not ground blocks, and are not expanded.
+
+Rendering check (2048×2048, scale 1, centre `(side-1)/2`): `Yangzhou.map` 0/4,194,304
+transparent pixels; `MP39.map` 10,416/4,194,304 = 0.248 %. For every accepted block
+fully inside the viewport, the record sheet's screen rectangle equals the `s*s` cell
+cluster's bounding box (Yangzhou 11/11, MP39 1/1) and every member cell centre is
+opaque (Yangzhou 176/176, MP39 4/4) — the blocks land where their cells are.
 
 ## Open items
 

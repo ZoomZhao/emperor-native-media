@@ -200,18 +200,42 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
         // index space and a bare index would collide across them.
         std::map<std::pair<uint32_t,size_t>,DecodedImage> cache;const int scale=int(camera.scale);
         std::map<uint32_t,size_t> cellsByTileset,drawnByTileset;
-        // Camera-free composite pre-pass. A 4-connected same-word component of the
-        // active crop whose resolved record is multi-tile type-30 art is placed block
-        // by block when the component is a full s-aligned rectangle; an irregular or
-        // non-type-30 merge is left to the single-cell path (geometry_unsupported) and
-        // named. plan is per storage cell: -1 normal, -2 covered by a block, or the
-        // index of the block anchored at that cell.
-        struct CompositeAnchor { const MapImageGridTileset* tileset; size_t index; uint32_t cols,width,height; };
+        // Camera-free composite pre-pass. The per-cell offset is the engine's own
+        // draw state: 0x00FDCD70 bits 0..2 are the column and bits 3..5 the row of
+        // the cell inside a square ground group (verified 5,727/5,727 confirmed
+        // blocks, 0 exceptions). The group side is the low nibble of the per-cell
+        // sub-tile byte 0x00F9D620 plus one (verified on the same 5,727 blocks and
+        // on all 219 other multi-cell components; it is constant across a block, so
+        // it is NOT an s*s sub-tile index). Bit 5 of that byte is randomByte
+        // 0x00F1E780 bit 0 — `or byte [cell+0x00F9D620],0x20` at 0x004B39CB inside
+        // FUN_004B3970 @0x004B3970 is gated on `randomByte & 1`, and the payload
+        // agrees on 2,107,821/2,107,836 active cells. Bits 4 and 6 are runtime
+        // flags set at 0x004B8AB0 / 0x00424A60 and never stored in a city .map.
+        // Exe SHA-256 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658.
+        // Placement is anchor = cell - (column,row), not a component bounding box,
+        // so an overwrite that breaks the component shape no longer loses the block.
+        // plan is per storage cell: -1 normal, -2 covered by a block, or the index
+        // of the block anchored at that cell.
+        struct CompositeAnchor {
+            const MapImageGridTileset* tileset; size_t index;
+            uint32_t cols,width,height,cells;
+        };
+        struct ComponentInfo {
+            uint32_t tileset,recordId;int32_t width,height;uint32_t cols,bboxWidth,bboxHeight;
+            bool fullRect,divisible;std::vector<uint32_t> members;
+        };
+        struct CompositeGroup {
+            size_t anchor;uint32_t cols;uint32_t tileset,index,width,height;
+            uint32_t cells=0;std::vector<uint8_t> seen;bool conflict=false,overlap=false;
+        };
         const uint32_t cropSide=activity.cropSide,cropOrigin=activity.cropOrigin;
         const size_t gridCells=terrain.flags.size();
         std::vector<int32_t> plan(gridCells,-1);std::vector<CompositeAnchor> anchors;
         {
-            std::vector<uint8_t> visited(gridCells,0);std::vector<uint32_t> stack,members;
+            std::vector<uint8_t> visited(gridCells,0),bboxConfirmed(gridCells,0),reasonAt(gridCells,0);
+            std::vector<uint32_t> colsAt(gridCells,0),recordAt(gridCells,0);
+            std::vector<const MapImageGridTileset*> tilesetAt(gridCells,nullptr);
+            std::vector<ComponentInfo> components;std::vector<uint32_t> stack,members;
             for(uint32_t cy=0;cy<cropSide;++cy)for(uint32_t cx=0;cx<cropSide;++cx) {
                 const size_t start=size_t(cy+cropOrigin)*OriginalMapTerrain::storageSide+cx+cropOrigin;
                 if((terrain.flags[start]&0x80000u)||!state.image[start]||visited[start])continue;
@@ -242,28 +266,128 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
                 const auto record=resolveSG3SurfaceRecord(*selected->archive,index);
                 const uint32_t bboxWidth=maxX-minX+1,bboxHeight=maxY-minY+1;
                 const auto blockSide=record?sg3CompositeCols(*record):std::optional<uint32_t>();
-                if(!record||!blockSide){result.stats.compositeForeignCells+=members.size();continue;} // non-type-30 / broken mirror
+                if(!record||!blockSide) { // non-type-30 / broken mirror: no structural block rule
+                    result.stats.compositeForeignCells+=members.size();
+                    result.stats.compositeMismatches.push_back(MapImageGridCompositeMismatch{
+                        tilesetId,recordId,record?record->width:0,record?record->height:0,0,0,
+                        bboxWidth,bboxHeight,uint32_t(members.size()),false,false,
+                        "record does not declare an s*s block"});
+                    continue;
+                }
                 const uint32_t cols=*blockSide;
                 const bool full=members.size()==size_t(bboxWidth)*bboxHeight;
                 const bool divisible=bboxWidth%cols==0&&bboxHeight%cols==0;
-                if(full&&divisible) {
-                    result.stats.compositeConfirmedCells+=members.size();
-                    result.stats.compositeBlocks+=size_t(bboxWidth/cols)*size_t(bboxHeight/cols);
-                    for(uint32_t packed:members) {
-                        const size_t member=size_t(size_t((packed>>16)+cropOrigin)*OriginalMapTerrain::storageSide+size_t((packed&0xFFFFu)+cropOrigin));
-                        plan[member]=-2;
-                    }
-                    for(uint32_t bi=0;bi<bboxWidth/cols;++bi)for(uint32_t bj=0;bj<bboxHeight/cols;++bj) {
-                        const size_t anchorCell=size_t(size_t(minY+bj*cols+cropOrigin)*OriginalMapTerrain::storageSide+size_t(minX+bi*cols+cropOrigin));
-                        plan[anchorCell]=int32_t(anchors.size());
-                        anchors.push_back(CompositeAnchor{selected,record->index,cols,uint32_t(record->width),uint32_t(record->height)});
-                    }
-                } else {
-                    result.stats.compositeMismatchedCells+=members.size();
-                    result.stats.compositeMismatches.push_back(MapImageGridCompositeMismatch{
-                        tilesetId,recordId,record->width,record->height,cols,bboxWidth,bboxHeight,
-                        uint32_t(members.size()),full,divisible});
+                ComponentInfo info{tilesetId,recordId,record->width,record->height,cols,
+                    bboxWidth,bboxHeight,full,divisible,{}};
+                info.members.reserve(members.size());
+                for(uint32_t packed:members) {
+                    const uint32_t mx=packed&0xFFFFu,my=packed>>16;
+                    const size_t member=size_t(size_t(my+cropOrigin)*OriginalMapTerrain::storageSide+size_t(mx+cropOrigin));
+                    info.members.push_back(member);
+                    colsAt[member]=cols;recordAt[member]=uint32_t(index);
+                    tilesetAt[member]=selected;bboxConfirmed[member]=full&&divisible?1:0;
                 }
+                components.push_back(std::move(info));
+            }
+            // Per-cell offset pass: group every composite cell by its implied anchor.
+            std::vector<CompositeGroup> groups;std::unordered_map<size_t,size_t> byAnchor;
+            for(size_t cell=0;cell<gridCells;++cell) {
+                const uint32_t cols=colsAt[cell];if(!cols)continue;
+                const uint32_t side=(uint32_t(state.subTile[cell]&0x0Fu)+1u);
+                if(side!=cols){reasonAt[cell]=1;continue;}
+                const uint8_t draw=state.draw[cell];
+                const uint32_t column=draw&7u,row=(uint32_t(draw)>>3)&7u;
+                if(column>=cols||row>=cols){reasonAt[cell]=2;continue;}
+                const int cx=int(cell%OriginalMapTerrain::storageSide)-int(cropOrigin);
+                const int cy=int(cell/OriginalMapTerrain::storageSide)-int(cropOrigin);
+                const int ax=cx-int(column),ay=cy-int(row);
+                if(ax<0||ay<0||ax+int(cols)>int(cropSide)||ay+int(cols)>int(cropSide)){reasonAt[cell]=3;continue;}
+                const size_t anchor=size_t(ay+int(cropOrigin))*OriginalMapTerrain::storageSide+
+                    size_t(ax+int(cropOrigin));
+                auto inserted=byAnchor.emplace(anchor,groups.size());
+                if(inserted.second) {
+                    CompositeGroup group;group.anchor=anchor;group.cols=cols;
+                    group.tileset=tilesetAt[cell]->tileset;group.index=recordAt[cell];
+                    const auto resolved=resolveSG3SurfaceRecord(*tilesetAt[cell]->archive,recordAt[cell]);
+                    group.width=uint32_t(resolved->width);group.height=uint32_t(resolved->height);
+                    group.seen.assign(size_t(cols)*cols,0);groups.push_back(std::move(group));
+                }
+                CompositeGroup& group=groups[inserted.first->second];
+                if(group.cols!=cols||group.tileset!=tilesetAt[cell]->tileset||group.index!=recordAt[cell])
+                    group.conflict=true;
+                const size_t offset=size_t(row)*cols+column;
+                if(group.seen[offset])group.conflict=true;
+                group.seen[offset]=1;++group.cells;
+            }
+            // A group is accepted only when every surviving offset is unique and the
+            // anchor cell itself still carries the record (offset 0,0). Two accepted
+            // blocks may not share a footprint cell: a repeated offset would otherwise
+            // draw the same block twice at two anchors. Anything else is counted,
+            // never silently placed.
+            std::vector<int32_t> anchorOfGroup(groups.size(),-1),footprintOwner(gridCells,-1);
+            std::vector<uint8_t> overlap(groups.size(),0);
+            for(size_t g=0;g<groups.size();++g) {
+                const auto& group=groups[g];
+                if(group.conflict||!group.seen[0])continue;
+                for(size_t o=0;o<group.seen.size();++o) {
+                    const uint32_t column=uint32_t(o)%group.cols,row=uint32_t(o)/group.cols;
+                    const int cx=int(group.anchor%OriginalMapTerrain::storageSide)-int(cropOrigin);
+                    const int cy=int(group.anchor/OriginalMapTerrain::storageSide)-int(cropOrigin);
+                    const size_t cell=size_t(size_t(cy+int(row)+cropOrigin)*OriginalMapTerrain::storageSide+
+                        size_t(cx+int(column)+cropOrigin));
+                    if(footprintOwner[cell]>=0) {
+                        overlap[g]=1;overlap[size_t(footprintOwner[cell])]=1;
+                    } else footprintOwner[cell]=int32_t(g);
+                }
+            }
+            for(size_t g=0;g<groups.size();++g)if(overlap[g])groups[g].overlap=true;
+            for(size_t g=0;g<groups.size();++g) {
+                const auto& group=groups[g];
+                if(group.conflict||group.overlap||!group.seen[0])continue;
+                anchorOfGroup[g]=int32_t(anchors.size());
+                anchors.push_back(CompositeAnchor{tilesetAt[group.anchor],group.index,
+                    group.cols,group.width,group.height,group.cells});
+                ++result.stats.compositeBlocks;
+                if(bboxConfirmed[group.anchor])result.stats.compositeConfirmedCells+=group.cells;
+                else result.stats.compositeRecoveredCells+=group.cells;
+                if(group.cells<group.cols*group.cols){++result.stats.compositePartialBlocks;
+                    result.stats.compositePartialBlockCells+=group.cells;}
+            }
+            for(size_t cell=0;cell<gridCells;++cell) {
+                const uint32_t cols=colsAt[cell];if(!cols)continue;
+                if(reasonAt[cell])continue;
+                const int cx=int(cell%OriginalMapTerrain::storageSide)-int(cropOrigin);
+                const int cy=int(cell/OriginalMapTerrain::storageSide)-int(cropOrigin);
+                const uint8_t draw=state.draw[cell];
+                const uint32_t column=draw&7u,row=(uint32_t(draw)>>3)&7u;
+                const size_t anchor=size_t(cy-int(row)+int(cropOrigin))*OriginalMapTerrain::storageSide+
+                    size_t(cx-int(column)+int(cropOrigin));
+                const auto found=byAnchor.find(anchor);
+                if(found==byAnchor.end()){reasonAt[cell]=4;continue;}
+                const auto& group=groups[found->second];
+                if(group.conflict){reasonAt[cell]=4;continue;}
+                if(group.overlap){reasonAt[cell]=6;continue;}
+                if(!group.seen[0]){reasonAt[cell]=5;continue;}
+                plan[cell]=-2;
+            }
+            for(size_t g=0;g<groups.size();++g)
+                if(anchorOfGroup[g]>=0)plan[groups[g].anchor]=anchorOfGroup[g];
+            static const char* const reasons[]={"","subTile group side != record cols",
+                "draw offset outside the record block","block anchor outside the active crop",
+                "conflicting draw offsets for one block anchor",
+                "block anchor cell carries another record","overlapping block footprints"};
+            for(const auto& component:components) {
+                size_t unresolved=0;uint32_t reason=0,groupSide=0;
+                for(size_t member:component.members)if(reasonAt[member]) {
+                    ++unresolved;if(!reason)reason=reasonAt[member];
+                    if(!groupSide)groupSide=uint32_t(state.subTile[member]&0x0Fu)+1u;
+                }
+                if(!unresolved)continue;
+                result.stats.compositeMismatchedCells+=unresolved;
+                result.stats.compositeMismatches.push_back(MapImageGridCompositeMismatch{
+                    component.tileset,component.recordId,component.width,component.height,component.cols,
+                    groupSide,component.bboxWidth,component.bboxHeight,uint32_t(unresolved),
+                    component.fullRect,component.divisible,reasons[reason]});
             }
         }
         // Same authored flat diagnostic painter order as the other viewports.
@@ -285,7 +409,10 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
             if(planEntry==-2)continue;
             if(planEntry>=0) {
                 const auto& anchor=anchors[size_t(planEntry)];
-                const size_t blockCells=size_t(anchor.cols)*anchor.cols;
+                // cells is the number of surviving cells this block accounts for; for a
+                // full block it is cols*cols, for a partially overwritten block the
+                // overwritten cells are accounted by their own records.
+                const size_t blockCells=anchor.cells;
                 result.stats.decodedCells+=blockCells;
                 const double dx=double(x)-camera.centerX,dy=double(y)-camera.centerY;
                 const double px=(dx-dy)*40*scale+double(camera.width)/2,py=(dx+dy)*20*scale+double(camera.height)/2;

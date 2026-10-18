@@ -59,30 +59,37 @@ struct MapImageGridTileset {
 // that does not name a ground archive. Evidence and the full 41-slot table are in
 // docs/MAP_SG3_PIPELINE.md.
 const char* mapImageGridArchiveName(uint32_t tileset);
-// One named composite failure: a 4-connected same-word component whose resolved
-// record is a multi-tile (s*s) type-30 surface, but whose component shape is not a
-// whole number of s-aligned blocks. Kept apart from geometry_unsupported only to name
-// the reason; the cells still count geometry_unsupported. See docs/MAP_SG3_PIPELINE.md.
+// One named composite failure: a same-word component of a multi-tile (s*s) type-30
+// record whose cells the per-cell offset rule could not place. Kept apart from
+// geometry_unsupported only to name the reason; the cells still count
+// geometry_unsupported. See docs/MAP_SG3_PIPELINE.md.
 struct MapImageGridCompositeMismatch {
     uint32_t tileset=0, recordId=0;   // stored tileset (v>>14) and recordId = low14+firstRecordId
     int32_t width=0, height=0;        // resolved record pixel size (mirror target)
     uint32_t cols=0;                  // composite block side s = (width+2)/80
-    uint32_t bboxWidth=0, bboxHeight=0, cells=0; // component bbox (cells) and cell count
+    uint32_t groupSide=0;             // subTile low nibble + 1 (0x00F9D620)
+    uint32_t bboxWidth=0, bboxHeight=0, cells=0; // component bbox (cells) and unresolved cell count
     bool fullRect=false, divisible=false;        // full rectangle / bbox a multiple of s
+    const char* reason="";                       // why the offset rule declined the cells
 };
 struct MapImageGridStats {
     size_t activeCells=0, zeroCells=0, nonzeroCells=0;
     size_t decodedCells=0, drawnCells=0, culled=0, visibleCells=0;
     size_t unresolvedIndices=0, geometryUnsupported=0, archiveUnavailable=0, decodeFailures=0;
     size_t uniqueDecoded=0, cacheBytes=0;
-    // Composite (multi-tile) surface art: camera-free 4-connected same-word components
-    // whose record packs s*s single cells. A full s-aligned rectangle is expanded to one
-    // blit per block at the block's own anchor cell; every other multi-cell component
-    // stays geometry_unsupported and is named in compositeMismatches. drawnBlocks is the
-    // number of composite blits that were visible (camera-dependent); confirmed/mismatched/
-    // foreign cell counts are camera-free.
-    size_t compositeBlocks=0, compositeConfirmedCells=0, compositeMismatchedCells=0,
-           compositeForeignCells=0, drawnBlocks=0;
+    // Composite (multi-tile) surface art. A cell whose resolved record declares an
+    // s*s block is placed from its own per-cell offset, not from the component
+    // bounding box: draw-state 0x00FDCD70 bits 0..2 are the column and bits 3..5 the
+    // row inside the block, and subTile 0x00F9D620 low nibble + 1 is the group side.
+    // anchor = cell - offset, so a block is placed even when overwrites break the
+    // component shape. compositeBlocks counts accepted blocks; confirmed/recovered
+    // split them by whether the old full-rectangle component rule also accepted the
+    // cell; partial blocks name the anchoring case. Unresolved multi-tile cells stay
+    // geometry_unsupported and are named in compositeMismatches. drawnBlocks is the
+    // number of composite blits that were visible (camera-dependent).
+    size_t compositeBlocks=0, compositeConfirmedCells=0, compositeRecoveredCells=0,
+           compositePartialBlocks=0, compositePartialBlockCells=0,
+           compositeMismatchedCells=0, compositeForeignCells=0, drawnBlocks=0;
     std::vector<std::pair<uint32_t,size_t>> tilesetCells; // stored tileset -> active nonzero
     std::vector<std::pair<uint32_t,size_t>> tilesetDrawn; // stored tileset -> drawn cells
     std::vector<MapImageGridCompositeMismatch> compositeMismatches;
@@ -90,7 +97,9 @@ struct MapImageGridStats {
 struct MapImageGridResult { DecodedImage image; MapImageGridStats stats; bool experimental=true; };
 // Render the stored surface-image grid verbatim: the per-cell id is read from the
 // MAP-decoded 0x00FE9880 grid, never re-derived from the dispatch chain. Tilesets
-// without a supplied archive are counted (archiveUnavailable), not guessed.
+// without a supplied archive are counted (archiveUnavailable), not guessed. A
+// multi-tile record is placed once per block from the cell's own draw-state offset
+// (0x00FDCD70) when the subTile group side (0x00F9D620) equals the declared side.
 MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain&, const OriginalTerrainState&,
     const std::vector<MapImageGridTileset>&, const OriginalMapCamera&);
 

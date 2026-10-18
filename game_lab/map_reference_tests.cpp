@@ -453,8 +453,8 @@ void imageGridTests(const std::filesystem::path& root) {
  // block (type 30, width==s*80-2, height>=s*40, uncompressedLength==s*s*3200,
  // tileSize in {0,s}) is expanded once per block at the block's own anchor cell.
  // An irregular component is named as a mismatch, never absorbed as a guess.
- Bytes cbytes(table+4*64);
- put(cbytes,0,uint32_t(cbytes.size()));put(cbytes,4,213);put(cbytes,12,20);put(cbytes,16,3);put(cbytes,20,1);
+ Bytes cbytes(table+5*64);
+ put(cbytes,0,uint32_t(cbytes.size()));put(cbytes,4,213);put(cbytes,12,20);put(cbytes,16,4);put(cbytes,20,1);
  cbytes[680]='c';cbytes[681]=0;
  auto crecord=[&](size_t id,uint32_t length,uint16_t width,uint16_t height,uint16_t type,uint8_t tileSize) {
      const size_t p=table+id*64;put(cbytes,p,0u);put(cbytes,p+4,length);put(cbytes,p+8,length);
@@ -462,15 +462,22 @@ void imageGridTests(const std::filesystem::path& root) {
  crecord(1,3200,78,40,30,1);        // single-cell control
  crecord(2,12800,158,80,30,2);      // cols 2 composite: 158==2*80-2, 4*3200
  crecord(3,12800,158,80,30,1);      // same geometry, tileSize disagrees: not a block
+ crecord(4,12800,158,80,30,2);      // a second, distinct cols-2 block record
  write(root/"grid-comp.sg3",cbytes);
  Bytes cpixels(12800);for(size_t i=0;i<1600;++i)put(cpixels,i*2,0x7c00,2);
  write(root/"grid-comp.555",cpixels);
  const auto carchive=loadSG3((root/"grid-comp.sg3").string());
- need(carchive.numImages==3,"synthetic composite archive loads");
+ need(carchive.numImages==4,"synthetic composite archive loads");
  OriginalMapTerrain cterrain;cterrain.activeSide=84;cterrain.flags.assign(51984,0x80000);
  for(unsigned y=41;y<45;++y)for(unsigned x=41;x<45;++x)cterrain.flags[at(x,y)]=0;
  auto cstate=terrainState(cterrain);
- for(unsigned y=41;y<43;++y)for(unsigned x=41;x<43;++x)cstate.image[at(x,y)]=(uint32_t(3)<<14)|1u; // 2x2 block
+ // The per-cell draw-state offset names each cell's position in the 2x2 block
+ // (column low 3 bits, row bits 3..5) and subTile low nibble + 1 is the group side.
+ for(unsigned y=41;y<43;++y)for(unsigned x=41;x<43;++x) {
+     cstate.image[at(x,y)]=(uint32_t(3)<<14)|1u;
+     cstate.draw[at(x,y)]=uint8_t((y-41)*8+(x-41));
+     cstate.subTile[at(x,y)]=1;   // group side 2 == record cols
+ }
  cstate.image[at(43,43)]=(uint32_t(3)<<14)|1u;cstate.image[at(44,43)]=(uint32_t(3)<<14)|1u;
  cstate.image[at(43,44)]=(uint32_t(3)<<14)|1u;                                                    // irregular 3
  cstate.image[at(44,44)]=(uint32_t(3)<<14)|0u;                                                    // control
@@ -478,16 +485,95 @@ void imageGridTests(const std::filesystem::path& root) {
  const std::vector<MapImageGridTileset> ctilesets{{3,&carchive,(root/"grid-comp.555").string(),1}};
  const auto comp=renderMapImageGridViewport(cterrain,cstate,ctilesets,ccamera);
  need(comp.image.valid(),"composite stored-grid viewport renders");
- need(comp.stats.compositeBlocks==1&&comp.stats.compositeConfirmedCells==4,
-      "a 2x2 same-word component of a cols-2 record is one confirmed block");
+ need(comp.stats.compositeBlocks==1&&comp.stats.compositeConfirmedCells==4&&
+      comp.stats.compositeRecoveredCells==0&&comp.stats.compositePartialBlocks==0,
+      "a 2x2 block with matching draw offsets and group side is one confirmed block");
  need(comp.stats.compositeMismatchedCells==3&&comp.stats.compositeMismatches.size()==1&&
-      !comp.stats.compositeMismatches[0].fullRect&&comp.stats.compositeMismatches[0].cells==3,
+      comp.stats.compositeMismatches[0].cells==3&&
+      std::string(comp.stats.compositeMismatches[0].reason)=="subTile group side != record cols",
       "an irregular three-cell component is named as a mismatch, never absorbed");
  need(comp.stats.geometryUnsupported==3,"mismatched composite cells stay unrendered rather than guessed");
  need(comp.stats.decodedCells==5,"the confirmed block counts its four cells once, plus the control");
  need(comp.stats.decodedCells+comp.stats.geometryUnsupported+comp.stats.archiveUnavailable+
       comp.stats.decodeFailures==comp.stats.nonzeroCells,
       "stored-grid accounting is exact: every nonzero cell is decoded or named");
+ // Per-cell offset placement also resolves a block whose component shape an
+ // overwrite broke: three cells keep offsets (0,0),(1,0),(0,1); the fourth carries
+ // a single-cell record. The anchor is still (41,41), the block is drawn once and
+ // the overwritten cell decodes by its own record, so nothing is counted twice.
+ auto partialState=terrainState(cterrain);
+ for(unsigned y=41;y<43;++y)for(unsigned x=41;x<43;++x) {
+     partialState.image[at(x,y)]=(uint32_t(3)<<14)|1u;
+     partialState.draw[at(x,y)]=uint8_t((y-41)*8+(x-41));
+     partialState.subTile[at(x,y)]=1;
+ }
+ partialState.image[at(42,42)]=(uint32_t(3)<<14)|0u;
+ partialState.draw[at(42,42)]=0x40;partialState.subTile[at(42,42)]=0;
+ const auto partial=renderMapImageGridViewport(cterrain,partialState,ctilesets,ccamera);
+ need(partial.stats.compositeBlocks==1&&partial.stats.compositePartialBlocks==1&&
+      partial.stats.compositePartialBlockCells==3&&partial.stats.compositeRecoveredCells==3,
+      "a partially overwritten block is placed at the anchor its surviving offsets name");
+ need(partial.stats.decodedCells==3+1&&partial.stats.geometryUnsupported==0&&
+      partial.stats.nonzeroCells==4&&
+      partial.stats.decodedCells+partial.stats.geometryUnsupported+partial.stats.archiveUnavailable+
+      partial.stats.decodeFailures==partial.stats.nonzeroCells,
+      "the overwritten cell decodes by its own record and the accounting stays exact");
+ // An offset outside the record block is not absorbed: that cell stays named while
+ // the three consistent cells still form a counted partial block.
+ auto badOffset=terrainState(cterrain);
+ for(unsigned y=41;y<43;++y)for(unsigned x=41;x<43;++x) {
+     badOffset.image[at(x,y)]=(uint32_t(3)<<14)|1u;
+     badOffset.draw[at(x,y)]=uint8_t((y-41)*8+(x-41));
+     badOffset.subTile[at(x,y)]=1;
+ }
+ badOffset.draw[at(42,42)]=2; // column 2 of a cols-2 record
+ const auto outside=renderMapImageGridViewport(cterrain,badOffset,ctilesets,ccamera);
+ need(outside.stats.compositeBlocks==1&&outside.stats.compositePartialBlockCells==3&&
+      outside.stats.compositeMismatchedCells==1&&outside.stats.geometryUnsupported==1&&
+      outside.stats.compositeMismatches.size()==1&&
+      std::string(outside.stats.compositeMismatches[0].reason)=="draw offset outside the record block",
+      "an out-of-range draw offset is named, not silently accepted");
+ need(outside.stats.decodedCells==3&&outside.stats.decodedCells+outside.stats.geometryUnsupported+
+      outside.stats.archiveUnavailable+outside.stats.decodeFailures==outside.stats.nonzeroCells,
+      "the out-of-range cell keeps the stored-grid accounting exact");
+ // Four cells that all claim offset (0,0) would imply four overlapping copies of one
+ // block. The footprint-overlap guard refuses every copy instead of drawing one.
+ auto duplicate=terrainState(cterrain);
+ for(unsigned y=41;y<43;++y)for(unsigned x=41;x<43;++x) {
+     duplicate.image[at(x,y)]=(uint32_t(3)<<14)|1u;
+     duplicate.draw[at(x,y)]=0;   // every cell claims to be the block anchor
+     duplicate.subTile[at(x,y)]=1;
+ }
+ const auto duplicated=renderMapImageGridViewport(cterrain,duplicate,ctilesets,ccamera);
+ need(duplicated.stats.compositeBlocks==0&&duplicated.stats.compositeMismatchedCells==4&&
+      duplicated.stats.geometryUnsupported==4&&duplicated.stats.decodedCells==0&&
+      std::string(duplicated.stats.compositeMismatches[0].reason)=="overlapping block footprints",
+      "duplicated block offsets are refused rather than drawing overlapping copies");
+ // A subTile group side that contradicts the record's declared block side is not a
+ // block: all four cells stay unresolved and every one of them is named.
+ auto wrongSide=terrainState(cterrain);
+ for(unsigned y=41;y<43;++y)for(unsigned x=41;x<43;++x) {
+     wrongSide.image[at(x,y)]=(uint32_t(3)<<14)|1u;
+     wrongSide.draw[at(x,y)]=uint8_t((y-41)*8+(x-41));
+     wrongSide.subTile[at(x,y)]=0; // group side 1, record cols 2
+ }
+ const auto contradiction=renderMapImageGridViewport(cterrain,wrongSide,ctilesets,ccamera);
+ need(contradiction.stats.compositeBlocks==0&&contradiction.stats.compositeMismatchedCells==4&&
+      contradiction.stats.geometryUnsupported==4&&contradiction.stats.decodedCells==0&&
+      std::string(contradiction.stats.compositeMismatches[0].reason)=="subTile group side != record cols",
+      "a contradictory subTile group side is refused, never guessed");
+ // Two different block records whose offsets claim the same anchor are inconsistent:
+ // the anchor is ambiguous, so neither is placed and both cells stay named.
+ OriginalMapTerrain twoCells;twoCells.activeSide=84;twoCells.flags.assign(51984,0x80000);
+ twoCells.flags[at(41,41)]=0;twoCells.flags[at(42,41)]=0;
+ auto twoState=terrainState(twoCells);
+ twoState.image[at(41,41)]=(uint32_t(3)<<14)|1u;twoState.draw[at(41,41)]=0;twoState.subTile[at(41,41)]=1;
+ twoState.image[at(42,41)]=(uint32_t(3)<<14)|3u;twoState.draw[at(42,41)]=1;twoState.subTile[at(42,41)]=1;
+ const auto ambiguous=renderMapImageGridViewport(twoCells,twoState,ctilesets,ccamera);
+ need(ambiguous.stats.compositeBlocks==0&&ambiguous.stats.compositeMismatchedCells==2&&
+      ambiguous.stats.geometryUnsupported==2&&ambiguous.stats.decodedCells==0&&
+      std::string(ambiguous.stats.compositeMismatches[0].reason)=="conflicting draw offsets for one block anchor",
+      "two records claiming one block anchor are inconsistent and are not accepted");
  auto badTile=cstate;
  for(unsigned y=41;y<43;++y)for(unsigned x=41;x<43;++x)badTile.image[at(x,y)]=(uint32_t(3)<<14)|2u;
  const auto notBlock=renderMapImageGridViewport(cterrain,badTile,ctilesets,ccamera);

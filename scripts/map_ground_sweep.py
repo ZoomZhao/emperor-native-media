@@ -31,6 +31,7 @@ denominator and per-branch chain accuracy, and keeps the non-zero exit on failur
 """
 from pathlib import Path
 import argparse
+import collections
 import json
 import os
 import shutil
@@ -61,8 +62,10 @@ IMAGE_GRID_FIELDS = ('grid_cells', 'zero_cells', 'nonzero_cells', 'decoded_cells
                      'drawn_cells', 'culled', 'visible_cells', 'unresolved_indices',
                      'geometry_unsupported', 'archive_unavailable', 'decode_failures',
                      'unique_decoded_IDs', 'cache_bytes', 'composite_blocks',
-                     'composite_confirmed_cells', 'composite_mismatched_cells',
-                     'composite_foreign_cells', 'drawn_blocks')
+                     'composite_confirmed_cells', 'composite_recovered_cells',
+                     'composite_partial_blocks', 'composite_partial_block_cells',
+                     'composite_mismatched_cells', 'composite_foreign_cells',
+                     'drawn_blocks')
 
 # Chain-score fields summed across cities for the image-grid aggregate.
 CHAIN_FIELDS = ('cells', 'emitted', 'matched', 'mismatched', 'known_matched',
@@ -160,10 +163,18 @@ def row_from_result(rel, result):
 
 def image_grid_row(rel, result):
     """One row for the stored-image-grid mode, with the chain score attached."""
+    reasons = collections.Counter()
+    components = collections.Counter()
+    for mismatch in result.get('composite_mismatches') or []:
+        reason = mismatch.get('reason') or 'unspecified'
+        reasons[reason] += mismatch.get('cells') or 0
+        components[reason] += 1
     row = {'map': rel, 'mode': result.get('mode'),
            'exact': bool(result.get('exact')),
            'tileset_cells': result.get('tileset_cells', []),
            'tilesets': result.get('tilesets', []),
+           'mismatch_reasons': dict(reasons),
+           'mismatch_components': dict(components),
            'chain': result.get('chain_score') or {}}
     for field in IMAGE_GRID_FIELDS:
         row[field] = result.get(field)
@@ -180,6 +191,16 @@ def cell(row, field):
 
 def image_grid_report(maps, rows, failures, args):
     """Aggregate the stored-image-grid sweep and print it. Never edits the renderer."""
+    # The renderer's accounting contract: every stored nonzero cell is either decoded
+    # or named by exactly one failure counter. A violated row is a failure, not a metric.
+    for row in rows:
+        covered = sum(cell(row, field) for field in
+                      ('decoded_cells', 'geometry_unsupported', 'archive_unavailable',
+                       'decode_failures'))
+        nonzero = cell(row, 'nonzero_cells')
+        if covered != nonzero:
+            failures.append({'map': row['map'],
+                             'reason': f'accounting identity {covered} != nonzero {nonzero}'})
     rows.sort(key=lambda r: (r['drawn_over_nonzero'] is None,
                              r['drawn_over_nonzero'] or 0.0, r['map']))
     exact = [r for r in rows if r['exact']]
@@ -188,6 +209,10 @@ def image_grid_report(maps, rows, failures, args):
                     for field in CHAIN_FIELDS}
     emitted = chain_totals['emitted']
     matched = chain_totals['matched']
+    reason_totals = collections.Counter()
+    for row in rows:
+        for reason, cells in (row.get('mismatch_reasons') or {}).items():
+            reason_totals[reason] += cells
     aggregate = {
         'task': 'map-image-grid-sweep',
         'mode': next((r.get('mode') for r in rows if r.get('mode')), None),
@@ -210,6 +235,7 @@ def image_grid_report(maps, rows, failures, args):
         'camera': {'width': args.width, 'height': args.height, 'scale': args.scale,
                    'centering': 'active-crop centre (side-1)/2 on both axes'},
         'totals': totals,
+        'unresolved_reasons': dict(sorted(reason_totals.items())),
         'chain_totals': chain_totals,
         'chain_accuracy': {
             'matched_over_emitted': (matched / emitted) if emitted else None,
@@ -225,9 +251,11 @@ def image_grid_report(maps, rows, failures, args):
             'Tileset indices are resolved through the original executable static '
             'name table (FUN_00475B60); the view auto-loads 2/5/6/8 next to --sg3 '
             'and 16 from China_Elevation.sg3 unless --sg3-tilesets overrides them.',
-            'Composite records (type-30 art wider than one 78px cell, e.g. the 318x160 '
-            '4x4 monument ground tiles) are counted geometry_unsupported: they are '
-            'real stored art, not single-cell geometry.',
+            'Composite ground is placed from the per-cell draw-state offset '
+            '(0x00FDCD70: column low 3 bits, row bits 3..5) and gated by the subTile '
+            'group-side code (0x00F9D620 low nibble + 1). A record is expanded only '
+            'when it declares an s*s block and the cell group side equals s; every '
+            'other cell stays counted and named with its reason.',
             'The record id base (recordId = low14 + 201) is the version-213 header '
             'base; every miss is counted, not hidden.',
             'A viewport cannot cover a full 84..226-cell crop at 2048px cap, so '
@@ -268,6 +296,15 @@ def image_grid_report(maps, rows, failures, args):
           f'{chain_totals["chain_no_write_vs_stored_zero"]}; '
           f'chain-no-write-vs-stored-nonzero '
           f'{chain_totals["chain_no_write_vs_stored_nonzero"]}')
+    print(f'# composite: blocks {totals["composite_blocks"]}, confirmed '
+          f'{totals["composite_confirmed_cells"]}, recovered '
+          f'{totals["composite_recovered_cells"]}, partial '
+          f'{totals["composite_partial_blocks"]} blocks/'
+          f'{totals["composite_partial_block_cells"]} cells, mismatched '
+          f'{totals["composite_mismatched_cells"]}, foreign '
+          f'{totals["composite_foreign_cells"]}')
+    for reason, count in sorted(reason_totals.items(), key=lambda item: -item[1]):
+        print(f'# unresolved cells [{count}]: {reason}')
     print(json.dumps(aggregate, ensure_ascii=False))
     return 0 if not failures else 3
 
