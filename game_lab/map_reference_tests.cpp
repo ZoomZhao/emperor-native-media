@@ -403,6 +403,112 @@ void groundSelectorTests() {
  need(canal.image.valid()&&canal.stats.knownCells==84*84&&canal.stats.unknownCells==0&&canal.stats.noGroundCells==0,"terrain&0x40000 is known without any runtime state");
  need(canal.stats.branchCells.size()==1&&canal.stats.branchCells[0].first=="0x40000-canal","canal cells name the canal branch");
 }
+// The stored surface-image grid (0x00FE9880) render and the chain score against
+// it. A synthetic archive keeps the record-id base small so the two-cell grid
+// exercises the exact mapping without 200 dummy records.
+void imageGridTests(const std::filesystem::path& root) {
+ using namespace game_lab;
+ constexpr size_t table=40680;Bytes bytes(table+4*64);
+ put(bytes,0,uint32_t(bytes.size()));put(bytes,4,213);put(bytes,12,20);put(bytes,16,3);put(bytes,20,1);
+ bytes[680]='o';bytes[681]=0;
+ // id1 single-cell type 30; id2 plain type 12; id3 composite type 30 width 158.
+ auto record=[&](size_t id,uint32_t length,uint16_t width,uint16_t height,uint16_t type) {
+     const size_t p=table+id*64;put(bytes,p,0u);put(bytes,p+4,length);put(bytes,p+8,length);
+     put(bytes,p+20,width,2);put(bytes,p+22,height,2);put(bytes,p+50,type,2);bytes[p+55]=1;};
+ record(1,3200,78,40,30);record(2,0,24,24,12);record(3,3200,158,40,30);
+ write(root/"grid-own.sg3",bytes);
+ Bytes pixels(3200);for(size_t i=0;i<1600;++i)put(pixels,i*2,0x7c00,2);
+ write(root/"grid-own.555",pixels);
+ const auto archive=loadSG3((root/"grid-own.sg3").string());
+ need(archive.numImages==3&&archive.sprites.size()==3,"synthetic stored-grid archive loads");
+ OriginalMapTerrain terrain;terrain.activeSide=84;terrain.flags.assign(51984,0x80000);
+ auto at=[&](unsigned x,unsigned y){return size_t(y+72)*228+x+72;};
+ terrain.flags[at(41,41)]=0;terrain.flags[at(42,41)]=0;terrain.flags[at(43,41)]=0;
+ terrain.flags[at(44,41)]=0;terrain.flags[at(45,41)]=0;terrain.flags[at(46,41)]=0;
+ auto state=terrainState(terrain);
+ state.image[at(41,41)]=(uint32_t(3)<<14)|0u;  // recordId1 -> single-cell, drawn
+ state.image[at(42,41)]=0u;                      // no stored ground code
+ state.image[at(43,41)]=(uint32_t(3)<<14)|1u;   // recordId2 -> plain type 12
+ state.image[at(44,41)]=(uint32_t(3)<<14)|2u;   // recordId3 -> composite width 158
+ state.image[at(45,41)]=(uint32_t(3)<<14)|5u;   // recordId6 -> beyond numImages
+ state.image[at(46,41)]=(uint32_t(16)<<14)|0u;  // tileset 16 with no supplied archive
+ OriginalMapCamera camera;camera.centerX=43.5;camera.centerY=41.5;camera.width=600;camera.height=400;camera.scale=1;
+ const std::vector<MapImageGridTileset> tilesets{{3,&archive,(root/"grid-own.555").string(),1}};
+ const auto grid=renderMapImageGridViewport(terrain,state,tilesets,camera);
+ need(grid.image.valid()&&grid.experimental,"stored-grid viewport is a bounded candidate");
+ need(grid.stats.activeCells==6&&grid.stats.zeroCells==1&&grid.stats.nonzeroCells==5,
+      "stored-grid active/zero/nonzero counts separate a missing ground code from data");
+ need(grid.stats.decodedCells==1&&grid.stats.visibleCells==1&&grid.stats.drawnCells==1&&
+      grid.stats.culled==0&&grid.stats.decodeFailures==0,"one stored single-cell record is drawn");
+ need(grid.stats.unresolvedIndices==1&&grid.stats.geometryUnsupported==2&&
+      grid.stats.archiveUnavailable==1,"out-of-range, composite and unmapped tilesets stay distinct");
+ need(grid.stats.tilesetCells==std::vector<std::pair<uint32_t,size_t>>({{3,4},{16,1}})&&
+      grid.stats.tilesetDrawn==std::vector<std::pair<uint32_t,size_t>>({{3,1}}),
+      "per-tileset stored-cell and drawn histograms are exact");
+ size_t covered=0;for(auto pixel:grid.image.pixelsBGRA)covered+=bool(pixel>>24);
+ need(covered==1600,"the stored single-cell record paints its authored coverage only");
+ // A tileset entry without an archive is a programming error, not data: refuse.
+ std::vector<MapImageGridTileset> broken{{3,nullptr,"",1}};
+ need(!renderMapImageGridViewport(terrain,state,broken,camera).image.valid(),
+      "a tileset entry without an archive refuses the whole viewport");
+ std::vector<MapImageGridTileset> mismatched{{3,&archive,"",1}};
+ auto bad=archive;bad.sprites.pop_back();mismatched[0].archive=&bad;
+ need(!renderMapImageGridViewport(terrain,state,mismatched,camera).image.valid(),
+      "an archive whose count disagrees with its records refuses");
+ auto shortState=state;shortState.image.pop_back();
+ need(!renderMapImageGridViewport(terrain,shortState,tilesets,camera).image.valid(),
+      "a loader state with a short image grid refuses before counting");
+}
+// The chain score compares the reconstructed dispatch chain with the stored grid.
+// Every bucket is asserted, and the three conservation identities are checked so a
+// silent drop cannot pass.
+void chainScoreTests() {
+ using namespace game_lab;
+ SG3Archive archive;archive.numImages=10;archive.sprites.resize(10);
+ archive.imageIndex[2]=1; // slot 2 -> image id 1 -> base index 0
+ archive.imageIndex[13]=0;// the feature base code has no slot: an unresolved emit
+ OriginalMapTerrain terrain;terrain.activeSide=84;terrain.flags.assign(51984,0x80000);
+ auto at=[&](unsigned x,unsigned y){return size_t(y+72)*228+x+72;};
+ terrain.flags[at(41,41)]=0x80u;      // farm, stored matches the emitted record
+ terrain.flags[at(42,41)]=0x80u;      // farm, stored differs
+ terrain.flags[at(43,41)]=0x200u;     // no-ground, stored zero
+ terrain.flags[at(44,41)]=0x200u;     // no-ground, stored nonzero
+ terrain.flags[at(45,41)]=0x2000000u; // feature branch, base slot empty
+ terrain.flags[at(46,41)]=0x80u;      // farm, stored tileset 16
+ auto state=terrainState(terrain);
+ for(size_t cell=0;cell<OriginalTerrainState::cells;++cell)state.randomByte[cell]=8u;
+ state.feature[at(45,41)]=8u;
+ state.image[at(41,41)]=(uint32_t(3)<<14)|8u;   // farm variant 8 -> stored index 8
+ state.image[at(42,41)]=(uint32_t(3)<<14)|9u;
+ state.image[at(43,41)]=0u;
+ state.image[at(44,41)]=(uint32_t(3)<<14)|3u;
+ state.image[at(45,41)]=0u;
+ state.image[at(46,41)]=(uint32_t(16)<<14)|0u;
+ const auto score=scoreGroundChainAgainstImageGrid(terrain,state,archive,1);
+ need(score.activeCells==6&&score.storedZero==2&&score.chainNoGround==2&&
+      score.chainUnknown==0&&score.chainKnown==4,"chain score partitions every active cell");
+ need(score.emitted==3&&score.matched==1&&score.mismatched==2&&
+      score.emitted==score.matched+score.mismatched,"emitted splits into matched and mismatched");
+ need(score.unresolved==1&&score.noGroundVsStoredZero==1&&score.noGroundVsStoredNonzero==1&&
+      score.chainNoGround==score.noGroundVsStoredZero+score.noGroundVsStoredNonzero,
+      "a no-ground prediction is checked against the stored zero");
+ need(score.knownMatched==2&&score.storedZeroUnpredicted==1&&
+      score.storedZero==score.noGroundVsStoredZero+score.storedZeroUnpredicted,
+      "stored zeros are all accounted for as agreed or unpredicted");
+ bool sawFarm=false,sawNoGround=false,sawFeature=false;
+ for(const auto& branch:score.branches) {
+     if(branch.branch=="0x80-farm"){sawFarm=true;need(branch.cells==3&&branch.emitted==3&&
+         branch.matched==1&&branch.storedZero==0,"the farm branch carries its own score");}
+     if(branch.branch=="no-ground"){sawNoGround=true;need(branch.cells==2&&branch.emitted==0&&
+         branch.matched==0&&branch.storedZero==1,"the no-ground branch carries its own score");}
+     if(branch.branch=="0x2000000-feature"){sawFeature=true;need(branch.cells==1&&branch.emitted==0&&
+         branch.storedZero==1,"the unresolved feature branch is still named");}
+ }
+ need(sawFarm&&sawNoGround&&sawFeature,"every reached branch is reported");
+ auto shortState=state;shortState.terrain.pop_back();
+ need(scoreGroundChainAgainstImageGrid(terrain,shortState,archive,1).activeCells==0,
+      "an incomplete loader state refuses before scoring");
+}
 // Optional original-data assertion. Reads only EMPEROR_GAMEDATA_ROOT and reports
 // SKIP (leaving `originalData` false) when the variable or the city is absent, so
 // the authored suite still passes on a machine without the user's assets.
@@ -471,6 +577,31 @@ void realDataGroundTests(bool& originalData) {
      // Measured on the user's own Anyang.map + China_Terrain.sg3.
      need(knownCells==6690&&resolved==6690&&geometry==6690,
           "every MAP-known ground cell resolves to a real single-cell China_Terrain.sg3 record");
+     // The stored surface-image grid (0x00FE9880) is the oracle for the chain. It
+     // renders verbatim as recordId = low14 + 201 in the same archive; the chain
+     // score then measures the reconstructed dispatch chain against it.
+     const auto elevationPath=std::filesystem::path(env)/"DATA"/"China_Elevation.sg3";
+     if(std::filesystem::exists(elevationPath)) {
+         const auto elevation=loadSG3(elevationPath.string());
+         need(elevation.numImages&&elevation.numImages==elevation.sprites.size(),
+              "original China_Elevation.sg3 loads with a consistent published image count");
+         auto internal=[](const std::filesystem::path& path){auto p=path;p.replace_extension(".555");return p.string();};
+         std::vector<MapImageGridTileset> tilesets{{3,&archive,internal(archivePath),201},
+             {16,&elevation,internal(elevationPath),201}};
+         OriginalMapCamera camera;camera.centerX=69.5;camera.centerY=69.5;
+         camera.width=1200;camera.height=900;camera.scale=1;
+         const auto grid=renderMapImageGridViewport(terrain,*state,tilesets,camera);
+         need(grid.image.valid()&&grid.stats.activeCells==9940&&grid.stats.zeroCells==0&&
+              grid.stats.nonzeroCells==9940&&grid.stats.archiveUnavailable==0&&
+              grid.stats.unresolvedIndices==0&&grid.stats.geometryUnsupported==4&&
+              grid.stats.decodeFailures==0,
+              "original Anyang.map stored image grid decodes with the measured low-14 base");
+         const auto score=scoreGroundChainAgainstImageGrid(terrain,*state,archive);
+         need(score.activeCells==9940&&score.emitted==6690&&score.matched==5673&&
+              score.mismatched==1017&&score.chainNoGround==167&&score.chainUnknown==3083&&
+              score.noGroundVsStoredZero==0&&score.noGroundVsStoredNonzero==167,
+              "original Anyang.map chain score against the stored grid is stable");
+     }
      // Branch 10 (MP48.map) exercises the new feature mapping: 331 active cells,
      // classes feat&8=100, feat&0x10=75, feat&0x20=100, feat&0x40=50 and six
      // feat-clear cells left by a neighbouring 5x5 block (stored-snapshot artefact).
@@ -532,6 +663,8 @@ int main(){try{
  outputPathTests(root);
  exclusiveOutputTests(root);
  groundSelectorTests();
+ imageGridTests(root);
+ chainScoreTests();
  bool originalData=false;
  realDataGroundTests(originalData);
  std::filesystem::remove_all(root);std::cout<<"{\"passed\":true,\"assertions\":"<<checks<<",\"original_data\":"<<(originalData?"true":"false")<<"}\n";return 0;

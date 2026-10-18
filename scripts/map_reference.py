@@ -7,7 +7,7 @@ from pathlib import Path
 import argparse,json,os,subprocess,tempfile,sys,plistlib
 ROOT=Path(__file__).resolve().parents[1]
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('task',choices=['test','scene-test','metrics','view','scene','scene-metrics']);p.add_argument('--scene-manifest',type=Path);p.add_argument('--producer-output',type=Path);p.add_argument('--mode',choices=['release','undefined'],default='release');p.add_argument('--build-dir',type=Path);p.add_argument('--data-root');p.add_argument('--map');p.add_argument('--sg3');p.add_argument('--raw-offset',type=int);p.add_argument('--raw-width',type=int);p.add_argument('--id-base',type=int);p.add_argument('--ground-selector',action='store_true');p.add_argument('--no-window',action='store_true');p.add_argument('--camera-x',type=float);p.add_argument('--camera-y',type=float);p.add_argument('--width',type=int);p.add_argument('--height',type=int);p.add_argument('--scale',type=int);p.add_argument('--output',type=Path);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('task',choices=['test','scene-test','metrics','view','scene','scene-metrics']);p.add_argument('--scene-manifest',type=Path);p.add_argument('--producer-output',type=Path);p.add_argument('--mode',choices=['release','undefined'],default='release');p.add_argument('--build-dir',type=Path);p.add_argument('--data-root');p.add_argument('--map');p.add_argument('--sg3');p.add_argument('--raw-offset',type=int);p.add_argument('--raw-width',type=int);p.add_argument('--id-base',type=int);p.add_argument('--ground-selector',action='store_true');p.add_argument('--image-grid',action='store_true');p.add_argument('--sg3-elevation');p.add_argument('--no-window',action='store_true');p.add_argument('--camera-x',type=float);p.add_argument('--camera-y',type=float);p.add_argument('--width',type=int);p.add_argument('--height',type=int);p.add_argument('--scale',type=int);p.add_argument('--output',type=Path);a=p.parse_args()
  if a.task in ('metrics','scene-metrics') and not os.environ.get('EMPEROR_GAMEDATA_ROOT'):print(json.dumps({'skipped':True,'reason':'EMPEROR_GAMEDATA_ROOT unset'}));return 0
  if a.output and not a.output.is_absolute():p.error('--output requires an absolute path')
  if a.producer_output and (not a.producer_output.is_absolute()or a.task not in ('scene','scene-metrics')):p.error('--producer-output is an absolute private scene-only path')
@@ -18,7 +18,7 @@ def main():
  subprocess.run(['/usr/bin/clang++','-std=c++17','-Wall','-Wextra','-Werror',*objc,*flags,*[str(ROOT/s)for s in sources],*frameworks,'-lz','-o',str(binary)],check=True)
  if a.task=='test':return subprocess.run([str(binary)]).returncode
  if a.task=='scene-test':return subprocess.run([sys.executable,'-B',str(ROOT/'scripts/map_reference_scene_tests.py'),'--binary',str(binary)]).returncode
- scene=a.task in ('scene','scene-metrics');raw=[]if a.ground_selector else['raw_offset','raw_width','id_base']
+ scene=a.task in ('scene','scene-metrics');raw=[]if (a.ground_selector or a.image_grid)else['raw_offset','raw_width','id_base']
  if scene:
   if not a.scene_manifest or not a.scene_manifest.is_absolute():p.error('--scene-manifest requires absolute path')
  else:
@@ -30,6 +30,8 @@ def main():
  if scene:command+=['--scene-manifest',str(a.scene_manifest)]
  else:
   if a.ground_selector:command+=['--ground-selector']
+  if a.image_grid:command+=['--image-grid']
+  if a.sg3_elevation:command+=['--sg3-elevation',str(a.sg3_elevation)]
   for name in ['map','sg3']+raw+['camera_x','camera_y','width','height','scale']:command+=['--'+name.replace('_','-'),str(getattr(a,name))]
  if a.output:command+=['--output',str(a.output)]
  if a.producer_output:command+=['--producer-output',str(a.producer_output)]

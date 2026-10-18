@@ -160,11 +160,54 @@ int groundSelectorView(const std::map<std::string,std::string>& args,bool show) 
     NSTextField*label=[NSTextField wrappingLabelWithString:[NSString stringWithFormat:@"Original-dispatch ground selector · %@ · loader cells %zu\n%zu drawn / %zu visible; known %zu, unknown %zu, unresolved %zu.",[NSString stringWithUTF8String:args.at("--sg3").c_str()],state->randomByte.size(),s.drawnCells,s.visibleCells,s.knownCells,s.unknownCells,s.unresolvedCodes]];label.frame=NSMakeRect(8,displayH+4,displayW-16,46);label.font=[NSFont systemFontOfSize:11];[window.contentView addSubview:label];
     ReferenceImageView*view=[[ReferenceImageView alloc]initWithFrame:NSMakeRect(0,0,displayW,displayH)];view.candidate=[[NSImage alloc]initWithCGImage:cg size:NSMakeSize(displayW,displayH)];[window.contentView addSubview:view];CGImageRelease(cg);[window makeKeyAndOrderFront:nil];[NSApp activateIgnoringOtherApps:YES];[NSApp run];return 0;
 }
+int imageGridView(const std::map<std::string,std::string>& args,bool show) {
+    for(const auto&[key,value]:args){(void)value;if(key!="--data-root"&&key!="--map"&&key!="--sg3"&&key!="--sg3-elevation"&&key!="--camera-x"&&key!="--camera-y"&&key!="--width"&&key!="--height"&&key!="--scale"&&key!="--output")throw std::runtime_error("image grid mode only accepts root/map/archive/camera/size/output");}
+    for(const auto&k:{"--data-root","--map","--sg3","--camera-x","--camera-y","--width","--height","--scale"})if(!args.count(k))throw std::runtime_error("image grid needs data root/map/archive/camera/size");
+    auto root=game_lab::ResourceRoot::fromAbsolute(args.at("--data-root"));if(!root.configured())throw std::runtime_error("existing absolute data root required");
+    const auto vw=integer(args.at("--width")),vh=integer(args.at("--height")),scale=integer(args.at("--scale"));
+    if(vw<1||vw>2048||vh<1||vh>2048||scale<1||scale>4)throw std::runtime_error("camera integer bounds");
+    const auto mapPath=root.resolve(args.at("--map")),archivePath=root.resolve(args.at("--sg3"));if(mapPath.empty()||archivePath.empty())throw std::runtime_error("relative map/archive path outside root or missing");
+    auto map=game_lab::loadOriginalMapTerrain(mapPath);
+    if(map.status!=game_lab::OriginalMapStatus::LoadedTerrain||!map.terrain.valid())throw std::runtime_error("complete MAP terrain required");
+    auto state=game_lab::loadOriginalTerrainState(mapPath);
+    if(!state||!state->valid())throw std::runtime_error("complete MAP per-cell loader state required");
+    auto archive=game_lab::loadSG3(archivePath);if(!archive.numImages||archive.numImages!=archive.sprites.size())throw std::runtime_error("empty or invalid SG3 archive");
+    // Tileset 3 -> China_Terrain (the supplied --sg3); tileset 16 -> China_Elevation
+    // (--sg3-elevation). Both archives are read-only; firstRecordId 201 is the
+    // measured low-14 base (see map_reference.hpp MapImageGridTileset).
+    std::vector<game_lab::MapImageGridTileset> tilesets;
+    auto internalFor=[](const std::string& path){auto p=std::filesystem::path(path);p.replace_extension(".555");return p.string();};
+    tilesets.push_back({3,&archive,internalFor(archivePath),201});
+    game_lab::SG3Archive elevation;
+    if(args.count("--sg3-elevation")) {
+        const auto elevationPath=root.resolve(args.at("--sg3-elevation"));if(elevationPath.empty())throw std::runtime_error("relative elevation archive path outside root or missing");
+        elevation=game_lab::loadSG3(elevationPath);if(!elevation.numImages||elevation.numImages!=elevation.sprites.size())throw std::runtime_error("empty or invalid elevation SG3 archive");
+        tilesets.push_back({16,&elevation,internalFor(elevationPath),201});
+    }
+    game_lab::OriginalMapCamera camera;camera.centerX=real(args.at("--camera-x"));camera.centerY=real(args.at("--camera-y"));camera.width=uint32_t(vw);camera.height=uint32_t(vh);camera.scale=uint32_t(scale);camera.outlines=false;
+    const auto rendered=game_lab::renderMapImageGridViewport(map.terrain,*state,tilesets,camera);if(!rendered.image.valid())throw std::runtime_error("stored image-grid viewport rejected");
+    const auto score=game_lab::scoreGroundChainAgainstImageGrid(map.terrain,*state,archive);
+    CGImageRef cg=game_lab::createCGImageFromPremultipliedBGRA(rendered.image.width,rendered.image.height,rendered.image.pixelsBGRA);if(!cg)throw std::runtime_error("CGImage failed");
+    const auto&s=rendered.stats;
+    const bool exact=!s.unresolvedIndices&&!s.geometryUnsupported&&!s.archiveUnavailable&&!s.decodeFailures;
+    std::cout<<"{\"mode\":\"stored-image-grid\",\"experimental\":true,\"grid_cells\":"<<s.activeCells<<",\"zero_cells\":"<<s.zeroCells<<",\"nonzero_cells\":"<<s.nonzeroCells<<",\"decoded_cells\":"<<s.decodedCells<<",\"drawn_cells\":"<<s.drawnCells<<",\"culled\":"<<s.culled<<",\"visible_cells\":"<<s.visibleCells<<",\"unresolved_indices\":"<<s.unresolvedIndices<<",\"geometry_unsupported\":"<<s.geometryUnsupported<<",\"archive_unavailable\":"<<s.archiveUnavailable<<",\"decode_failures\":"<<s.decodeFailures<<",\"unique_decoded_IDs\":"<<s.uniqueDecoded<<",\"cache_bytes\":"<<s.cacheBytes<<",\"tileset_cells\":[";
+    for(size_t i=0;i<s.tilesetCells.size();++i){if(i)std::cout<<',';size_t drawn=0;for(const auto& d:s.tilesetDrawn)if(d.first==s.tilesetCells[i].first)drawn=d.second;std::cout<<"{\"tileset\":"<<s.tilesetCells[i].first<<",\"cells\":"<<s.tilesetCells[i].second<<",\"drawn\":"<<drawn<<"}";}
+    std::cout<<"]"<<",\"chain_score\":{\"cells\":"<<score.activeCells<<",\"emitted\":"<<score.emitted<<",\"matched\":"<<score.matched<<",\"mismatched\":"<<score.mismatched<<",\"known_matched\":"<<score.knownMatched<<",\"no_ground_predicted_vs_stored_zero\":"<<score.noGroundVsStoredZero<<",\"no_ground_predicted_vs_stored_nonzero\":"<<score.noGroundVsStoredNonzero<<",\"stored_zero\":"<<score.storedZero<<",\"stored_zero_unpredicted\":"<<score.storedZeroUnpredicted<<",\"chain_known\":"<<score.chainKnown<<",\"chain_unknown\":"<<score.chainUnknown<<",\"chain_no_ground\":"<<score.chainNoGround<<",\"unresolved\":"<<score.unresolved<<",\"branches\":[";
+    for(size_t i=0;i<score.branches.size();++i){if(i)std::cout<<',';const auto& b=score.branches[i];std::cout<<"{\"branch\":\""<<b.branch<<"\",\"cells\":"<<b.cells<<",\"emitted\":"<<b.emitted<<",\"matched\":"<<b.matched<<",\"stored_zero\":"<<b.storedZero<<"}";}
+    std::cout<<"]}"<<",\"exact\":"<<(exact?"true":"false")<<",\"native_image_created\":true,\"pixel_width\":"<<vw<<",\"pixel_height\":"<<vh<<"}\n"<<std::flush;
+    if(args.count("--output"))savePNG(args.at("--output"),root.configuredDirectory(),cg);
+    if(!show){CGImageRelease(cg);return 0;}
+    [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];ReferenceDelegate*delegate=[ReferenceDelegate new];NSApp.delegate=delegate;
+    const CGFloat displayW=CGFloat(vw)/scale,displayH=CGFloat(vh)/scale;NSWindow*window=[[NSWindow alloc]initWithContentRect:NSMakeRect(80,80,displayW,displayH+54)styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable backing:NSBackingStoreBuffered defer:NO];window.title=@"STORED image grid — 0x00FE9880 read verbatim";
+    NSTextField*label=[NSTextField wrappingLabelWithString:[NSString stringWithFormat:@"Stored surface-image grid · tilesets %zu\n%zu drawn / %zu nonzero; archive-unavailable %zu, composite %zu, unresolved %zu.",tilesets.size(),s.drawnCells,s.nonzeroCells,s.archiveUnavailable,s.geometryUnsupported,s.unresolvedIndices]];label.frame=NSMakeRect(8,displayH+4,displayW-16,46);label.font=[NSFont systemFontOfSize:11];[window.contentView addSubview:label];
+    ReferenceImageView*view=[[ReferenceImageView alloc]initWithFrame:NSMakeRect(0,0,displayW,displayH)];view.candidate=[[NSImage alloc]initWithCGImage:cg size:NSMakeSize(displayW,displayH)];[window.contentView addSubview:view];CGImageRelease(cg);[window makeKeyAndOrderFront:nil];[NSApp activateIgnoringOtherApps:YES];[NSApp run];return 0;
+}
 }
 int main(int argc,char**argv){@autoreleasepool{try{
-    std::map<std::string,std::string> args;bool show=true;bool groundSelector=false;
-    for(int i=1;i<argc;++i){std::string key=argv[i];if(key=="--no-window"){show=false;continue;}if(key=="--ground-selector"){groundSelector=true;continue;}if(key.rfind("--",0)!=0||i+1>=argc||args.count(key))throw std::runtime_error("unique named option/value required");args[key]=argv[++i];}
+    std::map<std::string,std::string> args;bool show=true;bool groundSelector=false;bool imageGrid=false;
+    for(int i=1;i<argc;++i){std::string key=argv[i];if(key=="--no-window"){show=false;continue;}if(key=="--ground-selector"){groundSelector=true;continue;}if(key=="--image-grid"){imageGrid=true;continue;}if(key.rfind("--",0)!=0||i+1>=argc||args.count(key))throw std::runtime_error("unique named option/value required");args[key]=argv[++i];}
     if(args.count("--scene-manifest"))return diagnosticScene(args,show);
+    if(imageGrid)return imageGridView(args,show);
     if(groundSelector)return groundSelectorView(args,show);
     for(const auto&k:{"--data-root","--map","--raw-offset","--raw-width","--sg3","--id-base","--camera-x","--camera-y","--width","--height","--scale"})if(!args.count(k))throw std::runtime_error("all raw/archive/base/camera options must be explicit");
     for(const auto&[k,v]:args){(void)v;if(k!="--data-root"&&k!="--map"&&k!="--raw-offset"&&k!="--raw-width"&&k!="--sg3"&&k!="--id-base"&&k!="--camera-x"&&k!="--camera-y"&&k!="--width"&&k!="--height"&&k!="--scale"&&k!="--output")throw std::runtime_error("unknown option");}
