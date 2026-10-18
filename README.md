@@ -1,96 +1,52 @@
 # Emperor native data on macOS
 
-Load legally owned **original Emperor: Rise of the Middle Kingdom data** through `--data-root`, render it natively on macOS, then port logic. Current phase: **DATA FIRST**. CitySimulation, EMP1 and authored gameplay are retained and frozen; they are not evidence of original-game behavior. **Complete same-city MAP→SG3 scenes remain 0/167.**
+Load legally owned original Emperor data with `--data-root`, render it natively on macOS, then port logic. Current phase: **DATA FIRST**. CitySimulation, EMP1 and authored gameplay remain frozen and separate from original behavior.
 
-## Launch the verified local App
-
-On this machine, use this single launch command:
+## Launch the local App
 
 ```sh
-"/Users/zoomzhao/Documents/Codex/2026-10-14/task/sav-app-delivery-20261015/release-final/EmperorApp.app/Contents/MacOS/EmperorApp" --data-root "/Users/zoomzhao/Workspace/lzjq/GameData"
+"/Users/zoomzhao/Documents/Codex/2026-10-14/task/native-surface-app-20261018/release/EmperorApp.app/Contents/MacOS/EmperorApp" --data-root "/Users/zoomzhao/Workspace/lzjq/GameData"
 ```
 
-The App path above is the final local delivery built from `c807114`, outside Git and GameData. Assets are not bundled. The data root is explicit; another legally owned directory requires changing that argument. The App starts muted; the bottom mute/volume controls also govern Bink audio. macOS15+ and the existing external FFmpeg are required for Bink playback; missing software is reported, never installed automatically.
+This delivery stays outside Git and GameData; the earlier App is preserved. No game assets are bundled. Another legally owned directory requires changing the explicit argument. macOS15+ is required. The App starts muted; Bink playback uses the existing external FFmpeg and reports missing dependencies without installing them.
 
-For a source rebuild, use Apple command-line tools and a **fresh absolute output directory**:
+Open **原始地图** and select a standalone city MAP. The default **原始地表图素（MAP 存储 surface）** view reads its saved surface-image grid and renders SG3/555 pixels. Camera X/Y moves the viewport. Missing resources, unsupported geometry and decode failures remain counted; unknown pixels are transparent. Numerical terrain/bit views remain available. PAK and SAV selections retain their numerical views; they do not acquire an unproved stored-surface binding.
+
+The App adapter reads167/167 city sources and creates167/167 native CGImages. Actual App checks cover6/6 complete/partial surface, numerical fallback, PAK clearing, SAV restrictions and return transitions;344/344 tested input files remain unchanged. The source manifest covers81/81 files and27 compiled units;strict signing and source correspondence are checked. These are delivery checks, not original-screen accuracy.
+
+## Three independent measurements
+
+| Measurement | Current result | Boundary |
+|---|---|---|
+| Stored surface rendering coverage | **139/167** city maps complete;**2,106,879/2,107,808** nonzero cells decoded (99.9559%);929 cells remain | Reads persisted image IDs directly. This is static surface coverage, not a complete city or pixel-match rate. |
+| Reconstructed terrain→image accuracy | **1,299,617/1,514,539** emitted predictions match stored codes (85.809%) | The reconstructed selector is scored separately;the App surface view does not use it as a substitute for stored IDs. |
+| Original-screen comparison | **0/167** complete city pictures verified | Camera/elevation, composition, buildings, units and runtime state still need independent evidence. Coverage does not imply playability. |
+
+[MAP evidence and App integration](docs/MAP.md#native-app-stored-surface-view) and the existing [stored-grid pipeline](docs/MAP_SG3_PIPELINE.md) retain the scope and unresolved cases. Earlier explicit-scene experiments and original observations remain in the format documents, not the launch instructions.
+
+## Other native entries
+
+- [SG3/555](docs/SG3.md):58/58 indexes;71,751/72,370 images.427 empty records and192 images missing `ChinaMapProj.555` remain. Static decoding does not establish animation playback.
+- [MAP/PAK](docs/MAP.md):168/168 MAP containers and31/31 packages;46 embedded city grids. Numerical views remain diagnostic.
+- [SAV](docs/SAV.md):6/6 supplied-root plus9/9 separate app-root snapshots;90/90 numerical fields. These15 paths are not15 distinct cities. Buildings, walkers and current memory are unparsed.
+- [Bink](docs/BINK.md):native video/audio preview and synchronization;physical display/speaker latency remains unmeasured.
+
+## Build and check
+
+Use Apple command-line tools and a fresh absolute build directory:
 
 ```sh
 EMPEROR_BUILD_DIR=/absolute/new-build-directory /bin/sh game_lab/app/build.sh
+python3 -B scripts/app_map_surface.py test
+python3 -B scripts/app_map_surface.py test --mode undefined
 ```
 
-This produces `EmperorApp.app` in that directory. It does not start the original game or copy its assets.
-
-## What the native entries show
-
-| Format / App entry | Measured original-data scope | Remaining boundary |
-|---|---|---|
-| [SG3/555](docs/SG3.md) · 图素与贴图 | 58/58 indexes;71,751/72,370 logical images decode and create CGImages | 427 empty records;192 nonempty records lack `ChinaMapProj.555`. Static images do not prove animation or scene selection. |
-| [MAP](docs/MAP.md) · 原始地图 | 168/168 containers;167/167 city terrain/raw-layer sets and native selections | Numerical diagnostic colors; empire/world parsing and original scene composition remain unproved. |
-| [PAK](docs/MAP.md#native-pak-source-selection) · 原始地图 source menu | 31/31 packages,108 parts,46/46 embedded city grids/images | Package summaries clear old images;62 non-city parts and mission semantics remain uninterpreted. |
-| [SAV](docs/SAV.md#native-sav13-snapshot-loading) · 原始地图 source menu | 6/6 supplied-root＋9/9 app-root files;90/90 numerical field images/views | These15 filesystem paths are not15 distinct cities. Buildings, walkers, rules and current memory are unparsed. |
-| [Bink](docs/BINK.md) · 影片音画预览 | 1/1 intro;5,101/5,101 video frames and7,499,520/7,499,520 stereo PCM frames | Native audio-clock synchronization, pause/resume/drain verified. Hearing quality and physical speaker/display latency remain unmeasured. |
-
-The [screen-cell protocol](docs/MAP.md#screen-registration-and-whole-road-predictions) now separates exact screen registration, visible-obstruction observations and frozen whole-source predictions. The archived mouse point is rejected as a centre1/1; its complete hover footprint registers1/1 without a texture identity. Background source matching is not an acquisition prerequisite; full prediction failures are retained. A calculated centre alone cannot confirm a final click: exact-point preview, same frozen cell and fresh uninterrupted context are required; missing evidence refuses. The [sender boundary](docs/MAP.md#sending-boundary-and-unavailable-live-producer) now has an in-process dry-run connection; the live final-road CLI refuses because a trusted continuous producer is absent. Its final native snapshot is read again after the second validation; a prior snapshot is never relabelled current. Its250ms limit is a protocol assumption, not measured live feasibility. This is offline preparation, with0 new original operations.
-
-The experimental raw-reference viewer uses caller-supplied hypotheses and is not the original scene renderer. Its frozen viewport agrees at491,284/2,176,064 eligible pixels. Regional flat-grid registration covers16/16 cells in4 cancelled footprints; this does not establish elevation, full draw anchors or effective sprite selection. Detailed evidence and historical attempts stay in the format documents, not this entry page. The new three-road trial adds3/3 directly paired terrain cells and1/1 coordinate holdout;its tentative complete C source still has1,780/6,456 conflicts. The initial world is restored at2,274,016/2,274,016 pixels,the20 original SAVs are unchanged,and the user’s original remains open and paused.
-
-An [original campaign load control](docs/MAP.md#original-campaign-load-source-positive-control) now records **3/3 A→B→A loads** and **2/2 frozen whole-minimap comparisons**. The extra SAV check initially accepted 2/3 saves; [unique structural-candidate validation](docs/SAV.md#unique-validated-terrain-anchor) now accepts **3/3** without MAP content selecting the anchor. The App at the single launch path above includes this repair: new B passes 6/6 actual 170×170 field views, and the two tested roots pass 19/19 SAV sources and 114/114 field views (including trial derivatives). Its source manifest and strict signature are verified; the old delivery remains preserved separately. This supports loading the selected terrain in that trial; the persisted image/layer consumer remains unproved.
-
-## Existing checks
-
-The repository has individual Make targets and the existing App aggregate verifier; there is no single all-formats test target. Focused authored regression checks include:
+Real-data adapter checks read only the process-local root and successfully SKIP when unset or empty:
 
 ```sh
-make sg3-test sg3-test-undefined map-test map-test-undefined pak-native-test pak-native-test-undefined save-native-test save-native-test-undefined
-python3 -I -B scripts/independent_runner.py app --output /absolute/local/check-results
+EMPEROR_GAMEDATA_ROOT=/absolute/owned/GameData python3 -B scripts/app_map_surface.py metrics
 ```
 
-Read-only corpus aggregates use only process-local `EMPEROR_GAMEDATA_ROOT`; unset/empty is a successful SKIP. Use the existing `data-metrics`, `map-metrics`, `pak-native-metrics` and `save-native-metrics` targets. Bink PCM, legacy-video and native-window checks are documented in [BINK.md](docs/BINK.md). Synthetic passes are regression evidence, not original-data progress.
+`python3 -B scripts/map_reference.py test` checks the underlying renderer. `python3 -I -B scripts/independent_runner.py app --output /absolute/private/check-results` checks packaging without launching either game. Existing format tests and corpus commands are documented in their format files. Synthetic checks are regression evidence, not original-data coverage.
 
-## What blocks the same-city original picture
-
-The [complete SAV change audit](docs/SAV.md#complete-aligned-sav-change-accounting) now compares4,430,995/4,430,995 decoded bytes in the existing manual save pair:11/11 changes are accounted for,including10 opaque bytes outside the six parsed arrays. It reuses the existing checker and returns an explicit unsupported selector;no graphics rule follows from terrain-only changes within those arrays. A later [independent three-road trial](docs/MAP.md#independent-three-road-coordinate-holdout) now registers its own fixed view using A/B and a successful third-cell coordinate holdout;the earlier screenshot history stays unconfirmed. A supported image/namespace and composition contract is still missing. The same checker now replays4/4 existing transitions,including a paused control with4,430,991/4,430,991 decoded bytes equal. Fixed opaque-window checks retain4/20 counterexamples to a literal duplicate-word interpretation;none of the six windows receives a semantic field name.
-
-- **Effective ground-image/layer consumer:** neither the MAP byte1535/base48921 hypothesis nor the SAV following-u32 span has an accepted runtime binding. The retained one-byte PAK change produced no target change in its tested load path. The smallest useful new evidence is a published format contract or licensed modern reader that identifies a persisted graphics-reference/layer field in the **same city snapshot**, sufficient to freeze predictions for two distinct cells and an untouched region. Until such evidence exists, stop the same-cell ID/base/alpha permutations and repeated negative trials. This interpretation gap does not require background-source matching before a separately authorized, frozen whole-appearance test.
-- **Composition, anchors and saved scene state:** an identified source must also have an evidenced layer placement/draw-order contract; SAV needs documented building/walker records before it can restore those objects. Use an existing, provenance-matched save/reference pair plus the newly identified contract for an offline held-out comparison. The current flat registration does not supply missing layer, elevation or full projection semantics.
-- **Resource and animation gaps:** the192 missing images need the actual `ChinaMapProj.555` from a legally owned installation, checked against its index; no substitute pixels. The five named SG3 animation fields need frame-order/count/direction/reversal/speed timing semantics before native animation can be claimed. Mere static decoding or changing water content does not close that contract.
-
-The [MAP–SAV field comparison](docs/SAV.md#map-sav-field-correspondence-check) checks5/5 existing snapshot pairs: all20 common named arrays remain unchanged, and no SAV counterpart for the candidate MAP image span is identified. This narrows the persisted-field explanation without raising scene coverage. A later independently accepted [paused-save control](docs/SAV.md#paused-save-reload-and-single-cell-control) verifies4/4 static save brackets, one fixed-screen-cell road action matching its saved terrain coordinate1/1, and24/24 native raw arrays. These controls do not identify a graphics field or raise full-scene coverage. That historical run restored and exited its owned instance, with its7 recorded task processes and descendants gone. The current user-supplied manual sample is analyzed offline; the user’s running original application stays under user control. Future observations require a distinct, frozen question that can separate the remaining gaps.
-
-The historical paired road captures support [one finite-domain content localization](docs/MAP.md#offline-single-road-content-localization): all1,014 changed logical base pixels match one of1,206 declared terrain records at the frozen placement. That historical complete road-layer comparison remains0/1 because586 unchanged base positions disagree with that opaque source. The explicit offline diagnostic reports both counts; it supplies no MAP/SAV selector or inferred transparency. Its replay now re-decodes and compares every complete native canvas/raw base and reads both resource roots on each run; corrupted owned copies fail before success counters are emitted. A [fixed foreground colour necessary check](docs/MAP.md#fixed-foreground-colour-necessary-condition) finds opaque candidate colours for586/586 disagreement positions, while preserving all candidates and their conflicts; it supplies no consistent source assignment or draw order.
-
-The [manual grass-scene evidence](docs/MAP.md#colorsync-complete-fixed-source-comparison) retains the earlier raw-channel794 failure as a representation-confounded comparison,not a global exclusion. Ten old controls support RGB555<<3 at82,556/82,556 raw8 pixels. A fixed public ColorSync Display P3→sRGB hypothesis now converts the entire declared source,with no colour patch or position search. New794 agrees4,532/4,544 changed-base pixels,0/1,856 unchanged pixels,4,588/6,456 opaque pixels and9,100/12,480 whole-overlay pixels. The prior20 errors disappear,but12 other one-step errors remain. All1,856 unchanged-painted pixels contradict the simple opaque overlay,and1,512 RGB5 changes lie outside its paint;if794 is used,an independently evidenced coverage/source/order relation is needed. Actual capture behaviour and absolute SAV→screen binding remain unproved. The [source/colour contract and controls](docs/SG3.md#colorsync-rgb8-implementation-and-complete-fixed-source-score) support this comparison hypothesis,not an engine graphics rule. Prior bounded searches belong to their earlier representations;complete scenes stay0/167.
-
-The [separated neighbour discovery](docs/MAP.md#separated-neighbour-identification-and-complete-top-coverage) identifies2/3 neighbouring sources exactly within the frozen585-record domain;third-cell246 remains an8/624-error diagnostic. Complete natural tops240/242 recover1,464/1,856 unchanged-painted pixels under a fixed hypothesis,raising road-canvas agreement9,100→10,564/12,480 while retaining280 whole-top conflicts. Complete prediction remains0/1. Even the loose union of all1,755 front-top placements cannot reach876/1,512 nonpainted changes or496/496 outside-canvas changes;it is not a realizable composition. The read-only manifest replay and8 focused regressions preserve these bounds. Actual drawing sources/removal and selection conditions remain unknown;scene coverage stays0/167.
-
-The [four conditional replacement models](docs/MAP.md#four-conditional-old-top-replacement-predictions) retain centre241/325 and propose rear244/246/240 as **unconfirmed** sources with48 retained identification errors. Complete natural sources cover2,116/2,116 old241-top pixels;no post-state background fills a hole. The241 branch predicts1,508/1,512 nonpainted changes and496/496 outside-canvas changes. With two front tops its separated validation has396/24,496 errors;an explicit additional unconfirmed front246 branch has24/24,496. Complete ROI errors are408/32,000 and36/32,000,respectively;both325 controls and every old score remain. All four predictions still fail,source identities/order remain unproved,and scenes stay0/167. The read-only replay retains full component conflicts and passes14 focused regressions.
-
-The [pixel-provenance audit and pure native delivery](docs/MAP.md#pixel-provenance-and-pure-sg3-native-local-delivery) distinguish these results explicitly:the earlier best32k edit prediction generated10,816 pixels from SG3 and retained21,184 pre-state screenshot pixels. A new **pure SG3** diagnostic output uses0 screenshot pixels:23,968/32,000 ROI pixels are asset-generated,with23,436 matching,532 conflicts and8,032 transparent unknown under the fixed comparison contract. All86,400 native RGBA pixels and producer labels match an independent original-file composition. Seven explicit hypothetical layers render through the existing native reference viewer/CGImage path;the private scene is not an automatic MAP/SAV selector. Both coverage and conflicts remain visible;complete scenes stay0/167.
-
-To view an explicit local diagnostic scene through the existing native entry:
-
-```sh
-python3 -B scripts/map_reference.py scene --data-root /absolute/owned/data --scene-manifest /absolute/private/scene.json
-```
-
-The [scene schema and offscreen command](docs/MAP.md#native-diagnostic-scene-entry-and-checks) keep inputs metadata-only and output unknown regions transparent. The current measured delivery is offscreen CGImage/PNG;original SG3/555 files and private images/manifests stay outside the App bundle and Git.
-
-The [SAV-cell diagnostic entry](docs/MAP.md#sav-cell-diagnostic-projection-and-fixed-neighbour-audit) now validates a native SAV snapshot and accepts active-crop cell coordinates with an explicit registration matrix. Three private scene replays cover9/9 layer cells; native RGBA and producer labels each match460,800/460,800 independent samples. IDs and order are still explicit hypotheses, with `selector_status:"unsupported"`. An already-unblinded A/B exploration uses complete natural neighbour tops to explain3,828/3,828 prior794 conflicts; all newly painted support still retains256/21,472 conflicts. C is not reused as a blind test, and full scenes remain0/167. Run `python3 -B scripts/map_reference.py scene-test` for authored CLI contract checks.
-
-The [output reservation repair](docs/MAP.md#filesystem-equivalent-output-reservation) addresses a reviewed fresh case/Unicode filename-alias P2 using filesystem-exclusive creation and held-descriptor writes for both outputs. Local Release/UBSan checks pass101/101 core assertions and12/12 CLI methods;independent re-review of06ba5aa,b79f5fa and73f4a8d confirmsP1=0/P2=0 and closes the output P2. Original inputs and earlier delivered images remain intact.
-
-The [complete conflict audit](docs/MAP.md#complete-conflict-attribution-and-source-class-limits) classifies256/256 remaining failures: all are single-contributor pixels, while all3,832/3,832 natural overlaps match. Changing the existing four-layer order cannot repair them. The raw and ColorSync error masks agree21,472/21,472;all errors remain counted. The initial fifteen observations at12 spatial cells contain15 distinct six-field tuples, leaving0 eligible full-key contradiction pairs. Registered C order tests stop before new post-region scoring because of source aliases or zero unused overlap;they provide no new blind validation or manual coverage.
-
-A later [pre-registered same-key cohort](docs/MAP.md#registered-same-key-visible-content-check) fixes30 visible cells in that same paired scene before image inspection. It finds2 repeated full-six-field groups;4/4 members are recognized and2/2 same-key pairs have identical visible content, with0 differing or unknown outcomes. This supplies two eligible checks without proving a selector. The retained256 residuals have RGB8 distances8–140;244/256 exceed one RGB5 level, and252/256 use source colours correctly reproduced elsewhere. Further uniform colour fitting cannot explain those spatial mismatches;material/source and cover remain the useful blockers.
-
-The [bounded omitted-top check](docs/MAP.md#bounded-omitted-top-exclusion) finds0/256 residual pixels reachable from any other allowed neighbour top;two methods agree9,360/9,360 source/position cases. Pre-state base material also fails to close the gap,with144 pixels affected by a source-signature transfer instability. This ends the current bounded occluder search. That offline audit proposes the one-cell observation executed below;it adds0 original UI actions and0 manual scene coverage.
-
-The [paused read-only check](docs/MAP.md#paused-read-only-screen-stability) confirms the preserved paused view in10/10 timed frames. Eight adjacent comparisons show0/18,192,128 changed world pixels and0/740,000 changed control pixels,with0 game inputs. The initial restoration reference and road-sampling reference use different camera views:an exact(0,+160) world translation now recovers the144-point mapping1/1,with80,000/80,000 held-out pixels. Its existing pausedS0 samples have0/1,152 changes. The earlier registration failed because its top-edge training block mapped into fixed UI. Source238 remains a bounded content candidate;the observed A-post material change/B-return is still unexplained. That coordinate correction performs0 new UI;the subsequent bounded one-cell observation is recorded below.
-
-The [single-cell contextual response](docs/MAP.md#single-cell-contextual-response) now pairs one authorized road at active(63,66) with two fresh saves and normal restoration. Exactly1/51,984 terrain values change;the other five arrays agree259,920/259,920. The complete support changes1,512/1,752 pixels while the frozen subset changes0/144. However,the neighbouring owner signature changes1,728/1,748 despite its own six fields remaining equal,so the predeclared material gate fails and usable causal interpretations stay0/1,unknown1/1. Native reads independently verify both new trial saves,12/12 arrays and623,808/623,808 values. Restoration matches2,274,016/2,274,016 world pixels with24/24 old saves intact;the original remains open and paused. No new selector or scene coverage follows.
-
-The [posterior context audit](docs/MAP.md#posterior-context-and-visible-output-limit) now classifies all5,916 changed owner-base pixels:only36 lie in the declared road794 alpha,and all1,728 changed signature pixels lie outside every retained same-position target support. The owner retains15/15 bytes across its six SAV fields,so those fields alone do not determine this paired visible output. This does not prove an internal selector or a new SG3 ID:whole post components and bases match0/585 each. All4,431,439 aligned save bytes contain11 changes,including10 opaque bytes;save/hover brackets do not reproduce the change,but click/cancel and other state remain inseparable. Existing native rendering already redraws the whole canvas;no new renderer rule is justified.
-
-The [bounded peripheral expansion](docs/MAP.md#peripheral-base-coverage-with-pre-state-source-hypotheses) reuses that native renderer with private diagnostic manifests. Public-base geometry assigns the8,032 unknown pixels to nine positions (three existing top-only cells plus six peripheral positions). Pre-state-only evidence supports some additions;all3,510 candidate rows and the left241/325 ambiguity remain. The primary unconfirmed variants raise **pure SG3 coverage23,968→31,824/32,000**,with372/556 conflicts and176 transparent unknown pixels. Separate243 exploratory variants reach31,856/32,000,with268/452 conflicts and144 unknown;243 failed the original prefilter and is not a default source. No screenshot fills a hole,no native code changes,and all seven model outputs/producers match604,800/604,800 independent samples. The two unsupported cells remain unknown;this is no automatic MAP/SAV selector or complete scene.
-
-Follow [AGENTS.md](AGENTS.md): clean room; no original decompiled/disassembled code, original fragments or retired static execution route. Keep all original data read-only and all assets, derivatives, screenshots, dumps and binaries outside Git. Every change must raise a measured [STATUS.md](STATUS.md) result or remove its named blocker. Our source is [MIT](LICENSE); parser credits and external dependency licenses remain in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Follow [AGENTS.md](AGENTS.md):keep user data read-only and original assets, screenshots, dumps and binaries outside Git. Every change must improve a measured [STATUS.md](STATUS.md) result or remove a named blocker. Source is [MIT](LICENSE);parser and dependency credits remain in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -18,6 +18,7 @@
 #include "../city_game_state.hpp"
 #include "city_warehouse_transfer.hpp"
 #include "city_warehouse_routes.hpp"
+#include "map_surface.hpp"
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
@@ -174,6 +175,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     BOOL _originalMapPackageSummary;
     std::optional<game_lab::OriginalSaveCellLayers> _originalSaveLayers;
     game_lab::OriginalMapResult _originalMapResult;
+    std::unique_ptr<game_lab::AppMapSurface> _originalMapSurface;
     NSView* _candidateView;
     NSTextView* _candidateReport;
     NSButton* _candidateRetry;
@@ -284,6 +286,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         _selfAuthoredLaunch = selfAuthored;
         _candidateDirectory = [NSURL fileURLWithPath:[NSString stringWithUTF8String:root.configuredDirectory().c_str()]];
         _media = std::make_unique<game_lab::AppMedia>(root, _audioFactory);
+        _originalMapSurface = std::make_unique<game_lab::AppMapSurface>(root);
         __weak EmperorAppDelegate* weakSelf = self;
         _media->setStatusChangedCallback([weakSelf](const game_lab::PlaybackStatus&) {
             [weakSelf refreshAudioStatus];
@@ -1394,7 +1397,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapView = [[NSView alloc] initWithFrame:_contentContainer.bounds];
     _originalMapView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     const CGFloat height = _originalMapView.bounds.size.height;
-    NSTextField* title = [NSTextField labelWithString:@"原始城市数据 · MAP / PAK / SAV（只读数值）"];
+    NSTextField* title = [NSTextField labelWithString:@"原始城市数据 · MAP 地表图素 / PAK / SAV 数值"];
     title.frame = NSMakeRect(20, height - 38, 960, 26);
     title.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     title.font = [NSFont boldSystemFontOfSize:17]; [_originalMapView addSubview:title];
@@ -1420,6 +1423,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         [_originalMapBitPicker addItemWithTitle:[NSString stringWithUTF8String:game_lab::originalSaveFieldLabel(field).c_str()]];
         _originalMapBitPicker.lastItem.enabled=NO;
     }
+    [_originalMapBitPicker addItemWithTitle:@"原始地表图素（MAP 存储 surface）"];
+    [_originalMapBitPicker selectItemAtIndex:38];
     _originalMapBitPicker.target = self; _originalMapBitPicker.action = @selector(onOriginalMapPlaneChanged:);
     _originalMapBitPicker.autoresizingMask = NSViewMinYMargin;
     _originalMapBitPicker.accessibilityIdentifier = @"original-map-plane"; [_originalMapView addSubview:_originalMapBitPicker];
@@ -1459,6 +1464,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const NSInteger index = _originalMapPicker.indexOfSelectedItem;
     _originalMapSourceInfo.clear();_originalMapPackageSummary=NO;_originalSaveLayers.reset();
+    _originalMapSurface->clear();
+    [_originalMapBitPicker itemAtIndex:38].enabled=NO;
     for(NSInteger field=33;field<38;++field)[_originalMapBitPicker itemAtIndex:field].enabled=NO;
     if(index < 0 || static_cast<size_t>(index) >= _originalMapSources.size()) { _originalMapInfo.stringValue = @"没有选择地图来源"; return; }
     auto selection = _media->originalMapSource(_originalMapSources[static_cast<size_t>(index)]);
@@ -1467,7 +1474,14 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapPackageSummary = selection.packageSummary;
     _originalSaveLayers=std::move(selection.saveLayers);
     if(_originalSaveLayers&&_originalSaveLayers->valid()){for(NSInteger field=33;field<38;++field)[_originalMapBitPicker itemAtIndex:field].enabled=YES;}
-    else if(_originalMapBitPicker.indexOfSelectedItem>=33)[_originalMapBitPicker selectItemAtIndex:0];
+    else if(_originalMapBitPicker.indexOfSelectedItem>=33&&_originalMapBitPicker.indexOfSelectedItem<38)[_originalMapBitPicker selectItemAtIndex:0];
+    const auto& source=_originalMapSources[static_cast<size_t>(index)];
+    const bool surface=source.kind==game_lab::OriginalMapSourceKind::MapFile&&
+        _originalMapSurface->select(source.relativePath,_originalMapResult.terrain);
+    [_originalMapBitPicker itemAtIndex:38].enabled=surface;
+    if(source.kind==game_lab::OriginalMapSourceKind::MapFile&&!surface&&!_originalMapSurface->error().empty())
+        _originalMapSourceInfo+="；存储地表不可用："+_originalMapSurface->error();
+    if(!surface&&_originalMapBitPicker.indexOfSelectedItem==38)[_originalMapBitPicker selectItemAtIndex:0];
     if(_originalMapResult.terrain.valid()&&!game_lab::analyzeOriginalMap(_originalMapResult.terrain).cropValid()) _originalMapCrop.state=NSControlStateValueOff;
     const double center=double(_originalMapResult.terrain.activeSide)/2;
     _originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.2f",center];_originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.2f",center];
@@ -1477,12 +1491,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     (void)sender; _originalMapImage.image = nil;
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const auto& result = _originalMapResult;
-    const bool savedField=_originalMapBitPicker.indexOfSelectedItem>=33;
-    _originalMapSpatial.enabled=!savedField;
+    const bool surface=_originalMapBitPicker.indexOfSelectedItem==38;
+    const bool savedField=_originalMapBitPicker.indexOfSelectedItem>=33&&!surface;
+    _originalMapSpatial.enabled=!savedField&&!surface;
     if(savedField)_originalMapSpatial.state=NSControlStateValueOff;
-    const bool spatial=!savedField&&_originalMapSpatial.state==NSControlStateValueOn;
+    const bool spatial=surface||(!savedField&&_originalMapSpatial.state==NSControlStateValueOn);
     _originalMapCrop.enabled=!spatial;
-    _originalMapCameraX.enabled=spatial;_originalMapCameraY.enabled=spatial;_originalMapCameraApply.enabled=spatial;_originalMapOutlines.enabled=spatial;
+    _originalMapCameraX.enabled=spatial;_originalMapCameraY.enabled=spatial;_originalMapCameraApply.enabled=spatial;_originalMapOutlines.enabled=spatial&&!surface;
     std::string text = _originalMapSourceInfo;
     if(!_originalMapPackageSummary){
         if(_originalSaveLayers)text += "SAV 地形网格：存储228×228，活动边长字段 "+std::to_string(result.terrain.activeSide)+"；只读已保存字段，无城市规则绑定";
@@ -1495,7 +1510,15 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         game_lab::OriginalMapCamera camera;camera.outlines=_originalMapOutlines.state==NSControlStateValueOn;
         game_lab::DecodedImage image;
         const bool cameraNumbers=readMapCameraNumber(_originalMapCameraX,camera.centerX)&&readMapCameraNumber(_originalMapCameraY,camera.centerY);
-        if(savedField){
+        if(surface){
+            if(cameraNumbers){
+                auto rendered=_originalMapSurface->render(camera);image=std::move(rendered.image);
+                const auto& s=rendered.stats;
+                text+="\n存储 surface："+std::to_string(s.decodedCells)+"/"+std::to_string(s.nonzeroCells)+" 非零格已解码；视口绘制 "+std::to_string(s.drawnCells)+" 格";
+                text+="；未支持几何 "+std::to_string(s.geometryUnsupported)+"，缺档案 "+std::to_string(s.archiveUnavailable)+"，未解析索引 "+std::to_string(s.unresolvedIndices)+"，解码失败 "+std::to_string(s.decodeFailures);
+            }
+            text+="\n按 MAP 保存的图素编号绘制；透明处未知。覆盖率不是原版画面像素一致率，不代表城市可玩。";
+        }else if(savedField){
             if(_originalSaveLayers){auto values=game_lab::originalSaveFieldValues(*_originalSaveLayers,unsigned(_originalMapBitPicker.indexOfSelectedItem-33));image=game_lab::renderOriginalMapValues(result.terrain,values,-1,crop);}
             text+="；存档原始字段数值视图，字段名不证明运行时用途";
         }else if(spatial){if(cameraNumbers)image=game_lab::renderOriginalMapSpatialFlags(result.terrain,camera,bit);}
@@ -1504,7 +1527,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
             text+=spatial?"；相机无效、活动框未验证或空间画面预算超限":crop?"；裁剪验证未通过，关闭裁剪可查看完整诊断":"；画面转换失败";
         else {
             text+="；已原生显示";
-            if(spatial){
+            if(surface){
+                _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，MAP 存储地表图素 %u×%u，相机 %.2f,%.2f，覆盖不等于原版画面对照",_originalMapPicker.titleOfSelectedItem,image.width,image.height,camera.centerX,camera.centerY];
+            }else if(spatial){
                 char cameraText[256];std::snprintf(cameraText,sizeof(cameraText),"；平面等距诊断，相机活动格(%.2f,%.2f)，格轮廓%s；SG3选图未知。",camera.centerX,camera.centerY,camera.outlines?"开":"关");text+=cameraText;
                 _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，等距空间诊断 %u×%u，相机 %.2f,%.2f，%@，格轮廓%@",_originalMapPicker.titleOfSelectedItem,image.width,image.height,camera.centerX,camera.centerY,_originalMapBitPicker.titleOfSelectedItem,camera.outlines?@"开":@"关"];
             }else _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，%@ %u×%u，%@，%@",_originalMapPicker.titleOfSelectedItem,savedField?@"原始字段数值网格":@"地形标志网格",image.width,image.height,_originalMapBitPicker.titleOfSelectedItem,crop?@"中心活动框裁剪":@"完整存储网格"];
@@ -1514,7 +1539,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         text += details;
         text += "\n完整消费 " + std::to_string(result.frames) + " 个压缩块，逻辑数据 " + std::to_string(result.decodedBytes) + " 字节；只读原始网格，无城市状态绑定。";
     }
-    text += _originalSaveLayers?"\n只读存档快照，非当前内存；数值配色不是原版外观，SG3选图、建筑/单位/规则未恢复。":"\n数值配色不等于原版外观；等距对照使用规范平面格坐标，不含高程/遮挡规则；SG3选图未知，不载入城市/建筑/单位。";
+    text += surface?"\n仅静态存储地表；重建选图准确度与原版画面对照另计，建筑/单位/规则未恢复。":_originalSaveLayers?"\n只读存档快照，非当前内存；数值配色不是原版外观，SG3选图、建筑/单位/规则未恢复。":"\n数值配色不等于原版外观；等距对照使用规范平面格坐标，不含高程/遮挡规则；SG3选图未知，不载入城市/建筑/单位。";
     _originalMapInfo.stringValue = [NSString stringWithUTF8String:text.c_str()];
 }
 

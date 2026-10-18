@@ -74,6 +74,9 @@ struct MapImageGridCompositeMismatch {
 };
 struct MapImageGridStats {
     size_t activeCells=0, zeroCells=0, nonzeroCells=0;
+    // Decoding validates the complete referenced pixel payload before culling.
+    // Every nonzero cell is decoded OR exactly one failure category. Culled is
+    // a subset of successfully decoded cells,not a substitute for validation.
     size_t decodedCells=0, drawnCells=0, culled=0, visibleCells=0;
     size_t unresolvedIndices=0, geometryUnsupported=0, archiveUnavailable=0, decodeFailures=0;
     size_t uniqueDecoded=0, cacheBytes=0;

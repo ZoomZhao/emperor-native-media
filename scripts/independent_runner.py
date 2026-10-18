@@ -25,6 +25,14 @@ MEDIA = [
     'game_lab/run_boundaries.sh',
 ]
 APP = [
+    'game_lab/app/map_surface.hpp',
+    'game_lab/app/map_surface.cpp',
+    'game_lab/map_reference.hpp',
+    'game_lab/map_reference.cpp',
+    'game_lab/original_terrain.hpp',
+    'game_lab/original_terrain.cpp',
+    'game_lab/original_ground.hpp',
+    'game_lab/original_ground.cpp',
     'LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
     'game_lab/city_game_state.hpp', 'game_lab/app/city_scenario.hpp', 'game_lab/app/city_scenario_checkpoint.hpp',
     'game_lab/app/city_warehouse_training.hpp', 'game_lab/app/city_warehouse_transfer.hpp', 'game_lab/app/city_warehouse_routes.hpp',

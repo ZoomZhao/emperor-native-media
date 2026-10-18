@@ -843,6 +843,46 @@ void realDataGroundTests(bool& originalData) {
  }
  originalData=true;
 }
+void compositeSafetyTests(const std::filesystem::path& root) {
+ using namespace game_lab;
+ OriginalMapTerrain terrain;terrain.activeSide=84;terrain.flags.assign(51984,0x80000);
+ auto at=[](unsigned x,unsigned y){return size_t(y+72)*228+x+72;};
+ for(unsigned y=0;y<84;++y)for(unsigned x=0;x<84;++x)terrain.flags[at(x,y)]=0;
+ SG3Sprite two;two.width=158;two.height=80;two.type=30;two.tileSize=2;two.length=two.uncompressedLength=12800;
+ auto three=two;three.width=238;three.height=120;three.tileSize=3;three.length=three.uncompressedLength=28800;
+ SG3Archive mixed;mixed.numImages=2;mixed.sprites={two,three};
+ OriginalMapCamera camera;camera.centerX=camera.centerY=10;camera.width=640;camera.height=480;
+ for(bool largeFirst:{false,true}) {
+  auto state=terrainState(terrain);const unsigned offset=largeFirst?1:2;
+  state.image[at(10,10)]=(3u<<14)|(largeFirst?1u:0u);state.subTile[at(10,10)]=largeFirst?2:1;
+  state.image[at(10+offset,10+offset)]=(3u<<14)|(largeFirst?0u:1u);
+  state.subTile[at(10+offset,10+offset)]=largeFirst?1:2;
+  state.draw[at(10+offset,10+offset)]=uint8_t(offset*8+offset);
+  const auto out=renderMapImageGridViewport(terrain,state,{{3,&mixed,"",1}},camera);
+  need(out.image.valid()&&out.stats.nonzeroCells==2&&out.stats.geometryUnsupported==2,"mixed-size common anchors reject every member in both orders");
+  need(out.stats.decodedCells==0&&out.stats.decodeFailures==0&&out.stats.compositeBlocks==0,"conflicting dimensions stop before indexing or decoding");
+ }
+ for(unsigned cols:{1u,2u}) {
+  SG3Sprite sprite=two;sprite.width=int16_t(cols*80-2);sprite.height=int16_t(cols*40);sprite.tileSize=uint8_t(cols);sprite.length=sprite.uncompressedLength=cols*cols*3200;
+  SG3Archive archive;archive.numImages=1;archive.sprites={sprite};auto state=terrainState(terrain);
+  for(unsigned y=0;y<2;++y)for(unsigned x=0;x<2;++x){auto cell=at(10+x,10+y);state.image[cell]=3u<<14;state.subTile[cell]=uint8_t(cols-1);state.draw[cell]=uint8_t(y*8+x);}
+  const auto truncated=root/("truncated-surface-"+std::to_string(cols)+".555");write(truncated,{0,0});
+  const auto missing=root/("missing-surface-"+std::to_string(cols)+".555");
+  const auto valid=root/("valid-surface-"+std::to_string(cols)+".555");Bytes data(sprite.length);for(size_t i=0;i<data.size();i+=2)put(data,i,0x03e0,2);write(valid,data);
+  for(bool offscreen:{false,true}) {
+   auto c=camera;if(offscreen){c.centerX=c.centerY=70;c.width=c.height=1;}
+   for(const auto& input:{missing,truncated}) {
+    const auto out=renderMapImageGridViewport(terrain,state,{{3,&archive,input.string(),1}},c);const auto& s=out.stats;
+    need(out.image.valid()&&s.nonzeroCells==4&&s.decodedCells==0&&s.decodeFailures==4,"missing/truncated pixels fail before culling for single and composite sources");
+    need(s.decodedCells+s.decodeFailures+s.geometryUnsupported+s.archiveUnavailable+s.unresolvedIndices==s.nonzeroCells,"stored nonzero accounting is exclusive");
+    need(s.drawnCells==0&&std::all_of(out.image.pixelsBGRA.begin(),out.image.pixelsBGRA.end(),[](uint32_t p){return p==0;}),"blank canvas does not prove successful decode");
+   }
+   const auto good=renderMapImageGridViewport(terrain,state,{{3,&archive,valid.string(),1}},c);
+   need(good.stats.decodedCells==4&&good.stats.decodeFailures==0&&good.stats.uniqueDecoded==1,"valid resources decode once even when entirely offscreen");
+   need(offscreen?good.stats.culled==4&&good.stats.drawnCells==0:good.stats.culled==0&&good.stats.drawnCells==4,"culling counts successfully decoded cells only");
+  }
+ }
+}
 int main(){try{
  for(unsigned width:{1u,2u,4u}){auto b=body(512+51984u*width);const uint32_t maximum=width==4?UINT32_MAX:(1u<<(8*width))-1;put(b,512+227*width,maximum,width);put(b,512+228*width,maximum-1,width);put(b,512+51983*width,maximum-2,width);auto l=game_lab::parseOriginalMapRawLayer(b,{512,width});need(l&&l->valid()&&l->values[227]==maximum&&l->values[228]==maximum-1&&l->values.back()==maximum-2,"raw unsigned LE row boundaries/end");b.pop_back();need(!game_lab::parseOriginalMapRawLayer(b,{512,width}),"raw final byte truncation");}
  auto b=body(512+51984*4);need(!game_lab::parseOriginalMapRawLayer(b,{512,3}),"unsupported raw width");need(!game_lab::parseOriginalMapRawLayer(b,{std::numeric_limits<size_t>::max(),4}),"offset overflow before allocation");b[0]=2;need(!game_lab::parseOriginalMapRawLayer(b,{512,4}),"unsupported role");b[0]=5;put(b,84,0);need(!game_lab::parseOriginalMapRawLayer(b,{512,4}),"invalid side");
@@ -863,6 +903,7 @@ int main(){try{
  exclusiveOutputTests(root);
  groundSelectorTests();
  imageGridTests(root);
+ compositeSafetyTests(root);
  chainScoreTests();
  bool originalData=false;
  realDataGroundTests(originalData);

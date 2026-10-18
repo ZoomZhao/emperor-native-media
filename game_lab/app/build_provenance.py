@@ -6,6 +6,14 @@ import sys
 
 repository = Path(__file__).resolve().parents[2]
 sources = [
+    'game_lab/app/map_surface.hpp',
+    'game_lab/app/map_surface.cpp',
+    'game_lab/map_reference.hpp',
+    'game_lab/map_reference.cpp',
+    'game_lab/original_terrain.hpp',
+    'game_lab/original_terrain.cpp',
+    'game_lab/original_ground.hpp',
+    'game_lab/original_ground.cpp',
     'LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
     'game_lab/city_game_state.hpp', 'game_lab/app/city_scenario.hpp', 'game_lab/app/city_scenario_checkpoint.hpp',
     'game_lab/app/city_warehouse_training.hpp', 'game_lab/app/city_warehouse_transfer.hpp', 'game_lab/app/city_warehouse_routes.hpp',
@@ -41,6 +49,10 @@ sources = [
     'file_io/src/framed_reader.cpp',
 ]
 compiled = [
+    'game_lab/app/map_surface.cpp',
+    'game_lab/map_reference.cpp',
+    'game_lab/original_terrain.cpp',
+    'game_lab/original_ground.cpp',
     'game_lab/app/main.mm', 'game_lab/app/av_audio_backend.mm',
     'game_lab/app_media.cpp', 'game_lab/app_pak.cpp', 'game_lab/original_pak.cpp', 'game_lab/original_save.cpp', 'game_lab/movie_session.mm',
     'game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
@@ -71,6 +83,8 @@ manifest = {
     'city_model_origin': 'self-authored; original rules not compared',
     'external_game_inputs': False,
     'app_executed_by_build': False,
+    'original_map_view': 'stored-surface-and-numeric',
+    'original_screen_accuracy_verified': False,
 }
 (bundle/'Contents/Resources/source-manifest.json').write_text(
     json.dumps(manifest, ensure_ascii=False, indent=2)+'\n')
