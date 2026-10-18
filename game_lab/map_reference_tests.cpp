@@ -148,6 +148,56 @@ void exclusiveOutputTests(const std::filesystem::path& root) {
  need(read(protectedInput)==sentinel&&read(replaced)==sentinel,"held descriptor cannot truncate a replacement input inode");
  need(fs::exists(replaced)&&!fs::exists(other),"rollback preserves replacement entry and removes only the other owned fresh file");
 }
+// Fixture: a complete loader per-cell array set whose terrain grid is `flags`.
+// Non-dispatch arrays are zero; the dispatch needs terrain/random/feature/fertility.
+game_lab::OriginalTerrainState terrainState(const game_lab::OriginalMapTerrain& terrain) {
+ const size_t n=game_lab::OriginalTerrainState::cells;game_lab::OriginalTerrainState state;
+ state.terrain=terrain.flags;state.image.assign(n,0);state.draw.assign(n,0);state.feature.assign(n,0);
+ state.subTile.assign(n,0);state.randomByte.assign(n,0);state.gF05160.assign(n,0);
+ state.gEAC3F0.assign(n,0);state.roadDistance.assign(n,0);state.fertility.assign(n,0);
+ state.gBEBF3A.assign(n,0);state.gBF8A4A.assign(n,0);return state;
+}
+// The FUN_0052E7C0 read order is a fixed flat layout over the decoded payload.
+void originalTerrainTests(const std::filesystem::path& root) {
+ using namespace game_lab;
+ Bytes payload=body(OriginalTerrainState::flatEnd);
+ auto words=[&](size_t offset){for(size_t i=0;i<OriginalTerrainState::cells;++i)put(payload,offset+4*i,uint32_t(i));};
+ auto bytes=[&](size_t offset){for(size_t i=0;i<OriginalTerrainState::cells;++i)put(payload,offset+i,uint8_t(i),1);};
+ words(OriginalTerrainState::imageOffset);words(OriginalTerrainState::terrainOffset);
+ words(OriginalTerrainState::featureOffset);
+ bytes(OriginalTerrainState::drawOffset);bytes(OriginalTerrainState::subTileOffset);
+ bytes(OriginalTerrainState::randomByteOffset);bytes(OriginalTerrainState::gF05160Offset);
+ bytes(OriginalTerrainState::gEAC3F0Offset);bytes(OriginalTerrainState::roadDistanceOffset);
+ bytes(OriginalTerrainState::fertilityOffset);bytes(OriginalTerrainState::gBEBF3AOffset);
+ bytes(OriginalTerrainState::gBF8A4AOffset);
+ put(payload,OriginalTerrainState::g101D0ACOffset,0x11223344u);
+ put(payload,OriginalTerrainState::g101D0B0Offset,0x55667788u);
+ put(payload,OriginalTerrainState::g10C6F18Offset,0x99AABBCCu);
+ for(size_t i=0;i<OriginalTerrainState::blob24Size;++i)put(payload,OriginalTerrainState::blob24Offset+i,uint8_t(0x40+i),1);
+ for(size_t i=0;i<OriginalTerrainState::g10C6DB0Size;++i)put(payload,OriginalTerrainState::g10C6DB0Offset+i,uint8_t(0x80+i),1);
+ const auto state=parseOriginalTerrainState(payload);
+ need(state.has_value()&&state->valid(),"the loader read order parses into a complete per-cell state");
+ need(state->image[0]==0u&&state->image[1]==1u&&state->image[OriginalTerrainState::cells-1]==OriginalTerrainState::cells-1,
+      "the first u32 grid is a 4-byte-per-cell little-endian run");
+ need(state->terrain[12345]==12345u&&state->feature[0xCAFE]==0xCAFEu,"each u32 grid keeps its own stride");
+ need(state->draw[7]==7u&&state->randomByte[0x77]==0x77u&&state->subTile[1]==1u,"u8 grids are 1 byte per cell");
+ need(state->fertility[OriginalTerrainState::cells-1]==uint8_t((OriginalTerrainState::cells-1)&0xFFu)&&
+      state->roadDistance[3]==3u&&state->gBF8A4A[4]==4u,"later u8 grids land at their read-order offset");
+ need(state->g101D0AC==0x11223344u&&state->g101D0B0==0x55667788u&&state->g10C6F18==0x99AABBCCu,
+      "the scalar words between the grids are little-endian");
+ need(state->blob24[0]==0x40u&&state->blob24[OriginalTerrainState::blob24Size-1]==uint8_t(0x40+OriginalTerrainState::blob24Size-1)&&
+      state->g10C6DB0[0]==0x80u&&state->g10C6DB0[OriginalTerrainState::g10C6DB0Size-1]==uint8_t(0x80+OriginalTerrainState::g10C6DB0Size-1),
+      "the trailing blob and 0x168-byte block are bounded and exact");
+ auto truncated=payload;truncated.pop_back();
+ need(!parseOriginalTerrainState(truncated),"a payload short of the flat end never publishes a partial state");
+ auto wrong=payload;wrong[0]=2u;
+ need(!parseOriginalTerrainState(wrong),"a non-city payload is refused before any field is read");
+ // The exact same bytes reach the parser through the shared compressed container.
+ write(root/"terrain-own.map",framed(payload));
+ const auto loaded=loadOriginalTerrainState((root/"terrain-own.map").string());
+ need(loaded&&loaded->valid()&&loaded->terrain[12345]==12345u&&loaded->fertility[OriginalTerrainState::cells-1]==
+      uint8_t((OriginalTerrainState::cells-1)&0xFFu),"the file loader decodes the container and parses identically");
+}
 void groundSelectorTests() {
  using namespace game_lab;
  // Chain order: terrain==0 passes the 0x8C008 gate and ends on plain land.
@@ -219,17 +269,69 @@ void groundSelectorTests() {
  // FUN_0053F090 was left and terrain&0xAEFEDE6F was nonzero.
  const auto exhausted=selectGroundTileCode(GroundCodeRequest{0x200u,0});
  need(exhausted.noGround&&!exhausted.known&&std::string(exhausted.branch)=="no-ground","a leftover 0xAEFEDE6F bit is a determinate no-ground");
- // Setter 17: terrain&0x80 with (terrain&0x10001)==0 is the farm plot. A MAP-only
- // load carries no runtime fertility, so the value is T(0x602)+random%9.
- for(const auto& item:std::vector<std::pair<uint8_t,uint8_t>>{{0u,0u},{1u,1u},{0x0Au,1u},{0x08u,8u},{0xF8u,5u},{0xFFu,3u}}) {
-     const auto farm=selectGroundTileCode(GroundCodeRequest{0x80u,item.first});
-     need(farm.known&&!farm.block&&farm.code==uint16_t(0x602)&&farm.variant==item.second&&std::string(farm.branch)=="0x80-farm","terrain&0x80 selects the pure 0x602 farm base with variant random%9");
+ // Setter 17: terrain&0x80 with (terrain&0x10001)==0 is the farm plot. Its value
+ // needs the per-cell fertility (0x00E9F8E0) and random byte, both of which the
+ // loader restores from the same `.map` payload. The stored id is
+ // T(0x602) + 9*rank(fertility,random) + random%9 (FUN_004BD8C0 @0x004BD8C0).
+ auto farmRequest=[](uint8_t fertility,uint8_t random) {
+     GroundCodeRequest request;request.terrainFlags=0x80u;request.randomByte=random;
+     request.hasNeighbours=true; // zeroed neighbours: no 0x10000 river arm
+     request.hasLayers=true;request.fertility=fertility;return request;
+ };
+ for(const auto& item:std::vector<std::pair<std::pair<uint8_t,uint8_t>,uint8_t>>{
+         {{0u,8u},8u},{{0u,9u},0u},{{100u,10u},37u},{{90u,9u},36u},
+         {{80u,9u},27u},{{110u,12u},48u},{{255u,8u},116u}}) {
+     const auto farm=selectGroundTileCode(farmRequest(item.first.first,item.first.second));
+     need(farm.known&&!farm.block&&!farm.noGround&&farm.code==uint16_t(0x602)&&
+          farm.variant==item.second&&std::string(farm.branch)=="0x80-farm",
+          "terrain&0x80 selects the 0x602 farm base with the fertility-rank variant 9*rank+random%9");
+ }
+ // (90,9) is the regression for the corrected formula: the old random%9 model
+ // gave 0; the executable's 9*FUN_004BD940+random%9 gives 36.
+ // Every farm sub-case is named; none guesses a code.
+ {
+     auto river=farmRequest(0u,8u);river.neighbourFlags[0]=0x10000u;
+     need(!selectGroundTileCode(river).known&&std::string(selectGroundTileCode(river).branch)=="0x80-farm-river",
+          "a 0x10000 neighbour selects the farm river arm (runtime DAT_0101C540), never a guess");
+     const auto block=selectGroundTileCode(farmRequest(0u,0u));
+     need(!block.known&&!block.noGround&&std::string(block.branch)=="0x80-farm-block",
+          "random&0xF8==0 selects the farm whole-plot block arm, left unknown");
+     const auto noNeighbours=selectGroundTileCode(GroundCodeRequest{0x80u,0x08u});
+     need(!noNeighbours.known&&std::string(noNeighbours.branch)=="0x80-farm-neighbours",
+          "a farm request without neighbour data never treats missing bytes as zero");
+     auto noLayers=farmRequest(0u,8u);noLayers.hasLayers=false;
+     const auto variant=selectGroundTileCode(noLayers);
+     need(!variant.known&&!variant.noGround&&std::string(variant.branch)=="0x80-farm-variant",
+          "a farm request without the fertility layer stays unknown instead of a guessed variant");
  }
  // Setters ahead of 17 still win: road (0x1) and monument (0x10000).
  const auto roadFarm=selectGroundTileCode(GroundCodeRequest{0x81u,0x03u});
  need(!roadFarm.known&&std::string(roadFarm.branch)=="0x1-road","terrain&0x1 outranks the 0x80 farm branch");
  const auto monumentFarm=selectGroundTileCode(GroundCodeRequest{0x10080u,0x03u});
  need(!monumentFarm.known&&std::string(monumentFarm.branch)=="0x10000-monument","terrain&0x10000 keeps a farm bit out of branch 17");
+ // Setter 10 (FUN_0053FA20 @0x0053FA20): terrain&0x2000000 with the reset image 0
+ // selects the base code from the low byte of the per-cell feature array.
+ auto featureRequest=[](uint32_t feature) {
+     GroundCodeRequest request;request.terrainFlags=0x2000000u;request.hasLayers=true;
+     request.featureFlags=feature;return request;
+ };
+ for(const auto& item:std::vector<std::pair<uint32_t,uint16_t>>{{8u,0x60Du},{0x10u,0x60Au},
+         {0x20u,0x609u},{0x40u,0x619u},{0u,0x60Du},{0x108u,0x60Du}}) {
+     const auto feature=selectGroundTileCode(featureRequest(item.first));
+     need(feature.known&&feature.block&&!feature.noGround&&feature.code==item.second&&
+          feature.variant==0&&std::string(feature.branch)=="0x2000000-feature",
+          "terrain&0x2000000 picks the feature base (feat&8>feat&0x10>feat&0x20>feat&0x40>0x60D) as 5x5 block art");
+ }
+ // Bit priority matches the executable's fall-through order.
+ need(selectGroundTileCode(featureRequest(8u|0x10u|0x20u|0x40u)).code==uint16_t(0x60Du),"feat&8 has the highest priority");
+ need(selectGroundTileCode(featureRequest(0x10u|0x20u)).code==uint16_t(0x60Au),"feat&0x10 beats feat&0x20/0x40");
+ need(selectGroundTileCode(featureRequest(0x20u|0x40u)).code==uint16_t(0x609u),"feat&0x20 beats feat&0x40");
+ // Without the feature layer the branch names itself rather than assuming zeros.
+ GroundCodeRequest noFeature;noFeature.terrainFlags=0x2000000u;
+ const auto delegatedFeature=selectGroundTileCode(noFeature);
+ need(!delegatedFeature.known&&!delegatedFeature.noGround&&std::string(delegatedFeature.branch)=="0x2000000-delegated",
+      "a feature request without the layer stays unknown");
+
  // Tileset 2 (China_General) is the one modelled non-terrain ground code.
  const auto general=selectGroundTileCode(GroundCodeRequest{0x20u,0});
  need(general.known&&general.code==uint16_t(0x403)&&std::string(general.branch)=="0x20-general","terrain&0x20 selects China_General code 0x403");
@@ -258,17 +360,23 @@ void groundSelectorTests() {
  SG3Archive small;small.numImages=3;small.sprites.resize(3);small.imageIndex[3]=2;
  need(resolveGroundTileCode(small,uint16_t(0x603),uint8_t(1),index)&&index==2,"the last in-range variant resolves");
  need(!resolveGroundTileCode(small,uint16_t(0x603),uint8_t(2),index)&&index==0,"an out-of-range variant is refused rather than clamped");
- // The viewport needs exactly the parsed 228x228 random grid.
+ // The viewport consumes the parsed 228x228 loader state (all per-cell arrays)
+ // and refuses anything short of a complete state.
  OriginalMapTerrain terrain;terrain.activeSide=84;terrain.flags.assign(51984,0x80000);
  for(unsigned y=72;y<156;++y)for(unsigned x=72;x<156;++x)terrain.flags[size_t(y)*228+x]=0;
  OriginalMapCamera camera;camera.centerX=41.5;camera.centerY=41.5;camera.width=64;camera.height=48;camera.scale=1;
- need(!renderMapGroundViewport(terrain,std::vector<uint8_t>(51983,0),archive,"",camera).image.valid(),"random grid smaller than 228x228 refuses");
- need(!renderMapGroundViewport(terrain,std::vector<uint8_t>(51985,0),archive,"",camera).image.valid(),"random grid larger than 228x228 refuses");
- need(!renderMapGroundViewport(terrain,std::vector<uint8_t>(51984,0),{},"",camera).image.valid(),"empty archive refuses before counting");
+ auto state=terrainState(terrain);
+ auto shortRandom=state;shortRandom.randomByte.pop_back();
+ need(!renderMapGroundViewport(terrain,shortRandom,archive,"",camera).image.valid(),"a loader state with a short per-cell array refuses");
+ auto longRandom=state;longRandom.randomByte.push_back(0);
+ need(!renderMapGroundViewport(terrain,longRandom,archive,"",camera).image.valid(),"a loader state with an overlong per-cell array refuses");
+ auto mismatched=state;mismatched.terrain.pop_back();
+ need(!renderMapGroundViewport(terrain,mismatched,archive,"",camera).image.valid(),"a loader terrain grid of a different size than the MAP flags refuses");
+ need(!renderMapGroundViewport(terrain,state,{},"",camera).image.valid(),"empty archive refuses before counting");
  // Plain land resolves and counts; unsupported geometry stays explicit, never drawn.
  archive.sprites[0].type=30;archive.sprites[0].width=78;archive.sprites[0].height=40;
  archive.sprites[0].uncompressedLength=3200;archive.sprites[0].length=3200;
- const auto plain=renderMapGroundViewport(terrain,std::vector<uint8_t>(51984,0),archive,"",camera);
+ const auto plain=renderMapGroundViewport(terrain,state,archive,"",camera);
  need(plain.image.valid()&&plain.experimental,"ground selector viewport is a bounded candidate");
  need(plain.stats.activeCells==84*84&&plain.stats.knownCells==84*84&&plain.stats.unknownCells==0,"plain land is fully known");
  need(plain.stats.blockCells==84*84&&plain.stats.unresolvedCodes==0&&plain.stats.geometrySupported==84*84,"block flag and supported geometry counted");
@@ -276,19 +384,22 @@ void groundSelectorTests() {
  // Gate-failed terrain is a determinate no-ground (setter 1 provably wrote
  // nothing), counted apart from unknown and never drawn.
  for(unsigned y=72;y<156;++y)for(unsigned x=72;x<156;++x)terrain.flags[size_t(y)*228+x]=0x8;
- const auto gated=renderMapGroundViewport(terrain,std::vector<uint8_t>(51984,0),archive,"",camera);
+ state=terrainState(terrain);
+ const auto gated=renderMapGroundViewport(terrain,state,archive,"",camera);
  need(gated.image.valid()&&gated.stats.activeCells==84*84&&gated.stats.noGroundCells==84*84&&gated.stats.knownCells==0&&gated.stats.unknownCells==0&&gated.stats.drawnCells==0,"gate-failed cells are a determinate no-ground and never drawn");
  need(gated.stats.branchCells.size()==1&&gated.stats.branchCells[0].first=="no-ground","gate-failed cells name the no-ground branch");
  // A determinate no-ground cell is counted apart from unknown, never guessed, and
  // still names its branch.
  for(unsigned y=72;y<156;++y)for(unsigned x=72;x<156;++x)terrain.flags[size_t(y)*228+x]=0x200;
- const auto noGround=renderMapGroundViewport(terrain,std::vector<uint8_t>(51984,0),archive,"",camera);
+ state=terrainState(terrain);
+ const auto noGround=renderMapGroundViewport(terrain,state,archive,"",camera);
  need(noGround.image.valid()&&noGround.stats.activeCells==84*84&&noGround.stats.noGroundCells==84*84&&
       noGround.stats.knownCells==0&&noGround.stats.unknownCells==0&&noGround.stats.drawnCells==0,"determinate no-ground cells are counted apart from unknown and never drawn");
  need(noGround.stats.branchCells.size()==1&&noGround.stats.branchCells[0].first=="no-ground","no-ground cells name the no-ground branch");
  // The canal setter resolves from terrain flags alone: every cell is known.
  for(unsigned y=72;y<156;++y)for(unsigned x=72;x<156;++x)terrain.flags[size_t(y)*228+x]=0x40000;
- const auto canal=renderMapGroundViewport(terrain,std::vector<uint8_t>(51984,0),archive,"",camera);
+ state=terrainState(terrain);
+ const auto canal=renderMapGroundViewport(terrain,state,archive,"",camera);
  need(canal.image.valid()&&canal.stats.knownCells==84*84&&canal.stats.unknownCells==0&&canal.stats.noGroundCells==0,"terrain&0x40000 is known without any runtime state");
  need(canal.stats.branchCells.size()==1&&canal.stats.branchCells[0].first=="0x40000-canal","canal cells name the canal branch");
 }
@@ -302,33 +413,41 @@ void realDataGroundTests(bool& originalData) {
  const auto city=std::filesystem::path(env)/"Cities"/"Anyang.map";
  if(!std::filesystem::exists(city)){std::cout<<"{\"skipped\":true,\"reason\":\"Anyang.map absent under EMPEROR_GAMEDATA_ROOT\"}\n";return;}
  const auto loaded=loadOriginalMapTerrain(city.string());
- need(loaded.status==OriginalMapStatus::LoadedTerrain&&loaded.cellLayers.has_value(),"original Anyang.map loads terrain and mapper cell layers");
- const auto& terrain=loaded.terrain;const auto& random=loaded.cellLayers->mapperRandom;
- need(terrain.valid()&&random.size()==OriginalMapCellLayers::cells,"original Anyang.map publishes the 228x228 grids");
- size_t active=0,known=0,unknown=0,noGround=0,farm=0,farmKnown=0;
+ need(loaded.status==OriginalMapStatus::LoadedTerrain&&loaded.cellLayers.has_value(),
+      "original Anyang.map loads terrain and mapper cell layers");
+ const auto& terrain=loaded.terrain;
+ const auto state=loadOriginalTerrainState(city.string());
+ need(state&&state->valid(),"original Anyang.map publishes the FUN_0052E7C0 read-order per-cell state");
+ // The two parsers read the same payload: the terrain grid and the random/fertility
+ // layers must agree cell for cell.
+ need(state->terrain==terrain.flags&&state->randomByte==loaded.cellLayers->mapperRandom&&
+      state->fertility==loaded.cellLayers->mapperFertile,
+      "the read-order state and the container cell-layer parser agree on terrain/random/fertility");
+ size_t active=0,known=0,unknown=0,noGround=0,farm=0,farmBlock=0,farmRiver=0;
  for(size_t cell=0;cell<terrain.flags.size();++cell) {
      if(terrain.flags[cell]&0x80000u)continue;
      ++active;
-     const auto selection=selectGroundTileCode(groundCodeRequest(terrain.flags,random,cell));
+     const auto selection=selectGroundTileCode(groundCodeRequest(*state,cell));
      if(selection.noGround)++noGround;else if(selection.known)++known;else ++unknown;
-     if(std::string(selection.branch)=="0x80-farm") {
-         ++farm;
-         if(selection.known&&!selection.block&&selection.code==uint16_t(0x602)&&selection.variant==uint8_t(random[cell]%9u))++farmKnown;
-     }
+     if(std::string(selection.branch)=="0x80-farm")++farm;
+     else if(std::string(selection.branch)=="0x80-farm-block")++farmBlock;
+     else if(std::string(selection.branch)=="0x80-farm-river")++farmRiver;
  }
  // Measured on the user's own Anyang.map: 9940 active cells, 6212 farmland cells.
- need(active==9940&&farm==6212,"original Anyang.map active and farmland cell counts are stable");
- // Branch 17 is fully resolved from MAP terrain + mapperRandom alone: every
- // farmland cell is the 0x602 plot with the random%9 variant (>=90% of its domain).
- need(farmKnown==farm&&farmKnown*10>=farm*9,"the 0x80 farm branch resolves at least 90% of its own domain from MAP bytes alone");
- // The 0x4 shore-ring sub-case (384 cells) is now MAP-determinable, so the three
- // outcomes partition the active set: 6910 known, 2863 still runtime-unknown
- // (0x1-road / 0x4-shore / 0x40-road / 0x2000000 ...) and 167 a determinate
- // no-ground. Measured on the user's own Anyang.map.
- need(known==6910&&unknown==2863&&noGround==167&&known+unknown+noGround==active,"original Anyang.map MAP-only outcome counts are stable");
- // Overall MAP-only known coverage floor (~69.5%). It cannot reach the farmland
- // level until the 0x1-road and 0x4-shore general arms are modelled.
- need(known*100>=active*69,"MAP-only known coverage stays at or above the measured floor");
+ need(active==9940&&farm+farmBlock+farmRiver==6212,"original Anyang.map active and farmland cell counts are stable");
+ // Branch 17 is resolved from MAP bytes: 5992 cells emit the 0x602 plot with the
+ // fertility-rank variant; the 220 whole-plot cells (random&0xF8==0) use block art
+ // that is not modelled and honestly stay unknown; no 0x10000 neighbour occurs.
+ need(farm==5992&&farmBlock==220&&farmRiver==0,"the Anyang farm sub-cases are stable");
+ // The 0x4 shore-ring sub-case and the farm formula are MAP-determinable, giving
+ // 6690 known, 3083 still runtime-unknown (0x1-road / 0x4-shore / 0x40-road ... )
+ // and 167 a determinate no-ground. The 220 farm block cells move from the old
+ // guessed 6910 known to unknown. Measured on the user's own Anyang.map.
+ need(known==6690&&unknown==3083&&noGround==167&&known+unknown+noGround==active,
+      "original Anyang.map MAP-only outcome counts are stable");
+ // Overall MAP-only known coverage floor (~67%). It cannot reach the farmland level
+ // until the 0x1-road and 0x4-shore general arms are modelled.
+ need(known*100>=active*67,"MAP-only known coverage stays at or above the measured floor");
  // The setter variant resolves in the record/id space. With the user's own
  // China_Terrain.sg3 present, every MAP-known cell lands on a real single-cell
  // record: the folded-variant bug left 1940 of them unresolved (empty slots or
@@ -336,11 +455,12 @@ void realDataGroundTests(bool& originalData) {
  const auto archivePath=std::filesystem::path(env)/"DATA"/"China_Terrain.sg3";
  if(std::filesystem::exists(archivePath)) {
      const auto archive=loadSG3(archivePath.string());
-     need(archive.numImages&&archive.numImages==archive.sprites.size(),"original China_Terrain.sg3 loads with a consistent published image count");
+     need(archive.numImages&&archive.numImages==archive.sprites.size(),
+          "original China_Terrain.sg3 loads with a consistent published image count");
      size_t knownCells=0,resolved=0,geometry=0;
      for(size_t cell=0;cell<terrain.flags.size();++cell) {
          if(terrain.flags[cell]&0x80000u)continue;
-         const auto selection=selectGroundTileCode(groundCodeRequest(terrain.flags,random,cell));
+         const auto selection=selectGroundTileCode(groundCodeRequest(*state,cell));
          if(!selection.known)continue;
          ++knownCells;size_t index=0;
          if(!resolveGroundTileCode(archive,selection.code,selection.variant,index))continue;
@@ -348,9 +468,48 @@ void realDataGroundTests(bool& originalData) {
          const auto record=sg3SingleCellGeometry(archive,index);
          if(record&&record->height<=4096)++geometry;
      }
-     // Measured on the user's own Anyang.map + China_Terrain.sg3 after the fix.
-     need(knownCells==6910&&resolved==6910&&geometry==6910,"every MAP-known ground cell resolves to a real single-cell China_Terrain.sg3 record");
-     need(resolved*100>=knownCells*99,"MAP-known ground resolution stays at or above the measured floor");
+     // Measured on the user's own Anyang.map + China_Terrain.sg3.
+     need(knownCells==6690&&resolved==6690&&geometry==6690,
+          "every MAP-known ground cell resolves to a real single-cell China_Terrain.sg3 record");
+     // Branch 10 (MP48.map) exercises the new feature mapping: 331 active cells,
+     // classes feat&8=100, feat&0x10=75, feat&0x20=100, feat&0x40=50 and six
+     // feat-clear cells left by a neighbouring 5x5 block (stored-snapshot artefact).
+     const auto mp48City=std::filesystem::path(env)/"Cities"/"MP48.map";
+     if(std::filesystem::exists(mp48City)) {
+         const auto mp48=loadOriginalMapTerrain(mp48City.string());
+         const auto mp48State=loadOriginalTerrainState(mp48City.string());
+         need(mp48.status==OriginalMapStatus::LoadedTerrain&&mp48State&&mp48State->valid()&&
+              mp48State->terrain==mp48.terrain.flags,"original MP48.map publishes terrain and the loader state");
+         size_t class8=0,class10=0,class20=0,class40=0,classClear=0,branch10=0;
+         for(size_t cell=0;cell<mp48.terrain.flags.size();++cell) {
+             if(mp48.terrain.flags[cell]&0x80000u)continue;
+             const auto selection=selectGroundTileCode(groundCodeRequest(*mp48State,cell));
+             if(std::string(selection.branch)!="0x2000000-feature")continue;
+             ++branch10;
+             need(selection.known&&selection.block&&selection.variant==0&&!selection.noGround,
+                  "every MP48 branch-10 cell is the 5x5 feature block");
+             const uint32_t feature=mp48State->feature[cell]&0xFFu;
+             if(feature&8u){need(selection.code==uint16_t(0x60D),"feat&8 selects 0x60D");++class8;}
+             else if(feature&0x10u){need(selection.code==uint16_t(0x60A),"feat&0x10 selects 0x60A");++class10;}
+             else if(feature&0x20u){need(selection.code==uint16_t(0x609),"feat&0x20 selects 0x609");++class20;}
+             else if(feature&0x40u){need(selection.code==uint16_t(0x619),"feat&0x40 selects 0x619");++class40;}
+             else ++classClear;
+         }
+         need(branch10==331&&class8==100&&class10==75&&class20==100&&class40==50&&classClear==6,
+              "original MP48.map branch-10 feature-class counts are stable");
+         // The four base codes resolve to distinct archive records that are
+         // consecutive in the executable's forwarded order 8,0x10,0x20,0x40. The
+         // stored snapshot differs by +0/+1/+2/+3 across the four classes, which is
+         // the same relative ordering in the in-exe header table.
+         size_t i8=0,i10=0,i20=0,i40=0;
+         need(resolveGroundTileCode(archive,uint16_t(0x60D),i8)&&resolveGroundTileCode(archive,uint16_t(0x60A),i10)&&
+              resolveGroundTileCode(archive,uint16_t(0x609),i20)&&resolveGroundTileCode(archive,uint16_t(0x619),i40),
+              "the four branch-10 base codes resolve in the published ground archive");
+         need(i10==i8+1&&i20==i8+2&&i40==i8+3,
+              "the four feature classes map to consecutive archive records in the executable's order");
+         need(!sg3SingleCellGeometry(archive,i8),
+              "branch-10 records are composite 5x5 art, not single-cell geometry, and are not expanded here");
+     }
  }
  originalData=true;
 }
@@ -368,6 +527,7 @@ int main(){try{
  auto render=game_lab::renderMapReferenceViewport(terrain,raw,archive,(root/"own.555").string(),1000,cam);need(render.image.valid()&&render.experimental,"bounded candidate viewport");need(render.stats.activeCells==4&&render.stats.validIDs==3&&render.stats.geometrySupported==2&&render.stats.unknownGeometry==1&&render.stats.outsideArchive==1,"reference domains/geometry kept distinct");need(render.stats.uniqueDecoded==1&&render.stats.drawnCells==2&&render.stats.visibleCells==2,"unique decode cache and cell uses");size_t opaque=0;for(auto c:render.image.pixelsBGRA)opaque+=bool(c>>24);need(opaque==3200,"shared canvas has only two authored diamonds");need(render.image.pixelsBGRA[80*300+150]==0xffff0000u,"unsigned delta and projected natural pixel");
  auto missing=game_lab::renderMapReferenceViewport(terrain,raw,archive,(root/"missing.555").string(),1000,cam);need(missing.stats.decodeFailures==2&&missing.stats.drawnCells==0,"missing source never drawn");need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",INT64_MAX,cam).image.valid(),"signed base bounded before arithmetic");cam.centerX=std::numeric_limits<double>::quiet_NaN();need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",1000,cam).image.valid(),"invalid camera clears output");cam.centerX=.5;cam.width=2049;need(!game_lab::renderMapReferenceViewport(terrain,raw,archive,"",1000,cam).image.valid(),"viewport budget");
  diagnosticSceneTests(root);
+ originalTerrainTests(root);
  registeredCellTests();
  outputPathTests(root);
  exclusiveOutputTests(root);

@@ -64,10 +64,11 @@ MapReferenceResult renderMapReferenceViewport(const OriginalMapTerrain& terrain,
         return result;
     }catch(const std::bad_alloc&){return {};}
 }
-MapGroundResult renderMapGroundViewport(const OriginalMapTerrain& terrain,const std::vector<uint8_t>& randomGrid,
+MapGroundResult renderMapGroundViewport(const OriginalMapTerrain& terrain,const OriginalTerrainState& state,
         const SG3Archive& archive,const std::string& internal555,const OriginalMapCamera& camera) {
     MapGroundResult result;const auto activity=analyzeOriginalMap(terrain);size_t pixels=0;
-    if(!terrain.valid()||randomGrid.size()!=OriginalMapCellLayers::cells||!activity.cropValid()||
+    if(!terrain.valid()||!state.valid()||terrain.flags.size()!=state.terrain.size()||
+       !activity.cropValid()||
        !std::isfinite(camera.centerX)||!std::isfinite(camera.centerY)||camera.centerX<0||camera.centerY<0||
        camera.centerX>=activity.cropSide||camera.centerY>=activity.cropSide||camera.scale<1||camera.scale>4||
        camera.width>2048||camera.height>2048||!imagePixelCount(camera.width,camera.height,pixels)||pixels>2048u*2048u||
@@ -82,9 +83,9 @@ MapGroundResult renderMapGroundViewport(const OriginalMapTerrain& terrain,const 
             const size_t cell=size_t(y+activity.cropOrigin)*OriginalMapTerrain::storageSide+x+activity.cropOrigin;
             if(terrain.flags[cell]&0x80000u)continue;++result.stats.activeCells;
             // The engine chain reads the runtime terrain flags, the per-cell random
-            // byte and the 8 surrounding terrain cells; all three come straight
+            // byte, the feature bits and the fertility rank; all four come straight
             // from the parsed MAP bytes.
-            const auto selection=selectGroundTileCode(groundCodeRequest(terrain.flags,randomGrid,cell));
+            const auto selection=selectGroundTileCode(groundCodeRequest(state,cell));
             ++branches[selection.branch];
             // A determinate no-ground cell is a distinct outcome: the chain ran but
             // no setter wrote 0x00FE9880, so it is counted apart from unknownCells.

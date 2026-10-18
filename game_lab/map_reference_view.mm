@@ -137,24 +137,27 @@ int groundSelectorView(const std::map<std::string,std::string>& args,bool show) 
     const auto vw=integer(args.at("--width")),vh=integer(args.at("--height")),scale=integer(args.at("--scale"));
     if(vw<1||vw>2048||vh<1||vh>2048||scale<1||scale>4)throw std::runtime_error("camera integer bounds");
     const auto mapPath=root.resolve(args.at("--map")),archivePath=root.resolve(args.at("--sg3"));if(mapPath.empty()||archivePath.empty())throw std::runtime_error("relative map/archive path outside root or missing");
-    // loadOriginalMapTerrain already runs decodeOriginalMapContainer +
-    // parseOriginalMapPayload, which publishes the per-cell layers the selector needs.
+    // loadOriginalMapTerrain runs the container decode + terrain grid; the sibling
+    // loader parses the full FUN_0052E7C0 read-order per-cell array set from the
+    // same payload, which the selector needs for feature bits and fertility.
     auto map=game_lab::loadOriginalMapTerrain(mapPath);
-    if(map.status!=game_lab::OriginalMapStatus::LoadedTerrain||!map.cellLayers||!map.cellLayers->valid())throw std::runtime_error("complete MAP terrain and cell layers required");
+    if(map.status!=game_lab::OriginalMapStatus::LoadedTerrain||!map.terrain.valid())throw std::runtime_error("complete MAP terrain required");
+    auto state=game_lab::loadOriginalTerrainState(mapPath);
+    if(!state||!state->valid())throw std::runtime_error("complete MAP per-cell loader state required");
     auto archive=game_lab::loadSG3(archivePath);if(!archive.numImages||archive.numImages!=archive.sprites.size())throw std::runtime_error("empty or invalid SG3 archive");
     auto internal=std::filesystem::path(archivePath);internal.replace_extension(".555");
     game_lab::OriginalMapCamera camera;camera.centerX=real(args.at("--camera-x"));camera.centerY=real(args.at("--camera-y"));camera.width=uint32_t(vw);camera.height=uint32_t(vh);camera.scale=uint32_t(scale);camera.outlines=false;
-    const auto rendered=game_lab::renderMapGroundViewport(map.terrain,map.cellLayers->mapperRandom,archive,internal.string(),camera);if(!rendered.image.valid())throw std::runtime_error("experimental ground selector viewport rejected");
+    const auto rendered=game_lab::renderMapGroundViewport(map.terrain,*state,archive,internal.string(),camera);if(!rendered.image.valid())throw std::runtime_error("experimental ground selector viewport rejected");
     CGImageRef cg=game_lab::createCGImageFromPremultipliedBGRA(rendered.image.width,rendered.image.height,rendered.image.pixelsBGRA);if(!cg)throw std::runtime_error("CGImage failed");
     const auto&s=rendered.stats;size_t plainIndex=0;const bool plainResolved=game_lab::resolveGroundTileCode(archive,0x603u,plainIndex);
-    std::cout<<"{\"selector\":\"original-exe-dispatch-chain\",\"experimental\":true,\"cell_fields\":\"MAP terrain flags + mapperRandom\",\"random_grid_cells\":"<<map.cellLayers->mapperRandom.size()<<",\"active_cells\":"<<s.activeCells<<",\"known_cells\":"<<s.knownCells<<",\"unknown_cells\":"<<s.unknownCells<<",\"no_ground_cells\":"<<s.noGroundCells<<",\"block_cells\":"<<s.blockCells<<",\"unresolved_codes\":"<<s.unresolvedCodes<<",\"geometry_supported_cells\":"<<s.geometrySupported<<",\"culled\":"<<s.culled<<",\"visible_cells\":"<<s.visibleCells<<",\"drawn_cells\":"<<s.drawnCells<<",\"decode_failures\":"<<s.decodeFailures<<",\"unique_decoded_IDs\":"<<s.uniqueDecoded<<",\"cache_bytes\":"<<s.cacheBytes<<",\"branch_cells\":[";
+    std::cout<<"{\"selector\":\"original-exe-dispatch-chain\",\"experimental\":true,\"cell_fields\":\"MAP terrain flags + FUN_0052E7C0 read-order layers (random/feature/fertility)\",\"random_grid_cells\":"<<state->randomByte.size()<<",\"active_cells\":"<<s.activeCells<<",\"known_cells\":"<<s.knownCells<<",\"unknown_cells\":"<<s.unknownCells<<",\"no_ground_cells\":"<<s.noGroundCells<<",\"block_cells\":"<<s.blockCells<<",\"unresolved_codes\":"<<s.unresolvedCodes<<",\"geometry_supported_cells\":"<<s.geometrySupported<<",\"culled\":"<<s.culled<<",\"visible_cells\":"<<s.visibleCells<<",\"drawn_cells\":"<<s.drawnCells<<",\"decode_failures\":"<<s.decodeFailures<<",\"unique_decoded_IDs\":"<<s.uniqueDecoded<<",\"cache_bytes\":"<<s.cacheBytes<<",\"branch_cells\":[";
     for(size_t i=0;i<s.branchCells.size();++i){if(i)std::cout<<',';std::cout<<"{\"branch\":\""<<s.branchCells[i].first<<"\",\"cells\":"<<s.branchCells[i].second<<"}";}
     std::cout<<"]"<<",\"plain_land_code_0x603_archive_index\":"<<(plainResolved?std::to_string(plainIndex):std::string("null"))<<",\"plain_land_code_0x603_width\":"<<(plainResolved?int(archive.sprites[plainIndex].width):-1)<<",\"native_image_created\":true,\"pixel_width\":"<<vw<<",\"pixel_height\":"<<vh<<"}\n"<<std::flush;
     if(args.count("--output"))savePNG(args.at("--output"),root.configuredDirectory(),cg);
     if(!show){CGImageRelease(cg);return 0;}
     [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];ReferenceDelegate*delegate=[ReferenceDelegate new];NSApp.delegate=delegate;
     const CGFloat displayW=CGFloat(vw)/scale,displayH=CGFloat(vh)/scale;NSWindow*window=[[NSWindow alloc]initWithContentRect:NSMakeRect(80,80,displayW,displayH+54)styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable backing:NSBackingStoreBuffered defer:NO];window.title=@"EXPERIMENTAL — original ground dispatch chain — unverified";
-    NSTextField*label=[NSTextField wrappingLabelWithString:[NSString stringWithFormat:@"Original-dispatch ground selector · %@ · random grid %zu cells\n%zu drawn / %zu visible; known %zu, unknown %zu, unresolved %zu.",[NSString stringWithUTF8String:args.at("--sg3").c_str()],map.cellLayers->mapperRandom.size(),s.drawnCells,s.visibleCells,s.knownCells,s.unknownCells,s.unresolvedCodes]];label.frame=NSMakeRect(8,displayH+4,displayW-16,46);label.font=[NSFont systemFontOfSize:11];[window.contentView addSubview:label];
+    NSTextField*label=[NSTextField wrappingLabelWithString:[NSString stringWithFormat:@"Original-dispatch ground selector · %@ · loader cells %zu\n%zu drawn / %zu visible; known %zu, unknown %zu, unresolved %zu.",[NSString stringWithUTF8String:args.at("--sg3").c_str()],state->randomByte.size(),s.drawnCells,s.visibleCells,s.knownCells,s.unknownCells,s.unresolvedCodes]];label.frame=NSMakeRect(8,displayH+4,displayW-16,46);label.font=[NSFont systemFontOfSize:11];[window.contentView addSubview:label];
     ReferenceImageView*view=[[ReferenceImageView alloc]initWithFrame:NSMakeRect(0,0,displayW,displayH)];view.candidate=[[NSImage alloc]initWithCGImage:cg size:NSMakeSize(displayW,displayH)];[window.contentView addSubview:view];CGImageRelease(cg);[window makeKeyAndOrderFront:nil];[NSApp activateIgnoringOtherApps:YES];[NSApp run];return 0;
 }
 }

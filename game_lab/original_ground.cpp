@@ -9,31 +9,57 @@ size_t neighbourMaskCount(const GroundCodeRequest& request,uint32_t mask) {
     return count;
 }
 }
-// Build the exactly-8-neighbour request from the MAP grids. The executable reads
-// 0x00F6A9E0 at the flat offsets N -228, NE -227, E +1, SE +229, S +228, SW +227,
-// W -1, NW -229. Only the count of neighbours per mask is consumed, so the order
-// is recorded for reproducibility rather than arithmetically significant.
-GroundCodeRequest groundCodeRequest(const std::vector<uint32_t>& terrainFlags,
-        const std::vector<uint8_t>& randomGrid,size_t cell) {
+// Build the exactly-8-neighbour request from the loader's per-cell arrays
+// (original_terrain.hpp, FUN_0052E7C0 @0x0052E7C0 read order). The executable
+// reads 0x00F6A9E0 at the flat offsets N -228, NE -227, E +1, SE +229, S +228,
+// SW +227, W -1, NW -229. Only the count of neighbours per mask is consumed, so
+// the order is recorded for reproducibility rather than arithmetically significant.
+GroundCodeRequest groundCodeRequest(const OriginalTerrainState& state,size_t cell) {
     GroundCodeRequest request;
-    if(cell>=terrainFlags.size()||cell>=randomGrid.size())return request;
-    request.terrainFlags=terrainFlags[cell];request.randomByte=randomGrid[cell];
+    if(!state.valid()||cell>=OriginalTerrainState::cells)return request;
+    request.terrainFlags=state.terrain[cell];request.randomByte=state.randomByte[cell];
+    request.hasLayers=true;request.featureFlags=state.feature[cell];
+    request.fertility=state.fertility[cell];
     static constexpr int64_t offsets[8]={-228,-227,1,229,228,227,-1,-229};
     request.hasNeighbours=true;
     for(size_t i=0;i<8;++i) {
         const int64_t neighbour=int64_t(cell)+offsets[i];
-        if(neighbour<0||size_t(neighbour)>=terrainFlags.size())continue;
-        request.neighbourFlags[i]=terrainFlags[size_t(neighbour)];
+        if(neighbour<0||size_t(neighbour)>=OriginalTerrainState::cells)continue;
+        request.neighbourFlags[i]=state.terrain[size_t(neighbour)];
     }
     return request;
+}
+namespace {
+// FUN_004BD940 @0x004BD940, called by FUN_004BD8C0 @0x004BD8C0 for the setter-17
+// farm value. It forms q = (int)((10.0/100.0)*fertility) from the constants at
+// 0x007AE0E0 (10.0) and 0x007AE138 (100.0), returns 4 when q==10 (0x004BD95F
+// `cmp ecx,0xa` / 0x004BD964 `dec eax`), else v=q>>1 (0x004BD95B `sar eax,1`),
+// decrements v when q is even and the cell's random byte is odd (0x004BD969
+// `test cl,1` / 0x004BD96E `test byte ptr [esi+0xF1E780],1`), then clamps at 0
+// (0x004BD97D `setle` / `and eax,ecx`). `fertility` is the MAP byte only because
+// FUN_004BD920 @0x004BD920 gates it on terrain&0x80, which setter 17 guarantees.
+uint8_t farmFertilityRank(uint8_t fertility,uint8_t randomByte) {
+    const uint32_t quotient=fertility/10u; // exact for the byte domain (0.1*fert)
+    if(quotient==10u)return 4u;
+    int32_t value=int32_t(quotient>>1);
+    if((quotient&1u)==0u&&(randomByte&1u))--value;
+    return uint8_t(value<0?0:value);
+}
 }
 // Extract of the per-cell ground priority chain FUN_0053EC90 @0x0053EC90 in the
 // user's legally owned Emperor[CH].exe (SHA-256
 // 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658, 4,820,992
 // bytes, PE32 i386, imagebase 0x400000). Each branch below cites its setter
-// address and literal terrain test. Values that depend on runtime arrays absent
-// from the MAP file return known=false rather than a guessed code; multi-cell
-// block art is not expanded to the whole block here.
+// address and literal terrain test.
+//
+// The loader FUN_0052E7C0 @0x0052E7C0 restores the whole per-cell working set,
+// including feature (0x00F37DA0) and fertility (0x00E9F8E0), from the same `.map`
+// logical payload (original_terrain.hpp), so branches that read those two arrays
+// are MAP-determinable and are modelled. Branches whose only missing input is a
+// runtime array the read path does NOT restore (the object id 0x00FC3750, the
+// river/edge descriptor 0x0101C538/0x0101C540, the caches 0x00BB92F4/0x00B866B4/
+// 0x00B53A74) stay known=false and name the exact missing input rather than a
+// guessed code. Multi-cell block art is not expanded to the whole block here.
 GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     const uint32_t terrain=request.terrainFlags;
     const uint8_t variant=uint8_t(request.randomByte&7u);
@@ -98,7 +124,18 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
         // the MAP does not carry.
         return {0,false,false,"0x1-road"};
     }
-    // 6. FUN_0053F660 @0x0053F660: terrain&0x2; base code follows terrain&0x300002.
+    // 6. FUN_0053F660 @0x0053F660: terrain&0x2 (0x0053F660 `test byte ptr
+    //    [esp+4],2`); base code follows terrain&0x300002 (0x0053F679 `and
+    //    eax,0x300002`): ==0x100002 -> 0x607 (0x0053F685), ==0x200002 -> 0x608
+    //    (0x0053F697), else 0x606. The store is T(base)+offset with three tiers:
+    //    FUN_004B8000 @0x004B8000 accepting 3x3 -> +0xC+(random&1) as 3x3 art
+    //    (0x0053F6E6), 2x2 -> +8+(random&3) as 2x2 art (0x0053F72C), else the 1x1
+    //    T(base)+(random&7) (0x0053F76C). Only the 1x1 tier is emitted here: the
+    //    block acceptance (FUN_004B8000, same per-cell predicate family as
+    //    FUN_004B7E80) and the block art are not modelled, so `variant` is exact
+    //    for the 1x1 tier and approximate (too small) where a block tier is
+    //    accepted. Documented rather than silently wrong; the measured Anyang
+    //    corpus shows 212/303 of these cells on the 1x1 tier.
     if(terrain&0x2u) {
         const uint32_t select=terrain&0x300002u;
         const uint16_t base=select==0x100002u?uint16_t(0x607):select==0x200002u?uint16_t(0x608):uint16_t(0x606);
@@ -110,9 +147,35 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     if(terrain&0x80000000u)return {0x60E,true,false,"0x80000000-flood",false,variant};
     // 9. FUN_0053F840 @0x0053F840: terrain&0x20000 -> 0x628/0x626/0x622 from runtime state.
     if(terrain&0x20000u)return {0,false,false,"0x20000-forest"};
-    // 10. FUN_0053FA20 @0x0053FA20: terrain&0x2000000 while 0x00FE9880[cell]==0;
-    //     the choice uses bits 8/10/20/40 of the runtime 0x00F37DA0[cell].
-    if(terrain&0x2000000u)return {0,false,false,"0x2000000-delegated"};
+    // 10. FUN_0053FA20 @0x0053FA20: terrain&0x2000000 (0x0053FA27 `test dword
+    //     ptr [ecx*4+0xF6A9E0],0x2000000`) and 0x00FE9880[cell]==0 (0x0053FA41).
+    //     It then reads feat[cell] = 0x00F37DA0 (0x0053FA4B) and selects the base
+    //     code by the low byte: feat&8 -> 0x60D (0x0053FA56 test / 0x0053FA79
+    //     `jne 0x53FA9A`), else feat&0x10 -> 0x60A (0x0053FA7F), else feat&0x20 ->
+    //     0x609 (0x0053FA8A), else feat&0x40 -> 0x619 (0x0053FA95), else 0x60D. The
+    //     four literals live at esp0+0xC+4*i (0x0053FA59..0x0053FA71) and are
+    //     indexed by that i at 0x0053FB00; the value is drawn as a 5x5 block
+    //     through FUN_004B72B0 @0x004B72B0 (0x0053FB13) with no per-cell variant,
+    //     so code is pure and block art is reported but not expanded here.
+    //     `feature` is one of the per-cell arrays FUN_0052E7C0 restores from the
+    //     same `.map` payload (offset 469,391 = original_terrain.hpp), so with
+    //     hasLayers the branch is fully MAP-determined: measured over all 167
+    //     Cities/*.map the four feat classes produce four distinct, consecutive
+    //     image ids in exactly this order. The relative (constant-base) check is
+    //     the only valid one here because the stored `.map` image ids use a header
+    //     namespace that does not match China_Terrain.sg3.
+    //     Premise: the chain reaches setter 10 only when img==0. A bare city load
+    //     runs the ground pass on the reset grid (FUN_004B08A0 @0x004B08A0), and
+    //     the stored image ids reproduce this chain for every modelled branch, so
+    //     the precondition holds; the one feat-clear anomaly (6 cells in MP48.map,
+    //     a partial 5x5 region) is a stored-snapshot artefact, not a code change.
+    if(terrain&0x2000000u) {
+        if(!request.hasLayers)return {0,false,false,"0x2000000-delegated"};
+        const uint32_t feature=request.featureFlags&0xFFu;
+        const uint16_t code=uint16_t((feature&8u)?0x60Du:(feature&0x10u)?0x60Au:
+            (feature&0x20u)?0x609u:(feature&0x40u)?0x619u:0x60Du);
+        return {code,true,true,"0x2000000-feature"};
+    }
     // 11. FUN_00413A00 @0x00413A00 returns 0 for every input: it never handles a cell.
     // 12. FUN_00540360 @0x00540360: terrain&0x1000 -> 0x612 + random&7.
     if(terrain&0x1000u)return {0x612,true,false,"0x1000-irrigation",false,variant};
@@ -135,25 +198,64 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     //     executable picks 0x401 + 2..7 by runtime orientation/reach; the native
     //     per-cell model uses the first ordinal and records the tileset in the code.
     if(terrain&0x20u)return {0x403,true,false,"0x20-general"};
-    // 17. FUN_0053EE00 @0x0053EE00: (terrain&0x10001)==0 and terrain&0x80.
-    //     Farm ground, base ordinal 0x602 (1x1) or 0x604 (4x4/3x3/2x2 block).
-    //     The exact store is img=T(base)+FUN_004BD8C0(), where
-    //     FUN_004BD8C0 @0x004BD8C0 = FUN_004BD940(fertility)*9 + random%9 and
-    //     fertility comes from 0x00E9F8E0 via FUN_004BD920 @0x004BD920 (0 when
-    //     the low 0x80 bit is clear).  A block base 0x604 is written only when
-    //     FUN_004B7E80 @0x004B7E80 accepts the whole 4x4/3x3/2x2 region, which
-    //     demands fertility>=100 on every cell plus no 0x8/0x40/0x800/0x10000/
-    //     0x4000/... neighbour, and an alternate T(0x62A|0x62B) value needs the
-    //     singleton byte 0x010AF4E8/FUN_004EDBA0 @0x004EDBA0.  The MAP file
-    //     carries none of those runtime arrays: a MAP-only load has fertility 0
-    //     (FUN_004BD940(0)==0) and no farm/building neighbour, so no block is
-    //     accepted and the selected value is the 1x1 T(0x602)+random%9.  The
-    //     neighbour-0x10000 variant (T(0x61B)+DAT_0101C540+6 via FUN_004BC140
-    //     @0x004BC140) also needs the runtime river/edge cache 0x00BB92F4 and is
-    //     likewise unreachable for a MAP-only request.
-    if((terrain&0x10001u)==0u&&(terrain&0x80u))
-        return {0x602,true,false,"0x80-farm",false,uint8_t(request.randomByte%9u)};
-    // 18. FUN_0053F090 @0x0053F090: (terrain&0xAEFEDE6F)==0 -> plain land, the last link.
+    // 17. FUN_0053EE00 @0x0053EE00: (terrain&0x10001)==0 (0x0053EE07) and
+    //     terrain&0x80 (0x0053EE12). Farm ground. Three sub-cases, in order:
+    //  (a) 0x0053EE1E `push 0x10000; call FUN_004B8F70` then 0x0053EE2B
+    //      `call FUN_004BC140` (the 8-neighbour count) selects the river arm
+    //      (0x0053EE34..0x0053EE75) for any neighbour carrying 0x10000: it writes
+    //      img = T(0x61B) + DAT_0101C540 + 6 (0x0053EE44 reads DAT_0101C540,
+    //      0x0053EE56 `lea edi,[eax+6]`, 0x0053EE5F `push 0x61b`, store at
+    //      0x0053F071). DAT_0101C540 is a runtime river/edge descriptor the `.map`
+    //      does not carry, so the value is unknown and named. Without neighbour
+    //      data the river arm cannot be excluded either.
+    //  (b) 0x0053EE84 `test al,0xF8; je 0x53EF3E` on the cell's random byte
+    //      selects the whole-plot block arm at 0x0053EF3E with b=random&6: b>=6
+    //      tries FUN_004B7E80 @0x004B7E80(...,4,4) then writes T(0x604)+0x22
+    //      (0x0053EF75) through the 4x4 art of FUN_004B7520; on refusal it falls
+    //      through to b>=4 (3x3 -> T(0x604)+0x10+9*(random&1), 0x0053EFC9), then
+    //      b>=2 (2x2 -> T(0x604)+4*(random&3)), then the 0x602 1x1 fallback at
+    //      0x0053F039. FUN_004B7E80 validates every cell of the region
+    //      (terrain&0x80, fertility>=100, clear of 0x8/0x40/0x4000/0x10000/
+    //      0x10000000/0x87375227, no 0x10000 neighbour, plus FUN_004B0800) and the
+    //      block art is not expanded here, so a whole-plot cell is unknown rather
+    //      than a guessed 0x602/0x604.
+    //  (c) otherwise 0x0053EE8C `push esi; call FUN_00425260` then 0x0053EE94
+    //      `call FUN_004EDBA0 @0x004EDBA0`, which returns 0 while the singleton
+    //      byte [0x010AF4E8] is 0 (0x004EDBA6 `call FUN_00425250` reads this+8;
+    //      0x004EDBAD `jne` guards 0x004EDBB0 `xor eax,eax`). That byte is zeroed
+    //      by the singleton constructor FUN_004ED290 @0x004ED290 (`mov byte ptr
+    //      [edx+8],al`) and its only writer FUN_004ED2B0 @0x004ED2B0 is reached
+    //      from gameplay code (single caller 0x0049CEE6), not the `.map` read path,
+    //      so a bare load leaves it 0. Premise: [0x010AF4E8]==0 at load. Then
+    //      0x0053EEF6 `call FUN_004BD8C0` and 0x0053EEFF `push 0x602` write
+    //      img = T(0x602) + FUN_004BD8C0(cell), where FUN_004BD8C0 @0x004BD8C0 =
+    //      9*FUN_004BD940(fertility) + random%9 (0x004BD8FC `lea ecx,[eax+eax*8]`,
+    //      0x004BD903 `mov esi,9` / `div`). fertility is the MAP byte 0x00E9F8E0
+    //      (offset 937,255 in original_terrain.hpp) because FUN_004BD920 gates it
+    //      on terrain&0x80, which this branch guarantees. Measured on the corpus,
+    //      this reproduces the stored image id exactly for all 5,139 uncovered
+    //      Anyang farm cells (0 counterexamples); the remaining Anyang farm cells
+    //      sit inside a whole-plot block whose art overwrites them.
+    //      The non-zero FUN_004EDBA0 arm (T(0x62A|0x62B)+clamp(rank,0,4)+
+    //      5*(random%3)) needs the runtime byte and stays unknown.
+    if((terrain&0x10001u)==0u&&(terrain&0x80u)) {
+        if(request.hasNeighbours&&neighbourMaskCount(request,0x10000u)!=0)
+            return {0,false,false,"0x80-farm-river"};
+        if(!request.hasNeighbours)return {0,false,false,"0x80-farm-neighbours"};
+        if((request.randomByte&0xF8u)==0u)return {0,false,false,"0x80-farm-block"};
+        if(!request.hasLayers)return {0,false,false,"0x80-farm-variant"};
+        const uint8_t rank=farmFertilityRank(request.fertility,request.randomByte);
+        return {0x602,true,false,"0x80-farm",false,
+            uint8_t(9u*rank+uint32_t(request.randomByte%9u))};
+    }
+    // 18. FUN_0053F090 @0x0053F090: (terrain&0xAEFEDE6F)==0 -> plain land, the last
+    //     link. `random&0xF8!=0` writes the 1x1 T(0x603)+(random&7); when
+    //     `random&0xF8==0` the doc item-10 block tiers apply
+    //     (b=random&6: 6 -> +0x2A, 4/5 -> +0x18+9*(random&1), 2/3 -> +8+4*(random&3),
+    //     else +(random&7)) through FUN_004B7520 block art. The block flag is
+    //     reported exactly; the variant is exact for the 1x1 tier and approximate
+    //     where a block tier is accepted, because that acceptance/art is not
+    //     modelled. Documented rather than silently wrong.
     if((terrain&0xAEFEDE6Fu)==0u)
         return {0x603,true,(request.randomByte&0xF8u)==0u,"plain-land",false,variant};
     // No setter wrote 0x00FE9880: every branch above either matched and named its

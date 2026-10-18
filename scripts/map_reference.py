@@ -12,7 +12,7 @@ def main():
  if a.output and not a.output.is_absolute():p.error('--output requires an absolute path')
  if a.producer_output and (not a.producer_output.is_absolute()or a.task not in ('scene','scene-metrics')):p.error('--producer-output is an absolute private scene-only path')
  build=(a.build_dir or Path(tempfile.mkdtemp(prefix='emperor-reference-'))).resolve();build.mkdir(parents=True,exist_ok=True);binary=build/('reference-'+a.task+'-'+a.mode)
- flags=['-O2']if a.mode=='release'else['-O1','-g','-fsanitize=undefined','-fno-sanitize-recover=all'];sources=['game_lab/original_map.cpp','game_lab/original_save.cpp','game_lab/map_reference.cpp','game_lab/original_ground.cpp','game_lab/sg3.cpp','game_lab/resource_root.cpp'];frameworks=['-framework','CoreGraphics','-framework','CoreFoundation'];objc=[]
+ flags=['-O2']if a.mode=='release'else['-O1','-g','-fsanitize=undefined','-fno-sanitize-recover=all'];sources=['game_lab/original_map.cpp','game_lab/original_save.cpp','game_lab/original_terrain.cpp','game_lab/map_reference.cpp','game_lab/original_ground.cpp','game_lab/sg3.cpp','game_lab/resource_root.cpp'];frameworks=['-framework','CoreGraphics','-framework','CoreFoundation'];objc=[]
  if a.task=='test':sources+=['game_lab/map_reference_tests.cpp']
  else:sources+=['game_lab/map_reference_view.mm'];objc=['-fobjc-arc'];frameworks+=['-framework','AppKit','-framework','ImageIO']
  subprocess.run(['/usr/bin/clang++','-std=c++17','-Wall','-Wextra','-Werror',*objc,*flags,*[str(ROOT/s)for s in sources],*frameworks,'-lz','-o',str(binary)],check=True)

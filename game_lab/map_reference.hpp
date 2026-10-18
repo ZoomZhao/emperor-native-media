@@ -28,8 +28,10 @@ struct MapGroundStats {
 };
 struct MapGroundResult { DecodedImage image; MapGroundStats stats; bool experimental=true; };
 // Engine selector: the ground code per cell comes from selectGroundTileCode, not
-// from a caller-supplied raw byte/base. Random variants come from the MAP random grid.
-MapGroundResult renderMapGroundViewport(const OriginalMapTerrain&, const std::vector<uint8_t>& randomGrid,
+// from a caller-supplied raw byte/base. The per-cell terrain flags, random byte,
+// feature bits and fertility all come from the MAP-decoded loader state
+// (OriginalTerrainState, FUN_0052E7C0 read order).
+MapGroundResult renderMapGroundViewport(const OriginalMapTerrain&, const OriginalTerrainState&,
     const SG3Archive&, const std::string& internal555, const OriginalMapCamera&);
 
 enum class SG3DiagnosticComponent { Full, Top };

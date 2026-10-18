@@ -1,5 +1,6 @@
 #pragma once
 #include "emperor_assets.hpp"
+#include "original_terrain.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -14,6 +15,15 @@ struct GroundCodeRequest {
     // centre cell; the shore branch then stays known=false instead of guessing.
     bool hasNeighbours = false;
     std::array<uint32_t,8> neighbourFlags{};
+    // The per-cell runtime arrays FUN_0052E7C0 @0x0052E7C0 also restores from the
+    // same `.map` payload (see original_terrain.hpp). hasLayers tells a caller that
+    // featureFlags/fertility carry real MAP bytes; a request built without them
+    // leaves the branches that read those arrays known=false instead of reading a
+    // default zero as data. Defaults keep hand-built requests (terrain + random
+    // only) valid.
+    bool hasLayers = false;
+    uint32_t featureFlags = 0;  // 0x00F37DA0 (setter 10, FUN_0053FA20)
+    uint8_t fertility = 0;      // 0x00E9F8E0 (setter 17, FUN_004BD8C0)
 };
 // Original executable per-cell ground dispatch. `code` is meaningful only when
 // `known` is true. Branches the executable delegates to subsystems not yet
@@ -32,12 +42,14 @@ struct GroundSelection {
     uint8_t variant = 0;
 };
 GroundSelection selectGroundTileCode(const GroundCodeRequest&);
-// Build a request from the MAP-derived grids the native loader already parses.
-// Cell indexing matches OriginalMapTerrain::flags (y*storageSide+x). A neighbour
-// whose flat index falls outside the storage grid has no MAP byte and stays 0,
-// matching the executable's zeroed edge storage.
-GroundCodeRequest groundCodeRequest(const std::vector<uint32_t>& terrainFlags,
-    const std::vector<uint8_t>& randomGrid, size_t cell);
+// Build a request from the MAP-decoded per-cell layers the loader restores (all
+// arrays in OriginalTerrainState, FUN_0052E7C0 read order). Cell indexing matches
+// OriginalMapTerrain::flags (y*storageSide+x). A neighbour whose flat index falls
+// outside the storage grid has no MAP byte and stays 0, matching the executable's
+// zeroed edge storage. The request carries featureFlags/fertility and sets
+// hasLayers, so the setter-10 feature bits and the setter-17 fertility rank are
+// resolvable.
+GroundCodeRequest groundCodeRequest(const OriginalTerrainState&, size_t cell);
 // code 0x600|k -> header slot k -> 0-based index into SG3Archive::sprites.
 // false when the slot is empty (the executable's lookup then yields -1).
 bool resolveGroundTileCode(const SG3Archive&, uint16_t code, size_t& archiveIndex);
