@@ -80,9 +80,9 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     //    that test refuses when 0x100 is clear (mode 0 additionally needs all 8
     //    neighbours to carry 0x100, so it too returns 0). Setter 1 therefore never
     //    writes 0x00FE9880 for a gate cell, the gate skips setters 2..18, and the
-    //    cell is left without a ground code: a determinate no-ground cell. Note
+    //    cell keeps its loaded stored art: a determinate chain no-write. Note
     //    0x800 is *not* part of the gate; setter 3 handles it further down.
-    if(terrain&0x8C008u)return {0,false,false,"no-ground",true};
+    if(terrain&0x8C008u)return {0,false,false,"chain-declined",true};
     // 2. FUN_0053F240 @0x0053F240. The guard reads per-cell river/edge descriptors
     //    0x00BB92F4[cell] and 0x00B866B4[cell] that an earlier runtime pass
     //    (FUN_0053EAE0 @0x0053EAE0) fills from the river/edge tables of
@@ -115,10 +115,11 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     if(terrain&0x1u) {
         // FUN_004BC6A0 @0x004BC6A0 refuses (0x004BC6AC test 0xC064) before any
         // runtime read and FUN_0053F520 still returns 1, so no later setter runs
-        // and 0x00FE9880 stays 0: a determinate no-ground cell. At branch 5 only
-        // 0x20 and 0x40 of 0xC064 can still be present (0x4 is consumed by branch
-        // 4, 0x4000/0x8000 by the 0x8C008 gate, 0x80000 likewise).
-        if(terrain&0xC064u)return {0,false,false,"no-ground",true};
+        // and 0x00FE9880 keeps its loaded value: a determinate chain no-write. At
+        // branch 5 only 0x20 and 0x40 of 0xC064 can still be present (0x4 is
+        // consumed by branch 4, 0x4000/0x8000 by the 0x8C008 gate, 0x80000
+        // likewise).
+        if(terrain&0xC064u)return {0,false,false,"chain-declined",true};
         // Otherwise the value depends on the runtime object 0x00FC3750[cell] and
         // the road-distance byte 0x00E92DD0[cell] (0x004BC6DD..0x004BC7E8), which
         // the MAP does not carry.
@@ -190,8 +191,9 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
         // div by 9) whenever (terrain&0xC064)==0 and !(terrain&0x80000), and
         // FUN_005400F0 returns 1 either way. At branch 15 only 0x20 of 0xC064 can
         // still be set (0x4 is consumed by branch 4, 0x40 by branch 13, 0x4000/
-        // 0x8000/0x80000 by the 0x8C008 gate), so the refusal is determinate.
-        if(terrain&0xC064u)return {0,false,false,"no-ground",true};
+        // 0x8000/0x80000 by the 0x8C008 gate), so the refusal is determinate and
+        // the cell keeps its loaded art.
+        if(terrain&0xC064u)return {0,false,false,"chain-declined",true};
         return {0x620,true,false,"0x40000-canal",false,uint8_t(request.randomByte%9u)};
     }
     // 16. FUN_00540140 @0x00540140: terrain&0x20 -> tileset 2 (China_General). The
@@ -260,8 +262,9 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
         return {0x603,true,(request.randomByte&0xF8u)==0u,"plain-land",false,variant};
     // No setter wrote 0x00FE9880: every branch above either matched and named its
     // dependency or the setter returned 0 (FUN_0053F090 @0x0053F090 when
-    // terrain&0xAEFEDE6F != 0). The cell is provably left without a ground code.
-    return {0,false,false,"no-ground",true};
+    // terrain&0xAEFEDE6F != 0). The cell keeps its loaded stored art; the chain
+    // determinately declines to write.
+    return {0,false,false,"chain-declined",true};
 }
 bool resolveGroundTileCode(const SG3Archive& archive,uint16_t code,size_t& archiveIndex) {
     archiveIndex=0;

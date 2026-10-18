@@ -214,10 +214,10 @@ bare city `.map` cannot supply. Established on the owned exe (SHA-256
 Consequence: branches that read these arrays are not MAP-terrain-determinable.
 In particular setter 3 (`terrain & 0x800` -> `FUN_00540330` -> `FUN_00524E90(0)`)
 **does** write `tileImage(0x435)` when `0x00FC3750[cell] == 0`, so it is not a
-no-ground case either; it stays unmodelled and measured 0 cells across all 167
+chain no-write case either; it stays unmodelled and measured 0 cells across all 167
 maps, so no metric moves.
 
-### The `0x8C008` gate is a determinate no-ground
+### The `0x8C008` gate is a determinate chain no-write
 
 `FUN_0053EC90` disassembles as `0x0053ECBA test edi,0x8c008` / `0x0053ECC0 jne
 0x53EDF5`, i.e. a gate hit skips setters 2..18. That line is only reached when
@@ -225,15 +225,22 @@ maps, so no metric moves.
 cell `FUN_004EDC30 @0x004EDC30` returns 0 with no store in every mode: mode 2 exits
 at `0x004EDC68`, and modes 0/1 store only under `0x004EDC79`, whose accept test
 `FUN_004EDA50 @0x004EDA50` refuses when `0x100` is clear. So setter 1 writes
-nothing, setters 2..18 are skipped, and `0x00FE9880[cell]` keeps its prior value:
-the cell is **determinately not drawn**. This was previously misclassified as an
-unknown.
+nothing, setters 2..18 are skipped, and the cell keeps its prior `0x00FE9880`
+value. That prior value is **loaded from the `.map` payload** (logical offset 1,535,
+`original_terrain.hpp`), not zero: the cell is not overwritten, it is not "not
+drawn". Measured over all 167 maps, every one of the 114,937 chain-no-write cells
+stores nonzero art and `0` store zero. See
+[`MAP_SG3_PIPELINE.md`](MAP_SG3_PIPELINE.md#the-stored-surface-grid-is-an-oracle-not-a-derivation).
+This was previously misclassified as "determinate no-ground" — and, before that, as
+an unknown.
 
 ### MAP-only ceiling, measured over all 167 `Cities/*.map`
 
-`active 2,107,836`; `known 1,552,542` (73.66 %), every emitted code resolving in
-`China_Terrain.sg3` with 0 unmatched; `unknown 440,357` (the runtime-array
-branches above); determinate `no-ground` 114,937, including 19,645 gate cells
-across 58 maps; `decode_failures` 0 for every city. Completing the remaining
-440,357 cells therefore requires the serialised per-cell state, not more terrain
-analysis.
+`active 2,107,836`; `known 1,514,539` (71.85 %), every emitted code resolving in
+`China_Terrain.sg3` with 0 unmatched; `unknown 478,360` (the runtime-array
+branches above); determinate `chain-declined` 114,937, including 19,645 `0x8C008`
+gate cells across 58 maps; `decode_failures` 0 for every city. Completing the
+remaining 478,360 cells therefore requires the serialised per-cell state, not more
+terrain analysis. (The earlier ceiling `known 1,552,542` / `unknown 440,357` predates
+the `f25edf8` payload read order and is superseded; the selector tree itself did not
+change.)

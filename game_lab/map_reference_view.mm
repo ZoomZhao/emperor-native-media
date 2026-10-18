@@ -150,7 +150,7 @@ int groundSelectorView(const std::map<std::string,std::string>& args,bool show) 
     const auto rendered=game_lab::renderMapGroundViewport(map.terrain,*state,archive,internal.string(),camera);if(!rendered.image.valid())throw std::runtime_error("experimental ground selector viewport rejected");
     CGImageRef cg=game_lab::createCGImageFromPremultipliedBGRA(rendered.image.width,rendered.image.height,rendered.image.pixelsBGRA);if(!cg)throw std::runtime_error("CGImage failed");
     const auto&s=rendered.stats;size_t plainIndex=0;const bool plainResolved=game_lab::resolveGroundTileCode(archive,0x603u,plainIndex);
-    std::cout<<"{\"selector\":\"original-exe-dispatch-chain\",\"experimental\":true,\"cell_fields\":\"MAP terrain flags + FUN_0052E7C0 read-order layers (random/feature/fertility)\",\"random_grid_cells\":"<<state->randomByte.size()<<",\"active_cells\":"<<s.activeCells<<",\"known_cells\":"<<s.knownCells<<",\"unknown_cells\":"<<s.unknownCells<<",\"no_ground_cells\":"<<s.noGroundCells<<",\"block_cells\":"<<s.blockCells<<",\"unresolved_codes\":"<<s.unresolvedCodes<<",\"geometry_supported_cells\":"<<s.geometrySupported<<",\"culled\":"<<s.culled<<",\"visible_cells\":"<<s.visibleCells<<",\"drawn_cells\":"<<s.drawnCells<<",\"decode_failures\":"<<s.decodeFailures<<",\"unique_decoded_IDs\":"<<s.uniqueDecoded<<",\"cache_bytes\":"<<s.cacheBytes<<",\"branch_cells\":[";
+    std::cout<<"{\"selector\":\"original-exe-dispatch-chain\",\"experimental\":true,\"cell_fields\":\"MAP terrain flags + FUN_0052E7C0 read-order layers (random/feature/fertility)\",\"random_grid_cells\":"<<state->randomByte.size()<<",\"active_cells\":"<<s.activeCells<<",\"known_cells\":"<<s.knownCells<<",\"unknown_cells\":"<<s.unknownCells<<",\"chain_no_write_cells\":"<<s.chainNoWriteCells<<",\"block_cells\":"<<s.blockCells<<",\"unresolved_codes\":"<<s.unresolvedCodes<<",\"geometry_supported_cells\":"<<s.geometrySupported<<",\"culled\":"<<s.culled<<",\"visible_cells\":"<<s.visibleCells<<",\"drawn_cells\":"<<s.drawnCells<<",\"decode_failures\":"<<s.decodeFailures<<",\"unique_decoded_IDs\":"<<s.uniqueDecoded<<",\"cache_bytes\":"<<s.cacheBytes<<",\"branch_cells\":[";
     for(size_t i=0;i<s.branchCells.size();++i){if(i)std::cout<<',';std::cout<<"{\"branch\":\""<<s.branchCells[i].first<<"\",\"cells\":"<<s.branchCells[i].second<<"}";}
     std::cout<<"]"<<",\"plain_land_code_0x603_archive_index\":"<<(plainResolved?std::to_string(plainIndex):std::string("null"))<<",\"plain_land_code_0x603_width\":"<<(plainResolved?int(archive.sprites[plainIndex].width):-1)<<",\"native_image_created\":true,\"pixel_width\":"<<vw<<",\"pixel_height\":"<<vh<<"}\n"<<std::flush;
     if(args.count("--output"))savePNG(args.at("--output"),root.configuredDirectory(),cg);
@@ -161,7 +161,7 @@ int groundSelectorView(const std::map<std::string,std::string>& args,bool show) 
     ReferenceImageView*view=[[ReferenceImageView alloc]initWithFrame:NSMakeRect(0,0,displayW,displayH)];view.candidate=[[NSImage alloc]initWithCGImage:cg size:NSMakeSize(displayW,displayH)];[window.contentView addSubview:view];CGImageRelease(cg);[window makeKeyAndOrderFront:nil];[NSApp activateIgnoringOtherApps:YES];[NSApp run];return 0;
 }
 int imageGridView(const std::map<std::string,std::string>& args,bool show) {
-    for(const auto&[key,value]:args){(void)value;if(key!="--data-root"&&key!="--map"&&key!="--sg3"&&key!="--sg3-elevation"&&key!="--camera-x"&&key!="--camera-y"&&key!="--width"&&key!="--height"&&key!="--scale"&&key!="--output")throw std::runtime_error("image grid mode only accepts root/map/archive/camera/size/output");}
+    for(const auto&[key,value]:args){(void)value;if(key!="--data-root"&&key!="--map"&&key!="--sg3"&&key!="--sg3-elevation"&&key!="--sg3-tilesets"&&key!="--camera-x"&&key!="--camera-y"&&key!="--width"&&key!="--height"&&key!="--scale"&&key!="--output")throw std::runtime_error("image grid mode only accepts root/map/archive/tilesets/camera/size/output");}
     for(const auto&k:{"--data-root","--map","--sg3","--camera-x","--camera-y","--width","--height","--scale"})if(!args.count(k))throw std::runtime_error("image grid needs data root/map/archive/camera/size");
     auto root=game_lab::ResourceRoot::fromAbsolute(args.at("--data-root"));if(!root.configured())throw std::runtime_error("existing absolute data root required");
     const auto vw=integer(args.at("--width")),vh=integer(args.at("--height")),scale=integer(args.at("--scale"));
@@ -171,19 +171,60 @@ int imageGridView(const std::map<std::string,std::string>& args,bool show) {
     if(map.status!=game_lab::OriginalMapStatus::LoadedTerrain||!map.terrain.valid())throw std::runtime_error("complete MAP terrain required");
     auto state=game_lab::loadOriginalTerrainState(mapPath);
     if(!state||!state->valid())throw std::runtime_error("complete MAP per-cell loader state required");
-    auto archive=game_lab::loadSG3(archivePath);if(!archive.numImages||archive.numImages!=archive.sprites.size())throw std::runtime_error("empty or invalid SG3 archive");
-    // Tileset 3 -> China_Terrain (the supplied --sg3); tileset 16 -> China_Elevation
-    // (--sg3-elevation). Both archives are read-only; firstRecordId 201 is the
-    // measured low-14 base (see map_reference.hpp MapImageGridTileset).
-    std::vector<game_lab::MapImageGridTileset> tilesets;
+    // The stored grid names a tileset index; the original executable's static
+    // name table (FUN_00475B60) maps it to an archive. Tileset 3 is the supplied
+    // --sg3, tileset 16 --sg3-elevation, and the remaining indices the 167-city
+    // corpus references (2/5/6/8) are looked up next to --sg3 by their table name.
+    // --sg3-tilesets overrides/extends the set explicitly. firstRecordId 201 is
+    // the version-213 low-14 base (map_reference.hpp MapImageGridTileset).
+    struct LoadedGridArchive { game_lab::SG3Archive archive; std::string relative, absolute; };
+    std::map<uint32_t,LoadedGridArchive> loaded;
+    const std::filesystem::path archiveRelative(args.at("--sg3"));
+    const auto archiveDirectory=archiveRelative.parent_path();
     auto internalFor=[](const std::string& path){auto p=std::filesystem::path(path);p.replace_extension(".555");return p.string();};
-    tilesets.push_back({3,&archive,internalFor(archivePath),201});
-    game_lab::SG3Archive elevation;
-    if(args.count("--sg3-elevation")) {
-        const auto elevationPath=root.resolve(args.at("--sg3-elevation"));if(elevationPath.empty())throw std::runtime_error("relative elevation archive path outside root or missing");
-        elevation=game_lab::loadSG3(elevationPath);if(!elevation.numImages||elevation.numImages!=elevation.sprites.size())throw std::runtime_error("empty or invalid elevation SG3 archive");
-        tilesets.push_back({16,&elevation,internalFor(elevationPath),201});
+    auto loadRelative=[&](uint32_t tileset,const std::string& relative,bool required) {
+        const auto path=root.resolve(relative);
+        if(path.empty()) {
+            if(required)throw std::runtime_error("relative per-tileset archive path outside root or missing");
+            return false;
+        }
+        auto archive=game_lab::loadSG3(path);
+        if(!archive.numImages||archive.numImages!=archive.sprites.size())
+            throw std::runtime_error("empty or invalid per-tileset SG3 archive");
+        loaded.erase(tileset);
+        loaded.emplace(tileset,LoadedGridArchive{std::move(archive),relative,path});
+        return true;
+    };
+    loadRelative(3,args.at("--sg3"),true);
+    if(args.count("--sg3-elevation"))loadRelative(16,args.at("--sg3-elevation"),true);
+    else loadRelative(16,(archiveDirectory/"China_Elevation.sg3").generic_string(),false);
+    for(uint32_t tileset:{2u,5u,6u,8u}) {
+        const char* leaf=game_lab::mapImageGridArchiveName(tileset);
+        if(leaf)loadRelative(tileset,(archiveDirectory/leaf).generic_string(),false);
     }
+    if(args.count("--sg3-tilesets")) {
+        const auto& list=args.at("--sg3-tilesets");
+        size_t start=0;
+        while(start<=list.size()) {
+            const auto end=list.find(',',start);
+            const auto item=list.substr(start,end==std::string::npos?std::string::npos:end-start);
+            const auto equals=item.find('=');
+            if(equals==std::string::npos||equals==0||equals+1>=item.size())
+                throw std::runtime_error("--sg3-tilesets entries must be index=relative-path");
+            const auto indexText=item.substr(0,equals);
+            size_t used=0;unsigned long index=0;
+            try{index=std::stoul(indexText,&used,10);}catch(const std::exception&){throw std::runtime_error("--sg3-tilesets index must be an integer");}
+            if(used!=indexText.size()||index==0||index>40)
+                throw std::runtime_error("--sg3-tilesets index out of range");
+            loadRelative(uint32_t(index),item.substr(equals+1),true);
+            if(end==std::string::npos)break;
+            start=end+1;
+        }
+    }
+    std::vector<game_lab::MapImageGridTileset> tilesets;
+    for(const auto& entry:loaded)
+        tilesets.push_back({entry.first,&entry.second.archive,internalFor(entry.second.absolute),201});
+    const auto& archive=loaded.at(3).archive;
     game_lab::OriginalMapCamera camera;camera.centerX=real(args.at("--camera-x"));camera.centerY=real(args.at("--camera-y"));camera.width=uint32_t(vw);camera.height=uint32_t(vh);camera.scale=uint32_t(scale);camera.outlines=false;
     const auto rendered=game_lab::renderMapImageGridViewport(map.terrain,*state,tilesets,camera);if(!rendered.image.valid())throw std::runtime_error("stored image-grid viewport rejected");
     const auto score=game_lab::scoreGroundChainAgainstImageGrid(map.terrain,*state,archive);
@@ -192,9 +233,15 @@ int imageGridView(const std::map<std::string,std::string>& args,bool show) {
     const bool exact=!s.unresolvedIndices&&!s.geometryUnsupported&&!s.archiveUnavailable&&!s.decodeFailures;
     std::cout<<"{\"mode\":\"stored-image-grid\",\"experimental\":true,\"grid_cells\":"<<s.activeCells<<",\"zero_cells\":"<<s.zeroCells<<",\"nonzero_cells\":"<<s.nonzeroCells<<",\"decoded_cells\":"<<s.decodedCells<<",\"drawn_cells\":"<<s.drawnCells<<",\"culled\":"<<s.culled<<",\"visible_cells\":"<<s.visibleCells<<",\"unresolved_indices\":"<<s.unresolvedIndices<<",\"geometry_unsupported\":"<<s.geometryUnsupported<<",\"archive_unavailable\":"<<s.archiveUnavailable<<",\"decode_failures\":"<<s.decodeFailures<<",\"unique_decoded_IDs\":"<<s.uniqueDecoded<<",\"cache_bytes\":"<<s.cacheBytes<<",\"tileset_cells\":[";
     for(size_t i=0;i<s.tilesetCells.size();++i){if(i)std::cout<<',';size_t drawn=0;for(const auto& d:s.tilesetDrawn)if(d.first==s.tilesetCells[i].first)drawn=d.second;std::cout<<"{\"tileset\":"<<s.tilesetCells[i].first<<",\"cells\":"<<s.tilesetCells[i].second<<",\"drawn\":"<<drawn<<"}";}
-    std::cout<<"]"<<",\"chain_score\":{\"cells\":"<<score.activeCells<<",\"emitted\":"<<score.emitted<<",\"matched\":"<<score.matched<<",\"mismatched\":"<<score.mismatched<<",\"known_matched\":"<<score.knownMatched<<",\"no_ground_predicted_vs_stored_zero\":"<<score.noGroundVsStoredZero<<",\"no_ground_predicted_vs_stored_nonzero\":"<<score.noGroundVsStoredNonzero<<",\"stored_zero\":"<<score.storedZero<<",\"stored_zero_unpredicted\":"<<score.storedZeroUnpredicted<<",\"chain_known\":"<<score.chainKnown<<",\"chain_unknown\":"<<score.chainUnknown<<",\"chain_no_ground\":"<<score.chainNoGround<<",\"unresolved\":"<<score.unresolved<<",\"branches\":[";
+    std::cout<<"]"<<",\"chain_score\":{\"cells\":"<<score.activeCells<<",\"emitted\":"<<score.emitted<<",\"matched\":"<<score.matched<<",\"mismatched\":"<<score.mismatched<<",\"known_matched\":"<<score.knownMatched<<",\"chain_no_write_vs_stored_zero\":"<<score.chainNoWriteVsStoredZero<<",\"chain_no_write_vs_stored_nonzero\":"<<score.chainNoWriteVsStoredNonzero<<",\"stored_zero\":"<<score.storedZero<<",\"stored_zero_unpredicted\":"<<score.storedZeroUnpredicted<<",\"chain_known\":"<<score.chainKnown<<",\"chain_unknown\":"<<score.chainUnknown<<",\"chain_no_write\":"<<score.chainNoWrite<<",\"unresolved\":"<<score.unresolved<<",\"branches\":[";
     for(size_t i=0;i<score.branches.size();++i){if(i)std::cout<<',';const auto& b=score.branches[i];std::cout<<"{\"branch\":\""<<b.branch<<"\",\"cells\":"<<b.cells<<",\"emitted\":"<<b.emitted<<",\"matched\":"<<b.matched<<",\"stored_zero\":"<<b.storedZero<<"}";}
-    std::cout<<"]}"<<",\"exact\":"<<(exact?"true":"false")<<",\"native_image_created\":true,\"pixel_width\":"<<vw<<",\"pixel_height\":"<<vh<<"}\n"<<std::flush;
+    std::cout<<"]}"<<",\"tilesets\":[";
+    {size_t i=0;for(const auto& entry:loaded) {
+        if(i++)std::cout<<',';
+        std::cout<<"{\"tileset\":"<<entry.first<<",\"archive\":\""<<entry.second.relative
+            <<"\",\"records\":"<<entry.second.archive.numImages<<",\"first_record_id\":201}";
+    }}
+    std::cout<<"]"<<",\"exact\":"<<(exact?"true":"false")<<",\"native_image_created\":true,\"pixel_width\":"<<vw<<",\"pixel_height\":"<<vh<<"}\n"<<std::flush;
     if(args.count("--output"))savePNG(args.at("--output"),root.configuredDirectory(),cg);
     if(!show){CGImageRelease(cg);return 0;}
     [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];ReferenceDelegate*delegate=[ReferenceDelegate new];NSApp.delegate=delegate;

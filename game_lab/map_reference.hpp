@@ -21,7 +21,10 @@ MapReferenceResult renderMapReferenceViewport(const OriginalMapTerrain&,const Or
     const SG3Archive&,const std::string& internal555,int64_t idBase,const OriginalMapCamera&);
 
 struct MapGroundStats {
-    size_t activeCells=0,knownCells=0,unknownCells=0,noGroundCells=0,blockCells=0,unresolvedCodes=0,
+    // chainNoWriteCells: the chain ran but no setter wrote 0x00FE9880. That is
+    // *not* "no ground": the grid is loaded from the `.map` payload (logical
+    // offset 1535), so the cell keeps its stored art. See GroundSelection.
+    size_t activeCells=0,knownCells=0,unknownCells=0,chainNoWriteCells=0,blockCells=0,unresolvedCodes=0,
            geometrySupported=0,culled=0,visibleCells=0,drawnCells=0,decodeFailures=0,
            uniqueDecoded=0,cacheBytes=0;
     std::vector<std::pair<std::string,size_t>> branchCells;
@@ -37,19 +40,25 @@ MapGroundResult renderMapGroundViewport(const OriginalMapTerrain&, const Origina
 // ---- Stored surface-image grid (0x00FE9880) --------------------------------
 // One tileset namespace the caller supplies for the stored grid. A stored cell
 // word v has tileset = v>>14 and low14 = v&0x3FFF; the archive record is
-// recordId = low14 + firstRecordId (0-based sprites index recordId-1). The
-// additive base is empirical, measured read-only: with firstRecordId 201 every
-// distinct tileset-3 low14 (794/794) and tileset-16 low14 (140/140) is a type-30
-// record, and the 167-city sweep leaves 0 unresolved indices over 2,107,808
-// nonzero stored cells; a 0 offset matches neither. It is a stated hypothesis
-// with a way to be wrong: every miss (unresolved/unsupported/undecodable) is
-// counted, never hidden.
+// recordId = low14 + firstRecordId (0-based sprites index recordId-1). For a
+// version-213 archive the loader registers headerValue-200 as the node index and
+// publishes headerValue-201 as the entry, so the additive base is 201: with
+// firstRecordId 201 every distinct referenced low14 in the 167-city corpus
+// resolves to an existing record, and a 0 or 200 base does not. It is a stated
+// hypothesis with a way to be wrong: every miss (unresolved/unsupported/
+// undecodable) is counted, never hidden.
 struct MapImageGridTileset {
     uint32_t tileset = 0;
     const SG3Archive* archive = nullptr;
     std::string internal555;      // companion .555 path for decodeSG3Sprite
     uint32_t firstRecordId = 201; // 1-based archive id that low14 counts from
 };
+// Tileset index -> DATA archive leaf name, from the original executable's static
+// name table (FUN_00475B60 @0x00475B60). Used when a caller wants the engine's
+// own archive for a stored tileset; nullptr for an index the corpus never uses or
+// that does not name a ground archive. Evidence and the full 41-slot table are in
+// docs/MAP_SG3_PIPELINE.md.
+const char* mapImageGridArchiveName(uint32_t tileset);
 struct MapImageGridStats {
     size_t activeCells=0, zeroCells=0, nonzeroCells=0;
     size_t decodedCells=0, drawnCells=0, culled=0, visibleCells=0;
@@ -69,14 +78,15 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain&, const O
 // Per-branch tally of the reconstructed chain against the stored 0x00FE9880 grid.
 struct ChainScoreBranch { std::string branch; size_t cells=0,emitted=0,matched=0,storedZero=0; };
 struct ChainScoreStats {
-    size_t activeCells=0, storedZero=0, chainUnknown=0, chainNoGround=0, chainKnown=0;
+    size_t activeCells=0, storedZero=0, chainUnknown=0, chainNoWrite=0, chainKnown=0;
     // emitted: the chain produced a determinate ground code that resolved to a
     // tileset-3 archive index (the candidate prediction). matched: that prediction
     // equals the stored grid (same tileset 3 and same archive index). mismatched:
     // emitted but the stored grid differs. knownMatched is the total agreement:
-    // matched plus the cells where the chain says no-ground and the grid stores 0.
+    // matched plus the cells where the chain declines to write and the grid
+    // stores 0.
     size_t emitted=0, matched=0, mismatched=0, unresolved=0, knownMatched=0;
-    size_t noGroundVsStoredZero=0, noGroundVsStoredNonzero=0, storedZeroUnpredicted=0;
+    size_t chainNoWriteVsStoredZero=0, chainNoWriteVsStoredNonzero=0, storedZeroUnpredicted=0;
     std::vector<ChainScoreBranch> branches;
 };
 ChainScoreStats scoreGroundChainAgainstImageGrid(const OriginalMapTerrain&, const OriginalTerrainState&,

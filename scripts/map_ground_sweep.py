@@ -52,7 +52,7 @@ DEFAULT_ARCHIVE = 'DATA/China_Terrain.sg3'
 DEFAULT_WRAPPER = ROOT / 'scripts' / 'map_reference.py'
 
 # Per-city fields copied verbatim from the selector JSON.
-FIELDS = ('active_cells', 'known_cells', 'unknown_cells', 'no_ground_cells',
+FIELDS = ('active_cells', 'known_cells', 'unknown_cells', 'chain_no_write_cells',
           'unresolved_codes', 'geometry_supported_cells', 'culled', 'visible_cells',
           'drawn_cells', 'decode_failures', 'unique_decoded_IDs', 'cache_bytes')
 
@@ -64,9 +64,9 @@ IMAGE_GRID_FIELDS = ('grid_cells', 'zero_cells', 'nonzero_cells', 'decoded_cells
 
 # Chain-score fields summed across cities for the image-grid aggregate.
 CHAIN_FIELDS = ('cells', 'emitted', 'matched', 'mismatched', 'known_matched',
-                'no_ground_predicted_vs_stored_zero', 'no_ground_predicted_vs_stored_nonzero',
+                'chain_no_write_vs_stored_zero', 'chain_no_write_vs_stored_nonzero',
                 'stored_zero', 'stored_zero_unpredicted', 'chain_known', 'chain_unknown',
-                'chain_no_ground', 'unresolved')
+                'chain_no_write', 'unresolved')
 
 
 def decode_map_payload(path):
@@ -111,11 +111,13 @@ def camera_center(side):
 
 
 def wrapper_view(data_root, archive, side, size, scale, build_dir, map_rel,
-                 image_grid=False, sg3_elevation=None):
+                 image_grid=False, sg3_elevation=None, tileset_specs=()):
     """Run the sanctioned ``map_reference.py view`` entry point for one city."""
     center = repr(camera_center(side))
     mode = ['--image-grid'] if image_grid else ['--ground-selector']
     extras = ['--sg3-elevation', sg3_elevation] if sg3_elevation else []
+    if tileset_specs:
+        extras += ['--sg3-tilesets', ','.join(tileset_specs)]
     return subprocess.run([
         sys.executable, '-B', str(DEFAULT_WRAPPER), 'view',
         '--data-root', data_root, '--map', map_rel, '--sg3', archive,
@@ -126,11 +128,13 @@ def wrapper_view(data_root, archive, side, size, scale, build_dir, map_rel,
 
 
 def run_binary(binary, data_root, archive, side, size, scale, map_rel, timeout,
-               image_grid=False, sg3_elevation=None):
+               image_grid=False, sg3_elevation=None, tileset_specs=()):
     """Run the built selector binary directly for one city."""
     center = repr(camera_center(side))
     mode = ['--image-grid'] if image_grid else ['--ground-selector']
     extras = ['--sg3-elevation', sg3_elevation] if sg3_elevation else []
+    if tileset_specs:
+        extras += ['--sg3-tilesets', ','.join(tileset_specs)]
     return subprocess.run([
         str(binary), '--data-root', data_root, '--map', map_rel, '--sg3', archive,
         *mode, '--no-window',
@@ -157,6 +161,7 @@ def image_grid_row(rel, result):
     row = {'map': rel, 'mode': result.get('mode'),
            'exact': bool(result.get('exact')),
            'tileset_cells': result.get('tileset_cells', []),
+           'tilesets': result.get('tilesets', []),
            'chain': result.get('chain_score') or {}}
     for field in IMAGE_GRID_FIELDS:
         row[field] = result.get(field)
@@ -198,6 +203,8 @@ def image_grid_report(maps, rows, failures, args):
                                             if cell(r, 'unresolved_indices') == 0),
         'archive': args.sg3,
         'elevation_archive': args.sg3_elevation,
+        'tilesets': rows[0].get('tilesets') if rows else None,
+        'explicit_tilesets': args.sg3_tileset,
         'camera': {'width': args.width, 'height': args.height, 'scale': args.scale,
                    'centering': 'active-crop centre (side-1)/2 on both axes'},
         'totals': totals,
@@ -211,11 +218,16 @@ def image_grid_report(maps, rows, failures, args):
         'caveats': [
             'The stored grid render reads 0x00FE9880 verbatim; it does not re-derive '
             'the cell from the dispatch chain. Cells whose stored tileset has no '
-            'supplied archive are counted archive_unavailable and never drawn.',
-            'Composite records (type-30 art wider than one 78px cell) are counted '
-            'geometry_unsupported: they are real stored art, not single-cell geometry.',
-            'The record id base (recordId = low14 + 201) is an empirical hypothesis '
-            'for tilesets 3 and 16; every miss is counted, not hidden.',
+            'supplied or auto-resolved archive are counted archive_unavailable and '
+            'never drawn.',
+            'Tileset indices are resolved through the original executable static '
+            'name table (FUN_00475B60); the view auto-loads 2/5/6/8 next to --sg3 '
+            'and 16 from China_Elevation.sg3 unless --sg3-tilesets overrides them.',
+            'Composite records (type-30 art wider than one 78px cell, e.g. the 318x160 '
+            '4x4 monument ground tiles) are counted geometry_unsupported: they are '
+            'real stored art, not single-cell geometry.',
+            'The record id base (recordId = low14 + 201) is the version-213 header '
+            'base; every miss is counted, not hidden.',
             'A viewport cannot cover a full 84..226-cell crop at 2048px cap, so '
             'drawn_cells is a viewport fraction; the decode counts are camera-free.',
         ],
@@ -250,10 +262,10 @@ def image_grid_report(maps, rows, failures, args):
           f'({100 * matched / emitted:.3f}%)' if emitted
           else '# chain: no emitted cells')
     print(f'# chain: known_matched {chain_totals["known_matched"]}/'
-          f'{chain_totals["cells"]}; no-ground-vs-stored-zero '
-          f'{chain_totals["no_ground_predicted_vs_stored_zero"]}; '
-          f'no-ground-vs-stored-nonzero '
-          f'{chain_totals["no_ground_predicted_vs_stored_nonzero"]}')
+          f'{chain_totals["cells"]}; chain-no-write-vs-stored-zero '
+          f'{chain_totals["chain_no_write_vs_stored_zero"]}; '
+          f'chain-no-write-vs-stored-nonzero '
+          f'{chain_totals["chain_no_write_vs_stored_nonzero"]}')
     print(json.dumps(aggregate, ensure_ascii=False))
     return 0 if not failures else 3
 
@@ -267,7 +279,13 @@ def main():
                         help='tileset-3 archive path relative to the data root')
     parser.add_argument('--sg3-elevation',
                         help='optional tileset-16 archive path relative to the data root; '
-                             'image-grid mode only')
+                             'image-grid mode only (default: China_Elevation.sg3 next '
+                             'to --sg3)')
+    parser.add_argument('--sg3-tileset', action='append', default=[],
+                        metavar='INDEX=PATH',
+                        help='explicit image-grid tileset archive relative to the data '
+                             'root; repeatable (default: the executable name table '
+                             'auto-loads tilesets 2/5/6/8 next to --sg3)')
     parser.add_argument('--image-grid', action='store_true',
                         help='sweep the stored 0x00FE9880 image grid (render + chain '
                              'score) instead of the reconstructed ground selector')
@@ -302,10 +320,18 @@ def main():
             print(json.dumps({'error': 'elevation archive not found',
                               'archive': str(elevation_path)}))
             return 1
-    elif args.image_grid:
-        print(json.dumps({'error': 'image-grid mode requires --sg3-elevation to '
-                                   'resolve stored tileset-16 cells'}))
-        return 1
+    for spec in args.sg3_tileset:
+        if '=' not in spec or spec.split('=', 1)[1] == '':
+            parser.error('--sg3-tileset requires INDEX=PATH')
+        explicit = Path(spec.split('=', 1)[1])
+        if not explicit.is_absolute():
+            explicit = root / explicit
+        if not explicit.is_file():
+            print(json.dumps({'error': 'explicit tileset archive not found',
+                              'archive': str(explicit)}))
+            return 1
+    if args.sg3_tileset and not args.image_grid:
+        parser.error('--sg3-tileset is image-grid mode only')
     for bound in (args.width, args.height):
         if not 1 <= bound <= 2048:
             parser.error('--width/--height must be within the selector 1..2048 bound')
@@ -354,7 +380,8 @@ def main():
         probe, last_error = None, ''
         for attempt in range(2):
             done = wrapper_view(str(root), args.sg3, first_side, size, args.scale,
-                                build_dir, first_rel, image_grid, args.sg3_elevation)
+                                build_dir, first_rel, image_grid, args.sg3_elevation,
+                                args.sg3_tileset)
             if done.returncode == 0 and binary.is_file():
                 try:
                     result = last_json_line(done.stdout)
@@ -377,7 +404,8 @@ def main():
         for rel, side in prepared[1:]:
             try:
                 done = run_binary(binary, str(root), args.sg3, side, size, args.scale,
-                                  rel, args.timeout, image_grid, args.sg3_elevation)
+                                  rel, args.timeout, image_grid, args.sg3_elevation,
+                                  args.sg3_tileset)
             except subprocess.TimeoutExpired:
                 failures.append({'map': rel,
                                  'reason': f'timeout after {args.timeout:g}s'})
@@ -459,12 +487,12 @@ def main():
           f'{len(failures)} failed, archive {args.sg3}')
     print(f'# camera {args.width}x{args.height} scale {args.scale} centred on each '
           'active crop; known/active is camera-independent')
-    print(f'{"map":<28}{"active":>7}{"known":>7}{"unknown":>8}{"nogrnd":>7}'
+    print(f'{"map":<28}{"active":>7}{"known":>7}{"unknown":>8}{"chnowr":>7}'
           f'{"unres":>6}{"drawn":>7}{"decfail":>8}{"known/act":>10}{"drawn/know":>11}')
     for r in rows:
         ka, dk = r['known_over_active'], r['drawn_over_known']
         print(f'{r["map"]:<28}{cell(r, "active_cells"):>7}{cell(r, "known_cells"):>7}'
-              f'{cell(r, "unknown_cells"):>8}{cell(r, "no_ground_cells"):>7}'
+              f'{cell(r, "unknown_cells"):>8}{cell(r, "chain_no_write_cells"):>7}'
               f'{cell(r, "unresolved_codes"):>6}{cell(r, "drawn_cells"):>7}'
               f'{cell(r, "decode_failures"):>8}'
               f'{(f"{ka:.3f}" if ka is not None else "-"):>10}'

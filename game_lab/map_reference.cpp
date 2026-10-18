@@ -12,6 +12,22 @@
 #include <sys/stat.h>
 #include <unistd.h>
 namespace game_lab {
+// FUN_00475B60 @0x00475B60 assigns a 41-entry pointer table; entries 0..24 and
+// 38..40 are literal names (see docs/MAP_SG3_PIPELINE.md). Only the version-213
+// archives the stored grid references are listed here. The name alone is the
+// mapping evidence: several version-213 archives share a 201-based type-30 run,
+// so geometry cannot distinguish them.
+const char* mapImageGridArchiveName(uint32_t tileset) {
+    switch(tileset) {
+    case 2: return "China_General.sg3";
+    case 3: return "China_Terrain.sg3";
+    case 5: return "China_Mon_Tumulus.sg3";
+    case 6: return "China_Mon_Grand_Canal.sg3";
+    case 8: return "China_Mon_Earthen_Greatwall_1.sg3";
+    case 16: return "China_Elevation.sg3";
+    default: return nullptr;
+    }
+}
 MapReferenceResult renderMapReferenceViewport(const OriginalMapTerrain& terrain,const OriginalMapRawLayer& raw,
         const SG3Archive& archive,const std::string& internal555,int64_t base,const OriginalMapCamera& camera) {
     MapReferenceResult result;const auto activity=analyzeOriginalMap(terrain);size_t pixels=0;
@@ -87,9 +103,10 @@ MapGroundResult renderMapGroundViewport(const OriginalMapTerrain& terrain,const 
             // from the parsed MAP bytes.
             const auto selection=selectGroundTileCode(groundCodeRequest(state,cell));
             ++branches[selection.branch];
-            // A determinate no-ground cell is a distinct outcome: the chain ran but
-            // no setter wrote 0x00FE9880, so it is counted apart from unknownCells.
-            if(selection.noGround){++result.stats.noGroundCells;continue;}
+            // The chain may decline to write 0x00FE9880 for a cell. That is not
+            // "no ground": the grid is loaded from the `.map` payload, so the cell
+            // keeps its stored art. It is counted apart from unknownCells.
+            if(selection.chainNoWrite){++result.stats.chainNoWriteCells;continue;}
             if(!selection.known){++result.stats.unknownCells;continue;}
             ++result.stats.knownCells;
             if(selection.block)++result.stats.blockCells;
@@ -233,10 +250,10 @@ ChainScoreStats scoreGroundChainAgainstImageGrid(const OriginalMapTerrain& terra
         // empirical base the grid render uses: stored index = low14 + (firstRecordId-1).
         const uint32_t storedTileset=stored>>14,storedLow=stored&0x3FFFu;
         const size_t storedIndex=size_t(storedLow)+size_t(firstRecordId)-1;
-        if(selection.noGround) {
-            ++result.chainNoGround;
-            if(!stored){++result.noGroundVsStoredZero;++result.knownMatched;}
-            else ++result.noGroundVsStoredNonzero;
+        if(selection.chainNoWrite) {
+            ++result.chainNoWrite;
+            if(!stored){++result.chainNoWriteVsStoredZero;++result.knownMatched;}
+            else ++result.chainNoWriteVsStoredNonzero;
             continue;
         }
         if(!selection.known){++result.chainUnknown;if(!stored)++result.storedZeroUnpredicted;continue;}

@@ -120,6 +120,8 @@ Tileset order is fixed by the name pointer array assigned in `FUN_00475B60 @0x00
 | 9 | `China_Mon_Earthen_Greatwall_2` | 22 | `China_Mongol` |
 | 10 | `China_Mon_Earthen_Greatwall_3` | 23 | `China_Tibetan` |
 | — | (11, 12 not yet enumerated) | 24 | `China_Xiongnu` |
+| 38 | `SprMain` | 39 | `SprMain2` |
+| 40 | `SprMain3` | | |
 
 **Consequence: ground tile codes `0x600`–`0x6FF` resolve inside `China_Terrain.sg3`.** This is the
 missing `MAP cell → SG3` link. The codes the engine actually uses for ground are
@@ -290,6 +292,83 @@ above is a complete, testable `MAP → SG3` contract:
 | `& 0x2` | `0x606`/`0x607`/`0x608` | 6/7/8 | 458 (78×52) / 472 (78×51) / 486 (78×50) |
 | `& 0x1000` | `0x612` | 18 | 525 (78×58) |
 | `& 0x10000` | `0x61B` | 27 | 736 |
+
+## The stored surface grid is an oracle, not a derivation
+
+The engine does **not** compute `0x00FE9880` from terrain alone. The per-cell surface
+image is part of the city `.map` payload and is copied into the grid by the loader at
+`FUN_0052E7C0 @0x0052E7C0`, which reads a fixed sequence of flat 228² grids in this
+order (logical payload offsets; `original_terrain.hpp` carries the same table):
+
+| Payload offset | Target VA | Width | Grid |
+|---:|---|---:|---|
+| 1,535 | `0x00FE9880` | u32 | **surface image id** |
+| 209,471 | `0x00FDCD70` | u8 | draw-state flags |
+| 261,455 | `0x00F6A9E0` | u32 | terrain flags (equals the MAP terrain field) |
+| 469,391 | `0x00F37DA0` | u32 | feature/orientation bits |
+| 677,327 | `0x00F9D620` | u8 | sub-tile / object index |
+| 729,311 | `0x00F1E780` | u8 | per-cell random byte |
+| 781,295 | `0x00F05160` | u8 | unmodelled |
+| 833,279/833,283 | `0x0101D0AC`/`0x0101D0B0` | u32 | unmodelled pair |
+| 833,287 | `0x00EAC3F0` | u8 | unmodelled |
+| 885,271 | `0x00E92DD0` | u8 | road distance |
+| 937,255 | `0x00E9F8E0` | u8 | fertility |
+| 989,239 | — | 0x24 B | blob |
+| 989,275 | `0x00BEBF3A` | u8 | unmodelled |
+| 1,041,259 | `0x00BF8A4A` | u8 | unmodelled |
+| 1,093,243 | `0x010C6F18` | u32 | unmodelled |
+| 1,093,247 | `0x010C6DB0` | 0x168 B | blob; **flat run ends at 1,093,607** |
+
+The grids abut exactly, so the first grid starts immediately after the 1,535-byte city
+header and no other record separates them. Because `0x00FE9880` arrives pre-filled, the
+ground chain is a setter that may or may not overwrite it: a cell the chain does not
+write **keeps its loaded art**. That refutes the earlier "determinate no-ground"
+reading of the `0x8C008` gate and of the other declining branches; the repo now calls
+them `chain-declined` / `chainNoWrite` (`original_ground.hpp`).
+
+Measured over all 167 `Cities/*.map` (whole crop, camera-free):
+
+* grid `2,107,836` active cells, `28` stored zero, `2,107,808` stored nonzero;
+* chain emits `1,514,539`, agrees with the stored grid on `1,299,617` = **85.809 %**;
+* chain declines to write on `114,937` cells: `0` of them store zero, **all `114,937`
+  store nonzero art** — direct evidence that "declined" is not "empty";
+* unknown / non-terrain-determinable chain cells `478,360`.
+
+### Record indexing in a version-213 archive
+
+Each stored word is `v = (tileset << 14) | low14`. For a version-213 `.sg3` the loader
+publishes header value `h` as entry `h - 201`, so the record id is
+**`recordId = low14 + 201`** (0-based sprites index `recordId - 1`). `China_Terrain.sg3`
+has `imageIndex[0..16] = [0, 201, 202, 247, 336, 386, 458, 472, 486, 1442, 1441, 500, …]`
+and a contiguous type-30 run `201..1443` (1,238 records); ids `1..200` are types 256/276
+(palettes, not art). A `0` or `200` base is refuted: base 200 maps tileset-8 low `0` to
+id `200`, a type-276 palette. All six referenced archives declare `imageIndex[1] = 201`
+(`China_Unloaded` alone is 205).
+
+### Tileset index → archive (stored grid)
+
+`FUN_00475B60 @0x00475B60` assigns the archive name pointers; the stored-grid renderer
+loads the archive the name table names. Geometry cannot pick the archive — several
+version-213 archives share the same 201-based type-30 run — so the name is the evidence.
+
+| Tileset | Archive | Records | Stored cells (167 cities) |
+|---:|---|---:|---:|
+| 2 | `China_General.sg3` | 2,941 | 2,388 |
+| 3 | `China_Terrain.sg3` | 1,443 | 1,981,998 |
+| 5 | `China_Mon_Tumulus.sg3` | 577 | 617 |
+| 6 | `China_Mon_Grand_Canal.sg3` | 322 | 4,224 |
+| 8 | `China_Mon_Earthen_Greatwall_1.sg3` | 242 | 12,416 |
+| 16 | `China_Elevation.sg3` | 372 | 106,165 |
+
+Before the mapping, tilesets 2/5/6/8 were `archive_unavailable` (`19,645` cells). After
+it, `archive_unavailable = 0`, decoded rises `2,063,845 → 2,066,203` (97.914 % →
+**98.026 %**), and `geometry_unsupported` rises `24,318 → 41,605`: of the 19,645 cells,
+`2,358` decode as single-cell type-30 art (1,741 in tileset 2, 617 in tileset 5) and
+`17,287` are records the single-cell path refuses (647 in tileset 2 = 228 composite
+type-30 + 419 non-type-30 object art, all 4,224 tileset-6 cells across 3 318×160
+records, and all 12,416 tileset-8 cells across 37 such records). Those are real stored
+art, not empty slots, and stay `geometry_unsupported`, not silently dropped. `5/167`
+cities reach a fully single-cell render (`MP13`, `MP25`, `MP28`, `SA-Qufu`, `Baoji`).
 
 ## Open items
 

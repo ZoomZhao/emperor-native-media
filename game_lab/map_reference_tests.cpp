@@ -209,10 +209,11 @@ void groundSelectorTests() {
  // The 0x8C008 gate (bits 0x8|0x4000|0x8000|0x80000) lets later setters run
  // only when all four bits are clear. A cell reaching the gate has 0x100 clear,
  // so setter 1 (FUN_004EDC30) provably returned 0 without writing: the gate is a
- // determinate no-ground, counted apart from unknown.
+ // determinate chain no-write, counted apart from unknown. It is not "no ground":
+ // 0x00FE9880 is loaded from the `.map` payload, so the cell keeps its art.
  for(uint32_t flagged:{0x8u,0x4000u,0x8000u,0x80000u}) {
      const auto gated=selectGroundTileCode(GroundCodeRequest{flagged,0});
-     need(gated.noGround&&!gated.known&&gated.code==0&&std::string(gated.branch)=="no-ground","the 0x8C008 gate skips every setter with no img write: determinate no-ground");
+     need(gated.chainNoWrite&&!gated.known&&gated.code==0&&std::string(gated.branch)=="chain-declined","the 0x8C008 gate skips every setter with no img write: determinate chain no-write");
  }
  // 0x800 is setter 3 territory, not a gate bit; it must reach the 0x800 branch.
  const auto water=selectGroundTileCode(GroundCodeRequest{0x800u,0});
@@ -230,45 +231,46 @@ void groundSelectorTests() {
         {0x800u,"0x800-water"},{0x20000u,"0x20000-forest"},{0x2000000u,"0x2000000-delegated"},{0x40u,"0x40-road"},
         {0x10000u,"0x10000-monument"}}) {
      const auto delegated=selectGroundTileCode(GroundCodeRequest{item.first,0x07u});
-     need(!delegated.known&&!delegated.noGround&&delegated.code==0&&std::string(delegated.branch)==item.second,"runtime-dependent setter names its branch without inventing a code");
+     need(!delegated.known&&!delegated.chainNoWrite&&delegated.code==0&&std::string(delegated.branch)==item.second,"runtime-dependent setter names its branch without inventing a code");
  }
  // Setter 4 shore: exactly one sub-case is fixed by MAP terrain + neighbours alone.
  {
      auto request=GroundCodeRequest{0x4000004u,0x0Au};request.hasNeighbours=true;
      for(uint32_t& flag:request.neighbourFlags)flag=0x4000000u;
      const auto shore=selectGroundTileCode(request);
-     need(shore.known&&!shore.block&&!shore.noGround&&shore.code==uint16_t(0x61C)&&
+     need(shore.known&&!shore.block&&!shore.chainNoWrite&&shore.code==uint16_t(0x61C)&&
           shore.variant==uint8_t(0x30u+(0x0Au%0x18u))&&
           std::string(shore.branch)=="0x4-shore-water-ring","the MAP-only shore ring writes T(0x61C)+0x30+random%0x18 with the offset kept out of the code");
      // A single neighbour without 0x4000000 leaves the value undetermined.
      request.neighbourFlags[3]&=~0x4000000u;
      const auto partial=selectGroundTileCode(request);
-     need(!partial.known&&!partial.noGround&&std::string(partial.branch)=="0x4-shore","a shore cell with a neighbour lacking 0x4000000 stays unknown");
+     need(!partial.known&&!partial.chainNoWrite&&std::string(partial.branch)=="0x4-shore","a shore cell with a neighbour lacking 0x4000000 stays unknown");
      // A neighbour carrying 0x10000 diverts to the runtime DAT_0101C540 arm.
      request.neighbourFlags[3]=0x10000u;
      need(!selectGroundTileCode(request).known,"a 0x10000 neighbour keeps the shore branch unknown");
      // hasNeighbours=false (no MAP neighbour data) must never be treated as all-zero.
      const auto noNeighbours=selectGroundTileCode(GroundCodeRequest{0x4000004u,0x0Au});
-     need(!noNeighbours.known&&!noNeighbours.noGround&&std::string(noNeighbours.branch)=="0x4-shore","a shore request without neighbour data never guesses");
+     need(!noNeighbours.known&&!noNeighbours.chainNoWrite&&std::string(noNeighbours.branch)=="0x4-shore","a shore request without neighbour data never guesses");
  }
  // Setter 5 road refuses the whole cell when a 0xC064 bit survives to it: a
- // determinate no-ground, not an unknown code.
+ // determinate chain no-write, not an unknown code.
  for(uint32_t flag:{0x1u|0x20u,0x1u|0x40u}) {
      const auto refused=selectGroundTileCode(GroundCodeRequest{flag,0x07u});
-     need(refused.noGround&&!refused.known&&refused.code==0&&std::string(refused.branch)=="no-ground","a 0xC064 bit at setter 5 is a determinate no-ground");
+     need(refused.chainNoWrite&&!refused.known&&refused.code==0&&std::string(refused.branch)=="chain-declined","a 0xC064 bit at setter 5 is a determinate chain no-write");
  }
  // Setter 15 canal writes T(0x620)+random%9 from MAP bytes alone.
  for(uint8_t random:{0u,1u,8u,9u}) {
      const auto canal=selectGroundTileCode(GroundCodeRequest{0x40000u,random});
-     need(canal.known&&!canal.block&&!canal.noGround&&canal.code==uint16_t(0x620)&&canal.variant==uint8_t(random%9u)&&std::string(canal.branch)=="0x40000-canal","terrain&0x40000 selects the pure 0x620 base with variant random%9");
+     need(canal.known&&!canal.block&&!canal.chainNoWrite&&canal.code==uint16_t(0x620)&&canal.variant==uint8_t(random%9u)&&std::string(canal.branch)=="0x40000-canal","terrain&0x40000 selects the pure 0x620 base with variant random%9");
  }
- // 0x20 survives to setter 15 and makes FUN_004BC800 refuse: determinate no ground.
+ // 0x20 survives to setter 15 and makes FUN_004BC800 refuse: the chain declines
+ // to write and the cell keeps its loaded art.
  const auto canalRefused=selectGroundTileCode(GroundCodeRequest{0x40020u,0x05u});
- need(canalRefused.noGround&&!canalRefused.known&&std::string(canalRefused.branch)=="no-ground","terrain&0x20 makes the canal setter refuse without writing");
- // The final fall-through is determinate no ground: every setter ran, only
+ need(canalRefused.chainNoWrite&&!canalRefused.known&&std::string(canalRefused.branch)=="chain-declined","terrain&0x20 makes the canal setter refuse without writing");
+ // The final fall-through is a chain no-write: every setter ran, only
  // FUN_0053F090 was left and terrain&0xAEFEDE6F was nonzero.
  const auto exhausted=selectGroundTileCode(GroundCodeRequest{0x200u,0});
- need(exhausted.noGround&&!exhausted.known&&std::string(exhausted.branch)=="no-ground","a leftover 0xAEFEDE6F bit is a determinate no-ground");
+ need(exhausted.chainNoWrite&&!exhausted.known&&std::string(exhausted.branch)=="chain-declined","a leftover 0xAEFEDE6F bit is a determinate chain no-write");
  // Setter 17: terrain&0x80 with (terrain&0x10001)==0 is the farm plot. Its value
  // needs the per-cell fertility (0x00E9F8E0) and random byte, both of which the
  // loader restores from the same `.map` payload. The stored id is
@@ -282,7 +284,7 @@ void groundSelectorTests() {
          {{0u,8u},8u},{{0u,9u},0u},{{100u,10u},37u},{{90u,9u},36u},
          {{80u,9u},27u},{{110u,12u},48u},{{255u,8u},116u}}) {
      const auto farm=selectGroundTileCode(farmRequest(item.first.first,item.first.second));
-     need(farm.known&&!farm.block&&!farm.noGround&&farm.code==uint16_t(0x602)&&
+     need(farm.known&&!farm.block&&!farm.chainNoWrite&&farm.code==uint16_t(0x602)&&
           farm.variant==item.second&&std::string(farm.branch)=="0x80-farm",
           "terrain&0x80 selects the 0x602 farm base with the fertility-rank variant 9*rank+random%9");
  }
@@ -294,14 +296,14 @@ void groundSelectorTests() {
      need(!selectGroundTileCode(river).known&&std::string(selectGroundTileCode(river).branch)=="0x80-farm-river",
           "a 0x10000 neighbour selects the farm river arm (runtime DAT_0101C540), never a guess");
      const auto block=selectGroundTileCode(farmRequest(0u,0u));
-     need(!block.known&&!block.noGround&&std::string(block.branch)=="0x80-farm-block",
+     need(!block.known&&!block.chainNoWrite&&std::string(block.branch)=="0x80-farm-block",
           "random&0xF8==0 selects the farm whole-plot block arm, left unknown");
      const auto noNeighbours=selectGroundTileCode(GroundCodeRequest{0x80u,0x08u});
      need(!noNeighbours.known&&std::string(noNeighbours.branch)=="0x80-farm-neighbours",
           "a farm request without neighbour data never treats missing bytes as zero");
      auto noLayers=farmRequest(0u,8u);noLayers.hasLayers=false;
      const auto variant=selectGroundTileCode(noLayers);
-     need(!variant.known&&!variant.noGround&&std::string(variant.branch)=="0x80-farm-variant",
+     need(!variant.known&&!variant.chainNoWrite&&std::string(variant.branch)=="0x80-farm-variant",
           "a farm request without the fertility layer stays unknown instead of a guessed variant");
  }
  // Setters ahead of 17 still win: road (0x1) and monument (0x10000).
@@ -318,7 +320,7 @@ void groundSelectorTests() {
  for(const auto& item:std::vector<std::pair<uint32_t,uint16_t>>{{8u,0x60Du},{0x10u,0x60Au},
          {0x20u,0x609u},{0x40u,0x619u},{0u,0x60Du},{0x108u,0x60Du}}) {
      const auto feature=selectGroundTileCode(featureRequest(item.first));
-     need(feature.known&&feature.block&&!feature.noGround&&feature.code==item.second&&
+     need(feature.known&&feature.block&&!feature.chainNoWrite&&feature.code==item.second&&
           feature.variant==0&&std::string(feature.branch)=="0x2000000-feature",
           "terrain&0x2000000 picks the feature base (feat&8>feat&0x10>feat&0x20>feat&0x40>0x60D) as 5x5 block art");
  }
@@ -329,7 +331,7 @@ void groundSelectorTests() {
  // Without the feature layer the branch names itself rather than assuming zeros.
  GroundCodeRequest noFeature;noFeature.terrainFlags=0x2000000u;
  const auto delegatedFeature=selectGroundTileCode(noFeature);
- need(!delegatedFeature.known&&!delegatedFeature.noGround&&std::string(delegatedFeature.branch)=="0x2000000-delegated",
+ need(!delegatedFeature.known&&!delegatedFeature.chainNoWrite&&std::string(delegatedFeature.branch)=="0x2000000-delegated",
       "a feature request without the layer stays unknown");
 
  // Tileset 2 (China_General) is the one modelled non-terrain ground code.
@@ -381,26 +383,26 @@ void groundSelectorTests() {
  need(plain.stats.activeCells==84*84&&plain.stats.knownCells==84*84&&plain.stats.unknownCells==0,"plain land is fully known");
  need(plain.stats.blockCells==84*84&&plain.stats.unresolvedCodes==0&&plain.stats.geometrySupported==84*84,"block flag and supported geometry counted");
  need(plain.stats.branchCells.size()==1&&plain.stats.branchCells[0].first=="plain-land"&&plain.stats.branchCells[0].second==84*84,"branch histogram names plain-land");
- // Gate-failed terrain is a determinate no-ground (setter 1 provably wrote
+ // Gate-failed terrain is a determinate chain no-write (setter 1 provably wrote
  // nothing), counted apart from unknown and never drawn.
  for(unsigned y=72;y<156;++y)for(unsigned x=72;x<156;++x)terrain.flags[size_t(y)*228+x]=0x8;
  state=terrainState(terrain);
  const auto gated=renderMapGroundViewport(terrain,state,archive,"",camera);
- need(gated.image.valid()&&gated.stats.activeCells==84*84&&gated.stats.noGroundCells==84*84&&gated.stats.knownCells==0&&gated.stats.unknownCells==0&&gated.stats.drawnCells==0,"gate-failed cells are a determinate no-ground and never drawn");
- need(gated.stats.branchCells.size()==1&&gated.stats.branchCells[0].first=="no-ground","gate-failed cells name the no-ground branch");
- // A determinate no-ground cell is counted apart from unknown, never guessed, and
- // still names its branch.
+ need(gated.image.valid()&&gated.stats.activeCells==84*84&&gated.stats.chainNoWriteCells==84*84&&gated.stats.knownCells==0&&gated.stats.unknownCells==0&&gated.stats.drawnCells==0,"gate-failed cells are a determinate chain no-write and never drawn");
+ need(gated.stats.branchCells.size()==1&&gated.stats.branchCells[0].first=="chain-declined","gate-failed cells name the chain-declined branch");
+ // A chain no-write cell is counted apart from unknown, never guessed, and still
+ // names its branch.
  for(unsigned y=72;y<156;++y)for(unsigned x=72;x<156;++x)terrain.flags[size_t(y)*228+x]=0x200;
  state=terrainState(terrain);
- const auto noGround=renderMapGroundViewport(terrain,state,archive,"",camera);
- need(noGround.image.valid()&&noGround.stats.activeCells==84*84&&noGround.stats.noGroundCells==84*84&&
-      noGround.stats.knownCells==0&&noGround.stats.unknownCells==0&&noGround.stats.drawnCells==0,"determinate no-ground cells are counted apart from unknown and never drawn");
- need(noGround.stats.branchCells.size()==1&&noGround.stats.branchCells[0].first=="no-ground","no-ground cells name the no-ground branch");
+ const auto chainNoWrite=renderMapGroundViewport(terrain,state,archive,"",camera);
+ need(chainNoWrite.image.valid()&&chainNoWrite.stats.activeCells==84*84&&chainNoWrite.stats.chainNoWriteCells==84*84&&
+      chainNoWrite.stats.knownCells==0&&chainNoWrite.stats.unknownCells==0&&chainNoWrite.stats.drawnCells==0,"chain no-write cells are counted apart from unknown and never drawn");
+ need(chainNoWrite.stats.branchCells.size()==1&&chainNoWrite.stats.branchCells[0].first=="chain-declined","chain no-write cells name the chain-declined branch");
  // The canal setter resolves from terrain flags alone: every cell is known.
  for(unsigned y=72;y<156;++y)for(unsigned x=72;x<156;++x)terrain.flags[size_t(y)*228+x]=0x40000;
  state=terrainState(terrain);
  const auto canal=renderMapGroundViewport(terrain,state,archive,"",camera);
- need(canal.image.valid()&&canal.stats.knownCells==84*84&&canal.stats.unknownCells==0&&canal.stats.noGroundCells==0,"terrain&0x40000 is known without any runtime state");
+ need(canal.image.valid()&&canal.stats.knownCells==84*84&&canal.stats.unknownCells==0&&canal.stats.chainNoWriteCells==0,"terrain&0x40000 is known without any runtime state");
  need(canal.stats.branchCells.size()==1&&canal.stats.branchCells[0].first=="0x40000-canal","canal cells name the canal branch");
 }
 // The stored surface-image grid (0x00FE9880) render and the chain score against
@@ -458,6 +460,72 @@ void imageGridTests(const std::filesystem::path& root) {
  auto shortState=state;shortState.image.pop_back();
  need(!renderMapImageGridViewport(terrain,shortState,tilesets,camera).image.valid(),
       "a loader state with a short image grid refuses before counting");
+ // The exe's static tileset name table (FUN_00475B60 @0x00475B60) maps the four
+ // stored tilesets the corpus still referenced to these archives. The mapping is
+ // the name table, not a geometry fingerprint: several version-213 archives share
+ // a 201-based type-30 run, so geometry alone cannot tell them apart.
+ need(mapImageGridArchiveName(2)&&std::string(mapImageGridArchiveName(2))=="China_General.sg3"&&
+      mapImageGridArchiveName(5)&&std::string(mapImageGridArchiveName(5))=="China_Mon_Tumulus.sg3"&&
+      mapImageGridArchiveName(6)&&std::string(mapImageGridArchiveName(6))=="China_Mon_Grand_Canal.sg3"&&
+      mapImageGridArchiveName(8)&&std::string(mapImageGridArchiveName(8))=="China_Mon_Earthen_Greatwall_1.sg3"&&
+      mapImageGridArchiveName(3)&&std::string(mapImageGridArchiveName(3))=="China_Terrain.sg3"&&
+      mapImageGridArchiveName(16)&&std::string(mapImageGridArchiveName(16))=="China_Elevation.sg3",
+      "the executable's tileset name table maps every referenced tileset to its archive");
+ need(!mapImageGridArchiveName(0)&&!mapImageGridArchiveName(1)&&!mapImageGridArchiveName(99),
+      "tileset indices outside the referenced ground/object archives name no archive");
+ // One hand-built archive per newly mapped tileset, with a single-cell type-30
+ // record at recordId = low14 + 201 and a state cell that references it.
+ Bytes mappingPixels(3200);for(size_t i=0;i<1600;++i)put(mappingPixels,i*2,0x7c00,2);
+ write(root/"grid-mapping.555",mappingPixels);
+ const auto mappingInternal=(root/"grid-mapping.555").string();
+ for(const auto& item:std::vector<std::pair<uint32_t,uint32_t>>{{2u,7u},{5u,9u},{6u,11u},{8u,13u}}) {
+     constexpr uint32_t count=220;
+     const uint32_t rid=201u+item.second;
+     Bytes mapping(table+(count+1)*64);
+     put(mapping,0,uint32_t(mapping.size()));put(mapping,4,213);put(mapping,12,count+10);
+     put(mapping,16,count);put(mapping,20,1);mapping[680]='o';mapping[681]=0;
+     const size_t record=table+size_t(rid)*64;
+     put(mapping,record,0u);put(mapping,record+4,3200u);put(mapping,record+8,3200u);
+     put(mapping,record+20,78,2);put(mapping,record+22,40,2);put(mapping,record+50,30,2);
+     mapping[record+55]=1;
+     const auto archivePath=root/("grid-ts"+std::to_string(item.first)+".sg3");
+     write(archivePath,mapping);
+     const auto loaded=loadSG3(archivePath.string());
+     need(loaded.numImages==count&&loaded.sprites.size()==count&&
+          sg3SingleCellGeometry(loaded,size_t(rid-1)).has_value(),
+          "each mapped tileset archive publishes the referenced single-cell record");
+     OriginalMapTerrain mappingTerrain;mappingTerrain.activeSide=84;
+     mappingTerrain.flags.assign(51984,0x80000);mappingTerrain.flags[at(41,41)]=0;
+     auto mappingState=terrainState(mappingTerrain);
+     mappingState.image[at(41,41)]=(item.first<<14)|item.second;
+     OriginalMapCamera mappingCamera;mappingCamera.centerX=41;mappingCamera.centerY=41;
+     mappingCamera.width=200;mappingCamera.height=200;mappingCamera.scale=1;
+     const std::vector<MapImageGridTileset> mappingTilesets{{item.first,&loaded,mappingInternal,201}};
+     const auto mappingGrid=renderMapImageGridViewport(mappingTerrain,mappingState,
+         mappingTilesets,mappingCamera);
+     need(mappingGrid.image.valid()&&mappingGrid.stats.activeCells==1&&
+          mappingGrid.stats.nonzeroCells==1&&mappingGrid.stats.decodedCells==1&&
+          mappingGrid.stats.visibleCells==1&&mappingGrid.stats.drawnCells==1&&
+          mappingGrid.stats.archiveUnavailable==0&&mappingGrid.stats.geometryUnsupported==0&&
+          mappingGrid.stats.unresolvedIndices==0&&mappingGrid.stats.decodeFailures==0,
+          "a stored cell from each newly mapped tileset decodes through its own archive");
+     size_t painted=0;for(auto pixel:mappingGrid.image.pixelsBGRA)painted+=bool(pixel>>24);
+     need(painted==1600,"the mapped tileset record paints its authored coverage only");
+ }
+ // An absent archive keeps the tileset visible as data, never guessed from another
+ // archive and never silently decoded.
+ {
+     OriginalMapTerrain absentTerrain;absentTerrain.activeSide=84;
+     absentTerrain.flags.assign(51984,0x80000);absentTerrain.flags[at(41,41)]=0;
+     auto absentState=terrainState(absentTerrain);
+     absentState.image[at(41,41)]=(uint32_t(5)<<14)|9u;
+     OriginalMapCamera absentCamera;absentCamera.centerX=41;absentCamera.centerY=41;
+     absentCamera.width=200;absentCamera.height=200;absentCamera.scale=1;
+     const auto absent=renderMapImageGridViewport(absentTerrain,absentState,{},absentCamera);
+     need(absent.image.valid()&&absent.stats.activeCells==1&&absent.stats.nonzeroCells==1&&
+          absent.stats.archiveUnavailable==1&&absent.stats.decodedCells==0&&
+          absent.stats.drawnCells==0,"a newly mapped tileset whose archive is absent stays counted");
+ }
 }
 // The chain score compares the reconstructed dispatch chain with the stored grid.
 // Every bucket is asserted, and the three conservation identities are checked so a
@@ -471,8 +539,8 @@ void chainScoreTests() {
  auto at=[&](unsigned x,unsigned y){return size_t(y+72)*228+x+72;};
  terrain.flags[at(41,41)]=0x80u;      // farm, stored matches the emitted record
  terrain.flags[at(42,41)]=0x80u;      // farm, stored differs
- terrain.flags[at(43,41)]=0x200u;     // no-ground, stored zero
- terrain.flags[at(44,41)]=0x200u;     // no-ground, stored nonzero
+ terrain.flags[at(43,41)]=0x200u;     // chain no-write, stored zero
+ terrain.flags[at(44,41)]=0x200u;     // chain no-write, stored nonzero
  terrain.flags[at(45,41)]=0x2000000u; // feature branch, base slot empty
  terrain.flags[at(46,41)]=0x80u;      // farm, stored tileset 16
  auto state=terrainState(terrain);
@@ -485,26 +553,26 @@ void chainScoreTests() {
  state.image[at(45,41)]=0u;
  state.image[at(46,41)]=(uint32_t(16)<<14)|0u;
  const auto score=scoreGroundChainAgainstImageGrid(terrain,state,archive,1);
- need(score.activeCells==6&&score.storedZero==2&&score.chainNoGround==2&&
+ need(score.activeCells==6&&score.storedZero==2&&score.chainNoWrite==2&&
       score.chainUnknown==0&&score.chainKnown==4,"chain score partitions every active cell");
  need(score.emitted==3&&score.matched==1&&score.mismatched==2&&
       score.emitted==score.matched+score.mismatched,"emitted splits into matched and mismatched");
- need(score.unresolved==1&&score.noGroundVsStoredZero==1&&score.noGroundVsStoredNonzero==1&&
-      score.chainNoGround==score.noGroundVsStoredZero+score.noGroundVsStoredNonzero,
-      "a no-ground prediction is checked against the stored zero");
+ need(score.unresolved==1&&score.chainNoWriteVsStoredZero==1&&score.chainNoWriteVsStoredNonzero==1&&
+      score.chainNoWrite==score.chainNoWriteVsStoredZero+score.chainNoWriteVsStoredNonzero,
+      "a chain no-write prediction is checked against the stored zero");
  need(score.knownMatched==2&&score.storedZeroUnpredicted==1&&
-      score.storedZero==score.noGroundVsStoredZero+score.storedZeroUnpredicted,
+      score.storedZero==score.chainNoWriteVsStoredZero+score.storedZeroUnpredicted,
       "stored zeros are all accounted for as agreed or unpredicted");
- bool sawFarm=false,sawNoGround=false,sawFeature=false;
+ bool sawFarm=false,sawChainNoWrite=false,sawFeature=false;
  for(const auto& branch:score.branches) {
      if(branch.branch=="0x80-farm"){sawFarm=true;need(branch.cells==3&&branch.emitted==3&&
          branch.matched==1&&branch.storedZero==0,"the farm branch carries its own score");}
-     if(branch.branch=="no-ground"){sawNoGround=true;need(branch.cells==2&&branch.emitted==0&&
-         branch.matched==0&&branch.storedZero==1,"the no-ground branch carries its own score");}
+     if(branch.branch=="chain-declined"){sawChainNoWrite=true;need(branch.cells==2&&branch.emitted==0&&
+         branch.matched==0&&branch.storedZero==1,"the chain-declined branch carries its own score");}
      if(branch.branch=="0x2000000-feature"){sawFeature=true;need(branch.cells==1&&branch.emitted==0&&
          branch.storedZero==1,"the unresolved feature branch is still named");}
  }
- need(sawFarm&&sawNoGround&&sawFeature,"every reached branch is reported");
+ need(sawFarm&&sawChainNoWrite&&sawFeature,"every reached branch is reported");
  auto shortState=state;shortState.terrain.pop_back();
  need(scoreGroundChainAgainstImageGrid(terrain,shortState,archive,1).activeCells==0,
       "an incomplete loader state refuses before scoring");
@@ -529,12 +597,12 @@ void realDataGroundTests(bool& originalData) {
  need(state->terrain==terrain.flags&&state->randomByte==loaded.cellLayers->mapperRandom&&
       state->fertility==loaded.cellLayers->mapperFertile,
       "the read-order state and the container cell-layer parser agree on terrain/random/fertility");
- size_t active=0,known=0,unknown=0,noGround=0,farm=0,farmBlock=0,farmRiver=0;
+ size_t active=0,known=0,unknown=0,chainNoWrite=0,farm=0,farmBlock=0,farmRiver=0;
  for(size_t cell=0;cell<terrain.flags.size();++cell) {
      if(terrain.flags[cell]&0x80000u)continue;
      ++active;
      const auto selection=selectGroundTileCode(groundCodeRequest(*state,cell));
-     if(selection.noGround)++noGround;else if(selection.known)++known;else ++unknown;
+     if(selection.chainNoWrite)++chainNoWrite;else if(selection.known)++known;else ++unknown;
      if(std::string(selection.branch)=="0x80-farm")++farm;
      else if(std::string(selection.branch)=="0x80-farm-block")++farmBlock;
      else if(std::string(selection.branch)=="0x80-farm-river")++farmRiver;
@@ -547,9 +615,9 @@ void realDataGroundTests(bool& originalData) {
  need(farm==5992&&farmBlock==220&&farmRiver==0,"the Anyang farm sub-cases are stable");
  // The 0x4 shore-ring sub-case and the farm formula are MAP-determinable, giving
  // 6690 known, 3083 still runtime-unknown (0x1-road / 0x4-shore / 0x40-road ... )
- // and 167 a determinate no-ground. The 220 farm block cells move from the old
+ // and 167 a determinate chain no-write. The 220 farm block cells move from the old
  // guessed 6910 known to unknown. Measured on the user's own Anyang.map.
- need(known==6690&&unknown==3083&&noGround==167&&known+unknown+noGround==active,
+ need(known==6690&&unknown==3083&&chainNoWrite==167&&known+unknown+chainNoWrite==active,
       "original Anyang.map MAP-only outcome counts are stable");
  // Overall MAP-only known coverage floor (~67%). It cannot reach the farmland level
  // until the 0x1-road and 0x4-shore general arms are modelled.
@@ -598,8 +666,8 @@ void realDataGroundTests(bool& originalData) {
               "original Anyang.map stored image grid decodes with the measured low-14 base");
          const auto score=scoreGroundChainAgainstImageGrid(terrain,*state,archive);
          need(score.activeCells==9940&&score.emitted==6690&&score.matched==5673&&
-              score.mismatched==1017&&score.chainNoGround==167&&score.chainUnknown==3083&&
-              score.noGroundVsStoredZero==0&&score.noGroundVsStoredNonzero==167,
+              score.mismatched==1017&&score.chainNoWrite==167&&score.chainUnknown==3083&&
+              score.chainNoWriteVsStoredZero==0&&score.chainNoWriteVsStoredNonzero==167,
               "original Anyang.map chain score against the stored grid is stable");
      }
      // Branch 10 (MP48.map) exercises the new feature mapping: 331 active cells,
@@ -617,7 +685,7 @@ void realDataGroundTests(bool& originalData) {
              const auto selection=selectGroundTileCode(groundCodeRequest(*mp48State,cell));
              if(std::string(selection.branch)!="0x2000000-feature")continue;
              ++branch10;
-             need(selection.known&&selection.block&&selection.variant==0&&!selection.noGround,
+             need(selection.known&&selection.block&&selection.variant==0&&!selection.chainNoWrite,
                   "every MP48 branch-10 cell is the 5x5 feature block");
              const uint32_t feature=mp48State->feature[cell]&0xFFu;
              if(feature&8u){need(selection.code==uint16_t(0x60D),"feat&8 selects 0x60D");++class8;}

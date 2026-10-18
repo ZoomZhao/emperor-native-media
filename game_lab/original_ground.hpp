@@ -28,14 +28,18 @@ struct GroundCodeRequest {
 // Original executable per-cell ground dispatch. `code` is meaningful only when
 // `known` is true. Branches the executable delegates to subsystems not yet
 // modelled set `known=false` and name the branch, so callers measure coverage
-// instead of guessing. `noGround` is a determinate outcome: the chain runs but
-// no setter writes 0x00FE9880 for this cell, so there is provably no ground code.
+// instead of guessing. `chainNoWrite` is a determinate outcome: the chain runs
+// but no setter writes 0x00FE9880 for this cell. The oracle refutes calling that
+// "no ground": 0x00FE9880 is loaded from the `.map` payload (logical offset
+// 1535, original_terrain.hpp), not computed, so a cell the chain does not write
+// keeps the art it was loaded with. Measured over all 167 Cities/*.map:
+// chainNoWrite vs a stored zero == 0 cells, vs a stored nonzero == 114,937.
 struct GroundSelection {
     uint16_t code = 0;      // 0x600|ordinal for tileset 3, 0x400|n for tileset 2
     bool known = false;
     bool block = false;     // the executable draws w x h block art for this cell
     const char* branch = "";// stable identifier, e.g. "plain-land"
-    bool noGround = false;  // determinate: the cell is left without a ground code
+    bool chainNoWrite = false; // determinate: no setter writes 0x00FE9880
     // The setter stores FUN_00408170(code) + variant (0x00FE9880), so `code` stays
     // the pure base code and the per-cell offset travels here in the record/id
     // space. It is *not* folded into the code's low 9 bits, which name a header slot.
