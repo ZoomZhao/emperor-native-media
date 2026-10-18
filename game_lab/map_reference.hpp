@@ -59,13 +59,33 @@ struct MapImageGridTileset {
 // that does not name a ground archive. Evidence and the full 41-slot table are in
 // docs/MAP_SG3_PIPELINE.md.
 const char* mapImageGridArchiveName(uint32_t tileset);
+// One named composite failure: a 4-connected same-word component whose resolved
+// record is a multi-tile (s*s) type-30 surface, but whose component shape is not a
+// whole number of s-aligned blocks. Kept apart from geometry_unsupported only to name
+// the reason; the cells still count geometry_unsupported. See docs/MAP_SG3_PIPELINE.md.
+struct MapImageGridCompositeMismatch {
+    uint32_t tileset=0, recordId=0;   // stored tileset (v>>14) and recordId = low14+firstRecordId
+    int32_t width=0, height=0;        // resolved record pixel size (mirror target)
+    uint32_t cols=0;                  // composite block side s = (width+2)/80
+    uint32_t bboxWidth=0, bboxHeight=0, cells=0; // component bbox (cells) and cell count
+    bool fullRect=false, divisible=false;        // full rectangle / bbox a multiple of s
+};
 struct MapImageGridStats {
     size_t activeCells=0, zeroCells=0, nonzeroCells=0;
     size_t decodedCells=0, drawnCells=0, culled=0, visibleCells=0;
     size_t unresolvedIndices=0, geometryUnsupported=0, archiveUnavailable=0, decodeFailures=0;
     size_t uniqueDecoded=0, cacheBytes=0;
+    // Composite (multi-tile) surface art: camera-free 4-connected same-word components
+    // whose record packs s*s single cells. A full s-aligned rectangle is expanded to one
+    // blit per block at the block's own anchor cell; every other multi-cell component
+    // stays geometry_unsupported and is named in compositeMismatches. drawnBlocks is the
+    // number of composite blits that were visible (camera-dependent); confirmed/mismatched/
+    // foreign cell counts are camera-free.
+    size_t compositeBlocks=0, compositeConfirmedCells=0, compositeMismatchedCells=0,
+           compositeForeignCells=0, drawnBlocks=0;
     std::vector<std::pair<uint32_t,size_t>> tilesetCells; // stored tileset -> active nonzero
     std::vector<std::pair<uint32_t,size_t>> tilesetDrawn; // stored tileset -> drawn cells
+    std::vector<MapImageGridCompositeMismatch> compositeMismatches;
 };
 struct MapImageGridResult { DecodedImage image; MapImageGridStats stats; bool experimental=true; };
 // Render the stored surface-image grid verbatim: the per-cell id is read from the

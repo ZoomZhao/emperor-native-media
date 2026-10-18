@@ -449,6 +449,51 @@ void imageGridTests(const std::filesystem::path& root) {
       "per-tileset stored-cell and drawn histograms are exact");
  size_t covered=0;for(auto pixel:grid.image.pixelsBGRA)covered+=bool(pixel>>24);
  need(covered==1600,"the stored single-cell record paints its authored coverage only");
+ // Composite (multi-tile) surface art. A record that structurally declares an s*s
+ // block (type 30, width==s*80-2, height>=s*40, uncompressedLength==s*s*3200,
+ // tileSize in {0,s}) is expanded once per block at the block's own anchor cell.
+ // An irregular component is named as a mismatch, never absorbed as a guess.
+ Bytes cbytes(table+4*64);
+ put(cbytes,0,uint32_t(cbytes.size()));put(cbytes,4,213);put(cbytes,12,20);put(cbytes,16,3);put(cbytes,20,1);
+ cbytes[680]='c';cbytes[681]=0;
+ auto crecord=[&](size_t id,uint32_t length,uint16_t width,uint16_t height,uint16_t type,uint8_t tileSize) {
+     const size_t p=table+id*64;put(cbytes,p,0u);put(cbytes,p+4,length);put(cbytes,p+8,length);
+     put(cbytes,p+20,width,2);put(cbytes,p+22,height,2);put(cbytes,p+50,type,2);cbytes[p+55]=tileSize;};
+ crecord(1,3200,78,40,30,1);        // single-cell control
+ crecord(2,12800,158,80,30,2);      // cols 2 composite: 158==2*80-2, 4*3200
+ crecord(3,12800,158,80,30,1);      // same geometry, tileSize disagrees: not a block
+ write(root/"grid-comp.sg3",cbytes);
+ Bytes cpixels(12800);for(size_t i=0;i<1600;++i)put(cpixels,i*2,0x7c00,2);
+ write(root/"grid-comp.555",cpixels);
+ const auto carchive=loadSG3((root/"grid-comp.sg3").string());
+ need(carchive.numImages==3,"synthetic composite archive loads");
+ OriginalMapTerrain cterrain;cterrain.activeSide=84;cterrain.flags.assign(51984,0x80000);
+ for(unsigned y=41;y<45;++y)for(unsigned x=41;x<45;++x)cterrain.flags[at(x,y)]=0;
+ auto cstate=terrainState(cterrain);
+ for(unsigned y=41;y<43;++y)for(unsigned x=41;x<43;++x)cstate.image[at(x,y)]=(uint32_t(3)<<14)|1u; // 2x2 block
+ cstate.image[at(43,43)]=(uint32_t(3)<<14)|1u;cstate.image[at(44,43)]=(uint32_t(3)<<14)|1u;
+ cstate.image[at(43,44)]=(uint32_t(3)<<14)|1u;                                                    // irregular 3
+ cstate.image[at(44,44)]=(uint32_t(3)<<14)|0u;                                                    // control
+ OriginalMapCamera ccamera;ccamera.centerX=42.5;ccamera.centerY=42.5;ccamera.width=600;ccamera.height=400;ccamera.scale=1;
+ const std::vector<MapImageGridTileset> ctilesets{{3,&carchive,(root/"grid-comp.555").string(),1}};
+ const auto comp=renderMapImageGridViewport(cterrain,cstate,ctilesets,ccamera);
+ need(comp.image.valid(),"composite stored-grid viewport renders");
+ need(comp.stats.compositeBlocks==1&&comp.stats.compositeConfirmedCells==4,
+      "a 2x2 same-word component of a cols-2 record is one confirmed block");
+ need(comp.stats.compositeMismatchedCells==3&&comp.stats.compositeMismatches.size()==1&&
+      !comp.stats.compositeMismatches[0].fullRect&&comp.stats.compositeMismatches[0].cells==3,
+      "an irregular three-cell component is named as a mismatch, never absorbed");
+ need(comp.stats.geometryUnsupported==3,"mismatched composite cells stay unrendered rather than guessed");
+ need(comp.stats.decodedCells==5,"the confirmed block counts its four cells once, plus the control");
+ need(comp.stats.decodedCells+comp.stats.geometryUnsupported+comp.stats.archiveUnavailable+
+      comp.stats.decodeFailures==comp.stats.nonzeroCells,
+      "stored-grid accounting is exact: every nonzero cell is decoded or named");
+ auto badTile=cstate;
+ for(unsigned y=41;y<43;++y)for(unsigned x=41;x<43;++x)badTile.image[at(x,y)]=(uint32_t(3)<<14)|2u;
+ const auto notBlock=renderMapImageGridViewport(cterrain,badTile,ctilesets,ccamera);
+ need(notBlock.stats.compositeBlocks==0&&notBlock.stats.compositeConfirmedCells==0&&
+      notBlock.stats.compositeForeignCells>=4,
+      "a multi-tile record whose tileSize contradicts its width is counted foreign, not expanded");
  // A tileset entry without an archive is a programming error, not data: refuse.
  std::vector<MapImageGridTileset> broken{{3,nullptr,"",1}};
  need(!renderMapImageGridViewport(terrain,state,broken,camera).image.valid(),
@@ -661,7 +706,7 @@ void realDataGroundTests(bool& originalData) {
          const auto grid=renderMapImageGridViewport(terrain,*state,tilesets,camera);
          need(grid.image.valid()&&grid.stats.activeCells==9940&&grid.stats.zeroCells==0&&
               grid.stats.nonzeroCells==9940&&grid.stats.archiveUnavailable==0&&
-              grid.stats.unresolvedIndices==0&&grid.stats.geometryUnsupported==4&&
+              grid.stats.unresolvedIndices==0&&grid.stats.geometryUnsupported==0&&grid.stats.decodedCells==9940&&grid.stats.compositeBlocks==1&&grid.stats.compositeConfirmedCells==4&&
               grid.stats.decodeFailures==0,
               "original Anyang.map stored image grid decodes with the measured low-14 base");
          const auto score=scoreGroundChainAgainstImageGrid(terrain,*state,archive);

@@ -60,7 +60,9 @@ FIELDS = ('active_cells', 'known_cells', 'unknown_cells', 'chain_no_write_cells'
 IMAGE_GRID_FIELDS = ('grid_cells', 'zero_cells', 'nonzero_cells', 'decoded_cells',
                      'drawn_cells', 'culled', 'visible_cells', 'unresolved_indices',
                      'geometry_unsupported', 'archive_unavailable', 'decode_failures',
-                     'unique_decoded_IDs', 'cache_bytes')
+                     'unique_decoded_IDs', 'cache_bytes', 'composite_blocks',
+                     'composite_confirmed_cells', 'composite_mismatched_cells',
+                     'composite_foreign_cells', 'drawn_blocks')
 
 # Chain-score fields summed across cities for the image-grid aggregate.
 CHAIN_FIELDS = ('cells', 'emitted', 'matched', 'mismatched', 'known_matched',

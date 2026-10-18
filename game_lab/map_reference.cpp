@@ -12,6 +12,36 @@
 #include <sys/stat.h>
 #include <unistd.h>
 namespace game_lab {
+namespace {
+// A stored record reached through its mirror chain, with the addressed (post-hop)
+// fields the composite rule needs. sg3SingleCellGeometry repeats the same hop; this
+// exposes the resolved pixel size, which that helper deliberately does not.
+struct SG3SurfaceRecord {
+    size_t index;int32_t width,height;uint16_t type,tileSize;uint32_t length,uncompressedLength;
+};
+std::optional<SG3SurfaceRecord> resolveSG3SurfaceRecord(const SG3Archive& a,size_t index) {
+    if(index>=a.numImages||index>=a.sprites.size())return std::nullopt;
+    while(a.sprites[index].mirrorOffset) {
+        const int64_t delta=a.sprites[index].mirrorOffset;
+        if(delta>=0||int64_t(index)+delta<0)return std::nullopt;
+        index=size_t(int64_t(index)+delta);
+    }
+    const auto& s=a.sprites[index];
+    return SG3SurfaceRecord{index,s.width,s.height,s.type,s.tileSize,s.length,s.uncompressedLength};
+}
+// A composite (multi-tile) surface record packs cols*cols single cells: cols columns
+// of `(width+2)/80`, width exactly cols*80-2, height at least cols*40, an uncompressed
+// size of cols*cols*3200, and tileSize in {0,cols}. The declaration is the geometry,
+// not a guessed grid. Returns the block side for a confirmed composite, else nullopt.
+std::optional<uint32_t> sg3CompositeCols(const SG3SurfaceRecord& r) {
+    if(r.type!=30||r.width<78)return std::nullopt;
+    const uint32_t cols=uint32_t((uint32_t(r.width)+2)/80);
+    if(cols<2||r.width!=int32_t(cols*80-2)||r.height<int32_t(cols*40))return std::nullopt;
+    if(uint64_t(r.uncompressedLength)!=uint64_t(cols)*cols*3200)return std::nullopt;
+    if(r.tileSize&&r.tileSize!=cols)return std::nullopt;
+    return cols;
+}
+}
 // FUN_00475B60 @0x00475B60 assigns a 41-entry pointer table; entries 0..24 and
 // 38..40 are literal names (see docs/MAP_SG3_PIPELINE.md). Only the version-213
 // archives the stored grid references are listed here. The name alone is the
@@ -170,6 +200,72 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
         // index space and a bare index would collide across them.
         std::map<std::pair<uint32_t,size_t>,DecodedImage> cache;const int scale=int(camera.scale);
         std::map<uint32_t,size_t> cellsByTileset,drawnByTileset;
+        // Camera-free composite pre-pass. A 4-connected same-word component of the
+        // active crop whose resolved record is multi-tile type-30 art is placed block
+        // by block when the component is a full s-aligned rectangle; an irregular or
+        // non-type-30 merge is left to the single-cell path (geometry_unsupported) and
+        // named. plan is per storage cell: -1 normal, -2 covered by a block, or the
+        // index of the block anchored at that cell.
+        struct CompositeAnchor { const MapImageGridTileset* tileset; size_t index; uint32_t cols,width,height; };
+        const uint32_t cropSide=activity.cropSide,cropOrigin=activity.cropOrigin;
+        const size_t gridCells=terrain.flags.size();
+        std::vector<int32_t> plan(gridCells,-1);std::vector<CompositeAnchor> anchors;
+        {
+            std::vector<uint8_t> visited(gridCells,0);std::vector<uint32_t> stack,members;
+            for(uint32_t cy=0;cy<cropSide;++cy)for(uint32_t cx=0;cx<cropSide;++cx) {
+                const size_t start=size_t(cy+cropOrigin)*OriginalMapTerrain::storageSide+cx+cropOrigin;
+                if((terrain.flags[start]&0x80000u)||!state.image[start]||visited[start])continue;
+                const uint32_t value=state.image[start];
+                stack.assign(1,(cy<<16)|cx);visited[start]=1;members.clear();
+                uint32_t minX=cx,maxX=cx,minY=cy,maxY=cy;
+                while(!stack.empty()) {
+                    const uint32_t packed=stack.back();stack.pop_back();
+                    const uint32_t mx=packed&0xFFFFu,my=packed>>16;members.push_back(packed);
+                    minX=std::min(minX,mx);maxX=std::max(maxX,mx);minY=std::min(minY,my);maxY=std::max(maxY,my);
+                    for(int dy=-1;dy<=1;++dy)for(int dx=-1;dx<=1;++dx) {
+                        if((dx==0)==(dy==0))continue; // 4-connected only
+                        const int nx=int(mx)+dx,ny=int(my)+dy;
+                        if(nx<0||ny<0||nx>=int(cropSide)||ny>=int(cropSide))continue;
+                        const size_t next=size_t(size_t(ny+cropOrigin)*OriginalMapTerrain::storageSide+size_t(nx+cropOrigin));
+                        if(visited[next]||state.image[next]!=value||(terrain.flags[next]&0x80000u))continue;
+                        visited[next]=1;stack.push_back((uint32_t(ny)<<16)|uint32_t(nx));
+                    }
+                }
+                const uint32_t tilesetId=value>>14;
+                const MapImageGridTileset* selected=nullptr;
+                for(const auto& tileset:tilesets)if(tileset.tileset==tilesetId){selected=&tileset;break;}
+                if(!selected)continue; // per-cell path counts archiveUnavailable
+                const uint32_t recordId=(value&0x3FFFu)+selected->firstRecordId;
+                if(recordId<selected->firstRecordId||recordId<1||size_t(recordId)>selected->archive->numImages)continue;
+                const size_t index=size_t(recordId-1);
+                if(sg3SingleCellGeometry(*selected->archive,index))continue; // single-cell record: per-cell draw
+                const auto record=resolveSG3SurfaceRecord(*selected->archive,index);
+                const uint32_t bboxWidth=maxX-minX+1,bboxHeight=maxY-minY+1;
+                const auto blockSide=record?sg3CompositeCols(*record):std::optional<uint32_t>();
+                if(!record||!blockSide){result.stats.compositeForeignCells+=members.size();continue;} // non-type-30 / broken mirror
+                const uint32_t cols=*blockSide;
+                const bool full=members.size()==size_t(bboxWidth)*bboxHeight;
+                const bool divisible=bboxWidth%cols==0&&bboxHeight%cols==0;
+                if(full&&divisible) {
+                    result.stats.compositeConfirmedCells+=members.size();
+                    result.stats.compositeBlocks+=size_t(bboxWidth/cols)*size_t(bboxHeight/cols);
+                    for(uint32_t packed:members) {
+                        const size_t member=size_t(size_t((packed>>16)+cropOrigin)*OriginalMapTerrain::storageSide+size_t((packed&0xFFFFu)+cropOrigin));
+                        plan[member]=-2;
+                    }
+                    for(uint32_t bi=0;bi<bboxWidth/cols;++bi)for(uint32_t bj=0;bj<bboxHeight/cols;++bj) {
+                        const size_t anchorCell=size_t(size_t(minY+bj*cols+cropOrigin)*OriginalMapTerrain::storageSide+size_t(minX+bi*cols+cropOrigin));
+                        plan[anchorCell]=int32_t(anchors.size());
+                        anchors.push_back(CompositeAnchor{selected,record->index,cols,uint32_t(record->width),uint32_t(record->height)});
+                    }
+                } else {
+                    result.stats.compositeMismatchedCells+=members.size();
+                    result.stats.compositeMismatches.push_back(MapImageGridCompositeMismatch{
+                        tilesetId,recordId,record->width,record->height,cols,bboxWidth,bboxHeight,
+                        uint32_t(members.size()),full,divisible});
+                }
+            }
+        }
         // Same authored flat diagnostic painter order as the other viewports.
         for(uint32_t depth=0;depth<2*activity.cropSide-1;++depth)for(uint32_t x=0;x<activity.cropSide;++x) {
             if(depth<x||depth-x>=activity.cropSide)continue;const uint32_t y=depth-x;
@@ -182,6 +278,47 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
             ++result.stats.nonzeroCells;
             const uint32_t tilesetId=stored>>14,low14=stored&0x3FFFu;
             ++cellsByTileset[tilesetId];
+            // A confirmed composite draws once per block at its own anchor cell; the
+            // rest of the component is covered and skipped. decode is camera-free up
+            // to the cull test, exactly like the single-cell path.
+            const int32_t planEntry=plan[cell];
+            if(planEntry==-2)continue;
+            if(planEntry>=0) {
+                const auto& anchor=anchors[size_t(planEntry)];
+                const size_t blockCells=size_t(anchor.cols)*anchor.cols;
+                result.stats.decodedCells+=blockCells;
+                const double dx=double(x)-camera.centerX,dy=double(y)-camera.centerY;
+                const double px=(dx-dy)*40*scale+double(camera.width)/2,py=(dx+dy)*20*scale+double(camera.height)/2;
+                const int left=int(std::floor(px+.5))-int((anchor.cols-1)*40+39)*scale;
+                const int top=int(std::floor(py+.5))-(int(anchor.height)-int(anchor.cols)*40+20)*scale;
+                if(left>=int(camera.width)||top>=int(camera.height)||left+int(anchor.width)*scale<=0||top+int(anchor.height)*scale<=0){result.stats.culled+=blockCells;continue;}
+                result.stats.visibleCells+=blockCells;
+                const auto key=std::make_pair(anchor.tileset->tileset,anchor.index);
+                auto found=cache.find(key);
+                if(found==cache.end()) {
+                    auto decoded=decodeSG3Sprite(*anchor.tileset->archive,anchor.index,anchor.tileset->internal555);
+                    if(!decoded.image.valid()){result.stats.decodeFailures+=blockCells;continue;}
+                    const size_t bytes=decoded.image.pixelsBGRA.size()*4;
+                    if(bytes>64u*1024u*1024u-result.stats.cacheBytes){result.image={};return result;}
+                    result.stats.cacheBytes+=bytes;found=cache.emplace(key,std::move(decoded.image)).first;++result.stats.uniqueDecoded;
+                }
+                const auto& image=found->second;result.stats.drawnCells+=blockCells;++result.stats.drawnBlocks;
+                drawnByTileset[anchor.tileset->tileset]+=blockCells;
+                for(uint32_t row=0;row<image.height;++row)for(uint32_t col=0;col<image.width;++col) {
+                    const uint32_t source=image.pixelsBGRA[size_t(row)*image.width+col];const uint32_t alpha=source>>24;if(!alpha)continue;
+                    for(int sy=0;sy<scale;++sy)for(int sx=0;sx<scale;++sx) {
+                        const int xx=left+int(col)*scale+sx,yy=top+int(row)*scale+sy;
+                        if(xx<0||yy<0||xx>=int(camera.width)||yy>=int(camera.height))continue;
+                        auto& target=result.image.pixelsBGRA[size_t(yy)*camera.width+size_t(xx)];
+                        if(alpha==255){target=source;continue;}
+                        uint32_t mixed=0;for(unsigned shift:{0u,8u,16u,24u}) {
+                            const uint32_t src=(source>>shift)&255,dst=(target>>shift)&255;
+                            mixed|=(src+(dst*(255-alpha)+127)/255)<<shift;
+                        }target=mixed;
+                    }
+                }
+                continue;
+            }
             const MapImageGridTileset* selected=nullptr;
             for(const auto& tileset:tilesets)if(tileset.tileset==tilesetId){selected=&tileset;break;}
             if(!selected){++result.stats.archiveUnavailable;continue;}
