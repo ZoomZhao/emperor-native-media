@@ -24,6 +24,31 @@ def table(extra=(), version=4):
 
 
 class BuildingAuditTests(unittest.TestCase):
+    def test_all_published_fixed_spans(self):
+        spans = [(0, 0), (2, 65), (3, 65), (4, 65), (5, 65), (6, 65), (7, 65), (8, 65), (9, 65), (10, 65), (11, 65), (12, 65), (13, 65), (14, 65), (15, 65), (16, 65), (17, 65), (94, 2), (72, 130), (111, 130), (113, 130), (124, 130), (126, 130), (127, 130), (138, 130), (151, 130), (177, 130), (178, 130), (179, 130), (180, 130), (181, 130), (183, 130), (185, 130), (186, 130), (187, 130), (188, 130), (189, 130), (161, 130), (162, 130), (163, 130), (164, 130), (165, 130), (167, 130), (173, 130), (174, 130), (175, 130), (207, 130), (208, 130), (89, 132), (90, 132), (91, 132), (231, 132), (104, 132), (105, 132), (106, 132), (232, 132), (116, 132), (117, 132), (118, 132), (119, 132), (120, 132), (121, 132), (122, 132), (125, 132), (131, 132), (203, 132), (209, 132), (243, 132), (244, 132), (245, 132), (246, 132), (247, 132), (248, 132), (249, 132), (250, 132), (251, 132), (252, 132), (31, 134), (33, 134), (38, 134), (42, 134), (43, 134), (44, 134), (45, 134), (46, 134), (47, 134), (49, 134), (52, 134), (211, 134), (212, 134), (213, 134), (226, 134), (233, 134), (235, 134), (236, 134), (35, 136), (36, 136), (37, 136), (39, 136), (40, 136), (41, 136), (48, 136), (220, 136), (221, 136), (223, 136), (224, 136), (225, 136), (26, 140), (27, 140), (28, 140), (62, 140), (64, 140), (65, 140), (66, 140), (67, 140), (68, 140), (69, 140), (70, 140), (130, 140), (194, 140), (195, 140), (196, 140), (197, 140), (198, 140), (199, 140), (192, 142), (237, 142), (238, 142), (239, 142), (214, 165), (215, 165), (217, 165), (216, 167), (218, 167), (219, 169), (110, 179), (193, 222), (75, 236), (54, 248), (59, 266), (60, 266), (53, 288), (58, 348), (71, 352), (56, 356), (210, 2140)]
+        for kind, tail in spans:
+            for version, common in ((3,179),(4,181),(5,182)):
+                root = struct.pack('<HI',1,4000)+record(name='Building',version=version)
+                name=b'AuthoredSpan';header=struct.pack('<HHH',65535,0,len(name))+name
+                body=bytearray(common);struct.pack_into('<H',body,0,version);struct.pack_into('<H',body,16,kind)
+                closed=root+header+body+bytes(tail)
+                suffix=record(0x1234,'UnknownTail',version)
+                result=audit.parse_table(closed+suffix,0)
+                self.assertEqual((result['status'],len(result['records']),result['records'][-1]['end']),('unsupported_tail',2,len(closed)))
+                self.assertEqual(audit.parse_table(closed[:-1],0)['records'],[])
+
+    def test_monument_subversion_boundaries(self):
+        for kind in [76, 77, 78, 79, 80, 81, 82, 83, 84, 92, 93, 253, 254, 255, 256, 257, 258, 259, 260]:
+            for version,common in ((3,179),(4,181),(5,182)):
+                for sub,tail in ((9,140),(10,141),(11,141)):
+                    root=struct.pack('<HI',1,4000)+record(name='Building',version=version)
+                    name=b'AuthoredMonument';header=struct.pack('<HHH',65535,0,len(name))+name
+                    body=bytearray(common);struct.pack_into('<H',body,0,version);struct.pack_into('<H',body,16,kind)
+                    extra=bytearray(tail);struct.pack_into('<HH',extra,0,1,sub)
+                    result=audit.parse_table(root+header+body+extra+record(0x1234,'UnknownTail',version),0)
+                    self.assertEqual((result['status'],len(result['records'])),('unsupported_tail',1 if sub==11 else 2))
+                    self.assertEqual(audit.parse_table(root+header+body+extra[:3],0)['records'],[])
+
     def test_complete_versions_and_offsets(self):
         for v in (3, 4, 5):
             data = b'odd' + table([record(72, 'cWellBldg', v, 29, 38, 2, 1)], v) + b'next-section'

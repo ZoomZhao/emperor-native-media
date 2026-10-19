@@ -1654,7 +1654,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         const bool crop = _originalMapCrop.state == NSControlStateValueOn;
         const auto analysis = game_lab::analyzeOriginalMap(result.terrain);
         game_lab::OriginalMapCamera camera;camera.outlines=_originalMapOutlines.state==NSControlStateValueOn;
-        if(buildingOverlay){camera.width=320;camera.height=240;} // Focused footprint annotation remains legible in the existing image view.
+        if(buildingOverlay)camera=game_lab::originalBuildingFocusCamera(_originalSaveBuildings->footprints,camera);
         game_lab::DecodedImage image;
         const bool cameraNumbers=readMapCameraNumber(_originalMapCameraX,camera.centerX)&&readMapCameraNumber(_originalMapCameraY,camera.centerY);
         if(surface){
@@ -1681,7 +1681,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                 _originalMapUnknowns.string=@"占地视口无效；没有保留旧占地坐标或图像。";
                 if(cameraNumbers){auto preview=game_lab::renderOriginalBuildingFootprints(result.terrain,_originalSaveBuildings->footprints,camera,bit);image=std::move(preview.image);
                     std::string detail="未绑定建筑占地："+std::to_string(preview.valid)+" 个已验证记录，当前视口轮廓 "+std::to_string(preview.visible)+" 个；原版图像绑定0。琥珀线仅为原始记录占地，背景来自同一SAV的数值地形，不是MAP替身或原版建筑。\n";
-                    for(const auto& f:_originalSaveBuildings->footprints)detail+=std::string(game_lab::originalBuildingName(f.type))+"(type"+std::to_string(f.type)+") 活动坐标("+std::to_string(f.x)+","+std::to_string(f.y)+")，占地"+std::to_string(f.size)+"×"+std::to_string(f.size)+"，表槽"+std::to_string(f.slot)+"；绘制锚点待原版确认。\n";
+                    for(const auto& f:_originalSaveBuildings->footprints)detail+=std::string(game_lab::originalBuildingName(f.type))+"(type"+std::to_string(f.type)+") 活动坐标("+std::to_string(f.x)+","+std::to_string(f.y)+")，占地"+std::to_string(game_lab::originalFootprintWidth(f))+"×"+std::to_string(game_lab::originalFootprintHeight(f))+"（记录size"+std::to_string(f.size)+"），表槽"+std::to_string(f.slot)+"；绘制锚点待原版确认。\n";
                     if(image.valid())_originalMapUnknowns.string=[NSString stringWithUTF8String:detail.c_str()];
                     text+="；未绑定建筑占地 "+std::to_string(preview.visible)+"/"+std::to_string(preview.valid)+" 可见；仅记录轮廓，非原版建筑图像";
                 }
@@ -1716,8 +1716,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     if(!_originalSaveBuildings||_originalSaveBuildings->footprints.empty())return;
     const auto& f=_originalSaveBuildings->footprints.front();
     [_originalMapBitPicker selectItemAtIndex:0];_originalMapSpatial.state=NSControlStateValueOn;
-    _originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.2f",double(f.x)+(double(f.size)-1)/2];
-    _originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.2f",double(f.y)+(double(f.size)-1)/2];
+    _originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.2f",double(f.x)+(double(game_lab::originalFootprintWidth(f))-1)/2];
+    _originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.2f",double(f.y)+(double(game_lab::originalFootprintHeight(f))-1)/2];
     [self onOriginalMapPlaneChanged:nil];
 }
 - (void)onOriginalSaveCellChanged:(id)sender {

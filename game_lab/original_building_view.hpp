@@ -2,6 +2,13 @@
 #include "original_building.hpp"
 #include <cmath>
 namespace game_lab {
+// A focused numerical viewport must contain the largest validated footprint,
+// including rectangular markets,with one logical-cell margin in each axis.
+inline OriginalMapCamera originalBuildingFocusCamera(const std::vector<OriginalBuildingFootprint>& footprints,OriginalMapCamera camera){
+    camera.width=320;camera.height=240;
+    for(const auto& f:footprints){const uint32_t extent=uint32_t(originalFootprintWidth(f))+originalFootprintHeight(f);if(extent>16)continue;camera.width=std::max(camera.width,40*extent+40);camera.height=std::max(camera.height,20*extent+40);}
+    return camera;
+}
 struct OriginalBuildingView {DecodedImage image;size_t valid=0,rejected=0,visible=0,outlinePixels=0;};
 // Flat saved-coordinate footprint over the SAME SAV's numerical terrain. Amber
 // is an annotation,not original artwork. No MAP substitute or guessed sprite.
@@ -18,9 +25,9 @@ inline OriginalBuildingView renderOriginalBuildingFootprints(const OriginalMapTe
         if(!validOriginalBuildingFootprint(terrain,f)){++result.rejected;continue;}
         const auto origin=projectOriginalMapCell(terrain,camera,f.x,f.y);if(!origin){++result.rejected;continue;}++result.valid;
         // Grid-square boundaries under the existing40/20 centre basis.
-        const double scale=camera.scale,n=f.size;
-        const double px[]={origin->x,origin->x+40*n*scale,origin->x,origin->x-40*n*scale};
-        const double py[]={origin->y-20*scale,origin->y+20*(n-1)*scale,origin->y+20*(2*n-1)*scale,origin->y+20*(n-1)*scale};
+        const double scale=camera.scale,w=originalFootprintWidth(f),h=originalFootprintHeight(f);
+        const double px[]={origin->x,origin->x+40*w*scale,origin->x+40*(w-h)*scale,origin->x-40*h*scale};
+        const double py[]={origin->y-20*scale,origin->y+20*(w-1)*scale,origin->y+20*(w+h-1)*scale,origin->y+20*(h-1)*scale};
         bool visible=false;for(size_t edge=0;edge<4;++edge){const size_t next=(edge+1)%4;visible|=line(int(std::floor(px[edge]+.5)),int(std::floor(py[edge]+.5)),int(std::floor(px[next]+.5)),int(std::floor(py[next]+.5)));}result.visible+=visible;
     }return result;
 }

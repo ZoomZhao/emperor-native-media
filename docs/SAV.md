@@ -315,3 +315,52 @@ The existing scene consumes the expanded list andlabels it unbound building foot
 The next profile boundaries are explicit:the two extended snapshots stop at0xcf Herbalist;the other two incomplete snapshots stop at0x21 Hunter. The same public mapper supplies130/134-byte tails respectively,butthese are deliberately not yet enabled by this two-type increment. Their internal tail fields remain opaque. Full-table completion is still2/6;no unknown record is skipped by resynchronization.
 
 Only the two new names were checked against58 indexes/340 bitmap filenames/descriptions;the exhausted Well-name query was not repeated. One `Inspector` bitmap entry exists,with declared image count/first/last all0;this supplies no physical building-record binding. The [published SG format](https://github.com/bvschaik/citybuilding-tools/wiki/SG-file-format#index) describes an index-to-image mechanism andgives aCaesar3 example,not Emperor's type124/127→index semantics. Neither bitmap naming norcross-game index numbering closes that missing edge. All building image bindings remain0/6. Six SAVs plus58 SG indexes andone Model file remainunchanged **65/65**;no original application,EXE,asset pixels orGUI are accessed.
+
+## Batched published building layouts
+
+This batch follows the same pinned [public modern mapper span definitions](https://github.com/bvschaik/citybuilding-mappers/blob/bb97d7c7edf7c6608d5e9d3d6d5b63ba3686cda6/emperorfile.cpp#L341) and[placement cases](https://github.com/bvschaik/citybuilding-mappers/blob/bb97d7c7edf7c6608d5e9d3d6d5b63ba3686cda6/emperorfile.cpp#L842). The independently authored readers support146 fixed-tail semantic types. Their exact type lists/lengths are retained in `originalBuildingTailBytes` andPython `TAIL_BYTES`;source branches explicitly marked“assumed” are excluded. Nineteen monument types additionally require a four-byte nested header:its second u16 is a subversion,9 consuming136 further bytes (140 total),10 consuming137 (141 total). Unknown nested versions stop the closed prefix;truncated headers/tails clear it. The first nested u16 is consumed butnot assigned a meaning. Common versions3/4/5 still consume179/181/182 bytes. No byte-pattern resynchronization orlength fitting is introduced.
+
+The original six-SAV baseline8,096/24,000 slots and2/6 complete tables becomes **24,000/24,000 and6/6**. An independent direct boundary check finds the documented following walker-table header(1,2000) exactly after all six closed building tables;walkers themselves remain unparsed. The broader fixed manifest5 MAP＋6 SAV＋2 PAK city parts now closes **13/13 tables,52,000/52,000 slots**,up from6/13 tables and24,106 closed slots after the two-type extension. These are source entries,not distinct cities. Empty slots andeditor placeholders are not live buildings.
+
+A semantic type is stored independently in each common record. It can select the published ordinary square placement profile even when the serialization class tag is opaque;no tag-to-class dictionary orreference identity is inferred. Explicit class strings remain raw bounded metadata,not an image binding. Eligible live,size-positive records require size1..8,an in-bounds active-square footprint,andthe on-map/building flag on every covered terrain cell ofthat same SAV. Special multipart/dock layouts,unhandled rectangles andeditor placeholders are excluded from ordinary-square annotation;their record spans are still consumed. The current six SAVs contain1,065 live,size-positive record occurrences: **1,063/1,065** pass the square contract,including777 crop-field records and286 other structures. The remaining2 are entertainment squares across the snapshots. Market rectangles use the published type-specific direction field,not the common rotation. No eligible square record fails terrain validation. There are26 observed eligible semantic types;the schema's other synthetic cases are not original-data progress.
+
+| Observed semantic type (decimal) | Published family | Occurrences in6 SAVs | Tail bytes |
+|---|---|---:|---:|
+| 2 | Vacant house | 10 | 65 |
+| 3 | Shelter | 8 | 65 |
+| 5 | Plain cottage | 26 | 65 |
+| 7 | Spacious dwelling | 26 | 65 |
+| 33 | Hunter | 12 | 134 |
+| 35 | Clay pit | 12 | 136 |
+| 43 | Kiln | 8 | 134 |
+| 53 | Mill | 4 | 288 |
+| 54 | Warehouse | 6 | 248 |
+| 58 | Trading station | 2 | 348 |
+| 59 | Common market rectangle | 2 | 266 |
+| 62 | Empty stall | 4 | 140 |
+| 66 | Food stall | 2 | 140 |
+| 67 | Hemp stall | 2 | 140 |
+| 72 | Well | 2 | 130 |
+| 124 | Inspector | 6 | 130 |
+| 126 | Roadblock | 6 | 130 |
+| 127 | Watchtower | 2 | 130 |
+| 192 | Single crop hold | 6 | 142 |
+| 193 | Multiple crop hold | 8 | 222 |
+| 194 | Hemp crop field | 287 | 140 |
+| 196 | Millet crop field | 490 | 140 |
+| 207 | Herbalist | 2 | 130 |
+| 211 | Music school | 2 | 134 |
+| 214 | Ancestral shrine | 2 | 165 |
+| 231 | Residential wall | 126 | 132 |
+
+Counts above are record occurrences across four nonempty snapshots,two ofthe six being empty ofeligible records. They are not independent building/field/city counts;housing types may change across snapshots,andcrop records dominate. Native andPython paths agree onall1,063 tuples(type,x,y,size,slot,decoded record offset),with1,751/1,751 terrain-cell checks.48 occurrences contain an explicit class name;1,015 have opaque reference tags anduse only the separately stored semantic type for footprint eligibility. No serialization class is inferred from those tags.
+
+Native focused images/CGImages pass1,063/1,063. The existing scene draws this expanded list over its same-SAV numerical terrain,andthe existing coordinate controls navigate to any listed record. GUI checks select6/6 SAVs,list1,063/1,063 occurrences andfocusall53 source/type combinations (26 types across four nonempty snapshots);raw-field/invalid-camera,PAK-summary/MAP/no-match clearing andtab return pass. One own-App capture was inspected locally;all images remain outside Git. All344/344 tested original inputs remainunchanged. The original game is not operated,andCitySimulation/EMP1 stay frozen.
+
+Authored native Release/UBSan each pass4,410 assertions. Every146 fixed-tail type is checked inall three common versions for exact next-record boundary andone-byte-short refusal;every19 monument type is checked inthose common versions with nested9/10 andunknown11. Existing broad truncation/camera/pixel tests remain. Python14/14 methods cross-check the same source facts with separately constructed literal fixtures;SAV61/61 andsurface69＋9 regressions remainpassing. Unknown types/nested versions still stop;malformed late records clear all footprints. Real metrics still use only process-local `EMPEROR_GAMEDATA_ROOT` andsuccessful unset/empty SKIP.
+
+The span/ordinary-square contract is closed for this selected corpus,not all Emperor objects. Two entertainment-square record occurrences remain withheld fromthis square renderer;their rectangle/multipart geometry is a separate next contract. Actual artwork bindings remain **0 confirmed**,independent of1,063 annotations and52,000 closed slots. The exhausted SG3 name searches are not repeated inthis batch. Entertainment-square0x47 has a published352-byte tail butno ordinary occupied-layout rule inthis mapper;its storedsize2 does not prove that the full square is the occupied footprint. This is the remaining observed placement-contract gap. The next image gap is an explicit stored semantic type/instance→Emperor SG3 namespace/index meaning,followed by source-matched anchor/composition evidence;range fitting,numerical type equality andvisual resemblance do not supply it.
+
+Market types0x3b/0x3c are the explicitly supported rectangle exception:their266-byte tails contain the operative direction at+96 after the common span. Direction0 gives4×7/6×7,direction1 gives7×4/7×6. Other direction values retain the parsed record butwithhold a footprint. Inboth observed common markets,rawsize1/common-rotation0 coexist withtail-direction1;the7×4 rule passes56/56 cells,whileusingrawsize would be wrong. Width/height are derived layout dimensions kept separately fromrawsize. The renderer uses the same flat lattice withrectangular corners,andthe camera uses eachdimension independently. Authored tests verifyboth directions forboth market types,independent880/1040-pixel unclipped perimeter counts,andfar-corner terrain rejection. Grand markets are synthetic-only inthis selected corpus.
+
+The focused viewport derives its extent fromthe validated footprint dimensions witha one-cell margin,so the complete7×4 market outline fits rather than beingclipped by the earlier320×240 close view. Native metrics use the same sizing helper,andall four authored market direction/type cases verify fullunclipped perimeter inclusion. This remains a numerical annotation camera,not an original-game camera reconstruction.
