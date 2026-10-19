@@ -697,13 +697,38 @@ void chainScoreTests() {
  bool sawFarm=false,sawChainNoWrite=false,sawFeature=false;
  for(const auto& branch:score.branches) {
      if(branch.branch=="0x80-farm"){sawFarm=true;need(branch.cells==3&&branch.emitted==3&&
-         branch.matched==1&&branch.storedZero==0,"the farm branch carries its own score");}
+         branch.matched==1&&branch.storedZero==0,"the farm branch carries its own score");
+         // Cell at(46,41) stores tileset 16 (China_Elevation), so the ground chain
+         // claimed a cell whose art is not ground art at all. Bucket 15 is ">= 15".
+         need(branch.storedNotTileset3==1&&branch.storedTilesetOther[15]==1&&
+              branch.storedZeroMismatch==0,"a stored non-tileset-3 mismatch is named by tileset");}
      if(branch.branch=="chain-declined"){sawChainNoWrite=true;need(branch.cells==2&&branch.emitted==0&&
          branch.matched==0&&branch.storedZero==1,"the chain-declined branch carries its own score");}
      if(branch.branch=="0x2000000-feature"){sawFeature=true;need(branch.cells==1&&branch.emitted==0&&
          branch.storedZero==1,"the unresolved feature branch is still named");}
+     // Conservation inside a branch: every emitted cell is a match or exactly one
+     // named mismatch class, so a silent drop cannot pass.
+     size_t bucketed=0;
+     for(size_t i=0;i<branch.indexDelta.size();++i)bucketed+=branch.indexDelta[i];
+     for(size_t i=0;i<branch.indexDeltaMagnitude.size();++i)bucketed+=branch.indexDeltaMagnitude[i];
+     need(branch.emitted==branch.matched+branch.storedZeroMismatch+
+          branch.storedNotTileset3+bucketed,
+          "every emitted-but-mismatched cell of a branch is in exactly one class");
+     need(branch.indexDelta[8]==0,
+          "a zero index delta is a match, so it can never appear as a mismatch");
+     need(branch.storedZeroMismatch<=branch.storedZero,
+          "a stored-zero mismatch is a subset of the branch's stored zeros");
  }
  need(sawFarm&&sawChainNoWrite&&sawFeature,"every reached branch is reported");
+ // Corpus level: the named classes partition the top-level mismatch count.
+ size_t namedMismatches=0,bucketedMismatches=0;
+ for(const auto& branch:score.branches) {
+     namedMismatches+=branch.storedZeroMismatch+branch.storedNotTileset3;
+     for(size_t i=0;i<branch.indexDelta.size();++i)bucketedMismatches+=branch.indexDelta[i];
+     for(size_t i=0;i<branch.indexDeltaMagnitude.size();++i)bucketedMismatches+=branch.indexDeltaMagnitude[i];
+ }
+ need(score.mismatched==namedMismatches+bucketedMismatches,
+      "the mismatch classes partition score.mismatched with no residue");
  auto shortState=state;shortState.terrain.pop_back();
  need(scoreGroundChainAgainstImageGrid(terrain,shortState,archive,1).activeCells==0,
       "an incomplete loader state refuses before scoring");

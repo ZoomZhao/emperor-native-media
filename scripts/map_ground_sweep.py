@@ -28,6 +28,10 @@ grid (``0x00FE9880``) verbatim: it runs ``scripts/map_reference.py view
 with that stored grid. It aggregates an exact-render metric (cities whose stored
 nonzero cells all resolve to decodable single-cell records) over the same 167-city
 denominator and per-branch chain accuracy, and keeps the non-zero exit on failure.
+It also partitions the chain's emitted-but-mismatched cells into named classes
+(stored zero; stored tileset other than 3; same-tileset archive-index delta, bucketed
+by sign for +-8 and by magnitude above it) and refuses a city whose classes do not
+sum to its ``mismatched`` count.
 """
 from pathlib import Path
 import argparse
@@ -72,6 +76,26 @@ CHAIN_FIELDS = ('cells', 'emitted', 'matched', 'mismatched', 'known_matched',
                 'chain_no_write_vs_stored_zero', 'chain_no_write_vs_stored_nonzero',
                 'stored_zero', 'stored_zero_unpredicted', 'chain_known', 'chain_unknown',
                 'chain_no_write', 'unresolved')
+
+# Per-branch fields summed across cities, and the fixed-size bucket vectors that the
+# same sum applies per element. The buckets classify every emitted-but-mismatched
+# cell, so the sum of all classes must equal ``mismatched`` exactly: a violated city
+# is a failure, not a metric.
+CHAIN_BRANCH_FIELDS = ('cells', 'emitted', 'matched', 'stored_zero',
+                       'stored_not_tileset3', 'stored_zero_mismatch')
+CHAIN_BRANCH_BUCKETS = (('index_delta', 17), ('index_delta_magnitude', 8),
+                        ('stored_tileset_other', 16))
+
+
+def chain_mismatch_classes(chain):
+    """Split a chain-score document's mismatches into its named classes."""
+    classes = collections.Counter()
+    for branch in (chain or {}).get('branches', []):
+        classes['stored_zero'] += int(branch.get('stored_zero_mismatch') or 0)
+        classes['stored_tileset_other'] += int(branch.get('stored_not_tileset3') or 0)
+        classes['index_delta_within_8'] += sum(branch.get('index_delta') or [])
+        classes['index_delta_magnitude'] += sum(branch.get('index_delta_magnitude') or [])
+    return classes
 
 
 def decode_map_payload(path):
@@ -201,6 +225,12 @@ def image_grid_report(maps, rows, failures, args):
         if covered != nonzero:
             failures.append({'map': row['map'],
                              'reason': f'accounting identity {covered} != nonzero {nonzero}'})
+        row_classes = chain_mismatch_classes(row['chain'])
+        mismatched = int((row['chain'] or {}).get('mismatched') or 0)
+        if sum(row_classes.values()) != mismatched:
+            failures.append({'map': row['map'],
+                             'reason': f'chain mismatch classes {sum(row_classes.values())} '
+                                       f'!= mismatched {mismatched}'})
     rows.sort(key=lambda r: (r['drawn_over_nonzero'] is None,
                              r['drawn_over_nonzero'] or 0.0, r['map']))
     exact = [r for r in rows if r['exact']]
@@ -209,6 +239,21 @@ def image_grid_report(maps, rows, failures, args):
                     for field in CHAIN_FIELDS}
     emitted = chain_totals['emitted']
     matched = chain_totals['matched']
+    branch_totals = {}
+    for row in rows:
+        for branch in (row['chain'] or {}).get('branches', []):
+            entry = branch_totals.setdefault(branch['branch'],
+                                             {field: 0 for field in CHAIN_BRANCH_FIELDS})
+            for field in CHAIN_BRANCH_FIELDS:
+                entry[field] += int(branch.get(field) or 0)
+            for field, size in CHAIN_BRANCH_BUCKETS:
+                bucket = entry.setdefault(field, [0] * size)
+                values = branch.get(field) or []
+                for index in range(min(size, len(values))):
+                    bucket[index] += int(values[index])
+    classes = collections.Counter()
+    for row in rows:
+        classes.update(chain_mismatch_classes(row['chain']))
     reason_totals = collections.Counter()
     for row in rows:
         for reason, cells in (row.get('mismatch_reasons') or {}).items():
@@ -237,6 +282,9 @@ def image_grid_report(maps, rows, failures, args):
         'totals': totals,
         'unresolved_reasons': dict(sorted(reason_totals.items())),
         'chain_totals': chain_totals,
+        'chain_mismatch_classes': dict(sorted(classes.items())),
+        'chain_branches': {name: branch_totals[name]
+                           for name in sorted(branch_totals)},
         'chain_accuracy': {
             'matched_over_emitted': (matched / emitted) if emitted else None,
             'known_matched_over_cells': (chain_totals['known_matched'] /
@@ -260,6 +308,11 @@ def image_grid_report(maps, rows, failures, args):
             'base; every miss is counted, not hidden.',
             'A viewport cannot cover a full 84..226-cell crop at 2048px cap, so '
             'drawn_cells is a viewport fraction; the decode counts are camera-free.',
+            'Every emitted-but-mismatched cell of the chain score falls in exactly one '
+            'named class (stored zero, stored tileset other than 3, or a same-tileset '
+            'archive-index delta bucketed by sign for +-8 and by magnitude above it). '
+            'The classes must sum to mismatched for every city; a city that violates '
+            'this is a failure, not a metric. See docs/MAP_GROUND_BRANCHES.md.',
         ],
         'failures': failures,
         'rows': rows,
@@ -296,6 +349,10 @@ def image_grid_report(maps, rows, failures, args):
           f'{chain_totals["chain_no_write_vs_stored_zero"]}; '
           f'chain-no-write-vs-stored-nonzero '
           f'{chain_totals["chain_no_write_vs_stored_nonzero"]}')
+    if classes:
+        print(f'# chain mismatch classes (sum {sum(classes.values())} == mismatched '
+              f'{chain_totals["mismatched"]}): '
+              + '; '.join(f'{name} {count}' for name, count in sorted(classes.items())))
     print(f'# composite: blocks {totals["composite_blocks"]}, confirmed '
           f'{totals["composite_confirmed_cells"]}, recovered '
           f'{totals["composite_recovered_cells"]}, partial '

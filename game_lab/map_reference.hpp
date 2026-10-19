@@ -1,6 +1,7 @@
 #pragma once
 #include "original_map.hpp"
 #include "original_ground.hpp"
+#include <array>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -107,8 +108,24 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain&, const O
     const std::vector<MapImageGridTileset>&, const OriginalMapCamera&);
 
 // ---- Chain score against the stored grid -----------------------------------
-// Per-branch tally of the reconstructed chain against the stored 0x00FE9880 grid.
-struct ChainScoreBranch { std::string branch; size_t cells=0,emitted=0,matched=0,storedZero=0; };
+// Per-branch tally of the reconstructed chain against the stored 0x00FE9880 grid,
+// plus a classification of the emitted-but-mismatched cells so a residual is a
+// named cause and not a bare count. Every mismatch falls in exactly one class:
+// the stored word is 0 while the chain emitted (storedZeroMismatch); the stored
+// word names a tileset other than 3 (storedTilesetOther[stored>>14], with index 15
+// holding "15 or more" - the corpus uses 2, 5, 6, 8 and 16); or both name
+// tileset 3 and the resolved archive indexes differ. For the last class the signed
+// stored-minus-predicted delta is bucketed: indexDelta[i] holds delta i-8 for
+// -8..+8, and indexDeltaMagnitude holds |delta|>8 in the doubling buckets 9-16,
+// 17-32, 33-64, 65-128, 129-256, 257-512, 513-1024, >1024, so a wrong variant
+// (small delta) separates from a wrong code (large, quantised delta).
+struct ChainScoreBranch {
+    std::string branch; size_t cells=0,emitted=0,matched=0,storedZero=0;
+    size_t storedNotTileset3=0,storedZeroMismatch=0;
+    std::array<size_t,17> indexDelta{};
+    std::array<size_t,8> indexDeltaMagnitude{};
+    std::array<size_t,16> storedTilesetOther{};
+};
 struct ChainScoreStats {
     size_t activeCells=0, storedZero=0, chainUnknown=0, chainNoWrite=0, chainKnown=0;
     // emitted: the chain produced a determinate ground code that resolved to a

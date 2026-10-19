@@ -538,7 +538,23 @@ ChainScoreStats scoreGroundChainAgainstImageGrid(const OriginalMapTerrain& terra
             ++result.matched;++result.knownMatched;++stats.matched;
         } else {
             ++result.mismatched;
-            if(!stored)++result.storedZeroUnpredicted;
+            if(!stored) {++result.storedZeroUnpredicted;++stats.storedZeroMismatch;}
+            else if(storedTileset!=3u) {
+                ++stats.storedNotTileset3;
+                ++stats.storedTilesetOther[storedTileset<16u?size_t(storedTileset):size_t(15)];
+            } else {
+                // Same tileset, different archive index: bucket the signed delta so a
+                // constant offset (a wrong base) separates from a scattered one (a
+                // wrong variant). Bucket i holds delta i-8; larger magnitudes go to
+                // the doubling buckets 9-16, 17-32, ... 513-1024, >1024.
+                const int64_t delta=int64_t(storedIndex)-int64_t(index);
+                if(delta>=-8&&delta<=8)++stats.indexDelta[size_t(delta+8)];
+                else {
+                    int64_t m=delta<0?-delta:delta;size_t bucket=0;
+                    while(bucket<7&&m>16) {m=(m+1)/2;++bucket;}
+                    ++stats.indexDeltaMagnitude[bucket];
+                }
+            }
         }
     }
     for(auto& entry:branches)result.branches.push_back(entry.second);

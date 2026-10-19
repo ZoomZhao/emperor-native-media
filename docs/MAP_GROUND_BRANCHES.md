@@ -244,3 +244,77 @@ remaining 478,360 cells therefore requires the serialised per-cell state, not mo
 terrain analysis. (The earlier ceiling `known 1,552,542` / `unknown 440,357` predates
 the `f25edf8` payload read order and is superseded; the selector tree itself did not
 change.)
+
+## Mismatch classes: every residual cell now has a named cause
+
+`matched` is the count of emitted codes that equal the stored grid (`1,299,617` of
+`1,514,539`, 85.809 %). The remaining `214,922` cells were a bare count. They are
+now classified per branch, and the classes partition `mismatched` exactly - the
+sweep treats a city whose classes do not sum to its `mismatched` as a **failure**,
+so a silent drop cannot pass.
+
+Reproduce with the sanctioned harness (`--image-grid`), which carries
+`chain_mismatch_classes` and `chain_branches` in its aggregate JSON:
+
+```sh
+EMPEROR_GAMEDATA_ROOT=<data root> make map-ground-sweep
+# or: scripts/map_ground_sweep.py sweep --data-root <root> --image-grid \
+#       --sg3 DATA/China_Terrain.sg3 --sg3-elevation DATA/China_Elevation.sg3
+```
+
+Measured over all 167 `Cities/*.map` (167/167 processed, 0 failures):
+
+| Class | Cells |
+|---|---:|
+| stored word is 0 while the chain emitted | 11 |
+| stored word names a tileset other than 3 | 8,549 |
+| same tileset 3, stored index within +-8 of the prediction | 22,713 |
+| same tileset 3, stored index further off | 183,649 |
+| **total** | **214,922** |
+
+The 8,549 non-tileset-3 cells all name **tileset 16 (`China_Elevation.sg3`)**; no
+other tileset appears. So the chain does not merely pick the wrong record on those
+cells, it claims a cell whose art is not ground art at all: the dispatch chain
+models setters that write into the ground namespace, and the engine's real choice
+for those cells produced elevation art. That is a missing branch, not a variant
+error, and it is the single largest *non-index* class.
+
+The 183,649 "further off" cells are bucketed by magnitude of
+`storedIndex - predictedIndex`: 9-16, 14,757; 17-32, 84,471; 33-64, 17,878;
+65-128, 50,857; 129-256, 14,669; 257-512, 1,014; 513-1024, 3. A wrong *variant*
+can only produce a small delta (the variant space is 0..8), so the clustered large
+deltas are wrong *base/band* selections. Per branch, the residual is dominated by
+`0x80-farm` 65,742 (94.01 % accurate), `0x4-shore-water-ring` 50,159 (39.73 %),
+`0x2-land` 49,808 (33.14 %) and `plain-land` 26,936 (88.16 %).
+
+`0x80-farm` is the clearest case: 65,712 of its 65,742 mismatches are magnitude
+>= 33 off and only 16 are within +-8. The farm quantum is 9 (`T(0xC001) +
+9*Q + random%9`), so an off-by-one `Q` moves the index by whole records and lands
+in the large buckets. The residual is a wrong band selection, not a variant
+off-by-one, which is what a `+-8`-only window would have hidden.
+
+## Composite blocks store one image word, not a per-cell variant
+
+Measured over the same corpus with the block decomposition already used by the
+stored-grid renderer (anchor = `cell - (draw & 7) - ((draw >> 3) & 7) * 228`):
+
+- 6,207 composite blocks (4,557 of 4 cells, 549 of 9, 1,020 of 16, 58 of 25, 23 of 1).
+- The stored image word is **identical in every cell of a block: 6,207/6,207
+  (100.00 %)**, 0 exceptions.
+- The per-cell random byte (`0x00F1E780`) **varies inside 6,184/6,207 blocks
+  (99.63 %)** and is constant in only 23.
+
+So block art is written once and stamped across the footprint. Any rule of the form
+`code = base + (random & 7)` evaluated *per cell* can match at most one cell per
+block, which is exactly the low-accuracy signature of the block branches.
+
+This predicts a specific fix - read the variant from the block anchor cell - and
+that prediction was **tested and refuted**. Applying it corpus-wide
+(`groundCodeRequest` taking `randomByte[anchor]`) moved `matched` from 1,299,617 to
+1,296,643 (**worse by 2,974**; `0x80000000-flood` 14.57 % -> 11.88 %,
+`0x2-land` 33.14 % -> 30.05 %) and the change was reverted. The MAP's draw grid
+therefore does not identify the cell whose random byte produced the block's variant,
+and the variant is not derivable from the MAP's per-cell payload alone. That is a
+measured boundary, not a guess: for those branches the stored grid stays the
+faithful source for rendering, and the reimplementation's residual is bounded by
+state the MAP does not carry.
