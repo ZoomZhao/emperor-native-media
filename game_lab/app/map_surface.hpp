@@ -6,6 +6,7 @@
 #include <optional>
 
 namespace game_lab {
+struct OriginalMapSource;
 enum class AppSurfaceIssueKind { GroupSideConflict, BlockGeometryUnsupported, ArchiveUnavailable, IndexUnresolved };
 struct AppSurfaceIssue {
     uint32_t x=0,y=0,storedWord=0,recordSide=0,groupSide=0;
@@ -37,12 +38,14 @@ public:
     explicit AppMapSurface(ResourceRoot root) : root_(std::move(root)) {}
     void clear();
     bool select(const std::string& relativeMap, const OriginalMapTerrain& expected);
+    bool select(const OriginalMapSource&,const OriginalMapTerrain& expected);
     bool available() const { return state_.has_value(); }
     const std::string& error() const { return error_; }
     MapImageGridResult render(const OriginalMapCamera&) const;
     AppSurfacePreviewResult renderPreview(const OriginalMapCamera&) const;
     AppSurfaceDiagnostics diagnostics(const MapImageGridStats&) const;
 private:
+    bool adoptState(const OriginalMapTerrain&,std::optional<OriginalTerrainState>);
     struct Archive { SG3Archive index; std::string companion; };
     ResourceRoot root_;
     OriginalMapTerrain terrain_;

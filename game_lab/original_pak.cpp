@@ -45,6 +45,10 @@ OriginalPakResult decodeOriginalPak(const std::vector<uint8_t>& input){
             part.cityCandidate=decoded.payload.size()>=signature.size()&&std::equal(signature.begin(),signature.end(),decoded.payload.begin());
             part.map=parseOriginalMapPayload(decoded.payload);
             part.map.inputBytes=framed.size();part.map.frames=decoded.frames;
+            if(part.cityCandidate&&part.map.status==OriginalMapStatus::LoadedTerrain){
+                auto surface=parseOriginalTerrainState(decoded.payload);
+                if(surface&&surface->terrain==part.map.terrain.flags)part.surfaceState=std::move(surface);
+            }
             parts.push_back(std::move(part));
         }
         result.parts=std::move(parts);result.decodedBytes=total;result.frames=frames;result.status=OriginalPakStatus::Loaded;
@@ -61,7 +65,7 @@ std::string describeOriginalPak(const OriginalPakResult& p){
     case OriginalPakStatus::Loaded:break;
     }
     size_t candidates=0,loaded=0;for(const auto& part:p.parts){candidates+=part.cityCandidate;loaded+=part.cityCandidate&&part.map.status==OriginalMapStatus::LoadedTerrain;}
-    return "战役包完整校验："+std::to_string(p.parts.size())+" 个分段；城市地形 "+std::to_string(loaded)+"/"+std::to_string(candidates)+"；其他分段语义未解释。选择包内城市查看数值地形；不是可玩战役或正确原版画面。";
+    return "战役包完整校验："+std::to_string(p.parts.size())+" 个分段；城市地形 "+std::to_string(loaded)+"/"+std::to_string(candidates)+"；其他分段语义未解释。选择包内城市查看已解析地表或数值地形；不是可玩战役或正确原版画面。";
 }
 OriginalMapCatalog enumerateOriginalMapSources(const ResourceRoot& root){
     OriginalMapCatalog catalog;
@@ -115,13 +119,14 @@ OriginalMapSelection loadOriginalMapSource(const ResourceRoot& root,const Origin
         selected.saveLayers=std::move(save.layers);return selected;
     }
 
-    const auto package=loadOriginalPak(path);selected.sourceInfo=describeOriginalPak(package)+"\n";
+    auto package=loadOriginalPak(path);selected.sourceInfo=describeOriginalPak(package)+"\n";
     selected.packageSummary=source.kind==OriginalMapSourceKind::PakSummary;
     if(package.status!=OriginalPakStatus::Loaded){selected.map.status=mapFailure(package.status);return selected;}
     if(selected.packageSummary)return selected;
     if(source.partIndex>=package.parts.size()||!package.parts[source.partIndex].cityCandidate){selected.map.status=OriginalMapStatus::UnsupportedRole;selected.sourceInfo="所选包内城市已不存在或并非城市负载；旧图已清除。\n";return selected;}
     selected.sourceInfo="来源："+source.relativePath+" · 包内分段 "+std::to_string(source.partIndex+1)+"；战役/任务语义未解释。\n";
-    selected.map=package.parts[source.partIndex].map;
+    selected.map=std::move(package.parts[source.partIndex].map);
+    selected.surfaceState=std::move(package.parts[source.partIndex].surfaceState);
     return selected;
 }
 }

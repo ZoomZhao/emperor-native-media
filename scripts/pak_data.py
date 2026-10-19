@@ -17,7 +17,7 @@ def run(args, build):
     build.mkdir(parents=True, exist_ok=True)
     binary = build / ('pak-' + args.task + '-' + args.mode)
     flags = ['-O2'] if args.mode == 'release' else ['-O1', '-g', '-fsanitize=undefined', '-fno-sanitize-recover=all']
-    sources = ['game_lab/original_map.cpp', 'game_lab/original_pak.cpp', 'game_lab/original_save.cpp', 'game_lab/resource_root.cpp',
+    sources = ['game_lab/original_map.cpp', 'game_lab/original_pak.cpp', 'game_lab/original_terrain.cpp', 'game_lab/original_save.cpp', 'game_lab/resource_root.cpp',
                'game_lab/original_pak_tests.cpp' if args.task == 'test' else 'game_lab/original_pak_metrics.cpp']
     frameworks = [] if args.task == 'test' else ['-framework', 'CoreGraphics', '-framework', 'CoreFoundation']
     subprocess.run(['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror', *flags,

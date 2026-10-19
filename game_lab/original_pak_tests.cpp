@@ -31,6 +31,10 @@ int main(){try{
  const auto& map=result.parts[2].map;
  need(map.status==OriginalMapStatus::LoadedTerrain&&map.terrain.activeSide==84&&map.terrain.flags[114*228+114]==0x80000040,"shared city parser preserves unsigned original terrain");
  need(map.cellLayers&&map.cellLayers->valid()&&map.cellLayers->objects.back()==(51983u|0x80000000u)&&map.cellLayers->mapperRandom[256]==0,"complete existing raw layers reused");
+ need(!result.parts[2].surfaceState,"short numerical city cannot invent missing surface fields");
+ auto completeCity=payload;completeCity.resize(OriginalTerrainState::flatEnd);put(completeCity,OriginalTerrainState::imageOffset+4*(114*228+114),3u<<14);
+ auto surfacePackage=decodeOriginalPak(pak({a,completeCity}));
+ need(surfacePackage.status==OriginalPakStatus::Loaded&&surfacePackage.parts[1].surfaceState&&surfacePackage.parts[1].surfaceState->image[114*228+114]==(3u<<14)&&surfacePackage.parts[1].surfaceState->terrain==surfacePackage.parts[1].map.terrain.flags,"full embedded MAP surface fields bind the same numerical terrain");
  need(map.frames>1&&map.decodedBytes==payload.size()&&result.decodedBytes==payload.size()+a.size()+b.size(),"all compressed frames and decoded lengths counted");
  const size_t footer=bytes.size()-68;const uint32_t third=word(bytes,footer+12);auto ghost=pak({a,b,payload},{third+13});
  need(decodeOriginalPak(ghost).status==OriginalPakStatus::Loaded,"count-excluded interior offset never selected");put(ghost,ghost.size()-68+52,2);

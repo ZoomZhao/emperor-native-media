@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "map_surface.hpp"
+#include "../original_pak.hpp"
 #include "../cg_image_conversion.hpp"
 #include <filesystem>
 #include <fstream>
@@ -134,6 +135,41 @@ void candidateChecks(const std::filesystem::path& root){
     std::reverse(tiles.begin(),tiles.end());need(render().image.pixelsBGRA==blended.image.pixelsBGRA,"candidate painter order does not depend on archive input order");
 }
 
+Bytes authoredPackage(const std::vector<Bytes>& payloads){
+    Bytes out(4);put(out,0,0xfedcbaaa);std::vector<uint32_t> offsets;
+    for(size_t i=0;i<payloads.size();++i){if(i)offsets.push_back(uint32_t(out.size()));auto f=framed(payloads[i]);out.insert(out.end(),f.begin()+4,f.end());}
+    if(offsets.empty())offsets.push_back(uint32_t(out.size()));
+    const size_t footer=out.size();out.resize(footer+68);put(out,footer,0xaaabcdef);put(out,footer+4,0x3c);
+    for(size_t i=0;i<offsets.size();++i)put(out,footer+8+4*i,offsets[i]);
+    put(out,footer+52,uint32_t(offsets.size()-1));put(out,footer+56,0xaaabcdef);put(out,footer+60,4);put(out,footer+64,0xaaaabbcc);return out;
+}
+void pakChecks(const std::filesystem::path& root){
+    using namespace game_lab;
+    std::ifstream stream(root/"Cities/own.map",std::ios::binary);Bytes compressed((std::istreambuf_iterator<char>(stream)),{});
+    auto decoded=decodeOriginalMapContainer(compressed);need(decoded.complete,"owned city has complete source payload");
+    auto second=decoded.payload;put(second,OriginalTerrainState::imageOffset+4*(114*228+114),(3u<<14)|1);
+    std::filesystem::create_directories(root/"Campaigns");const auto pakPath=root/"Campaigns/own.pak";
+    write(pakPath,authoredPackage({Bytes{'x'},decoded.payload,second}));
+    auto configured=ResourceRoot::fromAbsolute(root.string());auto source=OriginalMapSource{OriginalMapSourceKind::PakCity,"Campaigns/own.pak","owned package city",1};
+    auto selected=loadOriginalMapSource(configured,source);need(selected.surfaceState&&selected.surfaceState->image[114*228+114]==(3u<<14),"PAK selected part keeps its stored image plane");
+    AppMapSurface app(configured);need(app.select(source,selected.map.terrain),"App accepts actual package-city source");
+    OriginalMapCamera c;c.width=256;c.height=192;c.centerX=c.centerY=42;auto image=app.renderPreview(c);
+    need(image.verified.decodedCells==1&&std::count(image.image.pixelsBGRA.begin(),image.image.pixelsBGRA.end(),0xff00ff00u)==1600,"PAK stored surface reaches exact native pixels without substituting a loose MAP");
+    source.partIndex=2;selected=loadOriginalMapSource(configured,source);need(selected.surfaceState&&selected.surfaceState->image[114*228+114]==((3u<<14)|1),"same-terrain parts retain distinct stored image identities");
+    need(app.select(source,selected.map.terrain)&&app.render(c).stats.decodedCells==0,"part selection does not retain previous part pixels");
+    source.partIndex=0;need(!app.select(source,selected.map.terrain)&&!app.available(),"non-city part clears previous PAK surface");
+    source.partIndex=99;need(!app.select(source,selected.map.terrain)&&!app.available(),"stale PAK index fails closed");
+    source.partIndex=1;source.relativePath="../outside.pak";need(!app.select(source,selected.map.terrain),"PAK source cannot escape root");
+    source.relativePath="Campaigns/own.pak";source.kind=OriginalMapSourceKind::PakSummary;need(!app.select(source,selected.map.terrain),"package summary has no invented surface");
+    source.kind=OriginalMapSourceKind::SaveFile;need(!app.select(source,selected.map.terrain),"SAV source cannot borrow PAK or MAP image fields");
+    source.kind=OriginalMapSourceKind::PakCity;auto wrong=selected.map.terrain;wrong.flags[0]^=1;
+    need(!app.select(source,wrong),"PAK surface rejects mismatched expected terrain");
+    auto shortCity=decoded.payload;shortCity.resize(OriginalMapCellLayers::mapperFertileOffset+51984);write(pakPath,authoredPackage({Bytes{'x'},shortCity}));
+    selected=loadOriginalMapSource(configured,source);need(selected.map.terrain.valid()&&!selected.surfaceState&&!app.select(source,selected.map.terrain),"numerical-only package city remains inspectable without invented surface state");
+    auto corrupt=authoredPackage({Bytes{'x'},decoded.payload});corrupt[corrupt.size()-4]^=1;write(pakPath,corrupt);
+    need(!app.select(source,wrong)&&!app.available()&&!app.render(c).image.valid(),"corrupt complete container cannot expose a stale or partial scene");
+}
+
 void authored(const std::filesystem::path& root){
     using namespace game_lab;fixture(root);const auto configured=ResourceRoot::fromAbsolute(root.string());AppMapSurface app(configured);
     auto map=loadOriginalMapTerrain((root/"Cities/own.map").string());need(map.status==OriginalMapStatus::LoadedTerrain,"owned MAP parses");
@@ -194,6 +230,7 @@ void authored(const std::filesystem::path& root){
     const auto absent=outside.diagnostics(outside.render(c).stats);
     need(absent.cells.size()==1&&absent.unlocated==0&&absent.cells[0].kind==AppSurfaceIssueKind::IndexUnresolved&&absent.cells[0].x==42&&absent.cells[0].y==42,"invalid logical index is located without inventing geometry");
     candidateChecks(root);
+    std::filesystem::rename(root/"assets-absent",root/"DATA");pakChecks(root);
     std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"original_data\":false}\n";
 }
 void metrics(const std::string& path){
@@ -309,11 +346,35 @@ void metrics(const std::string& path){
         if(s.decodedCells==s.nonzeroCells&&!s.geometryUnsupported&&!s.unresolvedIndices&&!s.archiveUnavailable&&!s.decodeFailures)++complete;
     }
     if(!cities)throw std::runtime_error("no city MAP corpus");
+    const auto catalog=enumerateOriginalMapSources(root);if(!catalog.complete)throw std::runtime_error("PAK catalog failed");
+    size_t pakCities=0,pakStates=0,pakImages=0,pakNonzero=0,pakStrict=0,pakCandidate=0,pakComplete=0,pakStrictComplete=0,pakGroups=0;
+    std::string firstPakLabel;size_t firstPakNonzero=0,firstPakStrict=0;
+    for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::PakCity)continue;
+        ++pakCities;const auto selected=loadOriginalMapSource(root,source);
+        if(selected.surfaceState&&selected.surfaceState->terrain==selected.map.terrain.flags)++pakStates;
+        if(!app.select(source,selected.map.terrain))throw std::runtime_error("PAK surface selection failed: "+source.label);
+        OriginalMapCamera camera;camera.width=256;camera.height=192;camera.centerX=camera.centerY=double(selected.map.terrain.activeSide)/2;
+        auto preview=app.renderPreview(camera);if(!preview.image.valid())throw std::runtime_error("PAK scene invalid");
+        auto cg=createCGImageFromPremultipliedBGRA(preview.image.width,preview.image.height,preview.image.pixelsBGRA);if(!cg)throw std::runtime_error("PAK CGImage failed");CGImageRelease(cg);++pakImages;
+        const auto& s=preview.verified;const auto& c=preview.candidate;
+        if(s.decodedCells+s.geometryUnsupported+s.unresolvedIndices+s.archiveUnavailable+s.decodeFailures!=s.nonzeroCells||s.decodedCells+c.decodedCells>s.nonzeroCells)throw std::runtime_error("PAK scene accounting overlaps");
+        pakNonzero+=s.nonzeroCells;pakStrict+=s.decodedCells;pakCandidate+=c.decodedCells;
+        pakGroups+=c.structuralGroups;
+        if(firstPakLabel.empty()){firstPakLabel=source.label;firstPakNonzero=s.nonzeroCells;firstPakStrict=s.decodedCells;}
+        if(s.nonzeroCells&&s.decodedCells==s.nonzeroCells)++pakStrictComplete;
+        if(s.nonzeroCells&&s.decodedCells+c.decodedCells==s.nonzeroCells)++pakComplete;
+    }
     std::cout<<"{\"passed\":true,\"App_surface_sources\":"<<cities<<",\"native_CGImages\":"<<images<<",\"complete_storage_surfaces\":"<<complete<<",\"nonzero_cells\":"<<nonzero<<",\"decoded_cells\":"<<decoded<<",\"residue\":"<<residue<<",\"residual_classified_cells\":"<<residualClassified<<",\"residual_payload_decoded_cells\":"<<residualPayloadCells<<",\"residual_unique_decoded_records\":"<<decodedResidualWords.size()<<",\"residual_classes\":[";
     bool comma=false;for(const auto& entry:residualClasses){const auto& [slot,type,cols,side]=entry.first;
         if(comma)std::cout<<',';comma=true;
         std::cout<<"{\"tileset\":"<<slot<<",\"raw_type_flags\":"<<type<<",\"record_side\":"<<cols<<",\"subTile_side\":"<<side<<",\"cells\":"<<entry.second<<'}';}
-    std::cout<<"],\"candidate_structural_cells\":"<<candidateCells<<",\"candidate_structural_groups\":"<<candidateGroups
+    std::cout<<"],\"PAK_surface_sources\":"<<pakCities<<",\"PAK_surface_states\":"<<pakStates
+        <<",\"PAK_scene_CGImages\":"<<pakImages<<",\"PAK_nonzero_cells\":"<<pakNonzero
+        <<",\"PAK_strict_decoded_cells\":"<<pakStrict<<",\"PAK_candidate_decoded_cells\":"<<pakCandidate
+        <<",\"PAK_complete_candidate_scenes\":"<<pakComplete<<",\"PAK_complete_strict_scenes\":"<<pakStrictComplete
+        <<",\"PAK_candidate_groups\":"<<pakGroups<<",\"PAK_first_scene_label\":"<<std::quoted(firstPakLabel)
+        <<",\"PAK_first_nonzero\":"<<firstPakNonzero<<",\"PAK_first_strict_decoded\":"<<firstPakStrict;
+    std::cout<<",\"candidate_structural_cells\":"<<candidateCells<<",\"candidate_structural_groups\":"<<candidateGroups
         <<",\"candidate_decoded_cells\":"<<candidateDecoded<<",\"candidate_failed_cells\":"<<candidateFailed
         <<",\"combined_renderable_cells\":"<<combinedCells<<",\"complete_candidate_previews\":"<<previewCities
         <<",\"candidate_CGImages\":"<<previewImages<<",\"candidate_original_screen_accuracy_measured\":false"

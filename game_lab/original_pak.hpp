@@ -1,6 +1,7 @@
 #pragma once
 #include "original_map.hpp"
 #include "original_save.hpp"
+#include "original_terrain.hpp"
 #include "resource_root.hpp"
 
 namespace game_lab {
@@ -9,6 +10,7 @@ struct OriginalPakPart {
     size_t index=0;
     bool cityCandidate=false;
     OriginalMapResult map;
+    std::optional<OriginalTerrainState> surfaceState;
 };
 struct OriginalPakResult {
     OriginalPakStatus status=OriginalPakStatus::ReadFailure;
@@ -33,6 +35,7 @@ struct OriginalMapCatalog {
 };
 struct OriginalMapSelection {
     OriginalMapResult map;
+    std::optional<OriginalTerrainState> surfaceState;
     std::optional<OriginalSaveCellLayers> saveLayers;
     std::string sourceInfo;
     bool packageSummary=false;

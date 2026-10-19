@@ -52,7 +52,7 @@ def main():
     if configured and build.is_relative_to(Path(configured).resolve()):p.error('--build-dir must be outside the data root')
     build.mkdir(parents=True,exist_ok=True)
     binary=build/('app-map-surface-'+a.mode)
-    sources=['game_lab/app/map_surface.cpp','game_lab/app/map_surface_preview.cpp','game_lab/app/map_surface_tests.cpp','game_lab/map_reference.cpp','game_lab/original_map.cpp','game_lab/original_terrain.cpp','game_lab/original_ground.cpp','game_lab/original_save.cpp','game_lab/sg3.cpp','game_lab/resource_root.cpp']
+    sources=['game_lab/app/map_surface.cpp','game_lab/app/map_surface_preview.cpp','game_lab/app/map_surface_tests.cpp','game_lab/map_reference.cpp','game_lab/original_map.cpp','game_lab/original_terrain.cpp','game_lab/original_ground.cpp','game_lab/original_save.cpp','game_lab/original_pak.cpp','game_lab/sg3.cpp','game_lab/resource_root.cpp']
     flags=['-O2']if a.mode=='release'else['-O1','-g','-fsanitize=undefined','-fno-sanitize-recover=all']
     subprocess.run(['/usr/bin/clang++','-std=c++17','-Wall','-Wextra','-Werror',*flags,*[str(ROOT/s)for s in sources],'-framework','CoreGraphics','-framework','CoreFoundation','-lz','-o',str(binary)],check=True)
     fixture=Path(tempfile.mkdtemp(prefix='owned-fixtures-',dir=build))if a.task=='test'else None

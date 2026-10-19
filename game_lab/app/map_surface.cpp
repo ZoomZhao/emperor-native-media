@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "map_surface.hpp"
+#include "../original_pak.hpp"
 #include <filesystem>
 #include <set>
 #include <sstream>
@@ -17,8 +18,20 @@ bool AppMapSurface::select(const std::string& relativeMap, const OriginalMapTerr
     if (map.status != OriginalMapStatus::LoadedTerrain || map.terrain.activeSide != expected.activeSide || map.terrain.flags != expected.flags) {
         error_ = "MAP 来源已变化或活动框不一致"; return false;
     }
-    auto state = loadOriginalTerrainState(path);
-    if (!state || !state->valid() || state->terrain != expected.flags) {
+    return adoptState(expected,loadOriginalTerrainState(path));
+}
+bool AppMapSurface::select(const OriginalMapSource& source,const OriginalMapTerrain& expected){
+    if(source.kind==OriginalMapSourceKind::MapFile)return select(source.relativePath,expected);
+    clear();
+    if(source.kind!=OriginalMapSourceKind::PakCity){error_="该来源没有已确认的存储地表工作集";return false;}
+    auto selected=loadOriginalMapSource(root_,source);
+    if(selected.map.status!=OriginalMapStatus::LoadedTerrain||selected.map.terrain.activeSide!=expected.activeSide||selected.map.terrain.flags!=expected.flags||!selected.surfaceState){
+        error_="包内城市地表缺失、来源已变化或活动框不一致";return false;
+    }
+    return adoptState(expected,std::move(selected.surfaceState));
+}
+bool AppMapSurface::adoptState(const OriginalMapTerrain& expected,std::optional<OriginalTerrainState> state){
+    if (!expected.valid() || !state || !state->valid() || state->terrain != expected.flags) {
         error_ = "MAP 存储地表与当前地形来源不一致或数据不完整"; return false;
     }
     std::set<uint32_t> required;
