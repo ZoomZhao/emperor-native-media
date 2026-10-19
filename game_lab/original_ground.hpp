@@ -15,6 +15,12 @@ struct GroundCodeRequest {
     // centre cell; the shore branch then stays known=false instead of guessing.
     bool hasNeighbours = false;
     std::array<uint32_t,8> neighbourFlags{};
+    // neighbourPresent[i] is true when neighbour i's flat index lies inside the
+    // storage grid. The executable's in-map test (FUN_004BB390 @0x004BB390,
+    // called by FUN_004BB160 @0x004BB160) skips an out-of-map ring cell instead
+    // of reading it, so a caller must exclude an absent neighbour from the
+    // ring-complete test rather than treat its zero flag as a real 0.
+    std::array<bool,8> neighbourPresent{};
     // The per-cell runtime arrays FUN_0052E7C0 @0x0052E7C0 also restores from the
     // same `.map` payload (see original_terrain.hpp). hasLayers tells a caller that
     // featureFlags/fertility carry real MAP bytes; a request built without them
@@ -24,6 +30,11 @@ struct GroundCodeRequest {
     bool hasLayers = false;
     uint32_t featureFlags = 0;  // 0x00F37DA0 (setter 10, FUN_0053FA20)
     uint8_t fertility = 0;      // 0x00E9F8E0 (setter 17, FUN_004BD8C0)
+    // 0x00E92DD0 road-distance byte (setter 5, FUN_004BC6A0 @0x004BC6A0). Valid
+    // only when hasLayers; like feature/fertility it is one of the per-cell
+    // arrays FUN_0052E7C0 @0x0052E7C0 restores from the same `.map` payload
+    // (original_terrain.hpp, offset 885,271). 0xFF selects the road-art arm.
+    uint8_t roadDistance = 0;
 };
 // Original executable per-cell ground dispatch. `code` is meaningful only when
 // `known` is true. Branches the executable delegates to subsystems not yet

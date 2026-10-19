@@ -258,6 +258,47 @@ void groundSelectorTests() {
      const auto refused=selectGroundTileCode(GroundCodeRequest{flag,0x07u});
      need(refused.chainNoWrite&&!refused.known&&refused.code==0&&std::string(refused.branch)=="chain-declined","a 0xC064 bit at setter 5 is a determinate chain no-write");
  }
+ // Setter 5 road (FUN_004BC6A0 @0x004BC6A0): with the loader layers present the
+ // 0xFF road-distance arm is MAP-determinable. base = feat&2 ? 0x625 : 0x624;
+ // variant = 9*k + random%9, where k==1 exactly when every in-map 8-neighbour
+ // carries (terrain&3)!=0 (FUN_004BB160(x,y,1) @0x004BB160); the non-0xFF arm is
+ // the settled T(0x627)+random&7 tile (0x004BC7CE/0x004BC7E3).
+ auto roadRequest=[](uint32_t terrain,uint8_t random,uint32_t feature) {
+     GroundCodeRequest request;request.terrainFlags=terrain;request.randomByte=random;
+     request.hasNeighbours=true;request.hasLayers=true;request.featureFlags=feature;
+     request.roadDistance=0xFFu;return request;
+ };
+ auto fillRing=[](GroundCodeRequest& request,uint32_t flag) {
+     for(size_t i=0;i<8;++i){request.neighbourPresent[i]=true;request.neighbourFlags[i]=flag;}
+ };
+ {
+     // All 8 in-map neighbours carry (terrain&3)!=0 -> k=1 -> variant 9+random%9.
+     auto request=roadRequest(0x1u,0x00u,0u);fillRing(request,0x1u);
+     const auto road=selectGroundTileCode(request);
+     need(road.known&&!road.block&&!road.chainNoWrite&&road.code==uint16_t(0x624)&&
+          road.variant==9u&&std::string(road.branch)=="0x1-road",
+          "terrain&0x1 road writes T(0x624)+9k+random%9 with k=1 for a complete (terrain&3)!=0 ring");
+     // A single in-map neighbour with (flags&3)==0 drops k to 0 (+9 lost).
+     request.neighbourFlags[2]=0x4u;
+     need(selectGroundTileCode(request).variant==0u&&selectGroundTileCode(request).code==uint16_t(0x624),
+          "one in-map ring cell with (terrain&3)==0 makes k=0 and drops the +9");
+     // An out-of-map neighbour is skipped (FUN_004BB390), never read as a zero flag.
+     request.neighbourPresent[2]=false;
+     need(selectGroundTileCode(request).variant==9u,"an out-of-map ring cell is skipped by the k test");
+     // feat&2 selects the 0x625 base (0x004BC765 `test al,2` / 0x004BC769 `push 0x625`).
+     auto featured=roadRequest(0x1u,0x00u,0x2u);fillRing(featured,0x1u);
+     need(selectGroundTileCode(featured).code==uint16_t(0x625),"feature&2 selects the 0x625 road base");
+     // random%9 travels in the 9*k + random%9 sum.
+     for(uint8_t random:{0u,8u,9u}) {
+         auto req=roadRequest(0x1u,random,0u);fillRing(req,0x1u);
+         need(selectGroundTileCode(req).variant==uint8_t(9u+random%9u),"the road variant is exactly 9k+random%9");
+     }
+     // The non-0xFF road-distance arm is the settled 0x627 tile with random&7.
+     auto settled=roadRequest(0x1u,0x0Du,0u);settled.roadDistance=0u;fillRing(settled,0x1u);
+     const auto settledSelection=selectGroundTileCode(settled);
+     need(settledSelection.known&&settledSelection.code==uint16_t(0x627)&&settledSelection.variant==5u,
+          "a non-0xFF road-distance selects T(0x627)+random&7, not the road block");
+ }
  // Setter 15 canal writes T(0x620)+random%9 from MAP bytes alone.
  for(uint8_t random:{0u,1u,8u,9u}) {
      const auto canal=selectGroundTileCode(GroundCodeRequest{0x40000u,random});
@@ -769,14 +810,15 @@ void realDataGroundTests(bool& originalData) {
  // fertility-rank variant; the 220 whole-plot cells (random&0xF8==0) use block art
  // that is not modelled and honestly stay unknown; no 0x10000 neighbour occurs.
  need(farm==5992&&farmBlock==220&&farmRiver==0,"the Anyang farm sub-cases are stable");
- // The 0x4 shore-ring sub-case and the farm formula are MAP-determinable, giving
- // 6690 known, 3083 still runtime-unknown (0x1-road / 0x4-shore / 0x40-road ... )
- // and 167 a determinate chain no-write. The 220 farm block cells move from the old
- // guessed 6910 known to unknown. Measured on the user's own Anyang.map.
- need(known==6690&&unknown==3083&&chainNoWrite==167&&known+unknown+chainNoWrite==active,
+ // The 0x4 shore-ring sub-case, the setter-5 road block and the farm formula are
+ // MAP-determinable, giving 8426 known, 1347 still runtime-unknown (0x4-shore /
+ // 0x40-road ...) and 167 a determinate chain no-write. The 220 farm block cells
+ // stay unknown; the 1736 road cells move from the old unknown to known. Measured
+ // on the user's own Anyang.map.
+ need(known==8426&&unknown==1347&&chainNoWrite==167&&known+unknown+chainNoWrite==active,
       "original Anyang.map MAP-only outcome counts are stable");
- // Overall MAP-only known coverage floor (~67%). It cannot reach the farmland level
- // until the 0x1-road and 0x4-shore general arms are modelled.
+ // Overall MAP-only known coverage floor (~84%). It cannot reach the farmland level
+ // until the 0x4-shore general arm is modelled.
  need(known*100>=active*67,"MAP-only known coverage stays at or above the measured floor");
  // The setter variant resolves in the record/id space. With the user's own
  // China_Terrain.sg3 present, every MAP-known cell lands on a real single-cell
@@ -799,7 +841,7 @@ void realDataGroundTests(bool& originalData) {
          if(record&&record->height<=4096)++geometry;
      }
      // Measured on the user's own Anyang.map + China_Terrain.sg3.
-     need(knownCells==6690&&resolved==6690&&geometry==6690,
+     need(knownCells==8426&&resolved==8426&&geometry==8426,
           "every MAP-known ground cell resolves to a real single-cell China_Terrain.sg3 record");
      // The stored surface-image grid (0x00FE9880) is the oracle for the chain. It
      // renders verbatim as recordId = low14 + 201 in the same archive; the chain
@@ -821,8 +863,8 @@ void realDataGroundTests(bool& originalData) {
               grid.stats.decodeFailures==0,
               "original Anyang.map stored image grid decodes with the measured low-14 base");
          const auto score=scoreGroundChainAgainstImageGrid(terrain,*state,archive);
-         need(score.activeCells==9940&&score.emitted==6690&&score.matched==5673&&
-              score.mismatched==1017&&score.chainNoWrite==167&&score.chainUnknown==3083&&
+         need(score.activeCells==9940&&score.emitted==8426&&score.matched==5673&&
+              score.mismatched==2753&&score.chainNoWrite==167&&score.chainUnknown==1347&&
               score.chainNoWriteVsStoredZero==0&&score.chainNoWriteVsStoredNonzero==167,
               "original Anyang.map chain score against the stored grid is stable");
      }

@@ -8,6 +8,20 @@ size_t neighbourMaskCount(const GroundCodeRequest& request,uint32_t mask) {
     for(uint32_t flag:request.neighbourFlags)if(flag&mask)++count;
     return count;
 }
+// FUN_004BB160 @0x004BB160(x,y,1), the setter-5 ring test. Its tier-1 table has
+// 8 entries (count at 0x0081F158 == 8) with cell-index offsets read from
+// 0x00A63704 (start pointer at 0x0081F1AC), i.e. the eight neighbours. For each
+// in-map ring cell (FUN_004BB390 @0x004BB390 returns nonzero out of map) it
+// returns 0 as soon as (terrain&3)==0; otherwise 1. FUN_004BC6A0 @0x004BC6A0
+// uses that 0/1 as k, so k==1 exactly when every in-map 8-neighbour carries
+// (terrain&3)!=0. An absent neighbour is skipped, never read as a zero flag.
+bool roadRingComplete(const GroundCodeRequest& request) {
+    for(size_t i=0;i<8;++i) {
+        if(!request.neighbourPresent[i])continue;
+        if((request.neighbourFlags[i]&3u)==0u)return false;
+    }
+    return true;
+}
 }
 // Build the exactly-8-neighbour request from the loader's per-cell arrays
 // (original_terrain.hpp, FUN_0052E7C0 @0x0052E7C0 read order). The executable
@@ -19,13 +33,14 @@ GroundCodeRequest groundCodeRequest(const OriginalTerrainState& state,size_t cel
     if(!state.valid()||cell>=OriginalTerrainState::cells)return request;
     request.terrainFlags=state.terrain[cell];request.randomByte=state.randomByte[cell];
     request.hasLayers=true;request.featureFlags=state.feature[cell];
-    request.fertility=state.fertility[cell];
+    request.fertility=state.fertility[cell];request.roadDistance=state.roadDistance[cell];
     static constexpr int64_t offsets[8]={-228,-227,1,229,228,227,-1,-229};
     request.hasNeighbours=true;
     for(size_t i=0;i<8;++i) {
         const int64_t neighbour=int64_t(cell)+offsets[i];
         if(neighbour<0||size_t(neighbour)>=OriginalTerrainState::cells)continue;
         request.neighbourFlags[i]=state.terrain[size_t(neighbour)];
+        request.neighbourPresent[i]=true;
     }
     return request;
 }
@@ -120,10 +135,35 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
         // consumed by branch 4, 0x4000/0x8000 by the 0x8C008 gate, 0x80000
         // likewise).
         if(terrain&0xC064u)return {0,false,false,"chain-declined",true};
-        // Otherwise the value depends on the runtime object 0x00FC3750[cell] and
-        // the road-distance byte 0x00E92DD0[cell] (0x004BC6DD..0x004BC7E8), which
-        // the MAP does not carry.
-        return {0,false,false,"0x1-road"};
+        // FUN_004BC6A0 @0x004BC6A0 road arm. Three preconditions from the MAP
+        // already hold here: the 0x100 sub-arm (0x004BC6B7 `test ah,1`, then
+        // FUN_004B9CC0(0x100) and 0x004BC6CC/0x004BC6D4 `cmp [0x0101C594],8`) is
+        // unreachable because setter 1 owns every 0x100 cell (branch 1 returns
+        // above); the 0x80000 bit is in the 0x8C008 gate; and FUN_004BD570
+        // @0x004BD570 (called at 0x004BC707) is inert, its clamped fertility byte
+        // overwritten by the road-distance read at 0x004BC70C. That leaves the
+        // runtime object premise 0x00FC3750[cell]==0 (0x004BC6DD `cmp word ptr
+        // [2*edi+0x00FC3750],0`, `jne` to the return at 0x004BC7EF), which a bare
+        // load satisfies: reset (FUN_004B08A0 @0x004B08A0) copies the zero-filled
+        // template 0x00E46B70, so every cell starts with object id 0. It is not a
+        // MAP byte, so a request without the loader layers stays unknown rather
+        // than reading the object gate as data.
+        if(!request.hasLayers||!request.hasNeighbours)return {0,false,false,"0x1-road"};
+        // 0x004BC70C `mov al,[edi+0x00E92DD0]`, 0x004BC715 `cmp al,-1`,
+        // 0x004BC717 `jb 0x004BC7CE`. The 0xFF arm draws the 3x3 road block:
+        // img = FUN_00408170(feat&2 ? 0x625 : 0x624) (0x004BC75E reads
+        // 0x00F37DA0, 0x004BC765 `test al,2`, 0x004BC769 `push 0x625`; else
+        // 0x004BC739 `push 0x624`) + 9*k (0x004BC7BB `lea ecx,[esi+8*esi]`) +
+        // random%9 (0x004BC7AA reads 0x00F1E780, 0x004BC7B0 `mov ecx,9`,
+        // 0x004BC7B5 `div`), with k from FUN_004BB160(x,y,1) (0x004BC77C `mov
+        // esi,1`, call at 0x004BC784, the k=0 retry at 0x004BC79A). The non-0xFF
+        // arm is the settled road tile 0x627 (0x004BC7CE `push 0x627`) +
+        // random&7 (0x004BC7E3 `and edx,7`).
+        if(request.roadDistance!=0xFFu)
+            return {0x627,true,false,"0x1-road",false,uint8_t(request.randomByte&7u)};
+        const uint16_t base=(request.featureFlags&2u)?uint16_t(0x625):uint16_t(0x624);
+        return {base,true,false,"0x1-road",false,
+            uint8_t(9u*roadRingComplete(request)+uint32_t(request.randomByte%9u))};
     }
     // 6. FUN_0053F660 @0x0053F660: terrain&0x2 (0x0053F660 `test byte ptr
     //    [esp+4],2`); base code follows terrain&0x300002 (0x0053F679 `and
