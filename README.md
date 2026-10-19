@@ -5,20 +5,22 @@ Load legally owned original Emperor data with `--data-root`, render it natively 
 ## Launch the local App
 
 ```sh
-"/Users/zoomzhao/Documents/Codex/2026-10-14/task/native-surface-diagnostics-20261018/release/EmperorApp.app/Contents/MacOS/EmperorApp" --data-root "/Users/zoomzhao/Workspace/lzjq/GameData"
+"/Users/zoomzhao/Documents/Codex/2026-10-14/task/candidate-surface-20261019/release/EmperorApp.app/Contents/MacOS/EmperorApp" --data-root "/Users/zoomzhao/Workspace/lzjq/GameData"
 ```
 
-This diagnostics delivery stays outside Git and GameData; the earlier `native-surface-app-20261018/release/EmperorApp.app` is preserved. No game assets are bundled. Another legally owned directory requires changing the explicit argument. macOS15+ is required. The App starts muted; Bink playback uses the existing external FFmpeg and reports missing dependencies without installing them.
+This candidate-preview delivery stays outside Git and GameData;the earlier strict and diagnostics App bundles are preserved. No game assets are bundled. Another legally owned directory requires changing the explicit argument. macOS15+ is required. The App starts muted; Bink playback uses the existing external FFmpeg and reports missing dependencies without installing them.
 
-Open **原始地图** and select a standalone city MAP. The default **原始地表图素（MAP 存储 surface）** view reads its saved surface-image grid and renders SG3/555 pixels. Camera X/Y moves the viewport. Missing resources, unsupported geometry and decode failures remain counted; unknown pixels are transparent. The scrollable **未覆盖格分类与0基活动坐标** list shows each located failure,its class and active X/Y;enter those coordinates in the camera fields to inspect the area. Unknown locations stay explicitly counted,and source/plane/invalid-camera changes clear old coordinates. This is a diagnostic list,not a guessed drawing overlay. Numerical terrain/bit views remain available. PAK and SAV selections retain their numerical views; they do not acquire an unproved stored-surface binding.
+Open **原始地图** and select a standalone city MAP. The default **原始地表图素（MAP 存储 surface）** view reads its saved surface-image grid and renders SG3/555 pixels. Camera X/Y moves the viewport. The default **候选补全（原版放置未验证）** toggle adds complete residual storage groups using an explicit candidate anchor and foreground composition. Turn it off to inspect the unchanged strict path. The panel reports strict counts,candidate decoded/visible counts and their combined renderable total separately. Missing resources,invalid groups anddecode failures remain unknown;candidate pixels do not establish original positioning orocclusion. The scrollable **未覆盖格分类与0基活动坐标** list shows each located failure,its class and active X/Y;enter those coordinates in the camera fields to inspect the area. Unknown locations stay explicitly counted,and source/plane/invalid-camera changes clear old coordinates. The list retains strict-path unknowns even when candidate art is visible. Numerical terrain/bit views remain available. PAK and SAV selections retain their numerical views; they do not acquire an unproved stored-surface binding.
 
-The App adapter reads167/167 city sources and creates167/167 native CGImages. Actual App checks cover6/6 complete/partial surface, numerical fallback, PAK clearing, SAV restrictions and return transitions;344/344 tested input files remain unchanged. The source manifest covers81/81 files and27 compiled units;strict signing and source correspondence are checked. These are delivery checks, not original-screen accuracy.
+The App adapter reads167/167 city sources and creates167/167 native CGImages. Actual App checks cover11/11 transitions:complete/partial surfaces,candidate off/on,camera-targeted candidate paint,numerical fallback,PAK clearing,SAV restrictions,invalid camera andreturn;344/344 tested input files remain unchanged. The source manifest covers82/82 files and28 compiled units;strict signing and source correspondence are checked. These are delivery checks, not original-screen accuracy.
 
-## Three independent measurements
+## Separate measurements
 
 | Measurement | Current result | Boundary |
 |---|---|---|
 | Stored surface rendering coverage | **139/167** city maps complete;**2,106,879/2,107,808** nonzero cells decoded (99.9559%);929 cells remain | Reads persisted image IDs directly. This is static surface coverage, not a complete city or pixel-match rate. |
+| Residual structural groups | **426/426** complete groups covering929/929 residual cells | Exact stored membership,offsets anddecoded source canvases;this does not set an original screen anchor. |
+| Candidate preview | **167/167** combined scenes;**2,107,808/2,107,808** nonzero cells renderable,including929 candidate cells;167/167 native CGImages | Explicit unverified anchor andforeground layer. Reference coverage does not mean projected pixel area is filled;gaps remain. Strict139/167 coverage remains separate. |
 | Reconstructed terrain→image accuracy | **1,299,617/1,514,539** emitted predictions match stored codes (85.809%) | The reconstructed selector is scored separately;the App surface view does not use it as a substitute for stored IDs. |
 | Original-screen comparison | **0/167** complete city pictures verified | Camera/elevation, composition, buildings, units and runtime state still need independent evidence. Coverage does not imply playability. |
 

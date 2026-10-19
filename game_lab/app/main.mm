@@ -168,6 +168,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTextField* _originalMapCameraX;
     NSTextField* _originalMapCameraY;
     NSButton* _originalMapCameraApply;
+    NSButton* _originalMapCandidates;
     NSTextField* _originalMapInfo;
     NSTextView* _originalMapUnknowns;
     NSImageView* _originalMapImage;
@@ -1449,6 +1450,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapOutlines=[NSButton checkboxWithTitle:@"显示格轮廓" target:self action:@selector(onOriginalMapPlaneChanged:)];
     _originalMapOutlines.frame=NSMakeRect(620,height-146,300,24);_originalMapOutlines.state=NSControlStateValueOn;
     _originalMapOutlines.autoresizingMask=NSViewMinYMargin;_originalMapOutlines.accessibilityIdentifier=@"original-map-outlines";[_originalMapView addSubview:_originalMapOutlines];
+    _originalMapCandidates=[NSButton checkboxWithTitle:@"候选补全（原版放置未验证）" target:self action:@selector(onOriginalMapPlaneChanged:)];
+    _originalMapCandidates.frame=NSMakeRect(620,height-146,380,24);_originalMapCandidates.state=NSControlStateValueOn;
+    _originalMapCandidates.autoresizingMask=NSViewMinYMargin;_originalMapCandidates.accessibilityIdentifier=@"original-map-candidate-preview";[_originalMapView addSubview:_originalMapCandidates];
     _originalMapInfo = [NSTextField wrappingLabelWithString:@"等待地图载入"];
     _originalMapInfo.frame = NSMakeRect(20, height - 244, 980, 88);
     _originalMapInfo.maximumNumberOfLines = 6; _originalMapInfo.font = [NSFont systemFontOfSize:12];
@@ -1507,12 +1511,14 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const auto& result = _originalMapResult;
     const bool surface=_originalMapBitPicker.indexOfSelectedItem==38;
+    const bool candidatePreview=surface&&_originalMapCandidates.state==NSControlStateValueOn;
     const bool savedField=_originalMapBitPicker.indexOfSelectedItem>=33&&!surface;
     _originalMapSpatial.enabled=!savedField&&!surface;
     if(savedField)_originalMapSpatial.state=NSControlStateValueOff;
     const bool spatial=surface||(!savedField&&_originalMapSpatial.state==NSControlStateValueOn);
     _originalMapCrop.enabled=!spatial;
     _originalMapCameraX.enabled=spatial;_originalMapCameraY.enabled=spatial;_originalMapCameraApply.enabled=spatial;_originalMapOutlines.enabled=spatial&&!surface;
+    _originalMapOutlines.hidden=surface;_originalMapCandidates.hidden=!surface;_originalMapCandidates.enabled=surface;
     std::string text = _originalMapSourceInfo;
     if(!_originalMapPackageSummary){
         if(_originalSaveLayers)text += "SAV 地形网格：存储228×228，活动边长字段 "+std::to_string(result.terrain.activeSide)+"；只读已保存字段，无城市规则绑定";
@@ -1528,9 +1534,15 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         if(surface){
             _originalMapUnknowns.string=@"相机无效或地表结果不可用；未刷新坐标，不沿用旧列表。";
             if(cameraNumbers){
-                auto rendered=_originalMapSurface->render(camera);image=std::move(rendered.image);
+                game_lab::MapImageGridResult rendered;game_lab::AppSurfaceCandidateStats candidate;
+                if(candidatePreview){auto preview=_originalMapSurface->renderPreview(camera);rendered.image=std::move(preview.image);rendered.stats=std::move(preview.verified);candidate=preview.candidate;}
+                else rendered=_originalMapSurface->render(camera);
+                image=std::move(rendered.image);
                 const auto& s=rendered.stats;
-                if(image.valid())_originalMapUnknowns.string=[NSString stringWithUTF8String:game_lab::describeAppSurfaceDiagnostics(_originalMapSurface->diagnostics(s)).c_str()];
+                std::string diagnostic;
+                if(candidatePreview)diagnostic="候选补全 "+std::to_string(candidate.decodedCells)+"/"+std::to_string(candidate.structuralCells)+" 格，"+std::to_string(candidate.decodedGroups)+"/"+std::to_string(candidate.structuralGroups)+" 组已解码；原路径＋候选可绘制 "+std::to_string(s.decodedCells+candidate.decodedCells)+"/"+std::to_string(s.nonzeroCells)+" 格。当前视口候选绘制 "+std::to_string(candidate.drawnCells)+" 格 / "+std::to_string(candidate.drawnGroups)+" 组，写入 "+std::to_string(candidate.paintedPixels)+" 像素。原版放置和遮挡未验证。\n以下仍为原路径未知格，候选显示不移除未知诊断。\n";
+                diagnostic+=game_lab::describeAppSurfaceDiagnostics(_originalMapSurface->diagnostics(s));
+                if(image.valid())_originalMapUnknowns.string=[NSString stringWithUTF8String:diagnostic.c_str()];
                 text+="\n存储 surface："+std::to_string(s.decodedCells)+"/"+std::to_string(s.nonzeroCells)+" 非零格已解码；视口绘制 "+std::to_string(s.drawnCells)+" 格";
                 text+="；未支持几何 "+std::to_string(s.geometryUnsupported)+"，缺档案 "+std::to_string(s.archiveUnavailable)+"，未解析索引 "+std::to_string(s.unresolvedIndices)+"，解码失败 "+std::to_string(s.decodeFailures);
             }
@@ -1545,7 +1557,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         else {
             text+="；已原生显示";
             if(surface){
-                _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，MAP 存储地表图素 %u×%u，相机 %.2f,%.2f，覆盖不等于原版画面对照",_originalMapPicker.titleOfSelectedItem,image.width,image.height,camera.centerX,camera.centerY];
+                _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，MAP 存储地表图素 %u×%u，相机 %.2f,%.2f，覆盖不等于原版画面对照%@",_originalMapPicker.titleOfSelectedItem,image.width,image.height,camera.centerX,camera.centerY,candidatePreview?@"；含候选补全，原版放置未验证":@""];
             }else if(spatial){
                 char cameraText[256];std::snprintf(cameraText,sizeof(cameraText),"；平面等距诊断，相机活动格(%.2f,%.2f)，格轮廓%s；SG3选图未知。",camera.centerX,camera.centerY,camera.outlines?"开":"关");text+=cameraText;
                 _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，等距空间诊断 %u×%u，相机 %.2f,%.2f，%@，格轮廓%@",_originalMapPicker.titleOfSelectedItem,image.width,image.height,camera.centerX,camera.centerY,_originalMapBitPicker.titleOfSelectedItem,camera.outlines?@"开":@"关"];
