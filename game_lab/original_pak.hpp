@@ -44,4 +44,5 @@ struct OriginalMapSelection {
 // implicit root fallback or SG3/gameplay selector is introduced.
 OriginalMapCatalog enumerateOriginalMapSources(const ResourceRoot&);
 OriginalMapSelection loadOriginalMapSource(const ResourceRoot&,const OriginalMapSource&);
+std::vector<size_t> originalMapSourceMatches(const std::vector<OriginalMapSource>&,const std::string& query);
 }

@@ -60,6 +60,9 @@ int main(){try{
  auto root=ResourceRoot::fromAbsolute(rootPath.string());auto catalog=enumerateOriginalMapSources(root);
  need(catalog.complete&&catalog.looseMaps==1&&catalog.pakFiles==1&&catalog.completePaks==1&&catalog.cityCandidates==1&&catalog.cityMaps==1&&catalog.sources.size()==3,"catalog contains loose map, package summary and embedded city");
  need(catalog.sources[0].label=="Cities/own.map"&&catalog.sources[2].label.find("包内城市 1")!=std::string::npos,"existing loose labels retained; package city label distinct");
+ need(originalMapSourceMatches(catalog.sources,"OWN.MAP")==std::vector<size_t>{0},"source filter folds ASCII case without replacing source identities");
+ need(originalMapSourceMatches(catalog.sources,"包内城市")==std::vector<size_t>{2},"source filter keeps literal UTF8 package-city labels");
+ need(originalMapSourceMatches(catalog.sources,"").size()==catalog.sources.size()&&originalMapSourceMatches(catalog.sources,"absent").empty(),"empty filter restores all sources and missing filter invents none");
  auto selected=loadOriginalMapSource(root,catalog.sources[2]);need(selected.map.terrain.flags==map.terrain.flags&&selected.map.cellLayers->objects==map.cellLayers->objects,"actual source selection reloads and parses original same city values");
  auto summary=loadOriginalMapSource(root,catalog.sources[1]);need(summary.packageSummary&&!summary.map.terrain.valid()&&summary.sourceInfo.find("3 个分段")!=std::string::npos,"package summary never displays a stale city");
  auto invalid=catalog.sources[2];invalid.partIndex=0;need(!loadOriginalMapSource(root,invalid).map.terrain.valid(),"noncity part cannot become city by caller request");invalid.partIndex=99;need(!loadOriginalMapSource(root,invalid).map.terrain.valid(),"stale part index rejected");invalid.relativePath="../outside.pak";need(!loadOriginalMapSource(root,invalid).map.terrain.valid(),"source cannot escape selected root");

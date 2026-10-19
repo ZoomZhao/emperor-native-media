@@ -85,7 +85,7 @@ manifest = {
     'city_model_origin': 'self-authored; original rules not compared',
     'external_game_inputs': False,
     'app_executed_by_build': False,
-    'original_map_view': 'stored-surface-candidate-preview-and-numeric',
+    'original_map_view': 'MAP-and-PAK-city-stored-surface-candidate-preview;SAV-numeric',
     'candidate_placement_verified': False,
     'strict_metrics_separate': True,
     'original_screen_accuracy_verified': False,

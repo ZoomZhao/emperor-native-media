@@ -129,4 +129,9 @@ OriginalMapSelection loadOriginalMapSource(const ResourceRoot& root,const Origin
     selected.surfaceState=std::move(package.parts[source.partIndex].surfaceState);
     return selected;
 }
+std::vector<size_t> originalMapSourceMatches(const std::vector<OriginalMapSource>& sources,const std::string& query){
+    std::vector<size_t> result;const auto wanted=lower(query);
+    for(size_t i=0;i<sources.size();++i)if(wanted.empty()||lower(sources[i].label).find(wanted)!=std::string::npos)result.push_back(i);
+    return result;
+}
 }
