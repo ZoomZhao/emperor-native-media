@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <cmath>
+#include <fstream>
+#include <cstring>
 using namespace game_lab;
 int main(){@autoreleasepool{size_t checks=0;auto need=[&](bool b,const char* msg){++checks;if(!b)throw std::runtime_error(msg);};try{
  OriginalMapTerrain terrain;terrain.activeSide=112;terrain.flags.assign(51984,0x80000);for(size_t y=58;y<170;++y)for(size_t x=58;x<170;++x)terrain.flags[y*228+x]=8;
@@ -20,6 +22,22 @@ int main(){@autoreleasepool{size_t checks=0;auto need=[&](bool b,const char* msg
  for(unsigned k=0;k<9;++k){NSMutableDictionary* bad=[config mutableCopy];if(k==0)bad[@"confirmed"]=@YES;if(k==1)bad[@"status"]=@"confirmed";if(k==2)bad[@"anchor"]=@"original";if(k==3)bad[@"source"]=@"../escape.sav";if(k==4)bad[@"sourceRevision"]=@"no";if(k==5)bad[@"physicalId"]=@YES;if(k==6)bad[@"slot"]=@17.5;if(k==7)bad[@"slot"]=@(-1);if(k==8)[bad removeObjectForKey:@"width"];need(!decodeOriginalCandidate(bad),"untrusted config cannot mutate status,anchor,path orinteger contract");}
  char path[]="/tmp/emperor-candidate-unit-XXXXXX";need(mkdtemp(path)!=nullptr,"owned temporary directory");std::filesystem::path temp(path),data=temp/"data",git=temp/"repo",outside=temp/"private";std::filesystem::create_directories(data);std::filesystem::create_directories(git/".git");std::filesystem::create_directories(outside);std::filesystem::create_directory_symlink(data,temp/"alias");
  need(originalCandidateConfigPath((outside/"candidate.json").string(),data.string()),"private local JSON allowed");need(!originalCandidateConfigPath((data/"x.json").string(),data.string()),"GameData write refused");need(!originalCandidateConfigPath((git/"x.json").string(),data.string()),"Git checkout write refused");need(!originalCandidateConfigPath((temp/"alias/x.json").string(),data.string()),"symlink data alias refused");need(!originalCandidateConfigPath("relative.json",data.string()),"relative config refused");auto caseAlias=temp/"DATA";need(!std::filesystem::exists(caseAlias)||!std::filesystem::equivalent(caseAlias,data)||!originalCandidateConfigPath((caseAlias/"x.json").string(),data.string()),"filesystem-equivalent case alias cannot write into data root");
- NSData* bytes=[NSJSONSerialization dataWithJSONObject:config options:0 error:nil];auto file=outside/"candidate.json";need([bytes writeToFile:[NSString stringWithUTF8String:file.c_str()]options:NSDataWritingAtomic error:nil],"metadata writes toowned local config");NSData* loaded=[NSData dataWithContentsOfFile:[NSString stringWithUTF8String:file.c_str()]];need(decodeOriginalCandidate([NSJSONSerialization JSONObjectWithData:loaded options:0 error:nil]).has_value(),"local file metadata roundtrip");std::filesystem::remove_all(temp);
+ NSData* bytes=[NSJSONSerialization dataWithJSONObject:config options:0 error:nil];auto file=outside/"candidate.json";need([bytes writeToFile:[NSString stringWithUTF8String:file.c_str()]options:NSDataWritingAtomic error:nil],"metadata writes toowned local config");NSData* loaded=[NSData dataWithContentsOfFile:[NSString stringWithUTF8String:file.c_str()]];need(decodeOriginalCandidate([NSJSONSerialization JSONObjectWithData:loaded options:0 error:nil]).has_value(),"local file metadata roundtrip");
+ for(const auto& value:std::vector<std::pair<const char*,size_t>>{{"0",0},{"1",1},{"3999",3999},{"0001",1}})need(parseOriginalCandidateSlot(value.first)==value.second,"ASCII decimal slot boundary accepted");
+ need(!parseOriginalCandidateSlot(nullptr),"null slot refused");
+ for(const char* value:{"","-1","-18446744073709551615","18446744073709551616","+1","4000","9999","00001","0x1","1e0","1.0"," 1","1 ","1\n","１","١"})need(!parseOriginalCandidateSlot(value),"sign,overflow,nondecimal andnon-ASCII slots refused");
+ auto stream=[&](size_t declared,size_t actual,size_t chunk){size_t used=0,requested=0;auto result=readOriginalCandidateBudget(declared,[&](uint8_t* out,size_t cap)->ssize_t{requested+=cap;const size_t n=std::min({actual-used,chunk,cap});std::memset(out,' ',n);used+=n;return ssize_t(n);});need(used<=originalCandidateMetadataBudget+1,"actual read bytes bounded during growth");return result;};
+ auto exact=stream(16384,16384,4096);need(exact&&exact->size()==16384,"exact 16KiB boundary read through short chunks");
+ need(!stream(16384,16385,4096),"growth across budget refuses at budget+1 bytes");
+ need(!stream(8,9,2),"growth within budget refuses declared length mismatch");
+ need(!stream(8,7,2),"truncation refuses declared length mismatch");
+ bool called=false;need(!readOriginalCandidateBudget(16385,[&](uint8_t*,size_t)->ssize_t{called=true;return 0;})&&!called,"oversize declaration refuses before reading");
+ need(!readOriginalCandidateBudget(1,[](uint8_t*,size_t)->ssize_t{return -1;}),"stream error refuses");
+ auto budgetFile=outside/"budget.json";{std::ofstream f(budgetFile);f<<std::string(16384,' ');}auto exactFile=readOriginalCandidateFile(budgetFile.c_str());need(exactFile&&exactFile->size()==16384,"regular exact-budget file accepted");
+ {std::ofstream f(budgetFile,std::ios::app);f<<' ';}need(!readOriginalCandidateFile(budgetFile.c_str()),"regular budget+1 file refused before reading");
+ {std::ofstream f(budgetFile);f.seekp(32*1024*1024-1);f<<' ';}need(!readOriginalCandidateFile(budgetFile.c_str()),"32MiB sparse regular file refused");
+ {std::ofstream f(budgetFile);f<<"12345678";}int growing=open(budgetFile.c_str(),O_RDONLY);size_t reads=0;auto grown=readOriginalCandidateBudget(8,[&](uint8_t* out,size_t cap)->ssize_t{auto n=::read(growing,out,std::min(size_t(4),cap));if(++reads==1){std::ofstream f(budgetFile,std::ios::app);f<<'9';}return n;});close(growing);need(!grown,"actual file growth after first short read refused");
+ need(!readOriginalCandidateFile(outside.c_str()),"directory is not a regular metadata file");
+ std::filesystem::remove_all(temp);
  std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"original_data\":false,\"confirmed_bindings\":0}\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}}

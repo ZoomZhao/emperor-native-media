@@ -1,5 +1,6 @@
 #pragma once
 #include "original_building_view.hpp"
+#include "original_candidate_input.hpp"
 #include <filesystem>
 namespace game_lab {
 // Snapshot revision token,not a security hash or an object/image binding.

@@ -5,7 +5,7 @@
 #include <iostream>
 int main(int argc,char** argv){@autoreleasepool{
  const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!env||!*env){std::cout<<"{\"skipped\":true}\n";return 0;}if(argc!=2||!game_lab::originalCandidateConfigPath(argv[1],env))return 2;
- NSData* bytes=[NSData dataWithContentsOfFile:[NSString stringWithUTF8String:argv[1]]];if(!bytes||bytes.length>16384)return 3;id entries=[NSJSONSerialization JSONObjectWithData:bytes options:0 error:nil];if(![entries isKindOfClass:NSArray.class]||![entries count]||[entries count]>6)return 4;
+ auto input=game_lab::readOriginalCandidateFile(argv[1]);if(!input)return 3;NSData* bytes=[NSData dataWithBytes:input->data() length:input->size()];id entries=[NSJSONSerialization JSONObjectWithData:bytes options:0 error:nil];if(![entries isKindOfClass:NSArray.class]||![entries count]||[entries count]>6)return 4;
  auto root=game_lab::ResourceRoot::fromAbsolute(env);size_t accepted=0,native=0,pixels=0,roundtrips=0;
  for(NSDictionary* e in entries){if(![e isKindOfClass:NSDictionary.class]||e.count!=4)return 5;NSString* source=e[@"source"],*archive=e[@"archive"];NSNumber* id=e[@"physicalId"],*slot=e[@"slot"];if(![source isKindOfClass:NSString.class]||![archive isKindOfClass:NSString.class]||![id isKindOfClass:NSNumber.class]||![slot isKindOfClass:NSNumber.class])return 6;
   auto save=game_lab::loadOriginalSave(root.resolve(source.UTF8String));if(save.status!=game_lab::OriginalSaveStatus::LoadedSnapshot)return 7;auto found=std::find_if(save.buildings.footprints.begin(),save.buildings.footprints.end(),[&](const auto& f){return f.slot==slot.unsignedLongLongValue;});if(found==save.buildings.footprints.end())return 8;

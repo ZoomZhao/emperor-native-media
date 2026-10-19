@@ -1749,11 +1749,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 - (void)onOriginalBuildingLocate:(id)sender {
     (void)sender;
-    if(!_originalSaveBuildings||_originalSaveBuildings->footprints.empty())return;
-    NSString* raw=[_originalBuildingSlot.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];const char* value=raw.UTF8String;char* end=nullptr;const auto slot=value?std::strtoull(value,&end,10):4000;
-    auto found=std::find_if(_originalSaveBuildings->footprints.begin(),_originalSaveBuildings->footprints.end(),[&](const auto& f){return f.slot==slot;});
-    if(!value||!*value||!end||*end||slot>=4000||found==_originalSaveBuildings->footprints.end()){_originalSelectedSlot.reset();_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage="建筑槽不在当前已验证占地记录中；旧人工候选已清除。";[self onOriginalMapPlaneChanged:nil];return;}
-    if(!_originalSelectedSlot||*_originalSelectedSlot!=slot){_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage.clear();}_originalSelectedSlot=size_t(slot);
+    if(!_originalSaveBuildings||_originalSaveBuildings->footprints.empty()){_originalSelectedSlot.reset();_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage="没有已验证建筑记录；旧人工候选已清除。";[self onOriginalMapPlaneChanged:nil];return;}
+    const auto slot=game_lab::parseOriginalCandidateSlot(_originalBuildingSlot.stringValue.UTF8String);
+    auto found=std::find_if(_originalSaveBuildings->footprints.begin(),_originalSaveBuildings->footprints.end(),[&](const auto& f){return slot&&f.slot==*slot;});
+    if(!slot||found==_originalSaveBuildings->footprints.end()){_originalSelectedSlot.reset();_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage="建筑槽不在当前已验证占地记录中；旧人工候选已清除。";[self onOriginalMapPlaneChanged:nil];return;}
+    if(!_originalSelectedSlot||*_originalSelectedSlot!=*slot){_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage.clear();}_originalSelectedSlot=*slot;
     const auto& f=*found;
     [_originalMapBitPicker selectItemAtIndex:0];_originalMapSpatial.state=NSControlStateValueOn;
     _originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.2f",double(f.x)+(double(game_lab::originalFootprintWidth(f))-1)/2];
@@ -1790,8 +1790,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage="配置不兼容、来源/记录/像素已变化或资源缺失；旧人工候选已清除。";
     const char* path=panel.URL.fileSystemRepresentation;
     if(!path||!game_lab::originalCandidateConfigPath(path,_candidateDirectory.fileSystemRepresentation)){[self onOriginalMapPlaneChanged:nil];return;}
-    NSDictionary* attrs=[NSFileManager.defaultManager attributesOfItemAtPath:panel.URL.path error:nil];if(!attrs||[attrs fileSize]>16384){[self onOriginalMapPlaneChanged:nil];return;}
-    NSData* data=[NSData dataWithContentsOfURL:panel.URL options:0 error:nil];if(!data||data.length>16384){[self onOriginalMapPlaneChanged:nil];return;}
+    auto input=game_lab::readOriginalCandidateFile(path);if(!input){[self onOriginalMapPlaneChanged:nil];return;}
+    NSData* data=[NSData dataWithBytes:input->data() length:input->size()];
     auto c=game_lab::decodeOriginalCandidate([NSJSONSerialization JSONObjectWithData:data options:0 error:nil]);
     if(!c||c->source!=_originalSourceRelative||c->sourceRevision!=_originalSaveRevision){[self onOriginalMapPlaneChanged:nil];return;}
     auto target=std::find_if(_originalSaveBuildings->footprints.begin(),_originalSaveBuildings->footprints.end(),[&](const auto& f){return game_lab::sameOriginalCandidateTarget(f,c->target);});
