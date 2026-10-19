@@ -37,6 +37,7 @@ struct OriginalMapSelection {
     OriginalMapResult map;
     std::optional<OriginalTerrainState> surfaceState;
     std::optional<OriginalSaveCellLayers> saveLayers;
+    std::optional<OriginalBuildingProfile> saveBuildings;
     std::string sourceInfo;
     bool packageSummary=false;
 };

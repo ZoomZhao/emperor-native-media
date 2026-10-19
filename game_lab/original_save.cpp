@@ -70,6 +70,7 @@ OriginalSaveResult decodeOriginalSave(const std::vector<uint8_t>& input){
         for(size_t i=0;i<cells;++i){layers.followingU32Unknown[i]=detail::u32(data.data()+base+following+4*i);layers.mapperObjects[i]=detail::u32(data.data()+base+objectsOffset+4*i);}
         const auto copy=[&](size_t relative,std::vector<uint8_t>& values){values.assign(data.begin()+base+relative,data.begin()+base+relative+cells);};
         copy(randomOffset,layers.mapperRandom);copy(stoneOffset,layers.mapperStone);copy(fertileOffset,layers.mapperFertile);
+        result.buildings=parseOriginalSavedBuildings(data,base,terrain);
         result.terrain=std::move(terrain);result.layers=std::move(layers);result.frames=container.frames;result.decodedBytes=data.size();result.sizeOffset=sizeOffset;result.terrainOffset=base;result.status=OriginalSaveStatus::LoadedSnapshot;
     }catch(const std::bad_alloc&){result.status=OriginalSaveStatus::BudgetExceeded;}
     return result;
@@ -99,7 +100,7 @@ std::string describeOriginalSave(const OriginalSaveResult& save){
     case OriginalSaveStatus::BudgetExceeded:return "SAV 输入、标记或解码预算超限";
     case OriginalSaveStatus::LoadedSnapshot:break;
     }
-    return "SAV13 已保存快照；"+std::string(save.readStable?"两次读取一致":"内存字节输入")+"；5 组原始字段已保留，含未知 following_u32。非当前内存，不恢复建筑/规则。";
+    return "SAV13 已保存快照；"+std::string(save.readStable?"两次读取一致":"内存字节输入")+"；5 组原始字段已保留，含未知 following_u32。非当前内存，不恢复建筑图像/规则；"+describeOriginalBuildingProfile(save.buildings)+"。";
 }
 std::optional<OriginalSaveCell> originalSaveCell(const OriginalMapTerrain& terrain,
     const OriginalSaveCellLayers& layers,int64_t x,int64_t y){

@@ -1,5 +1,6 @@
 #pragma once
 #include "original_map.hpp"
+#include "original_building.hpp"
 namespace game_lab {
 enum class OriginalSaveStatus { LoadedSnapshot,ReadFailure,ChangedDuringRead,InvalidContainer,UnsupportedRole,UnsupportedAnchors,InvalidGrid,BudgetExceeded };
 struct OriginalSaveCellLayers {
@@ -12,6 +13,7 @@ struct OriginalSaveResult {
     OriginalSaveStatus status=OriginalSaveStatus::ReadFailure;
     OriginalMapTerrain terrain;
     OriginalSaveCellLayers layers;
+    OriginalBuildingProfile buildings;
     size_t inputBytes=0,decodedBytes=0,frames=0,sizeOffset=0,terrainOffset=0;
     bool readStable=false;
 };

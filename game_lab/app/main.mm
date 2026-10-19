@@ -5,6 +5,7 @@
 #include "../movie_session.hpp"
 #include "../emperor_assets.hpp"
 #include "../sg3_sequence.hpp"
+#include "../original_building_view.hpp"
 #include "../resource_root.hpp"
 #include "../audio_policy.hpp"
 #include "../image_presentation.hpp"
@@ -175,6 +176,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTextField* _originalSaveCellX;
     NSTextField* _originalSaveCellY;
     NSButton* _originalSaveCellApply;
+    NSButton* _originalBuildingLocate;
     NSImageView* _originalMapImage;
     std::vector<game_lab::OriginalMapSource> _originalMapSources;
     std::vector<size_t> _originalMapVisibleSources;
@@ -182,6 +184,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     std::string _originalMapSourceInfo;
     BOOL _originalMapPackageSummary;
     std::optional<game_lab::OriginalSaveCellLayers> _originalSaveLayers;
+    std::optional<game_lab::OriginalBuildingProfile> _originalSaveBuildings;
     game_lab::OriginalMapResult _originalMapResult;
     std::unique_ptr<game_lab::AppMapSurface> _originalMapSurface;
     NSView* _candidateView;
@@ -1559,6 +1562,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalSaveCellX.accessibilityIdentifier=@"original-save-cell-x";_originalSaveCellY.accessibilityIdentifier=@"original-save-cell-y";
     _originalSaveCellApply=[NSButton buttonWithTitle:@"查看六个原值" target:self action:@selector(onOriginalSaveCellChanged:)];
     _originalSaveCellApply.frame=NSMakeRect(506,height-280,160,26);_originalSaveCellApply.autoresizingMask=NSViewMinYMargin;_originalSaveCellApply.accessibilityIdentifier=@"original-save-cell-apply";[_originalMapView addSubview:_originalSaveCellApply];
+    _originalBuildingLocate=[NSButton buttonWithTitle:@"定位未绑定井占地" target:self action:@selector(onOriginalBuildingLocate:)];
+    _originalBuildingLocate.frame=NSMakeRect(680,height-280,300,26);_originalBuildingLocate.autoresizingMask=NSViewMinXMargin|NSViewMinYMargin;
+    _originalBuildingLocate.accessibilityIdentifier=@"original-building-locate";_originalBuildingLocate.enabled=NO;[_originalMapView addSubview:_originalBuildingLocate];
     NSScrollView* unknownScroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,height-390,980,100)];
     unknownScroll.hasVerticalScroller=YES;unknownScroll.borderType=NSBezelBorder;
     unknownScroll.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
@@ -1591,7 +1597,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapUnknowns.string=@"地图来源已切换；等待新地表结果，不沿用旧坐标。";
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const NSInteger index = _originalMapPicker.indexOfSelectedItem;
-    _originalMapSourceInfo.clear();_originalMapPackageSummary=NO;_originalSaveLayers.reset();
+    _originalMapSourceInfo.clear();_originalMapPackageSummary=NO;_originalSaveLayers.reset();_originalSaveBuildings.reset();_originalBuildingLocate.enabled=NO;
     _originalSaveCellX.stringValue=@"0";_originalSaveCellY.stringValue=@"0";
     _originalSaveCellX.enabled=NO;_originalSaveCellY.enabled=NO;_originalSaveCellApply.enabled=NO;
     _originalMapSurface->clear();
@@ -1606,7 +1612,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapResult = std::move(selection.map);
     _originalMapSourceInfo = std::move(selection.sourceInfo);
     _originalMapPackageSummary = selection.packageSummary;
-    _originalSaveLayers=std::move(selection.saveLayers);
+    _originalSaveLayers=std::move(selection.saveLayers);_originalSaveBuildings=std::move(selection.saveBuildings);
+    _originalBuildingLocate.enabled=_originalSaveBuildings&&!_originalSaveBuildings->footprints.empty();
     if(_originalSaveLayers&&_originalSaveLayers->valid()){for(NSInteger field=33;field<38;++field)[_originalMapBitPicker itemAtIndex:field].enabled=YES;}
     else if(_originalMapBitPicker.indexOfSelectedItem>=33&&_originalMapBitPicker.indexOfSelectedItem<38)[_originalMapBitPicker selectItemAtIndex:0];
     const auto& source=_originalMapSources[sourceIndex];
@@ -1633,6 +1640,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapSpatial.enabled=!savedField&&!surface;
     if(savedField)_originalMapSpatial.state=NSControlStateValueOff;
     const bool spatial=surface||(!savedField&&_originalMapSpatial.state==NSControlStateValueOn);
+    const bool buildingOverlay=spatial&&!surface&&_originalSaveBuildings&&!_originalSaveBuildings->footprints.empty();
     _originalMapCrop.enabled=!spatial;
     _originalMapCameraX.enabled=spatial;_originalMapCameraY.enabled=spatial;_originalMapCameraApply.enabled=spatial;_originalMapOutlines.enabled=spatial&&!surface;
     _originalMapOutlines.hidden=surface;_originalMapCandidates.hidden=!surface;_originalMapCandidates.enabled=surface;
@@ -1646,6 +1654,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         const bool crop = _originalMapCrop.state == NSControlStateValueOn;
         const auto analysis = game_lab::analyzeOriginalMap(result.terrain);
         game_lab::OriginalMapCamera camera;camera.outlines=_originalMapOutlines.state==NSControlStateValueOn;
+        if(buildingOverlay){camera.width=320;camera.height=240;} // Focused footprint annotation remains legible in the existing image view.
         game_lab::DecodedImage image;
         const bool cameraNumbers=readMapCameraNumber(_originalMapCameraX,camera.centerX)&&readMapCameraNumber(_originalMapCameraY,camera.centerY);
         if(surface){
@@ -1667,7 +1676,17 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         }else if(savedField){
             if(_originalSaveLayers){auto values=game_lab::originalSaveFieldValues(*_originalSaveLayers,unsigned(_originalMapBitPicker.indexOfSelectedItem-33));image=game_lab::renderOriginalMapValues(result.terrain,values,-1,crop);}
             text+="；存档原始字段数值视图，字段名不证明运行时用途";
-        }else if(spatial){if(cameraNumbers)image=game_lab::renderOriginalMapSpatialFlags(result.terrain,camera,bit);}
+        }else if(spatial){
+            if(buildingOverlay){
+                _originalMapUnknowns.string=@"占地视口无效；没有保留旧占地坐标或图像。";
+                if(cameraNumbers){auto preview=game_lab::renderOriginalBuildingFootprints(result.terrain,_originalSaveBuildings->footprints,camera,bit);image=std::move(preview.image);
+                    std::string detail="未绑定井占地："+std::to_string(preview.valid)+" 个已验证记录，当前视口轮廓 "+std::to_string(preview.visible)+" 个；原版图像绑定0。琥珀线仅为原始记录占地，背景来自同一SAV的数值地形，不是MAP替身或原版建筑。\n";
+                    for(const auto& f:_originalSaveBuildings->footprints)detail+="Well(type72) 活动坐标("+std::to_string(f.x)+","+std::to_string(f.y)+")，占地"+std::to_string(f.size)+"×"+std::to_string(f.size)+"，表槽"+std::to_string(f.slot)+"；绘制锚点待原版确认。\n";
+                    if(image.valid())_originalMapUnknowns.string=[NSString stringWithUTF8String:detail.c_str()];
+                    text+="；未绑定井占地 "+std::to_string(preview.visible)+"/"+std::to_string(preview.valid)+" 可见；仅记录轮廓，非原版建筑图像";
+                }
+            }else if(cameraNumbers)image=game_lab::renderOriginalMapSpatialFlags(result.terrain,camera,bit);
+        }
         else image=game_lab::renderOriginalMapFlags(result.terrain,bit,crop);
         if(!presentPixels(_originalMapImage,image.width,image.height,image.pixelsBGRA))
             text+=spatial?"；相机无效、活动框未验证或空间画面预算超限":crop?"；裁剪验证未通过，关闭裁剪可查看完整诊断":"；画面转换失败";
@@ -1678,6 +1697,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
             }else if(spatial){
                 char cameraText[256];std::snprintf(cameraText,sizeof(cameraText),"；平面等距诊断，相机活动格(%.2f,%.2f)，格轮廓%s；SG3选图未知。",camera.centerX,camera.centerY,camera.outlines?"开":"关");text+=cameraText;
                 _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，等距空间诊断 %u×%u，相机 %.2f,%.2f，%@，格轮廓%@",_originalMapPicker.titleOfSelectedItem,image.width,image.height,camera.centerX,camera.centerY,_originalMapBitPicker.titleOfSelectedItem,camera.outlines?@"开":@"关"];
+                if(buildingOverlay)_originalMapImage.accessibilityLabel=[_originalMapImage.accessibilityLabel stringByAppendingString:@"；未绑定井占地，原始SAV记录坐标，非原版图像"];
             }else _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，%@ %u×%u，%@，%@",_originalMapPicker.titleOfSelectedItem,savedField?@"原始字段数值网格":@"地形标志网格",image.width,image.height,_originalMapBitPicker.titleOfSelectedItem,crop?@"中心活动框裁剪":@"完整存储网格"];
         }
         char details[256];
@@ -1687,9 +1707,18 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     }
     text += surface?"\n仅静态存储地表；重建选图准确度与原版画面对照另计，建筑/单位/规则未恢复。":_originalSaveLayers?"\n只读存档快照，非当前内存；数值配色不是原版外观，SG3选图、建筑/单位/规则未恢复。":"\n数值配色不等于原版外观；等距对照使用规范平面格坐标，不含高程/遮挡规则；SG3选图未知，不载入城市/建筑/单位。";
     _originalMapInfo.stringValue = [NSString stringWithUTF8String:text.c_str()];
-    const bool inspect=_originalSaveLayers&&_originalSaveLayers->valid()&&result.terrain.valid();
+    const bool inspect=_originalSaveLayers&&_originalSaveLayers->valid()&&result.terrain.valid()&&!buildingOverlay;
     _originalSaveCellX.enabled=inspect;_originalSaveCellY.enabled=inspect;_originalSaveCellApply.enabled=inspect;
     if(inspect)[self onOriginalSaveCellChanged:nil];
+}
+- (void)onOriginalBuildingLocate:(id)sender {
+    (void)sender;
+    if(!_originalSaveBuildings||_originalSaveBuildings->footprints.empty())return;
+    const auto& f=_originalSaveBuildings->footprints.front();
+    [_originalMapBitPicker selectItemAtIndex:0];_originalMapSpatial.state=NSControlStateValueOn;
+    _originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.2f",double(f.x)+(double(f.size)-1)/2];
+    _originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.2f",double(f.y)+(double(f.size)-1)/2];
+    [self onOriginalMapPlaneChanged:nil];
 }
 - (void)onOriginalSaveCellChanged:(id)sender {
     (void)sender;
