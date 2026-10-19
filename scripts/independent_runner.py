@@ -25,6 +25,7 @@ MEDIA = [
     'game_lab/run_boundaries.sh',
 ]
 APP = [
+    'game_lab/sg3_sequence.hpp',
     'game_lab/app/map_surface.hpp',
     'game_lab/app/map_surface.cpp',
     'game_lab/app/map_surface_preview.cpp',

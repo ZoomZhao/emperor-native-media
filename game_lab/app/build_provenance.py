@@ -6,6 +6,7 @@ import sys
 
 repository = Path(__file__).resolve().parents[2]
 sources = [
+    'game_lab/sg3_sequence.hpp',
     'game_lab/app/map_surface.hpp',
     'game_lab/app/map_surface.cpp',
     'game_lab/app/map_surface_preview.cpp',

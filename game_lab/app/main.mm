@@ -4,6 +4,7 @@
 #include "../original_pak.hpp"
 #include "../movie_session.hpp"
 #include "../emperor_assets.hpp"
+#include "../sg3_sequence.hpp"
 #include "../resource_root.hpp"
 #include "../audio_policy.hpp"
 #include "../image_presentation.hpp"
@@ -246,6 +247,16 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTextField* _spriteInfoLabel;
     NSImageView* _spriteImageView;
     game_lab::SG3Archive _currentSG3;
+    NSTextField* _spriteSequenceIds;
+    NSTextField* _spriteSequenceRate;
+    NSButton* _spriteSequenceApply;
+    NSButton* _spriteSequencePrevious;
+    NSButton* _spriteSequenceNext;
+    NSButton* _spriteSequencePlay;
+    NSButton* _spriteSequenceAlign;
+    NSTimer* _spriteSequenceTimer;
+    game_lab::SG3Sequence _spriteSequence;
+    size_t _spriteSequenceFrame;
     std::vector<std::string> _sg3Packages;
     std::string _current555Path;
     
@@ -312,6 +323,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
+    [self stopSpriteSequence];
     if (_movieTerminating) return NSTerminateLater;
     [self invalidateMovieTimer];
     if (!_movieSession) return NSTerminateNow;
@@ -344,6 +356,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)applicationWillTerminate:(NSNotification*)notification {
+    [self stopSpriteSequence];
     (void)notification;
     if (_simTimer) {
         [_simTimer invalidate];
@@ -1187,7 +1200,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _spriteSlider.action = @selector(onSpriteSliderChanged:);
     [_spriteView addSubview:_spriteSlider];
     
-    NSTextField* idLabel=[NSTextField labelWithString:@"逻辑图像 ID"];
+    NSTextField* idLabel=[NSTextField labelWithString:@"物理 ID（1起）"];
     idLabel.frame=NSMakeRect(20,_spriteView.bounds.size.height-114,130,24);idLabel.autoresizingMask=NSViewMinYMargin;[_spriteView addSubview:idLabel];
     _spriteIdField=[[NSTextField alloc] initWithFrame:NSMakeRect(156,_spriteView.bounds.size.height-114,90,24)];
     _spriteIdField.target=self;_spriteIdField.action=@selector(onSpriteIdChanged:);_spriteIdField.autoresizingMask=NSViewMinYMargin;
@@ -1199,14 +1212,34 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _spriteBaseCanvas.frame=NSMakeRect(360,_spriteView.bounds.size.height-114,620,24);_spriteBaseCanvas.autoresizingMask=NSViewMinYMargin;
     _spriteBaseCanvas.accessibilityIdentifier=@"sg3-base-canvas";[_spriteView addSubview:_spriteBaseCanvas];
 
+    NSTextField* sequenceLabel=[NSTextField labelWithString:@"明确帧ID列表"];
+    sequenceLabel.frame=NSMakeRect(20,_spriteView.bounds.size.height-150,130,24);sequenceLabel.autoresizingMask=NSViewMinYMargin;[_spriteView addSubview:sequenceLabel];
+    _spriteSequenceIds=[[NSTextField alloc] initWithFrame:NSMakeRect(156,_spriteView.bounds.size.height-150,640,24)];
+    _spriteSequenceIds.placeholderString=@"物理ID，用逗号分隔；不自动推断帧链";_spriteSequenceIds.accessibilityIdentifier=@"sg3-sequence-ids";
+    _spriteSequenceIds.autoresizingMask=NSViewMinYMargin;_spriteSequenceIds.target=self;_spriteSequenceIds.action=@selector(onSpriteSequenceApply:);[_spriteView addSubview:_spriteSequenceIds];
+    _spriteSequenceApply=[NSButton buttonWithTitle:@"应用帧列表" target:self action:@selector(onSpriteSequenceApply:)];
+    _spriteSequenceApply.frame=NSMakeRect(810,_spriteView.bounds.size.height-152,160,28);_spriteSequenceApply.autoresizingMask=NSViewMinYMargin;_spriteSequenceApply.accessibilityIdentifier=@"sg3-sequence-apply";[_spriteView addSubview:_spriteSequenceApply];
+    _spriteSequencePrevious=[NSButton buttonWithTitle:@"上一帧" target:self action:@selector(onSpriteSequenceStep:)];
+    _spriteSequenceNext=[NSButton buttonWithTitle:@"下一帧" target:self action:@selector(onSpriteSequenceStep:)];
+    _spriteSequencePlay=[NSButton buttonWithTitle:@"播放" target:self action:@selector(onSpriteSequencePlay:)];
+    NSArray* sequenceButtons=@[_spriteSequencePrevious,_spriteSequenceNext,_spriteSequencePlay];
+    NSArray* sequenceNames=@[@"sg3-sequence-previous",@"sg3-sequence-next",@"sg3-sequence-play"];
+    for(NSUInteger i=0;i<sequenceButtons.count;++i){NSButton* b=sequenceButtons[i];b.frame=NSMakeRect(20+100*i,_spriteView.bounds.size.height-188,90,28);b.autoresizingMask=NSViewMinYMargin;b.accessibilityIdentifier=sequenceNames[i];[_spriteView addSubview:b];}
+    NSTextField* rateLabel=[NSTextField labelWithString:@"展示 FPS"];
+    rateLabel.frame=NSMakeRect(324,_spriteView.bounds.size.height-186,80,24);rateLabel.autoresizingMask=NSViewMinYMargin;[_spriteView addSubview:rateLabel];
+    _spriteSequenceRate=[[NSTextField alloc] initWithFrame:NSMakeRect(410,_spriteView.bounds.size.height-186,60,24)];
+    _spriteSequenceRate.stringValue=@"8";_spriteSequenceRate.accessibilityIdentifier=@"sg3-sequence-rate";_spriteSequenceRate.autoresizingMask=NSViewMinYMargin;_spriteSequenceRate.target=self;_spriteSequenceRate.action=@selector(onSpriteSequenceRateChanged:);[_spriteView addSubview:_spriteSequenceRate];
+    _spriteSequenceAlign=[NSButton checkboxWithTitle:@"减去原始X/Y偏移对齐（预览约定）" target:self action:@selector(onSpriteSequenceApply:)];
+    _spriteSequenceAlign.frame=NSMakeRect(490,_spriteView.bounds.size.height-186,490,24);_spriteSequenceAlign.state=NSControlStateValueOn;_spriteSequenceAlign.autoresizingMask=NSViewMinYMargin;_spriteSequenceAlign.accessibilityIdentifier=@"sg3-sequence-align";[_spriteView addSubview:_spriteSequenceAlign];
+
     _spriteInfoLabel = [NSTextField labelWithString:@"图素信息: 请选择图素包"];
-    _spriteInfoLabel.frame = NSMakeRect(20, _spriteView.bounds.size.height - 184, 984, 60);
+    _spriteInfoLabel.frame = NSMakeRect(20, _spriteView.bounds.size.height - 280, 984, 84);
     _spriteInfoLabel.autoresizingMask = NSViewMinYMargin | NSViewWidthSizable;
-    _spriteInfoLabel.maximumNumberOfLines = 3;
+    _spriteInfoLabel.maximumNumberOfLines = 4;
     _spriteInfoLabel.accessibilityIdentifier = @"sg3-image-info";
     [_spriteView addSubview:_spriteInfoLabel];
     
-    _spriteImageView = [[EmperorPixelImageView alloc] initWithFrame:NSMakeRect(20, 20, 984, _spriteView.bounds.size.height - 218)];
+    _spriteImageView = [[EmperorPixelImageView alloc] initWithFrame:NSMakeRect(20, 20, 984, _spriteView.bounds.size.height - 314)];
     _spriteImageView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _spriteImageView.accessibilityIdentifier = @"sg3-native-image";
     _spriteImageView.imageScaling = NSImageScaleProportionallyUpOrDown;
@@ -1220,6 +1253,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)onSpritePackageChanged:(id)sender {
     (void)sender;
+    [self stopSpriteSequence];_spriteSequence={};_spriteSequenceIds.stringValue=@"";
+    _spriteSequencePrevious.enabled=NO;_spriteSequenceNext.enabled=NO;_spriteSequencePlay.enabled=NO;
     NSInteger sel = _spritePackagePopup.indexOfSelectedItem;
     _currentSG3 = {};
     _current555Path.clear();
@@ -1245,18 +1280,20 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)onSpriteSliderChanged:(id)sender {
-    (void)sender;
+    (void)sender;[self stopSpriteSequence];_spriteSequence={};
+    _spriteSequencePrevious.enabled=NO;_spriteSequenceNext.enabled=NO;_spriteSequencePlay.enabled=NO;
     size_t idx = static_cast<size_t>(_spriteSlider.doubleValue);
     [self renderSpriteAtIndex:idx];
 }
 
 - (void)onSpriteIdChanged:(id)sender {
-    (void)sender;
+    (void)sender;[self stopSpriteSequence];_spriteSequence={};
+    _spriteSequencePrevious.enabled=NO;_spriteSequenceNext.enabled=NO;_spriteSequencePlay.enabled=NO;
     NSString* text=[_spriteIdField.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
     const char* raw=text.UTF8String;char* end=nullptr;const auto id=raw?std::strtoull(raw,&end,10):0;
     if(!raw||!*raw||!end||end==raw||*end!='\0'||!id||id>_currentSG3.sprites.size()) {
         _spriteImageView.image=nil;_spriteImageView.accessibilityLabel=@"没有显示SG3图像";
-        _spriteInfoLabel.stringValue=@"逻辑ID须在当前包使用中范围内；旧图像已清空";return;
+        _spriteInfoLabel.stringValue=@"物理ID须在当前包使用中范围内；旧图像已清空";return;
     }
     _spriteSlider.doubleValue=double(id-1);[self renderSpriteAtIndex:size_t(id-1)];
 }
@@ -1293,6 +1330,51 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     if(baseCanvas)_spriteInfoLabel.stringValue=[_spriteInfoLabel.stringValue stringByAppendingString:@"\n手动单格画布按底部78×40基底居中，越界裁剪；MAP选图与原版绘制锚点未知"];
     _spriteImageView.accessibilityLabel=[NSString stringWithFormat:@"%@，图像ID %zu，原始尺寸 %u×%u，%@",_spritePackagePopup.titleOfSelectedItem,idx+1,extracted.width,extracted.height,baseCanvas?@"单格基底居中对照，500×240，MAP选图未知":@"原始画布预览"];
 
+}
+
+- (void)stopSpriteSequence {
+    [_spriteSequenceTimer invalidate];_spriteSequenceTimer=nil;_spriteSequencePlay.title=@"播放";
+}
+- (void)onSpriteSequenceRateChanged:(id)sender {(void)sender;[self stopSpriteSequence];[self renderSpriteSequence];}
+- (void)onSpriteSequenceApply:(id)sender {
+    (void)sender;[self stopSpriteSequence];_spriteSequence={};_spriteImageView.image=nil;
+    _spriteImageView.accessibilityLabel=@"没有显示SG3图像";
+    _spriteSequencePrevious.enabled=NO;_spriteSequenceNext.enabled=NO;_spriteSequencePlay.enabled=NO;
+    const auto ids=game_lab::parseSG3SequenceIds(_spriteSequenceIds.stringValue.UTF8String,_currentSG3.sprites.size());
+    const NSInteger selected=_spritePackagePopup.indexOfSelectedItem;
+    if(!ids||selected<0||size_t(selected)>=_sg3Packages.size()){_spriteInfoLabel.stringValue=@"须提供当前包内1..256个明确物理ID；无效列表已清空预览";return;}
+    const auto path=_media->resourcePath(_sg3Packages[size_t(selected)]);
+    auto companion=std::filesystem::path(path);companion.replace_extension(".555");
+    if(!path.empty())_spriteSequence=game_lab::prepareSG3Sequence(_currentSG3,*ids,companion.string(),_spriteSequenceAlign.state==NSControlStateValueOn);
+    if(!_spriteSequence.valid()){_spriteInfoLabel.stringValue=[NSString stringWithFormat:@"序列未发布：%s；失败帧不跳过，旧图像已清空",_spriteSequence.error.c_str()];return;}
+    _spriteSequenceFrame=0;_spriteSequencePrevious.enabled=YES;_spriteSequenceNext.enabled=YES;_spriteSequencePlay.enabled=YES;
+    [self renderSpriteSequence];
+}
+- (void)renderSpriteSequence {
+    if(!_spriteSequence.valid()||_spriteSequenceFrame>=_spriteSequence.frames.size())return;
+    const auto& image=_spriteSequence.frames[_spriteSequenceFrame];const auto id=_spriteSequence.physicalIds[_spriteSequenceFrame];const auto& record=_currentSG3.sprites[id-1];
+    _spriteImageView.imageScaling=NSImageScaleProportionallyUpOrDown;
+    if(!presentPixels(_spriteImageView,image.width,image.height,image.pixelsBGRA)){[self stopSpriteSequence];_spriteImageView.image=nil;_spriteImageView.accessibilityLabel=@"没有显示SG3图像";_spriteInfoLabel.stringValue=@"序列画布转换失败，播放已停止";return;}
+    _spriteSlider.doubleValue=double(id-1);_spriteIdField.stringValue=[NSString stringWithFormat:@"%u",id];
+    const char* bitmap=record.bitmapId<_currentSG3.bitmaps.size()?_currentSG3.bitmaps[record.bitmapId].filename.c_str():"unknown";
+    _spriteInfoLabel.stringValue=[NSString stringWithFormat:@"明确序列帧 %zu/%zu · 物理ID %u（vector %u）· %@ · 展示循环，非原版计时\nbitmap %s · 尺寸 %d×%d · count %u · offset %d,%d · mirror %d · reverse %u · speedID %u（未解释）\n%@；不推断方向/帧链，不绑定建筑底图或城市。原始解码像素，原版阴影合成未验证。",_spriteSequenceFrame+1,_spriteSequence.frames.size(),id,id-1,_spriteSequenceTimer?@"播放中":@"已暂停",bitmap,record.width,record.height,record.animationSpriteCount,record.animationOffsetX,record.animationOffsetY,record.mirrorOffset,unsigned(record.animationReversible),unsigned(record.animationSpeedId),_spriteSequence.offsetAligned?@"减去公开原始偏移，共用固定画布（预览约定，非原版锚点）":@"原始画布左上对齐，共用固定画布"];
+    _spriteImageView.accessibilityLabel=[NSString stringWithFormat:@"%@，明确序列帧 %zu/%zu，物理ID %u，公共画布 %u×%u，非原版计时",_spritePackagePopup.titleOfSelectedItem,_spriteSequenceFrame+1,_spriteSequence.frames.size(),id,image.width,image.height];
+}
+- (void)onSpriteSequenceStep:(id)sender {
+    [self stopSpriteSequence];if(!_spriteSequence.valid())return;
+    _spriteSequenceFrame=game_lab::sg3SequenceStep(_spriteSequenceFrame,_spriteSequence.frames.size(),sender==_spriteSequencePrevious);[self renderSpriteSequence];
+}
+- (void)onSpriteSequencePlay:(id)sender {
+    (void)sender;if(_spriteSequenceTimer){[self stopSpriteSequence];[self renderSpriteSequence];return;}
+    if(!_spriteSequence.valid())return;
+    double rate=0;NSScanner* scan=[NSScanner scannerWithString:_spriteSequenceRate.stringValue];
+    if(![scan scanDouble:&rate]||!scan.isAtEnd||!game_lab::validSG3PreviewRate(rate)){_spriteInfoLabel.stringValue=@"展示FPS须为1..30的有限数值；没有解释原版speed ID";return;}
+    __weak EmperorAppDelegate* weakSelf=self;
+    _spriteSequenceTimer=[NSTimer timerWithTimeInterval:1.0/rate repeats:YES block:^(NSTimer* timer){
+        (void)timer;EmperorAppDelegate* owner=weakSelf;if(!owner)return;
+        owner->_spriteSequenceFrame=game_lab::sg3SequenceStep(owner->_spriteSequenceFrame,owner->_spriteSequence.frames.size());[owner renderSpriteSequence];
+    }];
+    [NSRunLoop.mainRunLoop addTimer:_spriteSequenceTimer forMode:NSRunLoopCommonModes];_spriteSequencePlay.title=@"暂停";[self renderSpriteSequence];
 }
 
 // ----------------------------------------------------
@@ -1959,6 +2041,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)showTab:(NSInteger)idx {
+    if(idx!=2){[self stopSpriteSequence];[self renderSpriteSequence];}
     [_navBar setSelectedSegment:idx];
     for (NSView* sub in [_contentContainer.subviews copy]) {
         [sub removeFromSuperview];
