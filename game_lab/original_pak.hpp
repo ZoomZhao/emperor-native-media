@@ -35,6 +35,7 @@ struct OriginalMapCatalog {
     std::string error;
 };
 struct OriginalMapSelection {
+    uint64_t saveRevision=0;
     OriginalMapResult map;
     std::optional<OriginalTerrainState> surfaceState;
     std::optional<OriginalSaveCellLayers> saveLayers;

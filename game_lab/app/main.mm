@@ -6,6 +6,7 @@
 #include "../emperor_assets.hpp"
 #include "../sg3_sequence.hpp"
 #include "../original_building_view.hpp"
+#include "building_candidate_config.hpp"
 #include "../resource_root.hpp"
 #include "../audio_policy.hpp"
 #include "../image_presentation.hpp"
@@ -177,6 +178,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTextField* _originalSaveCellY;
     NSButton* _originalSaveCellApply;
     NSButton* _originalBuildingLocate;
+    NSTextField* _originalBuildingSlot;
+    NSButton* _originalManualAdopt;NSButton* _originalManualVisible;NSButton* _originalManualClear;NSButton* _originalManualSave;
+    std::optional<size_t> _originalSelectedSlot;
+    std::optional<game_lab::OriginalBuildingCandidate> _originalManualCandidate;
+    std::string _originalSourceRelative,_originalManualMessage;uint64_t _originalSaveRevision;
+    std::optional<size_t> _spriteStaticIndex;game_lab::DecodedImage _spriteStaticPixels;BOOL _spriteExplicitSelection;
+
     NSImageView* _originalMapImage;
     std::vector<game_lab::OriginalMapSource> _originalMapSources;
     std::vector<size_t> _originalMapVisibleSources;
@@ -1259,6 +1267,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self stopSpriteSequence];_spriteSequence={};_spriteSequenceIds.stringValue=@"";
     _spriteSequencePrevious.enabled=NO;_spriteSequenceNext.enabled=NO;_spriteSequencePlay.enabled=NO;
     NSInteger sel = _spritePackagePopup.indexOfSelectedItem;
+    _spriteStaticIndex.reset();_spriteStaticPixels={};_spriteExplicitSelection=NO;_originalManualAdopt.enabled=NO;
     _currentSG3 = {};
     _current555Path.clear();
     _spriteImageView.image = nil;
@@ -1283,18 +1292,19 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)onSpriteSliderChanged:(id)sender {
-    (void)sender;[self stopSpriteSequence];_spriteSequence={};
+    (void)sender;_spriteExplicitSelection=YES;[self stopSpriteSequence];_spriteSequence={};
     _spriteSequencePrevious.enabled=NO;_spriteSequenceNext.enabled=NO;_spriteSequencePlay.enabled=NO;
     size_t idx = static_cast<size_t>(_spriteSlider.doubleValue);
     [self renderSpriteAtIndex:idx];
 }
 
 - (void)onSpriteIdChanged:(id)sender {
-    (void)sender;[self stopSpriteSequence];_spriteSequence={};
+    (void)sender;_spriteExplicitSelection=YES;[self stopSpriteSequence];_spriteSequence={};
     _spriteSequencePrevious.enabled=NO;_spriteSequenceNext.enabled=NO;_spriteSequencePlay.enabled=NO;
     NSString* text=[_spriteIdField.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
     const char* raw=text.UTF8String;char* end=nullptr;const auto id=raw?std::strtoull(raw,&end,10):0;
     if(!raw||!*raw||!end||end==raw||*end!='\0'||!id||id>_currentSG3.sprites.size()) {
+        _spriteStaticIndex.reset();_spriteStaticPixels={};_originalManualAdopt.enabled=NO;
         _spriteImageView.image=nil;_spriteImageView.accessibilityLabel=@"没有显示SG3图像";
         _spriteInfoLabel.stringValue=@"物理ID须在当前包使用中范围内；旧图像已清空";return;
     }
@@ -1302,6 +1312,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)renderSpriteAtIndex:(size_t)idx {
+    _spriteStaticIndex.reset();_spriteStaticPixels={};_originalManualAdopt.enabled=NO;
     _spriteImageView.image=nil;_spriteImageView.accessibilityLabel=@"没有显示SG3图像";
     if (idx >= _currentSG3.sprites.size()) {
         _spriteImageView.image = nil;
@@ -1327,6 +1338,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         return;
     }
     
+    if(extracted.width<=2048&&extracted.height<=2048){_spriteStaticPixels=extracted;_spriteStaticIndex=idx;_originalManualAdopt.enabled=_spriteExplicitSelection&&_originalSelectedSlot.has_value();}
     _spriteInfoLabel.stringValue = [NSString stringWithFormat:@"图像 ID: %zu / %zu（使用中）· SG3 v%u · 类型: %u · 尺寸: %dx%d\n镜像: %@ · Alpha: %@ · 已原生显示；与原版视觉一致性未测",
         idx + 1, _currentSG3.sprites.size(), _currentSG3.version, s.type, extracted.width, extracted.height,
         delivery.mirrored ? @"是" : @"否", delivery.alphaApplied ? @"是" : @"否"];
@@ -1340,6 +1352,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 - (void)onSpriteSequenceRateChanged:(id)sender {(void)sender;[self stopSpriteSequence];[self renderSpriteSequence];}
 - (void)onSpriteSequenceApply:(id)sender {
+    _spriteExplicitSelection=NO;_originalManualAdopt.enabled=NO;
     (void)sender;[self stopSpriteSequence];_spriteSequence={};_spriteImageView.image=nil;
     _spriteImageView.accessibilityLabel=@"没有显示SG3图像";
     _spriteSequencePrevious.enabled=NO;_spriteSequenceNext.enabled=NO;_spriteSequencePlay.enabled=NO;
@@ -1563,9 +1576,19 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalSaveCellApply=[NSButton buttonWithTitle:@"查看六个原值" target:self action:@selector(onOriginalSaveCellChanged:)];
     _originalSaveCellApply.frame=NSMakeRect(506,height-280,160,26);_originalSaveCellApply.autoresizingMask=NSViewMinYMargin;_originalSaveCellApply.accessibilityIdentifier=@"original-save-cell-apply";[_originalMapView addSubview:_originalSaveCellApply];
     _originalBuildingLocate=[NSButton buttonWithTitle:@"定位未绑定建筑占地" target:self action:@selector(onOriginalBuildingLocate:)];
-    _originalBuildingLocate.frame=NSMakeRect(680,height-280,300,26);_originalBuildingLocate.autoresizingMask=NSViewMinXMargin|NSViewMinYMargin;
+    NSTextField* slotLabel=[NSTextField labelWithString:@"建筑槽"];slotLabel.frame=NSMakeRect(680,height-278,48,24);slotLabel.autoresizingMask=NSViewMinYMargin;[_originalMapView addSubview:slotLabel];
+    _originalBuildingSlot=[[NSTextField alloc]initWithFrame:NSMakeRect(732,height-280,58,26)];_originalBuildingSlot.accessibilityIdentifier=@"original-building-slot";_originalBuildingSlot.target=self;_originalBuildingSlot.action=@selector(onOriginalBuildingLocate:);_originalBuildingSlot.autoresizingMask=NSViewMinYMargin;[_originalMapView addSubview:_originalBuildingSlot];
+    _originalBuildingLocate.frame=NSMakeRect(800,height-280,180,26);_originalBuildingLocate.autoresizingMask=NSViewMinXMargin|NSViewMinYMargin;
     _originalBuildingLocate.accessibilityIdentifier=@"original-building-locate";_originalBuildingLocate.enabled=NO;[_originalMapView addSubview:_originalBuildingLocate];
-    NSScrollView* unknownScroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,height-390,980,100)];
+    _originalManualAdopt=[NSButton buttonWithTitle:@"使用 SG3 当前图素（人工候选）" target:self action:@selector(onOriginalManualAdopt:)];
+    _originalManualVisible=[NSButton checkboxWithTitle:@"显示人工候选 · 锚点未验" target:self action:@selector(onOriginalMapPlaneChanged:)];
+    _originalManualClear=[NSButton buttonWithTitle:@"清除" target:self action:@selector(onOriginalManualClear:)];
+    _originalManualSave=[NSButton buttonWithTitle:@"保存本地候选" target:self action:@selector(onOriginalManualSave:)];
+    NSButton* manualLoad=[NSButton buttonWithTitle:@"载入本地候选" target:self action:@selector(onOriginalManualLoad:)];
+    NSArray* buttons=@[_originalManualAdopt,_originalManualVisible,_originalManualClear,_originalManualSave,manualLoad];NSArray* ids=@[@"original-manual-adopt",@"original-manual-visible",@"original-manual-clear",@"original-manual-save",@"original-manual-load"];
+    const CGFloat bx[]={20,320,590,680,820},bw[]={290,260,80,130,160};for(NSUInteger i=0;i<buttons.count;++i){NSButton* b=buttons[i];b.frame=NSMakeRect(bx[i],height-318,bw[i],26);b.autoresizingMask=NSViewMinYMargin;b.accessibilityIdentifier=ids[i];[_originalMapView addSubview:b];}
+    _originalManualAdopt.enabled=NO;_originalManualSave.enabled=NO;_originalManualClear.enabled=NO;
+    NSScrollView* unknownScroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,height-428,980,100)];
     unknownScroll.hasVerticalScroller=YES;unknownScroll.borderType=NSBezelBorder;
     unknownScroll.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
     _originalMapUnknowns=[[NSTextView alloc] initWithFrame:unknownScroll.bounds];
@@ -1577,7 +1600,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapUnknowns.accessibilityIdentifier=@"original-map-unknown-cells";
     _originalMapUnknowns.accessibilityLabel=@"地表未覆盖格或SAV查格原值";
     unknownScroll.documentView=_originalMapUnknowns;[_originalMapView addSubview:unknownScroll];
-    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 426)];
+    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 464)];
     _originalMapImage.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _originalMapImage.imageScaling = NSImageScaleProportionallyUpOrDown;
     _originalMapImage.accessibilityIdentifier = @"original-map-grid"; [_originalMapView addSubview:_originalMapImage];
@@ -1597,6 +1620,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapUnknowns.string=@"地图来源已切换；等待新地表结果，不沿用旧坐标。";
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const NSInteger index = _originalMapPicker.indexOfSelectedItem;
+    _originalManualCandidate.reset();_originalSelectedSlot.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualAdopt.enabled=NO;_originalManualSave.enabled=NO;_originalManualClear.enabled=NO;_originalManualMessage.clear();_originalSaveRevision=0;_originalSourceRelative.clear();_originalBuildingSlot.stringValue=@"";
     _originalMapSourceInfo.clear();_originalMapPackageSummary=NO;_originalSaveLayers.reset();_originalSaveBuildings.reset();_originalBuildingLocate.enabled=NO;
     _originalSaveCellX.stringValue=@"0";_originalSaveCellY.stringValue=@"0";
     _originalSaveCellX.enabled=NO;_originalSaveCellY.enabled=NO;_originalSaveCellApply.enabled=NO;
@@ -1608,12 +1632,15 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         _originalMapCandidates.enabled=NO;_originalMapCandidates.hidden=YES;_originalMapCameraX.enabled=NO;_originalMapCameraY.enabled=NO;_originalMapCameraApply.enabled=NO;return;
     }
     const size_t sourceIndex=_originalMapVisibleSources[static_cast<size_t>(index)];
+    _originalSourceRelative=_originalMapSources[sourceIndex].relativePath;
     auto selection = _media->originalMapSource(_originalMapSources[sourceIndex]);
+    _originalSaveRevision=selection.saveRevision;
     _originalMapResult = std::move(selection.map);
     _originalMapSourceInfo = std::move(selection.sourceInfo);
     _originalMapPackageSummary = selection.packageSummary;
     _originalSaveLayers=std::move(selection.saveLayers);_originalSaveBuildings=std::move(selection.saveBuildings);
     _originalBuildingLocate.enabled=_originalSaveBuildings&&!_originalSaveBuildings->footprints.empty();
+    _originalBuildingSlot.enabled=_originalBuildingLocate.enabled;if(_originalBuildingLocate.enabled)_originalBuildingSlot.stringValue=[NSString stringWithFormat:@"%zu",_originalSaveBuildings->footprints.front().slot];
     if(_originalSaveLayers&&_originalSaveLayers->valid()){for(NSInteger field=33;field<38;++field)[_originalMapBitPicker itemAtIndex:field].enabled=YES;}
     else if(_originalMapBitPicker.indexOfSelectedItem>=33&&_originalMapBitPicker.indexOfSelectedItem<38)[_originalMapBitPicker selectItemAtIndex:0];
     const auto& source=_originalMapSources[sourceIndex];
@@ -1641,10 +1668,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     if(savedField)_originalMapSpatial.state=NSControlStateValueOff;
     const bool spatial=surface||(!savedField&&_originalMapSpatial.state==NSControlStateValueOn);
     const bool buildingOverlay=spatial&&!surface&&_originalSaveBuildings&&!_originalSaveBuildings->footprints.empty();
+    if(!buildingOverlay){_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage.clear();}
+    _originalManualSave.enabled=_originalManualCandidate.has_value();_originalManualClear.enabled=_originalManualCandidate.has_value();
+    _originalManualAdopt.enabled=buildingOverlay&&_originalSelectedSlot.has_value()&&_spriteExplicitSelection&&_spriteStaticIndex.has_value()&&_spriteStaticPixels.valid()&&_spriteSequence.frames.empty();
     _originalMapCrop.enabled=!spatial;
     _originalMapCameraX.enabled=spatial;_originalMapCameraY.enabled=spatial;_originalMapCameraApply.enabled=spatial;_originalMapOutlines.enabled=spatial&&!surface;
     _originalMapOutlines.hidden=surface;_originalMapCandidates.hidden=!surface;_originalMapCandidates.enabled=surface;
-    std::string text = _originalMapSourceInfo;
+    std::string text = (_originalManualMessage.empty()?"":_originalManualMessage+"\n")+_originalMapSourceInfo;
     if(!_originalMapPackageSummary){
         if(_originalSaveLayers)text += "SAV 地形网格：存储228×228，活动边长字段 "+std::to_string(result.terrain.activeSide)+"；只读已保存字段，无城市规则绑定";
         else text += game_lab::describeOriginalMap(result);
@@ -1655,6 +1685,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         const auto analysis = game_lab::analyzeOriginalMap(result.terrain);
         game_lab::OriginalMapCamera camera;camera.outlines=_originalMapOutlines.state==NSControlStateValueOn;
         if(buildingOverlay)camera=game_lab::originalBuildingFocusCamera(_originalSaveBuildings->footprints,camera);
+        if(buildingOverlay&&_originalManualCandidate&&_originalManualVisible.state==NSControlStateValueOn)camera=game_lab::originalCandidateCamera(*_originalManualCandidate,camera);
         game_lab::DecodedImage image;
         const bool cameraNumbers=readMapCameraNumber(_originalMapCameraX,camera.centerX)&&readMapCameraNumber(_originalMapCameraY,camera.centerY);
         if(surface){
@@ -1681,6 +1712,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                 _originalMapUnknowns.string=@"占地视口无效；没有保留旧占地坐标或图像。";
                 if(cameraNumbers){auto preview=game_lab::renderOriginalBuildingFootprints(result.terrain,_originalSaveBuildings->footprints,camera,bit);image=std::move(preview.image);
                     std::string detail="未绑定建筑占地："+std::to_string(preview.valid)+" 个已验证记录，当前视口轮廓 "+std::to_string(preview.visible)+" 个；原版图像绑定0。琥珀线仅为原始记录占地，背景来自同一SAV的数值地形，不是MAP替身或原版建筑。\n";
+                    if(_originalManualCandidate&&_originalManualVisible.state==NSControlStateValueOn){auto manual=game_lab::renderOriginalBuildingCandidate(result.terrain,_originalSaveBuildings->footprints,camera,_originalSourceRelative,_originalSaveRevision,*_originalManualCandidate,bit);
+                        if(manual.accepted){image=std::move(manual.image);detail="人工候选 · 锚点未验 · confirmed 0；"+_originalManualCandidate->archive+" / 物理ID "+std::to_string(_originalManualCandidate->physicalId)+" → 表槽 "+std::to_string(_originalManualCandidate->target.slot)+"；绘制 "+std::to_string(manual.paintedPixels)+" 像素。约定：画布底边中心→占地中心，非原版锚点。\n"+detail;}
+                        else{_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage="候选来源/记录/画布校验失败，旧候选已清除。";}
+                    }
                     for(const auto& f:_originalSaveBuildings->footprints)detail+=std::string(game_lab::originalBuildingName(f.type))+"(type"+std::to_string(f.type)+") 活动坐标("+std::to_string(f.x)+","+std::to_string(f.y)+")，占地"+std::to_string(game_lab::originalFootprintWidth(f))+"×"+std::to_string(game_lab::originalFootprintHeight(f))+"（记录size"+std::to_string(f.size)+"），表槽"+std::to_string(f.slot)+"；绘制锚点待原版确认。\n";
                     if(image.valid())_originalMapUnknowns.string=[NSString stringWithUTF8String:detail.c_str()];
                     text+="；未绑定建筑占地 "+std::to_string(preview.visible)+"/"+std::to_string(preview.valid)+" 可见；仅记录轮廓，非原版建筑图像";
@@ -1698,6 +1733,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                 char cameraText[256];std::snprintf(cameraText,sizeof(cameraText),"；平面等距诊断，相机活动格(%.2f,%.2f)，格轮廓%s；SG3选图未知。",camera.centerX,camera.centerY,camera.outlines?"开":"关");text+=cameraText;
                 _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，等距空间诊断 %u×%u，相机 %.2f,%.2f，%@，格轮廓%@",_originalMapPicker.titleOfSelectedItem,image.width,image.height,camera.centerX,camera.centerY,_originalMapBitPicker.titleOfSelectedItem,camera.outlines?@"开":@"关"];
                 if(buildingOverlay)_originalMapImage.accessibilityLabel=[_originalMapImage.accessibilityLabel stringByAppendingString:@"；未绑定建筑占地，原始SAV记录坐标，非原版图像"];
+                if(buildingOverlay&&_originalManualCandidate&&_originalManualVisible.state==NSControlStateValueOn)_originalMapImage.accessibilityLabel=[_originalMapImage.accessibilityLabel stringByAppendingFormat:@"；人工候选，锚点未验，confirmed 0，表槽%zu，%@，物理ID%u",_originalManualCandidate->target.slot,[NSString stringWithUTF8String:_originalManualCandidate->archive.c_str()],_originalManualCandidate->physicalId];
             }else _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，%@ %u×%u，%@，%@",_originalMapPicker.titleOfSelectedItem,savedField?@"原始字段数值网格":@"地形标志网格",image.width,image.height,_originalMapBitPicker.titleOfSelectedItem,crop?@"中心活动框裁剪":@"完整存储网格"];
         }
         char details[256];
@@ -1714,11 +1750,57 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)onOriginalBuildingLocate:(id)sender {
     (void)sender;
     if(!_originalSaveBuildings||_originalSaveBuildings->footprints.empty())return;
-    const auto& f=_originalSaveBuildings->footprints.front();
+    NSString* raw=[_originalBuildingSlot.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];const char* value=raw.UTF8String;char* end=nullptr;const auto slot=value?std::strtoull(value,&end,10):4000;
+    auto found=std::find_if(_originalSaveBuildings->footprints.begin(),_originalSaveBuildings->footprints.end(),[&](const auto& f){return f.slot==slot;});
+    if(!value||!*value||!end||*end||slot>=4000||found==_originalSaveBuildings->footprints.end()){_originalSelectedSlot.reset();_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage="建筑槽不在当前已验证占地记录中；旧人工候选已清除。";[self onOriginalMapPlaneChanged:nil];return;}
+    if(!_originalSelectedSlot||*_originalSelectedSlot!=slot){_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage.clear();}_originalSelectedSlot=size_t(slot);
+    const auto& f=*found;
     [_originalMapBitPicker selectItemAtIndex:0];_originalMapSpatial.state=NSControlStateValueOn;
     _originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.2f",double(f.x)+(double(game_lab::originalFootprintWidth(f))-1)/2];
     _originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.2f",double(f.y)+(double(game_lab::originalFootprintHeight(f))-1)/2];
     [self onOriginalMapPlaneChanged:nil];
+}
+- (void)onOriginalManualClear:(id)sender {
+    (void)sender;_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage="人工候选已清除；confirmed 0。";[self onOriginalMapPlaneChanged:nil];
+}
+- (void)onOriginalManualAdopt:(id)sender {
+    (void)sender;_originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;
+    [self onOriginalBuildingLocate:nil];
+    if(!_originalSaveBuildings||!_originalSelectedSlot||!_spriteExplicitSelection||!_spriteStaticIndex||!_spriteStaticPixels.valid()||!_spriteSequence.frames.empty()){
+        _originalManualMessage="先定位已验证的建筑表槽，并在 SG3 页显式选择有效静态图像；旧候选已清除。";[self onOriginalMapPlaneChanged:nil];return;
+    }
+    auto target=std::find_if(_originalSaveBuildings->footprints.begin(),_originalSaveBuildings->footprints.end(),[&](const auto& f){return f.slot==*_originalSelectedSlot;});
+    const NSInteger package=_spritePackagePopup.indexOfSelectedItem;if(target==_originalSaveBuildings->footprints.end()||package<0||size_t(package)>=_sg3Packages.size())return;
+    game_lab::OriginalBuildingCandidate c;c.source=_originalSourceRelative;c.sourceRevision=_originalSaveRevision;c.target=*target;c.archive=_sg3Packages[size_t(package)];c.physicalId=uint32_t(*_spriteStaticIndex+1);c.pixels=_spriteStaticPixels;c.imageRevision=game_lab::originalCandidateImageRevision(c.pixels);
+    if(!game_lab::validOriginalCandidate(c)){_originalManualMessage="图素候选超出画布预算或像素校验失败，未显示旧候选。";[self onOriginalMapPlaneChanged:nil];return;}
+    _originalManualCandidate=std::move(c);_originalManualVisible.state=NSControlStateValueOn;_originalManualMessage="人工候选 · 锚点未验 · confirmed 0。图像底边中心对齐占地中心仅为预览约定。";[self onOriginalMapPlaneChanged:nil];
+}
+- (void)onOriginalManualSave:(id)sender {
+    (void)sender;if(!_originalManualCandidate)return;NSDictionary* object=game_lab::encodeOriginalCandidate(*_originalManualCandidate);if(!object)return;
+    NSSavePanel* panel=[NSSavePanel savePanel];panel.nameFieldStringValue=@"building-candidate.json";panel.message=@"仅保存人工候选引用与校验信息，不保存像素；须在 GameData 和 Git 目录之外。";
+    if([panel runModal]!=NSModalResponseOK)return;const char* path=panel.URL.fileSystemRepresentation;
+    if(!path||!game_lab::originalCandidateConfigPath(path,_candidateDirectory.fileSystemRepresentation)){_originalManualMessage="候选配置路径被拒绝：须为本地 JSON，位于 GameData 和 Git 目录之外。";[self onOriginalMapPlaneChanged:nil];return;}
+    NSData* data=[NSJSONSerialization dataWithJSONObject:object options:NSJSONWritingPrettyPrinted error:nil];
+    const bool saved=data&&data.length<=16384&&[data writeToURL:panel.URL options:NSDataWritingAtomic error:nil];_originalManualMessage=saved?"已本地保存人工候选配置；无像素、无 confirmed 绑定。":"候选配置保存失败。";[self onOriginalMapPlaneChanged:nil];
+}
+- (void)onOriginalManualLoad:(id)sender {
+    (void)sender;if(!_originalSaveBuildings||_originalSaveBuildings->footprints.empty()){_originalMapInfo.stringValue=@"先选择含已验证建筑记录的 SAV，再载入本地人工候选。";return;}
+    NSOpenPanel* panel=[NSOpenPanel openPanel];panel.canChooseFiles=YES;panel.canChooseDirectories=NO;panel.allowsMultipleSelection=NO;panel.message=@"选择本地人工候选 JSON；重新校验当前 SAV 和原图像，不载入像素文件。";
+    if([panel runModal]!=NSModalResponseOK)return;
+    _originalManualCandidate.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualMessage="配置不兼容、来源/记录/像素已变化或资源缺失；旧人工候选已清除。";
+    const char* path=panel.URL.fileSystemRepresentation;
+    if(!path||!game_lab::originalCandidateConfigPath(path,_candidateDirectory.fileSystemRepresentation)){[self onOriginalMapPlaneChanged:nil];return;}
+    NSDictionary* attrs=[NSFileManager.defaultManager attributesOfItemAtPath:panel.URL.path error:nil];if(!attrs||[attrs fileSize]>16384){[self onOriginalMapPlaneChanged:nil];return;}
+    NSData* data=[NSData dataWithContentsOfURL:panel.URL options:0 error:nil];if(!data||data.length>16384){[self onOriginalMapPlaneChanged:nil];return;}
+    auto c=game_lab::decodeOriginalCandidate([NSJSONSerialization JSONObjectWithData:data options:0 error:nil]);
+    if(!c||c->source!=_originalSourceRelative||c->sourceRevision!=_originalSaveRevision){[self onOriginalMapPlaneChanged:nil];return;}
+    auto target=std::find_if(_originalSaveBuildings->footprints.begin(),_originalSaveBuildings->footprints.end(),[&](const auto& f){return game_lab::sameOriginalCandidateTarget(f,c->target);});
+    if(target==_originalSaveBuildings->footprints.end()){[self onOriginalMapPlaneChanged:nil];return;}
+    auto archive=_media->sg3(c->archive);if(!c->physicalId||c->physicalId>archive.sprites.size()){[self onOriginalMapPlaneChanged:nil];return;}
+    auto companion=std::filesystem::path(c->archive);companion.replace_extension(".555");auto decoded=_media->sprite(archive,c->physicalId-1,companion.generic_string());c->pixels=std::move(decoded.image);
+    if(!game_lab::validOriginalCandidate(*c)){[self onOriginalMapPlaneChanged:nil];return;}
+    _originalBuildingSlot.stringValue=[NSString stringWithFormat:@"%zu",c->target.slot];[self onOriginalBuildingLocate:nil];
+    _originalManualCandidate=std::move(*c);_originalManualVisible.state=NSControlStateValueOn;_originalManualMessage="已本地载入并复核人工候选；锚点未验，confirmed 0。";[self onOriginalMapPlaneChanged:nil];
 }
 - (void)onOriginalSaveCellChanged:(id)sender {
     (void)sender;

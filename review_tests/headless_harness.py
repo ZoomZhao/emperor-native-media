@@ -1,4 +1,4 @@
-"""Extract unchanged App callbacks; Foundation run loop and fake controls, no GUI."""
+"""Extract current App callbacks; Foundation run loop and fake controls, no GUI."""
 from pathlib import Path
 import argparse, hashlib, json
 parser=argparse.ArgumentParser(description=__doc__)
@@ -66,6 +66,7 @@ struct FakeMedia{
 };
 @interface EmperorAppDelegate:NSObject{@public
  FakeControl *_spriteSequenceIds,*_spriteSequenceRate,*_spriteSequencePrevious,*_spriteSequenceNext,*_spriteSequencePlay,*_spriteSequenceAlign,*_spriteInfoLabel,*_spriteImageView,*_spriteSlider,*_spriteIdField,*_spritePackagePopup,*_spriteIdApply,*_spriteBaseCanvas;
+ FakeControl* _originalManualAdopt;BOOL _spriteExplicitSelection;std::optional<size_t> _spriteStaticIndex,_originalSelectedSlot;game_lab::DecodedImage _spriteStaticPixels;
  NSTimer* _spriteSequenceTimer;game_lab::SG3Sequence _spriteSequence;size_t _spriteSequenceFrame;
  game_lab::SG3Archive _currentSG3;std::vector<std::string> _sg3Packages;std::string _current555Path;FakeMedia* _media;
 }
@@ -102,4 +103,4 @@ int main(int argc,char**argv){@autoreleasepool{try{
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}return 0;}
 '''
 (P/'headless_callbacks.mm').write_text(prefix+declarations+'\n@end\n@implementation EmperorAppDelegate\n'+'\n'.join(methods)+'\n@end\n'+suffix)
-(P/'callback-extraction.json').write_text(json.dumps({'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'callbacks':{n:hashlib.sha256(m.encode()).hexdigest() for n,m in zip(names,methods)},'controls':'Foundation mocks; no AppKit/GUI; actual NSTimer callbacks','scope':'10 unchanged callbacks; showTab/termination reviewed statically and from supplied GUI evidence'},indent=2))
+(P/'callback-extraction.json').write_text(json.dumps({'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'callbacks':{n:hashlib.sha256(m.encode()).hexdigest() for n,m in zip(names,methods)},'controls':'Foundation mocks; no AppKit/GUI; actual NSTimer callbacks','scope':'10 current callbacks;manual-candidate cache ivars added to mocks; showTab/termination reviewed statically and from supplied GUI evidence'},indent=2))

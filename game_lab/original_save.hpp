@@ -10,6 +10,7 @@ struct OriginalSaveCellLayers {
     bool valid() const{return followingU32Unknown.size()==cells&&mapperObjects.size()==cells&&mapperRandom.size()==cells&&mapperStone.size()==cells&&mapperFertile.size()==cells;}
 };
 struct OriginalSaveResult {
+    uint64_t snapshotRevision=0;
     OriginalSaveStatus status=OriginalSaveStatus::ReadFailure;
     OriginalMapTerrain terrain;
     OriginalSaveCellLayers layers;

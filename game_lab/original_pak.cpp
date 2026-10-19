@@ -117,7 +117,7 @@ OriginalMapSelection loadOriginalMapSource(const ResourceRoot& root,const Origin
         }
         selected.map.status=OriginalMapStatus::LoadedTerrain;selected.map.terrain=std::move(save.terrain);
         selected.map.inputBytes=save.inputBytes;selected.map.decodedBytes=save.decodedBytes;selected.map.frames=save.frames;
-        selected.saveLayers=std::move(save.layers);selected.saveBuildings=std::move(save.buildings);return selected;
+        selected.saveRevision=save.snapshotRevision;selected.saveLayers=std::move(save.layers);selected.saveBuildings=std::move(save.buildings);return selected;
     }
 
     auto package=loadOriginalPak(path);selected.sourceInfo=describeOriginalPak(package)+"\n";

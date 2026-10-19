@@ -71,7 +71,7 @@ OriginalSaveResult decodeOriginalSave(const std::vector<uint8_t>& input){
         const auto copy=[&](size_t relative,std::vector<uint8_t>& values){values.assign(data.begin()+base+relative,data.begin()+base+relative+cells);};
         copy(randomOffset,layers.mapperRandom);copy(stoneOffset,layers.mapperStone);copy(fertileOffset,layers.mapperFertile);
         result.buildings=parseOriginalSavedBuildings(data,base,terrain);
-        result.terrain=std::move(terrain);result.layers=std::move(layers);result.frames=container.frames;result.decodedBytes=data.size();result.sizeOffset=sizeOffset;result.terrainOffset=base;result.status=OriginalSaveStatus::LoadedSnapshot;
+        result.terrain=std::move(terrain);result.layers=std::move(layers);result.frames=container.frames;result.decodedBytes=data.size();result.sizeOffset=sizeOffset;result.terrainOffset=base;result.status=OriginalSaveStatus::LoadedSnapshot;result.snapshotRevision=14695981039346656037ull;for(uint8_t byte:input){result.snapshotRevision^=byte;result.snapshotRevision*=1099511628211ull;}
     }catch(const std::bad_alloc&){result.status=OriginalSaveStatus::BudgetExceeded;}
     return result;
 }
