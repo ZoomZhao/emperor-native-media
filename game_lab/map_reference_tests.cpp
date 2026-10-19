@@ -242,16 +242,57 @@ void groundSelectorTests() {
      need(shore.known&&!shore.block&&!shore.chainNoWrite&&shore.code==uint16_t(0x61C)&&
           shore.variant==uint8_t(0x30u+(0x0Au%0x18u))&&
           std::string(shore.branch)=="0x4-shore-water-ring","the MAP-only shore ring writes T(0x61C)+0x30+random%0x18 with the offset kept out of the code");
-     // A single neighbour without 0x4000000 leaves the value undetermined.
+     // A single neighbour without 0x4000000 is not undetermined: it selects the
+     // 0x53FFFC fringe arm T(0x61C)+random%0x30 (0x0A%0x30 == 0x0A).
      request.neighbourFlags[3]&=~0x4000000u;
      const auto partial=selectGroundTileCode(request);
-     need(!partial.known&&!partial.chainNoWrite&&std::string(partial.branch)=="0x4-shore","a shore cell with a neighbour lacking 0x4000000 stays unknown");
+     need(partial.known&&!partial.chainNoWrite&&partial.code==uint16_t(0x61C)&&
+          partial.variant==0x0Au&&std::string(partial.branch)=="0x4-shore-water-fringe",
+          "a shore cell with one neighbour lacking 0x4000000 selects the fringe arm");
      // A neighbour carrying 0x10000 diverts to the runtime DAT_0101C540 arm.
      request.neighbourFlags[3]=0x10000u;
      need(!selectGroundTileCode(request).known,"a 0x10000 neighbour keeps the shore branch unknown");
      // hasNeighbours=false (no MAP neighbour data) must never be treated as all-zero.
      const auto noNeighbours=selectGroundTileCode(GroundCodeRequest{0x4000004u,0x0Au});
      need(!noNeighbours.known&&!noNeighbours.chainNoWrite&&std::string(noNeighbours.branch)=="0x4-shore","a shore request without neighbour data never guesses");
+ }
+ // Setter 4 shore, the 0x4000000 fringe: 0x53FFCB counts neighbours carrying
+ // 0x4000000 and 0x53FFDD `jne 0x53FFFC` writes T(0x61C)+random%0x30 when the
+ // count is below 8.
+ {
+     auto request=GroundCodeRequest{0x4000004u,0x1Fu};request.hasNeighbours=true;
+     for(uint32_t& flag:request.neighbourFlags)flag=0x4000004u;
+     request.neighbourFlags[5]=0x4u;
+     const auto fringe=selectGroundTileCode(request);
+     need(fringe.known&&!fringe.block&&!fringe.chainNoWrite&&fringe.code==uint16_t(0x61C)&&
+          fringe.variant==uint8_t(0x1Fu%0x30u)&&std::string(fringe.branch)=="0x4-shore-water-fringe",
+          "a 0x4000000 cell with seven water neighbours writes T(0x61C)+random%0x30");
+     // 0x1F is 31, so %0x18 is 7 and the ring formula (0x30+7=55) cannot pass.
+     need(fringe.variant==31u,"the fringe offset is random%0x30, not random%0x18");
+     // A 0x10000 neighbour diverts to the 0x61A descriptor arm before the count.
+     request.neighbourFlags[2]=0x10000u;
+     need(!selectGroundTileCode(request).known,"a 0x10000 neighbour keeps the fringe arm unknown");
+     // A 0x10000 cell itself never reaches the fringe arm (0x53FCCE/0x53FCE7).
+     auto elevated=GroundCodeRequest{0x4010004u,0x1Fu};elevated.hasNeighbours=true;
+     for(uint32_t& flag:elevated.neighbourFlags)flag=0x4000004u;
+     need(!selectGroundTileCode(elevated).known,"a 0x10000 cell takes the 0x61A arm, not the 0x61C fringe");
+ }
+ // Setter 4 shore, the no-0x4000000 ring: 0x540017 tests the count of neighbours
+ // carrying 0x4 (0x53FC9F `sete`) and 0x540051 writes T(0x61C)+random%0x18+
+ // (random&1) when all eight are shore.
+ {
+     auto request=GroundCodeRequest{0x4u,0x1Fu};request.hasNeighbours=true;
+     for(uint32_t& flag:request.neighbourFlags)flag=0x4000004u;
+     const auto ring=selectGroundTileCode(request);
+     need(ring.known&&!ring.block&&!ring.chainNoWrite&&ring.code==uint16_t(0x61C)&&
+          ring.variant==uint8_t(0x1Fu%0x18u+(0x1Fu&1u))&&
+          std::string(ring.branch)=="0x4-shore-shore-ring",
+          "a non-0x4000000 shore cell ringed by eight shore cells writes T(0x61C)+random%0x18+(random&1)");
+     need(ring.variant==8u,"the shore-ring offset is random%0x18+(random&1), not random%0x18");
+     request.neighbourFlags[0]&=~0x4u;
+     const auto broken=selectGroundTileCode(request);
+     need(!broken.known&&!broken.chainNoWrite&&std::string(broken.branch)=="0x4-shore",
+          "seven shore neighbours leave the T(0x605) descriptor arm unknown");
  }
  // Setter 5 road refuses the whole cell when a 0xC064 bit survives to it: a
  // determinate chain no-write, not an unknown code.
@@ -400,6 +441,10 @@ void groundSelectorTests() {
      need(resolveGroundTileCode(ids,uint16_t(0x602),uint8_t(r%9u),index)&&index==201u+r%9u,"farm variant offsets the resolved record id");
  for(uint8_t r:{0u,0x17u})
      need(resolveGroundTileCode(ids,uint16_t(0x61C),uint8_t(0x30u+r%0x18u),index)&&index==663u+0x30u+r%0x18u,"shore ring variant offsets the resolved record id");
+ for(uint8_t r:{0u,0x2Fu})
+     need(resolveGroundTileCode(ids,uint16_t(0x61C),uint8_t(r%0x30u),index)&&index==663u+r%0x30u,"shore fringe variant offsets the resolved record id");
+ for(uint8_t r:{0u,0x1Fu})
+     need(resolveGroundTileCode(ids,uint16_t(0x61C),uint8_t(r%0x18u+(r&1u)),index)&&index==663u+r%0x18u+(r&1u),"shore-ring variant offsets the resolved record id");
  need(!resolveGroundTileCode(ids,uint16_t(0x605),uint8_t(3),index)&&index==0,"empty slot refuses before the variant is added");
  SG3Archive small;small.numImages=3;small.sprites.resize(3);small.imageIndex[3]=2;
  need(resolveGroundTileCode(small,uint16_t(0x603),uint8_t(1),index)&&index==2,"the last in-range variant resolves");
@@ -811,12 +856,13 @@ void realDataGroundTests(bool& originalData) {
  // fertility-rank variant; the 220 whole-plot cells (random&0xF8==0) use block art
  // that is not modelled and honestly stay unknown; no 0x10000 neighbour occurs.
  need(farm==5992&&farmBlock==220&&farmRiver==0,"the Anyang farm sub-cases are stable");
- // The 0x4 shore-ring sub-case, the setter-5 road block and the farm formula are
- // MAP-determinable, giving 8426 known, 1347 still runtime-unknown (0x4-shore /
- // 0x40-road ...) and 167 a determinate chain no-write. The 220 farm block cells
- // stay unknown; the 1736 road cells move from the old unknown to known. Measured
- // on the user's own Anyang.map.
- need(known==8426&&unknown==1347&&chainNoWrite==167&&known+unknown+chainNoWrite==active,
+ // The two 0x4 shore arms added at LAB_0053FF8A, the setter-5 road block and the
+ // farm formula are MAP-determinable, giving 8859 known, 914 still
+ // runtime-unknown (0x4-shore T(0x605)+C and 0x40-road ...) and 167 a
+ // determinate chain no-write. The 220 farm block cells stay unknown; the 1736
+ // road cells and the 433 shore fringe/ring cells move from the old unknown to
+ // known. Measured on the user's own Anyang.map.
+ need(known==8859&&unknown==914&&chainNoWrite==167&&known+unknown+chainNoWrite==active,
       "original Anyang.map MAP-only outcome counts are stable");
  // Overall MAP-only known coverage floor (~84%). It cannot reach the farmland level
  // until the 0x4-shore general arm is modelled.
@@ -842,7 +888,7 @@ void realDataGroundTests(bool& originalData) {
          if(record&&record->height<=4096)++geometry;
      }
      // Measured on the user's own Anyang.map + China_Terrain.sg3.
-     need(knownCells==8426&&resolved==8426&&geometry==8426,
+     need(knownCells==8859&&resolved==8859&&geometry==8859,
           "every MAP-known ground cell resolves to a real single-cell China_Terrain.sg3 record");
      // The stored surface-image grid (0x00FE9880) is the oracle for the chain. It
      // renders verbatim as recordId = low14 + 201 in the same archive; the chain
@@ -864,8 +910,8 @@ void realDataGroundTests(bool& originalData) {
               grid.stats.decodeFailures==0,
               "original Anyang.map stored image grid decodes with the measured low-14 base");
          const auto score=scoreGroundChainAgainstImageGrid(terrain,*state,archive);
-         need(score.activeCells==9940&&score.emitted==8426&&score.matched==5673&&
-              score.mismatched==2753&&score.chainNoWrite==167&&score.chainUnknown==1347&&
+         need(score.activeCells==9940&&score.emitted==8859&&score.matched==5673&&
+              score.mismatched==3186&&score.chainNoWrite==167&&score.chainUnknown==914&&
               score.chainNoWriteVsStoredZero==0&&score.chainNoWriteVsStoredNonzero==167,
               "original Anyang.map chain score against the stored grid is stable");
      }

@@ -33,7 +33,7 @@ non-zero setter. Every setter that writes `img` also does `draw|=0x40` and `sub&
 | 1 | `FUN_004EDC30 @0x004EDC30` | `FUN_004EDA50` true and mode `[0x010AF4F4]` allows (item 9) | `img=T(0x61C)+0x30+random%0x18` | no |
 | 2 | `FUN_0053F240 @0x0053F240` | `B>=0 && C!=0` from cache arrays (item 1) | 2×2 block `T(C)`/`T(B)`-style river art | no |
 | 3 | `FUN_00540330 @0x00540330` | `terrain&0x800` | **no `img` write** (item 5) | no |
-| 4 | `FUN_0053FC30 @0x0053FC30` | `terrain&0x4` | `0x61B`/`0x61A`/`0x605`/`0x61C` (item 2) | no |
+| 4 | `FUN_0053FC30 @0x0053FC30` | `terrain&0x4` | `0x61B`/`0x61A`/`0x605`/`0x61C` (item 2) | partial |
 | 5 | `FUN_0053F520 @0x0053F520` | `terrain&0x1` → `FUN_004BC6A0` | `T(0x624|0x625)+9k+random%9` (k∈{0,1}) or `T(0x627)+random&7` (item 3) | yes |
 | 6 | `FUN_0053F660 @0x0053F660` | `terrain&0x2` | `T(0x607/0x608/0x606)+random&7` by `terrain&0x300002` | yes |
 | 7 | `FUN_0053F790 @0x0053F790` | `(terrain&0x101000)==0x101000` | `T(0x60F)+random&7` | yes |
@@ -67,23 +67,86 @@ writer is `FUN_0053EAE0 @0x0053EAE0`: it zeroes all three for the cell (`terrain
 `B=0x00B866B4[cell]`, `C=0x00BB92F4[cell]`, `S=0x00B53A74[cell]`; if `B<0` or `C==0` it returns 0, else it
 emits 2×2 block river/edge art and sets `terrain|=0x200` (and `|S`).
 
-**2. `FUN_0053FC30 @0x0053FC30` (`terrain&0x4`).** Requires `terrain&0x4`. It sets `DAT_0101C560=cell`,
-reads the singleton byte `[0x010AF4E8]` (`FUN_00425250`) and `FUN_004B9CC0(0x104)`, which sets
-`DAT_0101C594` = the number of the 8 neighbours sharing bit `0x104`
-(neighbour views at `0x00F6A650/4`, `0x00F6A9DC/E4`, `0x00F6A64C`, `0x00F6AD6C/70/74`). If
-`[0x010AF4E8]==0` or `DAT_0101C594 != 8` the "`0x104` water" mode is forced off.
-*Water mode off →* if `(terrain&0x10000)!=0`: `C<0` → `0x605`, else `0x61A`. Otherwise it scans the 8
-neighbour object pointers (`0x0088FE80/84`, `0x00890214`, `0x008905A4/A0/9C`, `0x0089020C`, `0x0088FE7C`;
-test `obj==0 || obj+0x18==0`), and a switch on `C` selects an orientation index `iVar8∈{0,2,4,6}`:
-* `0x61B` value `= T(0x61B) + ((iVar8-4)&7 + 6)*3 + iVar7` (+1 if the two orientation flags
-  `0x0101C5B8[...]` are set). Cases `C=0→4`, `4→6`, `8→0`, `0xC→2`, `0x10/0x18/0x1C` combine.
-* `0x61A` value `= T(0x61A) + R + C` (default/`D_1` case).
-* `0x605` value `= T(0x605) + R + C`.
-*Water mode on →* (`LAB_0053FF8A`) and only when `terrain&0x4000000==0` or `terrain&0x100!=0`:
-`FUN_004BC140()==8` → `T(0x61C)+random%0x18+(random&1)`, else `0x605+R+C`. When
-`terrain&0x4000000!=0 && terrain&0x100==0`: re-run with `FUN_004B8F70(0x4000000)`; if `FUN_004BC140()!=8`
-→ `T(0x61C)+random%0x30`, else `T(0x61C)+0x30+random%0x18`. `DAT_0101C594` is a neighbour-container count
-(see item 8's `FUN_004EDA50`), not a MAP field.
+**2. `FUN_0053FC30 @0x0053FC30` (`terrain&0x4`).** Requires `terrain&0x4` (0x0053FC38
+`test byte ptr [4*ebp+0x00F6A9E0],4`). It stores `DAT_0101C560=cell`, reads the
+singleton byte `[0x010AF4E8]` (`FUN_00425250`, call at 0x0053FC53) and
+`FUN_004B9CC0(0x104)` (0x0053FC67), which sets `DAT_0101C594` to the number of the
+8 neighbours sharing bit `0x104` (neighbour views `0x00F6A650/4`,
+`0x00F6A9DC/E4`, `0x00F6A64C`, `0x00F6AD6C/70/74`). If `[0x010AF4E8]==0` or
+`DAT_0101C594!=8` the "`0x104` water" mode is forced off (0x0053FC76 `cmp eax,8` /
+0x0053FC7B `mov byte ptr [esp+0x24],bl`). The initial neighbour count is then taken
+over mask `4` (or `0x104` in water mode; 0x0053FC83/0x0053FC91 and the `sete` at
+0x0053FC9F).
+
+*Water mode off* (0x0053FCC6 `cmp al,bl` / `jne 0x53FF8A`):
+* `(terrain&0x10000)!=0` (0x0053FCCE `test ...,0x10000`): `0x0053FCDB cmp dword ptr
+  [0x0101C540],ebx` / `0x0053FCE1 jl 0x53FF8A`, otherwise the `D_1` case at
+  0x0053FF62 writes `T(0x61A)+R+C`. `C` is 0 or a `0x20xx` descriptor (item 1) and
+  never negative, so this is always the `0x61A` arm.
+* Otherwise `FUN_004B8F70(0x10000)` + `FUN_004BC140()` (0x0053FCEC..0x0053FCF9).
+  `0` such neighbours → `LAB_0053FF8A` (0x0053FD00 `je`). Otherwise the 8
+  neighbour object pointers (`0x0088FE80/84`, `0x00890214`, `0x008905A4/A0/9C`,
+  `0x0089020C`, `0x0088FE7C`; test `obj==0 || obj+0x18==0`) feed a switch on `C`
+  selecting orientation `iVar8∈{0,2,4,6}`:
+  * `0x61B` value `= T(0x61B) + ((iVar8-4)&7 + 6)*3 + iVar7` (+1 if the two
+    orientation flags `0x0101C5B8[...]` are set). Cases `C=0→4`, `4→6`, `8→0`,
+    `0xC→2`, `0x10/0x18/0x1C` combine.
+  * default/`D_1`: `0x61A` value `= T(0x61A) + R + C`.
+* At `LAB_0053FF8A` with the water byte still 0 (0x0053FF99 `cmp byte ptr
+  [esp+0x24],bl` / `je 0x53FFAB`) the three MAP-determined arms are:
+  * `terrain&0x4000000 != 0` (0x0053FFB2) and `0x100` clear (0x0053FFB9; the
+    disjunct is dead because setter 1 owns every `0x100` cell and returned above):
+    recount the `0x4000000` neighbours (0x0053FFBE..0x0053FFD0). `==8` →
+    `T(0x61C)+0x30+random%0x18` (0x0053FFDF, `0x0053FFEE mov esi,0x18`,
+    0x0053FFF6 `lea ecx,[ecx+edx+0x30]`); `<8` → `T(0x61C)+random%0x30`
+    (0x0053FFDD `jne 0x53FFFC`, `0x54000B mov esi,0x30`, 0x540011/0x540013).
+  * `terrain&0x4000000 == 0` (0x0053FFB7 `je 0x540017`): the count from 0x0053FC97
+    is over mask `4` (water byte 0). `==8` → `T(0x61C)+random%0x18+(random&1)`
+    (0x540017 `cmp byte ptr [esp+0x13],bl` / 0x54001D..0x540051, the `and
+    esi,0x80000001` being the compiler's sign-fix for `(int)(r&1)`); `<8` →
+    `T(0x605)+R+C` (0x540055 `push 1541`).
+
+*Water mode on* (0x0053FCC6 `jne 0x53FF8A`) skips the whole `(char)param_2==0`
+block and always writes `T(0x61C)+0x30+random%0x18` (0x0053FF9F `push 1564` →
+0x0053FFDF). A bare load has the byte 0: the singleton constructor
+`FUN_004ED290 @0x004ED290` zeroes it (`mov byte ptr [edx+8],al`) and its only
+writer `FUN_004ED2B0 @0x004ED2B0` is reached from gameplay code (single caller
+0x0049CEE6), not the `.map` read path. So the three `0x61C` arms above are the
+load-time dispatch.
+
+Measured over all 167 `Cities/*.map`: water-ring 83,229, water-fringe 57,024 and
+shore-ring 5,014 cells are MAP-determined, matching the stored grid on 39.73 %,
+39.32 % and 40.33 % respectively. The remaining 94,897 `0x4-shore` cells take
+`T(0x605)+R+C`; `R=0` (`0x0101C538` cleared at 0x00473326) and `C` is the runtime
+elevation-pattern descriptor of item 1, so they stay unknown. Their stored ids
+spread across the whole 48-piece slot-5 art range (0..47), which is
+descriptor/authored art, not a MAP byte: the `d=0` mode is only 1.8 %.
+
+**Those three percentages are not the id shift, and must not be explained by it.**
+Splitting the corpus by whether the city's road band is shifted (the road band and
+the `0x61C` band are both "upper", so this is the right cohort split), the arms are:
+
+| Arm | Unshifted cities (93) | Shifted cities (74) |
+|---|---|---|
+| `0x4-shore-water-ring` | 47,649 emitted, 33,070 matched (69.40 %) | 35,580 / **0** (0.00 %) |
+| `0x4-shore-water-fringe` | 33,264 / 22,292 (67.02 %) | 23,760 / 128 (0.54 %) |
+| `0x4-shore-shore-ring` | 3,041 / 1,999 (65.73 %) | 1,973 / 23 (1.17 %) |
+
+So the shifted cohort is fully explained by the shift, but **the unshifted cohort
+still only reaches 66-69 %**, i.e. ~11,000 fringe cells are wrong with no shift to
+blame. Their `stored - predicted` deltas are *scattered* (`-8..+8` all populated
+plus 9-16/17-32/33-64) rather than constant - e.g. MP61 road 99.87 % matched but
+fringe 0.00 % with deltas spread over `-8..+6` and 95/166/46 in the three large
+buckets - while STGW-Anyang and Badaling are 100 %. Only 20 of the 84 unshifted
+cities with >=50 fringe cells reach 100 %. A scattered residual in a city whose
+other bands are exact is a **condition** error, not a variant or a shift error: the
+candidate is the neighbour count, because `0x540001 FUN_004B8F70(0x4000000)` runs
+immediately before `0x540006 FUN_004BC140` and may write descriptors the count then
+reads, which the per-cell MAP model does not reproduce. The three formulas
+themselves are confirmed against the decompiled `FUN_0053FC30 @0x0053FC30`:
+`0x54000B`/`0x540011` give `base(0x61C) + r%0x30`,
+`0x54001F`/`0x54003B`/`0x540040`/`0x540051` give `base(0x61C) + r%0x18 + (r&1)`, and
+`0x53FFEE`/`0x53FFF4`/`0x53FFF6` give `base(0x61C) + 0x30 + r%0x18`.
 
 **3. `FUN_0053F520 @0x0053F520` → `FUN_004BC6A0 @0x004BC6A0` (`terrain&0x1`).** Wrapper does
 `sub&=0xF0`, `draw|=0x40`, then `FUN_004BC6A0`. Gate `(terrain&0xC064)==0`. If `terrain&0x100` and
@@ -265,21 +328,24 @@ an unknown.
 
 ### MAP-only ceiling, measured over all 167 `Cities/*.map`
 
-`active 2,107,836`; `known 1,761,341` (83.56 %), every emitted code resolving in
-`China_Terrain.sg3` with 0 unmatched; `unknown 231,558` (10.99 %, across the
+`active 2,107,836`; `known 1,823,379` (86.50 %), every emitted code resolving in
+`China_Terrain.sg3` with 0 unmatched; `unknown 169,520` (8.04 %, across the
 runtime-array branches below); determinate `chain-declined` 114,937; `decode_failures`
-0 for every city. The unknown residue is `0x4-shore` 156,935, `0x80-farm-block`
+0 for every city. The unknown residue is `0x4-shore` 94,897, `0x80-farm-block`
 36,950, `0x40-road` 23,826, `0x10000-monument` 6,216, `0x20000-forest` 4,347 and
 `0x80-farm-river` 3,284. Completing those requires the runtime descriptors
 (`0x0101C538/540`, the road/edge caches, the object id) or block-art expansion, not
 more terrain analysis. (The earlier ceiling `known 1,514,539` / `unknown 478,360`
-predates modelling setter 5 and is superseded: the pre-road `known` was 1,514,539
-and the 246,802 road cells are the entire change, `1,514,539 + 246,802 = 1,761,341`.)
+predates modelling setters 5 and 4 and is superseded: the pre-road `known` was
+1,514,539, `1,514,539 + 246,802 + 62,038 = 1,823,379`, i.e. the road cells and the
+two `LAB_0053FF8A` shore arms are the entire change.
+The `0x4-shore` residue fell from 156,935 to 94,897 when those arms were ported:
+`156,935 - 57,024 - 5,014 = 94,897`.)
 
 ## Mismatch classes: every residual cell now has a named cause
 
-`matched` is the count of emitted codes that equal the stored grid (`1,450,441` of
-`1,761,341`, 82.349 %). The remaining `310,900` cells were a bare count. They are
+`matched` is the count of emitted codes that equal the stored grid (`1,474,883` of
+`1,823,379`, 80.887 %). The remaining `348,496` cells were a bare count. They are
 now classified per branch, and the classes partition `mismatched` exactly - the
 sweep treats a city whose classes do not sum to its `mismatched` as a **failure**,
 so a silent drop cannot pass.
@@ -298,12 +364,12 @@ Measured over all 167 `Cities/*.map` (167/167 processed, 0 failures):
 | Class | Cells |
 |---|---:|
 | stored word is 0 while the chain emitted | 15 |
-| stored word names a tileset other than 3 | 9,827 |
-| same tileset 3, stored index within +-8 of the prediction | 22,713 |
-| same tileset 3, stored index further off | 278,345 |
-| **total** | **310,900** |
+| stored word names a tileset other than 3 | 9,828 |
+| same tileset 3, stored index within +-8 of the prediction | 27,100 |
+| same tileset 3, stored index further off | 311,553 |
+| **total** | **348,496** |
 
-The 9,827 non-tileset-3 cells all name **tileset 16 (`China_Elevation.sg3`)**; no
+The 9,828 non-tileset-3 cells all name **tileset 16 (`China_Elevation.sg3`)**; no
 other tileset appears (direct corpus probe of `stored>>14`). So the chain does not
 merely pick the wrong record on those cells, it claims a cell whose art is not
 ground art at all: the dispatch chain models setters that write into the ground
@@ -311,24 +377,30 @@ namespace, and the engine's real choice for those cells produced elevation art.
 That is a missing branch, not a variant error, and it is the single largest
 *non-index* class.
 
-The 278,345 "further off" cells are bucketed by magnitude of
-`storedIndex - predictedIndex`: 9-16, 14,757; 17-32, 179,140; 33-64, 17,878;
-65-128, 50,857; 129-256, 14,669; 257-512, 1,014; 513-1024, 30. The 17-32 bucket
-grew by 94,669 exactly because setter 5 now emits the road cells whose per-city
-namespace sits 20/30/32 below the prediction (next section). A wrong *variant* can
+The 311,553 "further off" cells are bucketed by magnitude of
+`storedIndex - predictedIndex`: 9-16, 19,323; 17-32, 203,004; 33-64, 22,267;
+65-128, 51,246; 129-256, 14,669; 257-512, 1,014; 513+, 30. The 17-32 bucket
+grew by 23,864 because the two new shore arms emit cells whose per-city namespace
+sits 20/30/32 below the prediction, and because setter 5 already emits the road
+cells with the same shift (next section). Note that the *shift* only accounts for
+the shifted cohort: in the 93 cities whose upper bands are exact the shore arms
+still reach only 66-69 % (item 2), so part of the shore residual is a condition
+error with scattered deltas. A wrong *variant* alone can
 only produce a small delta (the variant space is 0..32 for road), so the clustered
 large deltas are wrong *base/band* selections. Per branch, the residual is
 dominated by `0x1-road` 95,978 (61.11 %), `0x80-farm` 65,742 (94.01 %),
-`0x4-shore-water-ring` 50,159 (39.73 %), `0x2-land` 49,808 (33.14 %) and
-`plain-land` 26,936 (88.16 %).
+`0x4-shore-water-ring` 50,159 (39.73 %), `0x2-land` 49,808 (33.14 %),
+`0x4-shore-water-fringe` 34,604 (39.32 %), `plain-land` 26,936 (88.16 %) and
+`0x4-shore-shore-ring` 2,992 (40.33 %).
 
 ### The per-(city, record-id band) id shift is the largest single cause
 
 The 17-32 magnitude bucket is not one branch's problem. Cells whose stored index
 sits 17-32 records from the prediction, by branch: `0x1-road` 94,669,
-`0x4-shore-water-ring` 31,876, `0x2-land` 26,331, `0x80000000-flood` 9,949,
-`plain-land` 9,833, `0x40000-canal` 4,776 and `0x101000-twin` 1,700 - **179,140
-cells, 64 % of the 278,345 large-delta residual**, from one cause.
+`0x4-shore-water-ring` 31,876, `0x2-land` 26,331, `0x4-shore-water-fringe` 21,923,
+`0x80000000-flood` 9,949, `plain-land` 9,833, `0x40000-canal` 4,776,
+`0x4-shore-shore-ring` 1,941 and `0x101000-twin` 1,700 - **203,004
+cells, 65 % of the 311,553 large-delta residual**, from one cause.
 
 Inside a city the offset is constant *for a given band*: Anyang has 1,734 of its
 1,736 road cells at exactly -30, its `0x2-land` mode is -30, and all 384 of its
@@ -398,7 +470,7 @@ on the owned data / exe SHA-256
   imageIndex[slot] - 201`), with no per-city adjustment.
 
 Two consequences follow, and they must not be confused. For the **score**, the stored
-grid is a stale oracle above the farm and plain-land bands, so `82.349 %` is a floor
+grid is a stale oracle above the farm and plain-land bands, so `80.887 %` is a floor
 on the reconstruction's agreement with it, not the reconstruction's accuracy. For the
 **render**, `recordId = low14 + 201` reads those stored ids against the installed
 archive, so in a shifted city it decodes a record 20/30/32 entries from the one the
@@ -470,6 +542,6 @@ The probe replicates the setter-17 gates from the payload alone
 So the farm residual is not "the wrong band was selected from the farm table"; it is
 that the chain **claims cells the engine gave other art**. Those art sources are the
 setters this reimplementation does not model (setters 2, 3, 4, 9, 13, 14, 15).
-The 231,558 `chain_unknown` cells and the 278,345 large-delta mismatches are the same
+The 169,520 `chain_unknown` cells and the 311,553 large-delta mismatches are the same
 blocker seen from two sides: **porting those setters is the lever**, and until it is
 done the stored grid stays the faithful render source.

@@ -327,26 +327,29 @@ reading of the `0x8C008` gate and of the other declining branches; the repo now 
 them `chain-declined` / `chainNoWrite` (`original_ground.hpp`).
 
 Measured over all 167 `Cities/*.map` (whole crop, camera-free), after modelling
-setter 5 (the road arm):
+setter 5 (the road arm) and the two `LAB_0053FF8A` arms of setter 4:
 
 * grid `2,107,836` active cells, `28` stored zero, `2,107,808` stored nonzero;
-* chain emits `1,761,341`, agrees with the stored grid on `1,450,441` = **82.349 %**;
+* chain emits `1,823,379`, agrees with the stored grid on `1,474,883` = **80.887 %**;
 * chain declines to write on `114,937` cells: `0` of them store zero, **all `114,937`
   store nonzero art** — direct evidence that "declined" is not "empty";
-* unknown / non-terrain-determinable chain cells `231,558`.
+* unknown / non-terrain-determinable chain cells `169,520`.
 
 (The pre-setter-5 numbers were `1,514,539` emitted / `1,299,617` matched = 85.809 %
-/ `478,360` unknown; the 246,802 modelled road cells are the whole change, and the
-matched *rate* falls because the road arm predicts the executable's code while the
-stored words sit in an older archive namespace, below.)
+/ `478,360` unknown; setter 5 adds the 246,802 road cells and setter 4's two
+`LAB_0053FF8A` arms add 62,038 shore cells, which is the whole change. Both lower
+the emitted *ratio* because the newly claimed cells sit in the per-(city, band) id
+shift and match at 39-61 %; absolute matches rose `150,824 + 24,442`.)
 
 ### The stored ids are an older archive vintage, and the shift is not derivable
 
-The stored word is the archive id captured when each `.map` was authored. The
-installed `China_Terrain.sg3` has since had records inserted before some art bands,
-so the residual `storedIndex - predictedIndex` (only defined where the stored word
-is nonzero tileset-3 art) is a constant **per (city, record-id band)**, never
-positive:
+The residual's **shape** is measured (it is only defined where the stored word is
+nonzero tileset-3 art): a constant **per (city, record-id band)** and
+never positive, and not one constant per city. The explanation that fits it - an
+**inference**, not a measurement, because the authoring-time table is not shipped -
+is that the stored word is the archive id captured when each `.map` was authored and
+the installed `China_Terrain.sg3` has since had records inserted before some art
+bands:
 
 | Band | Emitted codes (`imageIndex`) | Modal residual over 167 cities |
 |---|---|---|

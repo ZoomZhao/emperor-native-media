@@ -110,20 +110,65 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     //    whenever the chain reaches here). Shore context selects 0x61B/0x61A/0x605
     //    /0x61C and adds the runtime DAT_0101C538 + DAT_0101C540.
     if(terrain&0x4u) {
-        // Exactly one sub-case is fixed by MAP bytes alone. With
-        // !(terrain&0x10000) (so the 0x53FCEC arm cannot run), zero neighbours
-        // carrying 0x10000 (0x53FCF9 FUN_004BC140), terrain&0x4000000 and
-        // !(terrain&0x100) (0x53FFB2/0x53FFB9), and all 8 neighbours carrying
-        // 0x4000000 (0x53FFCB FUN_004BC140 == 8), the 0x53FFDF arm writes
-        // img = T(0x61C) + 0x30 + random%0x18 (0x53FFF6) and returns.
-        // The single-byte water mode 0x010AF4E8 (FUN_00425250 @0x00425250) only
-        // gates which arm runs; its other state converges to the same T(0x61C)
-        // +0x30+random%0x18 value (0x53FF9F -> 0x53FFDF), so the result is the
-        // same for both states and is fully determined by the MAP.
-        if(request.hasNeighbours&&!(terrain&0x10000u)&&(terrain&0x4000000u)&&
-           !(terrain&0x100u)&&neighbourMaskCount(request,0x10000u)==0&&
-           neighbourMaskCount(request,0x4000000u)==8)
-            return {0x61C,true,false,"0x4-shore-water-ring",false,uint8_t(0x30u+request.randomByte%0x18u)};
+        // Path to LAB_0053FF8A with the water-mode byte clear. `0x53FCC6 cmp
+        // al,bl` (the byte FUN_00425250 @0x00425250 returned at 0x53FC53) `jne
+        // 0x53FF8A` takes channel mode straight to the label; otherwise
+        // `0x53FCCE test dword ptr [4*ebp+0x00F6A9E0],0x10000` and, for a
+        // 0x10000 cell, `0x53FCDB cmp dword ptr [0x0101C540],ebx` / `0x53FCE1 jl
+        // 0x53FF8A`. DAT_0101C540 (C) is 0 or a 0x20xx descriptor (never
+        // negative), so a 0x10000 cell always goes to the 0x61A art instead;
+        // the label is reached for a 0x10000-clear cell only when the 0x10000
+        // neighbour count FUN_004BC140 @0x004BC140 is zero (`0x53FCF9 call;
+        // 0x53FCFE cmp eax,ebx` / `0x53FD00 je 0x53FF8A`).
+        // The water-mode byte is 0 for a bare load: the singleton constructor
+        // FUN_004ED290 @0x004ED290 zeroes it (`mov byte ptr [edx+8],al`) and its
+        // only writer FUN_004ED2B0 @0x004ED2B0 is reached from gameplay code
+        // (single caller 0x0049CEE6), not the `.map` read path. The same premise
+        // is already used by the setter-17 farm arm below.
+        if(request.hasNeighbours&&!(terrain&0x10000u)&&
+           neighbourMaskCount(request,0x10000u)==0) {
+            // `0x53FF99 cmp byte ptr [esp+0x24],bl` / `je 0x53FFAB` selects the
+            // per-cell arms for a clear water-mode byte.
+            if(terrain&0x4000000u) {
+                // `0x53FFB2 test eax,0x4000000` / `0x53FFB7 je 0x540017`;
+                // `0x53FFB9 test ah,1` / `0x53FFBC jne 0x540017` (the 0x100
+                // disjunct is dead: setter 1 owns every 0x100 cell and returned
+                // above). `0x53FFBE push 0x4000000`, `0x53FFC3 call
+                // FUN_004B8F70`, `0x53FFCB call FUN_004BC140`, `0x53FFD0 cmp
+                // eax,8`, `0x53FFDD jne 0x53FFFC`. With all 8 neighbours
+                // carrying 0x4000000 the eq8 arm writes img = T(0x61C) + 0x30 +
+                // random%0x18 (`0x53FFD3 push 0x61C`, `0x53FFEE mov esi,0x18`,
+                // `0x53FFF4 idiv esi`, `0x53FFF6 lea ecx,[ecx+edx+0x30]`).
+                if(neighbourMaskCount(request,0x4000000u)==8)
+                    return {0x61C,true,false,"0x4-shore-water-ring",false,uint8_t(0x30u+request.randomByte%0x18u)};
+                // Fewer than 8: `0x53FFFC` reloads T(0x61C), `0x54000B mov
+                // esi,0x30`, `0x540011 idiv esi`, `0x540013 add ecx,edx` gives
+                // img = T(0x61C) + random%0x30.
+                return {0x61C,true,false,"0x4-shore-water-fringe",false,uint8_t(request.randomByte%0x30u)};
+            }
+            // No 0x4000000 on the cell: `0x540017 cmp byte ptr [esp+0x13],bl` /
+            // `0x540055 je` tests the count of neighbours carrying 0x4 that
+            // `0x53FC97 call FUN_004BC140` produced (`0x53FC9F sete byte ptr
+            // [esp+0x17]`) for the mask pushed at 0x53FC83/0x53FC91 (0x4 when
+            // the water-mode byte is clear -- 0x104 only in channel mode).
+            // Eight shore neighbours give img = T(0x61C) + random%0x18 +
+            // (random&1) (`0x54001F push 0x61C`, `0x54003B mov edi,0x18`,
+            // `0x540040 idiv edi`, `0x540042 add ecx,edx`, `0x540044 and
+            // esi,0x80000001`, `0x540051 add ecx,esi`; the and/jns/dec/or/inc
+            // sequence is the compiler's sign-fix for `(int)(r&1)` on a byte).
+            if(neighbourMaskCount(request,0x4u)==8)
+                return {0x61C,true,false,"0x4-shore-shore-ring",false,
+                    uint8_t(request.randomByte%0x18u+(request.randomByte&1u))};
+            // Otherwise `0x540055 push 0x605` writes T(0x605) + DAT_0101C538 +
+            // DAT_0101C540. Both are runtime descriptors: 0x00473326 of
+            // FUN_00473210 @0x00473210 clears 0x0101C538 and 0x0047330C stores
+            // the table descriptor in 0x0101C540 from the 147-entry (0x93) table
+            // at 0x00825C28 fed by the elevation grid; no MAP byte carries them.
+            // Measured on the corpus, the stored id for these cells spreads over
+            // the whole 48-piece slot-5 art range (0..47, e.g. MP41 modes 42-45,
+            // 0-2, 9-19), which is authored/descriptor-driven, so the arm stays
+            // unknown rather than guessing a variant.
+        }
         return {0,false,false,"0x4-shore"};
     }
     // 5. FUN_0053F520 @0x0053F520: terrain&0x1 -> FUN_004BC6A0 (0x624/0x625 + block art).
