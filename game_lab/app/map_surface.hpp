@@ -17,6 +17,19 @@ struct AppSurfaceDiagnostics {
 };
 // Coordinates are zero-based active-grid positions,not an original-screen origin.
 std::string describeAppSurfaceDiagnostics(const AppSurfaceDiagnostics&,size_t maxRows=2048);
+struct AppSurfaceCandidateStats {
+    size_t structuralCells=0,structuralGroups=0,decodedCells=0,decodedGroups=0,
+        drawnCells=0,drawnGroups=0,paintedPixels=0,decodeFailureCells=0,rejectedGroupCells=0,cacheBytes=0;
+};
+struct AppSurfacePreviewResult {
+    DecodedImage image;
+    MapImageGridStats verified;
+    AppSurfaceCandidateStats candidate;
+};
+// Explicit preview convention,not a recovered original painter/anchor rule.
+// The strict renderer and its metrics remain unchanged.
+AppSurfacePreviewResult renderMapSurfaceCandidateViewport(const OriginalMapTerrain&,
+    const OriginalTerrainState&,const std::vector<MapImageGridTileset>&,const OriginalMapCamera&);
 // App adapter for the existing stored-grid renderer. No terrain-to-image
 // reconstruction, original-screen registration, or authored gameplay is used.
 class AppMapSurface {
@@ -27,6 +40,7 @@ public:
     bool available() const { return state_.has_value(); }
     const std::string& error() const { return error_; }
     MapImageGridResult render(const OriginalMapCamera&) const;
+    AppSurfacePreviewResult renderPreview(const OriginalMapCamera&) const;
     AppSurfaceDiagnostics diagnostics(const MapImageGridStats&) const;
 private:
     struct Archive { SG3Archive index; std::string companion; };

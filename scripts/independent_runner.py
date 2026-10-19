@@ -27,6 +27,7 @@ MEDIA = [
 APP = [
     'game_lab/app/map_surface.hpp',
     'game_lab/app/map_surface.cpp',
+    'game_lab/app/map_surface_preview.cpp',
     'game_lab/map_reference.hpp',
     'game_lab/map_reference.cpp',
     'game_lab/original_terrain.hpp',

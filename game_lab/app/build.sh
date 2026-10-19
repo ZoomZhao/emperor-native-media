@@ -15,7 +15,7 @@ echo "Compiling EmperorApp binary..."
 /usr/bin/clang++ -std=c++17 -fobjc-arc -fno-modules -O2 -mmacosx-version-min=15.0 \
     -Wall -Wextra -Werror \
     -I"$REPO_ROOT" -I"$REPO_ROOT/media_demo" -I"$REPO_ROOT/file_io/include" \
-    "$APP_ROOT/main.mm" "$APP_ROOT/av_audio_backend.mm" "$APP_ROOT/map_surface.cpp" \
+    "$APP_ROOT/main.mm" "$APP_ROOT/av_audio_backend.mm" "$APP_ROOT/map_surface.cpp" "$APP_ROOT/map_surface_preview.cpp" \
     "$LAB_ROOT/map_reference.cpp" "$LAB_ROOT/original_terrain.cpp" "$LAB_ROOT/original_ground.cpp" \
     "$LAB_ROOT/app_media.cpp" "$LAB_ROOT/app_pak.cpp" "$LAB_ROOT/original_pak.cpp" "$LAB_ROOT/original_save.cpp" "$LAB_ROOT/movie_session.mm" "$LAB_ROOT/candidate_import.cpp" "$LAB_ROOT/sg3.cpp" "$LAB_ROOT/original_map.cpp" \
     "$REPO_ROOT/file_io/src/strict_zlib.cpp" "$REPO_ROOT/file_io/src/framed_reader.cpp" \

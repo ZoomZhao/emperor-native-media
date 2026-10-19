@@ -12,6 +12,7 @@
 #include <set>
 #include <tuple>
 #include <sstream>
+#include <limits>
 #include <zlib.h>
 namespace {
 using Bytes=std::vector<uint8_t>;
@@ -74,6 +75,65 @@ void fixture(const std::filesystem::path& root){
     const size_t record=table+201*64;put(sg,record+4,3200);put(sg,record+8,3200);put(sg,record+20,78,2);put(sg,record+22,40,2);put(sg,record+50,30,2);sg[record+55]=1;
     write(root/"DATA/China_Terrain.sg3",sg);Bytes pixels(3200);for(size_t p=0;p<pixels.size();p+=2)put(pixels,p,0x03e0,2);write(root/"DATA/China_Terrain.555",pixels);
 }
+void candidateChecks(const std::filesystem::path& root){
+    using namespace game_lab;
+    auto base=loadOriginalMapTerrain((root/"Cities/own.map").string()).terrain;
+    auto state=*loadOriginalTerrainState((root/"Cities/own.map").string());
+    auto reset=[&]{std::fill(base.flags.begin(),base.flags.end(),0x80000u);std::fill(state.terrain.begin(),state.terrain.end(),0x80000u);
+        std::fill(state.image.begin(),state.image.end(),0);std::fill(state.draw.begin(),state.draw.end(),0);std::fill(state.subTile.begin(),state.subTile.end(),0);};
+    const uint32_t origin=analyzeOriginalMap(base).cropOrigin;
+    auto cell=[&](uint32_t x,uint32_t y){return size_t(y+origin)*228+x+origin;};
+    auto group=[&](uint32_t x,uint32_t y,uint32_t n,uint32_t word){for(uint32_t v=0;v<n;++v)for(uint32_t u=0;u<n;++u){
+        const auto i=cell(x+u,y+v);base.flags[i]=state.terrain[i]=128;state.image[i]=word;state.subTile[i]=uint8_t(n-1);state.draw[i]=uint8_t(u+8*v);}};
+    SG3Archive archive;archive.version=213;archive.numImages=1;archive.sprites.resize(1);
+    auto& sprite=archive.sprites[0];sprite.type=0;sprite.width=sprite.height=2;sprite.length=8;
+    const auto pixels=root/"candidate.555";write(pixels,Bytes{0xe0,3,0xe0,3,0xe0,3,0xe0,3});
+    std::vector<MapImageGridTileset> tiles{{3,&archive,pixels.string(),1}};
+    OriginalMapCamera camera;camera.width=256;camera.height=192;camera.centerX=camera.centerY=40.5;
+    auto render=[&]{return renderMapSurfaceCandidateViewport(base,state,tiles,camera);};
+    reset();group(40,40,2,3u<<14);auto full=render();
+    need(full.verified.decodedCells==0&&full.verified.geometryUnsupported==4&&full.candidate.structuralCells==4&&full.candidate.decodedCells==4&&full.candidate.decodedGroups==1,"candidate retains strict failure but decodes one complete stored group");
+    need(full.candidate.paintedPixels==4&&std::count(full.image.pixelsBGRA.begin(),full.image.pixelsBGRA.end(),0xff00ff00u)==4,"regular canvas is painted once,not once per member");
+    group(42,40,2,3u<<14);auto adjacent=render();need(adjacent.candidate.decodedCells==8&&adjacent.candidate.decodedGroups==2&&adjacent.candidate.paintedPixels==8,"adjacent same-image groups keep distinct anchors");
+    reset();group(40,40,2,3u<<14);base.flags[cell(41,41)]|=0x80000u;need(render().candidate.decodedCells==0,"incomplete inactive group remains unknown");
+    reset();group(40,40,2,3u<<14);state.draw[cell(41,41)]=0;need(render().candidate.decodedCells==0,"duplicate offsets cannot manufacture a complete group");
+    reset();group(40,40,2,3u<<14);state.subTile[cell(41,41)]=0;need(render().candidate.decodedCells==0,"mixed group sides fail closed");
+    reset();group(40,40,2,3u<<14);state.draw[cell(41,41)]=7;need(render().candidate.decodedCells==0,"out-of-side offset is not clamped");
+    reset();group(0,0,1,3u<<14);state.draw[cell(0,0)]=7;need(render().candidate.decodedCells==0,"negative inferred anchor is rejected before indexing");
+    reset();group(83,83,1,3u<<14);state.subTile[cell(83,83)]=1;need(render().candidate.decodedCells==0,"footprint beyond active crop is rejected");
+    reset();group(40,40,16,3u<<14);need(render().candidate.decodedCells==0,"four-bit size cannot bypass three-bit offset range");
+    reset();group(40,40,2,3u<<14);const auto oldPath=tiles[0].internal555;tiles[0].internal555=(root/"missing-candidate.555").string();
+    auto missing=render();need(missing.candidate.decodedCells==0&&missing.candidate.decodeFailureCells==4&&missing.candidate.paintedPixels==0,"candidate missing payload is not decoded coverage");
+    const auto cut=root/"truncated-candidate.555";write(cut,Bytes{0xe0,3});tiles[0].internal555=cut.string();
+    need(render().candidate.decodeFailureCells==4&&render().candidate.decodedCells==0,"truncated candidate payload never produces a partial success");
+    tiles[0].internal555=(root/"missing-candidate.555").string();
+    camera.centerX=camera.centerY=0;missing=render();need(missing.candidate.decodeFailureCells==4&&missing.candidate.decodedCells==0,"offscreen failed payload still validated");
+    tiles[0].internal555=oldPath;auto offscreen=render();need(offscreen.candidate.decodedCells==4&&offscreen.candidate.drawnCells==0,"offscreen payload and visible paint counts stay separate");
+    camera.centerX=camera.centerY=40.5;camera.centerX=std::numeric_limits<double>::quiet_NaN();need(!render().image.valid(),"invalid camera cannot allocate or paint candidates");camera.centerX=40.5;
+    sprite.mirrorOffset=1;need(render().candidate.decodedCells==0,"forward/cyclic mirror is rejected");sprite.mirrorOffset=0;
+    // The candidate path follows the logical mirror identity,not a physical-ID cache shortcut.
+    SG3Archive mirrored=archive;mirrored.numImages=2;mirrored.sprites.push_back(SG3Sprite{});mirrored.sprites[1].mirrorOffset=-1;
+    write(pixels,Bytes{0,0x7c,0xe0,3,0x1f,0,0xff,0x7f});tiles={{3,&mirrored,pixels.string(),1}};reset();group(40,40,1,(3u<<14)|1);
+    auto reflected=render();need(reflected.candidate.decodedCells==1&&reflected.image.pixelsBGRA[94*256+127]==0xff00ff00u&&reflected.image.pixelsBGRA[94*256+128]==0xffff0000u,"backward mirror keeps exact reflected candidate pixels");
+    tiles={{3,&archive,pixels.string(),1}};
+    sprite.type=30;sprite.width=158;sprite.height=80;sprite.length=sprite.uncompressedLength=12800;sprite.tileSize=2;
+    write(pixels,Bytes(12800,0));reset();group(40,40,3,3u<<14);auto different=render();
+    need(different.candidate.structuralCells==9&&different.candidate.decodedCells==9&&different.candidate.decodedGroups==1&&different.verified.geometryUnsupported==9,"declared 2x2 base remains a full decoded canvas for a candidate 3x3 storage group");
+    need(different.candidate.paintedPixels==6400,"SG3 base pixels are not stretched to fit storage group size");
+    // Two namespaces share logical index zero but carry different pixels. Their
+    // overlapping canvases exercise premultiplied alpha and deterministic order.
+    SG3Archive green,red;green.version=red.version=214;green.numImages=red.numImages=1;green.sprites.resize(1);red.sprites.resize(1);
+    auto& g=green.sprites[0];g.type=0;g.width=100;g.height=60;g.length=12000;
+    auto& r=red.sprites[0];r=g;r.offset=12000;r.alphaLength=6000+24;
+    Bytes data(24000);for(size_t i=0;i<6000;++i){put(data,2*i,0x03e0,2);put(data,12000+2*i,0x7c00,2);}
+    for(size_t left=6000;left;){const size_t n=std::min(left,size_t(250));data.push_back(uint8_t(n));data.insert(data.end(),n,16);left-=n;}
+    write(pixels,data);tiles={{3,&green,pixels.string(),1},{8,&red,pixels.string(),1}};
+    reset();group(40,40,1,3u<<14);group(41,40,1,8u<<14);auto blended=render();
+    need(blended.candidate.decodedGroups==2&&blended.candidate.drawnGroups==2&&blended.candidate.decodedCells==2,"candidate cache separates same logical ID in different archives");
+    need(std::count(blended.image.pixelsBGRA.begin(),blended.image.pixelsBGRA.end(),0xff847b00u)>0,"candidate overlapping alpha uses premultiplied source-over");
+    std::reverse(tiles.begin(),tiles.end());need(render().image.pixelsBGRA==blended.image.pixelsBGRA,"candidate painter order does not depend on archive input order");
+}
+
 void authored(const std::filesystem::path& root){
     using namespace game_lab;fixture(root);const auto configured=ResourceRoot::fromAbsolute(root.string());AppMapSurface app(configured);
     auto map=loadOriginalMapTerrain((root/"Cities/own.map").string());need(map.status==OriginalMapStatus::LoadedTerrain,"owned MAP parses");
@@ -133,6 +193,7 @@ void authored(const std::filesystem::path& root){
     need(outside.select("Cities/own.map",map.terrain),"archive with absent referenced logical ID remains inspectable");
     const auto absent=outside.diagnostics(outside.render(c).stats);
     need(absent.cells.size()==1&&absent.unlocated==0&&absent.cells[0].kind==AppSurfaceIssueKind::IndexUnresolved&&absent.cells[0].x==42&&absent.cells[0].y==42,"invalid logical index is located without inventing geometry");
+    candidateChecks(root);
     std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"original_data\":false}\n";
 }
 void metrics(const std::string& path){
@@ -148,6 +209,7 @@ void metrics(const std::string& path){
     size_t groupedCells=0,storedGroups=0,mirroredCells=0,cropTouchingCells=0;
     size_t markerMatches=0,controlCities=0,controlCells=0,controlMatches=0,controlGroups=0;
     size_t locatedIssues=0,unlocatedIssues=0,sideIssues=0,blockIssues=0;
+    size_t previewCities=0,previewImages=0,candidateCells=0,candidateGroups=0,candidateDecoded=0,candidateFailed=0,combinedCells=0;
     std::map<std::pair<uint32_t,uint8_t>,size_t> controlMarkerFailures;
     std::string firstControlFailure;
     std::vector<std::string> cityConstraints;
@@ -160,6 +222,13 @@ void metrics(const std::string& path){
         auto out=app.render(c);if(!out.image.valid())throw std::runtime_error("App surface render failed: "+relative);
         auto cg=createCGImageFromPremultipliedBGRA(out.image.width,out.image.height,out.image.pixelsBGRA);if(!cg)throw std::runtime_error("CGImage failed: "+relative);CGImageRelease(cg);++images;++cities;
         const auto& s=out.stats;nonzero+=s.nonzeroCells;decoded+=s.decodedCells;residue+=s.geometryUnsupported+s.unresolvedIndices+s.archiveUnavailable+s.decodeFailures;
+        const auto preview=app.renderPreview(c);const auto& candidate=preview.candidate;
+        if(!preview.image.valid()||preview.verified.decodedCells!=s.decodedCells||preview.verified.nonzeroCells!=s.nonzeroCells)throw std::runtime_error("preview changed strict accounting");
+        if(candidate.decodedCells+candidate.decodeFailureCells!=candidate.structuralCells||candidate.decodedCells>s.geometryUnsupported)throw std::runtime_error("candidate accounting overlaps strict acceptance");
+        auto previewCG=createCGImageFromPremultipliedBGRA(preview.image.width,preview.image.height,preview.image.pixelsBGRA);if(!previewCG)throw std::runtime_error("preview CGImage failed");CGImageRelease(previewCG);++previewImages;
+        candidateCells+=candidate.structuralCells;candidateGroups+=candidate.structuralGroups;candidateDecoded+=candidate.decodedCells;candidateFailed+=candidate.decodeFailureCells;
+        combinedCells+=s.decodedCells+candidate.decodedCells;
+        if(s.decodedCells+candidate.decodedCells==s.nonzeroCells)++previewCities;
         const auto diagnostics=app.diagnostics(s);locatedIssues+=diagnostics.cells.size();unlocatedIssues+=diagnostics.unlocated;
         if(diagnostics.cells.size()+diagnostics.unlocated!=diagnostics.totalUnknown)throw std::runtime_error("issue accounting is not exclusive");
         const auto active=analyzeOriginalMap(map.terrain);const auto issueState=diagnostics.cells.empty()?std::optional<OriginalTerrainState>():loadOriginalTerrainState(absolute);
@@ -244,7 +313,11 @@ void metrics(const std::string& path){
     bool comma=false;for(const auto& entry:residualClasses){const auto& [slot,type,cols,side]=entry.first;
         if(comma)std::cout<<',';comma=true;
         std::cout<<"{\"tileset\":"<<slot<<",\"raw_type_flags\":"<<type<<",\"record_side\":"<<cols<<",\"subTile_side\":"<<side<<",\"cells\":"<<entry.second<<'}';}
-    std::cout<<"],\"located_issue_cells\":"<<locatedIssues<<",\"unlocated_issue_cells\":"<<unlocatedIssues
+    std::cout<<"],\"candidate_structural_cells\":"<<candidateCells<<",\"candidate_structural_groups\":"<<candidateGroups
+        <<",\"candidate_decoded_cells\":"<<candidateDecoded<<",\"candidate_failed_cells\":"<<candidateFailed
+        <<",\"combined_renderable_cells\":"<<combinedCells<<",\"complete_candidate_previews\":"<<previewCities
+        <<",\"candidate_CGImages\":"<<previewImages<<",\"candidate_original_screen_accuracy_measured\":false"
+        <<",\"located_issue_cells\":"<<locatedIssues<<",\"unlocated_issue_cells\":"<<unlocatedIssues
         <<",\"side_conflict_issue_cells\":"<<sideIssues<<",\"block_geometry_issue_cells\":"<<blockIssues
         <<",\"residual_complete_group_cells\":"<<groupedCells<<",\"residual_complete_groups\":"<<storedGroups
         <<",\"residual_mirrored_cells\":"<<mirroredCells<<",\"residual_crop_touching_cells\":"<<cropTouchingCells
