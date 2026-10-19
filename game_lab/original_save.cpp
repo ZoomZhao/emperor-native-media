@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <new>
+#include <cstdio>
 
 namespace game_lab {
 namespace {
@@ -99,6 +100,25 @@ std::string describeOriginalSave(const OriginalSaveResult& save){
     case OriginalSaveStatus::LoadedSnapshot:break;
     }
     return "SAV13 已保存快照；"+std::string(save.readStable?"两次读取一致":"内存字节输入")+"；5 组原始字段已保留，含未知 following_u32。非当前内存，不恢复建筑/规则。";
+}
+std::optional<OriginalSaveCell> originalSaveCell(const OriginalMapTerrain& terrain,
+    const OriginalSaveCellLayers& layers,int64_t x,int64_t y){
+    if(!terrain.valid()||!layers.valid()||!analyzeOriginalMap(terrain).cropValid()||
+        x<0||y<0||x>=terrain.activeSide||y>=terrain.activeSide)return std::nullopt;
+    OriginalSaveCell cell;const uint32_t origin=(228-terrain.activeSide)/2;
+    cell.storageX=origin+uint32_t(x);cell.storageY=origin+uint32_t(y);
+    const size_t i=size_t(cell.storageY)*228+cell.storageX;
+    cell.values={{terrain.flags[i],layers.followingU32Unknown[i],layers.mapperObjects[i],
+        layers.mapperRandom[i],layers.mapperFertile[i],layers.mapperStone[i]}};
+    cell.onMap=(cell.values[0]&0x80000u)==0;return cell;
+}
+std::string describeOriginalSaveCell(const OriginalSaveCell& cell){
+    std::string text="存储坐标("+std::to_string(cell.storageX)+","+std::to_string(cell.storageY)+")；"+
+        (cell.onMap?"地图内":"地图外（仍显示原值）")+"；只读快照，字段用途未扩展。\n";
+    for(unsigned f=0;f<6;++f){
+        char value[80];std::snprintf(value,sizeof(value),": %u / 0x%08X\n",cell.values[f],cell.values[f]);
+        text+=(f?originalSaveFieldLabel(f-1):"SAV terrain flags")+std::string(value);
+    }return text;
 }
 std::vector<uint32_t> originalSaveFieldValues(const OriginalSaveCellLayers& layers,unsigned field){
     if(!layers.valid()||field>4)return {};

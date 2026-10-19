@@ -171,6 +171,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSButton* _originalMapCandidates;
     NSTextField* _originalMapInfo;
     NSTextView* _originalMapUnknowns;
+    NSTextField* _originalSaveCellX;
+    NSTextField* _originalSaveCellY;
+    NSButton* _originalSaveCellApply;
     NSImageView* _originalMapImage;
     std::vector<game_lab::OriginalMapSource> _originalMapSources;
     std::vector<size_t> _originalMapVisibleSources;
@@ -1466,7 +1469,15 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapInfo.maximumNumberOfLines = 6; _originalMapInfo.font = [NSFont systemFontOfSize:12];
     _originalMapInfo.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     _originalMapInfo.accessibilityIdentifier = @"original-map-info"; [_originalMapView addSubview:_originalMapInfo];
-    NSScrollView* unknownScroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,height-352,980,100)];
+    NSTextField* cellLabel=[NSTextField labelWithString:@"SAV 查格 · 0基活动坐标 X / Y"];
+    cellLabel.frame=NSMakeRect(20,height-278,240,24);cellLabel.autoresizingMask=NSViewMinYMargin;[_originalMapView addSubview:cellLabel];
+    _originalSaveCellX=[[NSTextField alloc] initWithFrame:NSMakeRect(264,height-280,104,26)];
+    _originalSaveCellY=[[NSTextField alloc] initWithFrame:NSMakeRect(382,height-280,104,26)];
+    for(NSTextField* field in @[_originalSaveCellX,_originalSaveCellY]){field.stringValue=@"0";field.target=self;field.action=@selector(onOriginalSaveCellChanged:);field.autoresizingMask=NSViewMinYMargin;[_originalMapView addSubview:field];}
+    _originalSaveCellX.accessibilityIdentifier=@"original-save-cell-x";_originalSaveCellY.accessibilityIdentifier=@"original-save-cell-y";
+    _originalSaveCellApply=[NSButton buttonWithTitle:@"查看六个原值" target:self action:@selector(onOriginalSaveCellChanged:)];
+    _originalSaveCellApply.frame=NSMakeRect(506,height-280,160,26);_originalSaveCellApply.autoresizingMask=NSViewMinYMargin;_originalSaveCellApply.accessibilityIdentifier=@"original-save-cell-apply";[_originalMapView addSubview:_originalSaveCellApply];
+    NSScrollView* unknownScroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(20,height-390,980,100)];
     unknownScroll.hasVerticalScroller=YES;unknownScroll.borderType=NSBezelBorder;
     unknownScroll.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
     _originalMapUnknowns=[[NSTextView alloc] initWithFrame:unknownScroll.bounds];
@@ -1476,9 +1487,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapUnknowns.textContainer.widthTracksTextView=YES;
     _originalMapUnknowns.autoresizingMask=NSViewWidthSizable;
     _originalMapUnknowns.accessibilityIdentifier=@"original-map-unknown-cells";
-    _originalMapUnknowns.accessibilityLabel=@"未覆盖格分类与0基活动坐标";
+    _originalMapUnknowns.accessibilityLabel=@"地表未覆盖格或SAV查格原值";
     unknownScroll.documentView=_originalMapUnknowns;[_originalMapView addSubview:unknownScroll];
-    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 388)];
+    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 426)];
     _originalMapImage.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _originalMapImage.imageScaling = NSImageScaleProportionallyUpOrDown;
     _originalMapImage.accessibilityIdentifier = @"original-map-grid"; [_originalMapView addSubview:_originalMapImage];
@@ -1499,6 +1510,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const NSInteger index = _originalMapPicker.indexOfSelectedItem;
     _originalMapSourceInfo.clear();_originalMapPackageSummary=NO;_originalSaveLayers.reset();
+    _originalSaveCellX.stringValue=@"0";_originalSaveCellY.stringValue=@"0";
+    _originalSaveCellX.enabled=NO;_originalSaveCellY.enabled=NO;_originalSaveCellApply.enabled=NO;
     _originalMapSurface->clear();
     [_originalMapBitPicker itemAtIndex:38].enabled=NO;
     for(NSInteger field=33;field<38;++field)[_originalMapBitPicker itemAtIndex:field].enabled=NO;
@@ -1592,6 +1605,22 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     }
     text += surface?"\n仅静态存储地表；重建选图准确度与原版画面对照另计，建筑/单位/规则未恢复。":_originalSaveLayers?"\n只读存档快照，非当前内存；数值配色不是原版外观，SG3选图、建筑/单位/规则未恢复。":"\n数值配色不等于原版外观；等距对照使用规范平面格坐标，不含高程/遮挡规则；SG3选图未知，不载入城市/建筑/单位。";
     _originalMapInfo.stringValue = [NSString stringWithUTF8String:text.c_str()];
+    const bool inspect=_originalSaveLayers&&_originalSaveLayers->valid()&&result.terrain.valid();
+    _originalSaveCellX.enabled=inspect;_originalSaveCellY.enabled=inspect;_originalSaveCellApply.enabled=inspect;
+    if(inspect)[self onOriginalSaveCellChanged:nil];
+}
+- (void)onOriginalSaveCellChanged:(id)sender {
+    (void)sender;
+    _originalMapUnknowns.string=@"SAV 查格不可用；没有沿用旧来源的原值。";
+    if(!_originalSaveLayers||!_originalMapResult.terrain.valid())return;
+    long long x=0,y=0;
+    NSScanner* sx=[NSScanner scannerWithString:_originalSaveCellX.stringValue];
+    NSScanner* sy=[NSScanner scannerWithString:_originalSaveCellY.stringValue];
+    if(![sx scanLongLong:&x]||!sx.isAtEnd||![sy scanLongLong:&y]||!sy.isAtEnd){_originalMapUnknowns.string=@"SAV 坐标须为范围内的整数；未显示旧原值。";return;}
+    const auto cell=game_lab::originalSaveCell(_originalMapResult.terrain,*_originalSaveLayers,x,y);
+    if(!cell){_originalMapUnknowns.string=@"SAV 坐标越界或活动框未验证；未显示旧原值。";return;}
+    const std::string text=std::string(_originalMapPicker.titleOfSelectedItem.UTF8String)+"；活动坐标("+std::to_string(x)+","+std::to_string(y)+")\n"+game_lab::describeOriginalSaveCell(*cell);
+    _originalMapUnknowns.string=[NSString stringWithUTF8String:text.c_str()];
 }
 
 - (void)setupCandidateView {

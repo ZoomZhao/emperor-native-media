@@ -20,6 +20,15 @@ struct OriginalSaveResult {
 OriginalSaveResult decodeOriginalSave(const std::vector<uint8_t>&);
 OriginalSaveResult loadOriginalSave(const std::string& absolutePath);
 std::string describeOriginalSave(const OriginalSaveResult&);
+// Active-square zero-based coordinates; off-map cells retain their raw values.
+struct OriginalSaveCell {
+    uint32_t storageX=0,storageY=0;
+    bool onMap=false;
+    std::array<uint32_t,6> values{}; // terrain, following, objects, random, fertile, stone
+};
+std::optional<OriginalSaveCell> originalSaveCell(const OriginalMapTerrain&,
+    const OriginalSaveCellLayers&,int64_t x,int64_t y);
+std::string describeOriginalSaveCell(const OriginalSaveCell&);
 // field0=unknown following u32;1=objects;2=random;3=fertile;4=stone.
 std::vector<uint32_t> originalSaveFieldValues(const OriginalSaveCellLayers&,unsigned field);
 std::string originalSaveFieldLabel(unsigned field);
