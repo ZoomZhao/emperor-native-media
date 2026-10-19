@@ -138,15 +138,49 @@ blame. Their `stored - predicted` deltas are *scattered* (`-8..+8` all populated
 plus 9-16/17-32/33-64) rather than constant - e.g. MP61 road 99.87 % matched but
 fringe 0.00 % with deltas spread over `-8..+6` and 95/166/46 in the three large
 buckets - while STGW-Anyang and Badaling are 100 %. Only 20 of the 84 unshifted
-cities with >=50 fringe cells reach 100 %. A scattered residual in a city whose
-other bands are exact is a **condition** error, not a variant or a shift error: the
-candidate is the neighbour count, because `0x540001 FUN_004B8F70(0x4000000)` runs
-immediately before `0x540006 FUN_004BC140` and may write descriptors the count then
-reads, which the per-cell MAP model does not reproduce. The three formulas
-themselves are confirmed against the decompiled `FUN_0053FC30 @0x0053FC30`:
-`0x54000B`/`0x540011` give `base(0x61C) + r%0x30`,
+cities with >=50 fringe cells reach 100 %.
+
+A scattered residual in a city whose other bands are exact originally suggested a
+**condition** error in the neighbour count - that `FUN_004B8F70 @0x004B8F70` might
+write descriptors `FUN_004BC140 @0x004BC140` then reads. **That hypothesis is
+refuted.** `FUN_004B8F70` (0x4B8F70..0x4B9020) is straight-line: it ANDs each of the
+eight neighbour terrain words (flat offsets -228,-227,+1,+229,+228,+227,-1,-229 via
+`0x00F6A650/54`, `0x00F6A9E4/DC`, `0x00F6AD74/70/6C`, `0x00F6A64C`) with the pushed
+mask, normalises each to 0/1 into `0x0101C5B8..0x0101C5D4`, and returns; it writes
+no descriptor or cache. `FUN_004BC140` counts the nonzero dwords in that range. So
+at `0x53FFBE push 0x4000000` -> `0x53FFC3 call FUN_004B8F70` -> `0x53FFCB call
+FUN_004BC140` -> `0x53FFD0 cmp eax,8` the count is *identical* to the model's
+`neighbourMaskCount(request,0x4000000u)`. The `img[cell]==0` gate at `0x53ECF4`
+(`mov eax,[0x0101C560]` / `mov ecx,[4*eax+0x00FE9880]` / `test ecx,ecx` / `jne`)
+also holds, so the arm is genuinely reached.
+
+The residual is instead an **even within-band authored offset**. For the
+water-fringe arm the residual is even for **57,024/57,024** corpus cells (100 %).
+Because this arm's variant is `randomByte%48` (which has the same parity as
+`randomByte`), that is exactly `storedVariant ≡ randomByte (mod 2)`, i.e.
+`storedVariant = (randomByte%48 + 2h) mod 48` for an integer `h`. Evenness is a
+data fact, not a formula artifact: the water-ring arm's residual is odd for
+15.25 % of its cells. (`shore-ring`'s residual is also even, but its variant
+`randomByte%24 + (randomByte&1)` is always even, so its stored word carries no
+parity signal either way.) The residual reduced mod 48 is a per-city constant
+(shifted cities: mode 16 or 18, i.e. -32/-30, the same shift as their road band at
+75-100 % purity; unshifted
+cities: mostly 0, but ~20 scatter off it), i.e. the same stale-vintage class as the
+per-(city, band) archive id shift. No MAP-derivable rule reproduces it: over
+`storedVar == (a*r + b*X + c) % 48` with `a,b` in 0..7 and `X` one of {x, y, x+y,
+x-y, xy, cell, sub, draw, fert, bebf3a, road, f05160, eac3f0, bf8a4a, feature},
+the best is always exactly the current `r%48` = **22,292/33,264 (67.02 %)** on the
+unshifted cohort; local neighbour signatures, BFS distance to non-water, and
+`r%48 -> storedVar` injectivity all fail as well.
+
+The three formulas themselves are confirmed against the decompiled
+`FUN_0053FC30 @0x0053FC30`: `0x54000B`/`0x540011` give `base(0x61C) + r%0x30`,
 `0x54001F`/`0x54003B`/`0x540040`/`0x540051` give `base(0x61C) + r%0x18 + (r&1)`, and
-`0x53FFEE`/`0x53FFF4`/`0x53FFF6` give `base(0x61C) + 0x30 + r%0x18`.
+`0x53FFEE`/`0x53FFF4`/`0x53FFF6` give `base(0x61C) + 0x30 + r%0x18`. **Conclusion:
+the unshifted-cohort shortfall is not MAP-derivable, so the model keeps the
+executable's formula and does not tune a constant to the oracle.** The corpus lock
+`shoreVariantStructureTests` in `game_lab/map_reference_tests.cpp` asserts the
+even-residual structure over the whole corpus.
 
 **3. `FUN_0053F520 @0x0053F520` → `FUN_004BC6A0 @0x004BC6A0` (`terrain&0x1`).** Wrapper does
 `sub&=0xF0`, `draw|=0x40`, then `FUN_004BC6A0`. Gate `(terrain&0xC064)==0`. If `terrain&0x100` and

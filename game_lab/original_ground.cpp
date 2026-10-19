@@ -3,6 +3,17 @@ namespace game_lab {
 namespace {
 // FUN_004BC140 @0x004BC140 returns how many of the 8 neighbour flags (written by
 // FUN_004B9CC0 @0x004B9CC0 / FUN_004B8F70 @0x004B8F70) have the tested mask set.
+// FUN_004B8F70 @0x004B8F70 (0x4B8F70..0x4B9020) is a straight-line writer of that
+// flag array *only*: it loads the current cell `[0x0101C560]`, ANDs each of the
+// eight neighbour terrain words with the mask and normalises the result to 0/1
+// into 16893368..16893396 = 0x0101C5B8..0x0101C5D4, then returns. The eight
+// neighbours are the flat offsets -228,-227,+1,+229,+228,+227,-1,-229 read via
+// 0x00F6A650/54, 0x00F6A9E4/DC, 0x00F6AD74/70/6C, 0x00F6A64C. It writes no
+// descriptor or cache. So at 0x53FFBE (`push 0x4000000`) -> 0x53FFC3 (`call
+// FUN_004B8F70`) -> 0x53FFCB (`call FUN_004BC140`) -> 0x53FFD0 (`cmp eax,8`) the
+// counted value is identical to neighbourMaskCount(request,0x4000000u). The
+// earlier hypothesis that the count reads descriptors FUN_004B8F70 just wrote is
+// therefore fully refuted; the shore residual is not a stale-distance error.
 size_t neighbourMaskCount(const GroundCodeRequest& request,uint32_t mask) {
     size_t count=0;
     for(uint32_t flag:request.neighbourFlags)if(flag&mask)++count;
@@ -143,7 +154,21 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
                     return {0x61C,true,false,"0x4-shore-water-ring",false,uint8_t(0x30u+request.randomByte%0x18u)};
                 // Fewer than 8: `0x53FFFC` reloads T(0x61C), `0x54000B mov
                 // esi,0x30`, `0x540011 idiv esi`, `0x540013 add ecx,edx` gives
-                // img = T(0x61C) + random%0x30.
+                // img = T(0x61C) + random%0x30. Measured over all 167
+                // Cities/*.map this arm is 57,024 MAP-determined cells. The
+                // residual (stored archive id minus the predicted id) is even
+                // for 57,024/57,024 cells (100 %); because variant=random%0x30
+                // that is exactly storedVariant%2 == randomByte%2, i.e.
+                // storedVariant = (randomByte%48 + 2h) mod 48 for an integer h
+                // that no MAP payload byte carries. Evenness is a data fact, not
+                // a formula artifact: water-ring's residual is odd for 15.25 % of
+                // its cells. h is a within-band authored vintage offset (a
+                // per-city even base, 0/16/18/...), the same stale-data class as
+                // the per-(city, band) archive id shift. No MAP-derivable rule
+                // using any single payload scalar beats random%0x30: the measured
+                // bound on the unshifted cohort is 22,292/33,264 (67.02 %), so
+                // the arm keeps the executable's own formula instead of tuning
+                // to the oracle.
                 return {0x61C,true,false,"0x4-shore-water-fringe",false,uint8_t(request.randomByte%0x30u)};
             }
             // No 0x4000000 on the cell: `0x540017 cmp byte ptr [esp+0x13],bl` /

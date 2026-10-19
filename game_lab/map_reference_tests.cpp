@@ -1094,6 +1094,61 @@ void storedGridVintageTests() {
  // more than one value across the corpus.
  need(landDistinct>=2,"the stale-vintage constant differs across the original corpus");
 }
+// Data-gated corpus probe for the setter-4 shore arms' residual structure. All
+// three arms follow the executable's own formula (original_ground.cpp item 2);
+// what the model cannot reproduce is the stored art's authored vintage. For the
+// *water-fringe* arm the residual (stored archive index minus the predicted
+// index) is even in every corpus cell. Because this arm's variant is
+// randomByte%48, that is exactly storedVariant%2 == randomByte%2, i.e.
+// storedVariant = (randomByte%48 + 2h) mod 48 for an integer h no MAP payload byte
+// carries. Evenness is a data property, not a formula artifact: the water-ring
+// arm's residual is odd for 15.25% of its cells. These assertions fail if that
+// structure changes; they never feed the selector or the score.
+void shoreVariantStructureTests() {
+ using namespace game_lab;
+ const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");
+ if(!env||!*env)return;
+ const auto root=std::filesystem::path(env);
+ const auto archivePath=root/"DATA"/"China_Terrain.sg3";
+ const auto citiesPath=root/"Cities";
+ if(!std::filesystem::is_directory(citiesPath)||!std::filesystem::exists(archivePath))return;
+ const auto archive=loadSG3(archivePath.string());
+ need(archive.numImages&&archive.numImages==archive.sprites.size(),
+      "original China_Terrain.sg3 loads for the shore-variant probe");
+ size_t fringe=0,fringeEven=0,ring=0,ringOdd=0,cities=0;
+ std::map<int64_t,size_t> fringeResiduals;
+ for(const auto& entry:std::filesystem::directory_iterator(citiesPath)) {
+   if(entry.path().extension()!=".map")continue;
+   const auto state=loadOriginalTerrainState(entry.path().string());
+   if(!state||!state->valid())continue;
+   ++cities;
+   for(size_t cell=0;cell<state->terrain.size();++cell) {
+     const uint32_t stored=state->image[cell];
+     if(!stored||(stored>>14)!=3u)continue;
+     const auto selection=selectGroundTileCode(groundCodeRequest(*state,cell));
+     if(!selection.known||selection.chainNoWrite)continue;
+     size_t index=0;
+     if(!resolveGroundTileCode(archive,selection.code,selection.variant,index))continue;
+     const int64_t residual=int64_t((stored&0x3FFFu)+200u)-int64_t(index);
+     const bool even=(residual&1)==0;
+     const std::string branch=selection.branch;
+     if(branch=="0x4-shore-water-fringe"){++fringe;fringeEven+=even;++fringeResiduals[residual];}
+     else if(branch=="0x4-shore-water-ring"){++ring;ringOdd+=!even;}
+   }
+ }
+ need(cities>=160,"the original Cities corpus is present for the shore-variant probe");
+ // The fringe residual is even in every corpus cell: the discovered structure.
+ need(fringe>=50000,"the water-fringe arm covers the measured corpus population");
+ need(fringeEven==fringe,
+      "the water-fringe archive residual is always even (2h), a within-band vintage offset");
+ // Not one global constant we could compensate: the offset varies per city.
+ need(fringeResiduals.size()>=2,
+      "the water-fringe residual is a per-city vintage, not a single global constant");
+ // Evenness is a data fact, not forced by the construction: a shore arm can and
+ // does produce odd residuals.
+ need(ring>0&&ringOdd>0,
+      "the water-ring arm produces odd residuals, so fringe evenness is measured, not structural");
+}
 void compositeSafetyTests(const std::filesystem::path& root) {
  using namespace game_lab;
  OriginalMapTerrain terrain;terrain.activeSide=84;terrain.flags.assign(51984,0x80000);
@@ -1159,5 +1214,6 @@ int main(){try{
  bool originalData=false;
  realDataGroundTests(originalData);
  storedGridVintageTests();
+ shoreVariantStructureTests();
  std::filesystem::remove_all(root);std::cout<<"{\"passed\":true,\"assertions\":"<<checks<<",\"original_data\":"<<(originalData?"true":"false")<<"}\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}}
