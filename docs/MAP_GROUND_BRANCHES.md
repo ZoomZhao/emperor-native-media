@@ -318,3 +318,36 @@ and the variant is not derivable from the MAP's per-cell payload alone. That is 
 measured boundary, not a guess: for those branches the stored grid stays the
 faithful source for rendering, and the reimplementation's residual is bounded by
 state the MAP does not carry.
+
+### Every farm residual is a wrong branch, not a wrong variant
+
+Setter 17's farm formula is `T(0x602) + 9*rank + random%9` with `rank` in 0..4
+(`FUN_004BD8C0 @0x004BD8C0` calls `FUN_004BD940 @0x004BD940`, cited above), so the
+reachable archive indexes are `imageIndex[2] - 1 + 0..44`. For `China_Terrain.sg3`,
+`imageIndex[2] = 202`, so the whole farm band is 45 records wide (201..245). **No
+variant error can move the stored index by more than 44.** That bounds the residual
+without any new measurement: of `0x80-farm`'s 65,742 mismatches, 65,525 sit in the
+65-128 (50,857) and 129-256 (14,668) magnitude buckets alone, which the formula
+cannot reach.
+
+An independent per-cell probe confirms the remaining 33-64 group is out of band too.
+The probe replicates the setter-17 gates from the payload alone
+(`(terrain & 0x10001) == 0 && (terrain & 0x80)`, no 8-neighbour carrying `0x10000`,
+`random & 0xF8 != 0`) and computes the prediction directly, over all 167 maps:
+
+- it reproduces the branch's **matched** set exactly - 1,031,695 cells, identical to
+  the score's `1,097,437 - 65,742` - so the formula is confirmed;
+- it attributes 79,768 extra cells to the branch (all of them mismatches, since the
+  matched sets are identical), so its mismatch set is a strict superset of the
+  chain's: 145,510;
+- of those 145,510, **0 have a stored index anywhere in the band (offset 0..44)**.
+  The stored art is either another tileset - 8 (China_Mon_Earthen_Greatwall_1) 6,018,
+  6 (China_Mon_Grand_Canal) 4,061, 2 (China_General) 1,943, 5 (China_Mon_Tumulus)
+  115, 16 (China_Elevation) 6 - or a tileset-3 record far outside the band.
+
+So the farm residual is not "the wrong band was selected from the farm table"; it is
+that the chain **claims cells the engine gave other art**. Those art sources are the
+setters this reimplementation does not model (setters 2, 3, 4, 5, 9, 13, 14, 15).
+The 478,360 `chain_unknown` cells and the 183,649 large-delta mismatches are the same
+blocker seen from two sides: **porting those setters is the lever**, and until it is
+done the stored grid stays the faithful render source.
