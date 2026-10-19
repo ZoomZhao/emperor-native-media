@@ -339,8 +339,9 @@ def image_grid_report(maps, rows, failures, args):
             print(f'#   {failure["map"]}: {failure["reason"]}')
     drawn = totals['drawn_cells']
     nonzero = totals['nonzero_cells']
-    print(f'\n# aggregate nonzero/drawn: {nonzero}/{drawn} '
-          f'({100 * drawn / nonzero:.3f}%)' if nonzero else '\n# no nonzero cells')
+    print(f'\n# aggregate drawn/nonzero: {drawn}/{nonzero} '
+          f'({100 * drawn / nonzero:.3f}%) - a VIEWPORT fraction, not coverage; '
+          f'decode counts above are camera-free' if nonzero else '\n# no nonzero cells')
     print(f'# chain: emitted {emitted}, matched {matched} '
           f'({100 * matched / emitted:.3f}%)' if emitted
           else '# chain: no emitted cells')
