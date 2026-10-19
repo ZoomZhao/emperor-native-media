@@ -53,6 +53,30 @@ class SurfaceSearchTests(unittest.TestCase):
         self.assertGreater(result['tile_fragment_hits'], 0)
         self.assertEqual(result['row_complete_candidates'], 0)
 
+    def test_independent_block_byte_order(self):
+        raw = np.arange(228 * 228, dtype='uint32').reshape(228, 228)
+        raw = ((raw + 1) << 16) | ((raw * 17 + 3) & 65535)
+        crop = raw[106:122, 106:122]
+        def oracle(array, tile, width, shift, endian):
+            # Independent scalar byte construction: neither tiles() nor NumPy
+            # serialization constructs the expected pattern.
+            return b''.join(((int(array[y, x]) >> shift) & ((1 << (8 * width)) - 1)).to_bytes(
+                width, 'little' if endian == '<' else 'big')
+                for by in range(0, len(array), tile) for bx in range(0, len(array), tile)
+                for y in range(by, min(by + tile, len(array)))
+                for x in range(bx, min(bx + tile, len(array))))
+        for array in (raw, crop, raw.T, crop.T):
+            for width, shift, endian in probe.ENCODINGS:
+                for tile in (8, 16):
+                    with self.subTest(side=len(array), width=width, shift=shift, endian=endian, tile=tile):
+                        got = probe.tiles(probe.projected(array, width, shift, endian), tile)
+                        self.assertEqual(got.tobytes(), oracle(array, tile, width, shift, endian))
+        for width, shift in ((4, 0), (2, 0), (2, 16)):
+            for tile in (8, 16):
+                payload = b'header!' + oracle(crop, tile, width, shift, '>') + b'tail'
+                result = probe.search_surface(raw, 16, payload)
+                self.assertGreater(result['families']['block_major']['hits'], 0)
+
     def test_noncontinuous_rows_not_whole_field(self):
         crop = self.grid[58:170, 58:170]
         # Only two complete nonadjacent rows: do not publish a complete grid.

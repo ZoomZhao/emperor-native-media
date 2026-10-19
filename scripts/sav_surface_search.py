@@ -52,7 +52,7 @@ def tiles(array, size):
     import numpy as np
     n = len(array)
     return np.concatenate([array[y:y + size, x:x + size].ravel()
-                           for y in range(0, n, size) for x in range(0, n, size)])
+                           for y in range(0, n, size) for x in range(0, n, size)]).astype(array.dtype, copy=False)
 
 
 def sparse_records(values, original, kind, endian):
