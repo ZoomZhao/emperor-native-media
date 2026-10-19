@@ -5,7 +5,7 @@ Load legally owned original Emperor data with `--data-root`, render it natively 
 ## Launch the local App
 
 ```sh
-"/Users/zoomzhao/Documents/Codex/2026-10-14/task/building-batch-20261019/delivery-final/EmperorApp.app/Contents/MacOS/EmperorApp" --data-root "/Users/zoomzhao/Workspace/lzjq/GameData"
+"/Users/zoomzhao/Documents/Codex/2026-10-14/task/remaining-contracts-20261019/delivery-final/EmperorApp.app/Contents/MacOS/EmperorApp" --data-root "/Users/zoomzhao/Workspace/lzjq/GameData"
 ```
 
 This integrated data-browser delivery stays outside Git and GameData;the earlier strict,diagnostics andcandidate App bundles are preserved. No game assets are bundled. Another legally owned directory requires changing the explicit argument. macOS15+ is required. The App starts muted; Bink playback uses the existing external FFmpeg and reports missing dependencies without installing them.

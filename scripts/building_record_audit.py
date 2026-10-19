@@ -58,12 +58,14 @@ def parse_table(data, start, limit=None):
         return stop('truncated')
     if data[start:start + len(PREAMBLE)] != PREAMBLE:
         return stop('preamble')
+    local_classes = start == TABLE_OFFSET and data[:8] == bytes((5,0,254,202,0,0,2,0))
+    classes, next_pid, cleared_records, class_references = {}, 1, 0, 0
     at = start + 6
     for index in range(COUNT):
         begin = at
         if at + 2 > limit:return stop('truncated', index)
         tag = struct.unpack_from('<H', data, at)[0];at += 2
-        name = ''
+        name = ''; resolved_class = ''
         if tag == 0xffff:
             if at + 4 > limit:return stop('truncated', index)
             zero, length = struct.unpack_from('<HH', data, at);at += 4
@@ -73,8 +75,15 @@ def parse_table(data, start, limit=None):
             except UnicodeDecodeError:return stop('class_header', index)
             if '\0' in name:return stop('class_header', index)
             at += length
+            resolved_class = name
+            if local_classes:classes[next_pid] = name;next_pid += 1
         elif tag < 0x8000:
             return stop('unsupported_tag', index)
+        elif local_classes:
+            resolved_class = classes.get(tag & 0x7fff, '')
+            if not resolved_class:return stop('class_reference', index)
+            class_references += 1
+        if local_classes:next_pid += 1
         if at + 2 > limit:return stop('truncated', index)
         version = struct.unpack_from('<H', data, at)[0]
         if version not in COMMON_BYTES:return stop('unsupported_version', index)
@@ -88,6 +97,14 @@ def parse_table(data, start, limit=None):
             tail = 140 if subversion == 9 else 141
         elif kind in TAIL_BYTES:tail = TAIL_BYTES[kind]
         else:return stop('unsupported_tail', index)
+        # The body semantic type can be cleared while a wall/gate object's
+        # serialized class still retains its132-byte tail. Class context is
+        # known only for MAP/PAK tables; SAV archive PID allocation starts earlier.
+        cleared_class = kind == 0 and resolved_class in ('cResWall','cResGate')
+        if cleared_class:
+            if data[at+2] or data[at+5]:return stop('unsupported_tail', index)
+            tail = 132
+            cleared_records += 1
         end = common_end + tail
         if end > limit:return stop('truncated', index)
         x, y = struct.unpack_from('<HH', data, at + 8)
@@ -95,10 +112,12 @@ def parse_table(data, start, limit=None):
                         'tag': tag, 'name': name, 'version': version,
                         'alive': data[at + 2], 'size': data[at + 5],
                         'x': x, 'y': y, 'type': kind,
-                        'common_rotation': data[at + 112 + (version == 5)]})
+                        'common_rotation': data[at + 112 + (version == 5)],
+                        'resolved_class': resolved_class, 'cleared_class_tail': cleared_class})
         at = end
     return {'status': 'complete', 'records': records, 'complete': True,
-            'stop_index': COUNT, 'end': at}
+            'stop_index': COUNT, 'end': at, 'cleared_class_records': cleared_records,
+            'class_references_verified': class_references}
 
 
 def save_table_start(data, terrain_offset):

@@ -10,6 +10,7 @@ struct OriginalPakPart {
     size_t index=0;
     bool cityCandidate=false;
     OriginalMapResult map;
+    std::optional<OriginalBuildingProfile> buildingTable;
     std::optional<OriginalTerrainState> surfaceState;
 };
 struct OriginalPakResult {

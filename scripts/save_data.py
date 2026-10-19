@@ -18,7 +18,7 @@ def run(args, build):
     binary = build / ('save-' + args.task + '-' + args.mode)
     flags = ['-O2'] if args.mode == 'release' else ['-O1', '-g', '-fsanitize=undefined', '-fno-sanitize-recover=all']
     sources = ['game_lab/original_map.cpp', 'game_lab/original_pak.cpp', 'game_lab/original_terrain.cpp', 'game_lab/original_save.cpp',
-               'game_lab/resource_root.cpp', 'game_lab/original_building_tests.cpp' if args.task == 'building-test' else 'game_lab/original_save_tests.cpp' if args.task == 'test' else 'game_lab/original_save_metrics.cpp']
+               'game_lab/resource_root.cpp', 'game_lab/original_building_tests.cpp' if args.task == 'building-test' else 'game_lab/original_save_tests.cpp' if args.task == 'test' else 'game_lab/original_building_metrics.cpp' if args.task == 'corpus-metrics' else 'game_lab/original_save_metrics.cpp']
     frameworks = [] if args.task != 'metrics' else ['-framework', 'CoreGraphics', '-framework', 'CoreFoundation']
     subprocess.run(['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror', *flags,
                     *[str(ROOT / x) for x in sources], *frameworks, '-lz', '-o', str(binary)], check=True)
@@ -26,11 +26,11 @@ def run(args, build):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('task', choices=['test', 'building-test', 'metrics'])
+    p.add_argument('task', choices=['test', 'building-test', 'metrics', 'corpus-metrics'])
     p.add_argument('--mode', choices=['release', 'undefined'], default='release')
     p.add_argument('--build-dir', type=Path)
     a = p.parse_args()
-    if a.task == 'metrics' and not os.environ.get('EMPEROR_GAMEDATA_ROOT'):
+    if a.task in ('metrics','corpus-metrics') and not os.environ.get('EMPEROR_GAMEDATA_ROOT'):
         print('{"skipped":true,"reason":"EMPEROR_GAMEDATA_ROOT unset or empty"}')
         return 0
     if a.build_dir:

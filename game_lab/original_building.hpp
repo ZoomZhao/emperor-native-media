@@ -10,7 +10,7 @@ struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0
 enum class OriginalBuildingStatus {Complete,UnsupportedTail,MissingAnchor,AmbiguousAnchor,Malformed,BudgetExceeded};
 struct OriginalBuildingProfile {
     OriginalBuildingStatus status=OriginalBuildingStatus::MissingAnchor;
-    size_t parsedRecords=0,namedWellRecords=0,rejectedTerrainFootprints=0,namedInspectorRecords=0,namedWatchtowerRecords=0,liveSizedRecords=0,unsupportedFootprintRecords=0;
+    size_t parsedRecords=0,namedWellRecords=0,rejectedTerrainFootprints=0,namedInspectorRecords=0,namedWatchtowerRecords=0,liveSizedRecords=0,unsupportedFootprintRecords=0,clearedClassRecords=0,classReferencesVerified=0;
     std::vector<OriginalBuildingFootprint> footprints;
 };
 inline const char* originalBuildingName(uint16_t type){
@@ -80,27 +80,31 @@ inline bool originalBuildingSquareType(uint16_t type){
 // type tails preserve the closed prefix; malformed data clears it completely.
 // Opaque class-reference tags stay opaque;eligibility comes from the separately stored semantic type.
 // No resync,SG3 binding or game logic.
-inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uint8_t>& data,
-                                                           size_t terrainOffset,const OriginalMapTerrain& terrain){
+inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint8_t>& data,size_t start,
+                                                         size_t terrainOffset,const OriginalMapTerrain& terrain,bool localClasses=false){
     const auto failure=[](OriginalBuildingStatus s){OriginalBuildingProfile r;r.status=s;return r;};
-    if(data.size()>8u*1024u*1024u)return failure(OriginalBuildingStatus::BudgetExceeded);
-    if(data.size()<2||data[0]!=0x13||data[1]!=0||terrainOffset>data.size()||!terrain.valid())return failure(OriginalBuildingStatus::Malformed);
     static constexpr std::array<uint8_t,20> preamble{{1,0,0xa0,0x0f,0,0,0xff,0xff,0,0,8,0,'B','u','i','l','d','i','n','g'}};
+    if(data.size()>8u*1024u*1024u)return failure(OriginalBuildingStatus::BudgetExceeded);
+    if(!terrain.valid()||terrainOffset>data.size()||start>terrainOffset||terrainOffset-start<preamble.size()||!std::equal(preamble.begin(),preamble.end(),data.begin()+start))return failure(OriginalBuildingStatus::Malformed);
+    // MAP table-local PID context is verified independently; SAV context is not
+    // table-local and must never be seeded with this dictionary.
+    if(localClasses&&(start!=1093607||data.size()<8||data[0]!=5||data[1]!=0||data[2]!=0xfe||data[3]!=0xca||data[4]!=0||data[5]!=0||data[6]!=2||data[7]!=0))return failure(OriginalBuildingStatus::Malformed);
     try{
-        size_t hits=0,start=0;auto from=data.begin(),end=data.begin()+terrainOffset;
-        while(from!=end){auto found=std::search(from,end,preamble.begin(),preamble.end());if(found==end)break;if(++hits>16)return failure(OriginalBuildingStatus::BudgetExceeded);start=size_t(found-data.begin());from=found+1;}
-        if(hits!=1)return failure(hits?OriginalBuildingStatus::AmbiguousAnchor:OriginalBuildingStatus::MissingAnchor);
+        std::vector<std::string> classes(1);size_t nextPID=1;
         OriginalBuildingProfile result;size_t at=start+6;
         for(size_t slot=0;slot<4000;++slot){
             const size_t begin=at;if(at>terrainOffset||terrainOffset-at<2)return failure(OriginalBuildingStatus::Malformed);
-            const auto tag=detail::u16(data.data()+at);at+=2;std::string name;
+            const auto tag=detail::u16(data.data()+at);at+=2;std::string name,resolvedClass;
             if(tag==0xffff){
                 if(terrainOffset-at<4)return failure(OriginalBuildingStatus::Malformed);
                 const auto zero=detail::u16(data.data()+at),length=detail::u16(data.data()+at+2);at+=4;
                 if(zero||!length||length>255||length>terrainOffset-at)return failure(OriginalBuildingStatus::Malformed);
                 for(size_t i=0;i<length;++i)if(!data[at+i]||data[at+i]>127)return failure(OriginalBuildingStatus::Malformed);
-                name.assign(reinterpret_cast<const char*>(data.data()+at),length);at+=length;
+                name.assign(reinterpret_cast<const char*>(data.data()+at),length);at+=length;resolvedClass=name;
+                if(localClasses){classes.resize(nextPID+1);classes[nextPID++]=name;}
             }else if(tag<0x8000)return failure(OriginalBuildingStatus::Malformed);
+            else if(localClasses){const size_t id=tag&0x7fff;if(id>=classes.size()||classes[id].empty())return failure(OriginalBuildingStatus::Malformed);resolvedClass=classes[id];++result.classReferencesVerified;}
+            if(localClasses)++nextPID;
             if(terrainOffset-at<2)return failure(OriginalBuildingStatus::Malformed);
             const auto version=detail::u16(data.data()+at);const size_t common=version==3?179:version==4?181:version==5?182:0;
             if(!common||common>terrainOffset-at)return failure(OriginalBuildingStatus::Malformed);
@@ -109,6 +113,9 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
                 if(terrainOffset-at-common<4)return failure(OriginalBuildingStatus::Malformed);
                 const auto subversion=detail::u16(data.data()+at+common+2);
                 if(subversion==9)tail=140;else if(subversion==10)tail=141;else {result.status=OriginalBuildingStatus::UnsupportedTail;return result;}
+            }
+            if(type==0&&(resolvedClass=="cResWall"||resolvedClass=="cResGate")){
+                if(data[at+2]||data[at+5]){result.status=OriginalBuildingStatus::UnsupportedTail;return result;}tail=132;++result.clearedClassRecords;
             }
             if(!tail){result.status=OriginalBuildingStatus::UnsupportedTail;return result;}
             if(*tail>terrainOffset-at-common)return failure(OriginalBuildingStatus::Malformed);
@@ -125,6 +132,19 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
         result.status=OriginalBuildingStatus::Complete;return result;
     }catch(const std::bad_alloc&){return failure(OriginalBuildingStatus::BudgetExceeded);}
 }
+inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uint8_t>& data,size_t terrainOffset,const OriginalMapTerrain& terrain){
+    const auto failure=[](OriginalBuildingStatus s){OriginalBuildingProfile r;r.status=s;return r;};
+    if(data.size()>8u*1024u*1024u)return failure(OriginalBuildingStatus::BudgetExceeded);
+    if(data.size()<2||data[0]!=0x13||data[1]!=0||terrainOffset>data.size()||!terrain.valid())return failure(OriginalBuildingStatus::Malformed);
+    static constexpr std::array<uint8_t,20> preamble{{1,0,0xa0,0x0f,0,0,0xff,0xff,0,0,8,0,'B','u','i','l','d','i','n','g'}};
+    try{
+        size_t hits=0,start=0;auto from=data.begin(),end=data.begin()+terrainOffset;
+        while(from!=end){auto found=std::search(from,end,preamble.begin(),preamble.end());if(found==end)break;if(++hits>16)return failure(OriginalBuildingStatus::BudgetExceeded);start=size_t(found-data.begin());from=found+1;}
+        if(hits!=1)return failure(hits?OriginalBuildingStatus::AmbiguousAnchor:OriginalBuildingStatus::MissingAnchor);
+        return parseOriginalBuildingTable(data,start,terrainOffset,terrain,false);
+    }catch(const std::bad_alloc&){return failure(OriginalBuildingStatus::BudgetExceeded);}
+}
+inline OriginalBuildingProfile parseOriginalMapBuildings(const std::vector<uint8_t>& data,const OriginalMapTerrain& terrain){return parseOriginalBuildingTable(data,1093607,data.size(),terrain,true);}
 inline std::string describeOriginalBuildingProfile(const OriginalBuildingProfile& p){
     const bool prefix=p.status==OriginalBuildingStatus::UnsupportedTail;
     if(p.status!=OriginalBuildingStatus::Complete&&!prefix)return "建筑记录不兼容或锚点不唯一；没有占地可发布";

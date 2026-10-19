@@ -56,6 +56,28 @@ int main(){try{
   need(parsed.footprints.size()==1,"market closes exact266-byte tail andvalidates every rectangle cell");const auto& f=parsed.footprints[0];const uint8_t side=type==0x3b?4:6;need(originalFootprintWidth(f)==(rotation?7:side)&&originalFootprintHeight(f)==(rotation?side:7)&&f.size==1,"tail+96 controls rectangle;common rotation andraw size do not");
   OriginalMapCamera c;c.width=800;c.height=600;c.centerX=f.x+(originalFootprintWidth(f)-1)/2.0;c.centerY=f.y+(originalFootprintHeight(f)-1)/2.0;auto view=renderOriginalBuildingFootprints(marketGrid,{f},c);need(view.valid==1&&view.visible==1&&view.outlinePixels==80u*(7+side),"independent rectangular lattice perimeter oracle");auto missing=marketGrid;missing.flags[(67+originalFootprintHeight(f)-1)*228+65+originalFootprintWidth(f)-1]=0;need(!validOriginalBuildingFootprint(missing,f),"market refuses a missing far-corner terrain cell");auto focus=originalBuildingFocusCamera({f},c);need(focus.width>=40u*(7+side)+40&&focus.height>=20u*(7+side)+40&&renderOriginalBuildingFootprints(marketGrid,{f},focus).outlinePixels==80u*(7+side),"focused viewport includes the entire rectangular outline with margin");
  }
+ // Independent MAP-local TN002 class/object PID fixture. Class IDs are1,3,6;
+ // object IDs2,4,5,7,8 must never be treated as class IDs or building slots.
+ for(unsigned v:{3u,4u,5u}){
+  Bytes map(1093607);map[0]=5;map[2]=0xfe;map[3]=0xca;map[6]=2;append(map,{1,0,0xa0,0x0f,0,0});append(map,record(0,"Building",v));
+  const auto addCleared=[&](const std::string& name,uint16_t ref){auto b=record(0,name,v);if(name.empty())word(b,0,ref);b.resize(b.size()+132);append(map,b);};
+  const size_t first=map.size();addCleared("cResWall",0);const size_t wallEnd=map.size();addCleared("",0x8003);addCleared("cResGate",0);addCleared("",0x8006);for(size_t i=5;i<4000;++i)append(map,record(0,"",v));
+  auto p=parseOriginalMapBuildings(map,grid);need(p.status==OriginalBuildingStatus::Complete&&p.parsedRecords==4000&&p.clearedClassRecords==4&&p.classReferencesVerified==3997&&p.footprints.empty(),"cleared wall/gate classes preserve132-byte tails through explicit andbackward class references");
+  auto truncated=map;truncated.resize(wallEnd-1);p=parseOriginalMapBuildings(truncated,grid);need(p.status==OriginalBuildingStatus::Malformed&&p.parsedRecords==0,"one-byte-short cleared class tail refuses the whole result");
+  auto forward=map;word(forward,wallEnd,0x8002);p=parseOriginalMapBuildings(forward,grid);need(p.status==OriginalBuildingStatus::Malformed&&p.footprints.empty(),"object PID cannot masquerade as a class PID");
+  auto live=map;const size_t body=first+6+std::string("cResWall").size();live[body+2]=1;p=parseOriginalMapBuildings(live,grid);need(p.status==OriginalBuildingStatus::UnsupportedTail&&p.parsedRecords==1,"cleared-class exception is restricted toinactive size-zero records");
+ }
+ auto role=table();need(parseOriginalBuildingTable(role,31,role.size(),grid,true).status==OriginalBuildingStatus::Malformed,"SAV table never inherits a guessed local MAP class namespace");
+ // Focus is a preset viewport;previous viewport size does not replace the
+ // scaled lattice extent. Centre andrequested scale remain unchanged.
+ for(unsigned width:{4u,6u})for(bool transpose:{false,true})for(unsigned scale:{1u,2u,3u,4u})for(auto viewport:{std::pair<unsigned,unsigned>{0,0},{64,40},{800,600},{2048,2048}}){
+  OriginalBuildingFootprint f;f.type=width==4?0x3b:0x3c;f.x=7;f.y=9;f.size=1;f.width=transpose?width:7;f.height=transpose?7:width;
+  OriginalMapCamera c;c.width=viewport.first;c.height=viewport.second;c.scale=scale;c.centerX=f.x+(f.width-1)/2.0;c.centerY=f.y+(f.height-1)/2.0;auto focus=originalBuildingFocusCamera({f},c);
+  need(focus.scale==scale&&focus.centerX==c.centerX&&focus.centerY==c.centerY,"focus preserves requested centre andscale across prior viewports");
+  if(width==6&&scale==4){need(focus.width==0&&focus.height==0&&!renderOriginalBuildingFootprints(marketGrid,{f},focus).image.valid(),"unrepresentable2080-pixel footprint refuses budget overflow without stale image");}
+  else{auto view=renderOriginalBuildingFootprints(marketGrid,{f},focus);need(view.valid==1&&view.visible==1&&view.outlinePixels==80u*(7+width)*scale,"all representable scales show the entire market perimeter without clipping");}
+ }
+ for(unsigned scale:{0u,5u,std::numeric_limits<unsigned>::max()}){OriginalMapCamera c;c.scale=scale;const auto focus=originalBuildingFocusCamera({},c);need(focus.width==0&&focus.height==0,"invalid scales refuse before multiplying dimensions");}
  OriginalMapCamera camera;camera.width=320;camera.height=240;camera.centerX=7.5;camera.centerY=9.5;
  auto view=renderOriginalBuildingFootprints(grid,profile.footprints,camera);auto base=renderOriginalMapSpatialFlags(grid,camera);need(view.image.valid()&&view.valid==1&&view.visible==1&&view.outlinePixels==320,"one authored2x2 footprint has320 unique annotation pixels");
  const uint32_t amber=0xffffb000u;for(auto xy:{std::pair<size_t,size_t>{160,80},{240,120},{160,160},{80,120}})need(view.image.pixelsBGRA[xy.second*320+xy.first]==amber,"independent40/20 lattice corner oracle");need(view.image.pixelsBGRA[120*320+160]!=amber,"no guessed fill/artwork in footprint interior");bool exact=true;size_t marked=0;for(size_t i=0;i<base.pixelsBGRA.size();++i){if(view.image.pixelsBGRA[i]==amber)++marked;else exact&=view.image.pixelsBGRA[i]==base.pixelsBGRA[i];}need(exact&&marked==320,"all non-outline pixels remain the same SAV numerical terrain");

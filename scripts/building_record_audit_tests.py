@@ -49,6 +49,23 @@ class BuildingAuditTests(unittest.TestCase):
                     self.assertEqual((result['status'],len(result['records'])),('unsupported_tail',1 if sub==11 else 2))
                     self.assertEqual(audit.parse_table(root+header+body+extra[:3],0)['records'],[])
 
+    def test_cleared_wall_gate_class_spans(self):
+        for v in (3,4,5):
+            data=bytearray(audit.TABLE_OFFSET);data[:8]=bytes((5,0,254,202,0,0,2,0));data+=struct.pack('<HI',1,4000)+record(name='Building',version=v)
+            first=len(data)
+            def cleared(name,ref=0x8001):
+                b=bytearray(record(name=name,version=v));
+                if not name:struct.pack_into('<H',b,0,ref)
+                return b+bytes(132)
+            data+=cleared('cResWall');wall_end=len(data);data+=cleared('',0x8003)+cleared('cResGate')+cleared('',0x8006)
+            data+=record(version=v)*3995
+            p=audit.parse_table(data,audit.TABLE_OFFSET)
+            self.assertTrue(p['complete']);self.assertEqual((len(p['records']),p['cleared_class_records'],p['class_references_verified']),(4000,4,3997))
+            self.assertEqual([p['records'][i]['resolved_class']for i in range(1,5)],['cResWall','cResWall','cResGate','cResGate'])
+            self.assertEqual(audit.parse_table(data[:wall_end-1],audit.TABLE_OFFSET)['records'],[])
+            bad=bytearray(data);struct.pack_into('<H',bad,wall_end,0x8002);self.assertEqual(audit.parse_table(bad,audit.TABLE_OFFSET)['status'],'class_reference')
+            body=first+6+len('cResWall');bad=bytearray(data);bad[body+2]=1;self.assertEqual(audit.parse_table(bad,audit.TABLE_OFFSET)['status'],'unsupported_tail')
+
     def test_complete_versions_and_offsets(self):
         for v in (3, 4, 5):
             data = b'odd' + table([record(72, 'cWellBldg', v, 29, 38, 2, 1)], v) + b'next-section'

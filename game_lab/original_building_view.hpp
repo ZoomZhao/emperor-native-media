@@ -6,7 +6,14 @@ namespace game_lab {
 // including rectangular markets,with one logical-cell margin in each axis.
 inline OriginalMapCamera originalBuildingFocusCamera(const std::vector<OriginalBuildingFootprint>& footprints,OriginalMapCamera camera){
     camera.width=320;camera.height=240;
-    for(const auto& f:footprints){const uint32_t extent=uint32_t(originalFootprintWidth(f))+originalFootprintHeight(f);if(extent>16)continue;camera.width=std::max(camera.width,40*extent+40);camera.height=std::max(camera.height,20*extent+40);}
+    const auto invalid=[&](){auto rejected=camera;rejected.width=0;rejected.height=0;return rejected;};
+    if(camera.scale<1||camera.scale>4||footprints.size()>4000)return invalid();
+    for(const auto& f:footprints){
+        const uint32_t extent=uint32_t(originalFootprintWidth(f))+originalFootprintHeight(f);if(extent>16)continue;
+        const uint32_t width=(40*extent+40)*camera.scale,height=(20*extent+40)*camera.scale;
+        if(width>2048||height>2048)return invalid();
+        camera.width=std::max(camera.width,width);camera.height=std::max(camera.height,height);
+    }
     return camera;
 }
 struct OriginalBuildingView {DecodedImage image;size_t valid=0,rejected=0,visible=0,outlinePixels=0;};

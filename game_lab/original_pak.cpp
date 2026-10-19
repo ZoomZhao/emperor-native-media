@@ -46,6 +46,7 @@ OriginalPakResult decodeOriginalPak(const std::vector<uint8_t>& input){
             part.map=parseOriginalMapPayload(decoded.payload);
             part.map.inputBytes=framed.size();part.map.frames=decoded.frames;
             if(part.cityCandidate&&part.map.status==OriginalMapStatus::LoadedTerrain){
+                part.buildingTable=parseOriginalMapBuildings(decoded.payload,part.map.terrain);
                 auto surface=parseOriginalTerrainState(decoded.payload);
                 if(surface&&surface->terrain==part.map.terrain.flags)part.surfaceState=std::move(surface);
             }
