@@ -326,13 +326,68 @@ write **keeps its loaded art**. That refutes the earlier "determinate no-ground"
 reading of the `0x8C008` gate and of the other declining branches; the repo now calls
 them `chain-declined` / `chainNoWrite` (`original_ground.hpp`).
 
-Measured over all 167 `Cities/*.map` (whole crop, camera-free):
+Measured over all 167 `Cities/*.map` (whole crop, camera-free), after modelling
+setter 5 (the road arm):
 
 * grid `2,107,836` active cells, `28` stored zero, `2,107,808` stored nonzero;
-* chain emits `1,514,539`, agrees with the stored grid on `1,299,617` = **85.809 %**;
+* chain emits `1,761,341`, agrees with the stored grid on `1,450,441` = **82.349 %**;
 * chain declines to write on `114,937` cells: `0` of them store zero, **all `114,937`
   store nonzero art** — direct evidence that "declined" is not "empty";
-* unknown / non-terrain-determinable chain cells `478,360`.
+* unknown / non-terrain-determinable chain cells `231,558`.
+
+(The pre-setter-5 numbers were `1,514,539` emitted / `1,299,617` matched = 85.809 %
+/ `478,360` unknown; the 246,802 modelled road cells are the whole change, and the
+matched *rate* falls because the road arm predicts the executable's code while the
+stored words sit in an older archive namespace, below.)
+
+### The stored ids are an older archive vintage, and the shift is not derivable
+
+The stored word is the archive id captured when each `.map` was authored. The
+installed `China_Terrain.sg3` has since had records inserted before some art bands,
+so the residual `storedIndex - predictedIndex` (only defined where the stored word
+is nonzero tileset-3 art) is a constant **per (city, record-id band)**, never
+positive:
+
+| Band | Emitted codes (`imageIndex`) | Modal residual over 167 cities |
+|---|---|---|
+| farm | `0x602` (202) | 0 in all 167 |
+| plain land | `0x603` (247) | 0 in all 89 cities with >= 16 cells |
+| land | `0x606/607/608` (458/472/486) | 0 (93), -30 (73), -20 (1) |
+| upper ground | `0x60E/60F/61C/620/624/625` (664..1138) | 0 (93), -30 (39), -32 (34), -20 (1) |
+| feature block | `0x609/60A/60D/619` (1440..1443) | 0 (13), -318 (8), -308 (1) |
+
+The four vintage classes are `(land, upper) = (0, 0)`, `(-30, -30)`, `(-30, -32)`
+and `(-20, -20)`, and in **34 cities the land and upper bands take different
+constants**, which shows the shift is per-(city, band), not one id per city. The
+feature residual is the upper residual minus exactly the 288-record run inserted
+below `1440`. Farm and plain land sit below every inserted run, so the installed
+archive reproduces them exactly.
+
+The authoring-time table is **not shipped**, so the constant is not derivable from
+the payload, the archive or the executable; it stays a measurement-layer id-space
+fact and is deliberately not corrected inside the selector (that would tune to the
+oracle). Refuted derivations, on the owned data / exe (SHA-256
+`0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`, 4,820,992 B):
+
+* no shifted land table exists in the install — the data root holds 58 `.sg3` files
+  with exactly one `China_Terrain.sg3`, and no archive carries the
+  `[201,202,247,336,386,458,472,486]` land header pattern, current or shifted;
+* the exe contains no such table — a byte search of the whole file finds neither the
+  current `imageIndex[1..8]` pattern nor its -20/-30/-32 shifts nor the full 600-byte
+  header table;
+* no `.pak` / alternate archive carries a second copy of the table;
+* no `.map` header field separates the classes — a 1,535-byte header scan at widths
+  1/2/4 finds 0 fields constant within a class and distinct across classes;
+* no payload scalar separates the classes — `side`, `g101D0AC`, `g101D0B0`,
+  `g10C6F18` and the `0x168`-byte blob all fail the same test;
+* the loader does not pack per city — `FUN_005CD1F0 @0x005CD1F0` builds each
+  slot → record entry verbatim from the archive header (`entry[1] = imageIndex[slot]
+  - 201`), with no per-city adjustment.
+
+`game_lab/map_reference_tests.cpp` (`storedGridVintageTests`) asserts this structure
+corpus-wide - farm exact in every city, land/upper modal residual in the measured
+negative set and never positive, feature `<= -288`, and at least one city shifting
+the land band differently from the upper bands - without encoding any per-city value.
 
 ### Record indexing in a version-213 archive
 

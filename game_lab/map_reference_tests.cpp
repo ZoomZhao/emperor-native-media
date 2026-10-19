@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <iterator>
+#include <map>
 #include <zlib.h>
 #include <unistd.h>
 namespace {using Bytes=std::vector<uint8_t>;size_t checks=0;void need(bool x,const char*s){++checks;if(!x)throw std::runtime_error(s);}void put(Bytes&b,size_t p,uint32_t n,unsigned w=4){for(unsigned i=0;i<w;++i)b[p+i]=uint8_t(n>>(8*i));}void write(const std::filesystem::path&p,const Bytes&b){std::ofstream f(p,std::ios::binary);f.write(reinterpret_cast<const char*>(b.data()),b.size());if(!f)throw std::runtime_error("fixture write");}Bytes body(size_t n){Bytes b(n);b[0]=5;b[2]=254;b[3]=202;b[6]=2;put(b,84,84);return b;}Bytes framed(const Bytes&b){Bytes out(4);put(out,0,0xfedcbaaa);for(size_t p=0;p<b.size();p+=32768){size_t n=std::min(size_t(32768),b.size()-p);Bytes compressed(compressBound(n));uLongf size=compressed.size();if(compress2(compressed.data(),&size,b.data()+p,n,9)!=Z_OK)throw std::runtime_error("zlib");size_t q=out.size();out.resize(q+12+size);put(out,q,0xabcdefff);put(out,q+4,uint32_t(size));put(out,q+8,uint32_t(n));std::copy(compressed.begin(),compressed.begin()+size,out.begin()+q+12);}return out;}}
@@ -910,6 +911,143 @@ void realDataGroundTests(bool& originalData) {
  }
  originalData=true;
 }
+// Data-gated corpus probe for the stored surface-image grid's archive namespace.
+// The engine does not compute 0x00FE9880; each city `.map` carries it (payload
+// offset 1,535), so the stored word is an archive id captured when the map was
+// authored. The installed China_Terrain.sg3 has since had records inserted before
+// some art bands, so the residual (stored archive index minus the installed
+// archive's predicted index) is a per-(city, record-id band) constant: exact for
+// the low farm/plain bands, and a single negative constant per band above them.
+// These assertions fail if that structure changes. They never encode a per-city
+// value (no city name/size is read) and never feed the selector or the score; the
+// selector still predicts the executable's own code and the score still compares
+// archive indices, so the residual is a measurement of stale data, not a tunable.
+void storedGridVintageTests() {
+ using namespace game_lab;
+ const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");
+ if(!env||!*env)return;
+ const auto root=std::filesystem::path(env);
+ const auto archivePath=root/"DATA"/"China_Terrain.sg3";
+ const auto citiesPath=root/"Cities";
+ if(!std::filesystem::is_directory(citiesPath)||!std::filesystem::exists(archivePath))return;
+ const auto archive=loadSG3(archivePath.string());
+ need(archive.numImages&&archive.numImages==archive.sprites.size(),
+      "original China_Terrain.sg3 loads for the stored-grid vintage probe");
+ // Record-id band of a modelled ground code, by the imageIndex region its art sits
+ // in: farm (imageIndex[2]=202), plain land (247), land (458/472/486), feature
+ // block (1440..1443), and the upper ground bands (664..1138: canal/road/shore/
+ // twin/flood). A code outside these bands is not part of the measured structure.
+ auto bandOf=[](uint16_t code)->int {
+   switch(code) {
+     case 0x602:return 0;
+     case 0x603:return 1;
+     case 0x606:case 0x607:case 0x608:return 2;
+     case 0x609:case 0x60A:case 0x60D:case 0x619:return 3;
+     case 0x60E:case 0x60F:case 0x61C:case 0x620:case 0x624:case 0x625:return 4;
+     default:return -1;
+   }
+ };
+ constexpr int kFarm=0,kLand=2,kFeature=3,kUpper=4;
+ struct BandTally { std::map<int64_t,size_t> residual; size_t cells=0; };
+ std::vector<std::map<int,BandTally>> perCity;
+ size_t cityCount=0;
+ for(const auto& entry:std::filesystem::directory_iterator(citiesPath)) {
+   if(entry.path().extension()!=".map")continue;
+   const auto loaded=loadOriginalMapTerrain(entry.path().string());
+   const auto state=loadOriginalTerrainState(entry.path().string());
+   need(loaded.status==OriginalMapStatus::LoadedTerrain&&state&&state->valid()&&
+        state->terrain==loaded.terrain.flags,
+        "every original Cities/*.map publishes terrain and the loader state");
+   std::map<int,BandTally> bands;
+   for(size_t cell=0;cell<loaded.terrain.flags.size();++cell) {
+     if(loaded.terrain.flags[cell]&0x80000u)continue;
+     const uint32_t stored=state->image[cell];
+     // The residual is only defined where the stored word is tileset-3 art; a
+     // zero or foreign-tileset word is a different mismatch class (the chain
+     // claiming art the engine gave another setter), not a namespace shift.
+     if(!stored||(stored>>14)!=3u)continue;
+     const auto selection=selectGroundTileCode(groundCodeRequest(*state,cell));
+     if(!selection.known||selection.chainNoWrite)continue;
+     size_t index=0;
+     if(!resolveGroundTileCode(archive,selection.code,selection.variant,index))continue;
+     const int band=bandOf(selection.code);
+     if(band<0)continue;
+     const int64_t residual=int64_t((stored&0x3FFFu)+200u)-int64_t(index);
+     auto& tally=bands[band];
+     ++tally.cells;++tally.residual[residual];
+   }
+   perCity.push_back(std::move(bands));
+   ++cityCount;
+ }
+ need(cityCount>=160,"the original Cities corpus is present for the vintage probe");
+ // Modal residual of a band, defined only when the band has enough cells to have a
+ // meaningful mode.
+ auto modal=[](const BandTally& t,bool& ok,int64_t& value) {
+   if(t.cells<16)return;
+   size_t best=0;int64_t bestValue=0;
+   for(const auto& kv:t.residual)if(kv.second>best||(kv.second==best&&kv.first<bestValue)){best=kv.second;bestValue=kv.first;}
+   ok=true;value=bestValue;
+ };
+ size_t farmCities=0,farmExact=0,farmCells=0,farmAtOrigin=0;
+ size_t allLand=0,landInSet=0,landPositive=0,upperAll=0,upperInSet=0,upperPositive=0;
+ size_t featureAll=0,featureOk=0,bandSplit=0,landDistinct=0;
+ std::map<int64_t,size_t> landValues;
+ for(const auto& bands:perCity) {
+   bool farmOk=false,landOk=false,upperOk=false,featureOkBand=false;
+   int64_t farmMode=0,landMode=0,upperMode=0,featureMode=0;
+   auto f=bands.find(kFarm);if(f!=bands.end())modal(f->second,farmOk,farmMode);
+   auto l=bands.find(kLand);if(l!=bands.end())modal(l->second,landOk,landMode);
+   auto u=bands.find(kUpper);if(u!=bands.end())modal(u->second,upperOk,upperMode);
+   auto b=bands.find(kFeature);if(b!=bands.end())modal(b->second,featureOkBand,featureMode);
+   if(farmOk){++farmCities;if(farmMode==0)++farmExact;}
+   if(f!=bands.end()){farmCells+=f->second.cells;farmAtOrigin+=f->second.residual.count(0)?f->second.residual.at(0):0;}
+   if(landOk) {
+     ++allLand;
+     const bool inSet=landMode==0||landMode==-20||landMode==-30;
+     if(inSet)++landInSet;
+     if(landMode>0)++landPositive;
+     ++landValues[landMode];
+   }
+   if(upperOk) {
+     ++upperAll;
+     const bool inSet=upperMode==0||upperMode==-20||upperMode==-30||upperMode==-32;
+     if(inSet)++upperInSet;
+     if(upperMode>0)++upperPositive;
+   }
+   if(featureOkBand) {
+     ++featureAll;
+     // The feature block art sits at 1440..1443; in every shifted city it is a
+     // single large negative constant (~288 records below the upper bands).
+     if(featureMode==0||featureMode<=-288)++featureOk;
+   }
+   if(landOk&&upperOk&&landMode!=upperMode)++bandSplit;
+ }
+ landDistinct=landValues.size();
+ // Farm and plain land sit below every inserted record run, so the installed
+ // archive reproduces them exactly: the farm mode is 0 in every city, and at least
+ // 85% of all stored-tileset-3 farm cells land on the predicted record.
+ need(farmCities>=160&&farmExact==farmCities,
+      "the farm band is exact in every original city (installed archive matches the stored art)");
+ need(farmCells>=100000&&farmAtOrigin*100>=farmCells*85,
+      "at least 85% of stored tileset-3 farm cells equal the predicted record");
+ // Land band: exact, or a single negative constant of one of the measured stale
+ // vintages; never positive at the mode.
+ need(allLand>=160&&landInSet==allLand&&landPositive==0,
+      "the land band's modal residual is 0 or a single stale-vintage constant, never positive");
+ // Upper ground bands: same, plus the two-record extra shift seen above the land
+ // band. Never positive at the mode.
+ need(upperAll>=160&&upperInSet==upperAll&&upperPositive==0,
+      "the upper ground bands' modal residual is a single stale-vintage constant, never positive");
+ // Feature block band: exact or ~288 records lower (the run inserted below it).
+ need(featureAll>=16&&featureOk==featureAll,
+      "the feature block band is exact or ~288 records below the upper bands");
+ // The residual is per-(city, band), not a single per-city constant: some cities
+ // shift the land band and the upper bands by a different constant.
+ need(bandSplit>=1,"at least one city shifts the land band differently from the upper bands");
+ // And it is a per-city vintage, not a fixed global constant: the land mode takes
+ // more than one value across the corpus.
+ need(landDistinct>=2,"the stale-vintage constant differs across the original corpus");
+}
 void compositeSafetyTests(const std::filesystem::path& root) {
  using namespace game_lab;
  OriginalMapTerrain terrain;terrain.activeSide=84;terrain.flags.assign(51984,0x80000);
@@ -974,5 +1112,6 @@ int main(){try{
  chainScoreTests();
  bool originalData=false;
  realDataGroundTests(originalData);
+ storedGridVintageTests();
  std::filesystem::remove_all(root);std::cout<<"{\"passed\":true,\"assertions\":"<<checks<<",\"original_data\":"<<(originalData?"true":"false")<<"}\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}}

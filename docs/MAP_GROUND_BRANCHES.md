@@ -109,12 +109,13 @@ only non-MAP premise is `obj[cell]==0` (`0x00FC3750`); a bare load satisfies it 
 corpus: all 246,802 road cells have `0x00E92DD0==0xFF`, so the `0x627` arm never fires.
 
 Measured over all 167 `Cities/*.map`: 246,802 road cells, 245,520 resolve to tileset 3 (the other
-1,282 store a zero/non-tileset-3 word). Of the resolved cells the difference
-`storedIndex - predictedIndex` is a per-city constant in four bands: **0** for 150,824 cells (61.4 %),
-**-30** for 48,619 (19.8 %), **-32** for 45,065 (18.4 %), **-20** for 985 (0.4 %); 27 cells sit in an
-isolated -600..-740 tail (other-setter/block art). Inside a city the delta is constant - e.g.
-Anyang has 1,734 of its 1,736 road cells at exactly -30 - so the formula and `k` test are exact and
-the road residual is the per-city id-namespace shift described below, not a formula error.
+1,282 store a zero/non-tileset-3 word). The road codes are all upper-band art (`0x624`/`0x625`), and
+of the resolved cells the difference `storedIndex - predictedIndex` takes four modal values: **0** for
+150,824 cells (61.4 %), **-30** for 48,619 (19.8 %), **-32** for 45,065 (18.4 %), **-20** for 985
+(0.4 %); 27 cells sit in an isolated -600..-740 tail (other-setter/block art). Within a city the delta
+is constant for that band - e.g. Anyang has 1,734 of its 1,736 road cells at exactly -30 - so the
+formula and `k` test are exact and the road residual is the per-(city, band) id-namespace shift
+described below, not a formula error.
 
 **4. `FUN_00540300 @0x00540300` → `FUN_004B6F90 @0x004B6F90` (`terrain&0x40`).** Wrapper calls
 `FUN_004B8F70(0x8000040)`, `FUN_004B9B20()`, `FUN_004B6F90()`, returns 1. `FUN_004B6F90` (current cell
@@ -321,53 +322,97 @@ dominated by `0x1-road` 95,978 (61.11 %), `0x80-farm` 65,742 (94.01 %),
 `0x4-shore-water-ring` 50,159 (39.73 %), `0x2-land` 49,808 (33.14 %) and
 `plain-land` 26,936 (88.16 %).
 
-### The road residual is a per-city namespace shift, not a formula error
-
-Setter 5's emitted road cells are exact up to a **per-city constant** id offset
-between the `.map` header namespace and `China_Terrain.sg3`. Over all 245,520
-resolved road cells the offset `storedIndex - predictedIndex` takes four dominant
-values: 0 (150,824), -30 (48,619), -32 (45,065) and -20 (985); only 27 cells fall
-in an isolated -600..-740 tail. Within a city the offset is constant - Anyang has
-1,734 of 1,736 road cells at exactly -30, and its 384 `0x4-shore-water-ring` cells
-are uniformly -30 as well - while Bo, Badaling and Chizhou are uniformly 0. The
-same offset already affected `0x2-land` before setter 5 was modelled (Anyang
-`0x2-land` is -30 too), so it is a measurement-layer id-namespace artefact shared
-by every branch, **not** a road-specific error. It is deliberately not corrected
-inside `selectGroundTileCode` (that would tune to the oracle); the selector
-predicts the executable's own code, and the score compares archive indices.
-
-`0x80-farm` is the clearest *branch* case: 65,712 of its 65,742 mismatches are
-magnitude >= 33 off and only 16 are within +-8. The farm quantum is 9 (`T(0xC001) +
-9*Q + random%9`), so a wrong band index could only move the stored index by whole
-records inside a 45-record band. A direct probe shows not even that: **0** of the
-farm mismatches land anywhere in the band, so the chain is claiming cells whose art
-is not farm art - a wrong *branch*, not a wrong band. See "Every farm residual is a
-wrong branch, not a wrong variant" below.
-
-### The per-city id shift is the largest single cause
+### The per-(city, record-id band) id shift is the largest single cause
 
 The 17-32 magnitude bucket is not one branch's problem. Cells whose stored index
 sits 17-32 records from the prediction, by branch: `0x1-road` 94,669,
 `0x4-shore-water-ring` 31,876, `0x2-land` 26,331, `0x80000000-flood` 9,949,
-`plain-land` 9,833, `0x40000-canal` 4,776, `0x101000-twin` 1,700 - **179,140 cells,
-64 % of the 278,345 large-delta residual**, from a single per-city constant.
+`plain-land` 9,833, `0x40000-canal` 4,776 and `0x101000-twin` 1,700 - **179,140
+cells, 64 % of the 278,345 large-delta residual**, from one cause.
 
-Measured directly in Anyang, where one constant explains four bands at once:
-`0x1-road` 1,734/1,736 at -30, `0x2-land` modal -30 (223 cells), and all 384
-`0x4-shore-water-ring` cells at -30; Bo, Badaling and Chizhou are uniformly 0. Over
-the corpus the road offset splits the cities cleanly: 93 cities at 0 with 150,824
-matched road cells, and 74 cities where the road, land and shore branches all match
+Inside a city the offset is constant *for a given band*: Anyang has 1,734 of its
+1,736 road cells at exactly -30, its `0x2-land` mode is -30, and all 384 of its
+`0x4-shore-water-ring` cells are -30, while Bo, Badaling and Chizhou are uniformly
+0. Over the corpus the road offset splits the cities cleanly - 93 cities at 0 with
+150,824 matched road cells, and 74 cities where road, land and shore all match
 **exactly 0.000** of their cells, while `0x80-farm` (94.16 % vs 93.81 %) and
 `plain-land` (88.70 % vs 87.79 %) are unaffected in both groups. An all-or-nothing
 0.000 across thousands of cells cannot be a formula error, and no `.map` header
 field, active side or file size separates the two groups.
 
-So the engine's per-city slot -> record table differs from the file's `imageIndex`
-by a constant for the upper bands. That is now the dominant chain-score blocker and
-it is a measurement-layer id-space problem, not a branch-formula problem. It is
-deliberately not corrected inside `selectGroundTileCode` (that would tune to the
-oracle); the selector predicts the executable's code and the score compares archive
-indices.
+The shift is not one constant per city either. Grouping the modelled emitted codes
+by the `imageIndex` region their art sits in - farm `202`, plain land `247`, land
+`458/472/486`, feature `1440..1443`, upper ground `664..1138` (canal, road, shore,
+twin, flood) - the corpus splits into four vintage classes, and **30 cities take
+-30 on the land band while the road band takes -32** (34 when canal, flood and shore
+are aggregated into the upper set), which proves the shift is per-(city, band):
+
+| Band | Emitted codes (`imageIndex`) | Modal residual over 167 cities |
+|---|---|---|
+| farm | `0x602` (202) | 0 in all 167 |
+| plain land | `0x603` (247) | 0 in all 89 cities with >= 16 cells |
+| land | `0x606/607/608` (458/472/486) | 0 (93), -30 (73), -20 (1) |
+| upper ground | `0x60E/60F/61C/620/624/625` (664..1138) | 0 (93), -30 (39), -32 (34), -20 (1) |
+| feature block | `0x609/60A/60D/619` (1440..1443) | 0 (13), -318 (8), -308 (1) |
+
+No band's modal residual is ever positive. Farm and plain land sit below every
+inserted record run, so the installed archive reproduces them exactly; the feature
+residual is the upper residual minus exactly the 288-record run inserted below
+`1440`. This is the signature of an archive whose records were **inserted below a
+band after the `.map` was authored**: the stored word is the authoring-time archive
+id, and today's `China_Terrain.sg3` has extra records between the low bands and the
+shifted ones.
+
+The shift is not corrected inside `selectGroundTileCode`: that would tune to the
+oracle. The selector predicts the executable's own code; the score compares archive
+indices. The farm residual is a separate, non-band cause - see "Every farm residual
+is a wrong branch, not a wrong variant" below.
+
+### The shift is a stale archive vintage, and it is not derivable
+
+The residual shape is **measured**: a constant per (city, band), never positive, with
+four (land, upper) vintage classes. The explanation that fits every measurement is
+that the stored word is an archive id captured when each `.map` was authored, and the
+installed `China_Terrain.sg3` has since had records inserted before some art bands.
+That explanation is an **inference**, not a measurement: the authoring-time table is
+**not shipped**, so the constant cannot be recovered from the payload, the archive or
+the executable, and fitting it would be tuning to the oracle. Tested and refuted (all
+on the owned data / exe SHA-256
+`0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`, 4,820,992 B):
+
+* **No shifted land table exists in the install.** The data root holds 58 `.sg3`
+  files and exactly one `China_Terrain.sg3`; no archive carries the
+  `[201,202,247,336,386,458,472,486]` land/canal header pattern, shifted or not.
+* **The exe contains no such table.** A byte search of the whole executable finds
+  neither the current `imageIndex[1..8]` pattern nor its -20/-30/-32 shifts nor the
+  full 600-byte header table.
+* **No `.pak` / alternate archive carries a second copy** of the table.
+* **No `.map` header field separates the classes.** A 1,535-byte header scan at
+  widths 1/2/4 finds 0 fields constant within a vintage class and distinct across
+  classes.
+* **No payload scalar separates the classes.** `side`, `g101D0AC`, `g101D0B0`,
+  `g10C6F18` and the `0x168`-byte blob each fail the same separation test; only the
+  file size "separates", and that is vacuous.
+* **The loader does not pack per city.** `FUN_005CD1F0 @0x005CD1F0` builds each
+  slot -> record entry verbatim from the archive header (`entry[1] =
+  imageIndex[slot] - 201`), with no per-city adjustment.
+
+Two consequences follow, and they must not be confused. For the **score**, the stored
+grid is a stale oracle above the farm and plain-land bands, so `82.349 %` is a floor
+on the reconstruction's agreement with it, not the reconstruction's accuracy. For the
+**render**, `recordId = low14 + 201` reads those stored ids against the installed
+archive, so in a shifted city it decodes a record 20/30/32 entries from the one the
+authoring table named. Whether that record is the intended art is **open**: "exact
+render" only proves that every cell decodes, not that it is the right image, and the
+original-screen comparison that would settle it is still 0/167.
+
+The residual is also not a namespace fixed once at load, because 34 of the 167 cities
+shift the land band and the upper bands by different constants, so even a single
+per-city table would be wrong. The corpus assertion in
+`game_lab/map_reference_tests.cpp` (`storedGridVintageTests`) locks in the structure -
+farm exact everywhere, land/upper modal residual in the measured negative set and
+never positive, feature `<= -288`, and at least one city shifting the land band
+differently from the upper bands - without encoding any per-city value.
 
 
 ## Composite blocks store one image word, not a per-cell variant
