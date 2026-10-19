@@ -18,7 +18,7 @@ COMMON_BYTES = {3: 179, 4: 181, 5: 182}
 # Only the closed profile needed for these bounded samples is supported.
 TAIL_BYTES = {0: 0, **{i: 65 for i in range(2, 18)}, 0x35: 288,
               0x3b: 266, 0x3e: 140, **{i: 140 for i in range(0x40, 0x47)},
-              0x47: 352, 0x48: 130, 0x7e: 130, 0x83: 132,
+              0x47: 352, 0x48: 130, 0x7c: 130, 0x7f: 130, 0x7e: 130, 0x83: 132,
               0xa2: 130, 0xa3: 130, 0xaf: 130, 0xe7: 132}
 
 

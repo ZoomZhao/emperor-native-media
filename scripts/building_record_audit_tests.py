@@ -34,7 +34,7 @@ class BuildingAuditTests(unittest.TestCase):
             self.assertEqual(result['end'], len(data) - len(b'next-section'))
 
     def test_closed_prefix_before_unsupported_tail(self):
-        data = struct.pack('<HI', 1, 4000) + record(name='Building') + record(72, 'cWellBldg', 5, 3, 4, 2, 1) + record(0x7c, 'cInspectorBldg')
+        data = struct.pack('<HI', 1, 4000) + record(name='Building') + record(72, 'cWellBldg', 5, 3, 4, 2, 1) + record(0x1234, 'UnsupportedAuthoredClass')
         result = audit.parse_table(data, 0)
         self.assertEqual(result['status'], 'unsupported_tail');self.assertEqual(result['stop_index'], 2)
         self.assertEqual(len(result['records']), 2);self.assertFalse(result['complete'])

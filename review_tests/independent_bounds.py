@@ -28,7 +28,7 @@ def preamble():return u16(1)+(4000).to_bytes(4,'little')
 for v in (3,4,5):
     root=own_record(v,0,0,'Building',n=0,alive=0)
     well=own_record(v,72,130,'cWellBldg',x=65535,y=32768)
-    unknown=own_record(v,0x7c,0,'cInspectorBldg')
+    unknown=own_record(v,0x1234,0,'UnsupportedAuthoredClass')
     b=b'odd'+preamble()+root+well+unknown
     r=a.parse_table(b,3)
     need(r['status']=='unsupported_tail'and len(r['records'])==2,'closed_prefix')

@@ -10,11 +10,17 @@ struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0;size_t 
 enum class OriginalBuildingStatus {Complete,UnsupportedTail,MissingAnchor,AmbiguousAnchor,Malformed,BudgetExceeded};
 struct OriginalBuildingProfile {
     OriginalBuildingStatus status=OriginalBuildingStatus::MissingAnchor;
-    size_t parsedRecords=0,namedWellRecords=0,rejectedWellRecords=0;
+    size_t parsedRecords=0,namedWellRecords=0,rejectedNamedRecords=0,namedInspectorRecords=0,namedWatchtowerRecords=0;
     std::vector<OriginalBuildingFootprint> footprints;
 };
+inline const char* originalBuildingName(uint16_t type){
+    switch(type){case 0x48:return "Well";case 0x7c:return "Inspector";case 0x7f:return "Watchtower";default:return "Unknown";}
+}
+inline bool namedOriginalBuilding(uint16_t type,const std::string& name){
+    return (type==0x48&&name=="cWellBldg")||(type==0x7c&&name=="cInspectorBldg")||(type==0x7f&&name=="cWatchtower");
+}
 inline bool validOriginalBuildingFootprint(const OriginalMapTerrain& terrain,const OriginalBuildingFootprint& f){
-    if(!terrain.valid()||f.type!=0x48||!f.size||f.size>8||uint32_t(f.x)+f.size>terrain.activeSide||uint32_t(f.y)+f.size>terrain.activeSide)return false;
+    if(!terrain.valid()||(f.type!=0x48&&f.type!=0x7c&&f.type!=0x7f)||!f.size||f.size>8||uint32_t(f.x)+f.size>terrain.activeSide||uint32_t(f.y)+f.size>terrain.activeSide)return false;
     const size_t origin=(228-terrain.activeSide)/2;
     for(size_t y=0;y<f.size;++y)for(size_t x=0;x<f.size;++x){const auto v=terrain.flags[(origin+f.y+y)*228+origin+f.x+x];if((v&0x80000u)||!(v&8u))return false;}
     return true;
@@ -24,10 +30,10 @@ inline std::optional<size_t> originalBuildingTailBytes(uint16_t type){
     if(type>=2&&type<=17)return 65;
     if(type==0x3e||(type>=0x40&&type<=0x46))return 140;
     switch(type){case 0x35:return 288;case 0x3b:return 266;case 0x47:return 352;
-    case 0x48:case 0x7e:case 0xa2:case 0xa3:case 0xaf:return 130;
+    case 0x48:case 0x7c:case 0x7f:case 0x7e:case 0xa2:case 0xa3:case 0xaf:return 130;
     case 0x83:case 0xe7:return 132;default:return std::nullopt;}
 }
-// Narrow published SAV building profile. Only an explicitly named Well with
+// Narrow published SAV building profile. Only an explicitly named Well,Inspector or Watchtower with
 // a closed record span and matching saved terrain footprint is exposed. Unknown
 // type tails preserve the closed prefix; malformed data clears it completely.
 // No serialization-reference guessing,resync,SG3 binding or game logic.
@@ -58,9 +64,9 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
             const auto type=detail::u16(data.data()+at+16);const auto tail=originalBuildingTailBytes(type);
             if(!tail){result.status=OriginalBuildingStatus::UnsupportedTail;return result;}
             if(*tail>terrainOffset-at-common)return failure(OriginalBuildingStatus::Malformed);
-            if(type==0x48&&name=="cWellBldg"){
-                ++result.namedWellRecords;OriginalBuildingFootprint f;f.type=type;f.x=detail::u16(data.data()+at+8);f.y=detail::u16(data.data()+at+10);f.size=data[at+5];f.slot=slot;f.recordOffset=begin;
-                if(data[at+2]&&validOriginalBuildingFootprint(terrain,f))result.footprints.push_back(f);else ++result.rejectedWellRecords;
+            if(namedOriginalBuilding(type,name)){
+                if(type==0x48)++result.namedWellRecords;else if(type==0x7c)++result.namedInspectorRecords;else ++result.namedWatchtowerRecords;OriginalBuildingFootprint f;f.type=type;f.x=detail::u16(data.data()+at+8);f.y=detail::u16(data.data()+at+10);f.size=data[at+5];f.slot=slot;f.recordOffset=begin;
+                if(data[at+2]&&validOriginalBuildingFootprint(terrain,f))result.footprints.push_back(f);else ++result.rejectedNamedRecords;
             }
             at+=common+*tail;++result.parsedRecords;
         }
@@ -70,6 +76,6 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
 inline std::string describeOriginalBuildingProfile(const OriginalBuildingProfile& p){
     const bool prefix=p.status==OriginalBuildingStatus::UnsupportedTail;
     if(p.status!=OriginalBuildingStatus::Complete&&!prefix)return "建筑记录不兼容或锚点不唯一；没有占地可发布";
-    return "建筑表已验证 "+std::to_string(p.parsedRecords)+"/4000 记录"+(prefix?"（遇未知尾部停止，仅支持前缀）":"")+"；井占地 "+std::to_string(p.footprints.size())+"，未绑定图像";
+    return "建筑表已验证 "+std::to_string(p.parsedRecords)+"/4000 记录"+(prefix?"（遇未知尾部停止，仅支持前缀）":"")+"；已命名建筑占地 "+std::to_string(p.footprints.size())+"，未绑定图像";
 }
 }
