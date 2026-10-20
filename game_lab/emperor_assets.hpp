@@ -37,6 +37,7 @@ struct SG3Sprite {
     int16_t height = 0;
     // Raw published animation fields; no playback or static MAP-anchor rule.
     uint16_t animationSpriteCount = 0;
+    uint16_t animationDirections = 0; // Figure group stride, SG+32 /0x5CFDF0.
     int16_t animationOffsetX = 0;
     int16_t animationOffsetY = 0;
     uint8_t animationReversible = 0, animationSpeedId = 0;

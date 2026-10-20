@@ -161,6 +161,7 @@ SG3Archive loadSG3(const std::string& path) {
             s.mirrorOffset=mirror<=0x7fffffffu?int32_t(mirror):int32_t(int64_t(mirror)-0x100000000ll);
             s.width=detail::i16(r+20);s.height=detail::i16(r+22);
             s.animationSpriteCount=detail::u16(r+30);
+            s.animationDirections=detail::u16(r+32);
             s.animationOffsetX=detail::i16(r+34);s.animationOffsetY=detail::i16(r+36);
             s.animationReversible=r[48];s.animationSpeedId=r[58];
             s.type=detail::u16(r+50);s.flags=detail::u16(r+52);s.external=r[52];s.tileSize=r[55];s.bitmapId=r[56];

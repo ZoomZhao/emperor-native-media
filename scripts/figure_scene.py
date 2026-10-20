@@ -1,4 +1,4 @@
-"""Saved figure wire/binding/overlay checks; corpus uses EMPEROR_GAMEDATA_ROOT."""
+"""Saved figure playback and scored forward selection; corpus uses EMPEROR_GAMEDATA_ROOT."""
 from pathlib import Path
 import argparse
 import os

@@ -10,7 +10,7 @@ namespace game_lab {
 void AppMapSurface::clear() {
     state_.reset(); savedBuildings_.reset(); terrain_ = {}; error_.clear();
 }
-bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile,const OriginalSavedGround* ground,uint64_t tickMs,const OriginalFigureProfile* figures){
+bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile,const OriginalSavedGround* ground,uint64_t tickMs,const OriginalFigureProfile* figures,OriginalFigureRenderSource figureSource){
     clear();
     if(!archives_.count(2)){
         auto index=loadSG3(root_.resolve("DATA/China_General.sg3"));
@@ -38,8 +38,10 @@ bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const
     if(!scene.accepted){error_="SAV 建筑表或活动框不完整；保留数值占地";return false;}
     if(figures){
         std::map<uint32_t,const SG3Archive*> figureArchives;
-        for(const auto& f:figures->live)for(const uint32_t word:{f.image,f.secondaryImage}){
-            if(!word)continue;const uint32_t slot=word>>14;const char* name=originalFigureArchiveName(slot);if(!name)continue;
+        // Startup slots, independent of saved image words. Forward selection
+        // must have the same supplied archive domain when the oracle changes.
+        for(const uint32_t slot:{14u,38u,39u,40u}){
+            const char* name=originalFigureArchiveName(slot);
             if(!archives_.count(slot)){
                 const std::string relative=std::string("DATA/")+name;auto index=loadSG3(root_.resolve(relative));
                 if(index.version!=214||!index.numImages)continue;
@@ -48,7 +50,7 @@ bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const
             }
             figureArchives[slot]=&archives_.at(slot).index;
         }
-        installOriginalFigureOverlays(scene,terrain,*figures,figureArchives,tickMs);
+        installOriginalFigureOverlays(scene,terrain,*figures,figureArchives,tickMs,figureSource,&profile);
     }
     terrain_=terrain;savedBuildings_=std::move(scene);return true;
 }

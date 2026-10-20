@@ -88,6 +88,42 @@ void authored(){
     OriginalFigureProfile figures;figures.status=OriginalFigureStatus::Complete;figures.live={one};
     figures.cellHeads.assign(51984,0);figures.cellHeads[one.cell]=one.slot;
     const std::map<uint32_t,const SG3Archive*> refs{{38,&archive}};
+    {
+        // Independent authored group: T(4C15)=physical1-1, 12x8. The
+        // selected physical72 is frame8,direction7; saved image is a decoy.
+        auto group=archive;group.sprites.resize(100);group.numImages=100;
+        for(unsigned i=0;i<21;++i)group.imageIndex[i]=1;
+        group.sprites[0].animationSpriteCount=12;group.sprites[0].animationDirections=8;
+        const std::map<uint32_t,const SG3Archive*> supplied{{38,&group}};
+        auto input=one;input.frame=8;input.direction=7;input.image=123;
+        const auto chosen=figureImage(originalFigureImageInputs(input),supplied);
+        need(chosen.status==OriginalFigureImageStatus::Selected&&chosen.code==0x4c15&&chosen.image==((38u<<14)+71),"forward type11 subtype0 selects code4C15 from non-image phase");
+        input.image=0;input.secondaryImage=UINT32_MAX;
+        need(figureImage(originalFigureImageInputs(input),supplied).image==chosen.image,"forward selector cannot consume either saved image word");
+        auto forwardFigures=figures;forwardFigures.live={input};forwardFigures.live[0].secondaryImage=0;
+        forwardFigures.cellHeads.assign(51984,0);forwardFigures.cellHeads[input.cell]=input.slot;
+        input.image=123;forwardFigures.live[0].image=123;
+        auto composed=composeOriginalBuildingScene(terrain,buildings,archive);
+        installOriginalFigureOverlays(composed,terrain,forwardFigures,supplied,0,OriginalFigureRenderSource::Forward);
+        // The authored target record needs valid geometry to exercise binding.
+        group.sprites[71]=archive.sprites[0];
+        installOriginalFigureOverlays(composed,terrain,forwardFigures,supplied,0,OriginalFigureRenderSource::Forward);
+        need(composed.figurePlaced==1&&composed.overlays[0].physicalId==72,"explicit forward scene binds reconstructed primary despite saved-image decoy");
+        input.type=76;input.runtimeClass=OriginalFigureClass::Pheasant;input.action=31;input.frame=255;
+        for(unsigned i=0;i<45;++i)group.imageIndex[i]=1;
+        need(figureImage(originalFigureImageInputs(input),supplied).image==((38u<<14)+95),"5CFDF0 clamps high frame after action31 selects Pheasant entry3");
+        input.action=33;
+        need(figureImage(originalFigureImageInputs(input),supplied,0x100).code==0x4c2c,
+            "Pheasant entry0 actions33/34 bypass terrain substitution just like action5");
+        input.type=45;input.action=9;input.frame=8;input.runtimeClass=OriginalFigureClass::Emissary;
+        const auto emissaryImage=figureImage(originalFigureImageInputs(input),supplied);
+        need(emissaryImage.status==OriginalFigureImageStatus::Selected&&emissaryImage.code==0x4c17&&emissaryImage.image==((38u<<14)+71),
+            "serialized Emissary virtual updater overrides semantic type table");
+        input.type=30;input.runtimeClass=OriginalFigureClass::Figure;
+        need(figureImage(originalFigureImageInputs(input),supplied).status==OriginalFigureImageStatus::OwnerState,"building virtual selector is refused without owner trace");
+        input.type=11;group.imageIndex[3]=0;
+        need(figureImage(originalFigureImageInputs(input),supplied).status==OriginalFigureImageStatus::MissingGroup,"sparse lookup compaction cannot silently choose another group");
+    }
     installOriginalFigureOverlays(scene,terrain,figures,refs);
     need(scene.figurePlaced==1&&scene.overlays.size()==1&&scene.overlays[0].physicalId==1&&scene.overlays[0].offsetX==31&&scene.overlays[0].offsetY==-15,"v214 no-system-prefix physical1 and selected sprite anchor");
     installOriginalFigureOverlays(scene,terrain,figures,refs);
@@ -152,6 +188,8 @@ void corpus(){
     const auto root=ResourceRoot::fromAbsolute(env);const auto catalog=enumerateOriginalMapSources(root);need(catalog.complete,"complete source catalog");
     AppMapSurface app(root);size_t sources=0,slots=0,live=0,placed=0,hidden=0,zero=0,unsupported=0,decoded=0,failures=0;
     std::set<unsigned> types,boundTypes;std::map<unsigned,size_t> blocked;size_t focused=0,placedDecoded=0;
+    struct Score {size_t matched=0,total=0,selected=0;std::map<std::string,size_t> mismatch;};
+    Score score,hiddenScore;std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));need(save.readStable&&save.layers.figures.has_value(),"same-source stable figure profile");
         const auto& figures=*save.layers.figures;
@@ -166,7 +204,22 @@ void corpus(){
         auto scene=composeOriginalBuildingScene(save.terrain,save.buildings,loadSG3(root.resolve("DATA/China_General.sg3")));
         std::map<uint32_t,SG3Archive> archives;std::map<uint32_t,const SG3Archive*> refs;
         for(unsigned slot:{14u,38u,39u,40u}){archives.emplace(slot,loadSG3(root.resolve(std::string("DATA/")+originalFigureArchiveName(slot))));refs[slot]=&archives.at(slot);}
-        installOriginalFigureOverlays(scene,save.terrain,figures,refs);
+        const auto scoreOne=[&](Score& item,const OriginalFigure& f,const OriginalFigureImageSelection& prediction){
+            ++item.total;if(prediction.status==OriginalFigureImageStatus::Selected){++item.selected;
+                if(prediction.image==f.image)++item.matched;else ++item.mismatch["selected_image_differs"];
+            }else ++item.mismatch[originalFigureImageStatusName(prediction.status)];
+        };
+        for(const auto& f:figures.live){
+            std::optional<uint16_t> owner;if(f.owner>=0&&size_t(f.owner)<save.buildings.slotTypes.size())owner=save.buildings.slotTypes[f.owner];
+            const auto prediction=figureImage(originalFigureImageInputs(f),refs,save.terrain.flags.at(f.cell),figures.savedView,owner);
+            if(prediction.selectorVA)selectors.insert(f.type);
+            if(!f.image)continue;
+            if(f.hidden){scoreOne(hiddenScore,f,prediction);scoreOne(hiddenAction[{f.type,f.action}],f,prediction);continue;}
+            scoreOne(score,f,prediction);scoreOne(byAction[{f.type,f.action}],f,prediction);
+            auto independent=f;independent.image=UINT32_MAX;independent.secondaryImage=UINT32_MAX;
+            need(figureImage(originalFigureImageInputs(independent),refs,save.terrain.flags.at(f.cell),figures.savedView,owner).image==prediction.image,"every live nonzero prediction is independent of saved primary and secondary words");
+        }
+        installOriginalFigureOverlays(scene,save.terrain,figures,refs,0,OriginalFigureRenderSource::Saved,&save.buildings);
         size_t selectedImages=0;
         for(const auto& overlay:scene.overlays)if(overlay.mode==4){
             ++selectedImages;const auto& sourceFigure=*std::find_if(figures.live.begin(),figures.live.end(),[&](const auto& f){return f.slot==overlay.sourceSlot;});
@@ -177,6 +230,13 @@ void corpus(){
         for(const auto& t:scene.figureBoundTypes)boundTypes.insert(t.first);
         for(const auto& t:scene.figureBlockedTypes)blocked[t.first]+=t.second;
         need(scene.figurePlaced==view.figurePlaced,"direct binder and App agree");
+        auto forwardScene=scene;installOriginalFigureOverlays(forwardScene,save.terrain,figures,refs,0,OriginalFigureRenderSource::Forward,&save.buildings);
+        need(forwardScene.figureForwardCompared==scene.figureForwardCompared&&forwardScene.figureForwardMatched==scene.figureForwardMatched&&
+            forwardScene.figurePlaced==scene.figureForwardSelected,"explicit forward scene places precisely the reconstructible original figures");
+        need(app.selectSavedBuildings(save.terrain,save.buildings,save.layers.ground?&*save.layers.ground:nullptr,0,&figures,OriginalFigureRenderSource::Forward),"App exposes opt-in forward reconstruction without replacing saved default");
+        const auto forwardView=app.renderSavedBuildings(camera);
+        need(forwardView.figurePlaced==forwardScene.figurePlaced&&forwardView.figureForwardMatched==scene.figureForwardMatched&&
+            forwardView.figureForwardCompared==scene.figureForwardCompared&&forwardView.overlayInvalid==0&&forwardView.overlayDecodeFailures==0,"forward App source exposes score and decodes all selected primary images");
         std::set<size_t> focusSlots;
         for(const auto& overlay:scene.overlays)if(overlay.mode==4)focusSlots.insert(overlay.sourceSlot);
         for(const auto slot:focusSlots){
@@ -197,6 +257,17 @@ void corpus(){
         std::cout<<"{\"figure_source\":"<<sources<<",\"slots\":"<<figures.declared<<",\"live\":"<<figures.live.size()<<",\"placed\":"<<view.figurePlaced<<",\"hidden\":"<<view.figureHidden<<",\"zero_image\":"<<view.figureZeroImage<<",\"unsupported\":"<<view.figureUnsupported<<",\"decoded_images\":"<<view.figureDecoded<<"}\n";
     }
     need(sources==6&&slots==12000&&live==192&&types.size()==20&&boundTypes.size()==18&&placed==158&&hidden==6&&zero==28&&unsupported==0&&decoded==174&&failures==0&&focused==158&&placedDecoded==158,"six-source original denominator");
+    const auto printScore=[](const Score& item){
+        std::cout<<"\"matched\":"<<item.matched<<",\"compared\":"<<item.total<<",\"selected\":"<<item.selected<<",\"mismatch\":{";
+        bool first=true;for(const auto& entry:item.mismatch){if(!first)std::cout<<',';first=false;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}std::cout<<'}';
+    };
+    for(const auto& entry:byAction){std::cout<<"{\"forward_type\":"<<entry.first.first<<",\"action\":"<<entry.first.second<<',';printScore(entry.second);std::cout<<"}\n";}
+    for(const auto& entry:hiddenAction){std::cout<<"{\"forward_hidden_type\":"<<entry.first.first<<",\"action\":"<<entry.first.second<<',';printScore(entry.second);std::cout<<"}\n";}
+    size_t mismatched=0;for(const auto& entry:score.mismatch)mismatched+=entry.second;
+    need(score.total==158&&score.matched+mismatched==158&&hiddenScore.total==6,"forward mismatch classes partition all158 visible nonzero oracles; hidden6 reported separately");
+    need(score.matched==115&&score.selected==115&&score.mismatch["owner_state"]==26&&score.mismatch["external_state"]==17&&selectors.size()==12,
+        "cited forward selector115/158 with43 partitioned blockers and12/20 types");
+    std::cout<<"{\"forward_selector\":true,\"cited_types\":"<<selectors.size()<<",\"live_types\":"<<types.size()<<",\"zero_resolved\":0,\"zero_total\":28,";printScore(score);std::cout<<",\"hidden\":{";printScore(hiddenScore);std::cout<<"}}\n";
     std::cout<<"{\"sources\":"<<sources<<",\"slots\":"<<slots<<",\"live_figures\":"<<live<<",\"bound_types\":"<<boundTypes.size()<<",\"live_types\":"<<types.size()<<",\"figures_placed\":"<<placed<<",\"figures_placed_and_decoded\":"<<placedDecoded<<",\"focused_figure_blits\":"<<focused<<",\"hidden\":"<<hidden<<",\"zero_image\":"<<zero<<",\"unsupported\":"<<unsupported<<",\"decoded_images\":"<<decoded<<",\"decode_failures\":"<<failures<<",\"tick\":0,\"blocked_types\":{";
     bool first=true;for(const auto& t:blocked){if(!first)std::cout<<',';first=false;std::cout<<'"'<<t.first<<"\":"<<t.second;}std::cout<<"}}\n";
 }

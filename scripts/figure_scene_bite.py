@@ -16,6 +16,7 @@ def main():
         ('order', 'original_building_scene.hpp', 'return a.depth<b.depth;', 'return b.depth<a.depth;'),
         ('stride', 'original_figure.hpp', 'base+frame*directions+direction;', 'base+direction*frames+frame;'),
         ('wire', 'original_figure.hpp', 'f.action=r[64];', 'f.action=r[65];'),
+        ('selector', 'original_figure_image.hpp', 'code=f.subtype?0x4c13:0x4c15;', 'code=f.subtype?0x4c15:0x4c13;'),
     ]
     env = dict(os.environ)
     env.pop('EMPEROR_GAMEDATA_ROOT', None)
@@ -46,7 +47,7 @@ def main():
         print(name, 'exit', result.returncode, result.stderr.strip(), flush=True)
         if result.returncode != 1:
             raise RuntimeError('mutation survived: ' + name)
-    print('5/5 private figure mutations rejected; production source unchanged')
+    print('6/6 private figure mutations rejected; production source unchanged')
 
 
 if __name__ == '__main__':

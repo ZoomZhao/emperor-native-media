@@ -3,6 +3,7 @@
 #include "original_building_animation.hpp"
 #include "map_reference.hpp"
 #include "original_save.hpp"
+#include "original_figure_image.hpp"
 #include <set>
 #include <tuple>
 
@@ -67,6 +68,8 @@ struct OriginalBuildingScene {
     size_t animationCandidates=0,animationEnabled=0,animationGated=0,animationUnknown=0,animationInvalid=0,animationSelected=0;
     size_t figureLive=0,figurePlaced=0,figureHidden=0,figureZeroImage=0,figureUnsupported=0;
     std::map<uint8_t,size_t> figureBoundTypes,figureBlockedTypes;
+    size_t figureForwardMatched=0,figureForwardCompared=0,figureForwardSelected=0;
+    std::map<std::string,size_t> figureForwardMismatch;
     uint64_t animationTickMs=0;
     size_t liveRecords=0,bindableRecords=0,placedCells=0,rejectedRecords=0;
     bool accepted=false;
@@ -79,13 +82,18 @@ struct OriginalBuildingScene {
 };
 // Saved image0x46BAD1 ->0x413960. Tick0 only: walking/animation updates
 // are simulation-driven and cannot be inferred from elapsed milliseconds.
+// Forward reconstructs primary images only; untraced carried-goods secondary
+// images are omitted, never read as selector inputs or relabelled reconstructed.
+enum class OriginalFigureRenderSource {Saved,Forward};
 inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const OriginalMapTerrain& terrain,
-    const OriginalFigureProfile& figures,const std::map<uint32_t,const SG3Archive*>& archives,uint64_t tickMs=0){
+    const OriginalFigureProfile& figures,const std::map<uint32_t,const SG3Archive*>& archives,uint64_t tickMs=0,
+    OriginalFigureRenderSource source=OriginalFigureRenderSource::Saved,const OriginalBuildingProfile* buildings=nullptr){
     if(!scene.accepted||!terrain.valid()||scene.surface.terrain!=terrain.flags||
        !analyzeOriginalMap(terrain).cropValid()||figures.status!=OriginalFigureStatus::Complete||figures.live.size()>8192)return;
     scene.overlays.erase(std::remove_if(scene.overlays.begin(),scene.overlays.end(),[](const auto& o){return o.mode==4;}),scene.overlays.end());
     scene.figurePlaced=scene.figureHidden=scene.figureZeroImage=scene.figureUnsupported=0;
     scene.figureBoundTypes.clear();scene.figureBlockedTypes.clear();
+    scene.figureForwardMatched=scene.figureForwardCompared=scene.figureForwardSelected=0;scene.figureForwardMismatch.clear();
     scene.figureLive=figures.live.size();const size_t origin=(228-terrain.activeSide)/2;
     std::map<size_t,const OriginalFigure*> bySlot;
     for(const auto& f:figures.live)if(f.slot>=8192||!bySlot.emplace(f.slot,&f).second){scene.figureUnsupported=scene.figureLive;return;}
@@ -100,13 +108,25 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
     for(const auto& f:figures.live){
         if(f.hidden){++scene.figureHidden;continue;}
         if(!f.image){++scene.figureZeroImage;++scene.figureBlockedTypes[f.type];continue;}
+        std::optional<uint16_t> ownerType;
+        if(buildings&&f.owner>=0&&size_t(f.owner)<buildings->slotTypes.size())ownerType=buildings->slotTypes[f.owner];
+        const auto reconstructed=figureImage(originalFigureImageInputs(f),archives,
+            f.cell<terrain.flags.size()?terrain.flags[f.cell]:0,figures.savedView,ownerType);
+        ++scene.figureForwardCompared;
+        if(reconstructed.status==OriginalFigureImageStatus::Selected){++scene.figureForwardSelected;
+            if(reconstructed.image==f.image)++scene.figureForwardMatched;
+            else ++scene.figureForwardMismatch["selected_image_differs"];
+        }else ++scene.figureForwardMismatch[originalFigureImageStatusName(reconstructed.status)];
+        if(source==OriginalFigureRenderSource::Forward&&reconstructed.status!=OriginalFigureImageStatus::Selected){
+            ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
+        }
         const auto sub=originalFigureSubcell(f);
         if(tickMs||figures.savedView||!sub||f.x<0||f.y<0||f.x>=int(terrain.activeSide)||f.y>=int(terrain.activeSide)||
            f.cell!=(origin+f.y)*228+origin+f.x||(terrain.flags[f.cell]&0x80000u)||!linked(f)||f.drawClass||f.state85==101){
             ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
         }
         // Simple and the four cited two-image branches0x46C636..0x46C6AD.
-        if(f.secondaryImage&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22){
+        if(source==OriginalFigureRenderSource::Saved&&f.secondaryImage&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22){
             ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
         }
         std::vector<OriginalSceneOverlay> selected;
@@ -135,8 +155,9 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
             if(!scene.surface.roadDistance[f.cell])baseline=38;
             else if(scene.surface.roadDistance[f.cell]==100)baseline=34;
         }
-        bool good=add(f.image,41+sub->first,baseline+sub->second,sequence);
-        if(f.secondaryImage){const bool type20=f.type==20;
+        const uint32_t primary=source==OriginalFigureRenderSource::Forward?reconstructed.image:f.image;
+        bool good=add(primary,41+sub->first,baseline+sub->second,sequence);
+        if(source==OriginalFigureRenderSource::Saved&&f.secondaryImage){const bool type20=f.type==20;
             good=good&&add(f.secondaryImage,39+sub->first+(type20?2:3)+f.extraX,
                 baseline-10+sub->second+(type20?10:11)+f.extraY,sequence+1);
         }
@@ -321,6 +342,8 @@ struct OriginalBuildingSceneView {
     size_t overlayObjects=0,overlayDecoded=0,overlayDrawn=0,overlayCulled=0,overlayDecodeFailures=0,overlayInvalid=0;
     size_t animationCandidates=0,animationEnabled=0,animationGated=0,animationUnknown=0,animationSelected=0,animationDecoded=0,animationInvalid=0;
     size_t figureLive=0,figurePlaced=0,figureHidden=0,figureZeroImage=0,figureUnsupported=0,figureDecoded=0;
+    size_t figureForwardMatched=0,figureForwardCompared=0,figureForwardSelected=0;
+    std::map<std::string,size_t> figureForwardMismatch;
 };
 // The surface renderer remains the independent validation/accounting pass. Only
 // scenes containing objects replay its validated full SAV stamps as commands,
@@ -398,6 +421,8 @@ inline OriginalBuildingSceneView renderOriginalBuildingScene(const OriginalMapTe
     out.animationCandidates=scene.animationCandidates;out.animationEnabled=scene.animationEnabled;out.animationGated=scene.animationGated;
     out.animationUnknown=scene.animationUnknown;out.animationSelected=scene.animationSelected;out.animationInvalid=scene.animationInvalid;
     out.figureLive=scene.figureLive;out.figurePlaced=scene.figurePlaced;out.figureHidden=scene.figureHidden;
+    out.figureForwardMatched=scene.figureForwardMatched;out.figureForwardCompared=scene.figureForwardCompared;
+    out.figureForwardSelected=scene.figureForwardSelected;out.figureForwardMismatch=scene.figureForwardMismatch;
     out.figureZeroImage=scene.figureZeroImage;out.figureUnsupported=scene.figureUnsupported;
     auto background=renderOriginalBuildingFootprints(terrain,scene.withheldFootprints,camera,bit,scene.markers);
     if(!background.image.valid())return out;

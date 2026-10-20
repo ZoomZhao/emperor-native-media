@@ -3,6 +3,7 @@
 #include "../file_io/include/city19_figure7_layout.hpp"
 
 namespace game_lab {
+enum class OriginalFigureClass {Figure,Pheasant,Emissary};
 // Owned executable/hash and every field/branch: docs/SAV_FIGURES.md.
 // These are persisted draw inputs; no original factories or simulation execute.
 struct OriginalFigure {
@@ -12,6 +13,10 @@ struct OriginalFigure {
     uint16_t next=0;
     uint8_t type=0,alive=0,frame=0,action=0,progress=0,direction=0,previousDirection=0;
     uint8_t freeMovement=0,height=0,hidden=0,drawClass=0,state85=0,raise=0;
+    // Non-image selector inputs: Figure7 calls cited in docs/SAV_FIGURES.md.
+    uint8_t subtype=0,attackDirection=0,attackFrame=0,resource=0,cartStyle=0,stationary=0;
+    int16_t counter=0,owner=0,variant=0,amount=0;
+    OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
 enum class OriginalFigureStatus {Complete,Unsupported,Malformed,BudgetExceeded};
 struct OriginalFigureProfile {
@@ -36,7 +41,7 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
     if(detail::u16(data.data()+at)!=1)return fail(OriginalFigureStatus::Unsupported);
     out.declared=detail::u32(data.data()+at+2);at+=6;
     if(out.declared>8192)return fail(OriginalFigureStatus::BudgetExceeded);
-    enum class Class {Figure,Pheasant,Emissary};
+    using Class=OriginalFigureClass;
     std::map<size_t,Class> classes;std::map<size_t,OriginalFigure> objects;
     for(size_t slot=0;slot<out.declared;++slot){
         const size_t begin=at;if(!take(2))return fail(OriginalFigureStatus::Malformed);
@@ -84,12 +89,15 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
             if(n>8192)return fail(OriginalFigureStatus::BudgetExceeded);
             if(!take(n))return fail(OriginalFigureStatus::Malformed);
         }
-        const auto* r=receiver.data();OriginalFigure f;f.slot=slot;f.recordOffset=begin;
+        const auto* r=receiver.data();OriginalFigure f;f.slot=slot;f.recordOffset=begin;f.runtimeClass=kind;
         f.image=detail::u32(r+8);f.secondaryImage=detail::u32(r+404);f.next=detail::u16(r+16);
         f.type=r[18];f.frame=r[5];f.action=r[64];f.progress=r[65];f.alive=r[22];
         f.direction=r[25];f.previousDirection=r[26];f.x=detail::i16(r+28);f.y=detail::i16(r+30);f.cell=detail::u32(r+40);
         f.subX=detail::i16(r+82);f.subY=detail::i16(r+84);f.extraX=detail::i16(r+118);f.extraY=detail::i16(r+120);
         f.freeMovement=r[20];f.raise=r[36];f.drawClass=r[37]!=0;f.hidden=r[111];f.state85=r[133];f.height=r[134];
+        f.subtype=r[19];f.attackDirection=r[27];f.attackFrame=r[116];f.resource=r[136];
+        f.cartStyle=r[135];f.stationary=r[137];
+        f.counter=detail::i16(r+62);f.owner=detail::i16(r+98);f.variant=detail::i16(r+304);f.amount=detail::i16(r+130);
         objects.emplace(objectPID,f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }
     out.end=at;out.status=OriginalFigureStatus::Complete;return out;

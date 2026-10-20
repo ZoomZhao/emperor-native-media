@@ -26,7 +26,7 @@ MEDIA = [
 ]
 APP = [
     'game_lab/original_building_scene.hpp', 'game_lab/original_building_animation.hpp',
-    'game_lab/original_figure.hpp', 'file_io/include/city19_figure7_layout.hpp',
+    'game_lab/original_figure.hpp', 'game_lab/original_figure_image.hpp', 'file_io/include/city19_figure7_layout.hpp',
     'game_lab/app/building_candidate_config.hpp', 'game_lab/original_building_candidate.hpp', 'game_lab/original_building.hpp', 'game_lab/original_building_view.hpp',
     'game_lab/sg3_sequence.hpp',
     'game_lab/app/map_surface.hpp',
