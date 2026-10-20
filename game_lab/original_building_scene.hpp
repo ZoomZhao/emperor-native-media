@@ -70,6 +70,9 @@ struct OriginalBuildingScene {
     std::map<uint8_t,size_t> figureBoundTypes,figureBlockedTypes;
     size_t figureForwardMatched=0,figureForwardCompared=0,figureForwardSelected=0;
     std::map<std::string,size_t> figureForwardMismatch;
+    size_t figureZeroResolved=0,figureZeroBlocked=0;
+    // Explicit first-tick diagnostics, never overlay commands or saved oracles.
+    std::map<size_t,OriginalFigureImageSelection> figureFirstTickImages;
     uint64_t animationTickMs=0;
     size_t liveRecords=0,bindableRecords=0,placedCells=0,rejectedRecords=0;
     bool accepted=false;
@@ -94,6 +97,7 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
     scene.figurePlaced=scene.figureHidden=scene.figureZeroImage=scene.figureUnsupported=0;
     scene.figureBoundTypes.clear();scene.figureBlockedTypes.clear();
     scene.figureForwardMatched=scene.figureForwardCompared=scene.figureForwardSelected=0;scene.figureForwardMismatch.clear();
+    scene.figureZeroResolved=scene.figureZeroBlocked=0;scene.figureFirstTickImages.clear();
     scene.figureLive=figures.live.size();const size_t origin=(228-terrain.activeSide)/2;
     const auto imageState=originalFigureImageState(figures);
     std::map<size_t,const OriginalFigure*> bySlot;
@@ -108,7 +112,14 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
     };
     for(const auto& f:figures.live){
         if(f.hidden){++scene.figureHidden;continue;}
-        if(!f.image){++scene.figureZeroImage;++scene.figureBlockedTypes[f.type];continue;}
+        if(!f.image){
+            ++scene.figureZeroImage;
+            const auto input=originalFigureImageInputs(f);
+            if(originalFigureImageClearedAtLoad(input))++scene.figureZeroResolved;
+            else {++scene.figureZeroBlocked;++scene.figureBlockedTypes[f.type];}
+            scene.figureFirstTickImages.emplace(f.slot,originalFigureFirstTickImage(input,archives));
+            continue;
+        }
         std::optional<uint16_t> ownerType;
         if(buildings&&f.owner>=0&&size_t(f.owner)<buildings->slotTypes.size())ownerType=buildings->slotTypes[f.owner];
         const auto reconstructed=figureImage(originalFigureImageInputs(f),archives,
@@ -351,6 +362,8 @@ struct OriginalBuildingSceneView {
     size_t figureLive=0,figurePlaced=0,figureHidden=0,figureZeroImage=0,figureUnsupported=0,figureDecoded=0;
     size_t figureForwardMatched=0,figureForwardCompared=0,figureForwardSelected=0;
     std::map<std::string,size_t> figureForwardMismatch;
+    size_t figureZeroResolved=0,figureZeroBlocked=0;
+    std::map<size_t,OriginalFigureImageSelection> figureFirstTickImages;
 };
 // The surface renderer remains the independent validation/accounting pass. Only
 // scenes containing objects replay its validated full SAV stamps as commands,
@@ -430,6 +443,8 @@ inline OriginalBuildingSceneView renderOriginalBuildingScene(const OriginalMapTe
     out.figureLive=scene.figureLive;out.figurePlaced=scene.figurePlaced;out.figureHidden=scene.figureHidden;
     out.figureForwardMatched=scene.figureForwardMatched;out.figureForwardCompared=scene.figureForwardCompared;
     out.figureForwardSelected=scene.figureForwardSelected;out.figureForwardMismatch=scene.figureForwardMismatch;
+    out.figureZeroResolved=scene.figureZeroResolved;out.figureZeroBlocked=scene.figureZeroBlocked;
+    out.figureFirstTickImages=scene.figureFirstTickImages;
     out.figureZeroImage=scene.figureZeroImage;out.figureUnsupported=scene.figureUnsupported;
     auto background=renderOriginalBuildingFootprints(terrain,scene.withheldFootprints,camera,bit,scene.markers);
     if(!background.image.valid())return out;

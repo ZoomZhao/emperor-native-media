@@ -20,6 +20,9 @@ struct OriginalFigure {
     uint8_t subtype=0,attackDirection=0,attackFrame=0,resource=0,cartStyle=0,stationary=0;
     int16_t counter=0,owner=0,variant=0,amount=0,leaderLink=0,target=0;
     uint8_t faction=0;
+    // Inline ambient state at+17C, serialized by0x4C8AA0 (not optional FSA).
+    uint8_t effectKind=0,effectVariant=0,effectFlags=0;
+    uint32_t updateOwner=0; //+13C read0x4C8995;nonzero skips virtual+28 at0x4E2899.
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
 enum class OriginalFigureStatus {Complete,Unsupported,Malformed,BudgetExceeded};
@@ -133,6 +136,8 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.cartStyle=r[135];f.stationary=r[137];
         f.counter=detail::i16(r+62);f.owner=detail::i16(r+98);f.variant=detail::i16(r+304);f.amount=detail::i16(r+130);
         f.leaderLink=detail::i16(r+114);f.target=detail::i16(r+144);f.faction=r[122];
+        f.effectKind=r[380];f.effectVariant=r[381];f.effectFlags=r[382];
+        f.updateOwner=detail::u32(r+316);
         objects.emplace(objectPID,f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }
     out.end=at;out.status=OriginalFigureStatus::Complete;

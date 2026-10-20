@@ -20,6 +20,8 @@ def main():
         ('leader', 'original_figure_image.hpp', 'leader->amount>400;', 'leader->amount>=400;'),
         ('attack', 'original_figure_image.hpp', 'code=distance>2?0x4ebf:0x4ec0;', 'code=distance>3?0x4ebf:0x4ec0;'),
         ('cargo', 'original_figure_image.hpp', 'goods->amount<=200?0:', 'goods->amount<200?0:'),
+        ('first_tick', 'original_figure_image.hpp', 'f.frame=uint8_t(f.frame+1);', 'f.frame=uint8_t(f.frame);'),
+        ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
     ]
     env = dict(os.environ)
     env.pop('EMPEROR_GAMEDATA_ROOT', None)
@@ -52,7 +54,7 @@ def main():
         print(name, 'exit', result.returncode, result.stderr.strip(), flush=True)
         if result.returncode != 1:
             raise RuntimeError('mutation survived: ' + name)
-    print('9/9 private figure mutations rejected; production source unchanged')
+    print(f'{len(mutations)}/{len(mutations)} private figure mutations rejected; production source unchanged')
 
 
 if __name__ == '__main__':

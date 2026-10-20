@@ -12,11 +12,13 @@ struct OriginalFigureImageInputs {
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
     int16_t leaderLink=0,target=0,x=0,y=0;
     uint8_t alive=0,faction=0,height=0;
+    uint8_t effectKind=0,effectVariant=0,effectFlags=0;
+    uint32_t updateOwner=0;
 };
 inline OriginalFigureImageInputs originalFigureImageInputs(const OriginalFigure& f){
     return {f.type,f.action,f.direction,f.previousDirection,f.frame,f.subtype,f.attackDirection,
         f.attackFrame,f.state85,f.cartStyle,f.resource,f.stationary,f.counter,f.variant,f.amount,f.runtimeClass,
-        f.leaderLink,f.target,f.x,f.y,f.alive,f.faction,f.height};
+        f.leaderLink,f.target,f.x,f.y,f.alive,f.faction,f.height,f.effectKind,f.effectVariant,f.effectFlags,f.updateOwner};
 }
 // Cross-figure state contains only the same non-image inputs as the selector.
 struct OriginalFigureImageState {
@@ -44,6 +46,13 @@ struct OriginalFigureImageSelection {
     uint32_t image=0,code=0,base=0;unsigned frame=0,direction=0,frames=0,directions=0,speed=0;
     uint32_t selectorVA=0;
 };
+// Only the two investigated saved-zero populations. Postload0x534D13 calls
+//0x4D6C40(1), table0x84E788+40*type ->0x4D6CF0 for both: clear+8/+194.
+// This says nothing about whether the scheduler runs a tick before first draw.
+inline bool originalFigureImageClearedAtLoad(const OriginalFigureImageInputs& f){
+    return (f.type==1&&f.runtimeClass==OriginalFigureClass::Figure)||
+        (f.type==76&&f.runtimeClass==OriginalFigureClass::Pheasant);
+}
 // Resolve T(code) from supplied SG metadata. 0x408170 and loader0x5CD51B..524:
 // lookup entries become physicalID-1, packed with startup archive slot<<14.
 // Refuse sparse preceding lookup slots (engine compacts these at load).
@@ -79,6 +88,10 @@ inline OriginalFigureImageSelection figureImage(const OriginalFigureImageInputs&
         out.selectorVA=0x488e70;code=0x4c17;
         if(f.action==4){code=0x4c18;frame=f.counter;linear=true;clamp=true;}
     }else switch(f.type){
+    case 1: //0x4CD222 supplies inline+17C to0x417550; kind13 store0x418383.
+        out.selectorVA=0x417c50;
+        if(f.effectKind!=13||f.effectVariant!=0)return refuse(OriginalFigureImageStatus::ExternalState);
+        code=0x1c0f;frame=f.frame/3;linear=true;clamp=true;direction=0;break;
     case 11: //0x4CA28B..32A, subtype+13 selects two walking groups.
         out.selectorVA=0x4c9fd0;code=f.subtype?0x4c13:0x4c15;
         if(f.action==4){++code;frame=f.counter;linear=true;clamp=true;}break;
@@ -230,6 +243,23 @@ inline OriginalFigureImageSelection figureImage(const OriginalFigureImageInputs&
     const auto& archive=*archives.at(code>>9);
     if(image>>14!=out.base>>14||(image&0x3fff)>=archive.sprites.size())return refuse(OriginalFigureImageStatus::InvalidInput);
     out.image=uint32_t(image);out.frame=frame;out.direction=direction;out.status=OriginalFigureImageStatus::Selected;return out;
+}
+// Diagnostic only; never installed by either tick-0 scene render source.
+// Kind13 has no external-state branch in0x4175B0;0x417C50 increments+5,
+//0x4181B1..209 wraps at3*SGframes and selects T(1C0F)+counter/3.
+// Pheasant action19 instead enters state30 at0x59F5DA and runs virtual
+// predicates before selecting; applying figureImage to its SAV state is not
+// a first-tick prediction. Refuse that missing update state explicitly.
+inline OriginalFigureImageSelection originalFigureFirstTickImage(OriginalFigureImageInputs f,
+    const std::map<uint32_t,const SG3Archive*>& archives){
+    OriginalFigureImageSelection out;out.status=OriginalFigureImageStatus::ExternalState;
+    if(f.type!=1||f.runtimeClass!=OriginalFigureClass::Figure||f.alive!=1||f.updateOwner||
+       f.effectKind!=13||f.effectVariant!=0||f.effectFlags!=0x24)return out;
+    const auto group=originalFigureImageGroup(0x1c0f,archives);
+    if(!group||!group->second->animationSpriteCount){out.status=OriginalFigureImageStatus::MissingGroup;return out;}
+    f.frame=uint8_t(f.frame+1);
+    if(unsigned(f.frame)>=3u*group->second->animationSpriteCount)f.frame=0;
+    return figureImage(f,archives);
 }
 // Carried goods are independently selected by0x4CB6B0→0x4CB320, then
 // direction is added by0x4CB910 or0x4D5093. No saved cargo word is available.
