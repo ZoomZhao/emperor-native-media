@@ -38,6 +38,8 @@ struct GroundCodeRequest {
     // arrays FUN_0052E7C0 @0x0052E7C0 restores from the same `.map` payload
     // (original_terrain.hpp, offset 885,271). 0xFF selects the road-art arm.
     uint8_t roadDistance = 0;
+    uint8_t subTile = 0;       // 0x00F9D620, setter-13 refusal gate
+    std::array<uint8_t,8> neighbourRoadDistance{}; // setter-9 threshold matcher
 };
 // Original executable per-cell ground dispatch. `code` is meaningful only when
 // `known` is true. Branches the executable delegates to subsystems not yet

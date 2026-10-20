@@ -39,15 +39,15 @@ non-zero setter. Every setter that writes `img` also does `draw|=0x40` and `sub&
 | 6 | `FUN_0053F660 @0x0053F660` | `terrain&0x2` | `T(0x607/0x608/0x606)` by `terrain&0x300002`; 3×3 `+12+(random&1)`, 2×2 `+8+(random&3)`, else `+(random&7)` | yes: whole-map composite stamps |
 | 7 | `FUN_0053F790 @0x0053F790` | `(terrain&0x101000)==0x101000` | `T(0x60F)`; 2×2 `+8+(random&3)`, else `+(random&7)` | yes: whole-map composite stamps |
 | 8 | `FUN_0053F560 @0x0053F560` | `terrain&0x80000000` | `T(0x60E)`; 3×3 `+12+(random&1)`, 2×2 `+8+(random&3)`, else `+(random&7)` | yes: whole-map composite stamps |
-| 9 | `FUN_0053F840 @0x0053F840` | `terrain&0x20000` | `T(0x628/0x626/0x622/0x603)+R+C` (item 7) | no |
+| 9 | `FUN_0053F840 @0x0053F840` | `terrain&0x20000` | `T(0x628/0x626/0x622/0x603)+R+C` (item 7) | yes: bare-load snapshot |
 | 10 | `FUN_0053FA20 @0x0053FA20` | `terrain&0x2000000` and `img==0` | `T(0x60D/0x60A/0x609/0x619)` by `feat` bits (item 8) | no |
 | 11 | `FUN_00413A00 @0x00413A00` | none — 3-byte body | returns 0 (never handles a cell) | yes |
 | 12 | `FUN_00540360 @0x00540360` | `terrain&0x1000` | `T(0x612)+random&7` | yes |
-| 13 | `FUN_00540300 @0x00540300` | `terrain&0x40` → `FUN_004B6F90` | `0x61B`/`0x61D`/`0x435`/`0x491`/`0x621`/`0x61E`/`0x61F` (item 4) | no |
-| 14 | `FUN_0053FB30 @0x0053FB30` | `terrain&0x10000` and `(terrain&0x48)==0` | `T(0x61B)+R+C` (+`FUN_004BCE20`) | no |
+| 13 | `FUN_00540300 @0x00540300` | `terrain&0x40` → `FUN_004B6F90` | `0x61B`/`0x61D`/`0x435`/`0x491`/`0x621`/`0x61E`/`0x61F` (item 4) | yes: bare-load `0x61E/61D/623`, elevation default no-write |
+| 14 | `FUN_0053FB30 @0x0053FB30` | `terrain&0x10000` and `(terrain&0x48)==0` | `T(0x61B)+R` after C is cleared (+`FUN_004BCE20` with an object) | yes: null-object load has R=0, giving `T(0x61B)` |
 | 15 | `FUN_005400F0 @0x005400F0` | `terrain&0x40000` | **no direct `img` write**; delegates (item 6) | no |
 | 16 | `FUN_00540140 @0x00540140` | `terrain&0x20` | `T(0x401)+2..7` (tileset 2, block art) | partial |
-| 17 | `FUN_0053EE00 @0x0053EE00` | `(terrain&0x10001)==0` and `terrain&0x80` | `T(0x602)`+fertility variant, or consecutive `T(0x604)` block cells | partial: river descriptor remains unknown |
+| 17 | `FUN_0053EE00 @0x0053EE00` | `(terrain&0x10001)==0` and `terrain&0x80` | `T(0x602)`+fertility variant, consecutive `T(0x604)` block cells, or `T(0x61B)+C+6` | yes: bare-load snapshot |
 | 18 | `FUN_0053F090 @0x0053F090` | `(terrain&0xAEFEDE6F)==0` | plain land `T(0x603)`+block variant (item 10) | yes |
 
 Extra writers outside the chain: `FUN_0053EAA0`/`FUN_0053EAE0 @0x0053EAE0` (`0x601`), `FUN_0042C480 @0x0042C480`
@@ -353,8 +353,9 @@ The MAP `mapperRandom` grid (payload offset 729,311) is therefore **not** consum
 * The `0x61B` reads are shifted views of the river-object pointer grid, null in the
   first bare-load reconstruction (item 2). A later redraw after `FUN_0041F400`
   builds active objects is outside this port.
-* `FUN_004B6F90` helpers `FUN_005B22B0`, `FUN_0040E630`, `FUN_00474920`, `FUN_004BDEF0` are not resolved to
-  numeric codes.
+* Setter 13's live-object and nonzero road-material paths remain outside the
+  bare-load model. Its null-object, zero-material path and elevation default are
+  resolved in the final section; the 208 elevation ramp remaps are unchanged.
 * The MAP `mapperRandom` (729,311) is not consumed as the engine's per-cell random grid (item 12), but
   `0x00E92DD0` **is** MAP-carried at offset 885,271 and `0x00E9F8E0` **is** MAP-carried at offset 937,255
   (`original_terrain.hpp`). Both are restored by `FUN_0052E7C0 @0x0052E7C0`, which is why setters 5 and 17
@@ -414,9 +415,10 @@ at `0x004EDC68`, and modes 0/1 store only under `0x004EDC79`, whose accept test
 nothing, setters 2..18 are skipped, and the cell keeps its prior `0x00FE9880`
 value. That prior value is **loaded from the `.map` payload** (logical offset 1,535,
 `original_terrain.hpp`), not zero: the cell is not overwritten, it is not "not
-drawn". Measured over all 167 maps, every one of the 19,841 current chain-no-write
-cells stores nonzero art and `0` store zero. The count was 114,937 before the
-elevation prepass; most former declined cells were elevation art written before
+drawn". Measured over all 167 maps, every one of the 19,935 current chain-no-write
+cells stores nonzero art and `0` store zero. The count was 19,841 before the
+last four setters added 94 road no-writes, and 114,937 before the elevation
+prepass; most former declined cells were elevation art written before
 dispatch. See
 [`MAP_SG3_PIPELINE.md`](MAP_SG3_PIPELINE.md#the-stored-surface-grid-is-an-oracle-not-a-derivation).
 This was previously misclassified as "determinate no-ground" — and, before that, as
@@ -424,16 +426,16 @@ an unknown.
 
 ### MAP-only coverage, measured over all 167 `Cities/*.map`
 
-`active 2,107,836`; `known 2,050,792` (97.294 %), every emitted code resolving in
-`China_Terrain.sg3` or explicit `China_Elevation.sg3`; `unknown 37,203` (1.765 %);
-determinate `chain-declined` 19,841. The unknown residue is
-`0x40-road` 23,154, `0x10000-monument` 6,215, `0x20000-forest` 4,340,
-`0x80-farm-river` 3,284, `elevation-road-material` 208 and `elevation-block-declined` 2.
-The image reconstruction is partial: forest, monument, farm-river, road
-material and live-object paths remain outside the port. The whole-map block tiers removed
+`active 2,107,836`; `known 2,087,691` (99.044 %), every emitted code resolving in
+`China_Terrain.sg3` or explicit `China_Elevation.sg3`; `unknown 210` (0.010 %);
+determinate `chain-declined` 19,935. The unknown residue is
+`elevation-road-material` 208 and `elevation-block-declined` 2.
+The image reconstruction is partial: elevation ramp remaps and live-object redraw
+paths remain outside the port. The four remaining ground arms remove 36,993
+unknowns: 36,899 emit and 94 are determinate no-writes. The whole-map block tiers removed
 the entire `0x80-farm-block` unknown branch:
 before block tiers, `169,520 - 36,950 = 132,570` unknown cells.
-The current identity is `2,050,792 + 37,203 + 19,841 = 2,107,836` active cells.
+The current identity is `2,087,691 + 210 + 19,935 = 2,107,836` active cells.
 The elevation writers remove 874 unknown cells from the prepass baseline; the
 shore-specific descriptor table removes another 94,493.
 (History: the earlier ceiling `known 1,514,539` / `unknown 478,360` predates
@@ -444,10 +446,10 @@ The `0x4-shore` residue fell from 156,935 to 94,897 when those arms were ported:
 
 ## Mismatch classes: every residual cell now has a named cause
 
-The headline is **1,747,096/2,107,836 active cells matched (82.886 %)**.
-`matched` counts emitted codes that equal the stored grid (`1,747,096` of
-`2,050,792`, 85.191 % of emitted). The remaining
-`303,696` cells are classified per branch, and the classes partition `mismatched`
+The headline is **1,763,857/2,107,836 active cells matched (83.681 %)**.
+`matched` counts emitted codes that equal the stored grid (`1,763,857` of
+`2,087,691`, 84.488 % of emitted). The remaining
+`323,834` cells are classified per branch, and the classes partition `mismatched`
 exactly - the sweep treats a city whose classes do not sum to its `mismatched` as a **failure**,
 so a silent drop cannot pass.
 
@@ -464,11 +466,11 @@ Measured over all 167 `Cities/*.map` (167/167 processed, 0 failures):
 
 | Class | Cells |
 |---|---:|
-| stored word is 0 while the chain emitted | 16 |
+| stored word is 0 while the chain emitted | 28 |
 | stored word names a tileset different from the prediction | 64 |
-| same tileset, stored index within +-8 of the prediction | 13,701 |
-| same tileset, stored index further off | 289,915 |
-| **total** | **303,696** |
+| same tileset, stored index within +-8 of the prediction | 16,876 |
+| same tileset, stored index further off | 306,866 |
+| **total** | **323,834** |
 
 Before the elevation port, the 9,829 non-tileset-3 cells all named **tileset 16 (`China_Elevation.sg3`)**; no
 other tileset appears (direct corpus probe of `stored>>14`). So the chain does not
@@ -479,10 +481,10 @@ The elevation prepass and setter 2 now account for that missing writer. The lega
 JSON field `stored_not_tileset3` counts a different tileset from the prediction
 (3 or 16); retaining its name preserves existing serializers and the partition.
 
-The 289,915 "further off" cells are bucketed by magnitude of
-`storedIndex - predictedIndex`: 9-16, 11,817; 17-32, 266,818; 33-64, 9,343;
-65-128, 634; 129-256, 262; 257-512, 1,011; 513+, 30. The 17-32 bucket accounts for
-266,818/289,915 (92.033 %) of larger deltas. The farm block tiers
+The 306,866 "further off" cells are bucketed by magnitude of
+`storedIndex - predictedIndex`: 9-16, 12,271; 17-32, 281,801; 33-64, 10,114;
+65-128, 1,324; 129-256, 315; 257-512, 1,011; 513+, 30. The 17-32 bucket accounts for
+281,801/306,866 (91.832 %) of larger deltas. The farm block tiers
 contribute 34,362 cells to the 17-32 bucket because `0x604` carries the same known
 per-city vintage shift as the land and upper bands (next section). Note that the
 *shift* only accounts for the shifted cohort: in the 93 cities whose upper bands
@@ -503,6 +505,10 @@ Before elevation, per-branch residual counts (matched/emitted percentages) were 
 has 0 residual (100 %).
 
 ### The per-(city, record-id band) id shift is the largest single cause
+
+The branch breakdown in this subsection is the `c303acb` baseline, before the
+four remaining ground branches. Current aggregate totals are above and in the
+final section; the established vintage analysis is unchanged.
 
 The 17-32 magnitude bucket is not one branch's problem. Cells whose stored index
 sits 17-32 records from the prediction, by branch: `0x1-road` 94,669,
@@ -589,7 +595,7 @@ on the owned data / exe SHA-256
   imageIndex[slot] - 201`), with no per-city adjustment.
 
 Two consequences follow, and they must not be confused. For the **score**, the stored
-grid is a stale oracle above the farm and plain-land bands, so `85.191 %` is a floor
+grid is a stale oracle above the farm and plain-land bands, so the current `84.488 %` is a floor
 on the reconstruction's agreement with it, not the reconstruction's accuracy. For the
 **render**, `recordId = low14 + 201` reads those stored ids against the installed
 archive, so in a shifted city it decodes a record 20/30/32 entries from the one the
@@ -1124,7 +1130,7 @@ identical aggregate JSON, also identical to the lead's measurement: 167/167 citi
 0 failures, matched/emitted was 1,693,753/1,956,299 and 0 unresolved predictions.
 No original asset or executable listing is added.
 
-## Shore descriptor writer and bare-load port (2026-10-20)
+## Shore descriptor writer and bare-load port (2026-10-20, historical baseline)
 
 Historical baseline `d181bfc`: **1,693,753/1,956,299** emitted cells matched;
 historical unknown **131,696/2,107,836** active cells, including **94,493** shore cells.
@@ -1151,7 +1157,7 @@ complete writer inventory grouped by function is:
 | `FUN_0053EAE0` | — | `0x53EB74` | prepass cache reload after elevation matching |
 | `FUN_0053F240` | — | `0x53F25A` | setter 2 reloads this cell's cached elevation C |
 | `FUN_0053F840` | `0x53F9C7` | `0x53F9D1` | setter 9 forest fallback |
-| `FUN_0053FB30` | — | `0x53FBC2` | setter 14 resets C before its own table call |
+| `FUN_0053FB30` | — | `0x53FBC2` | setter 14 resets C **after** its own table call |
 
 The eight **D/view** stores are `0x406B05`, `0x406BD2`, `0x406BF3`,
 `0x406C0B` (view change/normalisation), `0x534495`, `0x534DF2` (load selected
@@ -1172,24 +1178,24 @@ consumer: C's own-river sign test `0x53FCDB`, switch load `0x53FDE3`,
 scratch used by other setters too, so a name such as “the elevation descriptor”
 is valid only between the relevant writer and the next overwrite.
 
-### Measured result and assertions
+### Historical shore result and assertions
 
 The lead-verified `--data-root` sweep, run with `EMPEROR_GAMEDATA_ROOT` unset,
 processed **167/167** cities with **0 failures**. All
 **94,493/94,493** formerly unknown shore cells are now emitted, adding
-**53,343** matches. The headline is **1,747,096/2,107,836 active cells matched
-(82.886 %, was 80.355 %)**. Stored-grid exact rendering remains **139/167**; every
+**53,343** matches. The historical headline was **1,747,096/2,107,836 active cells matched**;
+historical matched/active was **82.886 %** (previously 80.355 %). Stored-grid exact rendering remains **139/167**; every
 stored-grid aggregate equals the baseline aggregate.
 
-| Metric | Before | After |
+| Historical shore metric | Before | After |
 |---|---:|---:|
 | Active denominator | 2,107,836 | 2,107,836 |
 | Emitted | 1,956,299 | **2,050,792** |
-| Matched | was 1,693,753 | **1,747,096** |
-| Matched / active | was 80.355 % | **82.886 %** |
-| Matched / emitted | was 86.579 % | **85.191 %** |
-| Unknown | was 131,696 | **37,203** |
-| Mismatched | was 262,546 | **303,696** |
+| Matched | was 1,693,753 | was **1,747,096** |
+| Matched / active | was 80.355 % | was **82.886 %** |
+| Matched / emitted | was 86.579 % | was **85.191 %** |
+| Unknown | was 131,696 | was **37,203** |
+| Mismatched | was 262,546 | was **303,696** |
 | Stored zero mismatch | 16 | 16 |
 | Other tileset mismatch | 64 | 64 |
 | Same tileset within ±8 | 12,566 | **13,701** |
@@ -1197,9 +1203,9 @@ stored-grid aggregate equals the baseline aggregate.
 | Unresolved | 0 | **0** |
 | Chain no-write | 19,841 | 19,841 |
 
-The after-class sum is **16+64+13,701+289,915=303,696**. The emitted ratio falls
-to **85.191 % (was 86.579 %)** only because 41,150 formerly unknown cells now
-carry mismatching predictions: 39,577 in shifted cities with vintage offsets,
+The historical after-class sum was **16+64+13,701+289,915=303,696**. The emitted ratio fell
+to **85.191 % (was 86.579 %)** only because 41,150 formerly unknown cells then
+carried mismatching predictions: 39,577 in shifted cities with vintage offsets,
 plus 1,573 in unshifted cities. No former match is lost. This denominator change
 confounds matched/emitted, so matched/active is the headline.
 The far-delta buckets (9–16, 17–32, 33–64, 65–128, 129–256, 257–512, 513+)
@@ -1242,3 +1248,181 @@ assertions and successful SKIP; with `EMPEROR_GAMEDATA_ROOT` gives **2,327**;
 `make map-reference-test-undefined` with the same process-local root gives
 **2,327**. `git diff --check` is clean. No assets, executable listings, derived
 binaries or dumps were added to the repository.
+
+## Remaining ground branches: bare-load rules (2026-10-20)
+
+Historical baseline `c303acb`: **1,747,096/2,107,836** active matches, **2,050,792** emitted;
+unknown was **37,203**, mismatched was **303,696**, unresolved **0**. The executable is the
+same SHA-256 identified in the header. All addresses below are VAs; each static
+table's file offset is VA minus `0x400000`. The existing view-0 premise applies.
+No stored image word feeds selection, and the library loads no environment or
+archive implicitly. All new predictions use the existing explicit terrain archive.
+
+### 1. `0x40-road`: `FUN_00540300` → `FUN_004B6F90`
+
+The wrapper constructs the eight flags from `terrain&0x08000040`
+(`0x540311..0x54031E`) and calls `FUN_004B9B20`, which adds cardinal gate
+connections from object descriptors (`0x4B9B20..0x4B9C47`). On the bare-load path
+the object-id grid `0xFC3750` is zero: reset clears 51,984 i16 entries
+(`0x4B08C0..0x4B08C5`); it is not one of the MAP-restored flat arrays. The
+current-cell object gate is `0x4B6F9A`. `FUN_00471D20` requires terrain bit 2 and
+sub-tile bit 0x80 (`0x471D24..0x471D35`); setter 6 has already consumed bit 2.
+The remaining sub-tile high-bit refusal is preserved from the MAP layer and
+reported as a no-write. No such refusal occurs among these corpus cells.
+
+`FUN_00416BB0` reads **the same `0x890210` river-pointer grid** as shore
+(`0x416BB4..0x416BC7`), cleared by `0x4B0999` and rebuilt only after ground
+(`0x53449F` before `0x5344BD`). Its live-object arm is excluded at bare load.
+Own `0x10000` takes the `0x61D` matcher arm: with working image zero,
+`FUN_005B22B0` preserves the negative `img-T(0x61B)` value; that helper only
+remaps 6/8/10/12 to 42/43/44/45 (`0x5B22B0..0x5B22DD`).
+
+For ordinary road, `FUN_004BDEF0` reads signed material byte `0xF11C70` through
+`FUN_0044F180` (`0x4BDF00..0x4BDF29`, `0x44F180`). Reset zeroes all **51,984/51,984**
+bytes at `0x4B0919`; the MAP reader does not restore this grid. Its later rebuild
+`FUN_0044F1D0` is a gameplay scheduler case (`FUN_004AC2B0`, case 0x25), not the
+ground load sequence. Material zero returns type 1, selecting `0x61E` at
+`0x4B7120`. The 17-row table **VA `0x84AEF0`, file `0x44AEF0`** is called at
+`0x4B7113` (own monument at `0x4B71FB`). All rows have one variant, so the
+negative-random counter arm always yields R=0. It covers **256/256** masks.
+The port transcribes its predicates, view-0 offsets and variant counts.
+
+`FUN_004B6E20` converts corner offsets 4..7 to `0x623` only if either of the
+corner's two neighbours is **exactly** terrain `0x80` or `4`
+(`0x4B6EE5..0x4B6F70`); a mask test is wrong. Own-monument road returns before
+this conversion. The MAP terrain and neighbour words supply every input.
+
+The `terrain&0x600` arm calls `FUN_00474920`. This reloads the current elevation
+cache at `0x474920..0x474945`, writes only codes `0x204E..0x2059` and the even
+codes `0x2072..0x20A8`, and otherwise returns without a write. Those writers are
+already handled by the prepass. The **94/23,154** remaining road cells
+(46 unshifted, 48 shifted) take its default, becoming determinate no-writes;
+**23,060/23,154** emit. The 208 elevation ramp-material unknowns are unchanged.
+
+### 2. `0x10000-monument`: `FUN_0053FB30`
+
+The branch name denotes the terrain bit, not the art's archive: this setter
+emits terrain `0x61B`, not a `China_Mon_*` tileset. After inverting the
+`0x10000` neighbour flags it tests `FUN_00416BB0` at `0x53FB64`, so the same
+proven-null river-pointer grid selects its null arm. `FUN_004B9330(4,1)` adds
+shore flags, then `0x53FB98..0x53FBAA` zeroes the diagonals and calls
+`FUN_004BBF20` at `0x53FBB0`. Its table is **VA `0x849818`, file `0x449818`**,
+eight groups of 24 rows. The cardinal terrain/shore combinations match
+**256/256** possibilities; every row has variant count one, hence R=0.
+
+Crucially, **`0x53FBC2` clears C after the table call**. The earlier scratch
+inventory's “before” wording was wrong. The write at `0x53FC0F` is therefore
+`T(0x61B)` on the null path. `FUN_004BCE20` would add an object's random%6, but
+the pointer check at `0x53FBE6..0x53FBEF` excludes it. All **6,215/6,215** cells
+resolve. Measured unshifted matches are only **662/3,533**: the other **2,871/3,533**
+stored values are exactly base+1..5 (611/628/547/558/527 cells).
+
+**Open question:** was the `.map` saved after monument objects existed, so its
+stored grid reflects authored post-object state rather than bare-load state?
+The decompiled null-object path writes `T(0x61B)+R` with C cleared at `0x53FBC2`
+and R=0; `FUN_004BCE20` adds an object's random%6 only when the `0x890210`
+pointer is non-null. The measured base+1..5 residuals are consistent with that
+later object path. This explanation is an **inference, not a measurement**.
+The same may apply to forest (~50% matched in both cohorts, measured below);
+port the post-object redraw only if the object state it reads is MAP-derivable.
+No random%6 was fitted or added to the null-load rule.
+The existing plain-land predicate's mixed-monument refusal
+(`0x4B7DB5..0x4B7DDC`) is retained; no new monument block writer exists here.
+
+### 3. `0x20000-forest`: `FUN_0053F840`
+
+The setter builds and inverts `0x20000` neighbour flags, then calls
+`FUN_004BBDC0` at `0x53F87E`: **32 rows, VA `0x84B548`, file `0x44B548`**,
+supplied random byte, forward mode. C=0 enters distance tiers; otherwise
+`5<C+R<34` chooses `0x603` and resets C=random&7, R=0 (`0x53F9C7/0x53F9D1`).
+The ordinary city path has editor flag `0x88EC38=0` (set at `0x4FB60C`);
+editor entry sets it to 1 separately (`FUN_0042E430`, case 2). At C=0,
+roadDistance 255 retains `0x628`; otherwise `FUN_004B5EE0(cell,100)` tests each
+neighbour's MAP road-distance byte <=100, inverts it, and matches **48 rows,
+VA `0x84B7C8`, file `0x44B7C8`**, selecting `0x626`. If own distance <100 and
+the new C=0, threshold 0 repeats with `0x622` (`0x53F960..0x53F99D`).
+`0xE92DD0` is payload 885,271, so both thresholds are MAP-derived. In this
+corpus all **4,340/4,340** selected forest cells carry distance 255; threshold
+arms are nevertheless asserted with authored fixtures.
+
+The first table covers **197/256** inverted masks. One selected corpus cell
+misses: STGW-Xiangjun, storage cell 38,182. A miss preserves C/R. Setter 2 has
+already reloaded C=0 from this cell's elevation cache (`0x53F25A`); cell 38,181
+just took the forest-to-plain fallback that explicitly sets R=0. The whole-map
+pass carries only that proven immediately preceding zero, producing `0x628+0`.
+Other unmatched requests without proven scratch provenance remain unknown.
+All **4,340/4,340** corpus forest cells now resolve; their 2,078 matches and
+2,262 residuals remain measured: **1,052/2,114** unshifted (49.76%) and
+**1,026/2,226** shifted (46.09%). The plain-art fallback explains the 1,026
+shifted-cohort matches without compensating any vintage offset. The possible
+post-object-state explanation above remains an open inference for forest too;
+these match rates do not establish its cause.
+
+### 4. `0x80-farm-river`: `FUN_0053EE00`
+
+After counting `0x10000` neighbours (`0x53EE1E..0x53EE32`), this arm calls
+`FUN_004BBDC0` at `0x53EE3F` with **26 rows, VA `0x84AB90`, file `0x44AB90`**,
+random=-1, forward mode. It consumes only **C+6** (`0x53EE44..0x53EE56`), so
+the cycling R never enters its image. Raw neighbour flags supply the pattern;
+this arm does not invert them. The table covers **167/256** masks. Its eight
+selected corpus misses retain the current elevation-cache C reloaded by setter
+2; the whole-map pass supplies that MAP-derived value, while the per-cell API
+continues to refuse a table miss without cache context. All **3,284/3,284**
+resolve, including **1,908/1,908** unshifted exact matches. Shifted matches stay
+**0/1,376**, as expected for this upper-band art.
+
+### Measurements and checks
+
+Sanctioned sweep, root environment unset: **167/167 cities**, **0 failures**.
+Stored-grid render metrics remain identical, including **139/167** exact cities.
+
+| Metric | Historical `c303acb` baseline | Current |
+|---|---:|---:|
+| Active cells | 2,107,836 | 2,107,836 |
+| Emitted | 2,050,792 | 2,087,691 |
+| Matched | was 1,747,096 | 1,763,857 |
+| Unknown | was 37,203 | 210 |
+| Mismatched | was 303,696 | 323,834 |
+| Unresolved | 0 | 0 |
+| Chain no-write | 19,841 | 19,935 |
+| Stored zero mismatch | 16 | 28 |
+| Other tileset mismatch | 64 | 64 |
+| Same tileset within ±8 | 13,701 | 16,876 |
+| Same tileset further off | 289,915 | 306,866 |
+
+Mismatch classes sum to **28+64+16,876+306,866=323,834** and partition every
+city independently. Absolute matches rise **16,761**; matched/active is
+83.681% (was 82.886%). Matched/emitted is 84.488% (was 85.191%) because 20,138 newly
+emitted cells mismatch. Every existing branch retains exactly its prior
+per-cohort cells, emitted and matched counts; only `chain-declined` adds the
+94 road no-writes. No existing per-cohort matched count decreases.
+
+| Changed branch | Before unshifted/shifted unknown | After unshifted emitted / matched | After shifted emitted / matched |
+|---|---:|---:|---:|
+| `0x40-road` | 12,350 / 10,804 | 12,304 / 12,113 | 10,756 / 0 |
+| `0x10000-monument` | 3,533 / 2,682 | 3,533 / 662 | 2,682 / 0 |
+| `0x20000-forest` | 2,114 / 2,226 | 2,114 / 1,052 | 2,226 / 1,026 |
+| `0x80-farm-river` | 1,908 / 1,376 | 1,908 / 1,908 | 1,376 / 0 |
+
+Unshifted totals: **1,138,135/1,171,689** emitted matched, **146/1,179,755**
+active unknown. Shifted: **625,722/916,002** emitted matched,
+**64/928,081** active unknown. Anyang now emits **9,940/9,940**, matches
+**6,009/9,940**, and has zero unknown; its additional 141 roads are shifted.
+
+Refuted hypotheses: descriptors being unavailable runtime data (36,993 unknowns
+removed); all C/R misses being unknowable (8 farm-river and 1 forest resolved
+from cache/order); elevation-flagged roads necessarily emitting art (94/94
+take the default no-write); current-cell monument table C selecting orientation
+(C is cleared after matching, and all 2,871 unshifted residuals are +1..5).
+No decreasing-match candidate or fitted constant was retained.
+
+Assertions cover road endpoint/corner orientation, exact terrain equality,
+own-monument precedence, sub-tile refusal, all 256 monument masks, forest
+random/threshold/strict-boundary arms, both table misses and scratch retention,
+farm-river C-only arithmetic, stored-image independence, exact corpus totals,
+both changed branch cohorts, and all existing cohort counts. A private source
+mutation of monument code **0x61B→0x61C** exits **1** at “null river-object
+monument arm clears C after matching and every table row cycles R modulo one”.
+The repository rule stays `0x61B`. Required tests pass: no-root release
+**1,371** assertions with successful SKIP; original-data release **2,612**;
+original-data UBSan **2,612**. `git diff --check` is clean.

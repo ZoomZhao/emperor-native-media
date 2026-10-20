@@ -408,8 +408,9 @@ void groundSelectorTests() {
  // Every farm sub-case is named; none guesses a code.
  {
      auto river=farmRequest(0u,8u);river.neighbourFlags[0]=0x10000u;
-     need(!selectGroundTileCode(river).known&&std::string(selectGroundTileCode(river).branch)=="0x80-farm-river",
-          "a 0x10000 neighbour selects the farm river arm (runtime DAT_0101C540), never a guess");
+     need(selectGroundTileCode(river).known&&selectGroundTileCode(river).code==0x61B&&
+          selectGroundTileCode(river).variant==6&&std::string(selectGroundTileCode(river).branch)=="0x80-farm-river",
+          "the in-call farm-river table maps the north monument neighbour to C+6");
      const auto block=selectGroundTileCode(farmRequest(0u,2u));
      need(!block.known&&!block.chainNoWrite&&std::string(block.branch)=="0x80-farm-block",
           "random&0xF8==0 selects the farm whole-plot block arm, left unknown");
@@ -523,6 +524,81 @@ void groundSelectorTests() {
  const auto canal=renderMapGroundViewport(terrain,state,archive,"",camera);
  need(canal.image.valid()&&canal.stats.knownCells==84*84&&canal.stats.unknownCells==0&&canal.stats.chainNoWriteCells==0,"terrain&0x40000 is known without any runtime state");
  need(canal.stats.branchCells.size()==1&&canal.stats.branchCells[0].first=="0x40000-canal","canal cells name the canal branch");
+}
+void remainingGroundBranchTests() {
+ using namespace game_lab;
+ GroundCodeRequest request;request.hasLayers=true;request.hasNeighbours=true;
+ request.terrainFlags=0x40;request.randomByte=255;
+ auto selected=selectGroundTileCode(request);
+ need(selected.known&&selected.code==0x61E&&selected.variant==12,
+      "bare-load road material zero selects the default 0x61E table row");
+ request.neighbourFlags[0]=0x40;
+ need(selectGroundTileCode(request).variant==8,"north road selects view-zero endpoint descriptor eight");
+ request.neighbourFlags.fill(0);request.neighbourFlags[0]=0x40;request.neighbourFlags[2]=0x40;
+ selected=selectGroundTileCode(request);
+ need(selected.code==0x61E&&selected.variant==4,"north-east road corner selects descriptor four");
+ request.neighbourFlags[4]=0x80;selected=selectGroundTileCode(request);
+ need(selected.code==0x623&&selected.variant==0,"exact farm neighbour converts the road corner to 0x623");
+ request.neighbourFlags[4]=0x84;selected=selectGroundTileCode(request);
+ need(selected.code==0x61E&&selected.variant==4,"corner treatment requires terrain equality, not a bit test");
+ request.neighbourFlags[4]=0x80;request.terrainFlags|=0x10000;
+ selected=selectGroundTileCode(request);
+ need(selected.code==0x61D&&selected.variant==4,"own monument uses road 0x61D and skips corner treatment");
+ request.terrainFlags=0x40;request.subTile=0x80;
+ need(selectGroundTileCode(request).chainNoWrite,"road sub-tile high-bit refusal is a determinate no-write");
+ request.subTile=0;request.terrainFlags=0x10000;
+ for(unsigned mask=0;mask<256;++mask) {
+     for(size_t i=0;i<8;++i)request.neighbourFlags[i]=(mask&(1u<<i))?0x10004u:0u;
+     request.randomByte=uint8_t(mask);selected=selectGroundTileCode(request);
+     need(selected.known&&selected.code==0x61B&&selected.variant==0,
+          "null river-object monument arm clears C after matching and every table row cycles R modulo one");
+ }
+ request.terrainFlags=0x20000;request.roadDistance=255;request.neighbourFlags.fill(0);
+ selected=selectGroundTileCode(request);
+ need(selected.code==0x628&&selected.variant==3,"isolated forest uses unsigned random modulo six");
+ request.neighbourFlags.fill(0x20000);selected=selectGroundTileCode(request);
+ need(selected.code==0x628&&selected.variant==3,"all-forest table row uses the same modulo-six band");
+ request.neighbourFlags[0]=0;selected=selectGroundTileCode(request);
+ need(selected.code==0x603&&selected.variant==7,"nonzero forest C in the interior range selects plain art");
+ request.neighbourFlags.fill(0x20000);request.roadDistance=100;request.neighbourRoadDistance.fill(255);
+ selected=selectGroundTileCode(request);
+ need(selected.code==0x626&&selected.variant==37,"forest distance 100 enters the first threshold table");
+ request.roadDistance=99;request.neighbourRoadDistance.fill(100);selected=selectGroundTileCode(request);
+ need(selected.code==0x622&&selected.variant==37,"strict distance below 100 and C zero tries the second threshold");
+ request.terrainFlags=0x80;request.neighbourFlags.fill(0x10000);request.randomByte=0;
+ selected=selectGroundTileCode(request);
+ need(selected.known&&selected.code==0x61B&&selected.variant==20,
+      "farm-river all-neighbour row consumes C+6 and discards the cycling R");
+ request.randomByte=255;
+ need(selectGroundTileCode(request).variant==20,"farm-river variant does not consume the cell random byte");
+ OriginalMapTerrain terrain;terrain.activeSide=226;terrain.flags.assign(51984,0x80000u);
+ const size_t cell=110u*228u+110u;terrain.flags[cell]=0x40;
+ auto state=terrainState(terrain);state.randomByte[cell]=255;
+ const auto before=selectGroundMap(state,226);state.image.assign(51984,UINT32_MAX);
+ const auto after=selectGroundMap(state,226);
+ need(before[cell].selection.code==0x61E&&after[cell].selection.code==before[cell].selection.code&&
+      after[cell].selection.variant==before[cell].selection.variant,
+      "road material and descriptors never consume the stored image oracle");
+ state.terrain[cell]=0x240;auto plan=selectGroundMap(state,226);
+ need(plan[cell].selection.chainNoWrite&&!plan[cell].selection.known,
+      "elevation-flagged road with cache C zero takes FUN_00474920's no-write default");
+ state.terrain[cell]=0x80;state.terrain[cell-228]=0x10000;state.terrain[cell+229]=0x10000;
+ need(!selectGroundTileCode(groundCodeRequest(state,cell)).known,
+      "unmatched farm-river mask keeps a per-cell request unknown without the elevation cache");
+ plan=selectGroundMap(state,226);
+ need(plan[cell].selection.known&&plan[cell].selection.code==0x61B&&plan[cell].selection.variant==6,
+      "whole-map farm-river table miss retains C zero reloaded by setter two");
+ state=terrainState(terrain);state.terrain[cell]=0x20000;state.roadDistance.assign(51984,255);
+ // Current cell's inverted forest mask 0x0A misses the 32-row table. The
+ // preceding cell sees non-forest north, selecting C=10 -> plain fallback R=0.
+ for(int offset:{-228,1,228,227,-1,-229})state.terrain[size_t(int64_t(cell)+offset)]=0x20000;
+ state.randomByte[cell-1]=61;state.randomByte[cell]=206;
+ need(!selectGroundTileCode(groundCodeRequest(state,cell)).known,
+      "unmatched forest mask keeps a per-cell request unknown without scratch provenance");
+ plan=selectGroundMap(state,226);
+ need(plan[cell-1].selection.code==0x603&&plan[cell].selection.known&&
+      plan[cell].selection.code==0x628&&plan[cell].selection.variant==0,
+      "forest table miss retains the immediately preceding plain fallback's proven R zero");
 }
 void farmBlockTests() {
  using namespace game_lab;
@@ -809,9 +885,9 @@ void realDataFarmBlockTests() {
      }
  }
  need(cities==167&&cityCohorts==std::array<size_t,2>{93,74},"farm corpus covers 167 cities with the road-defined 93/74 cohort split");
- need(emitted==2050792&&matched==1747096&&unknown==37203&&mismatched==303696&&classes==mismatched,
+ need(emitted==2087691&&matched==1763857&&unknown==210&&mismatched==323834&&classes==mismatched,
       "whole-map ground blocks reproduce the measured corpus totals without dropped mismatches");
- need(unresolved==0&&mismatchClasses==std::array<size_t,4>{16,64,13701,289915},
+ need(unresolved==0&&mismatchClasses==std::array<size_t,4>{28,64,16876,306866},
       "all original-data predictions resolve and the four mismatch classes retain explicit corpus denominators");
  const std::array<const char*,3> compositeNames={"0x2-land","0x80000000-flood","0x101000-twin"};
  const std::array<Tally,3> compositeUnshifted={{{39858,39858,39823},{6068,6068,6068},{1666,1666,1666}}};
@@ -853,6 +929,19 @@ void realDataFarmBlockTests() {
        branches[0]["elevation-block"]==Tally{840,840,790}&&
        branches[1]["elevation-block"]==Tally{1672,1672,1496},
        "exe height descriptors and earlier elevation writers lock both cohorts without stored-image selection");
+ const std::array<const char*,4> remainingNames={"0x40-road","0x10000-monument","0x20000-forest","0x80-farm-river"};
+ const std::array<Tally,4> remainingUnshifted={{{12304,12304,12113},{3533,3533,662},
+      {2114,2114,1052},{1908,1908,1908}}};
+ const std::array<Tally,4> remainingShifted={{{10756,10756,0},{2682,2682,0},
+      {2226,2226,1026},{1376,1376,0}}};
+ for(size_t i=0;i<remainingNames.size();++i) {
+      need(branches[0][remainingNames[i]]==remainingUnshifted[i],
+           "remaining ground setters lock every unshifted emitted and matched denominator");
+      need(branches[1][remainingNames[i]]==remainingShifted[i],
+           "remaining ground setters lock every shifted emitted and matched denominator without compensation");
+ }
+ need(branches[0]["chain-declined"]==Tally{7920,0,0}&&branches[1]["chain-declined"]==Tally{12015,0,0},
+       "94 road elevation defaults add determinate no-writes rather than invented images");
  need(origins==std::array<size_t,5>{0,0,5186,3123,1952}&&
       consecutive==std::array<size_t,5>{0,0,5035,2955,1706}&&constant==std::array<size_t,5>{}&&subzero==origins,
       "farm stamp originals store consecutive single-cell ids and group side one, unlike composite constant-word placements");
@@ -1220,8 +1309,8 @@ void realDataGroundTests(bool& originalData) {
  need(active==9940&&farm+farmBlock+farmRiver==6212,"original Anyang.map active and farmland cell counts are stable");
  // The whole-map farm pass attributes every covered cell to its stamping branch.
  need(farm==5673&&farmBlock==539&&farmRiver==0,"the Anyang whole-map farm sub-cases are stable");
- // Elevation resolves 169 cells; the shore table resolves 551 more.
- need(known==9799&&unknown==141&&chainNoWrite==0&&known+unknown+chainNoWrite==active,
+ // The road descriptor resolves the final 141 formerly unknown cells.
+ need(known==9940&&unknown==0&&chainNoWrite==0&&known+unknown+chainNoWrite==active,
       "original Anyang.map MAP-only outcome counts are stable");
  need(known*100>=active*98,"MAP-only known coverage stays at or above the measured floor");
  // The setter variant resolves in the record/id space. With the user's own
@@ -1246,7 +1335,7 @@ void realDataGroundTests(bool& originalData) {
          else if(plan[cell].stampSide>1&&archive.sprites[index].tileSize==plan[cell].stampSide)++composite;
      }
      // Measured on the user's own Anyang.map + China_Terrain.sg3.
-     need(knownCells==9799&&resolved==9621&&geometry==9537&&composite==84&&geometry+composite==resolved,
+     need(knownCells==9940&&resolved==9762&&geometry==9678&&composite==84&&geometry+composite==resolved,
            "the terrain-only resolver explicitly excludes the new elevation predictions");
      // The stored surface-image grid (0x00FE9880) is the oracle for the chain. It
      // renders verbatim as recordId = low14 + 201 in the same archive; the chain
@@ -1268,8 +1357,8 @@ void realDataGroundTests(bool& originalData) {
               grid.stats.decodeFailures==0,
               "original Anyang.map stored image grid decodes with the measured low-14 base");
          const auto score=scoreGroundChainAgainstImageGrid(terrain,*state,archive,201,&elevation);
-         need(score.activeCells==9940&&score.emitted==9799&&score.matched==6009&&
-               score.mismatched==3790&&score.chainNoWrite==0&&score.chainUnknown==141&&
+         need(score.activeCells==9940&&score.emitted==9940&&score.matched==6009&&
+               score.mismatched==3931&&score.chainNoWrite==0&&score.chainUnknown==0&&
                score.chainNoWriteVsStoredZero==0&&score.chainNoWriteVsStoredNonzero==0,
               "original Anyang.map chain score against the stored grid is stable");
      }
@@ -1566,6 +1655,7 @@ int main(){try{
  outputPathTests(root);
  exclusiveOutputTests(root);
  groundSelectorTests();
+ remainingGroundBranchTests();
  farmBlockTests();
  compositeGroundBlockTests();
  elevationGroundTests();

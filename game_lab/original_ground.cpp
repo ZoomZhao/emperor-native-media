@@ -63,6 +63,123 @@ constexpr ShorePattern shorePatterns[]={
     {"01000000",0x2C,1},{"00010000",0x2D,1},{"00000100",0x2A,1},
     {"00000001",0x2B,1}
 };
+// Same 20-byte descriptor format, owned exe/hash cited above. View-0 columns:
+// road VA 0x84AEF0/file 0x44AEF0 (17 rows), forest 0x84B548/0x44B548
+// (32), forest-distance 0x84B7C8/0x44B7C8 (48, final row has zero variants),
+// farm-river 0x84AB90/0x44AB90 (26). Only format facts are transcribed.
+constexpr ShorePattern roadPatterns[]={
+    {"12121212",17,1},{"12121202",13,1},{"02121212",14,1},
+    {"12021212",15,1},{"12120212",16,1},{"12120202",4,1},
+    {"02121202",5,1},{"02021212",6,1},{"12020212",7,1},
+    {"12021202",0,1},{"02120212",1,1},{"12020202",8,1},
+    {"02120202",9,1},{"02021202",10,1},{"02020212",11,1},
+    {"02020202",12,1},{"22222222",12,1}
+};
+constexpr ShorePattern forestPatterns[]={
+    {"12121212",0,6},{"12121202",0,6},{"02121212",0,6},
+    {"12021212",0,6},{"12120212",0,6},{"12021202",0,6},
+    {"02120212",0,6},{"12121202",0,6},{"02121212",0,6},
+    {"12021212",0,6},{"12120212",0,6},{"12120002",10,1},
+    {"02121200",14,1},{"00021212",18,1},{"12000212",6,1},
+    {"12000002",7,3},{"02120000",11,3},{"00021200",15,3},
+    {"00000212",19,3},{"12010002",26,1},{"02120100",29,1},
+    {"00021201",30,1},{"01000212",33,1},{"12000102",27,1},
+    {"02120001",28,1},{"01021200",31,1},{"00010212",32,1},
+    {"01000000",23,1},{"00010000",24,1},{"00000100",25,1},
+    {"00000001",22,1},{"00000000",0,6}
+};
+constexpr ShorePattern forestDistancePatterns[]={
+    {"12121212",37,1},{"12121202",59,1},{"02121212",50,1},
+    {"12021212",51,1},{"12120212",58,1},{"12021202",57,1},
+    {"02120212",56,1},{"12120002",10,1},{"02121200",14,1},
+    {"00021212",18,1},{"12000212",6,1},{"12120102",54,1},
+    {"02121201",55,1},{"01021212",52,1},{"12010212",53,1},
+    {"12000002",7,3},{"02120000",11,3},{"00021200",15,3},
+    {"00000212",19,3},{"12010002",41,1},{"02120100",44,1},
+    {"00021201",47,1},{"01000212",38,1},{"12000102",42,1},
+    {"02120001",45,1},{"01021200",48,1},{"00010212",39,1},
+    {"12010102",43,1},{"02120101",46,1},{"01021201",49,1},
+    {"01010212",40,1},{"01010101",22,1},{"01010100",26,1},
+    {"00010101",23,1},{"01000101",24,1},{"01010001",25,1},
+    {"01000100",32,1},{"00010001",31,1},{"01010000",27,1},
+    {"00010100",28,1},{"00000101",29,1},{"01000001",30,1},
+    {"01000000",34,1},{"00010000",33,1},{"00000100",35,1},
+    {"00000001",36,1},{"00000000",0,6},{"00000000",0,0}
+};
+constexpr ShorePattern farmRiverPatterns[]={
+    {"12121212",14,6},{"12121202",14,6},{"02121212",14,6},
+    {"12021212",14,6},{"12120212",14,6},{"12021202",14,6},
+    {"02120212",14,6},{"12121202",14,6},{"02121212",14,6},
+    {"12021212",14,6},{"12120212",14,6},{"12120002",1,1},
+    {"02121200",3,1},{"00021212",5,1},{"12000212",7,1},
+    {"12000002",0,1},{"02120000",2,1},{"00021200",4,1},
+    {"00000212",6,1},{"01000100",12,1},{"00010001",13,1},
+    {"01000000",8,1},{"00010000",9,1},{"00000100",10,1},
+    {"00000001",11,1},{"00000000",14,6}
+};
+template<size_t N> const ShorePattern* matchGroundPattern(const ShorePattern (&patterns)[N],
+        const std::array<bool,8>& flags) {
+    for(const auto& pattern:patterns) {
+        bool match=true;
+        for(size_t i=0;i<8;++i)if(pattern.neighbours[i]!='2'&&
+            flags[i]!=(pattern.neighbours[i]=='1')){match=false;break;}
+        if(match)return &pattern;
+    }
+    return nullptr;
+}
+std::array<bool,8> groundPatternFlags(const GroundCodeRequest& request,uint32_t mask,bool invert=false) {
+    std::array<bool,8> flags{};
+    for(size_t i=0;i<8;++i)flags[i]=bool(request.neighbourFlags[i]&mask)!=invert;
+    return flags;
+}
+GroundSelection forestSelection(const GroundCodeRequest& request) {
+    if(!request.hasLayers||!request.hasNeighbours)return {0,false,false,"0x20000-forest"};
+    auto pattern=matchGroundPattern(forestPatterns,groundPatternFlags(request,0x20000u,true));
+    if(!pattern)return {0,false,false,"0x20000-forest"};
+    uint16_t code=0x628;
+    // FUN_0053F840 0x53F877..0x53F98E: bare city mode [0x88EC38]==0.
+    // C==0 (not C+R==0) enters the distance tiers; the fallback-to-plain
+    // condition belongs only to the original nonzero-C arm (0x53F9A7).
+    if(pattern->offset==0&&request.roadDistance!=0xFFu) {
+        auto distancePattern=[&](uint8_t threshold) {
+            std::array<bool,8> flags{};
+            for(size_t i=0;i<8;++i)flags[i]=request.neighbourRoadDistance[i]>threshold;
+            return matchGroundPattern(forestDistancePatterns,flags);
+        };
+        code=0x626;pattern=distancePattern(100);
+        if(!pattern)return {0,false,false,"0x20000-forest"};
+        if(request.roadDistance<100&&pattern->offset==0){code=0x622;pattern=distancePattern(0);}
+    } else if(pattern->offset!=0&&pattern->offset+request.randomByte%pattern->variants>5&&
+              pattern->offset+request.randomByte%pattern->variants<0x22)
+        return {0x603,true,false,"0x20000-forest",false,uint8_t(request.randomByte&7u)};
+    if(!pattern||!pattern->variants)return {0,false,false,"0x20000-forest"};
+    return {code,true,false,"0x20000-forest",false,uint8_t(pattern->offset+request.randomByte%pattern->variants)};
+}
+GroundSelection roadSelection(const GroundCodeRequest& request) {
+    if(!request.hasLayers||!request.hasNeighbours)return {0,false,false,"0x40-road"};
+    // FUN_004B6F90 0x4B6F9A..0x4B6FCE: bare-load object id is zero;
+    // terrain&2 was consumed by setter 6, so FUN_00471D20 is false.
+    if(request.subTile&0x80u)return {0,false,false,"chain-declined",true};
+    if((request.terrainFlags&0x600u)&&!(request.terrainFlags&0x10000u))
+        return {0,false,false,"0x40-road"}; // FUN_00474920
+    // FUN_004BDEF0 -> FUN_0044F180 reads signed 0xF11C70. Reset 0x4B0919
+    // clears all 51,984 bytes; MAP does not restore it. Bare load selects type 1.
+    // FUN_005B22B0 preserves the negative (zero working img - T(0x61B)) value,
+    // so an own-0x10000 cell takes the 0x61D table arm at 0x4B71F0 as well.
+    const auto pattern=matchGroundPattern(roadPatterns,groundPatternFlags(request,0x8000040u));
+    if(!pattern)return {0,false,false,"0x40-road"};
+    const uint16_t code=(request.terrainFlags&0x10000u)?0x61D:0x61E;
+    uint8_t variant=pattern->offset;
+    // FUN_004B6E20 0x4B6EC7..0x4B6F77: exact neighbour equality, not mask.
+    // Own-0x10000 returns before this corner treatment (0x4B7248).
+    if(code==0x61E&&variant>=4&&variant<=7) {
+        constexpr size_t adjacent[4][2]={{6,4},{0,6},{0,2},{4,2}};
+        const size_t corner=variant-4;
+        for(size_t i:adjacent[corner])if(request.neighbourFlags[i]==0x80u||request.neighbourFlags[i]==4u)
+            return {0x623,true,false,"0x40-road",false,uint8_t(corner)};
+    }
+    return {code,true,false,"0x40-road",false,variant};
+}
 static_assert(sizeof(shorePatterns)/sizeof(*shorePatterns)==46,"0x53FCB3 shore row count");
 GroundSelection shoreDescriptorSelection(const GroundCodeRequest& request,uint16_t code,const char* branch) {
     for(const auto& pattern:shorePatterns) {
@@ -91,12 +208,14 @@ GroundCodeRequest groundCodeRequest(const OriginalTerrainState& state,size_t cel
     request.terrainFlags=state.terrain[cell];request.randomByte=state.randomByte[cell];
     request.hasLayers=true;request.featureFlags=state.feature[cell];
     request.fertility=state.fertility[cell];request.roadDistance=state.roadDistance[cell];
+    request.subTile=state.subTile[cell];
     static constexpr int64_t offsets[8]={-228,-227,1,229,228,227,-1,-229};
     request.hasNeighbours=true;
     for(size_t i=0;i<8;++i) {
         const int64_t neighbour=int64_t(cell)+offsets[i];
         if(neighbour<0||size_t(neighbour)>=OriginalTerrainState::cells)continue;
         request.neighbourFlags[i]=state.terrain[size_t(neighbour)];
+        request.neighbourRoadDistance[i]=state.roadDistance[size_t(neighbour)];
         request.neighbourPresent[i]=true;
     }
     return request;
@@ -315,8 +434,8 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     // 8. FUN_0053F560 @0x0053F560: terrain&0x80000000 -> 0x60E + random&7
     //    fallback; selectGroundMap supplies the 3x3/2x2 composite arms.
     if(terrain&0x80000000u)return {0x60E,true,false,"0x80000000-flood",false,variant};
-    // 9. FUN_0053F840 @0x0053F840: terrain&0x20000 -> 0x628/0x626/0x622 from runtime state.
-    if(terrain&0x20000u)return {0,false,false,"0x20000-forest"};
+    // 9. FUN_0053F840: in-call forest table + MAP road-distance thresholds.
+    if(terrain&0x20000u)return forestSelection(request);
     // 10. FUN_0053FA20 @0x0053FA20: terrain&0x2000000 (0x0053FA27 `test dword
     //     ptr [ecx*4+0xF6A9E0],0x2000000`) and 0x00FE9880[cell]==0 (0x0053FA41).
     //     It then reads feat[cell] = 0x00F37DA0 (0x0053FA4B) and selects the base
@@ -350,10 +469,15 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     // 12. FUN_00540360 @0x00540360: terrain&0x1000 -> 0x612 + random&7.
     if(terrain&0x1000u)return {0x612,true,false,"0x1000-irrigation",false,variant};
     // 13. FUN_00540300 @0x00540300: terrain&0x40 -> FUN_004B8F70/FUN_004B9B20/FUN_004B6F90.
-    if(terrain&0x40u)return {0,false,false,"0x40-road"};
+    if(terrain&0x40u)return roadSelection(request);
     // 14. FUN_0053FB30 @0x0053FB30: terrain&0x10000 and (terrain&0x48)==0; the value
-    //     adds DAT_0101C538 + DAT_0101C540 (+ FUN_004BCE20()).
-    if((terrain&0x10000u)&&(terrain&0x48u)==0u)return {0,false,false,"0x10000-monument"};
+    //     0x53FBC2 clears C AFTER the table call; every 0x849818 row has one
+    //     variant, so R=0 (including all eight 24-row groups of FUN_004BBF20).
+    //     Same null 0x890210 grid as setter 4 excludes FUN_004BCE20 at 0x53FBE6.
+    if((terrain&0x10000u)&&(terrain&0x48u)==0u) {
+        if(!request.hasLayers||!request.hasNeighbours)return {0,false,false,"0x10000-monument"};
+        return {0x61B,true,false,"0x10000-monument"};
+    }
     // 15. FUN_005400F0 @0x005400F0: terrain&0x40000 -> FUN_004BC800.
     if(terrain&0x40000u) {
         // FUN_004BC800 @0x004BC800 writes img = T(0x620) + random%9 (0x004BC833
@@ -376,9 +500,9 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     //      (0x0053EE34..0x0053EE75) for any neighbour carrying 0x10000: it writes
     //      img = T(0x61B) + DAT_0101C540 + 6 (0x0053EE44 reads DAT_0101C540,
     //      0x0053EE56 `lea edi,[eax+6]`, 0x0053EE5F `push 0x61b`, store at
-    //      0x0053F071). DAT_0101C540 is a runtime river/edge descriptor the `.map`
-    //      does not carry, so the value is unknown and named. Without neighbour
-    //      data the river arm cannot be excluded either.
+    //      0x0053F071). The in-call 26-row matcher at 0x53EE34 derives C from
+    //      these neighbour flags. On a table miss selectGroundMap retains the
+    //      current elevation cache's C; this per-cell request cannot supply it.
     //  (b) 0x0053EE84 `test al,0xF8; je 0x53EF3E` on the cell's random byte
     //      selects the whole-plot block arm at 0x0053EF3E with b=random&6: b>=6
     //      tries FUN_004B7E80 @0x004B7E80(...,4,4) then writes T(0x604)+0x22
@@ -410,8 +534,13 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     //      The non-zero FUN_004EDBA0 arm (T(0x62A|0x62B)+clamp(rank,0,4)+
     //      5*(random%3)) needs the runtime byte and stays unknown.
     if((terrain&0x10001u)==0u&&(terrain&0x80u)) {
-        if(request.hasNeighbours&&neighbourMaskCount(request,0x10000u)!=0)
+        if(request.hasNeighbours&&neighbourMaskCount(request,0x10000u)!=0) {
+            // 0x53EE34..0x53EE56: raw monument-neighbour flags, table 0x84AB90,
+            // 26 rows, random=-1. Only C+6 is consumed; cycling R is discarded.
+            const auto pattern=matchGroundPattern(farmRiverPatterns,groundPatternFlags(request,0x10000u));
+            if(pattern)return {0x61B,true,false,"0x80-farm-river",false,uint8_t(pattern->offset+6u)};
             return {0,false,false,"0x80-farm-river"};
+        }
         if(!request.hasNeighbours)return {0,false,false,"0x80-farm-neighbours"};
         if((request.randomByte&0xF8u)==0u) {
             // b<2 attempts no rectangle (0x53EF4B/93, 0x53EFE8) and reaches
@@ -751,6 +880,9 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
     }
     // FUN_005403C0 @0x005403C0, 0x54044F..0x540482: increasing row, then
     // increasing column from the row tables constructed at 0x4B0694..0x4B06DC.
+    // A forest-to-plain call explicitly clears shared R at 0x53F9C7. Retain
+    // that proven zero only until the next dispatch; no stored grid feeds it.
+    bool precedingForestClearedR=false;
     for(int y=0;y<bounds.side;++y) {
         const int storageY=bounds.first+y;
         const int start=storageY<=bounds.middle?bounds.middle-y:
@@ -759,6 +891,8 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
         for(int x=start-bounds.first;x<end;++x) {
             if(x<0||x>=bounds.side)continue;
             const size_t cell=bounds.cell(x,y);
+            const bool incomingForestRZero=precedingForestClearedR;
+            precedingForestClearedR=false;
             if(state.terrain[cell]&0x80000u)continue;
             // Setter 2 precedes the img!=0 gate (0x53ECCA..53ECE0), so its
             // successful 2x2 stamp may overwrite a direct or earlier block image.
@@ -847,6 +981,33 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
             if(stamped[cell])continue;
             const auto request=groundCodeRequest(working,cell);
             auto selection=selectGroundTileCode(request);
+            if(!selection.known&&std::strcmp(selection.branch,"0x40-road")==0&&
+               (request.terrainFlags&0x600u)&&!(request.terrainFlags&0x10000u)) {
+                // FUN_00474920 reloads this same elevation cache (0x474920..43).
+                // Its switch writes only 0x204E..0x2059 and the even codes
+                // 0x2072..0x20A8; those direct writers already occupied img in
+                // the prepass above. Reaching this point with any other code
+                // takes the switch default, with no image write (0x474A03).
+                const bool writes=(descriptor.code>=0x204E&&descriptor.code<=0x2059)||
+                    (descriptor.code>=0x2072&&descriptor.code<=0x20A8&&!(descriptor.code&1u));
+                if(!writes)selection={0,false,false,"chain-declined",true};
+            }
+            if(!selection.known&&std::strcmp(selection.branch,"0x80-farm-river")==0&&
+               descriptor.code<=249u) {
+                // Table miss preserves C, but setter 2 has just reloaded it
+                // from this cell's MAP-derived elevation cache (0x53F25A).
+                // Setter 17 consumes only C+6; retained/cycling R is irrelevant.
+                selection={0x61B,true,false,"0x80-farm-river",false,uint8_t(descriptor.code+6u)};
+            }
+            if(!selection.known&&std::strcmp(selection.branch,"0x20000-forest")==0&&
+               incomingForestRZero&&descriptor.code==0&&request.roadDistance==0xFFu) {
+                // A forest table miss preserves C/R (0x4BBE9B..0x4BBEA9).
+                // Setter 2 reloaded C=0 from this cell's elevation cache; the
+                // immediately preceding forest fallback established R=0.
+                selection={0x628,true,false,"0x20000-forest"};
+            }
+            precedingForestClearedR=selection.known&&selection.code==0x603&&
+                std::strcmp(selection.branch,"0x20000-forest")==0;
             result[cell]={selection,cell,1};
             const bool land=std::strcmp(selection.branch,"0x2-land")==0;
             const bool flood=std::strcmp(selection.branch,"0x80000000-flood")==0;
