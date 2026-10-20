@@ -377,11 +377,12 @@ void authored(){
     }
     {
         // Literal SAV19 terrain-relative addresses, distinct decoys either side.
-        std::vector<uint8_t> services(17+1291348,0x5a);const size_t t=17;
+        std::vector<uint8_t> services(17+1299348,0x5a);const size_t t=17;
+        for(size_t n=0;n<100;++n){services[t+1281760+175*n]=6;services[t+1281761+175*n]=0;}
         services[t+779760+6]=0x34;services[t+779760+7]=0x12;
         services[t+781760+1507]=6;
         const auto put=[&](size_t at,uint32_t value){for(unsigned n=0;n<4;++n)services[t+at+n]=uint8_t(value>>(8*n));};
-        put(1291340,1);put(1291344,16);
+        put(1299340,1);put(1299344,16);
         auto saved=originalFigureSavedServices(services,t);
         need(saved&&saved->routeOwners[3]==0x1234&&saved->directions.size()==500000&&saved->directions[1507]==6&&
             saved->randomFirst==1&&saved->randomSecond==16,"SAV19 route rows500 and two RNG registers use literal independent offsets");
@@ -390,6 +391,87 @@ void authored(){
             "RNG performs31 bit4-xor-bit0 shifts on both saved registers");
         need(!originalFigureSavedServices(services,t+1),"truncated second RNG register withholds all saved services");
         saved->randomFirst=saved->randomSecond=0;need(originalFigureRandomNext(*saved)==0&&saved->randomFirst==0&&saved->randomSecond==0,"zero saved RNG is retained rather than reseeded");
+        auto walker=one;walker.route=3;walker.routeCursor=7;walker.routeLength=8;
+        auto direction=originalFigureSavedRouteDirection(walker,*saved);
+        need(direction&&direction->state.direction==6&&direction->state.routeCursor==7,"saved route direction uses row500 plus cursor without advancing cursor");
+        walker.routeCursor=8;saved->routeOwners[3]=int16_t(one.slot);
+        const auto ended=originalFigureSavedRouteDirection(walker,*saved);
+        need(ended&&ended->state.direction==8&&ended->state.route==0&&ended->services.routeOwners[3]==0&&saved->routeOwners[3]==int(one.slot),
+            "route exhaustion releases only reciprocal owner and publishes atomic service copy");
+        saved->routeOwners[3]=99;need(originalFigureSavedRouteDirection(walker,*saved)->services.routeOwners[3]==99,"route release retains another figure's owner");
+        services[t+1281760+175*99]=5;need(!originalFigureSavedServices(services,t),"unknown intervening record version refuses RNG framing");
+    }
+    {
+        std::vector<uint8_t> data(1600);const size_t scenario=11,anchor=scenario+28;
+        const auto put16=[&](size_t at,uint16_t value){data[at]=uint8_t(value);data[at+1]=uint8_t(value>>8);};
+        const auto put32=[&](size_t at,uint32_t value){for(unsigned n=0;n<4;++n)data[at+n]=uint8_t(value>>(8*n));};
+        put16(scenario,6);put32(anchor,20);put32(anchor+4,20);put32(anchor+8,104*229);
+        for(unsigned n=0;n<4;++n){put16(scenario+853+4*n,uint16_t(2+n));put16(scenario+869+4*n,uint16_t(7+n));}
+        const auto spawn=originalFigureSpawnServices(data,anchor);
+        need(spawn&&spawn->spawns[2]==std::make_pair(int16_t(4),int16_t(9))&&spawn->cropBase==104*229,
+            "scenario6 four dword-spaced signed spawn coordinates use individual wire offsets");
+        put16(scenario,5);need(!originalFigureSpawnServices(data,anchor),"uncited scenario version cannot supply spawn defaults");put16(scenario,6);
+        OriginalMapTerrain terrain;terrain.activeSide=20;terrain.flags.resize(51984);
+        OriginalBuildingProfile buildings;buildings.status=OriginalBuildingStatus::Complete;buildings.parsedRecords=4000;
+        std::vector<uint8_t> roads(51984,255);const auto base=spawn->cropBase;
+        terrain.flags[base]=0x40;terrain.flags[base+1]=0x100;terrain.flags[base+2]=0x800200;terrain.flags[base+3]=0x400200;
+        terrain.flags[base+4]=0x440;terrain.flags[base+5]=0x20000;roads[base+5]=0;
+        const auto grid=originalFigurePheasantPassability(terrain,roads,buildings,*spawn);
+        need(grid&&grid->cells[base]==4&&grid->cells[base+1]==0&&grid->cells[base+2]==0x400&&grid->cells[base+3]==0&&
+            grid->cells[base+4]==0x100&&grid->cells[base+5]==0,"passability respects terrain branch precedence before mask51C");
+        terrain.flags[base]=0x10000;need(!originalFigurePheasantPassability(terrain,roads,buildings,*spawn),"river object rebuild cannot be replaced with terrain-only passability");
+        terrain.flags[base]=0;buildings.slotTypes[1]=0x21;need(!originalFigurePheasantPassability(terrain,roads,buildings,*spawn),"building virtual passability is withheld for any occupied pool");
+        OriginalFigurePassability map;map.spawn=*spawn;map.cells.resize(51984);map.cells[base+1]=0x10;map.cells[base+229]=0x10;map.cells[base+230]=1;
+        const auto seen=originalFigureReachableCells(map,0,0);
+        need(seen&&(*seen)[base]&&(*seen)[base+1]&&(*seen)[base+229]&&!(*seen)[base+230],"cardinal flood seeds blocked start, reaches via east then south, rejects mask1");
+        map.cells[base+1]=0;need(!originalFigureReachableCells(map,0,0)->at(base+229),"cardinal flood cannot cross a diagonal-only connection");
+        auto group=archive;group.numImages=256;group.sprites.resize(256);group.imageIndex.fill(1);
+        group.sprites[0].animationSpriteCount=12;group.sprites[0].animationDirections=8;
+        const std::map<uint32_t,const SG3Archive*> refs{{38,&group}};
+        auto bird=one;bird.type=76;bird.runtimeClass=OriginalFigureClass::Pheasant;bird.action=19;bird.herdTarget=bird.slot;
+        bird.route=3;bird.frame=0;bird.direction=2;bird.counter=0;
+        OriginalFigureUpdateContext context;context.figures[bird.slot]=bird;context.services.emplace();context.services->randomFirst=1;
+        context.services->routeOwners[3]=int16_t(bird.slot);context.passability=*grid;
+        context.passability->cells.assign(51984,0);for(unsigned y=0;y<20;++y)for(unsigned x=0;x<20;++x)context.passability->cells[base+y*228+x]=0x10;
+        context.passability->spawn.spawns={{{2,2},{2,0},{19,19},{-1,-1}}};
+        const auto destination=originalFigureFirstUpdate(bird,refs,&context);
+        need(destination.state&&destination.services&&destination.state->action==32&&destination.state->destinationX==11&&destination.state->destinationY==11&&
+            destination.state->destinationCell==base+11*229&&destination.state->route==0&&destination.state->progress==bird.progress&&
+            destination.state->frame==1&&destination.services->randomFirst==0x800001&&destination.services->routeOwners[3]==0&&context.services->randomFirst==1,
+            "Pheasant destination uses first equidistant spawn, two RNG draws, releases route then advances frame without movement");
+        context.passability->cells[base+11*229]=0;
+        const auto retry=originalFigureFirstUpdate(bird,refs,&context);
+        need(retry.state&&retry.services->randomFirst==0x44000001&&retry.state->destinationX==5&&retry.state->destinationY==11,
+            "destination retries from fixed spawn and consumes RNG for every rejected candidate");
+        const auto missingGroup=originalFigureFirstUpdate(bird,{},&context);
+        need(!missingGroup.state&&!missingGroup.services,"failed final image resolution withholds tentative RNG and route mutations");
+        OriginalFigureProfile pool;pool.status=OriginalFigureStatus::Complete;pool.declared=pool.parsed=2000;
+        pool.slots.resize(2000);for(size_t n=0;n<2000;++n)pool.slots[n].slot=n;
+        auto first=bird;first.slot=1;first.herdTarget=1;first.route=0;auto second=first;second.slot=2;second.herdTarget=2;
+        pool.slots[1]=first;pool.slots[2]=second;pool.live={first,second};context.services->randomFirst=0x12345678;
+        context.figures={{1,first},{2,second}};
+        context.passability->cells.assign(51984,0);for(unsigned y=0;y<20;++y)for(unsigned x=0;x<20;++x)context.passability->cells[base+y*228+x]=0x10;
+        const auto firstExpected=originalFigureFirstUpdate(first,refs,&context);auto nextContext=context;
+        nextContext.services=firstExpected.services;nextContext.figures[1]=*firstExpected.state;
+        const auto secondExpected=originalFigureFirstUpdate(second,refs,&nextContext);
+        const auto ordered=originalFigureOrderedFirstPass(pool,refs,std::vector<uint32_t>(51984),{},&*context.services,&*context.passability);
+        need(ordered.complete&&ordered.context&&ordered.context->services->randomFirst==secondExpected.services->randomFirst&&
+            ordered.figures.at(1).state->destinationX==1&&ordered.figures.at(1).state->destinationY==2&&
+            ordered.figures.at(2).state->destinationX==secondExpected.state->destinationX&&
+            ordered.figures.at(2).state->destinationY==secondExpected.state->destinationY&&
+            secondExpected.services->randomFirst!=firstExpected.services->randomFirst,
+            "ordered destination figures consume prior slot RNG state and publish final service state");
+        context.figures[bird.slot]=bird;
+        context.passability->cells.assign(51984,0);context.passability->spawn.spawns.fill({0,0});
+        context.services->randomFirst=0;context.services->randomSecond=16;
+        const auto fallback=originalFigureFirstUpdate(bird,refs,&context);
+        auto expected=*context.services;for(unsigned n=0;n<2000;++n)originalFigureRandomNext(expected);
+        need(fallback.state&&fallback.state->destinationX==0&&fallback.state->destinationY==0&&fallback.services->randomFirst==expected.randomFirst&&
+            fallback.services->randomSecond==expected.randomSecond,
+            "attempt1000 uses reachable spawn after exactly2000 RNG calls");
+        context.hunterLinks=std::map<size_t,OriginalFigureHunterLink>{{8,{3,1,2}}};bird.linkedBuilding=8;bird.action=31;
+        need(originalFigureFirstUpdate(bird,refs,&context).state->linkedBuilding==8,"Hunter live3 enabled positive workers retains linked building");
+        context.hunterLinks->at(8).workers=0;need(originalFigureFirstUpdate(bird,refs,&context).state->linkedBuilding==0,"Hunter zero worker link clears before action update");
     }
     {
         auto group=archive;group.numImages=256;group.sprites.resize(256);group.imageIndex.fill(1);
@@ -558,6 +640,14 @@ void corpus(){
         const auto payload=decodeOriginalMapContainer(savedBytes).payload;
         const auto services=originalFigureSavedServices(payload,save.terrainOffset);
         need(services.has_value(),"same SAV19 contains complete route storage and persisted RNG state");++servicesParsed;
+        const auto spawn=originalFigureSpawnServices(payload,save.sizeOffset);
+        need(spawn.has_value(),"same scenario6 supplies four type76 spawn coordinates and validated crop");
+        const auto passability=originalFigurePheasantPassability(save.terrain,save.layers.mapperStone,save.buildings,*spawn);
+        updateContext->services=decoyUpdateContext->services=*services;
+        updateContext->passability=decoyUpdateContext->passability=passability;
+        const auto hunterLinks=originalFigureHunterLinks(payload,save.buildings);
+        need(hunterLinks.has_value(),"same-source Hunter common5 and embedded data1 frame linked-building validation");
+        updateContext->hunterLinks=decoyUpdateContext->hunterLinks=hunterLinks;
         for(const auto& f:figures.live)if(f.route>0){need(size_t(f.route)<services->routeOwners.size()&&services->routeOwners[f.route]==int(f.slot)&&
             f.routeLength>=0&&f.routeLength<=500&&f.routeCursor>=0&&f.routeCursor<=f.routeLength,
             "serialized positive route has reciprocal live owner and bounded saved cursor/length");++routesValidated;}
@@ -580,8 +670,8 @@ void corpus(){
         postLoadComputed+=postLoad.computed;postLoadBlocked+=postLoad.blocked;
         const auto decodeWord=[&](uint32_t word){auto name=std::filesystem::path(originalFigureArchiveName(word>>14));name.replace_extension(".555");
             return decodeSG3Sprite(archives.at(word>>14),word&0x3fff,root.resolve("DATA/"+name.string())).image.valid();};
-        const auto ordered=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds),
-            orderedDecoys=originalFigureOrderedFirstPass(decoys,refs,save.terrain.flags,*modelSpeeds);
+        const auto ordered=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks),
+            orderedDecoys=originalFigureOrderedFirstPass(decoys,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks);
         need(ordered.accepted&&ordered.figures.size()==figures.live.size()&&ordered.computed+ordered.blocked==figures.live.size()&&
             ordered.computed==orderedDecoys.computed,"ordered pass partitions complete same-source live pool independent of saved images");
         orderedComputed+=ordered.computed;orderedPrefix+=ordered.prefixComputed;orderedComplete+=ordered.complete;
@@ -613,13 +703,17 @@ void corpus(){
             if(!update.state){++updateBlockedTypes[f.type];++updateBlockers[originalFigureUpdateStatusName(update.status)];continue;}
             ++updateComputed;++updateComputedTypes[f.type];const auto& u=*update.state;
             need(u.image==decoyUpdate.state->image&&u.secondaryImage==decoyUpdate.state->secondaryImage&&
-                u.action==f.action&&u.x==f.x&&u.y==f.y&&u.counter==f.counter&&
+                u.action==decoyUpdate.state->action&&u.x==f.x&&u.y==f.y&&u.counter==f.counter&&
                 u.herdTarget==decoyUpdate.state->herdTarget&&u.herdDistance==decoyUpdate.state->herdDistance&&
                 u.threat==decoyUpdate.state->threat&&u.threatDistance==decoyUpdate.state->threatDistance&&
                 u.idleCounter==decoyUpdate.state->idleCounter&&u.cooldowns==decoyUpdate.state->cooldowns,
                 "bounded original virtual update computes state from serialized non-image inputs");
+            if(f.action==19&&f.type==76)need(u.action==32&&update.services&&decoyUpdate.services&&
+                update.services->randomFirst==decoyUpdate.services->randomFirst&&update.services->randomSecond==decoyUpdate.services->randomSecond&&
+                u.destinationX==decoyUpdate.state->destinationX&&u.destinationY==decoyUpdate.state->destinationY,
+                "original action19 destination and mutated RNG depend only on same-source non-image services");
             if(f.type==76)need(u.idleCounter==f.idleCounter+(f.action==31)&&u.threat==0&&u.threatDistance==100&&u.movementMode==5&&
-                u.hidden==0&&u.freeMovement==0&&u.linkedBuilding==0&&u.cell==f.cell,
+                u.hidden==0&&u.freeMovement==0&&u.linkedBuilding==decoyUpdate.state->linkedBuilding&&u.cell==f.cell,
                 "original Pheasant computes predicates before its idle or bounded route branch");
             const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,{},&imageState);
             need(selected.status==OriginalFigureImageStatus::Selected&&selected.image==u.image,
@@ -719,28 +813,27 @@ void corpus(){
         <<",\"blocked\":"<<postLoadBlocked<<",\"blocked_types\":{},\"saved_word_comparison\":{\"equal_pairs\":"<<postLoadOracleMatched
         <<",\"changed_pairs\":"<<postLoadChanged<<",\"primary_changed\":"<<postLoadPrimaryChanged<<",\"secondary_clears\":"<<postLoadSecondaryChanged
         <<"},\"selected_nonzero\":"<<postLoadSelected<<",\"decoded\":"<<postLoadDecoded<<",\"decode_failures\":0,\"post_update_oracle\":\"unmeasured\"}\n";
-    need(updateComputed==50&&updateDecoded==50&&updateConsistent==50&&updateBlockedTypes[76]==26&&updateComputedTypes[76]==43,
-        "first-update state computes50/192, decodes50/50, selector consistency50/50; Pheasant43/69");
+    need(updateComputed==74&&updateDecoded==74&&updateConsistent==74&&updateComputedTypes[76]==67,
+        "first-update state computes74/192, decodes74/74, selector consistency74/74; Pheasant67/69");
     const std::map<std::string,size_t> expectedUpdateBlockers{
         {"building_virtual24_ordered_update",9},{"cart_leader_order_and_movement_4e7520",20},
-        {"goods_route_4e47a0_and_owner_mutations",21},{"pheasant_destination_spawn_reachability_59ec60_5af1c0",21},
-        {"pheasant_linked_building_59f399",5},{"type_action_route_target_combat_update",49},
+        {"goods_route_4e47a0_and_owner_mutations",21},{"pheasant_threat_qualification_4e5340",2},
+        {"type_action_route_target_combat_update",49},
         {"worker_owner_validity_and_movement_4e47a0_4e9620",17}};
-    need(updateBlockers==expectedUpdateBlockers,"individual refusal names and counts partition exactly142/192 occurrences");
+    need(updateBlockers==expectedUpdateBlockers,"individual refusal names and counts partition exactly118/192 occurrences");
     std::cout<<"{\"first_update_state\":true,\"k\":1,\"computed\":"<<updateComputed<<",\"live_total\":"<<live
         <<",\"decoded\":"<<updateDecoded<<",\"image_consistency\":"<<updateConsistent<<",\"decode_failures\":0,\"computed_types\":{\"1\":"<<updateComputedTypes[1]<<",\"76\":"<<updateComputedTypes[76]<<"},\"blocked_types\":{";
     bool updateComma=false;for(const auto& entry:updateBlockedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
     std::cout<<"},\"blockers\":{";updateComma=false;for(const auto& entry:updateBlockers){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
     std::cout<<"},\"first_draw\":\"after_explicit_k_admitted_updates\",\"ordinary_k\":[0,1],\"fast_forward_max_k\":10000,\"post_update_oracle\":\"unmeasured\"}\n";
-    need(orderedComputed==28&&orderedPrefix==46&&orderedDecoded==28&&orderedConsistent==28&&orderedComplete==2&&servicesParsed==6&&routesValidated==78&&
-        orderedComputedTypes[76]==21&&orderedComputedTypes[1]==7&&orderedBlockers["earlier_ordered_slot_uncomputed"]==142&&
+    need(orderedComputed==49&&orderedPrefix==67&&orderedDecoded==49&&orderedConsistent==49&&orderedComplete==3&&servicesParsed==6&&routesValidated==78&&
+        orderedComputedTypes[76]==42&&orderedComputedTypes[1]==7&&orderedBlockers["earlier_ordered_slot_uncomputed"]==122&&
         orderedBlockers["later_ordered_slot_may_write_earlier_figure"]==18,
-        "complete ordered pass computes28/192;46 prefix calls remain separately measured;78 reciprocal saved routes");
+        "complete ordered pass computes49/192;67 prefix calls remain separately measured;78 reciprocal saved routes");
     const std::map<std::string,size_t> expectedOrderedBlockers{{"cart_leader_order_and_movement_4e7520",1},
-        {"earlier_ordered_slot_uncomputed",142},{"goods_route_4e47a0_and_owner_mutations",1},
-        {"later_ordered_slot_may_write_earlier_figure",18},{"pheasant_destination_spawn_reachability_59ec60_5af1c0",1},
-        {"pheasant_linked_building_59f399",1}};
-    need(orderedBlockers==expectedOrderedBlockers,"ordered refusal names and counts partition exactly164/192 final states");
+        {"earlier_ordered_slot_uncomputed",122},{"goods_route_4e47a0_and_owner_mutations",1},
+        {"later_ordered_slot_may_write_earlier_figure",18},{"pheasant_threat_qualification_4e5340",1}};
+    need(orderedBlockers==expectedOrderedBlockers,"ordered refusal names and counts partition exactly143/192 final states");
     std::cout<<"{\"ordered_first_pass\":true,\"k\":1,\"computed\":"<<orderedComputed<<",\"live_total\":"<<live
         <<",\"prefix_computed\":"<<orderedPrefix<<",\"decoded\":"<<orderedDecoded<<",\"image_consistency\":"<<orderedConsistent<<",\"decode_failures\":0,\"complete_sources\":"<<orderedComplete
         <<",\"source_total\":6,\"services_parsed\":"<<servicesParsed<<",\"positive_routes_validated\":"<<routesValidated<<",\"computed_types\":{";

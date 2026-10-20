@@ -36,8 +36,13 @@ def main():
         ('route_phase', 'original_figure_update.hpp', 'phase>(speed==4?1:2)?0:1;', 'phase>(speed==4?1:3)?0:1;'),
         ('route_step', 'original_figure_update.hpp', '++f.progress;', 'f.progress+=2;'),
         ('pool_order', 'original_figure_update.hpp', 'for(size_t slot=1;slot<2000;++slot)', 'for(size_t slot=1999;slot>0;--slot)'),
-        ('rng_saved', 'original_figure.hpp', 'first=1291340,second=1291344;', 'first=1291344,second=1291340;'),
+        ('rng_saved', 'original_figure.hpp', 'first=1299340,second=1299344;', 'first=1299344,second=1299340;'),
         ('rng_step', 'original_figure_update.hpp', 'value>>4)^value', 'value>>3)^value'),
+        ('passability_water', 'original_figure_update.hpp', 'else if(t&0x40)mask=4;', 'else if(t&0x40)mask=0;'),
+        ('reachability', 'original_figure_update.hpp', 'constexpr int offsets[]={-228,1,228,-1};', 'constexpr int offsets[]={-229,1,229,-1};'),
+        ('spawn_offset', 'original_figure.hpp', 'at+853+4*n', 'at+853+2*n'),
+        ('destination_rng', 'original_figure_update.hpp', 'x+=int(14*scale/4)', 'x+=int(14*scale/2)'),
+        ('ordered_rng', 'original_figure_update.hpp', 'if(result.services)context->services=result.services;', 'if(result.services)context->services=before.services;'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
     ]
     if args.only:

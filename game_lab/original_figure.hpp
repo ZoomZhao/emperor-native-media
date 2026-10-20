@@ -43,16 +43,59 @@ struct OriginalFigureSavedServices {
     uint32_t randomFirst=0,randomSecond=0;
 };
 // SAV19 terrain-relative framing:0x5313D1 owners2000 bytes,0x5313E2
-// directions500000 bytes,0x531451/45F two RNG registers. T is the caller's
+// directions500000 bytes,100 version6 records of175 wire bytes, then
+//0x531451/45F two RNG registers. T is the caller's
 // independently validated terrain anchor, not a byte-pattern search here.
 inline std::optional<OriginalFigureSavedServices> originalFigureSavedServices(
     const std::vector<uint8_t>& data,size_t terrain){
-    constexpr size_t owners=779760,directions=781760,first=1291340,second=1291344;
+    constexpr size_t owners=779760,directions=781760,first=1299340,second=1299344;
     if(data.size()>8u*1024u*1024u||terrain>data.size()||second+4>data.size()-terrain)return std::nullopt;
+    for(size_t n=0;n<100;++n)if(detail::u16(data.data()+terrain+1281760+175*n)!=6)return std::nullopt;
     OriginalFigureSavedServices out;
     for(size_t n=0;n<1000;++n)out.routeOwners[n]=detail::i16(data.data()+terrain+owners+2*n);
     out.directions.assign(data.begin()+terrain+directions,data.begin()+terrain+directions+500000);
     out.randomFirst=detail::u32(data.data()+terrain+first);out.randomSecond=detail::u32(data.data()+terrain+second);
+    return out;
+}
+struct OriginalFigureSpawnServices {
+    uint32_t side=0,cropBase=0;
+    std::array<std::pair<int16_t,int16_t>,4> spawns{};
+};
+struct OriginalFigureHunterLink {uint8_t alive=0,enabled=0;int16_t workers=0;};
+// Read the already framed Hunter records without changing the building reader.
+//0x5F36E0->0x5F1240->0x51CE00->0x51C3A0;embedded data+5C is tail+92.
+inline std::optional<std::map<size_t,OriginalFigureHunterLink>> originalFigureHunterLinks(
+    const std::vector<uint8_t>& data,const OriginalBuildingProfile& buildings){
+    if(data.size()>8u*1024u*1024u||buildings.status!=OriginalBuildingStatus::Complete||buildings.parsedRecords!=4000)return std::nullopt;
+    std::map<size_t,OriginalFigureHunterLink> out;
+    for(const auto& f:buildings.footprints)if(f.type==0x21){
+        size_t at=f.recordOffset;
+        if(at>data.size()||data.size()-at<2)return std::nullopt;
+        const auto tag=detail::u16(data.data()+at);at+=2;
+        if(tag==0xffff){if(data.size()-at<4)return std::nullopt;const size_t n=detail::u16(data.data()+at+2);
+            if(n>data.size()-at-4)return std::nullopt;at+=4+n;}
+        else if(tag<0x8000)return std::nullopt;
+        if(data.size()-at<182+134||detail::u16(data.data()+at)!=5||detail::u16(data.data()+at+16)!=0x21||
+            detail::u16(data.data()+at+182)!=1||detail::u16(data.data()+at+184)!=1||
+            detail::u16(data.data()+at+312)!=1||detail::u16(data.data()+at+314)!=1)return std::nullopt;
+        out.emplace(f.slot,OriginalFigureHunterLink{data[at+2],data[at+182+92],detail::i16(data.data()+at+62)});
+    }
+    return out;
+}
+//0x5312CB->0x52CD90 scenario6: individual wire requests, not runtime deltas.
+// The caller supplies its independently validated city-size anchor.
+inline std::optional<OriginalFigureSpawnServices> originalFigureSpawnServices(
+    const std::vector<uint8_t>& data,size_t sizeAnchor){
+    if(data.size()>8u*1024u*1024u||sizeAnchor<28||sizeAnchor>data.size())return std::nullopt;
+    const size_t at=sizeAnchor-28;
+    if(data.size()-at<1461||detail::u16(data.data()+at)!=6)return std::nullopt;
+    OriginalFigureSpawnServices out;out.side=detail::u32(data.data()+sizeAnchor);
+    out.cropBase=detail::u32(data.data()+sizeAnchor+8);
+    if(!out.side||out.side>228||detail::u32(data.data()+sizeAnchor+4)!=out.side||
+        out.cropBase!=((228-out.side)/2)*229)return std::nullopt;
+    // Type76 is neither regional predator nor prey;0x59CB70 returns category0
+    // for all three region rows.0x59C930 reads dword arrays through signed words.
+    for(size_t n=0;n<4;++n)out.spawns[n]={detail::i16(data.data()+at+853+4*n),detail::i16(data.data()+at+869+4*n)};
     return out;
 }
 enum class OriginalFigureStatus {Complete,Unsupported,Malformed,BudgetExceeded};

@@ -100,13 +100,66 @@ struct OriginalFigureFirstUpdate {
     OriginalFigureUpdateStatus status=OriginalFigureUpdateStatus::UnsupportedType;
     uint32_t updaterVA=0;
     std::optional<OriginalFigure> state;
+    std::optional<OriginalFigureSavedServices> services;
 };
+struct OriginalFigurePassability {
+    OriginalFigureSpawnServices spawn;
+    std::vector<uint16_t> cells;
+};
+//0x5AD920/0x5AD440, restricted to a completely parsed building-free pool.
+// Only mask0x51C is published. River bit10000 refuses:0x41F400 can rewrite it
+// and create pointers whose ground image selects passability. With no river
+// anywhere that prepass has no writes/pointers. Building virtual+CC/+270 refuse.
+inline std::optional<OriginalFigurePassability> originalFigurePheasantPassability(
+    const OriginalMapTerrain& terrain,const std::vector<uint8_t>& roadDistance,
+    const OriginalBuildingProfile& buildings,const OriginalFigureSpawnServices& spawn){
+    if(!terrain.valid()||roadDistance.size()!=51984||buildings.status!=OriginalBuildingStatus::Complete||
+        buildings.parsedRecords!=4000||spawn.side!=terrain.activeSide||spawn.cropBase!=((228-spawn.side)/2)*229||
+        std::any_of(buildings.slotTypes.begin(),buildings.slotTypes.end(),[](uint16_t type){return type!=0;})||
+        std::any_of(terrain.flags.begin(),terrain.flags.end(),[](uint32_t t){return (t&0x10000)!=0;}))return std::nullopt;
+    OriginalFigurePassability out;out.spawn=spawn;out.cells.resize(51984);
+    for(unsigned y=0;y<spawn.side;++y)for(unsigned x=0;x<spawn.side;++x){
+        const size_t cell=spawn.cropBase+y*228+x;const uint32_t t=terrain.flags[cell];uint16_t mask=0;
+        if(t&0x100)mask=2;
+        else if(t&0x800)mask=t&0x40?4:0x4000;
+        else if((t&0x80000)||(t&0x10004)==0x10004)mask=2;
+        else if((t&0x400)&&(t&0x40)&&!(t&0x800000))mask=0x100;
+        else if(t&0x40)mask=4;
+        else if(t&(0x400|0x20))mask=0x10;
+        else if((t&0x800000)&&(t&0x200)&&!(t&0x400000))mask=0x400;
+        else if((t&0x200)&&!(t&0x400000))mask=0x1000;
+        else if(t&0x200)mask=2;
+        else if((t&0x20000)&&roadDistance[cell]!=255)mask=0x80;
+        else if(t&0x10000000)mask=0x20;
+        else if(t&0x8008)return std::nullopt;
+        else if(t&0x80061001)mask=(t&0x4000)&&!(t&0x1000)?2:0x10;
+        else mask=t&0xafffde6f?2:0x10;
+        out.cells[cell]=mask&0x51c;
+    }
+    return out;
+}
+//0x5AF1C0/0x5AF2C0: cardinal N,E,S,W flood. Start is visited even when its
+// own mask is blocked. Destinations are linear backing cells, not clamped x/y.
+inline std::optional<std::vector<uint8_t>> originalFigureReachableCells(
+    const OriginalFigurePassability& map,int x,int y){
+    const int64_t start=int64_t(map.spawn.cropBase)+x+int64_t(y)*228;
+    if(map.cells.size()!=51984||start<0||start>=51984)return std::nullopt;
+    std::vector<uint8_t> seen(51984);std::vector<size_t> queue{size_t(start)};seen[size_t(start)]=1;
+    constexpr int offsets[]={-228,1,228,-1};
+    for(size_t at=0;at<queue.size();++at)for(int delta:offsets){const int64_t next=int64_t(queue[at])+delta;
+        if(next<0||next>=51984)continue;
+        if(!seen[size_t(next)]&&(map.cells[size_t(next)]&0x51c)){seen[size_t(next)]=1;queue.push_back(size_t(next));}}
+    return seen;
+}
 // Complete saved context, ordered by pool slot. Both image words are erased.
 // This models one virtual call against that explicit context, not the global
 // pool pass: preceding unsupported slot updates are not silently invented.
 struct OriginalFigureUpdateContext {
     std::map<size_t,OriginalFigure> figures;unsigned view=0;
     std::map<unsigned,int> modelSpeeds;
+    std::optional<OriginalFigureSavedServices> services;
+    std::optional<OriginalFigurePassability> passability;
+    std::optional<std::map<size_t,OriginalFigureHunterLink>> hunterLinks;
 };
 //0x4189B0 advances both persisted registers31 times;destination0x59EDE0
 // consumes first&0x7FFF after each call. No process-start seed is substituted.
@@ -115,6 +168,19 @@ inline uint16_t originalFigureRandomNext(OriginalFigureSavedServices& state){
             return (value>>1)|((((value>>4)^value)&1u)<<30);};
         state.randomFirst=advance(state.randomFirst);state.randomSecond=advance(state.randomSecond);}
     return uint16_t(state.randomFirst&0x7fff);
+}
+struct OriginalFigureRouteDirection {OriginalFigure state;OriginalFigureSavedServices services;};
+//0x4E8B40, including0x4E8A30's reciprocal owner release. No route is generated.
+inline std::optional<OriginalFigureRouteDirection> originalFigureSavedRouteDirection(
+    const OriginalFigure& saved,const OriginalFigureSavedServices& services){
+    if(saved.route<1||saved.route>=1000||saved.routeCursor<0||saved.routeLength<0||saved.routeLength>500||
+        services.directions.size()!=500000)return std::nullopt;
+    OriginalFigureRouteDirection out{saved,services};
+    if(saved.routeCursor>=saved.routeLength){
+        if(out.services.routeOwners[saved.route]==int(saved.slot))out.services.routeOwners[saved.route]=0;
+        out.state.route=0;out.state.direction=8;
+    }else out.state.direction=services.directions[size_t(saved.route)*500+size_t(saved.routeCursor)];
+    return out;
 }
 inline std::optional<OriginalFigureUpdateContext> originalFigureUpdateContext(const OriginalFigureProfile& profile){
     if(profile.status!=OriginalFigureStatus::Complete||profile.declared!=2000||profile.parsed!=2000||profile.slots.size()!=2000)return std::nullopt;
@@ -214,11 +280,20 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=0x59f310;out.status=OriginalFigureUpdateStatus::PheasantPredicates;
     if(saved.type!=76)return out;
-    if(saved.action==19||saved.action==30){out.status=OriginalFigureUpdateStatus::PheasantDestination;return out;}
-    if(saved.action!=31&&saved.action!=32)return out;
+    if(saved.action==30){out.status=OriginalFigureUpdateStatus::PheasantDestination;return out;}
+    if(saved.action!=19&&saved.action!=31&&saved.action!=32)return out;
+    if(saved.action==19&&(!context||!context->services||!context->passability)){
+        out.status=OriginalFigureUpdateStatus::PheasantDestination;return out;}
     if(!context||context->view>6||(context->view&1)||!context->figures.count(saved.slot)){
         out.status=OriginalFigureUpdateStatus::PheasantContext;return out;}
-    if(saved.linkedBuilding){out.status=OriginalFigureUpdateStatus::PheasantBuilding;return out;}
+    uint32_t linkedBuilding=saved.linkedBuilding;
+    if(linkedBuilding){
+        if(!context->hunterLinks){out.status=OriginalFigureUpdateStatus::PheasantBuilding;return out;}
+        const auto found=context->hunterLinks->find(linkedBuilding);
+        if(found==context->hunterLinks->end()){out.status=OriginalFigureUpdateStatus::PheasantBuilding;return out;}
+        const auto& b=found->second;
+        if(!b.enabled||(b.alive!=1&&b.alive!=3)||!b.workers)linkedBuilding=0;
+    }
     const auto distance=[&](const OriginalFigure& f){return std::max(std::abs(int(saved.x)-f.x),std::abs(int(saved.y)-f.y));};
     const auto linked=[&](uint32_t slot)->const OriginalFigure*{
         const auto found=context->figures.find(slot);return found==context->figures.end()?nullptr:&found->second;};
@@ -231,6 +306,8 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
         if(f.slot!=saved.slot&&f.alive&&f.action!=4&&!(f.type>=75&&f.type<=77)&&distance(f)<=3){
             out.status=OriginalFigureUpdateStatus::PheasantThreat;return out;}}
     auto f=saved;f.image=f.secondaryImage=0;
+    std::optional<OriginalFigureSavedServices> updatedServices;
+    f.linkedBuilding=linkedBuilding;
     f.threat=0;f.threatDistance=100; //0x59EB33..4A: no qualified threat in this domain.
     //0x59E670 preserves a valid target INCLUDING self. Search0x59DBD0 excludes
     // self, visits the saved/load animal vector ascending, and returns the
@@ -254,7 +331,39 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
     f.movementMode=5; //VA0x85CD84/file0x45CD84, type76 row+2C.
     f.freeMovement=0;f.hidden=0;
     for(auto& cooldown:f.cooldowns)if(cooldown>0)--cooldown;
-    if(saved.action==31){
+    if(saved.action==19){
+        // No threat/mate; successful herd predicate bypasses0x59E7B0. Whether
+        // proximity0x59EBD0 is true or false, the first successful destination
+        // call0x59EDE0 ends the ordered predicate chain. No movement follows.
+        out.status=OriginalFigureUpdateStatus::PheasantDestination;
+        if(!herdQualified)return out;
+        const auto& map=*context->passability;
+        const auto reached=originalFigureReachableCells(map,f.x,f.y);
+        if(!reached)return out;
+        const auto reachable=[&](int x,int y){
+            const int64_t cell=int64_t(map.spawn.cropBase)+x+int64_t(y)*228;
+            if(cell<0||cell>=51984)return false;
+            return (*reached)[size_t(cell)]!=0;
+        };
+        int best=500,spawnX=0,spawnY=0;
+        for(const auto& spawn:map.spawn.spawns){const int distance=std::max(std::abs(int(f.x)-spawn.first),std::abs(int(f.y)-spawn.second));
+            if(distance>=best)continue;
+            if(reachable(spawn.first,spawn.second)){best=distance;spawnX=spawn.first;spawnY=spawn.second;}}
+        if(best==500)return out;
+        auto services=*context->services;bool found=false;unsigned scale=3;
+        for(unsigned attempt=0;attempt<=1000;++attempt){
+            if(attempt==500||attempt==750)++scale;
+            int x=spawnX,y=spawnY;
+            if(attempt<1000){x+=int(14*scale/4)-originalFigureRandomNext(services)%int(15*scale/2);
+                y+=int(14*scale/4)-originalFigureRandomNext(services)%int(15*scale/2);}
+            if(reachable(x,y)){f.destinationX=int16_t(x);f.destinationY=int16_t(y);
+                f.destinationCell=uint32_t(int64_t(map.spawn.cropBase)+x+int64_t(y)*228);found=true;break;}
+        }
+        if(!found)return out; // Success at the reachable spawn is guaranteed at1000.
+        if(f.route>0){if(f.route>=1000)return out;
+            if(services.routeOwners[f.route]==int(f.slot))services.routeOwners[f.route]=0;f.route=0;}
+        f.action=32;updatedServices=std::move(services);
+    }else if(saved.action==31){
         f.idleCounter+=1; //0x4C9750 increments modulo32 before signed >=200.
         const int64_t idle=f.idleCounter>INT32_MAX?int64_t(f.idleCounter)-4294967296LL:f.idleCounter;
         if(idle>=200)f.action=30;
@@ -285,7 +394,7 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
     const uint64_t image=uint64_t(group->first)+f.frame*directions+std::min(unsigned(direction),unsigned(directions)-1);
     if(image>>14!=group->first>>14||(image&0x3fff)>=archives.at(code>>9)->sprites.size()){
         out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
-    f.image=uint32_t(image);out.state=f;out.status=OriginalFigureUpdateStatus::Computed;return out;
+    f.image=uint32_t(image);out.state=f;out.services=std::move(updatedServices);out.status=OriginalFigureUpdateStatus::Computed;return out;
 }
 // One per-type virtual update, after callback clearing, with an explicit k=1
 // premise. This does not claim to run the entire figure-pool/city pass. Kind13
@@ -346,13 +455,17 @@ struct OriginalFigureOrderedPass {
 // No completed city/world pass is asserted when any virtual call is refused.
 inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFigureProfile& profile,
     const std::map<uint32_t,const SG3Archive*>& archives,const std::vector<uint32_t>& terrainFlags,
-    const std::map<unsigned,int>& modelSpeeds={}){
+    const std::map<unsigned,int>& modelSpeeds={},const OriginalFigureSavedServices* services=nullptr,
+    const OriginalFigurePassability* passability=nullptr,const std::map<size_t,OriginalFigureHunterLink>* hunterLinks=nullptr){
     OriginalFigureOrderedPass out;auto context=originalFigureUpdateContext(profile);
     auto canonical=profile;canonical.live.clear();
     for(const auto& f:profile.slots)if(f.alive)canonical.live.push_back(f);
     const auto callbacks=originalFigurePostLoadStep(canonical,archives);
     if(!context||!callbacks.accepted||callbacks.blocked||terrainFlags.size()!=51984)return out;
     context->modelSpeeds=modelSpeeds;
+    if(services)context->services=*services;
+    if(passability)context->passability=*passability;
+    if(hunterLinks)context->hunterLinks=*hunterLinks;
     for(const auto& entry:callbacks.figures){auto& f=context->figures.at(entry.first);
         f.image=entry.second.images->first;f.secondaryImage=entry.second.images->second;}
     out.accepted=true;bool priorBlocked=false;
@@ -380,7 +493,8 @@ inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFi
                     if(f.leaderLink){context->figures.at(size_t(f.leaderLink)).follower=int16_t(slot);
                         if(f.leaderLink==int(slot))f.follower=int16_t(slot);}
                     result=originalFigureFirstUpdate(f,archives,&*context,terrainFlags[f.cell]);
-                    if(result.state){result.state->priorProgress=result.state->progress;context->figures.at(slot)=*result.state;}
+                    if(result.state){result.state->priorProgress=result.state->progress;context->figures.at(slot)=*result.state;
+                        if(result.services)context->services=result.services;}
                     else *context=std::move(before);
                 }
             }
@@ -394,7 +508,7 @@ inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFi
     // publishes final states. Incomplete prefix progress remains diagnostic.
     for(auto& entry:out.figures)if(entry.second.state){
         if(out.complete)entry.second.state=context->figures.at(entry.first);
-        else {entry.second.state.reset();entry.second.status=OriginalFigureUpdateStatus::LaterSlotEffects;}}
+        else {entry.second.state.reset();entry.second.services.reset();entry.second.status=OriginalFigureUpdateStatus::LaterSlotEffects;}}
     if(out.complete)out.context=std::move(context);
     else {out.blocked+=out.computed;out.computed=0;}
     return out;
