@@ -184,7 +184,7 @@ MapGroundResult renderMapGroundViewport(const OriginalMapTerrain& terrain,const 
 }
 MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
         const OriginalTerrainState& state,const std::vector<MapImageGridTileset>& tilesets,
-        const OriginalMapCamera& camera) {
+        const OriginalMapCamera& camera,MapImageGridOrder order) {
     MapImageGridResult result;const auto activity=analyzeOriginalMap(terrain);size_t pixels=0;
     if(!terrain.valid()||!state.valid()||terrain.flags.size()!=state.terrain.size()||
        !activity.cropValid()||
@@ -347,7 +347,14 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
             }
             for(size_t g=0;g<groups.size();++g)if(overlap[g])groups[g].overlap=true;
             for(size_t g=0;g<groups.size();++g) {
-                const auto& group=groups[g];
+                auto& group=groups[g];
+                if(order==MapImageGridOrder::View0DrawCorner){
+                    const size_t corner=group.anchor+size_t(group.cols-1)*OriginalMapTerrain::storageSide;
+                    // This option consumes complete SAV stamps. Never schedule
+                    // an old block over a newer word at an overwritten corner.
+                    if(!group.seen[size_t(group.cols-1)*group.cols]||
+                        state.image[corner]!=state.image[group.anchor]||!(state.draw[corner]&0x40))group.conflict=true;
+                }
                 if(group.conflict||group.overlap||!group.seen[0])continue;
                 anchorOfGroup[g]=int32_t(anchors.size());
                 anchors.push_back(CompositeAnchor{tilesetAt[group.anchor],group.index,
@@ -375,8 +382,11 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
                 if(!group.seen[0]){reasonAt[cell]=5;continue;}
                 plan[cell]=-2;
             }
-            for(size_t g=0;g<groups.size();++g)
-                if(anchorOfGroup[g]>=0)plan[groups[g].anchor]=anchorOfGroup[g];
+            for(size_t g=0;g<groups.size();++g)if(anchorOfGroup[g]>=0) {
+                const size_t drawCell=groups[g].anchor+(order==MapImageGridOrder::View0DrawCorner?
+                    size_t(groups[g].cols-1)*OriginalMapTerrain::storageSide:0);
+                plan[drawCell]=anchorOfGroup[g];
+            }
             static const char* const reasons[]={"","subTile group side != record cols",
                 "draw offset outside the record block","block anchor outside the active crop",
                 "conflicting draw offsets for one block anchor",
@@ -395,7 +405,9 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
                     component.fullRect,component.divisible,reasons[reason]});
             }
         }
-        // Same authored flat diagnostic painter order as the other viewports.
+        // Increasing screen row, then left-to-right. In view0 this is (x+y,x)
+        // (0x4699D0 -> screen-cell table, 0x46FF60 -> scan). SAV composites
+        // are scheduled at their marked draw corner, while geometry uses origin.
         for(uint32_t depth=0;depth<2*activity.cropSide-1;++depth)for(uint32_t x=0;x<activity.cropSide;++x) {
             if(depth<x||depth-x>=activity.cropSide)continue;const uint32_t y=depth-x;
             const size_t cell=size_t(y+activity.cropOrigin)*OriginalMapTerrain::storageSide+x+activity.cropOrigin;
@@ -418,7 +430,8 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
                 // full block it is cols*cols, for a partially overwritten block the
                 // overwritten cells are accounted by their own records.
                 const size_t blockCells=anchor.cells;
-                const double dx=double(x)-camera.centerX,dy=double(y)-camera.centerY;
+                const uint32_t originY=y-(order==MapImageGridOrder::View0DrawCorner?anchor.cols-1:0);
+                const double dx=double(x)-camera.centerX,dy=double(originY)-camera.centerY;
                 const double px=(dx-dy)*40*scale+double(camera.width)/2,py=(dx+dy)*20*scale+double(camera.height)/2;
                 const int left=int(std::floor(px+.5))-int((anchor.cols-1)*40+39)*scale;
                 const int top=int(std::floor(py+.5))-(int(anchor.height)-int(anchor.cols)*40+20)*scale;

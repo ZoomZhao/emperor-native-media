@@ -18,11 +18,14 @@ struct OriginalBuildingImageInputs {
     std::optional<uint8_t> randomByte;
 };
 struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0,height=0;size_t slot=0,recordOffset=0;std::optional<OriginalWellImageInputs> wellImageInputs;std::optional<OriginalBuildingImageInputs> imageInputs;};
+// A raw common-record position whose occupied shape is not yet established.
+struct OriginalBuildingMarker {uint16_t type=0,x=0,y=0;size_t slot=0;};
 enum class OriginalBuildingStatus {Complete,UnsupportedTail,MissingAnchor,AmbiguousAnchor,Malformed,BudgetExceeded};
 struct OriginalBuildingProfile {
     OriginalBuildingStatus status=OriginalBuildingStatus::MissingAnchor;
     size_t parsedRecords=0,namedWellRecords=0,rejectedTerrainFootprints=0,namedInspectorRecords=0,namedWatchtowerRecords=0,liveSizedRecords=0,unsupportedFootprintRecords=0,clearedClassRecords=0,classReferencesVerified=0;
     std::vector<OriginalBuildingFootprint> footprints;
+    std::vector<OriginalBuildingMarker> unplacedMarkers;
     std::map<uint16_t,size_t> liveTypeCounts; // Includes live types whose placement is withheld.
 };
 inline const char* originalBuildingName(uint16_t type){
@@ -228,7 +231,11 @@ inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint
             if(namedOriginalBuilding(type,name)){if(type==0x48)++result.namedWellRecords;else if(type==0x7c)++result.namedInspectorRecords;else ++result.namedWatchtowerRecords;}
             if(type&&data[at+2]&&data[at+5]){
                 ++result.liveSizedRecords;++result.liveTypeCounts[type];
-                if(!originalBuildingSquareType(type)&&type!=0x3b&&type!=0x3c){++result.unsupportedFootprintRecords;at+=common+*tail;++result.parsedRecords;continue;}
+                if(!originalBuildingSquareType(type)&&type!=0x3b&&type!=0x3c){
+                    ++result.unsupportedFootprintRecords;
+                    result.unplacedMarkers.push_back({type,detail::u16(data.data()+at+8),detail::u16(data.data()+at+10),slot});
+                    at+=common+*tail;++result.parsedRecords;continue;
+                }
                 OriginalBuildingFootprint f;f.type=type;f.x=detail::u16(data.data()+at+8);f.y=detail::u16(data.data()+at+10);f.size=data[at+5];f.slot=slot;f.recordOffset=begin;
                 if(type==0x3b||type==0x3c){const auto rotation=data[at+common+96];if(rotation>1){++result.unsupportedFootprintRecords;at+=common+*tail;++result.parsedRecords;continue;}const uint8_t side=type==0x3b?4:6;f.width=rotation?7:side;f.height=rotation?side:7;}
                 if(type==0x48||type==0x7c||type==0x7f){OriginalWellImageInputs inputs;inputs.word16=detail::i16(data.data()+at+18);inputs.byte6f=data[at+(version==5?100:99)];f.wellImageInputs=inputs;}

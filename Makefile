@@ -32,6 +32,11 @@ building-image-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/building_image_binding.py --mode release
 building-image-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/building_image_binding.py --mode undefined
+.PHONY: building-scene-test building-scene-test-undefined
+building-scene-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/building_scene.py --mode release
+building-scene-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/building_scene.py --mode undefined
 original-random-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/original_random.py test
 original-random-test-undefined:

@@ -100,7 +100,7 @@ std::string describeOriginalSave(const OriginalSaveResult& save){
     case OriginalSaveStatus::BudgetExceeded:return "SAV 输入、标记或解码预算超限";
     case OriginalSaveStatus::LoadedSnapshot:break;
     }
-    return "SAV13 已保存快照；"+std::string(save.readStable?"两次读取一致":"内存字节输入")+"；5 组原始字段已保留，含未知 following_u32。非当前内存，不恢复建筑图像/规则；"+describeOriginalBuildingProfile(save.buildings)+"。";
+    return "SAV13 已保存快照；"+std::string(save.readStable?"两次读取一致":"内存字节输入")+"；5 组原始字段已保留，含未知 following_u32。非当前内存；空间视图单独绑定静态建筑基座，不恢复规则；"+describeOriginalBuildingProfile(save.buildings)+"。";
 }
 std::optional<OriginalSaveCell> originalSaveCell(const OriginalMapTerrain& terrain,
     const OriginalSaveCellLayers& layers,int64_t x,int64_t y){

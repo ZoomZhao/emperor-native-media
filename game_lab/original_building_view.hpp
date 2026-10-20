@@ -20,8 +20,9 @@ struct OriginalBuildingView {DecodedImage image;size_t valid=0,rejected=0,visibl
 // Flat saved-coordinate footprint over the SAME SAV's numerical terrain. Amber
 // is an annotation,not original artwork. No MAP substitute or guessed sprite.
 inline OriginalBuildingView renderOriginalBuildingFootprints(const OriginalMapTerrain& terrain,
-    const std::vector<OriginalBuildingFootprint>& footprints,const OriginalMapCamera& camera,int bit=-1){
-    OriginalBuildingView result;if(footprints.size()>4000)return result;
+    const std::vector<OriginalBuildingFootprint>& footprints,const OriginalMapCamera& camera,int bit=-1,
+    const std::vector<OriginalBuildingMarker>& markers={}){
+    OriginalBuildingView result;if(footprints.size()>4000||markers.size()>4000)return result;
     result.image=renderOriginalMapSpatialFlags(terrain,camera,bit);if(!result.image.valid())return result;
     auto line=[&](int x0,int y0,int x1,int y1){
         bool visible=false;const int dx=std::abs(x1-x0),sx=x0<x1?1:-1,dy=-std::abs(y1-y0),sy=y0<y1?1:-1;int error=dx+dy;
@@ -36,6 +37,14 @@ inline OriginalBuildingView renderOriginalBuildingFootprints(const OriginalMapTe
         const double px[]={origin->x,origin->x+40*w*scale,origin->x+40*(w-h)*scale,origin->x-40*h*scale};
         const double py[]={origin->y-20*scale,origin->y+20*(w-1)*scale,origin->y+20*(w+h-1)*scale,origin->y+20*(h-1)*scale};
         bool visible=false;for(size_t edge=0;edge<4;++edge){const size_t next=(edge+1)%4;visible|=line(int(std::floor(px[edge]+.5)),int(std::floor(py[edge]+.5)),int(std::floor(px[next]+.5)),int(std::floor(py[next]+.5)));}result.visible+=visible;
-    }return result;
+    }
+    // A cross denotes only the saved common-record coordinate, never a guessed
+    // entertainment-square footprint. Marker size is an authored UI choice.
+    for(const auto& marker:markers){
+        const auto p=projectOriginalMapCell(terrain,camera,marker.x,marker.y);if(!p)continue;
+        const int x=int(std::floor(p->x+.5)),y=int(std::floor(p->y+.5)),r=4*int(camera.scale);
+        line(x-r,y,x+r,y);line(x,y-r,x,y+r);
+    }
+    return result;
 }
 }

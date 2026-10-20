@@ -99,13 +99,20 @@ struct MapImageGridStats {
     std::vector<MapImageGridCompositeMismatch> compositeMismatches;
 };
 struct MapImageGridResult { DecodedImage image; MapImageGridStats stats; bool experimental=true; };
+// SAV base stamps use the view-0 draw corner (x,y+s-1), not the storage
+// origin, for painter order. 0x4B72B0 marks that corner; 0x46FF60 scans screen
+// rows left-to-right. Keep the historical MAP diagnostic order as the default.
+// This option requires the composite's marked draw corner to survive; a partial
+// overwrite there remains unsupported instead of replacing the newer cell.
+enum class MapImageGridOrder { FootprintOrigin, View0DrawCorner };
 // Render the stored surface-image grid verbatim: the per-cell id is read from the
 // MAP-decoded 0x00FE9880 grid, never re-derived from the dispatch chain. Tilesets
 // without a supplied archive are counted (archiveUnavailable), not guessed. A
 // multi-tile record is placed once per block from the cell's own draw-state offset
 // (0x00FDCD70) when the subTile group side (0x00F9D620) equals the declared side.
 MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain&, const OriginalTerrainState&,
-    const std::vector<MapImageGridTileset>&, const OriginalMapCamera&);
+    const std::vector<MapImageGridTileset>&, const OriginalMapCamera&,
+    MapImageGridOrder order=MapImageGridOrder::FootprintOrigin);
 
 // ---- Chain score against the stored grid -----------------------------------
 // Per-branch tally of the reconstructed chain against the stored 0x00FE9880 grid,

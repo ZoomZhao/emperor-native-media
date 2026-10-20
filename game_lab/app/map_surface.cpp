@@ -8,7 +8,25 @@
 
 namespace game_lab {
 void AppMapSurface::clear() {
-    state_.reset(); terrain_ = {}; error_.clear();
+    state_.reset(); savedBuildings_.reset(); terrain_ = {}; error_.clear();
+}
+bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile){
+    clear();
+    if(!archives_.count(2)){
+        auto index=loadSG3(root_.resolve("DATA/China_General.sg3"));
+        if((index.version!=213&&index.version!=214)||!index.numImages||index.numImages!=index.sprites.size()){
+            error_="SAV 建筑图包不可用；保留数值占地";return false;
+        }
+        archives_.emplace(2,Archive{std::move(index),root_.resolve("DATA/China_General.555")});
+    }
+    auto scene=composeOriginalBuildingScene(terrain,profile,archives_.at(2).index);
+    if(!scene.accepted){error_="SAV 建筑表或活动框不完整；保留数值占地";return false;}
+    terrain_=terrain;savedBuildings_=std::move(scene);return true;
+}
+OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapCamera& camera,int bit)const{
+    if(!savedBuildings_||!archives_.count(2))return {};
+    const auto& archive=archives_.at(2);
+    return renderOriginalBuildingScene(terrain_,*savedBuildings_,archive.index,archive.companion,camera,bit);
 }
 bool AppMapSurface::select(const std::string& relativeMap, const OriginalMapTerrain& expected) {
     clear();

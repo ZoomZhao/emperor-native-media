@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 #include "../map_reference.hpp"
+#include "../original_building_scene.hpp"
 #include "../resource_root.hpp"
 #include <map>
 #include <optional>
@@ -39,6 +40,8 @@ public:
     void clear();
     bool select(const std::string& relativeMap, const OriginalMapTerrain& expected);
     bool select(const OriginalMapSource&,const OriginalMapTerrain& expected);
+    bool selectSavedBuildings(const OriginalMapTerrain&,const OriginalBuildingProfile&);
+    OriginalBuildingSceneView renderSavedBuildings(const OriginalMapCamera&,int bit=-1) const;
     bool available() const { return state_.has_value(); }
     const std::string& error() const { return error_; }
     MapImageGridResult render(const OriginalMapCamera&) const;
@@ -50,6 +53,7 @@ private:
     ResourceRoot root_;
     OriginalMapTerrain terrain_;
     std::optional<OriginalTerrainState> state_;
+    std::optional<OriginalBuildingScene> savedBuildings_;
     std::map<uint32_t, Archive> archives_;
     std::string error_;
 };

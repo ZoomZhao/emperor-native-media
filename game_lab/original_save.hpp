@@ -18,8 +18,8 @@ struct OriginalSaveResult {
     size_t inputBytes=0,decodedBytes=0,frames=0,sizeOffset=0,terrainOffset=0;
     bool readStable=false;
 };
-// Conservative SAV13 data profile from published marker/skip facts. No building,
-// walker, clock, engine selector or authored city model is parsed or mutated.
+// Conservative SAV13 data profile plus the bounded published building table.
+// Image binding is a separate scene step; no walker, clock or city rules mutate.
 OriginalSaveResult decodeOriginalSave(const std::vector<uint8_t>&);
 OriginalSaveResult loadOriginalSave(const std::string& absolutePath);
 std::string describeOriginalSave(const OriginalSaveResult&);
