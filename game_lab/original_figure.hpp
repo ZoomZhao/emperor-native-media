@@ -22,6 +22,9 @@ struct OriginalFigure {
     uint8_t faction=0;
     // Inline ambient state at+17C, serialized by0x4C8AA0 (not optional FSA).
     uint8_t effectKind=0,effectVariant=0,effectFlags=0;
+    int8_t effectX=0,effectY=0,effectVelocityX=0,effectVelocityY=0;
+    int16_t effectHeight=0,effectVelocityZ=0;
+    uint8_t effectDraw=0; //+84, Figure7 request0x4C877F.
     uint32_t updateOwner=0; //+13C read0x4C8995;nonzero skips virtual+28 at0x4E2899.
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
@@ -137,6 +140,9 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.counter=detail::i16(r+62);f.owner=detail::i16(r+98);f.variant=detail::i16(r+304);f.amount=detail::i16(r+130);
         f.leaderLink=detail::i16(r+114);f.target=detail::i16(r+144);f.faction=r[122];
         f.effectKind=r[380];f.effectVariant=r[381];f.effectFlags=r[382];
+        f.effectX=int8_t(r[383]);f.effectY=int8_t(r[384]);
+        f.effectHeight=detail::i16(r+386);f.effectVelocityX=int8_t(r[388]);f.effectVelocityY=int8_t(r[389]);
+        f.effectVelocityZ=detail::i16(r+390);f.effectDraw=r[132];
         f.updateOwner=detail::u32(r+316);
         objects.emplace(objectPID,f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }

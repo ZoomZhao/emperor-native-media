@@ -26,6 +26,10 @@ def main():
         ('cargo', 'original_figure_image.hpp', 'goods->amount<=200?0:', 'goods->amount<200?0:'),
         ('first_tick', 'original_figure_image.hpp', 'f.frame=uint8_t(f.frame+1);', 'f.frame=uint8_t(f.frame);'),
         ('post_load', 'original_figure_image.hpp', 'out.images=std::make_pair(0u,0u);', 'out.images=std::make_pair(0u,1u);'),
+        ('type11_callback', 'original_figure_image.hpp', 'f.action==4?0x4c14:0x4c13,archives', 'f.action==4?0x4c16:0x4c15,archives'),
+        ('frame_reset', 'original_figure_update.hpp', 'if(int(out.counter)>=frames)out.counter=0;\n    if(speedArgument)', 'if(int(out.counter)>=frames)out.counter=2;\n    if(speedArgument)'),
+        ('effect_position', 'original_figure_update.hpp', 'int(f.effectX)/8+int(f.x)*15', 'int(f.effectX)/8+int(f.x)*20'),
+        ('scheduler', 'original_figure_update.hpp', ']+2)return out;', ']+1)return out;'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
     ]
     if args.only:

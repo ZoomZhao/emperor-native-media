@@ -57,38 +57,27 @@ inline bool originalFigureImageClearedAtLoad(const OriginalFigureImageInputs& f)
 // 0x4D6C40(1) callback pass, before any admitted simulation update. This is
 // separate from saved/forward snapshot rendering and is not a complete Figure
 // update. SAV_FIGURES.md records 0x4D6CF0 for these nineteen supplied types;
-// type11's different callback is named but its effects are not documented.
-enum class OriginalFigurePostLoadStatus {ImagesCleared,CallbackUnspecified,TypeUnspecified,OutsideLivePool};
+// Type11's callback selects its fixed table group without advancing the frame.
+enum class OriginalFigurePostLoadStatus {ImagesCleared,ImagesSelected,MissingGroup,InvalidInput,TypeUnspecified,OutsideLivePool};
 struct OriginalFigurePostLoadImages {
     OriginalFigurePostLoadStatus status=OriginalFigurePostLoadStatus::TypeUnspecified;
     uint32_t callbackVA=0;
     // Absent means unknown, never "retain the saved image" or an implicit zero.
     std::optional<std::pair<uint32_t,uint32_t>> images;
 };
-inline OriginalFigurePostLoadImages originalFigurePostLoadImages(size_t slot,const OriginalFigureImageInputs& f){
-    OriginalFigurePostLoadImages out;
-    if(!slot||slot>=2000||!f.alive){out.status=OriginalFigurePostLoadStatus::OutsideLivePool;return out;}
-    switch(f.type){
-    case 11:out.status=OriginalFigurePostLoadStatus::CallbackUnspecified;out.callbackVA=0x4d6d30;return out;
-    case 1:case 13:case 19:case 20:case 21:case 22:case 23:case 26:case 28:case 29:
-    case 30:case 34:case 35:case 36:case 39:case 40:case 45:case 47:case 76:
-        out.status=OriginalFigurePostLoadStatus::ImagesCleared;out.callbackVA=0x4d6cf0;
-        out.images=std::make_pair(0u,0u);return out;
-    default:return out;
-    }
-}
+inline OriginalFigurePostLoadImages originalFigurePostLoadImages(size_t slot,const OriginalFigureImageInputs& f,
+    const std::map<uint32_t,const SG3Archive*>& archives={},unsigned view=0);
 struct OriginalFigurePostLoadStep {
     bool accepted=false;
     size_t computed=0,blocked=0;
-    // Ordered by slot, like the documented pool traversal. No overlays and no
-    // partially updated OriginalFigureProfile are published by this model.
     std::map<size_t,OriginalFigurePostLoadImages> figures;
 };
-inline OriginalFigurePostLoadStep originalFigurePostLoadStep(const OriginalFigureProfile& saved){
+inline OriginalFigurePostLoadStep originalFigurePostLoadStep(const OriginalFigureProfile& saved,
+    const std::map<uint32_t,const SG3Archive*>& archives={}){
     OriginalFigurePostLoadStep out;
     if(saved.status!=OriginalFigureStatus::Complete||saved.declared!=2000||saved.parsed!=2000||saved.live.size()>2000)return out;
     for(const auto& f:saved.live)
-        if(!out.figures.emplace(f.slot,originalFigurePostLoadImages(f.slot,originalFigureImageInputs(f))).second)return {};
+        if(!out.figures.emplace(f.slot,originalFigurePostLoadImages(f.slot,originalFigureImageInputs(f),archives,saved.savedView)).second)return {};
     for(const auto& entry:out.figures){if(entry.second.images)++out.computed;else ++out.blocked;}
     out.accepted=true;return out;
 }
@@ -107,6 +96,34 @@ inline std::optional<std::pair<uint32_t,const SG3Sprite*>> originalFigureImageGr
     const unsigned id=a.imageIndex[group-1];
     if(id>a.sprites.size())return std::nullopt;
     return std::make_pair((slot<<14)+id-1,&a.sprites[id-1]);
+}
+inline OriginalFigurePostLoadImages originalFigurePostLoadImages(size_t slot,const OriginalFigureImageInputs& f,
+    const std::map<uint32_t,const SG3Archive*>& archives,unsigned view){
+    OriginalFigurePostLoadImages out;
+    if(!slot||slot>=2000||!f.alive){out.status=OriginalFigurePostLoadStatus::OutsideLivePool;return out;}
+    switch(f.type){
+    case 11:{ //0x4D6D30 ->0x4D6E30;fixed table entries0x84E954/5C, not subtype selection.
+        out.callbackVA=0x4d6d30;
+        if(view>6||(view&1)||f.direction>127||(f.action==4&&f.counter<0)){
+            out.status=OriginalFigurePostLoadStatus::InvalidInput;return out;}
+        const auto group=originalFigureImageGroup(f.action==4?0x4c14:0x4c13,archives);
+        if(!group||!group->second->animationSpriteCount){out.status=OriginalFigurePostLoadStatus::MissingGroup;return out;}
+        const int stride=f.action==4?1:8;
+        int direction=int(f.direction)-int(view);if(direction<0)direction+=stride;
+        const unsigned frame=f.action==4?std::min(unsigned(f.counter),unsigned(group->second->animationSpriteCount)-1):f.frame;
+        const int64_t word=int64_t(group->first)+frame*stride+direction;
+        if(word<0||uint64_t(word)>>14!=group->first>>14||
+           (uint64_t(word)&0x3fff)>=archives.at(38)->sprites.size()){
+            out.status=OriginalFigurePostLoadStatus::InvalidInput;return out;}
+        out.status=OriginalFigurePostLoadStatus::ImagesSelected;
+        out.images=std::make_pair(uint32_t(word),0u);return out;
+    }
+    case 1:case 13:case 19:case 20:case 21:case 22:case 23:case 26:case 28:case 29:
+    case 30:case 34:case 35:case 36:case 39:case 40:case 45:case 47:case 76:
+        out.status=OriginalFigurePostLoadStatus::ImagesCleared;out.callbackVA=0x4d6cf0;
+        out.images=std::make_pair(0u,0u);return out;
+    default:return out;
+    }
 }
 // Reconstruct the SELECTED saved phase, after the original updater's counter
 // changes. This does not execute the updater or infer elapsed ticks.
