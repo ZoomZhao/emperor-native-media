@@ -31,8 +31,30 @@ struct OriginalFigure {
     std::array<int32_t,3> cooldowns{}; //+D0/+D4/+D8; positive values decrement.
     uint32_t linkedBuilding=0;
     uint8_t movementMode=0,attackerCount=0;
+    int16_t route=0,routeCursor=0,routeLength=0,destinationX=0,destinationY=0;
+    uint32_t destinationCell=0,age=0,priorProgress=0;
+    int16_t reciprocalTarget=0,follower=0;
+    uint8_t routePhase=0,speed=0;
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
+struct OriginalFigureSavedServices {
+    std::array<int16_t,1000> routeOwners{};
+    std::vector<uint8_t> directions;
+    uint32_t randomFirst=0,randomSecond=0;
+};
+// SAV19 terrain-relative framing:0x5313D1 owners2000 bytes,0x5313E2
+// directions500000 bytes,0x531451/45F two RNG registers. T is the caller's
+// independently validated terrain anchor, not a byte-pattern search here.
+inline std::optional<OriginalFigureSavedServices> originalFigureSavedServices(
+    const std::vector<uint8_t>& data,size_t terrain){
+    constexpr size_t owners=779760,directions=781760,first=1291340,second=1291344;
+    if(data.size()>8u*1024u*1024u||terrain>data.size()||second+4>data.size()-terrain)return std::nullopt;
+    OriginalFigureSavedServices out;
+    for(size_t n=0;n<1000;++n)out.routeOwners[n]=detail::i16(data.data()+terrain+owners+2*n);
+    out.directions.assign(data.begin()+terrain+directions,data.begin()+terrain+directions+500000);
+    out.randomFirst=detail::u32(data.data()+terrain+first);out.randomSecond=detail::u32(data.data()+terrain+second);
+    return out;
+}
 enum class OriginalFigureStatus {Complete,Unsupported,Malformed,BudgetExceeded};
 struct OriginalFigureProfile {
     OriginalFigureStatus status=OriginalFigureStatus::Unsupported;
@@ -155,6 +177,10 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         for(size_t k=0;k<3;++k){const auto bits=detail::u32(r+208+4*k);
             f.cooldowns[k]=bits>INT32_MAX?int32_t(int64_t(bits)-4294967296LL):int32_t(bits);}
         f.linkedBuilding=detail::u32(r+328);f.movementMode=r[128];f.attackerCount=r[153];
+        f.route=detail::i16(r+66);f.routeCursor=detail::i16(r+68);f.routeLength=detail::i16(r+70);
+        f.destinationX=detail::i16(r+44);f.destinationY=detail::i16(r+46);f.destinationCell=detail::u32(r+48);
+        f.routePhase=r[368];f.speed=r[97];f.age=detail::u32(r+276);f.priorProgress=detail::u32(r+400);
+        f.reciprocalTarget=detail::i16(r+146);f.follower=detail::i16(r+102);
         objects.emplace(objectPID,f);out.slots.push_back(f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }
     out.end=at;out.status=OriginalFigureStatus::Complete;

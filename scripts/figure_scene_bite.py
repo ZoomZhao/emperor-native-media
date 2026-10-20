@@ -33,6 +33,11 @@ def main():
         ('pheasant_idle', 'original_figure_update.hpp', 'if(idle>=200)f.action=30;', 'if(idle>200)f.action=30;'),
         ('pheasant_cooldown', 'original_figure_update.hpp', 'if(cooldown>0)--cooldown;', 'if(cooldown>=0)--cooldown;'),
         ('scheduler_load', 'original_figure_update.hpp', 'if(!networkActive)live.speed=personalSpeed;', 'if(networkActive)live.speed=personalSpeed;'),
+        ('route_phase', 'original_figure_update.hpp', 'phase>(speed==4?1:2)?0:1;', 'phase>(speed==4?1:3)?0:1;'),
+        ('route_step', 'original_figure_update.hpp', '++f.progress;', 'f.progress+=2;'),
+        ('pool_order', 'original_figure_update.hpp', 'for(size_t slot=1;slot<2000;++slot)', 'for(size_t slot=1999;slot>0;--slot)'),
+        ('rng_saved', 'original_figure.hpp', 'first=1291340,second=1291344;', 'first=1291344,second=1291340;'),
+        ('rng_step', 'original_figure_update.hpp', 'value>>4)^value', 'value>>3)^value'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
     ]
     if args.only:
