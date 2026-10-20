@@ -327,19 +327,23 @@ reading of the `0x8C008` gate and of the other declining branches; the repo now 
 them `chain-declined` / `chainNoWrite` (`original_ground.hpp`).
 
 Measured over all 167 `Cities/*.map` (whole crop, camera-free), after modelling
-setter 5 (the road arm) and the two `LAB_0053FF8A` arms of setter 4:
+setter 5 (the road arm), the two `LAB_0053FF8A` arms of setter 4 and the whole-map
+farm/plain-land block tiers:
 
 * grid `2,107,836` active cells, `28` stored zero, `2,107,808` stored nonzero;
-* chain emits `1,823,379`, agrees with the stored grid on `1,474,883` = **80.887 %**;
+* chain emits `1,860,329` (88.258 % of active), agrees with the stored grid on
+  `1,569,808` = **84.383 %** of emitted / **74.475 %** of active; mismatched `290,521`;
 * chain declines to write on `114,937` cells: `0` of them store zero, **all `114,937`
   store nonzero art** — direct evidence that "declined" is not "empty";
-* unknown / non-terrain-determinable chain cells `169,520`.
+* unknown / non-terrain-determinable chain cells `132,570` (6.289 % of active).
 
-(The pre-setter-5 numbers were `1,514,539` emitted / `1,299,617` matched = 85.809 %
+(History: the pre-setter-5 numbers were `1,514,539` emitted / `1,299,617` matched = 85.809 %
 / `478,360` unknown; setter 5 adds the 246,802 road cells and setter 4's two
-`LAB_0053FF8A` arms add 62,038 shore cells, which is the whole change. Both lower
+`LAB_0053FF8A` arms add 62,038 shore cells. Both lower
 the emitted *ratio* because the newly claimed cells sit in the per-(city, band) id
-shift and match at 39-61 %; absolute matches rose `150,824 + 24,442`.)
+shift and match at 39-61 %; absolute matches rose `150,824 + 24,442`. The whole-map
+farm 4×4/3×3/2×2 + fallback and plain-land 4×4/3×3/2×2 tiers then add **94,925
+matched** and remove **36,950 unknown**, raising emitted agreement to 84.383 %.)
 
 ### The stored ids are an older archive vintage, and the shift is not derivable
 

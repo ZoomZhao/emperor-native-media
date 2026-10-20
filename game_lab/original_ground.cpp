@@ -1,4 +1,5 @@
 #include "original_ground.hpp"
+#include <cstring>
 namespace game_lab {
 namespace {
 // FUN_004BC140 @0x004BC140 returns how many of the 8 neighbour flags (written by
@@ -70,6 +71,11 @@ uint8_t farmFertilityRank(uint8_t fertility,uint8_t randomByte) {
     int32_t value=int32_t(quotient>>1);
     if((quotient&1u)==0u&&(randomByte&1u))--value;
     return uint8_t(value<0?0:value);
+}
+GroundSelection farmSingle(const GroundCodeRequest& request,const char* branch) {
+    if(!request.hasLayers)return {0,false,false,"0x80-farm-variant"};
+    return {0x602,true,false,branch,false,
+        uint8_t(9u*farmFertilityRank(request.fertility,request.randomByte)+request.randomByte%9u)};
 }
 }
 // Extract of the per-cell ground priority chain FUN_0053EC90 @0x0053EC90 in the
@@ -329,8 +335,8 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     //      0x0053F039. FUN_004B7E80 validates every cell of the region
     //      (terrain&0x80, fertility>=100, clear of 0x8/0x40/0x4000/0x10000/
     //      0x10000000/0x87375227, no 0x10000 neighbour, plus FUN_004B0800) and the
-    //      block art is not expanded here, so a whole-plot cell is unknown rather
-    //      than a guessed 0x602/0x604.
+    //      block art needs selectGroundMap below; this per-cell API leaves only
+    //      context-dependent attempts unknown and resolves the b==0 fallback.
     //  (c) otherwise 0x0053EE8C `push esi; call FUN_00425260` then 0x0053EE94
     //      `call FUN_004EDBA0 @0x004EDBA0`, which returns 0 while the singleton
     //      byte [0x010AF4E8] is 0 (0x004EDBA6 `call FUN_00425250` reads this+8;
@@ -354,20 +360,21 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
         if(request.hasNeighbours&&neighbourMaskCount(request,0x10000u)!=0)
             return {0,false,false,"0x80-farm-river"};
         if(!request.hasNeighbours)return {0,false,false,"0x80-farm-neighbours"};
-        if((request.randomByte&0xF8u)==0u)return {0,false,false,"0x80-farm-block"};
-        if(!request.hasLayers)return {0,false,false,"0x80-farm-variant"};
-        const uint8_t rank=farmFertilityRank(request.fertility,request.randomByte);
-        return {0x602,true,false,"0x80-farm",false,
-            uint8_t(9u*rank+uint32_t(request.randomByte%9u))};
+        if((request.randomByte&0xF8u)==0u) {
+            // b<2 attempts no rectangle (0x53EF4B/93, 0x53EFE8) and reaches
+            // 0x53F03B directly, so this outcome needs no whole-map context.
+            if((request.randomByte&6u)==0u)return farmSingle(request,"0x80-farm-block-fallback");
+            return {0,false,false,"0x80-farm-block"};
+        }
+        return farmSingle(request,"0x80-farm");
     }
     // 18. FUN_0053F090 @0x0053F090: (terrain&0xAEFEDE6F)==0 -> plain land, the last
     //     link. `random&0xF8!=0` writes the 1x1 T(0x603)+(random&7); when
     //     `random&0xF8==0` the doc item-10 block tiers apply
     //     (b=random&6: 6 -> +0x2A, 4/5 -> +0x18+9*(random&1), 2/3 -> +8+4*(random&3),
     //     else +(random&7)) through FUN_004B7520 block art. The block flag is
-    //     reported exactly; the variant is exact for the 1x1 tier and approximate
-    //     where a block tier is accepted, because that acceptance/art is not
-    //     modelled. Documented rather than silently wrong.
+    //     reported here; selectGroundMap supplies the accepted rectangle and
+    //     consecutive per-cell variants when the whole-map context is available.
     if((terrain&0xAEFEDE6Fu)==0u)
         return {0x603,true,(request.randomByte&0xF8u)==0u,"plain-land",false,variant};
     // No setter wrote 0x00FE9880: every branch above either matched and named its
@@ -375,6 +382,170 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     // terrain&0xAEFEDE6F != 0). The cell keeps its loaded stored art; the chain
     // determinately declines to write.
     return {0,false,false,"chain-declined",true};
+}
+namespace {
+// FUN_004B05F0 @0x004B05F0, 0x4B061A..0x4B0657: storage-space diamond
+// bounds and midpoints. 0x00856C64 (file 0x456C64) supplies side and grid origin.
+struct GroundMapBounds {
+    int side,first,last,middle;
+    explicit GroundMapBounds(uint32_t size):side(int(size)),first((228-side)/2),
+        last(first+side-1),middle((last+first)/2){}
+    size_t cell(int x,int y) const {return size_t(first+y)*228u+size_t(first+x);}
+    // FUN_004B0770 @0x004B0770, called at 0x4B080C. Deliberately preserves
+    // the executable's coordinate convention: the farm caller passes local x/y
+    // (subtract origin at 0x4B7F8F), while these bounds are in storage space.
+    bool inside(int x,int y) const {
+        if(x>middle)return y<=middle?x-y<=last-middle:x+y<=last+1+middle;
+        return y<=middle?first+middle<=x+y:middle-last<=x-y;
+    }
+    // FUN_004B0800 @0x004B0800: first refuses outside the diamond, then
+    // tests its four edge strips (0x4B0832/3D, 0x4B0853/56,
+    // 0x4B0874/77, 0x4B0884/91), with margin 3 at 0x4B7F98.
+    bool edge(int x,int y,int margin) const {
+        if(!inside(x,y))return false;
+        if(x<=middle)return y<=middle?x-margin+y<first+middle:x-y-margin<middle-last;
+        return y<=middle?last-middle<x-y+margin:last+1+middle<x+y+margin;
+    }
+};
+// DAT_0081FF18, file 0x41FF18: six rows of six (flat offset, draw offset)
+// pairs. Column stride 8 bytes at 0x4B7FCA; row stride 48 at 0x4B7FE2.
+// The flat member of row r, column c is r*228+c, not a cumulative delta.
+size_t blockCell(size_t origin,int row,int column) {return origin+size_t(row)*228u+size_t(column);}
+uint32_t cardinalMaskCount(const OriginalTerrainState& state,size_t cell,uint32_t mask) {
+    // FUN_004BA230 @0x004BA230, 0x4BA23A/248/252/25C: N,E,S,W.
+    uint32_t count=0;
+    for(int offset:{-228,1,228,-1}) {
+        const int64_t neighbour=int64_t(cell)+offset;
+        if(neighbour>=0&&neighbour<int64_t(OriginalTerrainState::cells)&&
+           (state.terrain[size_t(neighbour)]&mask))++count;
+    }
+    return count;
+}
+bool diagonalMaskAny(const OriginalTerrainState& state,size_t cell,uint32_t mask) {
+    // FUN_004BA1E0 @0x004BA1E0, 0x4BA1E8/1F7/206/215: NE,SE,SW,NW.
+    for(int offset:{-227,229,227,-229}) {
+        const int64_t neighbour=int64_t(cell)+offset;
+        if(neighbour>=0&&neighbour<int64_t(OriginalTerrainState::cells)&&
+           (state.terrain[size_t(neighbour)]&mask))return true;
+    }
+    return false;
+}
+}
+bool acceptsFarmGroundBlock(const OriginalTerrainState& state,uint32_t activeSide,
+        int x,int y,int width,int height) {
+    if(!state.valid()||!activeSide||activeSide>228u||width<1||width>6||height<1||height>6)return false;
+    const GroundMapBounds bounds(activeSide);
+    // 0x4B7E87/98, 0x4B7EAE..B7, 0x4B7ECA..D3 (strict upper margin).
+    if(x<3||y<3||x>=bounds.side||y>=bounds.side||
+       x+width-1>=bounds.side-3||y+height-1>=bounds.side-3)return false;
+    const size_t origin=bounds.cell(x,y);
+    for(int row=0;row<height;++row)for(int column=0;column<width;++column) {
+        const size_t cell=blockCell(origin,row,column);
+        const uint32_t flag=state.terrain[cell];
+        // 0x4B7F23, 0x4B7F27 (unsigned byte >=100), 0x4B7F30/37/3B/3F,
+        // 0x4B7F44/4B/52: every literal is an independent executable refusal.
+        if(!(flag&0x80u)||state.fertility[cell]<100u||
+           (flag&(0x10000000u|8u|0x40u|0x4000u|0x87375227u|0x10000u|0x800u)))return false;
+        if(cardinalMaskCount(state,cell,0x10000u)||diagonalMaskAny(state,cell,0x10000u))return false;
+        if(bounds.edge(x+column,y+row,3))return false; // call 0x4B7FB4
+    }
+    return true;
+}
+namespace {
+bool acceptsPlainGroundBlock(const OriginalTerrainState& state,const GroundMapBounds& bounds,
+        int x,int y,int side) {
+    // FUN_004B7CA0 @0x004B7CA0, called with (-1,1,0,1,1) at 0x53F10F,
+    // 0x53F15E, 0x53F1BA. Margins 0x4B7CA7/BE/CD7/CF6; terrain mask
+    // 0xBFFFDEEF at 0x4B7DE9 (param_9==1), img==param_6-1==0 at 0x4B7E30..3A.
+    if(x<3||y<3||x+side-1>=bounds.side-3||y+side-1>=bounds.side-3)return false;
+    const size_t origin=bounds.cell(x,y);
+    bool monument=false,nonMonument=false;
+    for(int row=0;row<side;++row)for(int column=0;column<side;++column) {
+        const size_t cell=blockCell(origin,row,column);
+        // Unlike the farm predicate, 0x4B7D81 passes storage coordinates.
+        if(bounds.edge(int(cell%228u),int(cell/228u),3))return false;
+        const uint32_t flag=state.terrain[cell];
+        monument|=(flag&0x10000u)!=0;nonMonument|=(flag&0x10000u)==0;
+        if(monument&&nonMonument)return false; // 0x4B7DB5..DC
+        if(flag&0xBFFFDEEFu)return false;
+        // FUN_00416BB0 @0x00416BB0 tests a live object pointer, zero on a bare
+        // load. FUN_00416BD0's result is bypassed by param_8==1 (0x4B7E1C/20).
+        // No ported setter populates that object-pointer array.
+        if(state.image[cell]!=0u)return false;
+    }
+    return true;
+}
+}
+std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uint32_t activeSide) {
+    if(!state.valid()||!activeSide||activeSide>228u)return {};
+    std::vector<GroundMapCell> result(OriginalTerrainState::cells);
+    // Keep the per-cell selector the source for every arm outside this block port,
+    // including diagnostic cells outside the engine's diamond traversal.
+    for(size_t cell=0;cell<result.size();++cell)
+        result[cell]={selectGroundTileCode(groundCodeRequest(state,cell)),cell,1};
+    auto working=state;
+    working.image.assign(OriginalTerrainState::cells,0u);
+    const GroundMapBounds bounds(activeSide);
+    std::vector<uint8_t> stamped(result.size(),0);
+    // FUN_005403C0 @0x005403C0, 0x54044F..0x540482: increasing row, then
+    // increasing column from the row tables constructed at 0x4B0694..0x4B06DC.
+    for(int y=0;y<bounds.side;++y) {
+        const int storageY=bounds.first+y;
+        const int start=storageY<=bounds.middle?bounds.middle-y:
+            bounds.first-bounds.middle-1+storageY;
+        const int end=2*bounds.middle-start+2-bounds.first;
+        for(int x=start-bounds.first;x<end;++x) {
+            if(x<0||x>=bounds.side)continue;
+            const size_t cell=bounds.cell(x,y);
+            if(state.terrain[cell]&0x80000u)continue;
+            // FUN_0053EC90 0x53ECF4..0x53ED02 skips setters 4..18 if img!=0.
+            if(stamped[cell])continue;
+            const auto request=groundCodeRequest(working,cell);
+            auto selection=selectGroundTileCode(request);
+            result[cell]={selection,cell,1};
+            const bool farm=std::strcmp(selection.branch,"0x80-farm-block")==0;
+            const bool plain=std::strcmp(selection.branch,"plain-land")==0;
+            if(!farm&&!plain) {
+                if(selection.known)working.image[cell]=1u;
+                continue;
+            }
+            const unsigned tier=request.randomByte&6u; // 0x53EF46
+            int side=1;
+            auto accepts=[&](int size){return farm?acceptsFarmGroundBlock(working,activeSide,x,y,size,size):
+                acceptsPlainGroundBlock(working,bounds,x,y,size);};
+            if((request.randomByte&0xF8u)==0u) {
+                if(tier>=6u&&accepts(4))side=4;
+                else if(tier>=4u&&accepts(3))side=3;
+                else if(tier>=2u&&accepts(2))side=2;
+            }
+            if(side==1) {
+                // 0x53F03B calls FUN_004BD8C0 directly, without FUN_004EDBA0.
+                if(farm)result[cell].selection=farmSingle(request,"0x80-farm-block-fallback");
+                working.image[cell]=1u;
+                if(plain)working.terrain[cell]&=0x93872790u;
+                continue;
+            }
+            const uint8_t variant=uint8_t(farm?(side==4?0x22u:side==3?
+                0x10u+(request.randomByte&1u)*9u:(request.randomByte&3u)*4u):
+                (side==4?0x2Au:side==3?0x18u+(request.randomByte&1u)*9u:8u+(request.randomByte&3u)*4u));
+            const char* branch=farm?(side==4?"0x80-farm-block-4x4":side==3?
+                "0x80-farm-block-3x3":"0x80-farm-block-2x2"):(side==4?
+                "plain-land-block-4x4":side==3?"plain-land-block-3x3":"plain-land-block-2x2");
+            for(int row=0;row<side;++row)for(int column=0;column<side;++column) {
+                const size_t target=blockCell(cell,row,column);
+                // FUN_004B7520 0x4B7629/2B/2D: add n, increment n, store.
+                // The farm predicate and stamp have no img test: later farm
+                // origins overwrite. The plain predicate requires img==0.
+                selection={uint16_t(farm?0x604:0x603),true,true,branch,false,uint8_t(variant+row*side+column)};
+                result[target]={selection,cell,uint8_t(side)};stamped[target]=1;
+                working.image[target]=1u;
+                working.terrain[target]&=0x93872790u; // 0x4B75DB (param_7==0)
+                working.subTile[target]&=0xF0u; // 0x4B760D
+                working.draw[target]|=0x40u; // 0x4B761C
+            }
+        }
+    }
+    return result;
 }
 bool resolveGroundTileCode(const SG3Archive& archive,uint16_t code,size_t& archiveIndex) {
     archiveIndex=0;

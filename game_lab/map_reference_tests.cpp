@@ -378,7 +378,7 @@ void groundSelectorTests() {
      auto river=farmRequest(0u,8u);river.neighbourFlags[0]=0x10000u;
      need(!selectGroundTileCode(river).known&&std::string(selectGroundTileCode(river).branch)=="0x80-farm-river",
           "a 0x10000 neighbour selects the farm river arm (runtime DAT_0101C540), never a guess");
-     const auto block=selectGroundTileCode(farmRequest(0u,0u));
+     const auto block=selectGroundTileCode(farmRequest(0u,2u));
      need(!block.known&&!block.chainNoWrite&&std::string(block.branch)=="0x80-farm-block",
           "random&0xF8==0 selects the farm whole-plot block arm, left unknown");
      const auto noNeighbours=selectGroundTileCode(GroundCodeRequest{0x80u,0x08u});
@@ -491,6 +491,184 @@ void groundSelectorTests() {
  const auto canal=renderMapGroundViewport(terrain,state,archive,"",camera);
  need(canal.image.valid()&&canal.stats.knownCells==84*84&&canal.stats.unknownCells==0&&canal.stats.chainNoWriteCells==0,"terrain&0x40000 is known without any runtime state");
  need(canal.stats.branchCells.size()==1&&canal.stats.branchCells[0].first=="0x40000-canal","canal cells name the canal branch");
+}
+void farmBlockTests() {
+ using namespace game_lab;
+ OriginalMapTerrain terrain;terrain.activeSide=226;terrain.flags.assign(51984,0x80u);
+ auto state=terrainState(terrain);state.fertility.assign(51984,100u);state.randomByte.assign(51984,8u);
+ auto at=[](int x,int y){return size_t(y+1)*228u+size_t(x+1);};
+ need(acceptsFarmGroundBlock(state,226,110,110,4,4),"fertile farm rectangle accepts all four rows and columns");
+ for(const auto& xy:std::vector<std::pair<int,int>>{{2,110},{110,2},{222,110},{110,222}})
+     need(!acceptsFarmGroundBlock(state,226,xy.first,xy.second,2,2),"farm predicate enforces both strict three-cell rectangular margins");
+ need(acceptsFarmGroundBlock(state,226,3,3,2,2)&&acceptsFarmGroundBlock(state,226,221,3,2,2)&&
+      acceptsFarmGroundBlock(state,226,3,221,2,2)&&acceptsFarmGroundBlock(state,226,221,221,2,2),
+      "farm predicate accepts the adjacent inclusive margin coordinates");
+ for(const auto& xy:std::vector<std::pair<int,int>>{{3,111},{111,3},{221,110},{110,221}})
+     need(!acceptsFarmGroundBlock(state,226,xy.first,xy.second,2,2),"FUN_004B0800 rejects each of the four diamond edge strips");
+ need(acceptsFarmGroundBlock(state,226,3,3,2,2),"FUN_004B0800 returns false outside its diamond, preserving the executable convention");
+ const uint32_t forbidden=0x10000000u|8u|0x40u|0x4000u|0x87375227u|0x10000u|0x800u;
+ for(unsigned bit=0;bit<32;++bit)if(forbidden&(1u<<bit)) {
+     auto bad=state;bad.terrain[at(111,111)]|=1u<<bit;
+     need(!acceptsFarmGroundBlock(bad,226,110,110,2,2),"each forbidden terrain bit independently refuses a farm block");
+ }
+ auto bad=state;bad.terrain[at(111,111)]=0;
+ need(!acceptsFarmGroundBlock(bad,226,110,110,2,2),"every farm rectangle cell must carry 0x80");
+ bad=state;bad.fertility[at(111,111)]=99;
+ need(!acceptsFarmGroundBlock(bad,226,110,110,2,2),"fertility 99 refuses even at the last rectangle cell");
+ for(int offset:{-228,-227,1,229,228,227,-1,-229}) {
+     bad=state;bad.terrain[size_t(int64_t(at(110,110))+offset)]|=0x10000u;
+     need(!acceptsFarmGroundBlock(bad,226,110,110,1,1),"cardinal count and diagonal any reject each 0x10000 neighbour");
+ }
+ for(int side:{4,3,2,1}) {
+     auto fixture=state;fixture.randomByte[at(110,110)]=6;
+     if(side<4)fixture.fertility[at(113,110)]=99;
+     if(side<3)fixture.fertility[at(112,110)]=99;
+     if(side<2)fixture.fertility[at(111,110)]=99;
+     const auto original=fixture;const auto plan=selectGroundMap(fixture,226);
+     const auto& origin=plan[at(110,110)];
+     const std::string expected=side==4?"0x80-farm-block-4x4":side==3?"0x80-farm-block-3x3":
+         side==2?"0x80-farm-block-2x2":"0x80-farm-block-fallback";
+     need(origin.selection.known&&origin.selection.branch==expected&&origin.stampSide==side,
+          "farm tiers attempt 4 then 3 then 2 then the immediate 0x602 fallback");
+     for(int y=0;y<side;++y)for(int x=0;x<side;++x) {
+         const auto& cell=plan[at(110+x,110+y)];
+         const int base=side==4?34:side==3?16:side==2?8:42;
+         need(cell.origin==at(110,110)&&cell.selection.variant==base+y*side+x&&
+              cell.selection.branch==expected,"stamp image ids increment across columns then rows and own every covered cell");
+     }
+     need(fixture.terrain==original.terrain&&fixture.image==original.image&&fixture.draw==original.draw&&
+          fixture.subTile==original.subTile,"whole-map reconstruction leaves every supplied layer read-only");
+ }
+ // The lower row's earlier x can stamp into a previous row's footprint, despite
+ // that target already having img!=0. The predicate itself has no img gate.
+ auto overlap=state;overlap.randomByte[at(111,110)]=2;overlap.randomByte[at(110,111)]=2;
+ auto plan=selectGroundMap(overlap,226);
+ need(plan[at(112,110)].origin==at(111,110)&&plan[at(111,111)].origin==at(110,111)&&
+      plan[at(111,111)].selection.variant==9,"row visitation permits a later origin to overwrite an earlier stamp");
+ overlap=state;overlap.randomByte[at(110,110)]=2;overlap.randomByte[at(111,110)]=6;
+ plan=selectGroundMap(overlap,226);
+ need(plan[at(111,110)].origin==at(110,110)&&plan[at(111,110)].stampSide==2,
+      "a covered origin skips setter 17 even when its random byte requests a larger stamp");
+ for(uint8_t random:{uint8_t(0),uint8_t(1)}) {
+     GroundCodeRequest request;request.terrainFlags=0x80;request.randomByte=random;
+     request.hasLayers=true;request.hasNeighbours=true;request.fertility=100;
+     const auto fallback=selectGroundTileCode(request);
+     need(fallback.known&&std::string(fallback.branch)=="0x80-farm-block-fallback"&&fallback.variant==36+random,
+          "b zero skips every block attempt and directly uses the farm fertility formula");
+ }
+ auto shortState=state;shortState.fertility.pop_back();
+ need(selectGroundMap(shortState,226).empty()&&selectGroundMap(state,229).empty(),"whole-map pass refuses incomplete layers and an invalid side");
+ // Setter 18 uses the same consecutive-image stamp, but FUN_004B7CA0's
+ // param_6==1 also requires every target image to be zero.
+ for(int side:{4,3,2,1}) {
+     auto plain=state;plain.terrain.assign(51984,0u);plain.randomByte[at(110,110)]=6;
+     if(side<4)plain.terrain[at(113,110)]=0x200u;
+     if(side<3)plain.terrain[at(112,110)]=0x200u;
+     if(side<2)plain.terrain[at(111,110)]=0x200u;
+     const auto selected=selectGroundMap(plain,226);
+     const auto& origin=selected[at(110,110)];
+     const std::string expected=side==4?"plain-land-block-4x4":side==3?"plain-land-block-3x3":
+         side==2?"plain-land-block-2x2":"plain-land";
+     need(origin.selection.known&&origin.selection.code==0x603&&origin.stampSide==side&&origin.selection.branch==expected,
+          "plain-land tiers attempt 4 then 3 then 2 then the per-cell selector fallback");
+     const int base=side==4?42:side==3?24:side==2?16:6;
+     need(selected[at(109+side,109+side)].selection.variant==base+side*side-1,
+          "plain-land stamp increments from the exact tier base through its last cell");
+ }
+ auto plain=state;plain.terrain.assign(51984,0u);
+ plain.randomByte[at(111,110)]=2;plain.randomByte[at(110,111)]=2;
+ plan=selectGroundMap(plain,226);
+ need(plan[at(111,111)].origin==at(111,110)&&plan[at(110,111)].stampSide==1,
+      "plain-land predicate refuses an overlap because its target image is already nonzero");
+ for(uint8_t random=2;random<8;++random) {
+     const int side=random>=6?4:random>=4?3:2;
+     auto farm=state;farm.randomByte[at(110,110)]=random;
+     const auto farmPlan=selectGroundMap(farm,226);
+     const int farmBase=side==4?34:side==3?16+(random&1)*9:(random&3)*4;
+     need(farmPlan[at(110,110)].selection.variant==farmBase&&
+          farmPlan[at(109+side,109+side)].selection.variant==farmBase+side*side-1,
+          "each even and odd farm tier uses the origin random byte for the exact block base");
+     plain=state;plain.terrain.assign(51984,0u);plain.randomByte[at(110,110)]=random;
+     const auto plainPlan=selectGroundMap(plain,226);
+     const int plainBase=side==4?42:side==3?24+(random&1)*9:8+(random&3)*4;
+     need(plainPlan[at(110,110)].selection.variant==plainBase&&
+          plainPlan[at(109+side,109+side)].selection.variant==plainBase+side*side-1,
+          "each even and odd plain tier uses the origin random byte for the exact block base");
+ }
+ auto changedOracle=state;changedOracle.randomByte[at(110,110)]=6;
+ const auto independent=selectGroundMap(changedOracle,226);
+ changedOracle.image.assign(51984,UINT32_MAX);changedOracle.draw.assign(51984,255);
+ changedOracle.subTile.assign(51984,255);const auto changed=selectGroundMap(changedOracle,226);
+ bool identical=independent.size()==changed.size();
+ for(size_t cell=0;cell<changed.size()&&identical;++cell) {
+     const auto& a=independent[cell];const auto& b=changed[cell];
+     identical=a.origin==b.origin&&a.stampSide==b.stampSide&&a.selection.code==b.selection.code&&
+         a.selection.variant==b.selection.variant&&a.selection.known==b.selection.known&&
+         std::string(a.selection.branch)==b.selection.branch;
+ }
+ need(identical,"stored image, draw and sub-tile grids cannot influence a predicted stamp or branch");
+}
+void realDataFarmBlockTests() {
+ using namespace game_lab;
+ const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!env||!*env)return;
+ const auto root=std::filesystem::path(env),citiesPath=root/"Cities",archivePath=root/"DATA"/"China_Terrain.sg3";
+ if(!std::filesystem::is_directory(citiesPath)||!std::filesystem::exists(archivePath))return;
+ const auto archive=loadSG3(archivePath.string());
+ size_t cities=0,emitted=0,matched=0,unknown=0,mismatched=0,classes=0;
+ std::array<size_t,2> cityCohorts{};
+ using Tally=std::array<size_t,3>; // cells, emitted, matched
+ std::map<std::string,Tally> branches[2];
+ std::array<size_t,5> origins{},consecutive{},constant{},subzero{};
+ for(const auto& entry:std::filesystem::directory_iterator(citiesPath)) {
+     if(entry.path().extension()!=".map")continue;
+     const auto loaded=loadOriginalMapTerrain(entry.path().string());
+     const auto state=loadOriginalTerrainState(entry.path().string());
+     need(loaded.status==OriginalMapStatus::LoadedTerrain&&state&&state->valid(),
+          "farm block corpus cities decode before reconstruction");
+     const auto plan=selectGroundMap(*state,loaded.terrain.activeSide);
+     const auto score=scoreGroundChainAgainstImageGrid(loaded.terrain,*state,archive);
+     ++cities;emitted+=score.emitted;matched+=score.matched;unknown+=score.chainUnknown;mismatched+=score.mismatched;
+     size_t cohort=1;for(const auto& b:score.branches)
+         if(b.branch=="0x1-road"&&b.emitted&&b.matched*2>=b.emitted)cohort=0;
+     ++cityCohorts[cohort];size_t cityClasses=0;
+     for(const auto& b:score.branches) {
+         auto& tally=branches[cohort][b.branch];tally[0]+=b.cells;tally[1]+=b.emitted;tally[2]+=b.matched;
+         cityClasses+=b.storedNotTileset3+b.storedZeroMismatch;
+         for(auto n:b.indexDelta)cityClasses+=n;
+         for(auto n:b.indexDeltaMagnitude)cityClasses+=n;
+     }
+     need(cityClasses==score.mismatched,"each city's whole-map mismatch classes partition its mismatched cells");
+     classes+=cityClasses;
+     for(size_t cell=0;cell<plan.size();++cell) {
+         const auto& p=plan[cell];
+         if((state->terrain[cell]&0x80000u)||p.origin!=cell||p.stampSide<2||p.selection.code!=0x604)continue;
+         const size_t side=p.stampSide;++origins[side];bool seq=true,same=true,sub=true;
+         for(size_t y=0;y<side;++y)for(size_t x=0;x<side;++x) {
+             const size_t target=cell+y*228u+x;
+             seq&=state->image[target]==state->image[cell]+y*side+x;
+             same&=state->image[target]==state->image[cell];sub&=(state->subTile[target]&15u)==0u;
+         }
+         consecutive[side]+=seq;constant[side]+=same;subzero[side]+=sub;
+     }
+ }
+ need(cities==167&&cityCohorts==std::array<size_t,2>{93,74},"farm corpus covers 167 cities with the road-defined 93/74 cohort split");
+ need(emitted==1860329&&matched==1569808&&unknown==132570&&mismatched==290521&&classes==mismatched,
+      "whole-map farm and plain blocks reproduce the measured corpus totals without dropped mismatches");
+ const std::array<const char*,7> names={"0x80-farm-block-2x2","0x80-farm-block-3x3","0x80-farm-block-4x4",
+     "0x80-farm-block-fallback","plain-land-block-2x2","plain-land-block-3x3","plain-land-block-4x4"};
+ const std::array<Tally,7> unshifted={{{11897,11897,11890},{15471,15471,15462},{16856,16856,16844},
+     {14077,14077,14072},{2560,2560,2553},{3789,3789,3748},{4032,4032,4032}}};
+ const std::array<Tally,7> shifted={{{8658,8658,0},{12233,12233,0},{13488,13488,0},
+     {9980,9980,9979},{3900,3900,3900},{6084,6084,6067},{6464,6464,6464}}};
+ for(size_t i=0;i<names.size();++i) {
+     need(branches[0][names[i]]==unshifted[i],"new block branches lock their unshifted cells/emitted/matched denominator");
+     need(branches[1][names[i]]==shifted[i],"new block branches lock their shifted cells/emitted/matched denominator");
+ }
+ need(!branches[0].count("0x80-farm-block")&&!branches[1].count("0x80-farm-block"),
+      "the whole-map farm block unknown is eliminated across the entire corpus");
+ need(origins==std::array<size_t,5>{0,0,5186,3123,1952}&&
+      consecutive==std::array<size_t,5>{0,0,5035,2955,1706}&&constant==std::array<size_t,5>{}&&subzero==origins,
+      "farm stamp originals store consecutive single-cell ids and group side one, unlike composite constant-word placements");
 }
 // The stored surface-image grid (0x00FE9880) render and the chain score against
 // it. A synthetic archive keeps the record-id base small so the two-cell grid
@@ -841,28 +1019,23 @@ void realDataGroundTests(bool& originalData) {
       state->fertility==loaded.cellLayers->mapperFertile,
       "the read-order state and the container cell-layer parser agree on terrain/random/fertility");
  size_t active=0,known=0,unknown=0,chainNoWrite=0,farm=0,farmBlock=0,farmRiver=0;
+ const auto plan=selectGroundMap(*state,terrain.activeSide);
  for(size_t cell=0;cell<terrain.flags.size();++cell) {
      if(terrain.flags[cell]&0x80000u)continue;
      ++active;
-     const auto selection=selectGroundTileCode(groundCodeRequest(*state,cell));
+     const auto& selection=plan[cell].selection;
      if(selection.chainNoWrite)++chainNoWrite;else if(selection.known)++known;else ++unknown;
      if(std::string(selection.branch)=="0x80-farm")++farm;
-     else if(std::string(selection.branch)=="0x80-farm-block")++farmBlock;
+     else if(std::string(selection.branch).find("0x80-farm-block")==0)++farmBlock;
      else if(std::string(selection.branch)=="0x80-farm-river")++farmRiver;
  }
  // Measured on the user's own Anyang.map: 9940 active cells, 6212 farmland cells.
  need(active==9940&&farm+farmBlock+farmRiver==6212,"original Anyang.map active and farmland cell counts are stable");
- // Branch 17 is resolved from MAP bytes: 5992 cells emit the 0x602 plot with the
- // fertility-rank variant; the 220 whole-plot cells (random&0xF8==0) use block art
- // that is not modelled and honestly stay unknown; no 0x10000 neighbour occurs.
- need(farm==5992&&farmBlock==220&&farmRiver==0,"the Anyang farm sub-cases are stable");
- // The two 0x4 shore arms added at LAB_0053FF8A, the setter-5 road block and the
- // farm formula are MAP-determinable, giving 8859 known, 914 still
- // runtime-unknown (0x4-shore T(0x605)+C and 0x40-road ...) and 167 a
- // determinate chain no-write. The 220 farm block cells stay unknown; the 1736
- // road cells and the 433 shore fringe/ring cells move from the old unknown to
- // known. Measured on the user's own Anyang.map.
- need(known==8859&&unknown==914&&chainNoWrite==167&&known+unknown+chainNoWrite==active,
+ // The whole-map farm pass attributes every covered cell to its stamping branch.
+ need(farm==5673&&farmBlock==539&&farmRiver==0,"the Anyang whole-map farm sub-cases are stable");
+ // The whole-map pass resolves the previous 220 farm unknowns: 9079 known,
+ // 694 runtime-unknown and 167 determinate no-write cells.
+ need(known==9079&&unknown==694&&chainNoWrite==167&&known+unknown+chainNoWrite==active,
       "original Anyang.map MAP-only outcome counts are stable");
  // Overall MAP-only known coverage floor (~84%). It cannot reach the farmland level
  // until the 0x4-shore general arm is modelled.
@@ -879,7 +1052,7 @@ void realDataGroundTests(bool& originalData) {
      size_t knownCells=0,resolved=0,geometry=0;
      for(size_t cell=0;cell<terrain.flags.size();++cell) {
          if(terrain.flags[cell]&0x80000u)continue;
-         const auto selection=selectGroundTileCode(groundCodeRequest(*state,cell));
+         const auto& selection=plan[cell].selection;
          if(!selection.known)continue;
          ++knownCells;size_t index=0;
          if(!resolveGroundTileCode(archive,selection.code,selection.variant,index))continue;
@@ -888,7 +1061,7 @@ void realDataGroundTests(bool& originalData) {
          if(record&&record->height<=4096)++geometry;
      }
      // Measured on the user's own Anyang.map + China_Terrain.sg3.
-     need(knownCells==8859&&resolved==8859&&geometry==8859,
+     need(knownCells==9079&&resolved==9079&&geometry==9079,
           "every MAP-known ground cell resolves to a real single-cell China_Terrain.sg3 record");
      // The stored surface-image grid (0x00FE9880) is the oracle for the chain. It
      // renders verbatim as recordId = low14 + 201 in the same archive; the chain
@@ -910,8 +1083,8 @@ void realDataGroundTests(bool& originalData) {
               grid.stats.decodeFailures==0,
               "original Anyang.map stored image grid decodes with the measured low-14 base");
          const auto score=scoreGroundChainAgainstImageGrid(terrain,*state,archive);
-         need(score.activeCells==9940&&score.emitted==8859&&score.matched==5673&&
-              score.mismatched==3186&&score.chainNoWrite==167&&score.chainUnknown==914&&
+         need(score.activeCells==9940&&score.emitted==9079&&score.matched==5831&&
+              score.mismatched==3248&&score.chainNoWrite==167&&score.chainUnknown==694&&
               score.chainNoWriteVsStoredZero==0&&score.chainNoWriteVsStoredNonzero==167,
               "original Anyang.map chain score against the stored grid is stable");
      }
@@ -1208,6 +1381,7 @@ int main(){try{
  outputPathTests(root);
  exclusiveOutputTests(root);
  groundSelectorTests();
+ farmBlockTests();
  imageGridTests(root);
  compositeSafetyTests(root);
  chainScoreTests();
@@ -1215,5 +1389,6 @@ int main(){try{
  realDataGroundTests(originalData);
  storedGridVintageTests();
  shoreVariantStructureTests();
+ realDataFarmBlockTests();
  std::filesystem::remove_all(root);std::cout<<"{\"passed\":true,\"assertions\":"<<checks<<",\"original_data\":"<<(originalData?"true":"false")<<"}\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}}

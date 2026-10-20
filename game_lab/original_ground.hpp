@@ -57,6 +57,19 @@ struct GroundSelection {
     uint8_t variant = 0;
 };
 GroundSelection selectGroundTileCode(const GroundCodeRequest&);
+// Whole-map reconstruction in FUN_005403C0's row order. A stamp can replace an
+// earlier prediction; covered cells retain the stamping branch and origin.
+// The stored image/draw/subTile grids are never inputs to block selection.
+struct GroundMapCell {
+    GroundSelection selection;
+    size_t origin = 0;
+    uint8_t stampSide = 1;
+};
+std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState&,uint32_t activeSide);
+// FUN_004B7E80 @0x004B7E80: read-only farm rectangle predicate, in crop-local
+// coordinates. Exposed so margin/terrain/neighbour refusals can be tested directly.
+bool acceptsFarmGroundBlock(const OriginalTerrainState&,uint32_t activeSide,
+    int x,int y,int width,int height);
 // Build a request from the MAP-decoded per-cell layers the loader restores (all
 // arrays in OriginalTerrainState, FUN_0052E7C0 read order). Cell indexing matches
 // OriginalMapTerrain::flags (y*storageSide+x). A neighbour whose flat index falls

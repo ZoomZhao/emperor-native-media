@@ -510,10 +510,12 @@ ChainScoreStats scoreGroundChainAgainstImageGrid(const OriginalMapTerrain& terra
         if(found==branches.end())found=branches.emplace(name,ChainScoreBranch{name,0,0,0,0}).first;
         return found->second;
     };
+    const auto selections=selectGroundMap(state,terrain.activeSide);
+    if(selections.size()!=terrain.flags.size())return result;
     for(size_t cell=0;cell<terrain.flags.size();++cell) {
         if(terrain.flags[cell]&0x80000u)continue;++result.activeCells;
         const uint32_t stored=state.image[cell];
-        const auto selection=selectGroundTileCode(groundCodeRequest(state,cell));
+        const auto& selection=selections[cell].selection;
         auto& stats=branch(std::string(selection.branch));
         ++stats.cells;
         if(!stored){++result.storedZero;++stats.storedZero;}
