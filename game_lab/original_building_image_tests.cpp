@@ -132,7 +132,7 @@ void generalized(){
         if(type==5){b[tail+57]=0;b[tail+59]=20;}
         if(type==214){word(b,tail+130,1);word(b,tail+132,1);word(b,tail+134,1);word(b,tail+156,0x481);}
         b.insert(b.end(),{1,0x80});const size_t unknown=b.size();b.resize(unknown+common);word(b,unknown,version);word(b,unknown+16,0x1234);
-        const size_t terrainOffset=b.size();b.resize(terrainOffset+467856+51984);b[terrainOffset+467856+index]=255;b[terrainOffset+415872+index]=0;
+        const size_t terrainOffset=b.size();b.resize(terrainOffset+467856+51984);b[terrainOffset+415872+index]=255;b[terrainOffset+467856+index]=0;
         auto p=parseOriginalSavedBuildings(b,terrainOffset,t);need(p.footprints.size()==1&&p.liveTypeCounts[type]==1,"generic input fixtures preserve table framing and live counts");
         const auto& f=p.footprints.at(0);need(f.imageInputs&&f.imageInputs->randomByte==255&&f.imageInputs->word20==3,"correct exe random grid and common word offset retained");
         if(type==5)need(f.imageInputs->houseByte3c==20,"house serializer tail+59 after both version headers");
@@ -190,11 +190,11 @@ void original(){
     for(const auto& fact:facts)need(bound[fact.type]==expected.at(fact.type),"every occurrence of each supported type binds");
     for(const auto& fact:facts){need(archive.imageIndex[fact.code&511]==fact.id,"independent physical header ID contract for every closed type");}
     const std::map<uint16_t,std::map<uint32_t,size_t>> expectedPhysical{
-        {2,{{1509,9},{1510,1}}},{3,{{1509,8}}},{5,{{1513,16},{1514,10}}},{7,{{1517,16},{1518,10}}},
-        {33,{{708,12}}},{35,{{2789,12}}},{43,{{2810,8}}},{53,{{647,4}}},{62,{{629,1},{630,1},{631,2}}},
+        {2,{{1509,6},{1510,4}}},{3,{{1509,4},{1510,4}}},{5,{{1513,17},{1514,9}}},{7,{{1517,17},{1518,9}}},
+        {33,{{708,12}}},{35,{{2789,12}}},{43,{{2810,8}}},{53,{{647,4}}},{62,{{630,2},{631,2}}},
         {66,{{611,2}}},{67,{{617,2}}},{72,{{1559,2}}},{124,{{1618,6}}},{126,{{2046,6}}},{127,{{1680,2}}},
-        {192,{{825,6}}},{193,{{793,8}}},{194,{{2458,68},{2459,3},{2460,18},{2461,14},{2464,119},{2465,7},{2466,40},{2467,18}}},
-        {196,{{2410,265},{2411,8},{2416,205},{2417,12}}},{207,{{1580,2}}},{211,{{589,2}}},{214,{{2232,2}}}};
+        {192,{{825,6}}},{193,{{793,8}}},{194,{{2458,88},{2459,5},{2460,33},{2461,9},{2464,99},{2465,5},{2466,25},{2467,23}}},
+        {196,{{2410,257},{2411,9},{2416,213},{2417,11}}},{207,{{1580,2}}},{211,{{589,2}}},{214,{{2232,2}}}};
     need(physicalCounts==expectedPhysical,"independent scalar audit locks per-type physical record distributions");
     size_t branchBases=0;
     for(const auto& fact:facts){

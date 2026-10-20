@@ -274,9 +274,14 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
         while(from!=end){auto found=std::search(from,end,preamble.begin(),preamble.end());if(found==end)break;if(++hits>16)return failure(OriginalBuildingStatus::BudgetExceeded);start=size_t(found-data.begin());from=found+1;}
         if(hits!=1)return failure(hits?OriginalBuildingStatus::AmbiguousAnchor:OriginalBuildingStatus::MissingAnchor);
         auto result=parseOriginalBuildingTable(data,start,terrainOffset,terrain,false);
-        // 0x52E7C0 serializes runtime0xF1E780 after three grid extents
-        // totaling9 bytes/cell. Public mapperRandom is the PRECEDING grid.
-        constexpr size_t randomOffset=467856,cells=51984;
+        // SAV19 uses 0x52FDA0, not MAP's 0x52E7C0. Its write calls at
+        // 0x52FF32/43/54/65/76 serialize terrain(u32),0xFAA130(u16),
+        // subTile(u8),0xF2B290(u8),then runtime random0xF1E780(u8).
+        // Read counterparts: 0x531327/38/49/5A/6B (SAV19 branch).
+        // Thus mapperRandom at terrain+8*cells IS the runtime random grid;
+        // terrain+9*cells is the different 0xF11C70 grid (0x53137C).
+        // Owned exe SHA256: 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658.
+        constexpr size_t randomOffset=415872,cells=51984;
         if(terrainOffset<=data.size()&&randomOffset+cells<=data.size()-terrainOffset){
             const size_t origin=(228-terrain.activeSide)/2;
             for(auto& f:result.footprints)if(f.imageInputs){

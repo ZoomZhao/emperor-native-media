@@ -1,6 +1,7 @@
 #include "app/map_surface.hpp"
 #include "original_pak.hpp"
 #include "cg_image_conversion.hpp"
+#include "asset_bytes.hpp"
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -101,9 +102,26 @@ void corpus(){
     const auto a=loadSG3(root.resolve("DATA/China_General.sg3"));const auto catalog=enumerateOriginalMapSources(root);
     need(catalog.complete,"complete original catalog");
     size_t sources=0,scenes=0,withBases=0,live=0,bindable=0,placed=0,cells=0,decoded=0,failures=0,withheld=0,outlines=0,markers=0,native=0,visible=0,focused=0;
+    size_t savedDrawMatches=0,savedSideMatches=0,savedMetadataRecords=0,randomRecords=0,changedRandomInputs=0,changedSelections=0;
     AppMapSurface app(root);
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;++sources;
         const auto snapshot=loadOriginalSave(root.resolve(source.relativePath));need(snapshot.status==OriginalSaveStatus::LoadedSnapshot&&snapshot.readStable,"original save stable complete snapshot");
+        std::vector<uint8_t> input;need(detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,input),"bounded independent SAV byte input");
+        const auto reread=decodeOriginalSave(input);need(reread.status==OriginalSaveStatus::LoadedSnapshot&&reread.snapshotRevision==snapshot.snapshotRevision,"independent serializer audit reads the same saved snapshot revision");
+        const auto container=decodeOriginalMapContainer(input);const auto& data=container.payload;const size_t base=snapshot.terrainOffset;
+        // These literal SAV19 extents come from 0x52FDA0, not MAP offsets.
+        // 0x531305 reads draw; 0x531349 reads subTile; 0x53136B reads random.
+        need(container.complete&&data.size()>=base+519840&&base>=155952&&detail::u16(data.data())==19,"complete SAV19 serializer profile and both relative bounds");
+        std::cout<<"{\"saved_source_ordinal\":"<<sources<<",\"save_version\":19,\"terrain_offset\":"<<base<<",\"draw_offset\":"<<base-155952<<",\"subtile_offset\":"<<base+311904<<",\"random_offset\":"<<base+415872<<",\"height_offset\":"<<base+1874984<<",\"persisted_image_grid\":false}\n";
+        for(const auto& f:snapshot.buildings.footprints){
+            if(f.type!=2&&f.type!=3&&f.type!=5&&f.type!=7&&f.type!=62&&f.type!=194&&f.type!=196)continue;
+            const size_t origin=(228-snapshot.terrain.activeSide)/2,cell=(origin+f.y)*228+origin+f.x;
+            need(f.imageInputs&&f.imageInputs->randomByte&&*f.imageInputs->randomByte==data[base+415872+cell],"random-dependent building input equals SAV runtime0xF1E780 byte");++randomRecords;
+            auto wrong=f;wrong.imageInputs->randomByte=data[base+467856+cell];changedRandomInputs+=wrong.imageInputs->randomByte!=f.imageInputs->randomByte;
+            const auto correct=originalBuildingBaseSelection(f),previous=originalBuildingBaseSelection(wrong);
+            need(correct&&previous,"both diagnostic random inputs remain in the closed selector domain");
+            changedSelections+=correct->code!=previous->code||correct->variant!=previous->variant;
+        }
         auto s=composeOriginalBuildingScene(snapshot.terrain,snapshot.buildings,a);
         need(s.accepted&&s.rejectedRecords==0,"original base stamps have no shape or overlap rejection");++scenes;withBases+=!s.placed.empty();
         live+=s.liveRecords;bindable+=s.bindableRecords;placed+=s.placed.size();cells+=s.placedCells;
@@ -118,6 +136,12 @@ void corpus(){
         // All record occurrences must reach a visible native compositor blit,
         // not just bind or disappear outside the one default viewport.
         for(const auto& p:s.placed){c.width=800;c.height=800;c.centerX=p.footprint.x;c.centerY=p.footprint.y;
+            const auto& f=p.footprint;const size_t origin=(228-snapshot.terrain.activeSide)/2;bool metadataMatches=true;
+            for(size_t y=0;y<f.size;++y)for(size_t x=0;x<f.size;++x){const size_t cell=(origin+f.y+y)*228+origin+f.x+x;
+                const bool draw=data[base-155952+cell]==s.surface.draw[cell],side=(data[base+311904+cell]&15)==s.surface.subTile[cell];
+                savedDrawMatches+=draw;savedSideMatches+=side;metadataMatches&=draw&&side;
+            }
+            need(metadataMatches,"saved draw offsets/view0 marker and subTile side independently equal the bound footprint stamp");savedMetadataRecords+=metadataMatches;
             const auto isolated=composeOriginalBuildingScene(snapshot.terrain,profile({p.footprint}),a);
             const auto one=renderMapImageGridViewport(snapshot.terrain,isolated.surface,{{2,&a,root.resolve("DATA/China_General.555"),201}},c,MapImageGridOrder::View0DrawCorner);
             const size_t area=size_t(p.footprint.size)*p.footprint.size;
@@ -127,6 +151,9 @@ void corpus(){
     }
     need(sources==6&&scenes==6&&withBases==4&&live==1065&&bindable==927&&placed==927&&focused==927,"supplied six-source placed-record denominator lock");
     need(withheld==138&&outlines==136&&markers==2&&decoded==cells&&failures==0&&native==6,"withheld shapes/markers and complete decode/native scene counts");
+    need(savedDrawMatches==1483&&savedSideMatches==1483&&savedMetadataRecords==927,"persisted SAV footprint metadata agrees for every bound record and cell");
+    need(randomRecords==851&&changedRandomInputs==845&&changedSelections==389,"SAV serializer correction has an explicit affected-building denominator");
+    std::cout<<"{\"saved_draw_cells_matched\":"<<savedDrawMatches<<",\"saved_subtile_cells_matched\":"<<savedSideMatches<<",\"footprint_cells\":"<<cells<<",\"saved_metadata_records_matched\":"<<savedMetadataRecords<<",\"bound_records\":"<<placed<<",\"random_dependent_records\":"<<randomRecords<<",\"corrected_random_inputs\":"<<changedRandomInputs<<",\"corrected_image_selections\":"<<changedSelections<<",\"stored_image_word_checks_eligible\":0,\"chain_agreement_cells_eligible\":0}\n";
     std::cout<<"{\"saved_sources\":"<<sources<<",\"native_scenes\":"<<scenes<<",\"native_CGImages\":"<<native<<",\"nonempty_sources_with_bases\":"<<withBases<<",\"live_records\":"<<live<<",\"bindable_records\":"<<bindable<<",\"placed_records\":"<<placed<<",\"focused_record_views\":"<<focused<<",\"withheld_records\":"<<withheld<<",\"withheld_footprints\":"<<outlines<<",\"unshaped_markers\":"<<markers<<",\"stamped_cells\":"<<cells<<",\"decoded_cells\":"<<decoded<<",\"default_view_drawn_cells\":"<<visible<<",\"decode_failures\":"<<failures<<",\"anchor\":\"view0:(x,y+size-1)\",\"order\":\"draw-corner(x+y,x)\",\"ground\":\"same SAV numerical terrain\",\"original_screen_agreement_verified\":false}\n";
 }
 }
