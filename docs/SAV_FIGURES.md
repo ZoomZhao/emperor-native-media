@@ -170,7 +170,7 @@ The older [scheduler](ORIGINAL_SCHEDULER_CONTRACT.md), [versioned load](ORIGINAL
 
 The callback image-step improves **175/192→192/192** live occurrences;the blocked partition improves17/192→0/192. The nineteen types still clear175/192 pairs;type11 selects17/192 nonzero primaries,decoded**17/17**,0 failures. Across all192 computed pairs,the saved comparison is **33/192 equal +159/192 changed**:28 equal-zero clearing pairs plus5 equal type11 pairs;147 clearing changes plus12 type11 changes. All16/16 nonzero cargo words clear. This is a specified phase change,not a post-load oracle score. Saved files provide no qualified later-state oracle. Whole-context image decoys leave192/192 statuses,callbacks and optional outputs unchanged. Snapshot rendering still decodes174/174 components.
 
-The independent first-update image diagnostic remains7/192. The bounded per-type state model now improves **74/192→133/192**,including68/69 Pheasants,20/20 carts,14/17 workers,12/21 goods carriers and12/14 Hunters,plus7/7 effects. Primary images decode **133/133**,cargo14/14,and **figureImage(updatedState)==updaterImage133/133**. The remaining **59/192** partition exactly in the current table and bounded-walker section below. These individual virtual updates use an explicit saved context. The separate ordered API improves **49/192→81/192** final states from **3/6→4/6 complete source pools**,decodes81/81 and passes81/81 consistency;84/192 successful prefix calls are diagnostic,with3 withheld because later unsupported updaters may write earlier slots. Neither measurement has an original post-update oracle.
+The independent first-update image diagnostic remains7/192. The latest bounded per-type state model computes **190/192**, decodes **206/206 components** (190 primary,16 cargo), and passes **figureImage(updatedState)==updaterImage190/190**. Two individual refusals remain. The separate ordered API publishes **81/192** final states from **4/6 complete source pools**, decodes81/81 and passes81/81 consistency;172/192 successful prefix calls are diagnostic,with91 withheld because later unsupported updaters may write earlier slots. The final sections below supersede earlier historical coverage tables. Neither measurement has an original post-update oracle.
 
 ### Newly verified scheduler, callback and update facts
 
@@ -351,3 +351,93 @@ New Figure fields reuse the existing shared Figure7 layout:prior x/y requests`0x
 Individual refusals partition **59/192 =36 type action/target/combat +9 goods owner/delivery +9 building virtual+24 +3 worker arrival/free movement +1 segment owner service +1 Pheasant threat**. The36 comprise35 unchanged other-type records plusone Hunter action13;theother Hunter refusal isnamed`segment_owner_service_4eacd0`. Ordered refusals partition **111/192 =106 earlier unknown +3 later-slot effects +1 type26 action +1 building virtual+24**. Building delegation30/34/35/36 andremaining49-type-group pathsretain theirnamed blockers;no image-only substitute isreported asastate update.
 
 Four new focused bites change prior x, cart delay18→17, segment cursor+1→+2, and common accepting wire7→8. All4/4 exit1 at the intended failing-if-wrong assertions. Original inputs and private disassembly/test artifacts remain outside Git. Release and undefined each pass **392/392 authored and2,916/2,916 total checks**, from375/2,601. Individual nonzero cargo decodes14/14; combined updated components decode **147/147** with0 failures. Complete ordered pools emit81/81 primary components and0 nonzero cargo components. Building-scene244/7,663, building-image1,283/3,880, saved-ground110/1,928, SAV94 andmap-reference1,884/3,130 remain green in both modes. CITY19 Figure7 passes912/912(456 per mode). Unset roots SKIP with392/392 authored checks in both modes. The App builds28 units, matches96/96 manifest fingerprints and passes strict signature verification without launch. No original assets, derived pixels, binaries or listings enter Git.
+
+## Remaining first-update ports,2026-10-21
+
+**Individual133/192→190/192;ordered81/192→81/192;complete pools4/6→4/6.** Individual components decode147/147→206/206 (190 primary+16 cargo),with0 failures;independent primary consistency133/133→190/190. These final counts include the Inspector serialization correction below,which raises the first review candidate186/192 to190/192. Ordered components remain81/81,consistency81/81,cargo0/0. All addresses below use the pinned SHA-256 at the top,file offset=VA−0x400000. No decompilation/disassembly was declined. No post-update oracle or original game run was used. Saved-snapshot playback remains the default;the complete-pool prerequisite for a post-load k=1 scene is not met.
+
+| Type | Individual before→after /live | Ordered final before→after /live |
+|---:|---:|---:|
+|1|7→7 /7|7→7 /7|
+|11|14→16 /17|10→10 /17|
+|13|0→3 /3|0→0 /3|
+|19|11→18 /18|0→0 /18|
+|20|20→20 /20|0→0 /20|
+|21|0→2 /2|0→0 /2|
+|22|1→1 /1|0→0 /1|
+|23|0→4 /4|0→0 /4|
+|26|0→8 /8|0→0 /8|
+|28|0→1 /1|0→0 /1|
+|29|0→2 /2|0→0 /2|
+|30|0→2 /2|0→0 /2|
+|34|0→1 /1|0→0 /1|
+|35|0→2 /2|0→0 /2|
+|36|0→3 /4|0→0 /4|
+|39|0→5 /5|0→0 /5|
+|40|12→14 /14|1→1 /14|
+|45|0→4 /4|0→0 /4|
+|47|0→8 /8|0→0 /8|
+|76|68→69 /69|63→63 /69|
+|Total|133→190 /192|81→81 /192|
+
+| Sorted SAV pool | Individual before→after /live | Ordered final before→after /live | Successful prefix before→after /live | First refusal after port |
+|---:|---:|---:|---:|---|
+|1|21→21 /21|21→21 /21|21→21 /21|none|
+|2|14→45 /46|0→0 /46|1→42 /46|slot1750,type36/action8,segment service logic|
+|3|38→64 /65|0→0 /65|2→49 /65|slot320,type11/action8,employment logic|
+|4|32→32 /32|32→32 /32|32→32 /32|none|
+|5|7→7 /7|7→7 /7|7→7 /7|none|
+|6|21→21 /21|21→21 /21|21→21 /21|none|
+|Total|133→190 /192|81→81 /192|84→172 /192|4/6 complete|
+
+Pool2's former first refusal,slot1626,type26/action7,now computes its positive-route update. Slot1636's type36/action6 countdown andslot1638's type26/action7 also complete. Pool3's former first refusal,slot234,type34/action6,now decrements its countdown,clears search byte+75,writes roam limit andselects its hidden frame. Subsequent type19 destination validation,type21 owner membership,andtheir route segment gates are computed before the next slot. No incomplete prefix is published as a final scene.
+
+**Exact remaining partition.** Individual2/192 = **1 segment owner service +1 worker arrival employment**. The former four Inspector refusals were based on an incorrect serialization claim: SAV19 restores`0xC82F28` at`0x531564`,from **T+1,363,850**. All6/6 same-source blocks parse and contain signed count0. Slots1694/1701 in pool2 and280/284 in pool3 now compute their type39/action8 updates using that saved value. The serializer read-order evidence and bounded positive-count behavior are recorded below.
+
+Pool2 slot1750,type36/action8, requires`0x4EACD0→owner+28=0x429DF0→+2C=0x48B7F0`, which can write house entertainment services, and service-grid category3 before road choice. It remains`segment_owner_service_4eacd0`. Pool3 slot320,type11/action8, has zero free distance at call entrance;`0x4C9FD0` therefore changes live state, updates house workers/free slots, clears reciprocal+32, and calls model/accounting services. These building writes remain `worker_arrival_employment_building_writes_4c9fd0`. Both refusals mean **logic not yet ported**,with serialization evidence below;neither asserts absent saved state. Ordered111/192 = **18 earlier-slot unknown +91 later-slot effects +1 segment service +1 worker employment**.
+
+**Type-specific rules.** `0x4CC670` sets mode17,freeMovement0,hidden0, requires owner live1, then action7 follows the route or action8 calls`0x4C2DC0`. Its positive countdown branch only decrements+3E; expiry requires destination+264 and refuses. Image family selection is unchanged, and`0x5CFE60` advances after the action. Type13`0x4CA960` action9 increments/reset12 animation, sets mode3, moves, then increments+3E; the implemented counter≤30 branch avoids`0x4ADD60` house search. Type40 action13 decrements+3E, compares against model7−SGframes(4EC0)−8, and can change to action7 before selection. The far-target domain uses animated4EBF after that transition. It does not move in that call; action13's selector is at`0x4D3591`.
+
+Delegated`0x51D0C0` uses owner+240=`0x416B90`(alive!=1),mode7,freeMovement0,hidden0,model15×96 narrowed to+4A,and a byte frame increment. Action6 hides/resets frame/decrements a positive countdown; action8 moves bounded roam interiors below the limit; action9 follows the route at speed6. D3`0x48A9A0` uses mode18,and action6 additionally clears+75. Type23`0x4D0270`,28`0x4D3A70`,29`0x4D3B50` and39`0x4CD230` require owner live1 and`0x4295C0` membership. Market category2 admits primary+2E or data+6A; Inspector category1/2 comes from`0x5B3AC0→0x5B3AD0`(common word16>0 or byte6F≠0). Type23 action1 reads market+268=`0x5D4AC0`; a positive goods sum avoids its forced return branch. Roam return at origin after80% and limit thresholds remain refused. Type29's frame wrap calls combat search`0x4E30C0` and is withheld. Inspector action7 makes`0x4E2E90` return without a side effect after its initial saved-count gate,and its nonarrival free movement computes1/1 occurrence.
+
+**Shared movement and linked state.** `0x4E6B70` adds actual speed to signed word+4C before fractional movement. Already-roaming`0x4E6D80` moves subcoordinates/height before crossing at progress10; segment20 requires service/grid/road choice and refuses. `0x4E9620` unlinks first,decrements raise,tests signed remainingX+remainingY before moving,updates Bresenham error/major axis,approaches subcoordinates,divides by20 with signed truncation,recomputes the cell,clears+48,and appends even when the same cell is retained. Finishing the last step returns nonarrival; the next call reports arrival. Type11 action7 route exhaustion initializes`0x4E98A0`'s free target,error,axis and direction toward the home,without moving again; action8 nonarrival computes one free step. Figure cell-list writes are atomic with the state/image output.
+
+Type45`0x4CE2D0` action9 validates its+66 follower and moves before image selection. Type47`0x4CF380` resolves direct45 or one intermediate47,validates live/action,observes leader speed phase with`0x4E4C10`,clamps1..3 and adds one when immediate leader distance>2. Direct45 uses`0x4E7520` delay18,frame copy and home gate; indirect47 uses`0x4E7460`,aiming at earlier leader position+20/+22 at the20 boundary. The helper's speed argument does not advance leader phase; case13 returns2 or1,distinct from the route fractional schedule. Updated image writes independently select the cited faction family; the final selector branch clears hidden. All8/8 crews and4/4 traders compute individually. One original Trader crosses cells,in addition to the prior cart and Hunter,with prior coordinates/cell and list writes asserted.
+
+`0x4EACD0`'s service category−1 is now also verified for types13/26/45/47. Hunter,ClayPit and TradingStation owner+28=`0x429DF0`,+2C=`0x42A210`(return0),so it cannot change queried buildings; owner+1C must already be≤300 to avoid the cap write. Road validation uses an explicit projection of`0x5AD440`'s A00 bits,with FFFF for unknown cells. Road40's unshadowed branch is4; plain flags0/1/80/81 reach only low-bit branches,proving A00 clear without claiming a full passability mask. TypeD2 is refused because the final+270 hook can rewrite masks (`0x4BDB60` recognizes only D2). `0x4E8BC0` then accepts road40,or selects direction9 for plain nonroad; Hunter action7 refreshes destination from target and releases a reciprocal route on9. The grid is not derived from the51C mask.
+
+**Additional read-only inputs.** Figure7's already cited layout now retains+4A/+4C/+4E/+4F/+50/+51,+56/+58/+5A/+5C/+5E/+60,+48,+75,+15C/+15E,and both+9A/+9C attacker links. Requests are`0x4C85EC..0x4C8679`,`0x4C871E`,`0x4C8A20/2E`,`0x4C8871`; no layout parser changed. The figure-only building link reader extends its reads of public framed records: common5 x/y wire8/10,primary figure+2E wire41,service count+1C wire23,destination enabled+90 wire129,Inspector variant+16 wire18 and+6F wire100. Industrial outer1/data1`0x51CE00→0x51C3A0` maps data+6A/+6C to tail106/108 and eight+70 links to tail112..126. Market`0x544F10→0x5D4890` verifies six component1 records,storage2 and market6;`0x5D4AC0` sums signed amounts at component wire+6. Shared building,ground and save parsers remain unchanged. Type19 destinations Mill35/Warehouse36 use+78=`0x4289F0`,common+90; type21 TradingStation3A uses its parsed cargo membership array before movement. Cargo19 is computed before movement; type21 cargo after movement,matching their call order.
+
+Pheasant threat qualification now accepts the explicit relation false byte at **VA0x84E5C2/file0x44E5C2**,category6→2,after proving both model fields. `0x59DB70` calls`0x4E5340(candidate,self)`; the reverse relation at0x84E596 is also0. Positive+90,existing+AC,and the two attacker links are validated before clearing threat; types75..77 are excluded by0x59A6A0. This closes pool2 slot1757 with a Hunter attacker without inventing a threat target or combat update.
+
+Release and undefined sanitizer both pass **415/415 authored and3,127/3,127 total checks**,from392/2,916 (first review candidate407/3,097). Exact per-type and per-pool counts,both refusal identities,wire inputs,positive/expired countdowns,model15×96,roam speed accounting,free-step arrival order,prey relation qualification,saved Inspector fire context,and route-mask unknown gates are asserted. All **8/8** focused mutations pass a fresh rejection run:the five earlier mutations cover supplier image family,roam distance increment,free arrival equality,follower speed13,and common accepting byte;the three new mutations cover fire offset−4,zero-count comparison,and search threshold20. Each exits1 at the intended assertion. Unset roots succeed with415/415 authored checks andSKIP in both modes. Required regressions pass again in release+undefined:building-scene244/7,663,building-image1,283/3,880,saved-ground110/1,928,SAV94,andmap-reference1,884/3,130. CITY19 Figure7 passes912/912 (456 per mode). A fresh App build succeeds,96/96 source manifest hashes match,andstrict signature verification passes without launch. No original assets,pixels,binaries orlistings enter Git;no commit orpush ismade bythis implementer.
+
+## Inspector saved fire-count correction,2026-10-21
+
+**Individual186/192→190/192;ordered81/192→81/192;successful prefixes129/192→172/192;complete pools4/6→4/6.** Type39 improves1/5→5/5 individually. Pool2 improves43/46→45/46 and prefix17/46→42/46;pool3 improves62/65→64/65 and prefix31/65→49/65. Neither pool completes. The first refusal is now pool2 slot1750 andpool3 slot320. The earlier classification of`0xC82F28`as absent from SAV19 was wrong:operand scans for direct stores missed the serializer's pointer argument. The native reader now restores its saved signed32-bit value from the shared frame,without scanning for a matching byte pattern.
+
+All VAs below use the pinned SHA-256`0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`;file offset=VA−0x400000. Start with shared`original_save19::g101D0B0=T+1,299,352`,whose4-byte read is`0x53147B`. Continue with these exact requests to`0x780533`:
+
+| Read call(s) | Runtime destination(s) | Width | Start relative to T |
+|---|---|---:|---:|
+|`0x531489/497/4A5/4B3/4C1`|`0x88EC3C,0x130F8E4,0xC05900,0xC058FC,0xC5D0D8`|5×4|1,299,356|
+|`0x5314D2`|`0xC82E40`|144|1,299,376|
+|`0x5314E3`|`0xC82DB0`|144|1,299,520|
+|`0x5314F1`|`0xC82EE8`|4|1,299,664|
+|`0x531502`|`0x1192B78`|64,000|1,299,668|
+|`0x531510/51E/52C`|`0x1192B34,0x1192B30,0x1192B2C`|3×4|1,363,668|
+|`0x53153A`|`0x1192B04`|10|1,363,680|
+|`0x531548`|`0x1192AB4`|80|1,363,690|
+|`0x531556`|`0x1192A64`|80|1,363,770|
+|`0x531564` (pointer push`0x53155D`)|`0xC82F28`|4|**1,363,850**|
+
+Thus`1,299,352+4+5*4+2*144+4+64,000+3*4+10+2*80=1,363,850`. Figure-owned constants extend the shared`original_save19`cursor in`original_figure.hpp`;shared building/ground/save parser sources remain unchanged. `originalFigureSavedServices(payload,T)`first verifies the100 version6 records and existing RNG framing,then publishes an optional signed fire count only when all4 later bytes exist. Short older service fixtures retain their route/RNG data with no fire value. An independent literal-offset fixture has a nonzero preceding decoy and negative count;truncation leaves the count unknown. All **6/6** original sources equal their independent literal reads atT+1,363,850 and restore count **0**.
+
+`0x4CD2AA→0x4E2E90`runs before Inspector action dispatch. Signed count<1 returns with no search-byte write. Action7 also returns without a write for positive counts. For action8 with positive count,+75 increments modulo256;the new unsigned byte<20 returns. At20 or above,`0x4AFC50`searches building targets and may change figure/building links and routes;that additional branch remains explicitly`inspector_fire_target_search_4afc50`until ported. It is not reached by these four originals. The count0 action8 branch clears hidden (`0x4CD41A`),checks the roam limit,executes`0x4E6B70`at`0x4CD4BA`,andselects/advances`4C09`at`0x4CD8C0`;it has no extra pre-action frame increment. Original search bytes remain unchanged,roam distance increases by model speed8,andboth state and image publish atomically. Authored controls prove zero/negative counts,positive count18→19,19→20 refusal,and255→0 wrap;no missing count is defaulted to zero.
+
+**Re-audit of the two retained refusals.** Both are unported logic,with these serialization facts:
+
+- **Type36 segment service:** common5`0x427430`serializes owner service count+1C (wire23) and the queried building fields. House data1`0x517410`reads its per-field prefix,then service bytes+2B/+2C/+2E;the+2E read is`0x5176C0`,andits paired write is`0x517510`. `0x4B9460`updates the category3 bits of dword grid`0xD62440`. SAV19 restores the full207,936-byte grid at`0x531816`,after32 bytes at`0x5317F1`and36 bytes at`0x531805`;it is saved. Owner service traversal/entertainment writes,the grid mutation,androam road choice have not been ported or represented as an atomic building/grid output. The refusal makes no claim that these saved inputs are unavailable.
+- **Type11 worker arrival:** common5 wire27/29/45 restore runtime workers+20,free slots+22,andreciprocal worker+32. In the version5 read branch,requests are`0x42863A/647/6AF`;each follows the individual preceding common fields,not a runtime delta. House data1 restores labor-disable byte+3C at`0x517776`after+2A..+30,+2F,+31..+3B,with the four-byte+0D and24-byte+12 requests in the prefix. The population/accounting singleton at`0x130F960`is loaded by`0x531293→0x593140`;its version6 branch`0x59502C`reads4 one-byte fields,then eight u32s,+8 through+24,then+28 at`0x5950D0`(wire38 including version). That+28 is global`0x130F988`,updated by`0x5919A0`after`0x591900`. The figure's employment amount+6E is already in Figure7. House capacity/model queries,notification/accounting effects,worker/free-slot writes,andreciprocal-link clearing are not yet ported. This refusal is an implementation gap,not a missing serialization premise.
+
+The final ordered refusal partition is **111/192 =18 later calls blocked by an earlier refusal +91 successful prefix states withheld because of later effects +1 segment service +1 worker employment**. Saved-snapshot playback remains the default because complete ordered pools are still4/6;no fitted constants,post-update oracle,or approximation of either remaining branch was introduced.

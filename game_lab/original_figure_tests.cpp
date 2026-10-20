@@ -43,6 +43,9 @@ void authored(){
     raw[208]=2;raw[212]=1;raw[216]=0xff;raw[217]=raw[218]=raw[219]=0xff;raw[328]=17;raw[128]=5;raw[153]=1;
     raw[66]=3;raw[68]=4;raw[70]=5;raw[368]=2;raw[97]=11;raw[276]=77;raw[400]=19;raw[146]=8;raw[102]=9;
     raw[32]=3;raw[34]=4;raw[52]=7;raw[54]=8;raw[100]=9;raw[104]=10;raw[300]=11;raw[73]=1;
+    raw[74]=17;raw[76]=18;raw[78]=1;raw[79]=2;raw[80]=254;raw[81]=5;raw[117]=19;
+    raw[86]=20;raw[88]=21;raw[90]=22;raw[92]=23;raw[94]=255;raw[95]=255;raw[96]=2;
+    raw[348]=24;raw[350]=25;raw[72]=1;raw[154]=26;raw[156]=27;
     for(const auto& field:emperor::file_io::research::figure7_fields)
         for(size_t k=0;k<field.bytes;++k)bytes.push_back(std::string(field.helper)=="0x503db0"&&k==1?0xee:raw[field.receiver_offset+k]);
     bytes.push_back(0);
@@ -60,6 +63,10 @@ void authored(){
         p.priorProgress==19&&p.reciprocalTarget==8&&p.follower==9,"route and ordered-pool inputs retain separate Figure7 wire requests");
     need(p.priorX==3&&p.priorY==4&&p.homeX==7&&p.homeY==8&&p.home==9&&p.delivery==10&&p.priorCell==11&&p.water==1,
         "crossing prior coordinates, home/delivery and water byte use separate cited Figure7 reads");
+    need(p.roamLimit==17&&p.roamSteps==18&&p.roamState==1&&p.roamTurns==2&&p.roamTurn==254&&p.roamCountdown==5&&p.searchCounter==19&&
+        p.roamOriginX==24&&p.roamOriginY==25,"roam counters, origin and search byte retain individual Figure7 receiver requests");
+    need(p.freeTargetX==20&&p.freeTargetY==21&&p.freeRemainingX==22&&p.freeRemainingY==23&&p.freeError==-1&&p.freeAxis==2&&
+        p.cellMovement==1&&p.attackers==std::array<int16_t,2>{26,27},"free movement error/axis and both attacker slots have distinct signed wire inputs");
     auto bad=bytes;bad.back()=1;need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Unsupported,"FSA does not guess a variable extension length");
     bad=bytes;bad.pop_back();need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Malformed,"last byte truncation publishes no figures");
     bad=bytes;bad[18]=6;need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Unsupported,"unknown Figure version fails closed");
@@ -302,7 +309,7 @@ void authored(){
             "Pheasant signed idle threshold200 changes action before selecting entry9");
         bird.idleCounter=INT32_MAX;need(originalFigureFirstUpdate(bird,supplied,&*context).state->action==31,
             "Pheasant idle counter wraps as32 bits before signed comparison");
-        bird.idleCounter=0;bird.herdTarget=0;auto other=bird;other.slot=2;other.x=12;other.y=0;other.action=32;
+        bird.idleCounter=0;bird.herdTarget=0;bird.threat=0;auto other=bird;other.slot=2;other.x=12;other.y=0;other.action=32;
         auto later=other;later.slot=6;later.x=1;auto inactive=OriginalFigure{};inactive.x=25;
         context->figures={{0,inactive},{2,other},{4,bird},{6,later}};
         const auto search=originalFigureFirstUpdate(bird,supplied,&*context);
@@ -428,7 +435,8 @@ void authored(){
         context.models[11][5]=1;need(!originalFigureHarmlessToPheasant(innocent,context),"nonzero missile attack cannot use harmless prey branch");
         auto worker=one;worker.type=11;worker.action=7;worker.home=8;worker.route=3;worker.progress=3;worker.direction=2;
         worker.frame=11;worker.subtype=1;context.figures[worker.slot]=worker;context.modelSpeeds[11]=8;
-        context.buildings=std::map<size_t,OriginalFigureBuildingLink>{{8,{3,3,int16_t(worker.slot),1}}};
+        OriginalFigureBuildingLink house;house.type=3;house.alive=3;house.worker=int16_t(worker.slot);house.accepting=1;
+        context.buildings=std::map<size_t,OriginalFigureBuildingLink>{{8,house}};
         const auto immigrated=originalFigureFirstUpdate(worker,refs,&context,0xc0);
         need(immigrated.state&&immigrated.state->frame==0&&immigrated.state->progress==4&&immigrated.state->movementMode==3&&
             immigrated.state->secondaryImage==0,"worker validates house live3, reciprocal home link and accepting byte before movement and frame wrap");
@@ -449,6 +457,84 @@ void authored(){
         const auto carried=originalFigureFirstUpdate(carrier,refs,&context,0xc0);
         need(carried.state&&carried.state->height==8&&carried.state->state85==1&&carried.state->secondaryImage==(39u<<14)+10,
             "goods select cargo style before movement reaches equal height, then add resulting direction");
+    }
+    {
+        auto group=archive;group.numImages=512;group.sprites.resize(512);group.imageIndex.fill(1);
+        group.sprites[0].animationSpriteCount=12;group.sprites[0].animationDirections=8;
+        group.imageIndex[101]=101;group.sprites[100].animationSpriteCount=12;group.sprites[100].animationDirections=8;
+        const std::map<uint32_t,const SG3Archive*> refs{{38,&group},{39,&group}};
+        OriginalFigureUpdateContext context;context.cropBase=8627;context.terrain.assign(51984,0xc0);context.cellHeads.assign(51984,0);
+        auto supplier=one;supplier.type=26;supplier.action=8;supplier.owner=8;supplier.counter=2;supplier.frame=11;supplier.variant=0;
+        context.figures[supplier.slot]=supplier;context.buildings.emplace();OriginalFigureBuildingLink owner;owner.type=0xc0;owner.alive=1;
+        context.buildings->emplace(8,owner);
+        const auto supplied=originalFigureFirstUpdate(supplier,refs,&context,0x88);
+        need(supplied.state&&supplied.state->counter==1&&supplied.state->action==8&&supplied.state->frame==0&&
+            supplied.state->movementMode==17&&supplied.state->hidden==0&&supplied.state->freeMovement==0&&
+            supplied.state->image==(39u<<14)+100,"supplier countdown2 becomes1 before action8 family and SG wrap");
+        supplier.counter=1;need(!originalFigureFirstUpdate(supplier,refs,&context,0x88).state,
+            "supplier expired countdown refuses destination virtual before any state or service output");
+        auto delegated=one;delegated.type=34;delegated.action=6;delegated.owner=8;delegated.counter=10;delegated.searchCounter=99;
+        context.figures[delegated.slot]=delegated;context.buildings->at(8).type=0xd3;context.models[34]={};context.models[34][15]=36;
+        const auto waiting=originalFigureFirstUpdate(delegated,refs,&context,0xc0);
+        need(waiting.state&&waiting.state->counter==9&&waiting.state->hidden==1&&waiting.state->frame==0&&
+            waiting.state->searchCounter==0&&waiting.state->movementMode==18&&waiting.state->roamLimit==3456,
+            "D3 countdown clears search byte and writes model15 times96 before hidden image");
+        auto roamer=one;roamer.type=30;roamer.progress=7;roamer.direction=2;roamer.roamState=1;roamer.roamSteps=2688;
+        roamer.subX=600;roamer.subY=1040;const auto roaming=originalFigureRoam(roamer,6,0xc0,context);
+        need(roaming.state&&roaming.state->roamSteps==2694&&roaming.state->progress==8&&roaming.state->subX==601&&
+            roaming.state->route==roamer.route,"roam increments distance by speed6 while moving exactly one substep without allocating a route");
+        roamer.progress=19;const auto segment=originalFigureRoam(roamer,6,0xc0,context);
+        need(!segment.state&&segment.status==OriginalFigureUpdateStatus::SegmentService,
+            "roam segment refuses owner/grid service and road choice atomically");
+        auto free=one;free.slot=2;free.x=5;free.y=6;free.cell=10000;free.subX=100;free.subY=120;free.next=0;
+        free.freeRemainingX=1;free.freeRemainingY=0;free.freeError=-1;free.freeAxis=1;free.freeTargetX=101;free.freeTargetY=120;free.raise=1;
+        auto companion=free;companion.slot=3;companion.next=2;context.figures={{2,free},{3,companion}};context.cellHeads[10000]=3;
+        const auto walked=originalFigureFreeStep(free,context);
+        need(walked&&!walked->second&&walked->first.subX==101&&walked->first.freeRemainingX==0&&walked->first.raise==0&&
+            walked->first.x==5&&walked->first.y==6&&walked->first.cell==10000&&context.figures.at(3).next==2,
+            "last free step moves and relinks but does not report arrival until next call");
+        const auto arrived=originalFigureFreeStep(walked->first,context);
+        need(arrived&&arrived->second&&arrived->first.subX==101,"free arrival tests zero remaining before attempting another step");
+        need(originalFigureFollowerSteps(13,2)==2&&originalFigureFollowerSteps(13,3)==1&&
+            originalFigureMovementSteps(13,3).first==3,"follower speed13 observes two then one rather than mutating leader's route schedule");
+        context.models[76]={};context.models[76][0]=6;context.models[40]={};context.models[40][0]=2;context.models[40][2]=3;context.models[40][5]=6;
+        auto hunter=one;hunter.type=40;
+        need(originalFigureHarmlessToPheasant(hunter,context),"category6 versus category2 relation byte is false even with nonzero Hunter attacks");
+        context.models[76][0]=5;need(!originalFigureHarmlessToPheasant(hunter,context),"uncited predator relation does not inherit the prey table fact");
+        auto inspector=one;inspector.type=39;inspector.action=8;inspector.owner=8;context.figures[inspector.slot]=inspector;
+        context.modelSpeeds[39]=8;
+        context.models[39]={};context.buildings->at(8).type=0x7c;context.buildings->at(8).primaryFigure=int16_t(inspector.slot);
+        const auto withheld=originalFigureFirstUpdate(inspector,refs,&context,0xc0);
+        need(!withheld.state&&withheld.status==OriginalFigureUpdateStatus::InspectorFireContext,
+            "inspector action8 requires the serialized count before publishing counter or movement");
+        inspector.x=5;inspector.y=6;inspector.cell=10000;inspector.subX=100;inspector.subY=120;
+        inspector.next=0;inspector.direction=2;inspector.progress=7;inspector.roamState=1;
+        inspector.roamSteps=10;inspector.searchCounter=19;context.models[39][15]=40;
+        context.figures={{inspector.slot,inspector}};context.cellHeads[10000]=uint16_t(inspector.slot);context.services.emplace();
+        context.services->fireCount=0;
+        const auto noFire=originalFigureFirstUpdate(inspector,refs,&context,0xc0);
+        need(noFire.state&&noFire.state->searchCounter==19&&noFire.state->roamSteps==18&&noFire.state->progress==8&&
+            noFire.state->subX==101&&noFire.state->frame==uint8_t(inspector.frame+1)&&noFire.state->hidden==0&&
+            noFire.services->fireCount==0,"serialized zero fire count preserves search byte and performs Inspector action8 roam before SG frame advance");
+        inspector.searchCounter=18;context.services->fireCount=1;
+        const auto positiveFire=originalFigureFirstUpdate(inspector,refs,&context,0xc0);
+        need(positiveFire.state&&positiveFire.state->searchCounter==19&&positiveFire.state->roamSteps==18,
+            "positive saved fire count increments search byte before its new-value20 search threshold");
+        inspector.searchCounter=19;const auto searchFire=originalFigureFirstUpdate(inspector,refs,&context,0xc0);
+        need(!searchFire.state&&searchFire.status==OriginalFigureUpdateStatus::InspectorFireSearch&&context.figures.at(inspector.slot).searchCounter==19,
+            "Inspector fire target search at20 remains explicitly unported and publishes no partial counter or movement");
+        inspector.searchCounter=255;const auto wrappedFire=originalFigureFirstUpdate(inspector,refs,&context,0xc0);
+        need(wrappedFire.state&&wrappedFire.state->searchCounter==0,"Inspector search counter wraps as a byte before the unsigned20 comparison");
+        inspector.searchCounter=19;context.services->fireCount=-1;
+        need(originalFigureFirstUpdate(inspector,refs,&context,0xc0).state->searchCounter==19,
+            "negative serialized fire count uses the signed less-than-one early return");
+        OriginalBuildingProfile buildings;buildings.status=OriginalBuildingStatus::Complete;buildings.parsedRecords=4000;
+        OriginalMapTerrain map;map.activeSide=84;map.flags.assign(51984,0);map.flags[10000]=0xc0;map.flags[10001]=0x81;map.flags[10002]=0x100;
+        const auto masks=originalFigureRoadMovementMasks(map,buildings);
+        need(masks&&masks->at(10000)==4&&masks->at(10001)==0&&masks->at(10002)==0xffff,
+            "route projection proves road4 and clear plain A00 bits while unresolved masks remainFFFF");
+        buildings.slotTypes[1]=0xd2;need(!originalFigureRoadMovementMasks(map,buildings),
+            "typeD2 final virtual270 can rewrite derived masks and withholds the projection");
     }
     {
         // Literal SAV19 terrain-relative addresses, distinct decoys either side.
@@ -475,6 +561,13 @@ void authored(){
             "route exhaustion releases only reciprocal owner and publishes atomic service copy");
         saved->routeOwners[3]=99;need(originalFigureSavedRouteDirection(walker,*saved)->services.routeOwners[3]==99,"route release retains another figure's owner");
         services[t+1281760+175*99]=5;need(!originalFigureSavedServices(services,t),"unknown intervening record version refuses RNG framing");
+        services[t+1281760+175*99]=6;
+        need(!originalFigureSavedServices(services,t)->fireCount,"absent later fire extent remains unknown rather than defaulting to zero");
+        services.resize(t+1363854,0xa5);put(1363846,0x12345678);put(1363850,0xfffffffe);
+        need(original_save19::fireCount==1363850&&original_save19::fireBlocks80==1363690&&
+            originalFigureSavedServices(services,t)->fireCount==-2,
+            "SAV19 read order after shared terrain scalars reaches signed fire count at literal1363850 after two80-byte blocks");
+        services.pop_back();need(!originalFigureSavedServices(services,t)->fireCount,"partial saved fire dword cannot publish zero or a truncated count");
     }
     {
         std::vector<uint8_t> data(1600);const size_t scenario=11,anchor=scenario+28;
@@ -700,8 +793,10 @@ void corpus(){
     size_t postLoadSelected=0,postLoadDecoded=0,updateComputed=0,updateDecoded=0,updateConsistent=0,updateCargoDecoded=0;
     std::map<unsigned,size_t> updateCrossedTypes;
     std::map<unsigned,size_t> updateBlockedTypes,updateComputedTypes;std::map<std::string,size_t> updateBlockers;
+    std::set<std::pair<size_t,size_t>> refusedSlots;
     size_t orderedComputed=0,orderedPrefix=0,orderedDecoded=0,orderedConsistent=0,orderedComplete=0,servicesParsed=0,routesValidated=0,orderedCargoDecoded=0;
     std::map<unsigned,size_t> orderedComputedTypes,orderedBlockedTypes;std::map<std::string,size_t> orderedBlockers;
+    std::array<size_t,6> individualBySource{},orderedBySource{},prefixBySource{};
     std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));need(save.readStable&&save.layers.figures.has_value(),"same-source stable figure profile");
@@ -724,7 +819,10 @@ void corpus(){
         need(figures.savedView==detail::u32(payload.data()+save.terrainOffset+1299324)&&figures.savedView==0&&
              services->randomFirst==detail::u32(payload.data()+save.terrainOffset+1299340)&&
              services->randomSecond==detail::u32(payload.data()+save.terrainOffset+1299344),
-             "figure view and both RNG words independently equal corrected post-record read sites");
+              "figure view and both RNG words independently equal corrected post-record read sites");
+        need(services->fireCount&&*services->fireCount==0&&detail::u32(payload.data()+save.terrainOffset+1363850)==0,
+            "same-source framed SAV19 restores C82F28 at the independently cited literal T+1363850");
+        std::cout<<"{\"saved_fire_source\":"<<sources+1<<",\"terrain_relative_offset\":1363850,\"fire_count\":"<<*services->fireCount<<"}\n";
         const auto spawn=originalFigureSpawnServices(payload,save.sizeOffset);
         need(spawn.has_value(),"same scenario6 supplies four type76 spawn coordinates and validated crop");
         const auto passability=originalFigurePheasantPassability(save.terrain,save.layers.mapperStone,save.buildings,*spawn);
@@ -736,6 +834,8 @@ void corpus(){
         const auto buildingLinks=originalFigureBuildingLinks(payload,save.buildings);
         need(buildingLinks.has_value(),"same-source framed building common5 provides worker/home validity");
         updateContext->buildings=decoyUpdateContext->buildings=buildingLinks;
+        const auto roadMasks=originalFigureRoadMovementMasks(save.terrain,save.buildings);
+        if(roadMasks)updateContext->movementMasks=decoyUpdateContext->movementMasks=*roadMasks;
         for(const auto& f:figures.live)if(f.route>0){need(size_t(f.route)<services->routeOwners.size()&&services->routeOwners[f.route]==int(f.slot)&&
             f.routeLength>=0&&f.routeLength<=500&&f.routeCursor>=0&&f.routeCursor<=f.routeLength,
             "serialized positive route has reciprocal live owner and bounded saved cursor/length");++routesValidated;}
@@ -758,19 +858,23 @@ void corpus(){
         postLoadComputed+=postLoad.computed;postLoadBlocked+=postLoad.blocked;
         const auto decodeWord=[&](uint32_t word){auto name=std::filesystem::path(originalFigureArchiveName(word>>14));name.replace_extension(".555");
             return decodeSG3Sprite(archives.at(word>>14),word&0x3fff,root.resolve("DATA/"+name.string())).image.valid();};
-        const auto ordered=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase),
-            orderedDecoys=originalFigureOrderedFirstPass(decoys,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase);
+        const auto ordered=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{}),
+            orderedDecoys=originalFigureOrderedFirstPass(decoys,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{});
         need(ordered.accepted&&ordered.figures.size()==figures.live.size()&&ordered.computed+ordered.blocked==figures.live.size()&&
             ordered.computed==orderedDecoys.computed,"ordered pass partitions complete same-source live pool independent of saved images");
         orderedComputed+=ordered.computed;orderedPrefix+=ordered.prefixComputed;orderedComplete+=ordered.complete;
-        std::cout<<"{\"ordered_source\":"<<sources<<",\"complete\":"<<(ordered.complete?"true":"false")<<",\"computed\":"<<ordered.computed<<",\"prefix\":"<<ordered.prefixComputed<<",\"live\":"<<figures.live.size()<<"}\n";
+        orderedBySource.at(sources-1)=ordered.computed;prefixBySource.at(sources-1)=ordered.prefixComputed;
+        std::cout<<"{\"ordered_source\":"<<sources<<",\"complete\":"<<(ordered.complete?"true":"false")<<",\"computed\":"<<ordered.computed<<",\"prefix\":"<<ordered.prefixComputed<<",\"live\":"<<figures.live.size()<<",\"first_blocked_slot\":"<<ordered.firstBlockedSlot;
+        if(ordered.firstBlockedSlot)std::cout<<",\"first_blocker\":\""<<originalFigureUpdateStatusName(ordered.figures.at(ordered.firstBlockedSlot).status)<<'"';
+        std::cout<<"}\n";
         for(const auto& f:figures.live){const auto& result=ordered.figures.at(f.slot);const auto& decoy=orderedDecoys.figures.at(f.slot);
             need(result.status==decoy.status&&bool(result.state)==bool(decoy.state),"ordered statuses ignore both saved image words");
             if(!result.state){++orderedBlockedTypes[f.type];++orderedBlockers[originalFigureUpdateStatusName(result.status)];continue;}
             ++orderedComputedTypes[f.type];const auto& u=*result.state;
             need(u.image==decoy.state->image&&u.age==f.age+1&&u.priorProgress==u.progress,"ordered computed output contains dispatch age and post-return progress");
             auto finalImages=imageState;if(ordered.context)finalImages=originalFigureUpdateImageState(*ordered.context);
-            const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,{},&finalImages);
+            const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,
+                save.buildings.slotTypes.at(size_t(u.owner)),&finalImages);
             need(selected.status==OriginalFigureImageStatus::Selected&&selected.image==u.image,"ordered updated image matches independent phase selector");++orderedConsistent;
             need(decodeWord(u.image),"ordered computed primary image decodes");++orderedDecoded;
             if(u.secondaryImage){need(decodeWord(u.secondaryImage),"ordered final cargo image decodes");++orderedCargoDecoded;}
@@ -791,8 +895,10 @@ void corpus(){
                 decoyUpdate=originalFigureFirstUpdate(decoys.live.at(&f-figures.live.data()),refs,&*decoyUpdateContext,save.terrain.flags.at(f.cell));
             need(update.status==decoyUpdate.status&&bool(update.state)==bool(decoyUpdate.state),
                 "first-update computation status ignores saved primary and secondary words");
-            if(!update.state){++updateBlockedTypes[f.type];++updateBlockers[originalFigureUpdateStatusName(update.status)];continue;}
-            ++updateComputed;++updateComputedTypes[f.type];const auto& u=*update.state;
+            if(!update.state){++updateBlockedTypes[f.type];++updateBlockers[originalFigureUpdateStatusName(update.status)];
+                refusedSlots.emplace(sources,f.slot);
+                std::cout<<"{\"update_refusal_source\":"<<sources<<",\"slot\":"<<f.slot<<",\"type\":"<<unsigned(f.type)<<",\"action\":"<<unsigned(f.action)<<",\"blocker\":\""<<originalFigureUpdateStatusName(update.status)<<"\"}\n";continue;}
+            ++updateComputed;++updateComputedTypes[f.type];++individualBySource.at(sources-1);const auto& u=*update.state;
             if(u.cell!=f.cell){++updateCrossedTypes[f.type];
                 need(u.priorX==f.x&&u.priorY==f.y&&u.priorCell==f.cell&&(update.cellHeads||!update.linkedWrites.empty())&&
                     u.cell==uint32_t(int64_t(spawn->cropBase)+u.x+228LL*u.y),
@@ -810,10 +916,14 @@ void corpus(){
             if(f.type==76)need(u.idleCounter==f.idleCounter+(f.action==31)&&u.threat==0&&u.threatDistance==100&&u.movementMode==5&&
                 u.hidden==0&&u.freeMovement==0&&u.linkedBuilding==decoyUpdate.state->linkedBuilding&&u.cell==f.cell,
                 "original Pheasant computes predicates before its idle or bounded route branch");
-            const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,{},&imageState);
+            const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,
+                save.buildings.slotTypes.at(size_t(u.owner)),&imageState);
             need(selected.status==OriginalFigureImageStatus::Selected&&selected.image==u.image,
                 "consistency only: figureImage of updated state equals updater image write; no saved post-update oracle");
             ++updateConsistent;need(decodeWord(u.image),"computed first-update image decodes");++updateDecoded;
+            if(f.type==39&&f.action==8)need(u.searchCounter==f.searchCounter&&u.roamSteps==f.roamSteps+modelSpeeds->at(39)&&
+                u.action==8&&u.hidden==0&&update.services&&update.services->fireCount==0,
+                "original Inspector action8 consumes same-source saved zero fire count and publishes its full bounded roam update");
             if(u.secondaryImage){need(decodeWord(u.secondaryImage),"computed first-update cargo image decodes");++updateCargoDecoded;}
         }
         const auto scoreOne=[&](Score& item,const OriginalFigure& f,const OriginalFigureImageSelection& prediction){
@@ -910,28 +1020,37 @@ void corpus(){
         <<",\"blocked\":"<<postLoadBlocked<<",\"blocked_types\":{},\"saved_word_comparison\":{\"equal_pairs\":"<<postLoadOracleMatched
         <<",\"changed_pairs\":"<<postLoadChanged<<",\"primary_changed\":"<<postLoadPrimaryChanged<<",\"secondary_clears\":"<<postLoadSecondaryChanged
         <<"},\"selected_nonzero\":"<<postLoadSelected<<",\"decoded\":"<<postLoadDecoded<<",\"decode_failures\":0,\"post_update_oracle\":\"unmeasured\"}\n";
-    need(updateComputed==133&&updateDecoded==133&&updateConsistent==133&&updateComputedTypes[76]==68&&
-        updateComputedTypes[11]==14&&updateComputedTypes[19]==11&&updateComputedTypes[20]==20&&updateComputedTypes[22]==1&&updateComputedTypes[40]==12,
-        "first-update state computes133/192, decodes133/133, selector consistency133/133; Pheasant68/69");
-    need(updateCrossedTypes==std::map<unsigned,size_t>{{20,1},{40,1}},
-        "two original computed first updates cross cells: one cart and one Hunter; authored crossings are a separate denominator");
+    std::cout<<"{\"update_measurement\":"<<updateComputed<<",\"cargo\":"<<updateCargoDecoded<<",\"ordered_prefix\":"<<orderedPrefix<<",\"types\":{";
+    bool measuredComma=false;for(const auto& e:updateComputedTypes){if(measuredComma)std::cout<<',';measuredComma=true;std::cout<<'"'<<e.first<<"\":"<<e.second;}std::cout<<"}}\n";
+    need(updateComputed==190&&updateDecoded==190&&updateConsistent==190&&updateComputedTypes[76]==69&&
+        updateComputedTypes[11]==16&&updateComputedTypes[19]==18&&updateComputedTypes[20]==20&&updateComputedTypes[21]==2&&
+        updateComputedTypes[22]==1&&updateComputedTypes[40]==14&&updateCargoDecoded==16,
+        "first-update state computes190/192, decodes206/206 including cargo16, selector consistency190/190; Pheasant69/69");
+    need(updateComputedTypes==std::map<unsigned,size_t>{{1,7},{11,16},{13,3},{19,18},{20,20},{21,2},{22,1},{23,4},{26,8},{28,1},
+        {29,2},{30,2},{34,1},{35,2},{36,3},{39,5},{40,14},{45,4},{47,8},{76,69}},"individual per-type counts close the complete192-occurrence denominator");
+    need(individualBySource==std::array<size_t,6>{21,45,64,32,7,21}&&orderedBySource==std::array<size_t,6>{21,0,0,32,7,21}&&
+        prefixBySource==std::array<size_t,6>{21,42,49,32,7,21},"per-pool individual, withheld final and exact prefix counts are separate measurements");
+    std::cout<<"{\"crossed_types\":{";measuredComma=false;for(const auto& e:updateCrossedTypes){if(measuredComma)std::cout<<',';measuredComma=true;std::cout<<'"'<<e.first<<"\":"<<e.second;}std::cout<<"}}\n";
+    need(updateCrossedTypes==std::map<unsigned,size_t>{{20,1},{40,1},{45,1}},
+        "original computed first updates publish all crossing prior-cell and list writes");
     const std::map<std::string,size_t> expectedUpdateBlockers{
-        {"building_virtual24_ordered_update",9},{"goods_route_4e47a0_and_owner_mutations",9},{"pheasant_threat_qualification_4e5340",1},
-        {"segment_owner_service_4eacd0",1},{"type_action_route_target_combat_update",36},
-        {"worker_owner_validity_and_movement_4e47a0_4e9620",3}};
-    need(updateBlockers==expectedUpdateBlockers,"individual refusal names and counts partition exactly59/192 occurrences");
+        {"segment_owner_service_4eacd0",1},
+        {"worker_arrival_employment_building_writes_4c9fd0",1}};
+    need(updateBlockers==expectedUpdateBlockers,"individual refusal names and counts partition exactly2/192 occurrences");
+    need(refusedSlots==std::set<std::pair<size_t,size_t>>{{2,1750},{3,320}},
+        "both original refused identities are pinned by source ordinal and pool slot");
     std::cout<<"{\"first_update_state\":true,\"k\":1,\"computed\":"<<updateComputed<<",\"live_total\":"<<live
         <<",\"decoded\":"<<updateDecoded<<",\"cargo_decoded\":"<<updateCargoDecoded<<",\"image_consistency\":"<<updateConsistent<<",\"decode_failures\":0,\"computed_types\":{";
     bool updateComma=false;for(const auto& e:updateComputedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<e.first<<"\":"<<e.second;}
     std::cout<<"},\"blocked_types\":{";updateComma=false;for(const auto& entry:updateBlockedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
     std::cout<<"},\"blockers\":{";updateComma=false;for(const auto& entry:updateBlockers){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
     std::cout<<"},\"first_draw\":\"after_explicit_k_admitted_updates\",\"ordinary_k\":[0,1],\"fast_forward_max_k\":10000,\"post_update_oracle\":\"unmeasured\"}\n";
-    need(orderedComputed==81&&orderedPrefix==84&&orderedDecoded==81&&orderedConsistent==81&&orderedComplete==4&&servicesParsed==6&&routesValidated==78&&
+    need(orderedComputed==81&&orderedPrefix==172&&orderedDecoded==81&&orderedConsistent==81&&orderedComplete==4&&servicesParsed==6&&routesValidated==78&&
         orderedComputedTypes[76]==63&&orderedComputedTypes[1]==7&&orderedComputedTypes[11]==10&&orderedComputedTypes[40]==1,
-        "complete ordered pass computes81/192;84 prefix calls remain separately measured;78 reciprocal saved routes");
-    const std::map<std::string,size_t> expectedOrderedBlockers{{"building_virtual24_ordered_update",1},
-        {"earlier_ordered_slot_uncomputed",106},{"type_action_route_target_combat_update",1},
-        {"later_ordered_slot_may_write_earlier_figure",3}};
+        "complete ordered pass computes81/192;172 prefix calls remain separately measured;78 reciprocal saved routes");
+    const std::map<std::string,size_t> expectedOrderedBlockers{{"segment_owner_service_4eacd0",1},
+        {"worker_arrival_employment_building_writes_4c9fd0",1},
+        {"earlier_ordered_slot_uncomputed",18},{"later_ordered_slot_may_write_earlier_figure",91}};
     need(orderedBlockers==expectedOrderedBlockers,"ordered refusal names and counts partition exactly111/192 final states");
     std::cout<<"{\"ordered_first_pass\":true,\"k\":1,\"computed\":"<<orderedComputed<<",\"live_total\":"<<live
         <<",\"prefix_computed\":"<<orderedPrefix<<",\"decoded\":"<<orderedDecoded<<",\"cargo_decoded\":"<<orderedCargoDecoded<<",\"image_consistency\":"<<orderedConsistent<<",\"decode_failures\":0,\"complete_sources\":"<<orderedComplete

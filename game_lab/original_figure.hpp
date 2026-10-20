@@ -38,12 +38,31 @@ struct OriginalFigure {
     int16_t priorX=0,priorY=0,homeX=0,homeY=0,home=0,delivery=0;
     uint32_t priorCell=0;
     uint8_t water=0; //+49, written by0x4E77C0.
+    int16_t roamLimit=0,roamSteps=0; //+4A/+4C, model15*96 and movement accounting.
+    uint8_t roamState=0,roamTurns=0,roamTurn=0,roamCountdown=0,searchCounter=0;
+    int16_t roamOriginX=0,roamOriginY=0;
+    int16_t freeTargetX=0,freeTargetY=0,freeRemainingX=0,freeRemainingY=0,freeError=0;
+    uint8_t freeAxis=0,cellMovement=0;
+    std::array<int16_t,2> attackers{};
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
+namespace original_save19 {
+// Continue the shared SAV19 cursor after0x53147B. Every term is a read
+// request, not a runtime-address delta: five u32s, two144-byte blocks,
+// one u32,64000 bytes,three u32s,10 bytes,two80-byte blocks.
+inline constexpr size_t fireScalars=g101D0B0+4; //0x531489..0x5314C1
+inline constexpr size_t fireBlocks144=fireScalars+5*4; //0x5314D2/4E3
+inline constexpr size_t fireBlock64000=fireBlocks144+2*144+4; //0x5314F1 then0x531502
+inline constexpr size_t fireTrailingScalars=fireBlock64000+64000; //0x531510/51E/52C
+inline constexpr size_t fireBlock10=fireTrailingScalars+3*4; //0x53153A
+inline constexpr size_t fireBlocks80=fireBlock10+10; //0x531548/556
+inline constexpr size_t fireCount=fireBlocks80+2*80; //0xC82F28,i32,0x531564
+}
 struct OriginalFigureSavedServices {
     std::array<int16_t,1000> routeOwners{};
     std::vector<uint8_t> directions;
     uint32_t randomFirst=0,randomSecond=0;
+    std::optional<int32_t> fireCount;
 };
 // SAV19 terrain-relative framing:0x5313D1 owners2000 bytes,0x5313E2
 // directions500000 bytes,100 version6 records of175 wire bytes, then
@@ -58,6 +77,8 @@ inline std::optional<OriginalFigureSavedServices> originalFigureSavedServices(
     for(size_t n=0;n<1000;++n)out.routeOwners[n]=detail::i16(data.data()+terrain+routeOwners+2*n);
     out.directions.assign(data.begin()+terrain+routeDirections,data.begin()+terrain+routeDirections+500000);
     out.randomFirst=detail::u32(data.data()+terrain+randomFirst);out.randomSecond=detail::u32(data.data()+terrain+randomSecond);
+    if(fireCount+4<=data.size()-terrain){const auto bits=detail::u32(data.data()+terrain+fireCount);
+        out.fireCount=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:int64_t(bits));}
     return out;
 }
 struct OriginalFigureSpawnServices {
@@ -67,6 +88,13 @@ struct OriginalFigureSpawnServices {
 struct OriginalFigureHunterLink {uint8_t alive=0,enabled=0;int16_t workers=0;};
 struct OriginalFigureBuildingLink {
     uint16_t type=0;uint8_t alive=0;int16_t worker=0;uint8_t accepting=0;
+    int16_t primaryFigure=0;uint8_t destinationEnabled=0;
+    int16_t serviceCount=0;
+    std::array<int16_t,8> cargoFigures{};
+    std::array<int16_t,2> secondaryFigures{};
+    std::optional<int32_t> marketGoods;
+    int16_t x=0,y=0;
+    bool inspectorSecondary=false;
 };
 // Common5:0x427430 reads live+4,type+14,worker+32,accepting+9 individually;
 // wire+2/+16/+45/+7 include the version. Read only framed public records.
@@ -86,7 +114,22 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         if(data.size()-at<182||detail::u16(data.data()+at)!=5)return std::nullopt;
         const auto type=detail::u16(data.data()+at+16);
         if(b.first>=4000||type!=buildings.slotTypes[b.first])return std::nullopt;
-        out.emplace(b.first,OriginalFigureBuildingLink{type,data[at+2],detail::i16(data.data()+at+45),data[at+7]});
+        OriginalFigureBuildingLink link;link.type=type;link.alive=data[at+2];link.worker=detail::i16(data.data()+at+45);link.accepting=data[at+7];
+        link.primaryFigure=detail::i16(data.data()+at+41);link.destinationEnabled=data[at+129];link.serviceCount=detail::i16(data.data()+at+23);
+        link.x=detail::i16(data.data()+at+8);link.y=detail::i16(data.data()+at+10);
+        link.inspectorSecondary=detail::i16(data.data()+at+18)>0||data[at+100]!=0;
+        const size_t tail=at+182;
+        if((type==0x3a||type==0x3b||type==0x7c)&&data.size()-at>=312&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
+            for(unsigned n=0;n<2;++n)link.secondaryFigures[n]=detail::i16(data.data()+tail+106+2*n);
+            for(unsigned n=0;n<8;++n)link.cargoFigures[n]=detail::i16(data.data()+tail+112+2*n);
+            if(type==0x3b&&data.size()-tail>=218&&detail::u16(data.data()+tail+130)==2&&detail::u16(data.data()+tail+216)==6){
+                int64_t sum=0;bool framed=true;for(unsigned n=0;n<6;++n){const size_t p=tail+132+14*n;
+                    framed&=detail::u16(data.data()+p)==1;const auto amount=detail::u32(data.data()+p+6);
+                    sum+=amount>INT32_MAX?int64_t(amount)-4294967296LL:amount;}
+                if(framed&&sum>=INT32_MIN&&sum<=INT32_MAX)link.marketGoods=int32_t(sum);
+            }
+        }
+        out.emplace(b.first,link);
     }
     return out;
 }
@@ -254,6 +297,12 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.reciprocalTarget=detail::i16(r+146);f.follower=detail::i16(r+102);
         f.priorX=detail::i16(r+32);f.priorY=detail::i16(r+34);f.priorCell=detail::u32(r+300);
         f.homeX=detail::i16(r+52);f.homeY=detail::i16(r+54);f.home=detail::i16(r+100);f.delivery=detail::i16(r+104);f.water=r[73];
+        f.roamLimit=detail::i16(r+74);f.roamSteps=detail::i16(r+76);f.roamState=r[78];f.roamTurns=r[79];
+        f.roamTurn=r[80];f.roamCountdown=r[81];f.searchCounter=r[117];
+        f.roamOriginX=detail::i16(r+348);f.roamOriginY=detail::i16(r+350);
+        f.freeTargetX=detail::i16(r+86);f.freeTargetY=detail::i16(r+88);f.freeRemainingX=detail::i16(r+90);
+        f.freeRemainingY=detail::i16(r+92);f.freeError=detail::i16(r+94);f.freeAxis=r[96];f.cellMovement=r[72];
+        f.attackers={detail::i16(r+154),detail::i16(r+156)};
         objects.emplace(objectPID,f);out.slots.push_back(f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }
     out.end=at;out.status=OriginalFigureStatus::Complete;

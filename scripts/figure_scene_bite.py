@@ -46,7 +46,14 @@ def main():
         ('crossing_prior', 'original_figure_update.hpp', 'next.priorX=f.x;next.priorY=f.y;', 'next.priorX=f.x+1;next.priorY=f.y;'),
         ('cart_delay', 'original_figure_update.hpp', 'saved.action==9?13:18;', 'saved.action==9?13:17;'),
         ('segment_cursor', 'original_figure_update.hpp', 'f.routeCursor=originalFigureWord(int(f.routeCursor)+1);', 'f.routeCursor=originalFigureWord(int(f.routeCursor)+2);'),
-        ('worker_accepting', 'original_figure.hpp', 'detail::i16(data.data()+at+45),data[at+7]', 'detail::i16(data.data()+at+45),data[at+8]'),
+        ('worker_accepting', 'original_figure.hpp', 'link.accepting=data[at+7];', 'link.accepting=data[at+8];'),
+        ('supplier_countdown', 'original_figure_update.hpp', 'base+unsigned(f.action==8)', 'base+unsigned(f.action==7)'),
+        ('roam_accounting', 'original_figure_update.hpp', 'int(f.roamSteps)+int(speed)', 'int(f.roamSteps)+1'),
+        ('free_arrival', 'original_figure_update.hpp', 'const bool arrived=int(f.freeRemainingX)+f.freeRemainingY<1;', 'const bool arrived=int(f.freeRemainingX)+f.freeRemainingY<=1;'),
+        ('follower_speed', 'original_figure_update.hpp', 'case 13:return 2-unsigned(phase>2);', 'case 13:return 2+unsigned(phase>2);'),
+        ('saved_fire_offset', 'original_figure.hpp', 'fireCount=fireBlocks80+2*80;', 'fireCount=fireBlocks80+2*80-4;'),
+        ('inspector_fire_gate', 'original_figure_update.hpp', 'if(*context->services->fireCount>0)', 'if(*context->services->fireCount>=0)'),
+        ('inspector_fire_threshold', 'original_figure_update.hpp', 'if(f.searchCounter>=20)', 'if(f.searchCounter>20)'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
     ]
     if args.only:
