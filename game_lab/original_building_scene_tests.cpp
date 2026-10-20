@@ -25,7 +25,7 @@ OriginalBuildingProfile profile(std::vector<OriginalBuildingFootprint> f){Origin
     p.status=OriginalBuildingStatus::Complete;p.liveSizedRecords=f.size();p.footprints=std::move(f);return p;
 }
 SG3Archive archive(const std::filesystem::path& file){
-    SG3Archive a;a.version=213;a.numImages=209;a.sprites.resize(a.numImages);a.bitmaps.resize(3);
+    SG3Archive a;a.version=213;a.numImages=217;a.sprites.resize(a.numImages);a.bitmaps.resize(4);
     a.bitmaps[0].filename="China_Safety.bmp";a.bitmaps[1].filename="China_StorNDist.bmp";a.bitmaps[2].filename="China_Government2.bmp";
     std::vector<uint8_t> bytes;
     const auto add=[&](unsigned id,unsigned side,uint16_t color,unsigned bitmap,unsigned topRows){
@@ -41,6 +41,11 @@ SG3Archive archive(const std::filesystem::path& file){
     for(unsigned id=205;id<=208;++id)add(id,1,0x03e0,1,0);add(209,2,0x001f,1,0);
     a.imageIndex[0x82]=201;a.imageIndex[0x83]=204;a.imageIndex[0x23]=202;a.imageIndex[0x92]=203;
     a.imageIndex[0x22]=205;a.imageIndex[0x2a]=209;
+    a.bitmaps[3].filename="China_Entertainment.bmp";a.imageIndex[0xb0]=210;
+    for(unsigned id=210;id<=217;++id){auto& s=a.sprites[id-1];s.type=256;s.width=100;s.height=100;s.bitmapId=3;s.offset=uint32_t(bytes.size());
+        for(unsigned y=0;y<100;++y){bytes.push_back(100);for(unsigned x=0;x<100;++x){bytes.push_back(id==211?0x1f:0);bytes.push_back(id==211?0:0x7c);}}
+        s.length=uint32_t(bytes.size())-s.offset;s.uncompressedLength=s.length;
+    }
     std::ofstream out(file,std::ios::binary);out.write(reinterpret_cast<const char*>(bytes.data()),bytes.size());
     need(bool(out),"authored companion written outside repository");return a;
 }
@@ -114,6 +119,96 @@ void authored(const std::filesystem::path& temp){
         }
         auto missing=marketProfile;missing.footprints.pop_back();const auto refusedMarket=composeOriginalBuildingScene(t,missing,a);
         need(refusedMarket.placed.size()==3&&refusedMarket.withheldFootprints.size()==1,"market refuses an absent referenced stall without rejecting independent remaining records");
+        OriginalBuildingObjectSource source{71,uint16_t(20+(orientation?2:0)),uint16_t(20+(orientation?0:2)),2,15,0,0,10,uint8_t(0)};
+        marketProfile.objectBuildings.push_back(source);marketProfile.unplacedMarkers.push_back({71,source.x,source.y,15});++marketProfile.liveSizedRecords;
+        const auto objects=composeOriginalBuildingScene(t,marketProfile,a);
+        need(objects.overlayRecords==1&&objects.overlays.size()==10&&objects.overlayObjectsExpected==10&&objects.bindableRecords==6&&objects.markers.empty()&&objects.placedCells==28,
+            "entertainment binds ten objects while retaining the parent market surface and removing only its marker");
+        auto suppressedTerrain=t;suppressedTerrain.flags[(origin+source.y)*228+origin+source.x]|=0x100;
+        const auto suppressed=composeOriginalBuildingScene(suppressedTerrain,marketProfile,a);
+        need(suppressed.overlayRecords==0&&suppressed.overlays.empty()&&suppressed.markers.size()==1,"runtime suppression input outside the closed static domain retains the source marker");
+        const uint8_t expectedRole[2][10]={{1,4,4,2,11,10,0,5,5,3},{1,7,7,0,8,9,2,6,6,3}};
+        const unsigned expectedRow[]={0,1,2,3,4,7,8,9,10,11};
+        const unsigned ids[]={210,211,212,213,215,215,214,214,217,217,216,216};
+        const int offsets[12][2]={{-8,-53},{-8,-53},{31,-53},{-8,-33},{31,-53},{-8,-33},{32,-31},{-7,-53},{29,-64},{-7,-44},{31,-43},{-9,-64}};
+        for(size_t i=0;i<10;++i){const auto& o=objects.overlays[i];const unsigned role=expectedRole[orientation][i],row=expectedRow[i];
+            need(o.role==role&&o.physicalId==ids[role]&&o.offsetX==offsets[role][0]&&o.offsetY==offsets[role][1]&&o.mode==(role>=8?2:1),"literal role variant, signed offset and mode independently enumerated");
+            need(o.anchorX==source.x+(orientation?row/4:row%4)&&o.anchorY==source.y+(orientation?row%4:row/4)&&o.depth.diagonal==unsigned(o.anchorX)+o.anchorY&&o.depth.column==o.anchorX,
+                "descriptor anchors transpose independently of pixel offsets and sort by anchor cell");
+        }
+        for(unsigned kind=0;kind<7;++kind){auto bad=source;auto broken=a;
+            if(kind==0)bad.parentSlot=3999;if(kind==1)bad.savedView.reset();if(kind==2)bad.savedView=2;if(kind==3)++bad.x;
+            if(kind==4)broken.sprites[210].type=30;if(kind==5)broken.sprites[210].tileSize=1;if(kind==6)broken.bitmaps[3].filename="Unrelated.bmp";
+            need(!bindOriginalEntertainmentOverlays(bad,marketProfile,broken),"object writer refuses missing parent/view, contradictory origin and non-object geometry/family");
+        }
+    }
+    // Isolated authored command list: red object must follow its green cell,
+    // but precede a blue surface top on the next diagonal. A final overlay pass
+    // would overwrite that blue pixel. Cell centre(300,250), scan origin(261,230).
+    auto ordered=composeOriginalBuildingScene(t,profile({footprint(126,1,10,10,1)}),a);
+    const size_t cell=(origin+10)*228+origin+10;
+    ordered.surface.image[cell]=(2u<<14)|4u;ordered.surface.draw[cell]=0x40;ordered.surface.subTile[cell]=0;
+    ordered.overlays.push_back({"DATA/China_General.sg3",210,2,10,10,-8,-53,{20,10,1,0},1,1,2});
+    c.centerX=10;c.centerY=10;c.width=600;c.height=500;
+    for(unsigned scale:{1u,2u}){c.scale=scale;const auto view=renderOriginalBuildingScene(t,ordered,a,(temp/"own.555").string(),c);
+        const unsigned left=scale==1?253:206,top=scale==1?177:104;
+        need(view.image.valid()&&view.overlayDecoded==1&&view.overlayDrawn==1&&view.overlayDecodeFailures==0&&view.image.pixelsBGRA[top*c.width+left]==0xffff0000u,
+            "object top-left adds signed offsets to scan origin at both scales");
+        need(view.image.pixelsBGRA[top*c.width+left-1]!=0xffff0000u&&view.image.pixelsBGRA[(top-1)*c.width+left]!=0xffff0000u,"object rectangle is neither centred nor shifted by animation metadata");
+    }
+    c.scale=1;ordered.surface.image[cell+228]=(2u<<14)|2u;ordered.surface.draw[cell+228]=0x40;
+    auto orderView=renderOriginalBuildingScene(t,ordered,a,(temp/"own.555").string(),c);
+    need(orderView.image.pixelsBGRA[200*c.width+270]==0xff0000ffu,"later surface cell occludes earlier object; objects cannot be a final pass");
+    ordered.surface.image[cell+228]=0;
+    ordered.overlays.push_back({"DATA/China_General.sg3",211,2,10,10,-8,-53,{20,10,2,0},8,2,2});
+    auto modeView=renderOriginalBuildingScene(t,ordered,a,(temp/"own.555").string(),c);
+    need(modeView.image.pixelsBGRA[180*c.width+255]==0xff0000ffu,"mode2 follows mode1 for the same cell");
+    std::reverse(ordered.overlays.begin(),ordered.overlays.end());
+    need(renderOriginalBuildingScene(t,ordered,a,(temp/"own.555").string(),c).image.pixelsBGRA==modeView.image.pixelsBGRA,"explicit depth key survives overlay enumeration changes");
+    ordered.overlays.resize(1);ordered.overlays[0].offsetX=-500;ordered.overlays[0].offsetY=-500;
+    auto clipped=renderOriginalBuildingScene(t,ordered,a,(temp/"own.555").string(),c);
+    need(clipped.overlayDecoded==1&&clipped.overlayCulled==1,"offscreen object payload validates before culling");
+    auto missingObjects=renderOriginalBuildingScene(t,ordered,a,(temp/"missing.555").string(),c);
+    need(missingObjects.overlayDecoded==0&&missingObjects.overlayDecodeFailures==1,"failed object payload never becomes a successful culled object");
+    // Partial clipping against each viewport edge, with an independent scalar
+    // rectangle oracle. No source pixel may wrap into another viewport row.
+    for(unsigned scale:{1u,2u})for(const auto& target:std::vector<std::pair<int,int>>{{-17,10},{550,10},{20,-23},{20,450}}){
+        auto clippedScene=ordered;clippedScene.surface.image.assign(51984,0);clippedScene.overlays.resize(1);
+        auto& object=clippedScene.overlays[0];object.physicalId=210;object.mode=1;object.depth.phase=1;
+        // Centre=(300,250), scan origin=(300-39s,250-20s).
+        const int ox=(target.first-300)/int(scale)+39,oy=(target.second-250)/int(scale)+20;
+        object.offsetX=ox;object.offsetY=oy;c.scale=scale;
+        const int left=300+(ox-39)*int(scale),top=250+(oy-20)*int(scale);
+        const auto partial=renderOriginalBuildingScene(t,clippedScene,a,(temp/"own.555").string(),c);
+        const auto floor=renderOriginalBuildingFootprints(t,{},c);
+        need(partial.image.valid()&&partial.overlayDecoded==1&&partial.overlayDrawn==1&&partial.overlayCulled==0,"partially clipped object still draws once");
+        bool equal=true;for(int y=0;y<int(c.height);++y)for(int x=0;x<int(c.width);++x){
+            const size_t i=size_t(y)*c.width+x;const bool red=x>=left&&y>=top&&x<left+100*int(scale)&&y<top+100*int(scale);
+            equal&=partial.image.pixelsBGRA[i]==(red?0xffff0000u:floor.image.pixelsBGRA[i]);
+        }
+        need(equal,"all viewport pixels match scalar signed clipping at each scale and edge");
+    }
+    c.scale=1;
+    // Literal serialized source fixture: +348 is surrounded by contradictory
+    // fields; a stale common-version or inferred parent offset cannot pass.
+    for(uint16_t commonVersion:{uint16_t(3),uint16_t(4),uint16_t(5)}){
+        const size_t common=commonVersion==3?179:commonVersion==4?181:182;
+        std::vector<uint8_t> raw{0x13,0,1,0,0xa0,0x0f,0,0,0xff,0xff,0,0,8,0,'B','u','i','l','d','i','n','g'};
+        const auto word=[&](size_t at,uint16_t n){raw.at(at)=uint8_t(n);raw.at(at+1)=uint8_t(n>>8);};
+        const auto dword=[&](size_t at,uint32_t n){for(unsigned j=0;j<4;++j)raw.at(at+j)=uint8_t(n>>(8*j));};
+        size_t at=raw.size();raw.resize(at+common);word(at,commonVersion);
+        raw.insert(raw.end(),{1,0x80});const size_t body=raw.size();raw.resize(body+common+352);
+        word(body,commonVersion);raw[body+2]=1;raw[body+5]=2;word(body+8,22);word(body+10,20);word(body+16,71);
+        dword(body+12,uint32_t((origin+20)*228+origin+22));const size_t tail=body+common;
+        for(size_t pos:{size_t(0),size_t(2),size_t(130),size_t(132)})word(tail+pos,1);word(tail+134,5);
+        dword(tail+344,3999);dword(tail+348,10);
+        raw.insert(raw.end(),{1,0x80});at=raw.size();raw.resize(at+common);word(at,commonVersion);word(at+16,0x1234);
+        const size_t terrainOffset=raw.size()+155952;raw.resize(terrainOffset+1291328);
+        auto parsed=parseOriginalSavedBuildings(raw,terrainOffset,t);
+        need(parsed.status==OriginalBuildingStatus::UnsupportedTail&&parsed.objectBuildings.size()==1&&parsed.unplacedMarkers.size()==1&&parsed.objectBuildings[0].parentSlot==10,
+            "literal entertainment tail parent survives all common-record versions without a fabricated square");
+        word(tail+134,4);parsed=parseOriginalSavedBuildings(raw,terrainOffset,t);
+        need(parsed.objectBuildings.empty()&&parsed.unplacedMarkers.size()==1,"unsupported entertainment serializer version retains its unresolved marker");
     }
 }
 void corpus(){
@@ -121,9 +216,19 @@ void corpus(){
     const auto root=ResourceRoot::fromAbsolute(env);need(root.configured(),"original root configured");
     const auto a=loadSG3(root.resolve("DATA/China_General.sg3"));const auto catalog=enumerateOriginalMapSources(root);
     need(catalog.complete,"complete original catalog");
+    need(a.imageIndex[0xb0]==603,"independent General header closes T(4B0) at physical603");
+    const int objectWidths[]={65,99,69,99,68,71,57,57},objectHeights[]={95,76,95,76,75,75,44,44};
+    for(unsigned variant=0;variant<8;++variant){const auto& sprite=a.sprites[602+variant];
+        need(sprite.type==256&&!sprite.tileSize&&!sprite.mirrorOffset&&sprite.width==objectWidths[variant]&&sprite.height==objectHeights[variant]&&
+            a.bitmaps[sprite.bitmapId].filename=="China_Entertainment.bmp","all eight role-selector variants have independently read SG3 object geometry");
+        const auto decoded=decodeSG3Sprite(a,602+variant,root.resolve("DATA/China_General.555"));
+        need(decoded.status==SG3DecodeStatus::Decoded&&decoded.image.valid(),"all eight role-selector outputs decode original payload");
+    }
     size_t sources=0,scenes=0,withBases=0,live=0,bindable=0,placed=0,cells=0,decoded=0,failures=0,withheld=0,outlines=0,markers=0,native=0,visible=0,focused=0;
     size_t savedDrawMatches=0,savedSideMatches=0,savedMetadataRecords=0,randomRecords=0,changedRandomInputs=0,changedSelections=0;
     size_t newUniqueCells=0,newDrawIndependent=0,newDrawPreserved=0,newSubTileMatches=0,unboundCells=0;
+    size_t overlayRecords=0,overlayObjects=0,overlayDecoded=0,overlayFocused=0,overlayFailures=0,overlayExpected=0;
+    std::map<unsigned,size_t> overlayPhysical,overlayModes;std::set<uint16_t> boundTypes;
     std::map<uint16_t,size_t> newlyBound;
     AppMapSurface app(root);
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;++sources;
@@ -146,9 +251,28 @@ void corpus(){
         }
         auto s=composeOriginalBuildingScene(snapshot.terrain,snapshot.buildings,a);
         need(s.accepted&&s.rejectedRecords==0,"original base stamps have no shape or overlap rejection");++scenes;withBases+=!s.placed.empty();
-        live+=s.liveRecords;bindable+=s.bindableRecords;placed+=s.placed.size();cells+=s.placedCells;
-        std::set<size_t> newlySeen;
+        live+=s.liveRecords;bindable+=s.bindableRecords;placed+=s.placed.size()+s.overlayRecords;cells+=s.placedCells;
         const size_t crop=(228-snapshot.terrain.activeSide)/2;
+        for(const auto& p:s.placed)boundTypes.insert(p.footprint.type);
+        overlayRecords+=s.overlayRecords;overlayObjects+=s.overlays.size();overlayExpected+=s.overlayObjectsExpected;
+        for(const auto& sourceObject:snapshot.buildings.objectBuildings){
+            const auto begin=sourceObject.recordOffset;size_t body=begin+2;
+            if(detail::u16(data.data()+begin)==0xffff)body+=4+detail::u16(data.data()+begin+4);
+            const size_t tail=body+182;
+            need(sourceObject.type==71&&sourceObject.slot==37&&sourceObject.parentSlot==32&&sourceObject.savedView==0&&sourceObject.x==33&&sourceObject.y==60&&sourceObject.size==2&&
+                detail::u16(data.data()+body)==5&&detail::u32(data.data()+tail+348)==sourceObject.parentSlot&&detail::u32(data.data()+base+1291324)==0,
+                "independent SAV19 bytes close parent link, common position and saved view");
+        }
+        for(const auto& object:s.overlays){boundTypes.insert(71);++overlayPhysical[object.physicalId];++overlayModes[object.mode];
+            const auto& sprite=a.sprites[object.physicalId-1];
+            const int widths[]={65,99,69,99,68,71,57,57},heights[]={95,76,95,76,75,75,44,44};
+            need(object.physicalId>=603&&object.physicalId<=610&&sprite.type==256&&!sprite.tileSize&&!sprite.mirrorOffset&&sprite.width==widths[object.physicalId-603]&&sprite.height==heights[object.physicalId-603]&&
+                a.bitmaps[sprite.bitmapId].filename=="China_Entertainment.bmp","all object occurrences satisfy independent original SG3 geometry and family");
+            const size_t cell=(crop+object.anchorY)*228+crop+object.anchorX;
+            need(detail::u16(data.data()+base-103968+2*cell)==object.sourceSlot,"descriptor anchor owner independently matches SAV19 object slot");
+            need(!(snapshot.terrain.flags[cell]&0x100u),"every original entertainment anchor bypasses runtime object suppression");
+        }
+        std::set<size_t> newlySeen;
         for(const auto& p:s.placed)if(p.footprint.type==54||p.footprint.type==58||p.footprint.type==59||p.footprint.type==231){
             ++newlyBound[p.footprint.type];
             for(const auto& component:p.components){if(p.footprint.type==59&&component.side==2)continue;
@@ -165,6 +289,16 @@ void corpus(){
         const auto ground=composeOriginalSavedGroundScene(snapshot.terrain,snapshot.buildings,*snapshot.layers.ground,a,
             loadSG3(root.resolve("DATA/China_Terrain.sg3")),loadSG3(root.resolve("DATA/China_Elevation.sg3")));
         need(ground.accepted&&ground.groundRebuilt&&ground.unboundBuildingCells==0,"all bit8 occupancy now has a bound surface before ground; entertainment overlays share market cells");
+        if(!ground.overlays.empty()){
+            const auto terrainArchive=loadSG3(root.resolve("DATA/China_Terrain.sg3")),elevationArchive=loadSG3(root.resolve("DATA/China_Elevation.sg3"));
+            const std::vector<MapImageGridTileset> tilesets{{3,&terrainArchive,root.resolve("DATA/China_Terrain.555"),201},{16,&elevationArchive,root.resolve("DATA/China_Elevation.555"),201}};
+            auto hidden=ground;for(auto& object:hidden.overlays){object.offsetX=-4096;object.offsetY=-4096;}
+            auto without=ground;without.overlays.clear();OriginalMapCamera camera;camera.width=800;camera.height=800;camera.centerX=33;camera.centerY=60;camera.outlines=false;
+            const auto replay=renderOriginalBuildingScene(snapshot.terrain,hidden,a,root.resolve("DATA/China_General.555"),camera,-1,tilesets);
+            const auto reference=renderOriginalBuildingScene(snapshot.terrain,without,a,root.resolve("DATA/China_General.555"),camera,-1,tilesets);
+            need(replay.image.valid()&&reference.image.valid()&&replay.image.pixelsBGRA==reference.image.pixelsBGRA&&replay.overlayCulled==10,
+                "object command replay preserves every ground/building surface pixel when objects are offscreen");
+        }
         for(const auto& p:ground.placed)for(const auto& component:p.components){
             const size_t cell=(crop+p.footprint.y+component.y)*228+crop+p.footprint.x+component.x;
             if(component.preservedDraw)need(ground.drawWritten[cell]==0x40&&ground.subTileWritten[cell]==0x1F,"market assigns draw marker and clears subTile low5; low draw bits remain saved input");
@@ -177,6 +311,7 @@ void corpus(){
         auto view=app.renderSavedBuildings(c);
         need(view.image.valid()&&view.bases.decodedCells==s.placedCells&&view.bases.geometryUnsupported==0&&view.bases.unresolvedIndices==0&&view.bases.archiveUnavailable==0,"App scene decodes every stamped cell including offscreen");
         decoded+=view.bases.decodedCells;failures+=view.bases.decodeFailures;visible+=view.bases.drawnCells;
+        overlayDecoded+=view.overlayDecoded;overlayFailures+=view.overlayDecodeFailures+view.overlayInvalid;
         withheld+=view.withheldRecords;outlines+=view.withheldOutlines;markers+=view.unshapedMarkers;
         auto cg=createCGImageFromPremultipliedBGRA(view.image.width,view.image.height,view.image.pixelsBGRA);need(cg,"App city scene creates native image");if(cg){++native;CGImageRelease(cg);}
         // All record occurrences must reach a visible native compositor blit,
@@ -196,10 +331,18 @@ void corpus(){
             const size_t area=size_t(originalFootprintWidth(f))*originalFootprintHeight(f);
             need(one.image.valid()&&one.stats.drawnCells==area&&one.stats.decodedCells==area&&one.stats.decodeFailures==0&&std::any_of(one.image.pixelsBGRA.begin(),one.image.pixelsBGRA.end(),[](auto pixel){return pixel>>24;}),"every placed occurrence itself paints a successful focused compositor view");++focused;
         }
+        for(const auto& object:s.overlays){c.width=800;c.height=800;c.centerX=object.anchorX;c.centerY=object.anchorY;
+            const auto objectView=app.renderSavedBuildings(c);
+            need(objectView.image.valid()&&objectView.overlayDecoded==s.overlays.size()&&objectView.overlayDrawn==s.overlays.size()&&objectView.overlayDecodeFailures==0&&objectView.overlayInvalid==0,
+                "every positioned original object reaches a visible App compositor blit");++overlayFocused;
+        }
         app.clear();need(!app.renderSavedBuildings(c).image.valid(),"source clear drops saved scene without stale image");
     }
-    need(sources==6&&scenes==6&&withBases==4&&live==1065&&bindable==1063&&placed==1063&&focused==1063,"supplied six-source placed-record denominator lock");
-    need(withheld==2&&outlines==0&&markers==2&&decoded==cells&&failures==0&&native==6,"withheld shapes/markers and complete decode/native scene counts");
+    need(sources==6&&scenes==6&&withBases==4&&live==1065&&bindable==1065&&placed==1065&&focused==1063&&boundTypes.size()==27,"supplied six-source placed-record denominator lock");
+    need(withheld==0&&outlines==0&&markers==0&&decoded==cells&&failures==0&&native==6,"withheld shapes/markers and complete decode/native scene counts");
+    need(overlayRecords==2&&overlayObjects==20&&overlayExpected==20&&overlayDecoded==20&&overlayFocused==20&&overlayFailures==0&&overlayModes==std::map<unsigned,size_t>{{1,16},{2,4}}&&
+        overlayPhysical==std::map<unsigned,size_t>{{603,2},{604,2},{605,2},{606,2},{607,8},{610,4}},"entertainment record/object, mode and physical record denominators");
+    std::cout<<"{\"bound_types\":"<<boundTypes.size()<<",\"live_types\":27,\"object_building_records\":"<<overlayRecords<<",\"overlay_objects_placed\":"<<overlayObjects<<",\"overlay_objects_expected\":"<<overlayExpected<<",\"overlay_decoded\":"<<overlayDecoded<<",\"overlay_focused_blits\":"<<overlayFocused<<",\"overlay_failures\":"<<overlayFailures<<"}\n";
     need(savedDrawMatches==1751&&savedSideMatches==1751&&savedMetadataRecords==1063&&cells==1719,"persisted SAV footprint metadata agrees for every bound record and cell");
     need(randomRecords==851&&changedRandomInputs==845&&changedSelections==389,"SAV serializer correction has an explicit affected-building denominator");
     need(newlyBound==std::map<uint16_t,size_t>{{54,6},{58,2},{59,2},{231,126}}&&newUniqueCells==236&&newDrawIndependent==212&&newDrawPreserved==24&&newSubTileMatches==236&&unboundCells==0,"new record, unique-cell and independent metadata denominators");

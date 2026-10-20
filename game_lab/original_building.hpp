@@ -26,12 +26,18 @@ struct OriginalBuildingImageInputs {
 struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0,height=0;size_t slot=0,recordOffset=0;std::optional<OriginalWellImageInputs> wellImageInputs;std::optional<OriginalBuildingImageInputs> imageInputs;};
 // A raw common-record position whose occupied shape is not yet established.
 struct OriginalBuildingMarker {uint16_t type=0,x=0,y=0;size_t slot=0;};
+// Positioned object writer, deliberately separate from an occupied square.
+struct OriginalBuildingObjectSource {
+    uint16_t type=0,x=0,y=0;uint8_t size=0;size_t slot=0,recordOffset=0;
+    uint32_t gridIndex=0,parentSlot=0;std::optional<uint8_t> savedView;
+};
 enum class OriginalBuildingStatus {Complete,UnsupportedTail,MissingAnchor,AmbiguousAnchor,Malformed,BudgetExceeded};
 struct OriginalBuildingProfile {
     OriginalBuildingStatus status=OriginalBuildingStatus::MissingAnchor;
     size_t parsedRecords=0,namedWellRecords=0,rejectedTerrainFootprints=0,namedInspectorRecords=0,namedWatchtowerRecords=0,liveSizedRecords=0,unsupportedFootprintRecords=0,clearedClassRecords=0,classReferencesVerified=0;
     std::vector<OriginalBuildingFootprint> footprints;
     std::vector<OriginalBuildingMarker> unplacedMarkers;
+    std::vector<OriginalBuildingObjectSource> objectBuildings;
     std::map<uint16_t,size_t> liveTypeCounts; // Includes live types whose placement is withheld.
     std::array<uint16_t,4000> slotTypes{}; // Semantic common-body types, never archive PIDs.
 };
@@ -327,6 +333,14 @@ inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint
                 if(!originalBuildingSquareType(type)&&type!=0x3b&&type!=0x3c){
                     ++result.unsupportedFootprintRecords;
                     result.unplacedMarkers.push_back({type,detail::u16(data.data()+at+8),detail::u16(data.data()+at+10),slot});
+                    // Entertainment0x48CC80 ->0x48B630 ->0x51CE00. The
+                    // current outer version5 reads parent runtime+150 at
+                    // 0x48CDB5, tail348, after the two100-byte arrays.
+                    const size_t tailAt=at+common;
+                    if(type==0x47&&detail::u16(data.data()+tailAt)==1&&detail::u16(data.data()+tailAt+2)==1&&
+                        detail::u16(data.data()+tailAt+130)==1&&detail::u16(data.data()+tailAt+132)==1&&detail::u16(data.data()+tailAt+134)==5)
+                        result.objectBuildings.push_back({type,detail::u16(data.data()+at+8),detail::u16(data.data()+at+10),data[at+5],slot,begin,
+                            detail::u32(data.data()+at+12),detail::u32(data.data()+tailAt+348),std::nullopt});
                     at+=common+*tail;++result.parsedRecords;continue;
                 }
                 OriginalBuildingFootprint f;f.type=type;f.x=detail::u16(data.data()+at+8);f.y=detail::u16(data.data()+at+10);f.size=data[at+5];f.slot=slot;f.recordOffset=begin;
@@ -411,6 +425,8 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
             terrainOffset<=data.size()&&1291328<=data.size()-terrainOffset){
             const uint32_t view=detail::u32(data.data()+terrainOffset+1291324);
             const size_t origin=(228-terrain.activeSide)/2;
+            for(auto& object:result.objectBuildings)if(view<=6&&!(view&1)&&object.x<terrain.activeSide&&object.y<terrain.activeSide&&
+                object.gridIndex==(origin+object.y)*228+origin+object.x)object.savedView=uint8_t(view);
             for(auto& f:result.footprints)if(f.type==0x3b&&f.imageInputs&&f.imageInputs->marketOrientation&&view==0&&f.imageInputs->gridIndex==(origin+f.y)*228+origin+f.x){
                 const bool rotated=*f.imageInputs->marketOrientation==1;bool valid=*f.imageInputs->marketOrientation<=1;std::vector<uint8_t> random,draw;
                 for(unsigned y=0;y<7;++y)for(unsigned x=0;x<4;++x){
