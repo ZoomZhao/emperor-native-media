@@ -289,3 +289,15 @@ The geometry contract is width=80×footprintSide−2,height≥40×side,uncompres
 Storage header records **0x424→644 (78×93)** and **0x425→645 (78×98)** are single-cell canvases;they do not meet savedWarehouse3×3/Trading4×4 geometry. Their specialized writers firststamp these images andthen overwrite8/15 component cells through0x5D5FF0. Markets,entertainment squares andwalls similarly requiretheir documented descriptor/component/neighbour rules. These five types remain **0/138 live records bound**;no footprint-sized image is invented fromone header record. Existingwriter0x4B7520's increment-per-cell semantics are distinct from0x4B72B0's same-word stamp.
 
 The generalized preview produces **22/22 type previews andCGImages** using the existing compositor's explicitbottom-centre convention. Anchor,shadows,occlusion,animation andoriginal-screen fidelity remain unverified. Tests andprivate bite evidence are documented with theSAV selector contract;no original assets,code listings,images orderived binaries enterGit.
+
+The later [SAV19 multipart closure](SAV.md#sav19-wall-and-multipart-building-closure) supersedes the five-type withholding above: **26/27 types and1,063/1,065 live records** now bind; **1,719/1,719 unique surface cells** place and decode. Executable SHA-256 and VA/file-offset convention are unchanged. Final storage images are one-cell components even though their saved footprints are3×3/4×4; image size is checked against each traced component, never the whole storage footprint.
+
+| Exe-selected code / variant | General physical header / final IDs | Independent SG contract |
+|---|---|---|
+|Wall4B5 + neighbour/local-LCG variant0..12|370 /370..382|type30,78×height49..59,base3200,tile1,`China_Aesthetic.bmp`;13/13 outputs decode|
+|Warehouse424; station425|644 /645|type30,78×93 /78×98,base3200,tile0 /1,`China_StorNDist.bmp`; origin cell only after component overrides|
+|Storage occupied454 +4×(resource−1)+amountBand; empty456|1101 /1317|type30,78×height≥40,base3200,tile1,`China_Stor-bays.bmp`; all86/86 supplied storage component occurrences decode|
+|Common-market pavement422 +(R&3)|632 /632..635|type30,78×40,base3200,tile1,`China_StorNDist.bmp`;24/24 new pavement cells decode; four linked2×2 stalls use their established42A/414/416 bindings|
+|Entertainment4B0 +role/view table|603 /603..610 in view0|type256,tile0,`China_Entertainment.bmp`; dimensions65×95,99×76,69×95,99×76,68×75,71×75,57×44,57×44. These are positioned transparent overlays, not isometric type30 surface bases. They remain withheld pending the object-list compositor contract.|
+
+All new image choices cite their actual writers and serialized inputs in SAV. Market's generic48A branch is unreachable for its two common-market descriptor lists (all pavement args0). Storage uses direct per-cell overrides, wall uses0x4B72B0, and market mixes direct pavement writes with0x4B72B0 stalls. No newly supported type uses0x4B7520. Library calls remain explicit-root/archive operations and emit no assets.

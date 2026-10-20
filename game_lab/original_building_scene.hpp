@@ -9,6 +9,7 @@ struct OriginalBuildingPlacement {
     OriginalBuildingFootprint footprint;
     OriginalBuildingImageBinding binding;
     uint32_t drawX=0,drawY=0;
+    std::vector<OriginalBuildingComponent> components;
 };
 struct OriginalBuildingScene {
     OriginalTerrainState surface;
@@ -19,7 +20,9 @@ struct OriginalBuildingScene {
     bool accepted=false;
     bool groundRebuilt=false;
     size_t groundCells=0,groundUnknown=0,groundNoWrite=0,groundUnresolved=0,unboundBuildingCells=0;
+    size_t groundDrawFullyAssigned=0,buildingDrawFullyAssigned=0,buildingDrawMarkerOnly=0;
     std::vector<GroundMapCell> groundSelections;
+    // Metadata masks identify independently assigned bits, excluding saved input.
     std::vector<uint8_t> drawWritten,subTileWritten,buildingOccupancy;
 };
 // Owned exe SHA256 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658.
@@ -48,27 +51,41 @@ inline OriginalBuildingScene composeOriginalBuildingScene(const OriginalMapTerra
     std::vector<OriginalBuildingPlacement> candidates;
     std::set<size_t> slots;
     for(const auto& f:profile.footprints){
-        const auto binding=bindOriginalBuildingBaseImage(f,"DATA/China_General.sg3",archive);
-        if(!binding){out.withheldFootprints.push_back(f);continue;}
+        const auto components=bindOriginalBuildingComponents(f,"DATA/China_General.sg3",archive,&profile);
+        if(!components||components->empty()){out.withheldFootprints.push_back(f);continue;}
         ++out.bindableRecords;
-        const auto corner=originalBuildingDrawCorner(f);
+        const auto corner=f.type==0x3b?std::optional<std::pair<uint32_t,uint32_t>>({f.x,f.y}):originalBuildingDrawCorner(f);
         if(!validOriginalBuildingFootprint(terrain,f)||!corner||f.slot>=4000||!slots.insert(f.slot).second){++out.rejectedRecords;out.withheldFootprints.push_back(f);continue;}
-        candidates.push_back({f,*binding,corner->first,corner->second});
-        for(size_t y=0;y<f.size;++y)for(size_t x=0;x<f.size;++x)++owners[(origin+f.y+y)*228+origin+f.x+x];
+        candidates.push_back({f,components->front().binding,corner->first,corner->second,*components});
+        // Market's referenced stalls deliberately share its descriptor cells.
+        // They remain separately counted records; only market pavement owns
+        // new cells in the overlap guard.
+        for(const auto& c:*components)if(f.type!=0x3b||c.side==1)
+            for(size_t y=0;y<c.side;++y)for(size_t x=0;x<c.side;++x)++owners[(origin+f.y+c.y+y)*228+origin+f.x+c.x+x];
     }
     for(const auto& p:candidates){const auto& f=p.footprint;bool overlap=false;
-        for(size_t y=0;y<f.size;++y)for(size_t x=0;x<f.size;++x)overlap|=owners[(origin+f.y+y)*228+origin+f.x+x]>1;
+        for(const auto& c:p.components)
+            for(size_t y=0;y<c.side;++y)for(size_t x=0;x<c.side;++x){
+                const unsigned count=owners[(origin+f.y+c.y+y)*228+origin+f.x+c.x+x];
+                overlap|=count>1||(f.type==0x3b&&c.side==2&&count!=1);
+            }
         // Rebuild order/lifecycle overrides for overlapping records are unverified.
-        if(overlap||p.binding.physicalId<201||p.binding.physicalId-201>0x3fff){++out.rejectedRecords;out.withheldFootprints.push_back(f);continue;}
-        const uint32_t word=(p.binding.tileset<<14)|(p.binding.physicalId-201);
-        for(size_t y=0;y<f.size;++y)for(size_t x=0;x<f.size;++x){const size_t cell=(origin+f.y+y)*228+origin+f.x+x;
+        bool invalid=false;for(const auto& c:p.components)invalid|=c.binding.physicalId<201||c.binding.physicalId-201>0x3fff;
+        if(overlap||invalid){++out.rejectedRecords;out.withheldFootprints.push_back(f);continue;}
+        for(const auto& c:p.components)for(size_t y=0;y<c.side;++y)for(size_t x=0;x<c.side;++x){const size_t cell=(origin+f.y+c.y+y)*228+origin+f.x+c.x+x;
             // Writer0x4B7423..0x4B743F stamps the same surface word; the small
             // table0x81FF18 supplies column | row<<3 and one corner gets0x40.
-            s.image[cell]=word;s.subTile[cell]=uint8_t(f.size-1);s.draw[cell]=uint8_t(x+8*y);
-            if(f.x+x==p.drawX&&f.y+y==p.drawY)s.draw[cell]|=0x40;
+            s.image[cell]=(c.binding.tileset<<14)|(c.binding.physicalId-201);s.subTile[cell]=uint8_t(c.side-1);s.draw[cell]=uint8_t(x+8*y);
+            if(f.type==0x36||f.type==0x3a){
+                // Initial square0x4B72B0 leaves column/row bytes; direct
+                // overrides0x5D6095 set corner-bit and clear subTile only.
+                s.draw[cell]=uint8_t(c.x+8*c.y+0x40);
+            }else if(x==0&&y==c.side-1)s.draw[cell]|=0x40;
+            if(c.preservedDraw)s.draw[cell]=*c.preservedDraw;
         }
-        out.placedCells+=size_t(f.size)*f.size;out.placed.push_back(p);
+        out.placed.push_back(p);
     }
+    out.placedCells=std::count_if(s.image.begin(),s.image.end(),[](auto word){return word!=0;});
     out.accepted=true;return out;
 }
 // SAV19 clears image at0x534CB9, runs building+100 dispatch0x4BC220 at
@@ -91,10 +108,15 @@ inline OriginalBuildingScene composeOriginalSavedGroundScene(const OriginalMapTe
         out.buildingOccupancy[cell]=working.image[cell]?1:2;
         if(!working.image[cell]){working.image[cell]=UINT32_MAX;++out.unboundBuildingCells;}
     }
-    // Independently authored bound stamps, not saved metadata, seed the rebuild.
+    // Exe-derived stamps seed the rebuild. Market direct writes preserve their
+    // serialized low draw bits; those bits are input, not independent evidence.
     for(size_t cell=0;cell<n;++cell)if(out.surface.image[cell]) {
         working.draw[cell]=out.surface.draw[cell];working.subTile[cell]=uint8_t((working.subTile[cell]&0xE0u)|out.surface.subTile[cell]);
     }
+    // Unlike 0x4B72B0, storage's final direct writes clear the entire byte.
+    const size_t origin=(228-terrain.activeSide)/2;
+    for(const auto& p:out.placed)if(p.footprint.type==0x36||p.footprint.type==0x3a)
+        for(const auto& c:p.components)working.subTile[(origin+p.footprint.y+c.y)*228+origin+p.footprint.x+c.x]=0;
     auto rebuilt=selectGroundMapSeeded(working,terrain.activeSide,saved.material,saved.owner);
     if(rebuilt.cells.size()!=n||!rebuilt.surface.valid()){out.accepted=false;return out;}
     out.surface=std::move(rebuilt.surface);out.surface.terrain=terrain.flags;
@@ -115,6 +137,20 @@ inline OriginalBuildingScene composeOriginalSavedGroundScene(const OriginalMapTe
         const size_t id=archive&&slot<archive->imageIndex.size()?size_t(archive->imageIndex[slot])+selection.variant:0;
         if(!archive||slot>=archive->imageIndex.size()||!archive->imageIndex[slot]||id<201||id>archive->sprites.size()||id-201>0x3fff){++out.groundUnresolved;continue;}
         out.surface.image[cell]=(tileset<<14)|uint32_t(id-201);++out.groundCells;
+    }
+    // Market pavement assigns only the marker bit; its lower draw bits came
+    // from the save and cannot count as independent writer predictions.
+    for(const auto& p:out.placed)for(const auto& c:p.components)if(c.preservedDraw){
+        const size_t cell=(origin+p.footprint.y+c.y)*228+origin+p.footprint.x+c.x;
+        out.drawWritten[cell]=0x40;out.subTileWritten[cell]=0x1F;
+    }
+    for(const auto& p:out.placed)if(p.footprint.type==0x36||p.footprint.type==0x3a)
+        for(const auto& c:p.components)out.subTileWritten[(origin+p.footprint.y+c.y)*228+origin+p.footprint.x+c.x]=0xFF;
+    for(size_t cell=0;cell<n;++cell)if(!(terrain.flags[cell]&0x80000u)){
+        if(out.buildingOccupancy[cell]==1){
+            out.buildingDrawFullyAssigned+=out.drawWritten[cell]==0xFF;
+            out.buildingDrawMarkerOnly+=out.drawWritten[cell]==0x40;
+        }else if(!out.buildingOccupancy[cell])out.groundDrawFullyAssigned+=out.drawWritten[cell]==0xFF;
     }
     out.groundRebuilt=true;return out;
 }

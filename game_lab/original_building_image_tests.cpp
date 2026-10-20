@@ -60,12 +60,47 @@ const std::vector<BaseFact> facts{
     {127,0x488,2,1680,"China_Safety.bmp"},{192,0x4ad,2,825,"China_Husbandry.bmp"},
     {193,0x43a,3,793,"China_Husbandry.bmp"},{194,0x431,1,2458,"China_Fields.bmp"},
     {196,0x42c,1,2410,"China_Fields.bmp"},{207,0x484,2,1580,"China_Safety.bmp"},
-    {211,0x412,2,589,"China_Entertainment.bmp"},{214,0x481,2,2232,"China_Religion.bmp"}};
+     {211,0x412,2,589,"China_Entertainment.bmp"},{214,0x481,2,2232,"China_Religion.bmp"},
+     {231,0x4b5,1,370,"China_Aesthetic.bmp"}};
 OriginalBuildingFootprint footprint(const BaseFact& fact){
     OriginalBuildingFootprint f;f.type=fact.type;f.size=fact.side;f.wellImageInputs=OriginalWellImageInputs{};
-    OriginalBuildingImageInputs i;i.word20=1;i.randomByte=0;i.religiousCode=0x481;f.imageInputs=i;return f;
+    OriginalBuildingImageInputs i;i.word20=1;i.randomByte=0;i.religiousCode=0x481;i.wallMask=0;i.savedView=0;f.imageInputs=i;
+    if(fact.type==231)f.x=2;return f;
 }
 void generalized(){
+    const uint8_t wall[16][4]={{0,2,0,2},{2,0,2,0},{0,2,0,2},{7,6,5,4},{2,0,2,0},{2,0,2,0},{4,7,6,5},{9,8,11,10},
+        {0,2,0,2},{6,5,4,7},{0,2,0,2},{8,11,10,9},{5,4,7,6},{11,10,9,8},{10,9,8,11},{12,12,12,12}};
+    // Literal first-draw parity vectors include LCG wrap and coordinate division.
+    for(const auto& xy:std::vector<std::array<unsigned,3>>{{0,0,1},{2,0,0},{4,0,1},{227,0,1},{227,227,1}})
+        for(unsigned mask=0;mask<16;++mask)for(unsigned v=0;v<4;++v){const auto b=wall[mask][v];
+            need(originalResidentialWallVariant(uint8_t(mask),v*2,uint16_t(xy[0]),uint16_t(xy[1]))==b+((b==0||b==2)?xy[2]:0),"wall literal table/view and coordinate-local LCG contract");
+        }
+    need(!originalResidentialWallVariant(16,0,0,0)&&!originalResidentialWallVariant(0,1,0,0)&&!originalResidentialWallVariant(0,8,0,0),"wall refuses invalid mask and view");
+    for(unsigned kind=0;kind<4;++kind){auto f=footprint(facts.back());
+        if(kind==0)f.imageInputs->wallMask.reset();if(kind==1)f.imageInputs->savedView.reset();if(kind==2)f.imageInputs->savedView=2;if(kind==3)f.imageInputs->wallMask=16;
+        need(!originalBuildingBaseSelection(f),"wall refuses absent owner context or unsupported rendered view");
+    }
+    // Authored storage index has deliberately non-adjacent groups. Amount
+    // boundaries and the final compartment must select AFTER T(454).
+    SG3Archive bays;bays.version=213;bays.numImages=160;bays.sprites.resize(160);
+    bays.bitmaps={{"China_StorNDist.bmp"},{"China_Stor-bays.bmp"}};
+    bays.imageIndex[0x24]=1;bays.imageIndex[0x25]=2;bays.imageIndex[0x54]=10;bays.imageIndex[0x56]=150;
+    for(auto& s:bays.sprites){s.width=78;s.height=40;s.type=30;s.tileSize=1;s.uncompressedLength=3200;s.bitmapId=1;}bays.sprites[0].bitmapId=0;bays.sprites[1].bitmapId=0;
+    for(uint16_t type:{uint16_t(54),uint16_t(58)}){
+        OriginalBuildingFootprint f;f.type=type;f.size=type==54?3:4;f.imageInputs=OriginalBuildingImageInputs{};
+        f.imageInputs->compartments=std::vector<OriginalStorageCompartment>(f.size*f.size-1,{0,0,400});
+        for(const auto& entry:std::vector<std::pair<uint32_t,unsigned>>{{0,0},{199,0},{200,1},{299,1},{300,2},{399,2},{400,3}}){
+            f.imageInputs->compartments->back()={18,entry.first,400};const auto c=bindOriginalBuildingComponents(f,"DATA/China_General.sg3",bays);
+            need(c&&c->size()==size_t(f.size)*f.size&&c->front().binding.physicalId==(type==54?1u:2u)&&c->at(1).binding.physicalId==150&&c->back().binding.physicalId==78+entry.second&&c->back().x==f.size-1&&c->back().y==f.size-1,"storage independent amount thresholds and row-major compartment registration");
+        }
+        for(unsigned kind=0;kind<7;++kind){auto bad=f;auto broken=bays;
+            if(kind==0)bad.imageInputs->compartments.reset();if(kind==1)bad.imageInputs->compartments->pop_back();
+            if(kind==2)bad.imageInputs->compartments->back().resource=29;if(kind==3)bad.imageInputs->compartments->back().amount=401;
+            if(kind==4)bad.imageInputs->compartments->back().capacity=399;if(kind==5)broken.sprites[80].width=158;
+            if(kind==6)broken.bitmaps[1].filename="Unrelated.bmp";
+            need(!bindOriginalBuildingComponents(bad,"DATA/China_General.sg3",broken),"storage refuses unavailable compartments, bad resource domain, or wrong SG geometry/family");
+        }
+    }
     for(const auto& fact:facts){
         auto f=footprint(fact);auto selected=originalBuildingBaseSelection(f);
         need(selected&&selected->code==fact.code&&selected->variant==0&&selected->side==fact.side,"per-type literal selector contract");
@@ -121,16 +156,37 @@ void generalized(){
     }
     for(uint16_t type:{uint16_t(54),uint16_t(58),uint16_t(59),uint16_t(71),uint16_t(231),uint16_t(0x1234)}){OriginalBuildingFootprint f;f.type=type;f.size=2;need(!originalBuildingBaseSelection(f),"multipart and unknown types do not fall back to default row");}
     OriginalMapTerrain t;t.activeSide=112;t.flags.assign(51984,8);
-    for(uint16_t version:{uint16_t(3),uint16_t(4),uint16_t(5)})for(uint16_t type:{uint16_t(5),uint16_t(124),uint16_t(127),uint16_t(194),uint16_t(196),uint16_t(214)}){
+    {
+        std::vector<uint8_t> b{0x13,0,1,0,0xa0,0x0f,0,0,0xff,0xff,0,0,8,0,'B','u','i','l','d','i','n','g'};
+        const size_t root=b.size();b.resize(root+182);word(b,root,5);
+        for(unsigned slot=1;slot<4000;++slot){b.insert(b.end(),{1,0x80});const size_t body=b.size();b.resize(body+182+(slot<=2?132:0));word(b,body,5);
+            if(slot<=2){b[body+2]=1;b[body+5]=1;word(b,body+8,uint16_t(6+slot));word(b,body+10,9);word(b,body+16,231);
+                const uint32_t cell=67*228+64+slot;for(unsigned j=0;j<4;++j)b[body+12+j]=uint8_t(cell>>(8*j));}
+        }
+        const size_t terrainOffset=b.size()+155952;b.resize(terrainOffset+1291328);
+        const size_t first=67*228+65;word(b,terrainOffset-103968+2*first,1);word(b,terrainOffset-103968+2*(first+1),2);
+        auto p=parseOriginalSavedBuildings(b,terrainOffset,t);
+        need(p.status==OriginalBuildingStatus::Complete&&p.footprints.size()==2&&p.slotTypes[2]==231,"complete authored wall slot context");
+        need(p.footprints[0].imageInputs->wallMask==2&&p.footprints[1].imageInputs->wallMask==8&&p.footprints[0].imageInputs->savedView==0,"wall reads literal SAV owner and view spans with east/west bit order");
+        need(originalBuildingBaseSelection(p.footprints[0])->variant==0,"wall uses canonical coordinates for local seed");
+        word(b,terrainOffset-103968+2*(first+1),4000);p=parseOriginalSavedBuildings(b,terrainOffset,t);
+        need(p.footprints.size()==2&&!originalBuildingBaseSelection(p.footprints[0]),"out-of-domain adjacent owner withholds wall instead of assuming no neighbour");
+        word(b,terrainOffset-103968+2*(first+1),2);word(b,terrainOffset+1291324,2);p=parseOriginalSavedBuildings(b,terrainOffset,t);
+        need(p.footprints.size()==2&&p.footprints[0].imageInputs->savedView==2&&!originalBuildingBaseSelection(p.footprints[0]),"valid saved alternate view remains explicit but view0 renderer refuses");
+    }
+    for(uint16_t version:{uint16_t(3),uint16_t(4),uint16_t(5)})for(uint16_t type:{uint16_t(5),uint16_t(54),uint16_t(58),uint16_t(124),uint16_t(127),uint16_t(194),uint16_t(196),uint16_t(214)}){
         const size_t common=version==3?179:version==4?181:182;
         std::vector<uint8_t> b{0x13,0,1,0,0xa0,0x0f,0,0,0xff,0xff,0,0,8,0,'B','u','i','l','d','i','n','g'};
         const size_t body0=b.size();b.resize(body0+common);word(b,body0,version);
-        b.insert(b.end(),{1,0x80});const size_t body=b.size();b.resize(body+common+*originalBuildingTailBytes(type));word(b,body,version);b[body+2]=1;b[body+5]=(type==194||type==196)?1:2;word(b,body+8,7);word(b,body+10,9);word(b,body+16,type);
+        b.insert(b.end(),{1,0x80});const size_t body=b.size();b.resize(body+common+*originalBuildingTailBytes(type));word(b,body,version);b[body+2]=1;b[body+5]=type==54?3:type==58?4:(type==194||type==196)?1:2;word(b,body+8,7);word(b,body+10,9);word(b,body+16,type);
         const uint32_t index=uint32_t(67*228+65);for(unsigned j=0;j<4;++j)b[body+12+j]=uint8_t(index>>(8*j));
         word(b,body+18,1);word(b,body+27,3);b[body+(version==5?100:99)]=128;
         const size_t tail=body+common;word(b,tail,1);word(b,tail+2,1);word(b,tail+4,2000);
         if(type==5){b[tail+57]=0;b[tail+59]=20;}
         if(type==214){word(b,tail+130,1);word(b,tail+132,1);word(b,tail+134,1);word(b,tail+156,0x481);}
+        if(type==54||type==58){word(b,tail+130,2);
+            for(unsigned j=0;j<(type==54?8u:15u);++j){const size_t pos=tail+132+14*j;word(b,pos,1);word(b,pos+2,18);word(b,pos+6,300);word(b,pos+10,400);}
+        }
         b.insert(b.end(),{1,0x80});const size_t unknown=b.size();b.resize(unknown+common);word(b,unknown,version);word(b,unknown+16,0x1234);
         const size_t terrainOffset=b.size();b.resize(terrainOffset+467856+51984);b[terrainOffset+415872+index]=255;b[terrainOffset+467856+index]=0;
         auto p=parseOriginalSavedBuildings(b,terrainOffset,t);need(p.footprints.size()==1&&p.liveTypeCounts[type]==1,"generic input fixtures preserve table framing and live counts");
@@ -138,9 +194,12 @@ void generalized(){
         if(type==5)need(f.imageInputs->houseByte3c==20,"house serializer tail+59 after both version headers");
         if(type==194||type==196)need(f.imageInputs->cropWord4==2000,"crop serializer nested word tail+4 after both version headers");
         if(type==214)need(f.imageInputs->religiousCode==0x481,"religious nested serializer tail+156");
-        need(bool(originalBuildingBaseSelection(f)),"parsed serialized inputs close each generic selector");
+        if(type==54||type==58){need(f.imageInputs->compartments&&f.imageInputs->compartments->size()==(type==54?8u:15u)&&f.imageInputs->compartments->back().resource==18&&f.imageInputs->compartments->back().amount==300&&f.imageInputs->compartments->back().capacity==400,"storage serializer offsets retain final component after nested version headers");
+            const auto c=bindOriginalBuildingComponents(f,"DATA/China_General.sg3",bays);need(c&&c->back().binding.physicalId==80,"parsed resource/amount closes final storage compartment");
+        }else need(bool(originalBuildingBaseSelection(f)),"parsed serialized inputs close each generic selector");
         b[body+12]^=1;p=parseOriginalSavedBuildings(b,terrainOffset,t);need(p.footprints.size()==1&&p.footprints[0].imageInputs&&!p.footprints[0].imageInputs->randomByte,"mismatched serialized index never silently substitutes coordinate random byte");
         if(type==5||type==194||type==196||type==214){b[tail+(type==214?134:2)]=2;p=parseOriginalSavedBuildings(b,terrainOffset,t);need(p.footprints.size()==1&&!p.footprints[0].imageInputs,"unknown nested image layout withholds inputs without losing published footprint");}
+        if(type==54||type==58){b[tail+132]=2;p=parseOriginalSavedBuildings(b,terrainOffset,t);need(p.footprints.size()==1&&!p.footprints[0].imageInputs,"unknown compartment serializer version refuses storage binding");}
     }
     // Preview reselects from the current profile, even when caller geometry matches.
     auto current=footprint(facts[4]);current.x=7;current.y=9;auto stale=current;stale.type=72;
@@ -186,7 +245,7 @@ void original(){
     }
     size_t boundRecords=0;for(const auto& entry:bound)boundRecords+=entry.second;
     need(saves==6&&live==expected&&live.size()==27&&records==1065,"six-source distinct-type and live-record denominator lock");
-    need(bound.size()==22&&boundRecords==927&&genericPreviews==22&&genericNative==22,"corpus semantic type/live base-binding count lock");
+    need(bound.size()==23&&boundRecords==1053&&genericPreviews==23&&genericNative==23,"corpus semantic type/live base-binding count lock");
     for(const auto& fact:facts)need(bound[fact.type]==expected.at(fact.type),"every occurrence of each supported type binds");
     for(const auto& fact:facts){need(archive.imageIndex[fact.code&511]==fact.id,"independent physical header ID contract for every closed type");}
     const std::map<uint16_t,std::map<uint32_t,size_t>> expectedPhysical{
@@ -195,14 +254,44 @@ void original(){
         {66,{{611,2}}},{67,{{617,2}}},{72,{{1559,2}}},{124,{{1618,6}}},{126,{{2046,6}}},{127,{{1680,2}}},
         {192,{{825,6}}},{193,{{793,8}}},{194,{{2458,88},{2459,5},{2460,33},{2461,9},{2464,99},{2465,5},{2466,25},{2467,23}}},
         {196,{{2410,257},{2411,9},{2416,213},{2417,11}}},{207,{{1580,2}}},{211,{{589,2}}},{214,{{2232,2}}}};
-    need(physicalCounts==expectedPhysical,"independent scalar audit locks per-type physical record distributions");
+    auto withoutWall=physicalCounts;withoutWall.erase(231);
+    need(withoutWall==expectedPhysical,"independent scalar audit locks per-type physical record distributions");
+    need(physicalCounts[231]==std::map<uint32_t,size_t>{{370,28},{371,18},{372,38},{373,32},{375,4},{376,2},{377,4}},"independent wall physical distribution");
+    size_t storageRecords=0,storageCells=0,storageDecoded=0,marketRecords=0,marketCells=0;
+    std::set<uint16_t> storageTypes;std::map<uint16_t,std::map<uint32_t,size_t>> storagePhysical;
+    for(const auto& source:catalog.sources)if(source.kind==OriginalMapSourceKind::SaveFile){const auto snapshot=loadOriginalSave(root.resolve(source.relativePath));
+        for(const auto& f:snapshot.buildings.footprints)if(f.type==54||f.type==58){
+            const auto components=bindOriginalBuildingComponents(f,archivePath,archive);
+            need(components&&components->size()==size_t(f.size)*f.size,"every original storage compartment closes from saved inputs");++storageRecords;storageTypes.insert(f.type);
+            for(const auto& c:*components){++storageCells;++storagePhysical[f.type][c.binding.physicalId];const auto& sprite=archive.sprites[c.binding.archiveIndex];
+                need(c.side==1&&sprite.type==30&&sprite.width==78&&sprite.height>=40&&sprite.uncompressedLength==3200&&(!sprite.tileSize||sprite.tileSize==1)&&archive.bitmaps[sprite.bitmapId].filename==(c.x||c.y?"China_Stor-bays.bmp":"China_StorNDist.bmp"),"storage independent one-cell geometry and family");
+                const auto decoded=decodeSG3Sprite(archive,c.binding.archiveIndex,root.resolve("DATA/China_General.555"));need(decoded.status==SG3DecodeStatus::Decoded&&decoded.image.valid(),"every original storage component decodes");++storageDecoded;
+            }
+        }
+    }
+    need(storageTypes.size()==2&&storageRecords==8&&storageCells==86&&storageDecoded==86,"storage component and occurrence denominators");
+    need(storagePhysical==std::map<uint16_t,std::map<uint32_t,size_t>>{{54,{{644,6},{1170,1},{1171,1},{1172,15},{1197,1},{1198,1},{1317,29}}},{58,{{645,2},{1197,1},{1317,29}}}},"independent scalar audit locks saved storage resource/amount image distributions");
+    for(const auto& source:catalog.sources)if(source.kind==OriginalMapSourceKind::SaveFile){const auto snapshot=loadOriginalSave(root.resolve(source.relativePath));
+        for(const auto& f:snapshot.buildings.footprints)if(f.type==59){const auto c=bindOriginalBuildingComponents(f,archivePath,archive,&snapshot.buildings);
+            need(c&&c->size()==16,"common market binds four linked stalls and twelve descriptor cells");++marketRecords;
+            for(const auto& component:*c){const auto image=decodeSG3Sprite(archive,component.binding.archiveIndex,root.resolve("DATA/China_General.555"));
+                need(image.status==SG3DecodeStatus::Decoded&&image.image.valid(),"every market component decodes original data");marketCells+=size_t(component.side)*component.side;}
+            for(unsigned kind=0;kind<5;++kind){auto wrong=f;
+                if(kind==0)wrong.imageInputs->marketStalls[0]=3999;if(kind==1)wrong.imageInputs->marketOrientation=2;
+                if(kind==2)wrong.imageInputs->marketRandom.clear();if(kind==3)wrong.imageInputs->marketDraw.clear();if(kind==4)wrong.imageInputs->savedView=2;
+                need(!bindOriginalBuildingComponents(wrong,archivePath,archive,&snapshot.buildings),"market refuses invalid child, layout, missing saved plane or unsupported view");
+            }
+        }
+    }
+    need(marketRecords==2&&marketCells==56,"market footprint denominator includes shared stall cells");
     size_t branchBases=0;
     for(const auto& fact:facts){
-        const unsigned variants=(fact.type==194||fact.type==196)?12:(fact.type==5||fact.type==7)?4:fact.type==62?3:(fact.type==2||fact.type==3||fact.type==72||fact.type==124||fact.type==127)?2:1;
-        for(unsigned v=0;v<variants;++v){auto f=footprint(fact);uint32_t id=fact.id+v;
+        const unsigned variants=fact.type==231?13:(fact.type==194||fact.type==196)?12:(fact.type==5||fact.type==7)?4:fact.type==62?3:(fact.type==2||fact.type==3||fact.type==72||fact.type==124||fact.type==127)?2:1;
+         for(unsigned v=0;v<variants;++v){auto f=footprint(fact);uint32_t id=fact.id+v;
             if(fact.type==72||fact.type==124||fact.type==127){f.wellImageInputs->byte6f=uint8_t(v);id=v?(fact.type==72?1538:fact.type==124?1649:1704):fact.id;}
             else if(fact.type==194||fact.type==196){f.imageInputs->randomByte=v>=6?1:0;f.imageInputs->cropWord4=int16_t((v%6)*2000);}
             else if(fact.type==5||fact.type==7){f.imageInputs->randomByte=uint8_t(v&1u);if(v>=2){f.imageInputs->word20=0;id=1509+(v&1u);}}
+            else if(fact.type==231){static const uint8_t masks[]={0,0,1,1,6,12,9,3,11,7,14,13,15};f.imageInputs->wallMask=masks[v];f.x=(v==1||v==3)?0:2;}
             else f.imageInputs->randomByte=uint8_t(v);
             auto binding=bindOriginalBuildingBaseImage(f,archivePath,archive);
             if(fact.type==196&&v%6>0){f.imageInputs->cropWord4=int16_t((v%6-1)*2000+100);binding=bindOriginalBuildingBaseImage(f,archivePath,archive);}
@@ -210,7 +299,7 @@ void original(){
             auto decoded=decodeSG3Sprite(archive,binding->archiveIndex,root.resolve("DATA/China_General.555"));need(decoded.status==SG3DecodeStatus::Decoded&&decoded.image.valid(),"every selector output decodes original payload");++branchBases;
         }
     }
-    std::cout<<"{\"distinct_live_types\":"<<live.size()<<",\"live_records\":"<<records<<",\"bound_types\":"<<bound.size()<<",\"bound_records\":"<<boundRecords<<",\"generic_preview_types\":"<<genericPreviews<<",\"generic_CGImages\":"<<genericNative<<",\"selector_outputs_bound_and_decoded\":"<<branchBases<<"}\n";
+     std::cout<<"{\"distinct_live_types\":"<<live.size()<<",\"live_records\":"<<records<<",\"bound_types\":"<<bound.size()+storageTypes.size()+1<<",\"bound_records\":"<<boundRecords+storageRecords+marketRecords<<",\"generic_preview_types\":"<<genericPreviews<<",\"generic_CGImages\":"<<genericNative<<",\"selector_outputs_bound_and_decoded\":"<<branchBases<<",\"storage_component_cells\":"<<storageCells<<",\"storage_components_decoded\":"<<storageDecoded<<",\"market_component_cells_decoded\":"<<marketCells<<"}\n";
     std::cout<<"{\"original_data\":true,\"saved_sources\":"<<saves<<",\"well_occurrences\":"<<wells<<",\"well_base_bindings\":"<<bindings<<",\"well_preview_images\":"<<previews<<",\"well_CGImages\":"<<native<<",\"well_branches_bound_and_decoded\":"<<decodedBases<<",\"original_anchor_verified\":false,\"animation_frame_verified\":false}\n";
 }
 }

@@ -11,11 +11,17 @@ namespace game_lab {
 // Owned exe SHA256 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658:
 // FUN_00427430 serializes these at common+18 and common+(v5?100:99).
 struct OriginalWellImageInputs {int16_t word16=0;uint8_t byte6f=0;};
+struct OriginalStorageCompartment {uint32_t resource=0,amount=0,capacity=0;};
 struct OriginalBuildingImageInputs {
     uint32_t gridIndex=0,religiousCode=0;
     int16_t word20=0,cropWord4=0;
     uint8_t houseByte3c=0;
     std::optional<uint8_t> randomByte;
+    std::optional<uint8_t> wallMask,savedView;
+    std::optional<std::vector<OriginalStorageCompartment>> compartments;
+    std::optional<uint8_t> marketOrientation;
+    std::array<uint32_t,4> marketStalls{};
+    std::vector<uint8_t> marketRandom,marketDraw;
 };
 struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0,height=0;size_t slot=0,recordOffset=0;std::optional<OriginalWellImageInputs> wellImageInputs;std::optional<OriginalBuildingImageInputs> imageInputs;};
 // A raw common-record position whose occupied shape is not yet established.
@@ -27,6 +33,7 @@ struct OriginalBuildingProfile {
     std::vector<OriginalBuildingFootprint> footprints;
     std::vector<OriginalBuildingMarker> unplacedMarkers;
     std::map<uint16_t,size_t> liveTypeCounts; // Includes live types whose placement is withheld.
+    std::array<uint16_t,4000> slotTypes{}; // Semantic common-body types, never archive PIDs.
 };
 inline const char* originalBuildingName(uint16_t type){
     switch(type){case 0x2:case 0x3:case 0x4:case 0x5:case 0x6:case 0x7:case 0x8:case 0x9:case 0xa:case 0xb:case 0xc:case 0xd:case 0xe:case 0xf:case 0x10:case 0x11:return "House";
@@ -71,6 +78,20 @@ inline std::optional<OriginalBuildingImageBinding> bindOriginalWellBaseImage(con
     OriginalBuildingImageBinding out;out.imageCode=*code;out.physicalId=uint32_t(id);out.archiveIndex=id-1;return out;
 }
 struct OriginalBuildingBaseSelection {uint16_t code=0,variant=0;uint8_t side=0;const char* bitmap="";};
+// 0x4153B0 / file0x153B0: N,E,S,W owner classes (0x415700), table
+// VA0x815D40/file0x415D40, six u32 per row: mask, four views, gate variant.
+// The local RNG0x41F990(1) is reseeded0x41FA80 from x/((y+8)/3).
+// 0x41FAA0 is a uint32 LCG, distinct from the persisted cell-random LFSR.
+inline std::optional<uint16_t> originalResidentialWallVariant(uint8_t mask,unsigned view,uint16_t x,uint16_t y){
+    static constexpr uint8_t variants[16][4]={{0,2,0,2},{2,0,2,0},{0,2,0,2},{7,6,5,4},
+        {2,0,2,0},{2,0,2,0},{4,7,6,5},{9,8,11,10},{0,2,0,2},{6,5,4,7},
+        {0,2,0,2},{8,11,10,9},{5,4,7,6},{11,10,9,8},{10,9,8,11},{12,12,12,12}};
+    if(mask>15||view>6||(view&1)||x>227||y>227)return std::nullopt;
+    const uint16_t base=variants[mask][view/2];
+    const uint32_t seed=uint32_t(x)/((uint32_t(y)+8)/3);
+    const uint32_t next=seed*1664525u+1013904223u;
+    return uint16_t(base+((base==0||base==2)?((next>>4)%2):0));
+}
 // Every literal below is cited by type, constructor/vtable, selector/writer and
 // table VA in docs/SAV.md#exe-cited-saved-building-static-bases (same exe hash).
 // Variant is added AFTER T(code), never to the packed code/group number.
@@ -112,7 +133,12 @@ inline std::optional<OriginalBuildingBaseSelection> originalBuildingBaseSelectio
     case 0xd6:
         if(!f.imageInputs||f.imageInputs->religiousCode!=0x481)return std::nullopt;
         out={0x481,0,2,"China_Religion.bmp"};break; // 0x5ABEF0 reads saved runtime+0x158
-    default:return std::nullopt; // Multipart storage/market/entertainment/wall remain withheld.
+    case 0xe7:{
+        if(!f.imageInputs||!f.imageInputs->wallMask||!f.imageInputs->savedView||*f.imageInputs->savedView!=0)return std::nullopt;
+        const auto variant=originalResidentialWallVariant(*f.imageInputs->wallMask,*f.imageInputs->savedView,f.x,f.y);
+        if(!variant)return std::nullopt;
+        out={0x4b5,*variant,1,"China_Aesthetic.bmp"};break;}
+    default:return std::nullopt; // Multipart types use the component binder below.
     }
     if(f.size!=out.side||originalFootprintWidth(f)!=out.side||originalFootprintHeight(f)!=out.side)return std::nullopt;
     return out;
@@ -133,6 +159,72 @@ inline std::optional<OriginalBuildingImageBinding> bindOriginalBuildingBaseImage
     // The selected variant must retain the base's independent bitmap family.
     if(archive.sprites[first-1].bitmapId!=s.bitmapId)return std::nullopt;
     OriginalBuildingImageBinding out;out.imageCode=selected->code;out.variant=selected->variant;out.physicalId=uint32_t(id);out.archiveIndex=id-1;return out;
+}
+struct OriginalBuildingComponent {OriginalBuildingImageBinding binding;uint8_t x=0,y=0,side=0;std::optional<uint8_t> preservedDraw=std::nullopt;};
+// Storage0x5D6A80/0x5E1580 first stamp T(424/425) over size^2, then
+// 0x5D5FF0 overwrites compartment k at (k+1)%size,(k+1)/size. +2A4
+// 0x5D6B50 supplies occupied454/empty456; +2D8=0x546C40 selects data.
+// 0x4B04F0 considers a compartment empty iff resource AND amount are zero.
+inline std::optional<std::vector<OriginalBuildingComponent>> bindOriginalBuildingComponents(
+    const OriginalBuildingFootprint& f,const std::string& archivePath,const SG3Archive& archive,
+    const OriginalBuildingProfile* profile=nullptr){
+    if(f.type==0x3b){
+        if(!profile||!f.imageInputs||!f.imageInputs->marketOrientation||*f.imageInputs->marketOrientation>1||
+            f.imageInputs->marketRandom.size()!=28||f.imageInputs->marketDraw.size()!=28||!f.imageInputs->savedView||*f.imageInputs->savedView!=0)return std::nullopt;
+        const bool rotated=*f.imageInputs->marketOrientation==1;
+        if(f.size!=1||originalFootprintWidth(f)!=(rotated?7:4)||originalFootprintHeight(f)!=(rotated?4:7))return std::nullopt;
+        std::vector<OriginalBuildingComponent> out;
+        // Descriptor VA0x8574A8/file0x4574A8: two orientations of 28
+        // (x,y,role,arg) rows. Active role2 origins: (0,0),(2,0),(0,5),(2,5)
+        // transposed for orientation1. Saved child links: market tail+218.
+        for(unsigned stall=0;stall<4;++stall){
+            const uint8_t x=uint8_t(rotated?(stall/2)*5:(stall%2)*2),y=uint8_t(rotated?(stall%2)*2:(stall/2)*5);
+            const auto slot=f.imageInputs->marketStalls[stall];
+            auto child=std::find_if(profile->footprints.begin(),profile->footprints.end(),[&](const auto& c){return c.slot==slot;});
+            if(child==profile->footprints.end()||child->slot<=f.slot||child->x!=f.x+x||child->y!=f.y+y||child->size!=2||
+                (child->type!=0x3e&&child->type!=0x42&&child->type!=0x43))return std::nullopt;
+            auto b=bindOriginalBuildingBaseImage(*child,archivePath,archive);if(!b)return std::nullopt;
+            out.push_back({*b,x,y,2});
+        }
+        // Roles1/4 have arg0 in both common-market descriptor lists:
+        // direct image=T(422)+(R&3), subTile&=E0, draw|=40. Its low draw
+        // bits are serialized input, not an independently predicted output.
+        for(unsigned y=0;y<7;++y)for(unsigned x=0;x<4;++x)if(y>=2&&y<=4){
+            const auto random=f.imageInputs->marketRandom[y*4+x];
+            const uint16_t variant=random&3;const size_t first=archive.imageIndex[0x22],id=first+variant;
+            if(archivePath!="DATA/China_General.sg3"||(archive.version!=213&&archive.version!=214)||archive.numImages!=archive.sprites.size()||!first||id>archive.sprites.size())return std::nullopt;
+            const auto& s=archive.sprites[id-1];
+            if(s.mirrorOffset||s.type!=30||s.width!=78||s.height<40||s.uncompressedLength!=3200||(s.tileSize&&s.tileSize!=1)||s.bitmapId>=archive.bitmaps.size()||archive.bitmaps[s.bitmapId].filename!="China_StorNDist.bmp")return std::nullopt;
+            OriginalBuildingImageBinding b;b.imageCode=0x422;b.variant=variant;b.physicalId=uint32_t(id);b.archiveIndex=id-1;
+            out.push_back({b,uint8_t(rotated?y:x),uint8_t(rotated?x:y),1,uint8_t(f.imageInputs->marketDraw[y*4+x]|0x40)});
+        }
+        return out;
+    }
+    if(f.type!=0x36&&f.type!=0x3a){
+        const auto binding=bindOriginalBuildingBaseImage(f,archivePath,archive);if(!binding)return std::nullopt;
+        return std::vector<OriginalBuildingComponent>{{*binding,0,0,f.size}};
+    }
+    const uint8_t side=f.type==0x36?3:4;
+    if(f.size!=side||originalFootprintWidth(f)!=side||originalFootprintHeight(f)!=side||!f.imageInputs||
+        !f.imageInputs->compartments||f.imageInputs->compartments->size()!=size_t(side)*side-1||
+        archivePath!="DATA/China_General.sg3"||(archive.version!=213&&archive.version!=214)||archive.numImages!=archive.sprites.size())return std::nullopt;
+    std::vector<OriginalBuildingComponent> out;
+    for(unsigned cell=0;cell<unsigned(side)*side;++cell){
+        uint16_t code=f.type==0x36?0x424:0x425,variant=0;const char* bitmap="China_StorNDist.bmp";
+        if(cell){const auto& c=f.imageInputs->compartments->at(cell-1);bitmap="China_Stor-bays.bmp";
+            if(c.capacity!=400||c.amount>400||c.resource>28||(!c.resource&&c.amount))return std::nullopt;
+            if(!c.resource&&!c.amount)code=0x456;
+            else {code=0x454;variant=uint16_t(4*(c.resource-1)+(c.amount==400?3:c.amount>299?2:c.amount>=200?1:0));}
+        }
+        const size_t first=archive.imageIndex[code&511],id=first+variant;
+        if(!first||id>archive.sprites.size())return std::nullopt;
+        const auto& s=archive.sprites[id-1];
+        if(s.mirrorOffset||s.type!=30||s.width!=78||s.height<40||s.uncompressedLength!=3200||(s.tileSize&&s.tileSize!=1)||
+            s.bitmapId>=archive.bitmaps.size()||archive.bitmaps[s.bitmapId].filename!=bitmap||archive.sprites[first-1].bitmapId!=s.bitmapId)return std::nullopt;
+        OriginalBuildingImageBinding b;b.imageCode=code;b.variant=variant;b.physicalId=uint32_t(id);b.archiveIndex=id-1;
+        out.push_back({b,uint8_t(cell%side),uint8_t(cell/side),1});
+    }
+    return out;
 }
 inline bool validOriginalBuildingFootprint(const OriginalMapTerrain& terrain,const OriginalBuildingFootprint& f){
     const auto w=originalFootprintWidth(f),h=originalFootprintHeight(f);const bool market=f.type==0x3b||f.type==0x3c;
@@ -218,6 +310,7 @@ inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint
             const auto version=detail::u16(data.data()+at);const size_t common=version==3?179:version==4?181:version==5?182:0;
             if(!common||common>terrainOffset-at)return failure(OriginalBuildingStatus::Malformed);
             const auto type=detail::u16(data.data()+at+16);auto tail=originalBuildingTailBytes(type);
+            result.slotTypes[slot]=type;
             if(originalBuildingMonument(type)){
                 if(terrainOffset-at-common<4)return failure(OriginalBuildingStatus::Malformed);
                 const auto subversion=detail::u16(data.data()+at+common+2);
@@ -256,6 +349,28 @@ inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint
                     imageLayout=detail::u16(data.data()+at+common)==1&&detail::u16(data.data()+at+common+2)==1&&detail::u16(data.data()+at+common+130)==1&&detail::u16(data.data()+at+common+132)==1&&detail::u16(data.data()+at+common+134)==1;
                     inputs.religiousCode=detail::u32(data.data()+at+common+156);
                 }
+                if(type==0x36||type==0x3a){
+                    // 0x5D62D0/0x5E1510 -> 0x5D4890 ->0x51CE00:
+                    // industrial tail130, storage version2, then N component
+                    // version1 headers and 3 u32s via0x5D26C0 (14 bytes each).
+                    const size_t tailAt=at+common,count=type==0x36?8:15;
+                    imageLayout=detail::u16(data.data()+tailAt)==1&&detail::u16(data.data()+tailAt+2)==1&&detail::u16(data.data()+tailAt+130)==2;
+                    std::vector<OriginalStorageCompartment> compartments;
+                    for(size_t c=0;c<count;++c){const size_t pos=tailAt+132+14*c;
+                        imageLayout&=detail::u16(data.data()+pos)==1;
+                        compartments.push_back({detail::u32(data.data()+pos+2),detail::u32(data.data()+pos+6),detail::u32(data.data()+pos+10)});
+                    }
+                    if(imageLayout)inputs.compartments=std::move(compartments);
+                }
+                if(type==0x3b){
+                    const size_t tailAt=at+common;
+                    // 0x544F10 ->0x5D4890 (6 compartments) then version6,
+                    // six slot links0x544FB7 and later scalar fields.
+                    imageLayout=detail::u16(data.data()+tailAt)==1&&detail::u16(data.data()+tailAt+2)==1&&
+                        detail::u16(data.data()+tailAt+130)==2&&detail::u16(data.data()+tailAt+216)==6;
+                    for(unsigned j=0;j<6;++j)imageLayout&=detail::u16(data.data()+tailAt+132+14*j)==1;
+                    if(imageLayout){inputs.marketOrientation=data[tailAt+96];for(unsigned j=0;j<4;++j)inputs.marketStalls[j]=detail::u32(data.data()+tailAt+218+4*j);}
+                }
                 if(imageLayout)f.imageInputs=inputs;
                 if(data[at+2]&&validOriginalBuildingFootprint(terrain,f))result.footprints.push_back(f);else ++result.rejectedTerrainFootprints;
             }
@@ -287,6 +402,37 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
             for(auto& f:result.footprints)if(f.imageInputs){
                 const size_t i=(origin+f.y)*228+origin+f.x;
                 if(f.imageInputs->gridIndex==i)f.imageInputs->randomByte=data[terrainOffset+randomOffset+i];
+            }
+        }
+        // SAV19 branch0x5311DC: owner0xFC3750 read0x531316 at T-103968;
+        // saved view0x115F720 read0x531419 at T+1291324. 0x415464..0x4154D4
+        // resolves each signed owner through0x47F1B0 and tests its semantic type.
+        if(result.status==OriginalBuildingStatus::Complete&&terrainOffset>=155952&&
+            terrainOffset<=data.size()&&1291328<=data.size()-terrainOffset){
+            const uint32_t view=detail::u32(data.data()+terrainOffset+1291324);
+            const size_t origin=(228-terrain.activeSide)/2;
+            for(auto& f:result.footprints)if(f.type==0x3b&&f.imageInputs&&f.imageInputs->marketOrientation&&view==0&&f.imageInputs->gridIndex==(origin+f.y)*228+origin+f.x){
+                const bool rotated=*f.imageInputs->marketOrientation==1;bool valid=*f.imageInputs->marketOrientation<=1;std::vector<uint8_t> random,draw;
+                for(unsigned y=0;y<7;++y)for(unsigned x=0;x<4;++x){
+                    const size_t cell=(origin+f.y+(rotated?x:y))*228+origin+f.x+(rotated?y:x);
+                    if(cell>=cells){valid=false;break;}
+                    random.push_back(data[terrainOffset+randomOffset+cell]);
+                    draw.push_back(data[terrainOffset-155952+cell]);
+                }
+                if(valid){f.imageInputs->marketRandom=std::move(random);f.imageInputs->marketDraw=std::move(draw);f.imageInputs->savedView=uint8_t(view);}
+            }
+            for(auto& f:result.footprints)if(f.type==0xe7&&f.imageInputs){
+                const size_t cell=(origin+f.y)*228+origin+f.x;
+                if(view>6||(view&1)||f.imageInputs->gridIndex!=cell||
+                    detail::u16(data.data()+terrainOffset-103968+2*cell)!=f.slot)continue;
+                uint8_t mask=0;bool valid=true;const int delta[4]={-228,1,228,-1};
+                for(unsigned d=0;d<4;++d){
+                    const int adjacent=int(cell)+delta[d];if(adjacent<0||adjacent>=int(cells)){valid=false;break;}
+                    const auto owner=detail::u16(data.data()+terrainOffset-103968+2*size_t(adjacent));
+                    if(owner>=4000){valid=false;break;}if(!owner)continue;
+                    switch(result.slotTypes[owner]){case 0xe7:case 0x5b:case 0x5a:case 0x59:case 0xe8:case 0x6a:case 0x69:case 0x68:mask|=uint8_t(1u<<d);break;default:break;}
+                }
+                if(valid){f.imageInputs->wallMask=mask;f.imageInputs->savedView=uint8_t(view);}
             }
         }
         return result;

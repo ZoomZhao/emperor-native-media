@@ -114,17 +114,18 @@ void authored(){
     }
 }
 struct Agreement {
-    size_t cells=0,draw=0,side=0,both=0,drawWritten=0,sideWritten=0,drawPredicted=0,sidePredicted=0,markerPredicted=0,drawAssigned=0,drawAssignedEqual=0;
+    size_t cells=0,draw=0,side=0,both=0,drawWritten=0,sideWritten=0,drawPredicted=0,sidePredicted=0,markerPredicted=0,drawAssigned=0,drawAssignedEqual=0,drawMarkerOnly=0,drawMarkerOnlyEqual=0;
     void add(size_t cell,const OriginalBuildingScene& scene,const OriginalSavedGround& saved){
         ++cells;const bool d=scene.surface.draw[cell]==saved.state.draw[cell];
         const bool s=(scene.surface.subTile[cell]&15)==(saved.state.subTile[cell]&15);
         draw+=d;side+=s;both+=d&&s;
         if(scene.drawWritten[cell]){++drawWritten;drawPredicted+=d;markerPredicted+=(scene.surface.draw[cell]&64)==(saved.state.draw[cell]&64);}
         if(scene.drawWritten[cell]==0xFF){++drawAssigned;drawAssignedEqual+=d;}
+        if(scene.drawWritten[cell]==0x40){++drawMarkerOnly;drawMarkerOnlyEqual+=(scene.surface.draw[cell]&0x40)==(saved.state.draw[cell]&0x40);}
         if(scene.subTileWritten[cell]){++sideWritten;sidePredicted+=s;}
     }
-    void merge(const Agreement& v){cells+=v.cells;draw+=v.draw;side+=v.side;both+=v.both;drawWritten+=v.drawWritten;sideWritten+=v.sideWritten;drawPredicted+=v.drawPredicted;sidePredicted+=v.sidePredicted;markerPredicted+=v.markerPredicted;drawAssigned+=v.drawAssigned;drawAssignedEqual+=v.drawAssignedEqual;}
-    void print()const{std::cout<<"\"cells\":"<<cells<<",\"draw_equal\":"<<draw<<",\"subtile_equal\":"<<side<<",\"both_equal\":"<<both<<",\"draw_written\":"<<drawWritten<<",\"draw_output_equal\":"<<drawPredicted<<",\"draw_marker_predicted_equal\":"<<markerPredicted<<",\"draw_fully_assigned\":"<<drawAssigned<<",\"draw_assigned_equal\":"<<drawAssignedEqual<<",\"subtile_written\":"<<sideWritten<<",\"subtile_predicted_equal\":"<<sidePredicted;}
+    void merge(const Agreement& v){cells+=v.cells;draw+=v.draw;side+=v.side;both+=v.both;drawWritten+=v.drawWritten;sideWritten+=v.sideWritten;drawPredicted+=v.drawPredicted;sidePredicted+=v.sidePredicted;markerPredicted+=v.markerPredicted;drawAssigned+=v.drawAssigned;drawAssignedEqual+=v.drawAssignedEqual;drawMarkerOnly+=v.drawMarkerOnly;drawMarkerOnlyEqual+=v.drawMarkerOnlyEqual;}
+    void print()const{std::cout<<"\"cells\":"<<cells<<",\"draw_equal\":"<<draw<<",\"subtile_equal\":"<<side<<",\"both_equal\":"<<both<<",\"draw_written\":"<<drawWritten<<",\"draw_output_equal\":"<<drawPredicted<<",\"draw_marker_predicted_equal\":"<<markerPredicted<<",\"draw_fully_assigned\":"<<drawAssigned<<",\"draw_assigned_equal\":"<<drawAssignedEqual<<",\"draw_marker_only\":"<<drawMarkerOnly<<",\"draw_marker_only_equal\":"<<drawMarkerOnlyEqual<<",\"subtile_written\":"<<sideWritten<<",\"subtile_predicted_equal\":"<<sidePredicted;}
 };
 void corpus(){
     const char* configured=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!configured||!*configured){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return;}
@@ -132,6 +133,7 @@ void corpus(){
     const auto general=loadSG3(root.resolve("DATA/China_General.sg3")),ground=loadSG3(root.resolve("DATA/China_Terrain.sg3")),elevation=loadSG3(root.resolve("DATA/China_Elevation.sg3"));
     const auto catalog=enumerateOriginalMapSources(root);need(catalog.complete,"complete source catalog");
     size_t sources=0,withGround=0,active=0,emitted=0,decoded=0,unknown=0,noWrite=0,unresolved=0,buildings=0,buildingCells=0,unbound=0,native=0;
+    size_t groundFullyAssigned=0,buildingFullyAssigned=0,buildingMarkerOnly=0;
     std::map<std::string,Agreement> branches;Agreement total,storage;AppMapSurface app(root);
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;++sources;
         const auto snapshot=loadOriginalSave(root.resolve(source.relativePath));
@@ -171,13 +173,18 @@ void corpus(){
         const size_t localDecoded=view.bases.decodedCells-scene.placedCells;
         std::cout<<"{\"saved_source_ordinal\":"<<sources<<",\"active_cells\":"<<localActive<<",\"ground_emitted\":"<<scene.groundCells<<",\"ground_decoded\":"<<localDecoded<<",\"ground_unknown\":"<<scene.groundUnknown<<",\"chain_no_write\":"<<scene.groundNoWrite<<",\"unresolved\":"<<scene.groundUnresolved<<",\"building_records\":"<<scene.placed.size()<<",\"building_cells\":"<<scene.placedCells<<",\"building_unbound_cells\":"<<scene.unboundBuildingCells<<",\"agreement\":{";local.print();std::cout<<"}}\n";
         ++withGround;active+=localActive;emitted+=scene.groundCells;decoded+=localDecoded;unknown+=scene.groundUnknown;noWrite+=scene.groundNoWrite;unresolved+=scene.groundUnresolved;buildings+=scene.placed.size();buildingCells+=scene.placedCells;unbound+=scene.unboundBuildingCells;total.merge(local);
+        groundFullyAssigned+=scene.groundDrawFullyAssigned;buildingFullyAssigned+=scene.buildingDrawFullyAssigned;buildingMarkerOnly+=scene.buildingDrawMarkerOnly;
         app.clear();need(!app.renderSavedBuildings(camera).image.valid(),"source replacement clears reconstructed scene");
     }
     // Building selectors evolve independently; lock the occupied denominator and
     // ground partition here, while the building-scene suite locks their bindings.
     need(sources==6&&withGround==6&&native==6&&active==57684&&buildingCells+unbound==1719,"six-source/active-cell/building-occupancy denominators unchanged");
     need(emitted==55956&&decoded==55956&&unknown==0&&noWrite==9&&unresolved==0,"all active cells partition with every ground unknown resolved and no emitted decode failures");
-    need(total.drawWritten==emitted+buildingCells&&total.drawPredicted==total.drawWritten&&total.markerPredicted==total.drawWritten&&total.sideWritten==total.drawWritten&&total.sidePredicted==total.sideWritten&&total.drawAssigned==3304+buildingCells&&total.drawAssignedEqual==total.drawAssigned,"every touched draw output, independently assigned draw byte and subTile nibble equals SAV19");
+    need(groundFullyAssigned==3304,"ground-only fully assigned draw-byte denominator unchanged");
+    need(buildingFullyAssigned+buildingMarkerOnly==buildingCells,"precise building draw-write masks partition fully assigned and marker-only cells");
+    need(total.drawWritten==emitted+buildingCells&&total.drawPredicted==total.drawWritten&&total.markerPredicted==total.drawWritten&&total.sideWritten==total.drawWritten&&total.sidePredicted==total.sideWritten&&total.drawAssigned==groundFullyAssigned+buildingFullyAssigned&&total.drawAssignedEqual==total.drawAssigned,"every touched draw output, independently assigned draw byte and subTile nibble equals SAV19");
+    const auto& buildingAgreement=branches.at("building-bound");
+    need(total.drawMarkerOnlyEqual==total.drawMarkerOnly&&buildingAgreement.drawAssigned==buildingFullyAssigned&&buildingAgreement.drawMarkerOnly==buildingMarkerOnly&&buildingAgreement.drawMarkerOnlyEqual==buildingMarkerOnly,"marker-only cells independently match SAV19 bit0x40 without counting preserved low bits as assigned");
     need(branches.at("elevation-direct").cells==2403&&branches.at("elevation-block").cells==228&&
          branches.at("0x40-road-material-0").cells==50&&branches.at("0x40-road-material-2").cells==34&&branches.at("0x20-general").cells==64,
          "changed ground branches lock explicit original-cell denominators independent of building bindings");
@@ -188,7 +195,7 @@ void corpus(){
     }
     std::cout<<"{\"scope\":\"all backing cells (includes retained off-map bytes)\",";storage.print();std::cout<<"}\n";
     for(const auto& entry:branches){std::cout<<"{\"branch\":\""<<entry.first<<"\",";entry.second.print();std::cout<<"}\n";}
-    std::cout<<"{\"saved_sources\":"<<sources<<",\"sources_with_SG3_ground\":"<<withGround<<",\"active_cells\":"<<active<<",\"ground_emitted\":"<<emitted<<",\"ground_decoded\":"<<decoded<<",\"ground_unknown\":"<<unknown<<",\"chain_no_write\":"<<noWrite<<",\"unresolved\":"<<unresolved<<",\"buildings_placed\":"<<buildings<<",\"building_cells\":"<<buildingCells<<",\"building_unbound_cells\":"<<unbound<<",\"native_CGImages\":"<<native<<",\"agreement\":{";total.print();std::cout<<"},\"stored_image_oracle\":false}\n";
+    std::cout<<"{\"saved_sources\":"<<sources<<",\"sources_with_SG3_ground\":"<<withGround<<",\"active_cells\":"<<active<<",\"ground_emitted\":"<<emitted<<",\"ground_decoded\":"<<decoded<<",\"ground_unknown\":"<<unknown<<",\"chain_no_write\":"<<noWrite<<",\"unresolved\":"<<unresolved<<",\"buildings_placed\":"<<buildings<<",\"building_cells\":"<<buildingCells<<",\"building_unbound_cells\":"<<unbound<<",\"ground_draw_fully_assigned\":"<<groundFullyAssigned<<",\"building_draw_fully_assigned\":"<<buildingFullyAssigned<<",\"building_draw_marker_only\":"<<buildingMarkerOnly<<",\"native_CGImages\":"<<native<<",\"agreement\":{";total.print();std::cout<<"},\"stored_image_oracle\":false}\n";
 }
 }
 int main(){try{authored();const auto authoredChecks=checks;corpus();std::cout<<"{\"passed\":true,\"authored_checks\":"<<authoredChecks<<",\"all_checks\":"<<checks<<"}\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

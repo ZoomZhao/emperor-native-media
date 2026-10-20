@@ -25,7 +25,7 @@ OriginalBuildingProfile profile(std::vector<OriginalBuildingFootprint> f){Origin
     p.status=OriginalBuildingStatus::Complete;p.liveSizedRecords=f.size();p.footprints=std::move(f);return p;
 }
 SG3Archive archive(const std::filesystem::path& file){
-    SG3Archive a;a.version=213;a.numImages=204;a.sprites.resize(a.numImages);a.bitmaps.resize(3);
+    SG3Archive a;a.version=213;a.numImages=209;a.sprites.resize(a.numImages);a.bitmaps.resize(3);
     a.bitmaps[0].filename="China_Safety.bmp";a.bitmaps[1].filename="China_StorNDist.bmp";a.bitmaps[2].filename="China_Government2.bmp";
     std::vector<uint8_t> bytes;
     const auto add=[&](unsigned id,unsigned side,uint16_t color,unsigned bitmap,unsigned topRows){
@@ -38,7 +38,9 @@ SG3Archive archive(const std::filesystem::path& file){
         s.length=uint32_t(bytes.size())-s.offset;
     };
     add(201,2,0x03e0,0,20);add(202,5,0x7c00,1,120);add(203,1,0x001f,2,80);add(204,2,0x001f,0,120);
+    for(unsigned id=205;id<=208;++id)add(id,1,0x03e0,1,0);add(209,2,0x001f,1,0);
     a.imageIndex[0x82]=201;a.imageIndex[0x83]=204;a.imageIndex[0x23]=202;a.imageIndex[0x92]=203;
+    a.imageIndex[0x22]=205;a.imageIndex[0x2a]=209;
     std::ofstream out(file,std::ios::binary);out.write(reinterpret_cast<const char*>(bytes.data()),bytes.size());
     need(bool(out),"authored companion written outside repository");return a;
 }
@@ -95,6 +97,24 @@ void authored(const std::filesystem::path& temp){
     auto ties=composeOriginalBuildingScene(t,profile({f,right}),a);
     auto tied=renderOriginalBuildingScene(t,ties,a,(temp/"own.555").string(),c);
     need(tied.image.pixelsBGRA[200*c.width+200]==0xff00ff00u&&tied.image.pixelsBGRA[200*c.width+360]==0xff0000ffu,"equal-depth left/right bases keep their independent screen placement");
+    for(uint8_t orientation:{uint8_t(0),uint8_t(1)}){
+        auto market=footprint(59,1,20,20,10);market.width=orientation?7:4;market.height=orientation?4:7;market.imageInputs=OriginalBuildingImageInputs{};
+        market.imageInputs->marketOrientation=orientation;market.imageInputs->savedView=0;
+        market.imageInputs->marketRandom.resize(28);market.imageInputs->marketDraw.assign(28,0x15);
+        for(unsigned i=0;i<28;++i)market.imageInputs->marketRandom[i]=uint8_t(i%4);
+        auto marketProfile=profile({market});
+        for(unsigned j=0;j<4;++j){auto stall=footprint(62,2,uint16_t(20+(orientation?(j/2)*5:(j%2)*2)),uint16_t(20+(orientation?(j%2)*2:(j/2)*5)),11+j);
+            stall.imageInputs=OriginalBuildingImageInputs{};stall.imageInputs->randomByte=0;
+            marketProfile.footprints[0].imageInputs->marketStalls[j]=uint32_t(stall.slot);marketProfile.footprints.push_back(stall);
+        }
+        marketProfile.liveSizedRecords=5;const auto composite=composeOriginalBuildingScene(t,marketProfile,a);
+        need(composite.accepted&&composite.placed.size()==5&&composite.placedCells==28&&composite.rejectedRecords==0,"both market orientations share only their four exact referenced stall footprints");
+        for(unsigned y=2;y<=4;++y)for(unsigned x=0;x<4;++x){const size_t cell=(origin+20+(orientation?x:y))*228+origin+20+(orientation?y:x);
+            need(composite.surface.image[cell]==((2u<<14)|uint32_t(4+x))&&composite.surface.draw[cell]==0x55&&composite.surface.subTile[cell]==0,"market descriptor transpose uses per-cell random and preserves nonzero low draw bits");
+        }
+        auto missing=marketProfile;missing.footprints.pop_back();const auto refusedMarket=composeOriginalBuildingScene(t,missing,a);
+        need(refusedMarket.placed.size()==3&&refusedMarket.withheldFootprints.size()==1,"market refuses an absent referenced stall without rejecting independent remaining records");
+    }
 }
 void corpus(){
     const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!env||!*env){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return;}
@@ -103,6 +123,8 @@ void corpus(){
     need(catalog.complete,"complete original catalog");
     size_t sources=0,scenes=0,withBases=0,live=0,bindable=0,placed=0,cells=0,decoded=0,failures=0,withheld=0,outlines=0,markers=0,native=0,visible=0,focused=0;
     size_t savedDrawMatches=0,savedSideMatches=0,savedMetadataRecords=0,randomRecords=0,changedRandomInputs=0,changedSelections=0;
+    size_t newUniqueCells=0,newDrawIndependent=0,newDrawPreserved=0,newSubTileMatches=0,unboundCells=0;
+    std::map<uint16_t,size_t> newlyBound;
     AppMapSurface app(root);
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;++sources;
         const auto snapshot=loadOriginalSave(root.resolve(source.relativePath));need(snapshot.status==OriginalSaveStatus::LoadedSnapshot&&snapshot.readStable,"original save stable complete snapshot");
@@ -125,6 +147,30 @@ void corpus(){
         auto s=composeOriginalBuildingScene(snapshot.terrain,snapshot.buildings,a);
         need(s.accepted&&s.rejectedRecords==0,"original base stamps have no shape or overlap rejection");++scenes;withBases+=!s.placed.empty();
         live+=s.liveRecords;bindable+=s.bindableRecords;placed+=s.placed.size();cells+=s.placedCells;
+        std::set<size_t> newlySeen;
+        const size_t crop=(228-snapshot.terrain.activeSide)/2;
+        for(const auto& p:s.placed)if(p.footprint.type==54||p.footprint.type==58||p.footprint.type==59||p.footprint.type==231){
+            ++newlyBound[p.footprint.type];
+            for(const auto& component:p.components){if(p.footprint.type==59&&component.side==2)continue;
+                const size_t cell=(crop+p.footprint.y+component.y)*228+crop+p.footprint.x+component.x;
+                if(!newlySeen.insert(cell).second)continue;++newUniqueCells;
+                const bool draw=data[base-155952+cell]==s.surface.draw[cell],subTile=(data[base+311904+cell]&15)==s.surface.subTile[cell];
+                need(draw&&subTile,"newly placed unique wall/storage/market cells agree with saved draw and subTile");
+                if(component.preservedDraw){newDrawPreserved+=draw;need((s.surface.draw[cell]&0x40)!=0,"market predicts draw marker independently while retaining serialized low bits");}
+                else newDrawIndependent+=draw;
+                newSubTileMatches+=subTile;
+            }
+        }
+        need(snapshot.layers.ground&&snapshot.layers.ground->valid(),"same-source ground inputs are complete before occupancy integration");
+        const auto ground=composeOriginalSavedGroundScene(snapshot.terrain,snapshot.buildings,*snapshot.layers.ground,a,
+            loadSG3(root.resolve("DATA/China_Terrain.sg3")),loadSG3(root.resolve("DATA/China_Elevation.sg3")));
+        need(ground.accepted&&ground.groundRebuilt&&ground.unboundBuildingCells==0,"all bit8 occupancy now has a bound surface before ground; entertainment overlays share market cells");
+        for(const auto& p:ground.placed)for(const auto& component:p.components){
+            const size_t cell=(crop+p.footprint.y+component.y)*228+crop+p.footprint.x+component.x;
+            if(component.preservedDraw)need(ground.drawWritten[cell]==0x40&&ground.subTileWritten[cell]==0x1F,"market assigns draw marker and clears subTile low5; low draw bits remain saved input");
+            if(p.footprint.type==54||p.footprint.type==58)need(ground.surface.subTile[cell]==0&&ground.subTileWritten[cell]==0xFF,"storage direct overrides clear the whole subTile byte");
+        }
+        unboundCells+=ground.unboundBuildingCells;
         OriginalMapCamera c;c.outlines=false;c.centerX=double(snapshot.terrain.activeSide-1)/2;c.centerY=c.centerX;
         if(!s.placed.empty()){c.centerX=s.placed.front().footprint.x;c.centerY=s.placed.front().footprint.y;}
         need(app.selectSavedBuildings(snapshot.terrain,snapshot.buildings),"native App adapter accepts same current SAV source");
@@ -137,22 +183,27 @@ void corpus(){
         // not just bind or disappear outside the one default viewport.
         for(const auto& p:s.placed){c.width=800;c.height=800;c.centerX=p.footprint.x;c.centerY=p.footprint.y;
             const auto& f=p.footprint;const size_t origin=(228-snapshot.terrain.activeSide)/2;bool metadataMatches=true;
-            for(size_t y=0;y<f.size;++y)for(size_t x=0;x<f.size;++x){const size_t cell=(origin+f.y+y)*228+origin+f.x+x;
+            for(size_t y=0;y<originalFootprintHeight(f);++y)for(size_t x=0;x<originalFootprintWidth(f);++x){const size_t cell=(origin+f.y+y)*228+origin+f.x+x;
                 const bool draw=data[base-155952+cell]==s.surface.draw[cell],side=(data[base+311904+cell]&15)==s.surface.subTile[cell];
                 savedDrawMatches+=draw;savedSideMatches+=side;metadataMatches&=draw&&side;
             }
-            need(metadataMatches,"saved draw offsets/view0 marker and subTile side independently equal the bound footprint stamp");savedMetadataRecords+=metadataMatches;
-            const auto isolated=composeOriginalBuildingScene(snapshot.terrain,profile({p.footprint}),a);
+            need(metadataMatches,"saved draw/subTile equal final footprint; market low draw bits are retained inputs");savedMetadataRecords+=metadataMatches;
+            auto subset=profile({p.footprint});
+            if(f.type==0x3b)for(const auto& child:snapshot.buildings.footprints)
+                if(std::find(f.imageInputs->marketStalls.begin(),f.imageInputs->marketStalls.end(),child.slot)!=f.imageInputs->marketStalls.end())subset.footprints.push_back(child);
+            const auto isolated=composeOriginalBuildingScene(snapshot.terrain,subset,a);
             const auto one=renderMapImageGridViewport(snapshot.terrain,isolated.surface,{{2,&a,root.resolve("DATA/China_General.555"),201}},c,MapImageGridOrder::View0DrawCorner);
-            const size_t area=size_t(p.footprint.size)*p.footprint.size;
+            const size_t area=size_t(originalFootprintWidth(f))*originalFootprintHeight(f);
             need(one.image.valid()&&one.stats.drawnCells==area&&one.stats.decodedCells==area&&one.stats.decodeFailures==0&&std::any_of(one.image.pixelsBGRA.begin(),one.image.pixelsBGRA.end(),[](auto pixel){return pixel>>24;}),"every placed occurrence itself paints a successful focused compositor view");++focused;
         }
         app.clear();need(!app.renderSavedBuildings(c).image.valid(),"source clear drops saved scene without stale image");
     }
-    need(sources==6&&scenes==6&&withBases==4&&live==1065&&bindable==927&&placed==927&&focused==927,"supplied six-source placed-record denominator lock");
-    need(withheld==138&&outlines==136&&markers==2&&decoded==cells&&failures==0&&native==6,"withheld shapes/markers and complete decode/native scene counts");
-    need(savedDrawMatches==1483&&savedSideMatches==1483&&savedMetadataRecords==927,"persisted SAV footprint metadata agrees for every bound record and cell");
+    need(sources==6&&scenes==6&&withBases==4&&live==1065&&bindable==1063&&placed==1063&&focused==1063,"supplied six-source placed-record denominator lock");
+    need(withheld==2&&outlines==0&&markers==2&&decoded==cells&&failures==0&&native==6,"withheld shapes/markers and complete decode/native scene counts");
+    need(savedDrawMatches==1751&&savedSideMatches==1751&&savedMetadataRecords==1063&&cells==1719,"persisted SAV footprint metadata agrees for every bound record and cell");
     need(randomRecords==851&&changedRandomInputs==845&&changedSelections==389,"SAV serializer correction has an explicit affected-building denominator");
+    need(newlyBound==std::map<uint16_t,size_t>{{54,6},{58,2},{59,2},{231,126}}&&newUniqueCells==236&&newDrawIndependent==212&&newDrawPreserved==24&&newSubTileMatches==236&&unboundCells==0,"new record, unique-cell and independent metadata denominators");
+    std::cout<<"{\"newly_bound_records\":136,\"new_unique_cells\":"<<newUniqueCells<<",\"new_full_draw_independent_matches\":"<<newDrawIndependent<<",\"new_draw_preserved_input_matches\":"<<newDrawPreserved<<",\"new_subtile_matches\":"<<newSubTileMatches<<",\"unbound_surface_occupancy\":"<<unboundCells<<"}\n";
     std::cout<<"{\"saved_draw_cells_matched\":"<<savedDrawMatches<<",\"saved_subtile_cells_matched\":"<<savedSideMatches<<",\"footprint_cells\":"<<cells<<",\"saved_metadata_records_matched\":"<<savedMetadataRecords<<",\"bound_records\":"<<placed<<",\"random_dependent_records\":"<<randomRecords<<",\"corrected_random_inputs\":"<<changedRandomInputs<<",\"corrected_image_selections\":"<<changedSelections<<",\"stored_image_word_checks_eligible\":0,\"chain_agreement_cells_eligible\":0}\n";
     std::cout<<"{\"saved_sources\":"<<sources<<",\"native_scenes\":"<<scenes<<",\"native_CGImages\":"<<native<<",\"nonempty_sources_with_bases\":"<<withBases<<",\"live_records\":"<<live<<",\"bindable_records\":"<<bindable<<",\"placed_records\":"<<placed<<",\"focused_record_views\":"<<focused<<",\"withheld_records\":"<<withheld<<",\"withheld_footprints\":"<<outlines<<",\"unshaped_markers\":"<<markers<<",\"stamped_cells\":"<<cells<<",\"decoded_cells\":"<<decoded<<",\"default_view_drawn_cells\":"<<visible<<",\"decode_failures\":"<<failures<<",\"anchor\":\"view0:(x,y+size-1)\",\"order\":\"draw-corner(x+y,x)\",\"ground\":\"same SAV numerical terrain\",\"original_screen_agreement_verified\":false}\n";
 }
