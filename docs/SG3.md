@@ -257,3 +257,35 @@ For the supplied General index, bitmap0 is `Zeus_system.bmp`, so group130/header
 |predicate true,code0x483|131|1538 /1537|type30,width158,height93,tileSize2,uncompressed base12800 bytes,bitmap `China_Safety.bmp`,animation count20,speedID4|
 
 For each base, width **80×2−2=158**, height≥40×2, and uncompressed length **3200×2²=12800** agree with the independently saved/type-table2×2 footprint. Bitmap names are read through the record's bitmapId from **680+200×bitmapId**, not treated as per-image semantic names. The actual image association is supplied by the executable override; compatible dimensions/name alone would still be insufficient. Other building types in the24-byte table have not been bound by this change, since their state overrides and component rules require their own trace. Reproduce the86 authored/22 original assertions perRelease/UBSan with `scripts/building_image_binding.py`;it prints aggregates only and succeeds with SKIP for the data portion when `EMPEROR_GAMEDATA_ROOT` is unset/empty.
+
+## Saved-building selector variants and format verification
+
+The subsequent [complete observed-type trace](SAV.md#exe-cited-saved-building-static-bases) measures **22/27 observed live semantic types and927/1,065 live SAV record occurrences** bound through the same General tileset2. The27-type denominator includes2 entertainment-square occurrences without an ordinary footprint;26 types/1,063 footprints is a narrower placement count. This extension adds no filename inference orpixel scoring. Every type's constructor,vtable,operative selector/specialized writer,table row andsaved-field transport is cited in SAV. All executable references retain SHA-256 **`0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`** and file offset=VA−0x400000.
+
+Packed-code group lookup and post-T record addition remain distinct. Houses useT(0x471/0x473/0x475)+(savedR&1),empty stalls useT(0x42A)+savedR%3,andHemp/Millet useT(0x431/0x42C)+saved stage+6×(savedR&1). Adding a variant to thepacked code would select a different header entry. P inWell/Inspector/Watchtower instead changes the code itself before T:0x482/483,0x486/487,0x488/489. R comes from theexe-cited serialized0xF1E780 grid,not theexisting public `mapperRandom` field;its exact transport is in SAV. No runtime PRNG call participates in these22 closed base selectors.
+
+| Packed code(s) / variant domain | Header physical ID(s) → supported output IDs | Independent SG format contract / bitmap filename |
+|---|---|---|
+|0x471/0x473/0x475;+0..1|1509/1513/1517→1509..1510,1513..1514,1517..1518|type30;158×height≥80;tile2;base12,800;`China_Housing.bmp`|
+|0x437|708|type30;158×95;tile2;base12,800;`China_Husbandry.bmp`|
+|0x448/0x449|2789/2810|type30;158×92/140;tile2;base12,800;`China_Industry_2.bmp`|
+|0x423|647|type30;398×289;tile5;base80,000;`China_StorNDist.bmp`|
+|0x42A;+0..2|629→629..631|type30;158×80;tile2;base12,800;`China_StorNDist.bmp`|
+|0x414/0x416|611/617|type30;158×123/114;tile2;base12,800;`China_StorNDist.bmp`|
+|0x482/0x483|1559/1538|type30;158×132/93;tile2;base12,800;`China_Safety.bmp`|
+|0x486/0x487|1618/1649|type30;158×193/194;tile2;base12,800;`China_Safety.bmp`|
+|0x488/0x489|1680/1704|type30;158×187/198;tile2;base12,800;`China_Safety.bmp`|
+|0x492|2046|type30;78×48;tile1;base3,200;`China_Government2.bmp`|
+|0x4AD|825|type30;158×137;tile2;base12,800;`China_Husbandry.bmp`|
+|0x43A|793|type30;238×192;tile3;base28,800;`China_Husbandry.bmp`|
+|0x431;+0..11|2458→2458..2469|type30;78×height≥40;tile1;base3,200;`China_Fields.bmp`|
+|0x42C;+0..11|2410→2410..2421|type30;78×height≥40;tile1;base3,200;`China_Fields.bmp`|
+|0x484|1580|type30;158×136;tile2;base12,800;`China_Safety.bmp`|
+|0x412|589|type30;158×137;tile2;base12,800;`China_Entertainment.bmp`|
+|saved0x481|2232|type30;158×149;tile2;base12,800;`China_Religion.bmp`|
+
+The geometry contract is width=80×footprintSide−2,height≥40×side,uncompressed base=3,200×side²; explicit nonzero tileSize must agree. The binder refuses negative mirrors,invalid archive versions/counts/header IDs,wrong caller archive,wrong bitmap family andvariants crossing bitmap families. The existing Well wrapper retains its previous geometry-only contract unchanged;its original-data tests independently check Safety metadata. All **57/57 per-type selector outputs** bind anddecode original payloads,including vacant/occupied house outputs,bothbranches for allthree P selectors andall12 stage/random combinations for eachcrop. Repeated house code outputs are counted pertype;57 is not the count ofunique artwork records. The corpus tests independently lock exact physical record distributions,not only bound counts.
+
+Storage header records **0x424→644 (78×93)** and **0x425→645 (78×98)** are single-cell canvases;they do not meet savedWarehouse3×3/Trading4×4 geometry. Their specialized writers firststamp these images andthen overwrite8/15 component cells through0x5D5FF0. Markets,entertainment squares andwalls similarly requiretheir documented descriptor/component/neighbour rules. These five types remain **0/138 live records bound**;no footprint-sized image is invented fromone header record. Existingwriter0x4B7520's increment-per-cell semantics are distinct from0x4B72B0's same-word stamp.
+
+The generalized preview produces **22/22 type previews andCGImages** using the existing compositor's explicitbottom-centre convention. Anchor,shadows,occlusion,animation andoriginal-screen fidelity remain unverified. Tests andprivate bite evidence are documented with theSAV selector contract;no original assets,code listings,images orderived binaries enterGit.

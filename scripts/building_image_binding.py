@@ -1,4 +1,4 @@
-"""Exe-cited Well static-base binding and contained scene-preview checks.
+"""Exe-cited saved-building static-base binding and existing scene-preview checks.
 
 Original-data checks read only EMPEROR_GAMEDATA_ROOT; unset/empty succeeds SKIP.
 No pixels, hashes, source listings or original assets are written.

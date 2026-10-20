@@ -5,17 +5,25 @@
 #include <array>
 #include <string>
 #include <new>
+#include <map>
 namespace game_lab {
 // Raw runtime-field identities, not guessed service/construction semantics.
 // Owned exe SHA256 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658:
 // FUN_00427430 serializes these at common+18 and common+(v5?100:99).
 struct OriginalWellImageInputs {int16_t word16=0;uint8_t byte6f=0;};
-struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0,height=0;size_t slot=0,recordOffset=0;std::optional<OriginalWellImageInputs> wellImageInputs;};
+struct OriginalBuildingImageInputs {
+    uint32_t gridIndex=0,religiousCode=0;
+    int16_t word20=0,cropWord4=0;
+    uint8_t houseByte3c=0;
+    std::optional<uint8_t> randomByte;
+};
+struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0,height=0;size_t slot=0,recordOffset=0;std::optional<OriginalWellImageInputs> wellImageInputs;std::optional<OriginalBuildingImageInputs> imageInputs;};
 enum class OriginalBuildingStatus {Complete,UnsupportedTail,MissingAnchor,AmbiguousAnchor,Malformed,BudgetExceeded};
 struct OriginalBuildingProfile {
     OriginalBuildingStatus status=OriginalBuildingStatus::MissingAnchor;
     size_t parsedRecords=0,namedWellRecords=0,rejectedTerrainFootprints=0,namedInspectorRecords=0,namedWatchtowerRecords=0,liveSizedRecords=0,unsupportedFootprintRecords=0,clearedClassRecords=0,classReferencesVerified=0;
     std::vector<OriginalBuildingFootprint> footprints;
+    std::map<uint16_t,size_t> liveTypeCounts; // Includes live types whose placement is withheld.
 };
 inline const char* originalBuildingName(uint16_t type){
     switch(type){case 0x2:case 0x3:case 0x4:case 0x5:case 0x6:case 0x7:case 0x8:case 0x9:case 0xa:case 0xb:case 0xc:case 0xd:case 0xe:case 0xf:case 0x10:case 0x11:return "House";
@@ -32,7 +40,7 @@ inline uint8_t originalFootprintWidth(const OriginalBuildingFootprint& f){return
 inline uint8_t originalFootprintHeight(const OriginalBuildingFootprint& f){return f.height?f.height:f.size;}
 struct OriginalBuildingImageBinding {
     const char* archive="DATA/China_General.sg3";
-    uint16_t imageCode=0;uint32_t tileset=2,physicalId=0;size_t archiveIndex=0;
+    uint16_t imageCode=0;uint32_t tileset=2,physicalId=0;size_t archiveIndex=0;uint16_t variant=0;
 };
 // Static base only. Well factory 0x51BEF0 -> ctor 0x51C090 -> vtable 0x7B5EB4;
 // +0x214 is 0x51BAC0: 0x482 + bool(vcall+0x224). That predicate is 0x5B3AD0:
@@ -58,6 +66,70 @@ inline std::optional<OriginalBuildingImageBinding> bindOriginalWellBaseImage(con
     const auto& s=archive.sprites[id-1];
     if(s.mirrorOffset<0||s.type!=30||s.width!=158||s.height<80||s.uncompressedLength!=12800||(s.tileSize&&s.tileSize!=2))return std::nullopt;
     OriginalBuildingImageBinding out;out.imageCode=*code;out.physicalId=uint32_t(id);out.archiveIndex=id-1;return out;
+}
+struct OriginalBuildingBaseSelection {uint16_t code=0,variant=0;uint8_t side=0;const char* bitmap="";};
+// Every literal below is cited by type, constructor/vtable, selector/writer and
+// table VA in docs/SAV.md#exe-cited-saved-building-static-bases (same exe hash).
+// Variant is added AFTER T(code), never to the packed code/group number.
+inline std::optional<OriginalBuildingBaseSelection> originalBuildingBaseSelection(const OriginalBuildingFootprint& f){
+    OriginalBuildingBaseSelection out;
+    switch(f.type){
+    case 0x2:case 0x3:case 0x5:case 0x7:{
+        if(!f.imageInputs||!f.imageInputs->randomByte)return std::nullopt;
+        const auto& i=*f.imageInputs;
+        // 0x519F30 -> 0x519060 (empty-house branch), otherwise 0x518DE0.
+        out.code=(f.type==2||(!i.houseByte3c&&!i.word20))?0x471:uint16_t(0x471+f.type-3);
+        out.variant=*i.randomByte&1u;out.side=2;out.bitmap="China_Housing.bmp";break;}
+    case 0x21:out={0x437,0,2,"China_Husbandry.bmp"};break; // 0x5F1EE0 -> 0x4F13F0
+    case 0x23:out={0x448,0,2,"China_Industry_2.bmp"};break;
+    case 0x2b:out={0x449,0,2,"China_Industry_2.bmp"};break;
+    case 0x35:out={0x423,0,5,"China_StorNDist.bmp"};break; // 0x5566C0
+    case 0x3e:
+        if(!f.imageInputs||!f.imageInputs->randomByte)return std::nullopt;
+        out={0x42a,uint16_t(*f.imageInputs->randomByte%3),2,"China_StorNDist.bmp"};break; // 0x541CAD
+    case 0x42:out={0x414,0,2,"China_StorNDist.bmp"};break; // 0x5416A0 / table0x8572E8
+    case 0x43:out={0x416,0,2,"China_StorNDist.bmp"};break;
+    case 0x48:case 0x7c:case 0x7f:{
+        if(!f.wellImageInputs)return std::nullopt;
+        const uint16_t base=f.type==0x48?0x482:f.type==0x7c?0x486:0x488;
+        out={uint16_t(base+(f.wellImageInputs->word16>0||f.wellImageInputs->byte6f!=0)),0,2,"China_Safety.bmp"};break;}
+    case 0x7e:out={0x492,0,1,"China_Government2.bmp"};break; // 0x51DE5F..0x51DEAB; flags do not change code
+    case 0xc0:out={0x4ad,0,2,"China_Husbandry.bmp"};break; // 0x4C5BF0 -> 0x4C2AC0
+    case 0xc1:out={0x43a,0,3,"China_Husbandry.bmp"};break;
+    case 0xc2:case 0xc4:{
+        if(!f.imageInputs||!f.imageInputs->randomByte||f.imageInputs->cropWord4<0)return std::nullopt;
+        const int word=f.imageInputs->cropWord4;
+        // 0x4C2650 vs 0x4C2360: solo uses floor(pct/20); field adds
+        // one only for positive pct. 0x4C1290 computes signed word*100/10000.
+        const int pct=word*100/10000;
+        const int stage=std::min(5,pct/20+(f.type==0xc4&&pct>0));
+        out={uint16_t(f.type==0xc2?0x431:0x42c),uint16_t(stage+((*f.imageInputs->randomByte&1u)?6:0)),1,"China_Fields.bmp"};break;}
+    case 0xcf:out={0x484,0,2,"China_Safety.bmp"};break; // 0x51BCB0
+    case 0xd3:out={0x412,0,2,"China_Entertainment.bmp"};break; // zero override0x416B80 -> default row
+    case 0xd6:
+        if(!f.imageInputs||f.imageInputs->religiousCode!=0x481)return std::nullopt;
+        out={0x481,0,2,"China_Religion.bmp"};break; // 0x5ABEF0 reads saved runtime+0x158
+    default:return std::nullopt; // Multipart storage/market/entertainment/wall remain withheld.
+    }
+    if(f.size!=out.side||originalFootprintWidth(f)!=out.side||originalFootprintHeight(f)!=out.side)return std::nullopt;
+    return out;
+}
+inline std::optional<OriginalBuildingImageBinding> bindOriginalBuildingBaseImage(const OriginalBuildingFootprint& f,
+    const std::string& archivePath,const SG3Archive& archive){
+    if(f.type==0x48)return bindOriginalWellBaseImage(f,archivePath,archive);
+    const auto selected=originalBuildingBaseSelection(f);if(!selected)return std::nullopt;
+    // All closed selectors use slot2 from the 41-slot startup list0x475C3B..0x475D5A.
+    if(selected->code>>9!=2||archivePath!="DATA/China_General.sg3")return std::nullopt;
+    const size_t group=selected->code&0x1ffu;
+    if((archive.version!=213&&archive.version!=214)||archive.numImages!=archive.sprites.size()||group>=archive.imageIndex.size())return std::nullopt;
+    const size_t first=archive.imageIndex[group],id=first+selected->variant;
+    if(!first||id>archive.numImages)return std::nullopt;
+    const auto& s=archive.sprites[id-1];const int side=selected->side;
+    if(s.mirrorOffset<0||s.type!=30||s.width!=80*side-2||s.height<40*side||s.uncompressedLength!=uint32_t(3200*side*side)||(s.tileSize&&s.tileSize!=side))return std::nullopt;
+    if(s.bitmapId>=archive.bitmaps.size()||archive.bitmaps[s.bitmapId].filename!=selected->bitmap)return std::nullopt;
+    // The selected variant must retain the base's independent bitmap family.
+    if(archive.sprites[first-1].bitmapId!=s.bitmapId)return std::nullopt;
+    OriginalBuildingImageBinding out;out.imageCode=selected->code;out.variant=selected->variant;out.physicalId=uint32_t(id);out.archiveIndex=id-1;return out;
 }
 inline bool validOriginalBuildingFootprint(const OriginalMapTerrain& terrain,const OriginalBuildingFootprint& f){
     const auto w=originalFootprintWidth(f),h=originalFootprintHeight(f);const bool market=f.type==0x3b||f.type==0x3c;
@@ -112,7 +184,7 @@ inline bool originalBuildingSquareType(uint16_t type){
 // a closed record span and matching saved terrain footprint is exposed. Unknown
 // type tails preserve the closed prefix; malformed data clears it completely.
 // Opaque class-reference tags stay opaque;eligibility comes from the separately stored semantic type.
-// No resync or game logic. Well image-choice inputs are retained separately;
+// No resync or game logic. Cited static-image inputs are retained separately;
 // archive binding is an explicit caller operation above.
 inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint8_t>& data,size_t start,
                                                          size_t terrainOffset,const OriginalMapTerrain& terrain,bool localClasses=false){
@@ -155,11 +227,29 @@ inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint
             if(*tail>terrainOffset-at-common)return failure(OriginalBuildingStatus::Malformed);
             if(namedOriginalBuilding(type,name)){if(type==0x48)++result.namedWellRecords;else if(type==0x7c)++result.namedInspectorRecords;else ++result.namedWatchtowerRecords;}
             if(type&&data[at+2]&&data[at+5]){
-                ++result.liveSizedRecords;
+                ++result.liveSizedRecords;++result.liveTypeCounts[type];
                 if(!originalBuildingSquareType(type)&&type!=0x3b&&type!=0x3c){++result.unsupportedFootprintRecords;at+=common+*tail;++result.parsedRecords;continue;}
                 OriginalBuildingFootprint f;f.type=type;f.x=detail::u16(data.data()+at+8);f.y=detail::u16(data.data()+at+10);f.size=data[at+5];f.slot=slot;f.recordOffset=begin;
                 if(type==0x3b||type==0x3c){const auto rotation=data[at+common+96];if(rotation>1){++result.unsupportedFootprintRecords;at+=common+*tail;++result.parsedRecords;continue;}const uint8_t side=type==0x3b?4:6;f.width=rotation?7:side;f.height=rotation?side:7;}
-                if(type==0x48){OriginalWellImageInputs inputs;inputs.word16=detail::i16(data.data()+at+18);inputs.byte6f=data[at+(version==5?100:99)];f.wellImageInputs=inputs;}
+                if(type==0x48||type==0x7c||type==0x7f){OriginalWellImageInputs inputs;inputs.word16=detail::i16(data.data()+at+18);inputs.byte6f=data[at+(version==5?100:99)];f.wellImageInputs=inputs;}
+                OriginalBuildingImageInputs inputs;inputs.gridIndex=detail::u32(data.data()+at+12);inputs.word20=detail::i16(data.data()+at+27);
+                bool imageLayout=true;
+                if(type==2||type==3||type==5||type==7){
+                    // 0x518910 -> data vtable0x7B5C44+8 -> 0x517410:
+                    // outer+data versions1; runtime data+0x3C is tail+59.
+                    imageLayout=detail::u16(data.data()+at+common)==1&&detail::u16(data.data()+at+common+2)==1;inputs.houseByte3c=data[at+common+59];
+                }
+                if(type==0xc2||type==0xc4){
+                    // 0x51CE00 / 0x51C3A0: outer+data headers, word at tail+4.
+                    imageLayout=detail::u16(data.data()+at+common)==1&&detail::u16(data.data()+at+common+2)==1;inputs.cropWord4=detail::i16(data.data()+at+common+4);
+                }
+                if(type==0xd6){
+                    // 0x5AB280 -> 0x5AAC80, nested rect0x4F8CA0 (18 bytes):
+                    // outer+industrial+religious headers put data+8 at tail+156.
+                    imageLayout=detail::u16(data.data()+at+common)==1&&detail::u16(data.data()+at+common+2)==1&&detail::u16(data.data()+at+common+130)==1&&detail::u16(data.data()+at+common+132)==1&&detail::u16(data.data()+at+common+134)==1;
+                    inputs.religiousCode=detail::u32(data.data()+at+common+156);
+                }
+                if(imageLayout)f.imageInputs=inputs;
                 if(data[at+2]&&validOriginalBuildingFootprint(terrain,f))result.footprints.push_back(f);else ++result.rejectedTerrainFootprints;
             }
             at+=common+*tail;++result.parsedRecords;
@@ -176,7 +266,18 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
         size_t hits=0,start=0;auto from=data.begin(),end=data.begin()+terrainOffset;
         while(from!=end){auto found=std::search(from,end,preamble.begin(),preamble.end());if(found==end)break;if(++hits>16)return failure(OriginalBuildingStatus::BudgetExceeded);start=size_t(found-data.begin());from=found+1;}
         if(hits!=1)return failure(hits?OriginalBuildingStatus::AmbiguousAnchor:OriginalBuildingStatus::MissingAnchor);
-        return parseOriginalBuildingTable(data,start,terrainOffset,terrain,false);
+        auto result=parseOriginalBuildingTable(data,start,terrainOffset,terrain,false);
+        // 0x52E7C0 serializes runtime0xF1E780 after three grid extents
+        // totaling9 bytes/cell. Public mapperRandom is the PRECEDING grid.
+        constexpr size_t randomOffset=467856,cells=51984;
+        if(terrainOffset<=data.size()&&randomOffset+cells<=data.size()-terrainOffset){
+            const size_t origin=(228-terrain.activeSide)/2;
+            for(auto& f:result.footprints)if(f.imageInputs){
+                const size_t i=(origin+f.y)*228+origin+f.x;
+                if(f.imageInputs->gridIndex==i)f.imageInputs->randomByte=data[terrainOffset+randomOffset+i];
+            }
+        }
+        return result;
     }catch(const std::bad_alloc&){return failure(OriginalBuildingStatus::BudgetExceeded);}
 }
 inline OriginalBuildingProfile parseOriginalMapBuildings(const std::vector<uint8_t>& data,const OriginalMapTerrain& terrain){return parseOriginalBuildingTable(data,1093607,data.size(),terrain,true);}
