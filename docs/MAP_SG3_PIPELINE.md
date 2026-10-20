@@ -329,18 +329,20 @@ them `chain-declined` / `chainNoWrite` (`original_ground.hpp`).
 Measured over all 167 `Cities/*.map` (whole crop, camera-free), after modelling
 setter 5 (the road arm), the two `LAB_0053FF8A` arms of setter 4 and the whole-map
 farm/plain-land block tiers, the land/flood/twin composite arms and the elevation
-prepass/setter-2 writers (167/167 processed, 0 failures):
+prepass/setter-2 writers plus the shore descriptor arms (167/167 processed,
+0 failures):
 
 * grid `2,107,836` active cells, `28` stored zero, `2,107,808` stored nonzero;
-* chain emits `1,956,299` (92.811 % of active), agrees with the stored grid on
-  `1,693,753` = **86.579 %** of emitted / **80.355 %** of active; mismatched `262,546`;
+* **`1,747,096/2,107,836` active cells match (82.886 %)**; chain emits
+  `2,050,792/2,107,836` (97.294 % of active), with `1,747,096/2,050,792`
+  matched (85.191 % of emitted); mismatched `303,696`, unresolved `0`;
 * mismatches partition into `16` stored zero, `64` stored tilesets different from
-  the prediction, `12,566` index deltas within ±8 and `249,900` larger deltas; the
-  17–32 bucket contains `227,692/249,900` (91.113 %) of those larger deltas;
+  the prediction, `13,701` index deltas within ±8 and `289,915` larger deltas; the
+  17–32 bucket contains `266,818/289,915` (92.033 %) of those larger deltas;
 * chain declines to write on `19,841` cells: `0` of them store zero, **all `19,841`
   store nonzero art** — direct evidence that "declined" is not "empty". Most former
   declined cells were elevation art now owned by the earlier elevation writers;
-* unknown / non-terrain-determinable chain cells `131,696` (6.248 % of active),
+* unknown / non-terrain-determinable chain cells `37,203/2,107,836` (1.765 % of active),
   including `208` road-material cells refused by the `FUN_00474920` boundary.
 
 (History: the pre-setter-5 numbers were `1,514,539` emitted / `1,299,617` matched = 85.809 %
@@ -354,7 +356,8 @@ The land/flood/twin composite arms add **19,783 matches** (15,135 + 3,716 + 932)
 raising emitted agreement to 85.447 % without changing emitted, unknown or
 stored-grid rendering totals. The elevation prepass/setter-2 writers then add
 **104,162 matches**, taking the baseline from 1,589,591 matched / 270,738
-mismatched / 132,570 unknown to the current totals above; chain no-write was
+mismatched / 132,570 unknown to the historical pre-shore totals:
+matched was 1,693,753, mismatched was 262,546, unknown was 131,696; chain no-write was
 114,937 and is now 19,841. `FUN_005403C0` runs the prepass before dispatch:
 `FUN_0053EAE0` → `FUN_00473760`, using `FUN_00473210`'s 147-row table at
 `0x00825C28` / file `0x425C28` over the signed height byte above; setter 2
@@ -364,6 +367,17 @@ by the terrain archive's vintage id offset: elevation-direct matches 60,679/61,6
 unshifted and 41,194/41,617 shifted; elevation-block matches 790/840 and
 1,496/1,672 respectively. No existing branch's per-cohort rate decreases. Unshifted
 land is 39,823/39,858 (99.91 %), flood 6,068/6,068 and canal 5,286/5,286.
+The separate 46-row shore table at `0x00848D00`, called through `FUN_004BBDC0`
+at `0x53FCBA`, then adds **53,343 matches** and removes **94,493 unknown shore
+cells** (94,493→0). Only the old unknown `0x4-shore` population changes:
+`0x4-shore-edge` (`0x605`) matches 51,199/52,597 (97.342 %) unshifted and
+0/37,290 shifted; `0x4-shore-river` (`0x61A`) matches 2,144/2,319 (92.454 %)
+and 0/2,287 respectively. Matched/active rises to 82.886 % (was 80.355 %).
+Matched/emitted falls to 85.191 % (was 86.579 %) only because 41,150 formerly
+unknown cells now carry mismatching predictions: 39,577 in shifted cities with
+vintage offsets and 1,573 in unshifted cities. No former match is lost and no
+existing branch's per-cohort rate decreases; the emitted ratio is confounded,
+so matched/active is the headline.
 Stored-grid exact rendering stays 139/167 and composite rendering is unchanged.)
 
 ### The stored ids are an older archive vintage, and the shift is not derivable

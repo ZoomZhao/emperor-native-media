@@ -16,8 +16,9 @@ listing, binary or asset is stored. Tooling: Ghidra whole-program decompile + Ca
 | `draw[cell]` | `0x00FDCD70` u8 | draw flags |
 | `obj[cell]` | `0x00FC3750` i16 | building/object id |
 | `feat[cell]` | `0x00F37DA0` u32 | runtime per-cell feature/orientation bits |
-| `R` | `0x0101C538` u8 | river/edge sub-index |
-| `C` | `0x0101C540` u32 | river/edge descriptor code |
+| `R` | `0x0101C538` u32 | shared scratch sub-index; shore setter overwrites it from its own table |
+| `C` | `0x0101C540` u32 | shared scratch code; elevation and shore have different writers/tables |
+| `D` | `0x0101D0D0` u32 | view rotation 0/2/4/6; bare-map reconstruction uses 0 |
 | `B`,`S` | `0x00BEBF34`, `0x0101C53C` | edge block index / flag |
 | `T(c)` | `FUN_00408170 @0x00408170` | tile-image base for code `c` (item 11) |
 
@@ -33,7 +34,7 @@ non-zero setter. Every setter that writes `img` also does `draw|=0x40` and `sub&
 | 1 | `FUN_004EDC30 @0x004EDC30` | `FUN_004EDA50` true and mode `[0x010AF4F4]` allows (item 9) | `img=T(0x61C)+0x30+random%0x18` | no |
 | 2 | `FUN_0053F240 @0x0053F240` | `B>=0 && C!=0` from height-pattern cache arrays (item 1) | 2×2 elevation block | yes: snapshot image reconstruction |
 | 3 | `FUN_00540330 @0x00540330` | `terrain&0x800` | **no `img` write** (item 5) | no |
-| 4 | `FUN_0053FC30 @0x0053FC30` | `terrain&0x4` | `0x61B`/`0x61A`/`0x605`/`0x61C` (item 2) | partial |
+| 4 | `FUN_0053FC30 @0x0053FC30` | `terrain&0x4` | `0x61A`/`0x605`/`0x61C`; `0x61B` requires an active river object (item 2) | yes: bare-load snapshot |
 | 5 | `FUN_0053F520 @0x0053F520` | `terrain&0x1` → `FUN_004BC6A0` | `T(0x624|0x625)+9k+random%9` (k∈{0,1}) or `T(0x627)+random&7` (item 3) | yes |
 | 6 | `FUN_0053F660 @0x0053F660` | `terrain&0x2` | `T(0x607/0x608/0x606)` by `terrain&0x300002`; 3×3 `+12+(random&1)`, 2×2 `+8+(random&3)`, else `+(random&7)` | yes: whole-map composite stamps |
 | 7 | `FUN_0053F790 @0x0053F790` | `(terrain&0x101000)==0x101000` | `T(0x60F)`; 2×2 `+8+(random&3)`, else `+(random&7)` | yes: whole-map composite stamps |
@@ -62,7 +63,7 @@ writer is `FUN_0053EAE0 @0x0053EAE0`: it zeroes all three for the cell (`terrain
 `FUN_00473210(@0x00473210, &DAT_00825C28, FUN_00473170(cell,-1,1))` returns non-zero it copies
 `C`, `B`, `S` into them. `FUN_00473210` matches the 8-neighbour **elevation-difference** pattern
 (`FUN_00408cf0`, neighbour offsets `&DAT_007ACA48`) against a **static descriptor table at `0x00825C28`**
-(row chosen by `DAT_0101D0D0/2`). The caches have no payload offsets, but their
+(view column chosen by `DAT_0101D0D0/2`). The caches have no payload offsets, but their
 height input **is MAP-derived**: `0x00BEBF3A`, payload 989,275, already parsed as
 `gBEBF3A` (the elevation section below corrects the earlier missing-input claim). `FUN_0053F240` reads
 `B=0x00B866B4[cell]`, `C=0x00BB92F4[cell]`, `S=0x00B53A74[cell]`; if `B<0` or `C==0` it returns 0, else it
@@ -82,17 +83,18 @@ over mask `4` (or `0x104` in water mode; 0x0053FC83/0x0053FC91 and the `sete` at
 *Water mode off* (0x0053FCC6 `cmp al,bl` / `jne 0x53FF8A`):
 * `(terrain&0x10000)!=0` (0x0053FCCE `test ...,0x10000`): `0x0053FCDB cmp dword ptr
   [0x0101C540],ebx` / `0x0053FCE1 jl 0x53FF8A`, otherwise the `D_1` case at
-  0x0053FF62 writes `T(0x61A)+R+C`. `C` is 0 or a `0x20xx` descriptor (item 1) and
-  never negative, so this is always the `0x61A` arm.
+  0x0053FF62 writes `T(0x61A)+R+C`. The shore-specific matcher described below
+  writes a nonnegative byte descriptor, so a matched row always takes this arm.
 * Otherwise `FUN_004B8F70(0x10000)` + `FUN_004BC140()` (0x0053FCEC..0x0053FCF9).
   `0` such neighbours → `LAB_0053FF8A` (0x0053FD00 `je`). Otherwise the 8
   neighbour object pointers (`0x0088FE80/84`, `0x00890214`, `0x008905A4/A0/9C`,
-  `0x0089020C`, `0x0088FE7C`; test `obj==0 || obj+0x18==0`) feed a switch on `C`
+  `0x0089020C`, `0x0088FE7C`; local is true iff `obj!=0 && obj->byte18==0`) feed a switch on `C`
   selecting orientation `iVar8∈{0,2,4,6}`:
-  * `0x61B` value `= T(0x61B) + ((iVar8-4)&7 + 6)*3 + iVar7` (+1 if the two
+  * `0x61B` value `= T(0x61B) + (((iVar8-4)&7) + 6)*3 + iVar7` (+1 if either of the two
     orientation flags `0x0101C5B8[...]` are set). Cases `C=0→4`, `4→6`, `8→0`,
     `0xC→2`, `0x10/0x18/0x1C` combine.
-  * default/`D_1`: `0x61A` value `= T(0x61A) + R + C`.
+  * default/`D_1`: `0x61A` value `= T(0x61A) + R + C`. All eight pointers are
+    null in the bare-load phase, so all switch cases fall back here.
 * At `LAB_0053FF8A` with the water byte still 0 (0x0053FF99 `cmp byte ptr
   [esp+0x24],bl` / `je 0x53FFAB`) the three MAP-determined arms are:
   * `terrain&0x4000000 != 0` (0x0053FFB2) and `0x100` clear (0x0053FFB9; the
@@ -112,18 +114,62 @@ block and always writes `T(0x61C)+0x30+random%0x18` (0x0053FF9F `push 1564` →
 0x0053FFDF). A bare load has the byte 0: the singleton constructor
 `FUN_004ED290 @0x004ED290` zeroes it (`mov byte ptr [edx+8],al`) and its only
 writer `FUN_004ED2B0 @0x004ED2B0` is reached from gameplay code (single caller
-0x0049CEE6), not the `.map` read path. So the three `0x61C` arms above are the
-load-time dispatch.
+0x0049CEE6), not the `.map` read path. The bare-load dispatch includes the three
+`0x61C` arms and the descriptor-driven `0x605`/`0x61A` arms.
 
-Measured over all 167 `Cities/*.map`: water-ring 83,229, water-fringe 57,024 and
-shore-ring 5,014 cells are MAP-determined, matching the stored grid on 39.73 %,
-39.32 % and 40.33 % respectively. The remaining 94,897 `0x4-shore` cells take
-`T(0x605)+R+C`; `R=0` (`0x0101C538` cleared at 0x00473326) and `C` is the runtime
-elevation-pattern descriptor of item 1, so they stay unknown. Their stored ids
-spread across the whole 48-piece slot-5 art range (0..47), which is
-descriptor/authored art, not a MAP byte: the `d=0` mode is only 1.8 %.
+**View-rotation premise.** `DAT_0101D0D0` is copied from `DAT_0115F720`: the
+bare-load path reads the source at `0x534477` and stores the view at `0x534495`,
+after clamping to 0..6 by resetting out-of-range values to 0
+(`0x53447D..0x534489`). `DAT_0115F720` is UI camera-rotation state, not a MAP
+field: rotate handlers `FUN_0046A010` / `FUN_0046A0D0` step it by +2 / -2,
+wrapping at 0/6 (writers `0x46A055`, `0x46A05E`, `0x46A112`, `0x46A119`).
+The reconstruction **assumes view 0**. The unshifted corpus supports that
+premise: elevation-direct matches 60,679/61,651 (98.42 %) and shore-edge
+51,199/52,597 (97.342 %); it does not establish a MAP-carried view value.
 
-**Those three percentages are not the id shift, and must not be explained by it.**
+**The incoming elevation descriptor is overwritten inside setter 4.** After
+`FUN_004B8F70(4)` and the count, `0x53FCA4` calls `FUN_004BC100`, inverting the
+eight 0/1 flags. `0x53FCAC..0x53FCBA` passes the random byte, forward mode 0,
+count **46** and table **`0x00848D00`** (file `0x448D00`) to `FUN_004BBDC0`.
+Each ordered 20-byte row contains eight byte predicates (0=shore, 1=non-shore,
+2=wildcard), four view offsets at +8..11, S at +12, variant count at +13,
+mutable counter at +14, and compiled predicate bits at +16. `FUN_004BC090`
+builds those bits (call `0x4B0527`); the port matches the equivalent predicates.
+The forward matcher scans at `0x4BBE91..0x4BBEA1`, writes `C=row[8+D/2]`
+at `0x4BBEBF`, S at `0x4BBECC`, and **`R=random%row[13]`** at
+`0x4BBEDB/0x4BBEE3`. Counts are 1, 2 or 4. The negative-random counter arm
+`0x4BBEEB..0x4BBF06` is unreachable from this setter's unsigned random byte.
+Thus the existing elevation table/matcher remains the prepass source; no
+elevation matcher or table was duplicated for shore.
+
+The shore table matches **255/256** non-shore masks. The unmatched all-shore
+mask normally takes the `0x61C` ring formula, which never reads C/R. If a
+`0x10000` river gate accompanies that mask, the executable retains incoming
+scratch C/R: this unported cross-call state stays unknown (0 such cells in the
+current active corpus). It is not evidence that those values are intrinsically
+non-derivable.
+
+The pointer views are one grid at **`0x00890210`**, shifted by
+`-228,-227,+1,+229,+228,+227,-1,-229`. Reset `0x4B0999` calls
+`FUN_0041F3B0`, whose `0x41F3B5..0x41F3BE` clears all **51,984/51,984** pointers.
+The MAP read `0x52EAAD..0x52EAB7` restores only 36 bytes at grid+`0x32C40`
+through `FUN_00408C70`; it does not restore pointers. The null tests at
+`0x53FD0C..0x53FDD2` make every local false before the C switch, excluding
+`0x61B` at `0x53FF15` and selecting `0x61A` at `0x53FF62`. Later river-object
+construction is separate: `FUN_0041F400` clears/rebuilds the grid using terrain,
+`FUN_0041F820` writes its per-cell pointer (`0x41F855`), and
+`FUN_0041F230` sets the object's +0x18 byte (`0x41F25F`). The bare city path
+`FUN_00534410` calls `FUN_0053D630` (ground reconstruction) at `0x53449F`
+**before** river-object construction at `0x5344BD`. The model covers this first
+bare-load phase, not a later live-object redraw.
+
+All **94,493/94,493** post-elevation unknown shore cells now resolve: **89,887**
+take `0x605`, **4,606** take `0x61A`. Unshifted matches are **51,199/52,597**
+(97.342%) and **2,144/2,319** (92.454%); shifted matches are **0/37,290** and
+**0/2,287**. Their residuals remain measured without fitted constants. Full
+totals and the complete scratch-writer inventory appear in the final section.
+
+**The three existing `0x61C` shore-arm shortfalls are not solely the id shift.**
 Splitting the corpus by whether the city's road band is shifted (the road band and
 the `0x61C` band are both "upper", so this is the right cohort split), the arms are:
 
@@ -131,7 +177,7 @@ the `0x61C` band are both "upper", so this is the right cohort split), the arms 
 |---|---|---|
 | `0x4-shore-water-ring` | 47,649 emitted, 33,070 matched (69.40 %) | 35,580 / **0** (0.00 %) |
 | `0x4-shore-water-fringe` | 33,264 / 22,292 (67.02 %) | 23,760 / 128 (0.54 %) |
-| `0x4-shore-shore-ring` | 3,041 / 1,999 (65.73 %) | 1,973 / 23 (1.17 %) |
+| `0x4-shore-shore-ring` | 3,040 / 1,999 (65.76 %) | 1,973 / 23 (1.17 %) |
 
 So the shifted cohort is fully explained by the shift, but **the unshifted cohort
 still only reaches 66-69 %**, i.e. ~11,000 fringe cells are wrong with no shift to
@@ -182,6 +228,16 @@ the unshifted-cohort shortfall is not MAP-derivable, so the model keeps the
 executable's formula and does not tune a constant to the oracle.** The corpus lock
 `shoreVariantStructureTests` in `game_lab/map_reference_tests.cpp` asserts the
 even-residual structure over the whole corpus.
+
+The additional elevation-descriptor hypothesis was measured using the existing
+`elevationDescriptor` matcher directly, with no duplicate implementation:
+**47,649/47,649** unshifted water-ring, **33,264/33,264** water-fringe and
+**3,040/3,040** shore-ring cells return exactly `{C=0,S=0,B=-1,unknown=false}`.
+That single descriptor class has the same exact-match counts **33,070**, **22,292**,
+**1,999**; even choosing its best constant residual gives no extra matches.
+The descriptor therefore explains **0/26,592** existing unshifted residuals.
+It is absent from their arithmetic. The matcher overwrites it on a matched
+shore row; the unmatched all-shore ring ignores it.
 
 **3. `FUN_0053F520 @0x0053F520` → `FUN_004BC6A0 @0x004BC6A0` (`terrain&0x1`).** Wrapper does
 `sub&=0xF0`, `draw|=0x40`, then `FUN_004BC6A0`. Gate `(terrain&0xC064)==0`. If `terrain&0x100` and
@@ -292,11 +348,11 @@ The MAP `mapperRandom` grid (payload offset 729,311) is therefore **not** consum
 
 * `FUN_004EDC30` mode `[0x010AF4F4]`: the exact game event/timing that advances it via `FUN_004ED3B0`
   (state 0/1/2 transitions) is not pinned down.
-* `FUN_0053F240`: internal row layout of the static descriptor table `0x00825C28` (and `0x007ACA48`
-  neighbour offsets) is not enumerated; only that it is static and keyed on elevation differences.
-* The 8 neighbour object-pointer arrays for tile `0x61B` (`0x0088FE80`…) are not identified to gameplay
-  object types. (`FUN_004BB160`'s radius tables are now dumped: tier-1 count 8 at `0x0081F158`, offsets
-  from `0x00A63704` via `0x0081F1AC`; see item 3.)
+* Elevation's static table `0x00825C28` and neighbour offsets are now ported; in-place
+  height repair remains outside the snapshot reconstruction (elevation section).
+* The `0x61B` reads are shifted views of the river-object pointer grid, null in the
+  first bare-load reconstruction (item 2). A later redraw after `FUN_0041F400`
+  builds active objects is outside this port.
 * `FUN_004B6F90` helpers `FUN_005B22B0`, `FUN_0040E630`, `FUN_00474920`, `FUN_004BDEF0` are not resolved to
   numeric codes.
 * The MAP `mapperRandom` (729,311) is not consumed as the engine's per-cell random grid (item 12), but
@@ -306,10 +362,11 @@ The MAP `mapperRandom` grid (payload offset 729,311) is therefore **not** consum
 * The `0x00FE9880[cell]==0` precondition that lets setters #4/#10 run is assumed from the chain gate; its
   interaction with the rest of `FUN_0053EC90` was not re-read here.
 
-## Load path: the per-cell arrays are not terrain-derived
+## Load path: restored arrays, derived caches and reset object state
 
-The remaining unmodelled branches of `FUN_0053EC90` read per-cell arrays that a
-bare city `.map` cannot supply. Established on the owned exe (SHA-256
+The remaining unmodelled branches of `FUN_0053EC90` read per-cell arrays with
+different provenance; the elevation and shore sections supersede the earlier
+blanket claim that a bare `.map` cannot supply them. Established on the owned exe (SHA-256
 `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`):
 
 - The entire per-cell working set is **zeroed** by the map reset
@@ -335,8 +392,10 @@ bare city `.map` cannot supply. Established on the owned exe (SHA-256
 - `0x00FC3750[cell]` is a **loaded-blob per-cell object/descriptor id** resolved
   through `FUN_0047F1B0 @0x0047f1b0`, not a function of terrain.
 
-Consequence: branches keyed on the runtime caches or the object id are not
-MAP-determinable. Two per-cell inputs are *not* in this group because they are
+Consequence: a missing runtime array alone does not establish non-derivability.
+The elevation caches are reconstructed from MAP heights, and the bare-load
+river-object pointer grid is determinately null (item 2). Two other inputs are
+MAP-carried because they are
 payload fields restored by the same read pass: `0x00E92DD0` (offset 885,271) and
 `0x00E9F8E0` (offset 937,255), which is why setters 5 and 17 are modelled.
 In particular setter 3 (`terrain & 0x800` -> `FUN_00540330` -> `FUN_00524E90(0)`)
@@ -365,17 +424,18 @@ an unknown.
 
 ### MAP-only coverage, measured over all 167 `Cities/*.map`
 
-`active 2,107,836`; `known 1,956,299` (92.811 %), every emitted code resolving in
-`China_Terrain.sg3` or explicit `China_Elevation.sg3`; `unknown 131,696` (6.248 %);
-determinate `chain-declined` 19,841. The unknown residue is `0x4-shore` 94,493,
+`active 2,107,836`; `known 2,050,792` (97.294 %), every emitted code resolving in
+`China_Terrain.sg3` or explicit `China_Elevation.sg3`; `unknown 37,203` (1.765 %);
+determinate `chain-declined` 19,841. The unknown residue is
 `0x40-road` 23,154, `0x10000-monument` 6,215, `0x20000-forest` 4,340,
 `0x80-farm-river` 3,284, `elevation-road-material` 208 and `elevation-block-declined` 2.
-The image reconstruction is partial: descriptor-dependent shore/forest, road
+The image reconstruction is partial: forest, monument, farm-river, road
 material and live-object paths remain outside the port. The whole-map block tiers removed
 the entire `0x80-farm-block` unknown branch:
 before block tiers, `169,520 - 36,950 = 132,570` unknown cells.
-The current identity is `1,956,299 + 131,696 + 19,841 = 2,107,836` active cells.
-The elevation writers remove another 874 unknown cells from the prepass baseline.
+The current identity is `2,050,792 + 37,203 + 19,841 = 2,107,836` active cells.
+The elevation writers remove 874 unknown cells from the prepass baseline; the
+shore-specific descriptor table removes another 94,493.
 (History: the earlier ceiling `known 1,514,539` / `unknown 478,360` predates
 modelling setters 5 and 4; `1,514,539 + 246,802 + 62,038 + 36,950 = 1,860,329`,
 i.e. road, the two `LAB_0053FF8A` shore arms and the block tiers are the changes.
@@ -384,9 +444,10 @@ The `0x4-shore` residue fell from 156,935 to 94,897 when those arms were ported:
 
 ## Mismatch classes: every residual cell now has a named cause
 
-`matched` is the count of emitted codes that equal the stored grid (`1,693,753` of
-`1,956,299`, 86.579 %; 80.355 % of all `2,107,836` active cells). The remaining
-`262,546` cells are classified per branch, and the classes partition `mismatched`
+The headline is **1,747,096/2,107,836 active cells matched (82.886 %)**.
+`matched` counts emitted codes that equal the stored grid (`1,747,096` of
+`2,050,792`, 85.191 % of emitted). The remaining
+`303,696` cells are classified per branch, and the classes partition `mismatched`
 exactly - the sweep treats a city whose classes do not sum to its `mismatched` as a **failure**,
 so a silent drop cannot pass.
 
@@ -405,9 +466,9 @@ Measured over all 167 `Cities/*.map` (167/167 processed, 0 failures):
 |---|---:|
 | stored word is 0 while the chain emitted | 16 |
 | stored word names a tileset different from the prediction | 64 |
-| same tileset, stored index within +-8 of the prediction | 12,566 |
-| same tileset, stored index further off | 249,900 |
-| **total** | **262,546** |
+| same tileset, stored index within +-8 of the prediction | 13,701 |
+| same tileset, stored index further off | 289,915 |
+| **total** | **303,696** |
 
 Before the elevation port, the 9,829 non-tileset-3 cells all named **tileset 16 (`China_Elevation.sg3`)**; no
 other tileset appears (direct corpus probe of `stored>>14`). So the chain does not
@@ -418,14 +479,14 @@ The elevation prepass and setter 2 now account for that missing writer. The lega
 JSON field `stored_not_tileset3` counts a different tileset from the prediction
 (3 or 16); retaining its name preserves existing serializers and the partition.
 
-The 249,900 "further off" cells are bucketed by magnitude of
-`storedIndex - predictedIndex`: 9-16, 11,524; 17-32, 227,692; 33-64, 9,001;
-65-128, 627; 129-256, 15; 257-512, 1,011; 513+, 30. The 17-32 bucket accounts for
-227,692/249,900 (91.113 %) of larger deltas. The farm block tiers
+The 289,915 "further off" cells are bucketed by magnitude of
+`storedIndex - predictedIndex`: 9-16, 11,817; 17-32, 266,818; 33-64, 9,343;
+65-128, 634; 129-256, 262; 257-512, 1,011; 513+, 30. The 17-32 bucket accounts for
+266,818/289,915 (92.033 %) of larger deltas. The farm block tiers
 contribute 34,362 cells to the 17-32 bucket because `0x604` carries the same known
 per-city vintage shift as the land and upper bands (next section). Note that the
 *shift* only accounts for the shifted cohort: in the 93 cities whose upper bands
-are exact the shore arms still reach only 66-69 % (item 2). The water-fringe
+are exact the three `0x61C` shore arms still reach only 66-69 % (item 2). The water-fringe
 residual is an **even within-band authored offset**; the neighbour-count condition-error hypothesis
 was refuted. The selector keeps the executable's formulas without fitting either
 offset to the oracle.
@@ -445,12 +506,14 @@ has 0 residual (100 %).
 
 The 17-32 magnitude bucket is not one branch's problem. Cells whose stored index
 sits 17-32 records from the prediction, by branch: `0x1-road` 94,669,
-`0x4-shore-water-ring` 31,876, `0x2-land` 26,340, `0x4-shore-water-fringe` 21,923,
+`0x4-shore-edge` 36,990, `0x4-shore-water-ring` 31,876, `0x2-land` 26,340,
+`0x4-shore-water-fringe` 21,923,
 `0x80-farm-block-4x4` 13,488, `0x80-farm-block-3x3` 12,233,
 `0x80000000-flood` 9,949, `0x80-farm-block-2x2` 8,641, `0x40000-canal` 4,776,
-`0x4-shore-shore-ring` 1,941, `0x101000-twin` 1,700, `plain-land-block-3x3` 46,
+`0x4-shore-river` 2,136, `0x4-shore-shore-ring` 1,941, `0x101000-twin` 1,700,
+`plain-land-block-3x3` 46,
 `0x80-farm` 5, `plain-land-block-2x2` 3, `0x80-farm-block-fallback` 1 and
-`elevation-direct` 101 - **227,692 cells, 91.113 % of the 249,900 large-delta
+`elevation-direct` 101 - **266,818 cells, 92.033 % of the 289,915 large-delta
 residual**. The dominant cause
 is the per-(city, band) vintage shift; the small ordinary-farm and plain-land-block
 tails also occupy this magnitude bucket.
@@ -526,7 +589,7 @@ on the owned data / exe SHA-256
   imageIndex[slot] - 201`), with no per-city adjustment.
 
 Two consequences follow, and they must not be confused. For the **score**, the stored
-grid is a stale oracle above the farm and plain-land bands, so `86.579 %` is a floor
+grid is a stale oracle above the farm and plain-land bands, so `85.191 %` is a floor
 on the reconstruction's agreement with it, not the reconstruction's accuracy. For the
 **render**, `recordId = low14 + 201` reads those stored ids against the installed
 archive, so in a shifted city it decodes a record 20/30/32 entries from the one the
@@ -999,20 +1062,20 @@ writes. It does not claim to emulate height editing/repair. The remaining
 road-material refusal names 208 unknown cells, four of which previously carried
 incorrect direct predictions; total matches are unchanged by that refusal.
 
-| Metric | Before | After |
+| Historical elevation metric | Before elevation | After elevation, before shore |
 |---|---:|---:|
 | Active | 2,107,836 | 2,107,836 |
 | Emitted | 1,860,329 | 1,956,299 |
-| Matched | was 1,589,591 | **1,693,753** |
-| Unknown | 132,570 | **131,696** |
+| Matched | was 1,589,591 | was **1,693,753** |
+| Unknown | 132,570 | was **131,696** |
 | Chain no-write | was 114,937 | 19,841 |
-| Mismatched | was 270,738 | **262,546** |
+| Mismatched | was 270,738 | was **262,546** |
 | Different-tileset class | 9,829 | **64** |
 | Stored-grid exact cities | 139/167 | 139/167 |
 
-All 167/167 cities process with 0 failures, every code resolves, and every city's
-mismatch classes partition exactly. Current classes are
-**16 + 64 + 12,566 + 249,900 = 262,546**. Total matches rise **104,162**.
+At the elevation baseline, all 167/167 cities process with 0 failures, every code resolves, and every city's
+mismatch classes partition exactly. The historical pre-shore class sum was
+**16 + 64 + 12,566 + 249,900 = 262,546**; this historical port added **104,162** matches.
 Unshifted totals are 1,069,057/1,096,914 emitted matches with 74,967 unknown of
 1,179,755 active; shifted totals are 624,696/859,385 with 56,729 unknown of
 928,081 active. No existing branch's matched/emitted rate decreases in either cohort.
@@ -1058,5 +1121,124 @@ release **1,076 assertions** with successful SKIP, original-data release and
 UBSan **2,298 assertions** each. The full `--data-root` image-grid sweeps with
 `EMPEROR_GAMEDATA_ROOT` set and with `env -u EMPEROR_GAMEDATA_ROOT` produce
 identical aggregate JSON, also identical to the lead's measurement: 167/167 cities,
-0 failures, 1,693,753/1,956,299 matched/emitted and 0 unresolved predictions.
+0 failures, matched/emitted was 1,693,753/1,956,299 and 0 unresolved predictions.
 No original asset or executable listing is added.
+
+## Shore descriptor writer and bare-load port (2026-10-20)
+
+Historical baseline `d181bfc`: **1,693,753/1,956,299** emitted cells matched;
+historical unknown **131,696/2,107,836** active cells, including **94,493** shore cells.
+The initial hypothesis that shore consumes the newly ported elevation descriptor
+was refuted by the same-call overwrite at `0x53FCBA` (item 2). The independent
+shore table was the missing rule. All facts below use the executable hash in the
+document header; addresses are VAs, not redistributed executable listings.
+
+### Shared scratch writers, readers and timing
+
+An entire `.text` immediate-reference scan finds **8 R store sites, 48 C store
+sites and 8 D store sites**. R is a dword, despite the older u8 notation. The
+complete writer inventory grouped by function is:
+
+| Writer | R (`0x0101C538`) | C (`0x0101C540`) | Meaning |
+|---|---|---|---|
+| `FUN_004216F0` | `0x4217FE` | — | special road variant `random&3` |
+| `FUN_00473210` | `0x473326` | 34 stores in `0x47330C..0x473643` | elevation match, terrain remaps and random code alternatives |
+| `FUN_004743C0`, `004744B0`, `00474730`, `00474920` | — | `0x474416`, `0x474520`, `0x4747DF`, `0x474945` | reload elevation cache |
+| `FUN_004B5F70` | `0x4B61C9` | `0x4B61D8` | forest fallback `R=0,C=random&7` |
+| `FUN_004BBDC0` | `0x4BBE78`, `0x4BBEE3`, `0x4BBF06` | `0x4BBE50`, `0x4BBEBF` | reverse/forward pattern match; supplied random or mutable counter |
+| `FUN_004BBF20` | `0x4BC06F` | `0x4BC046` | another table matcher with a mutable counter |
+| `FUN_00524FF0` | — | `0x525174`, `0x525180` | water path 1/0 scratch |
+| `FUN_0053EAE0` | — | `0x53EB74` | prepass cache reload after elevation matching |
+| `FUN_0053F240` | — | `0x53F25A` | setter 2 reloads this cell's cached elevation C |
+| `FUN_0053F840` | `0x53F9C7` | `0x53F9D1` | setter 9 forest fallback |
+| `FUN_0053FB30` | — | `0x53FBC2` | setter 14 resets C before its own table call |
+
+The eight **D/view** stores are `0x406B05`, `0x406BD2`, `0x406BF3`,
+`0x406C0B` (view change/normalisation), `0x534495`, `0x534DF2` (load selected
+view from `0x0115F720`), `0x53D0D3` and `0x5D1587` (zero/reset). D is a view,
+not a height-pattern row number. Neither setter 4 nor its helpers changes it;
+`FUN_004BBDC0` reads D/2 to choose a table column at `0x4BBDC1..0x4BBDD1`.
+The snapshot model consistently uses view 0, as the existing elevation port does.
+
+Within one current-cell dispatch, setter 2 first writes C from its elevation
+cache (`0x53F25A`). Setter 4 then writes `DAT_0101C560=cell`, reads shore flags,
+counts them (`0x53FC97`), inverts them (`0x53FCA4`) and calls the shore matcher
+(`0x53FCBA`). A successful match replaces both C and R before **any** shore
+consumer: C's own-river sign test `0x53FCDB`, switch load `0x53FDE3`,
+`0x61A` addition `0x53FF71..0x53FF80`, or `0x605` addition
+`0x540065..0x540073`. The `0x61B` arithmetic reads D and the freshly rewritten
+`0x10000` neighbour flags (`0x53FCF1`), plus the pointer-derived locals
+`0x53FD0C..0x53FDD2`; it requires at least one true local. R/C are shared
+scratch used by other setters too, so a name such as “the elevation descriptor”
+is valid only between the relevant writer and the next overwrite.
+
+### Measured result and assertions
+
+The lead-verified `--data-root` sweep, run with `EMPEROR_GAMEDATA_ROOT` unset,
+processed **167/167** cities with **0 failures**. All
+**94,493/94,493** formerly unknown shore cells are now emitted, adding
+**53,343** matches. The headline is **1,747,096/2,107,836 active cells matched
+(82.886 %, was 80.355 %)**. Stored-grid exact rendering remains **139/167**; every
+stored-grid aggregate equals the baseline aggregate.
+
+| Metric | Before | After |
+|---|---:|---:|
+| Active denominator | 2,107,836 | 2,107,836 |
+| Emitted | 1,956,299 | **2,050,792** |
+| Matched | was 1,693,753 | **1,747,096** |
+| Matched / active | was 80.355 % | **82.886 %** |
+| Matched / emitted | was 86.579 % | **85.191 %** |
+| Unknown | was 131,696 | **37,203** |
+| Mismatched | was 262,546 | **303,696** |
+| Stored zero mismatch | 16 | 16 |
+| Other tileset mismatch | 64 | 64 |
+| Same tileset within ±8 | 12,566 | **13,701** |
+| Same tileset further off | 249,900 | **289,915** |
+| Unresolved | 0 | **0** |
+| Chain no-write | 19,841 | 19,841 |
+
+The after-class sum is **16+64+13,701+289,915=303,696**. The emitted ratio falls
+to **85.191 % (was 86.579 %)** only because 41,150 formerly unknown cells now
+carry mismatching predictions: 39,577 in shifted cities with vintage offsets,
+plus 1,573 in unshifted cities. No former match is lost. This denominator change
+confounds matched/emitted, so matched/active is the headline.
+The far-delta buckets (9–16, 17–32, 33–64, 65–128, 129–256, 257–512, 513+)
+are **11,817; 266,818; 9,343; 634; 262; 1,011; 30**; the 17–32 bucket contains
+**266,818/289,915 (92.033 %)** of larger deltas.
+
+Unshifted means a city's road branch matches at least half of its emitted cells:
+**93/167** cities; the other **74/167** are shifted. Both cohorts retain every
+existing branch's exact emitted and matched counts, so **0 existing per-cohort
+rates decrease**. Only the former unknown shore population splits into new arms:
+
+| Branch | Unshifted emitted / matched | Shifted emitted / matched |
+|---|---:|---:|
+| Old unknown `0x4-shore` | 0 / 0, 54,916 unknown → 0 | 0 / 0, 39,577 unknown → 0 |
+| New `0x4-shore-edge` (`0x605`) | **52,597 / 51,199** (97.342%) | **37,290 / 0** |
+| New `0x4-shore-river` (`0x61A`) | **2,319 / 2,144** (92.454%) | **2,287 / 0** |
+| Existing water-ring | 47,649 / 33,070 | 35,580 / 0 |
+| Existing water-fringe | 33,264 / 22,292 | 23,760 / 128 |
+| Existing shore-ring | 3,040 / 1,999 | 1,973 / 23 |
+
+Total unshifted matches are **1,122,400/1,151,830** emitted, unknown
+**20,051/1,179,755** active; shifted matches **624,696/898,962**, unknown
+**17,152/928,081** active. No per-city archive correction or tuned residual
+constant enters selection. Anyang resolves another **551/551** unknown shore
+cells (all shifted mismatches), yielding **6,009/9,799** matches and **141/9,940**
+unknown cells.
+
+Assertions cover the eight directions, ordered wildcard precedence, variant
+counts 1/2/4, active-object exclusion at bare load, own-river routing, unmatched
+all-shore river refusal, both new cohort denominators, all existing branch
+cohorts, exact totals, unresolved count and all four mismatch classes. A scratch
+mutation of row `12000002`'s offset **8→9** exits **1** at “seven shore neighbours
+use the shore table's north non-shore edge descriptor”; the repository offset
+remains 8. The existing elevation matcher was reused by the diagnostic probe:
+all **83,953/83,953** unshifted cells in the three existing shore arms have a
+zero descriptor, explaining **0/26,592** residuals (item 2).
+
+Required runs all pass: `make map-reference-test` with no root gives **1,095**
+assertions and successful SKIP; with `EMPEROR_GAMEDATA_ROOT` gives **2,327**;
+`make map-reference-test-undefined` with the same process-local root gives
+**2,327**. `git diff --check` is clean. No assets, executable listings, derived
+binaries or dumps were added to the repository.

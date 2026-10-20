@@ -291,8 +291,40 @@ void groundSelectorTests() {
      need(ring.variant==8u,"the shore-ring offset is random%0x18+(random&1), not random%0x18");
      request.neighbourFlags[0]&=~0x4u;
      const auto broken=selectGroundTileCode(request);
-     need(!broken.known&&!broken.chainNoWrite&&std::string(broken.branch)=="0x4-shore",
-          "seven shore neighbours leave the T(0x605) descriptor arm unknown");
+     need(broken.known&&!broken.chainNoWrite&&broken.code==0x605&&broken.variant==11u&&
+          std::string(broken.branch)=="0x4-shore-edge",
+          "seven shore neighbours use the shore table's north non-shore edge descriptor");
+ }
+ // 0x00848D00 view-0 descriptor facts: single non-shore directions,
+ // wildcard precedence, variant counts, the first row and a late exact row.
+ {
+     for(const auto& item:std::vector<std::pair<unsigned,uint8_t>>{{1,8},{2,44},{4,12},{8,45},
+         {16,0},{32,42},{64,4},{128,43},{3,8},{17,32},{68,34},{85,71},{170,54}}) {
+         GroundCodeRequest request{4u,0};request.hasNeighbours=true;
+         for(size_t i=0;i<8;++i)request.neighbourFlags[i]=(item.first&(1u<<i))?0u:4u;
+         const auto edge=selectGroundTileCode(request);
+         need(edge.known&&edge.code==0x605&&edge.variant==item.second,
+              "shore direction and first-match precedence reproduce the executable's view-0 descriptor");
+     }
+     GroundCodeRequest request{4u,7};request.hasNeighbours=true;request.hasLayers=true;
+     request.neighbourFlags={4,4,4,4,4,4,0x10000u,4};
+     const auto edge=selectGroundTileCode(request);
+     need(edge.known&&edge.code==0x61A&&edge.variant==7u&&
+          std::string(edge.branch)=="0x4-shore-river",
+          "a bare-load null river-object pointer selects T(0x61A), never the active-object T(0x61B) arm");
+     request.terrainFlags|=0x10000u;request.neighbourFlags[6]=0;
+     need(selectGroundTileCode(request).code==0x61A,"own 0x10000 also selects the river base");
+     request.neighbourFlags.fill(4u);
+     need(!selectGroundTileCode(request).known,
+          "all-shore river neighbours leave unmatched scratch descriptors unknown instead of borrowing elevation");
+     request.terrainFlags=4u;request.neighbourFlags={4,0,4,4,4,4,4,4};
+     const auto fixed=selectGroundTileCode(request);
+     request.randomByte=255;
+     need(selectGroundTileCode(request).variant==fixed.variant,"variant-count one ignores the random byte");
+     request.neighbourFlags={0,4,4,4,4,4,4,4};
+     need(selectGroundTileCode(request).variant==11u,"shore table variant-count four uses random modulo four");
+     request.neighbourFlags={0,4,4,4,0,4,4,4};
+     need(selectGroundTileCode(request).variant==33u,"shore table variant-count two uses random modulo two");
  }
  // Setter 5 road refuses the whole cell when a 0xC064 bit survives to it: a
  // determinate chain no-write, not an unknown code.
@@ -736,7 +768,8 @@ void realDataFarmBlockTests() {
  if(!std::filesystem::is_directory(citiesPath)||!std::filesystem::exists(archivePath)||
      !std::filesystem::exists(elevationPath))return;
  const auto archive=loadSG3(archivePath.string()),elevation=loadSG3(elevationPath.string());
- size_t cities=0,emitted=0,matched=0,unknown=0,mismatched=0,classes=0;
+ size_t cities=0,emitted=0,matched=0,unknown=0,mismatched=0,classes=0,unresolved=0;
+ std::array<size_t,4> mismatchClasses{}; // stored zero, other tileset, near, far
  std::array<size_t,2> cityCohorts{};
  using Tally=std::array<size_t,3>; // cells, emitted, matched
  std::map<std::string,Tally> branches[2];
@@ -750,14 +783,16 @@ void realDataFarmBlockTests() {
      const auto plan=selectGroundMap(*state,loaded.terrain.activeSide);
      const auto score=scoreGroundChainAgainstImageGrid(loaded.terrain,*state,archive,201,&elevation);
      ++cities;emitted+=score.emitted;matched+=score.matched;unknown+=score.chainUnknown;mismatched+=score.mismatched;
+     unresolved+=score.unresolved;
      size_t cohort=1;for(const auto& b:score.branches)
          if(b.branch=="0x1-road"&&b.emitted&&b.matched*2>=b.emitted)cohort=0;
      ++cityCohorts[cohort];size_t cityClasses=0;
      for(const auto& b:score.branches) {
          auto& tally=branches[cohort][b.branch];tally[0]+=b.cells;tally[1]+=b.emitted;tally[2]+=b.matched;
          cityClasses+=b.storedNotTileset3+b.storedZeroMismatch;
-         for(auto n:b.indexDelta)cityClasses+=n;
-         for(auto n:b.indexDeltaMagnitude)cityClasses+=n;
+         mismatchClasses[0]+=b.storedZeroMismatch;mismatchClasses[1]+=b.storedNotTileset3;
+         for(auto n:b.indexDelta){cityClasses+=n;mismatchClasses[2]+=n;}
+         for(auto n:b.indexDeltaMagnitude){cityClasses+=n;mismatchClasses[3]+=n;}
      }
      need(cityClasses==score.mismatched,"each city's whole-map mismatch classes partition its mismatched cells");
      classes+=cityClasses;
@@ -774,8 +809,10 @@ void realDataFarmBlockTests() {
      }
  }
  need(cities==167&&cityCohorts==std::array<size_t,2>{93,74},"farm corpus covers 167 cities with the road-defined 93/74 cohort split");
- need(emitted==1956299&&matched==1693753&&unknown==131696&&mismatched==262546&&classes==mismatched,
+ need(emitted==2050792&&matched==1747096&&unknown==37203&&mismatched==303696&&classes==mismatched,
       "whole-map ground blocks reproduce the measured corpus totals without dropped mismatches");
+ need(unresolved==0&&mismatchClasses==std::array<size_t,4>{16,64,13701,289915},
+      "all original-data predictions resolve and the four mismatch classes retain explicit corpus denominators");
  const std::array<const char*,3> compositeNames={"0x2-land","0x80000000-flood","0x101000-twin"};
  const std::array<Tally,3> compositeUnshifted={{{39858,39858,39823},{6068,6068,6068},{1666,1666,1666}}};
  const std::array<Tally,3> compositeShifted={{{26351,26351,0},{9949,9949,0},{1700,1700,0}}};
@@ -787,8 +824,12 @@ void realDataFarmBlockTests() {
      "0x4-shore-water-ring","0x4-shore-water-fringe","0x4-shore-shore-ring","plain-land"};
  const std::array<Tally,8> unchangedUnshifted={{{150845,150845,150824},{5286,5286,5286},{1256,1256,1250},
      {594970,594970,594935},{47649,47649,33070},{33264,33264,22292},{3040,3040,1999},{81839,81839,81774}}};
- for(size_t i=0;i<unchangedNames.size();++i)
+ const std::array<Tally,8> unchangedShifted={{{94682,94682,0},{4779,4779,0},{975,975,0},
+     {436751,436751,436723},{35580,35580,0},{23760,23760,128},{1973,1973,23},{118790,118790,118722}}};
+ for(size_t i=0;i<unchangedNames.size();++i) {
      need(branches[0][unchangedNames[i]]==unchangedUnshifted[i],"composite ground ports preserve every other unshifted branch's denominator and matches");
+     need(branches[1][unchangedNames[i]]==unchangedShifted[i],"shore descriptor ports preserve every existing shifted branch's denominator and matches");
+ }
  const std::array<const char*,7> names={"0x80-farm-block-2x2","0x80-farm-block-3x3","0x80-farm-block-4x4",
      "0x80-farm-block-fallback","plain-land-block-2x2","plain-land-block-3x3","plain-land-block-4x4"};
  const std::array<Tally,7> unshifted={{{11897,11897,11890},{15471,15471,15462},{16856,16856,16844},
@@ -801,6 +842,12 @@ void realDataFarmBlockTests() {
  }
  need(!branches[0].count("0x80-farm-block")&&!branches[1].count("0x80-farm-block"),
       "the whole-map farm block unknown is eliminated across the entire corpus");
+ need(!branches[0].count("0x4-shore")&&!branches[1].count("0x4-shore")&&
+      branches[0]["0x4-shore-edge"]==Tally{52597,52597,51199}&&
+      branches[1]["0x4-shore-edge"]==Tally{37290,37290,0}&&
+      branches[0]["0x4-shore-river"]==Tally{2319,2319,2144}&&
+      branches[1]["0x4-shore-river"]==Tally{2287,2287,0},
+      "the shore-specific descriptor table removes all 94493 unknown shore cells with measured cohort denominators");
  need(branches[0]["elevation-direct"]==Tally{61651,61651,60679}&&
        branches[1]["elevation-direct"]==Tally{41617,41617,41194}&&
        branches[0]["elevation-block"]==Tally{840,840,790}&&
@@ -1173,13 +1220,10 @@ void realDataGroundTests(bool& originalData) {
  need(active==9940&&farm+farmBlock+farmRiver==6212,"original Anyang.map active and farmland cell counts are stable");
  // The whole-map farm pass attributes every covered cell to its stamping branch.
  need(farm==5673&&farmBlock==539&&farmRiver==0,"the Anyang whole-map farm sub-cases are stable");
-  // Elevation writers resolve 167 former no-write cells and two unknowns;
-  // the resulting image plan has 9248 known and 692 unknown cells.
-  need(known==9248&&unknown==692&&chainNoWrite==0&&known+unknown+chainNoWrite==active,
+ // Elevation resolves 169 cells; the shore table resolves 551 more.
+ need(known==9799&&unknown==141&&chainNoWrite==0&&known+unknown+chainNoWrite==active,
       "original Anyang.map MAP-only outcome counts are stable");
- // Overall MAP-only known coverage floor (~84%). It cannot reach the farmland level
- // until the 0x4-shore general arm is modelled.
- need(known*100>=active*67,"MAP-only known coverage stays at or above the measured floor");
+ need(known*100>=active*98,"MAP-only known coverage stays at or above the measured floor");
  // The setter variant resolves in the record/id space. With the user's own
  // China_Terrain.sg3 present, every MAP-known cell resolves. The composite
  // ground setters now correctly select multi-cell records for their footprints;
@@ -1202,7 +1246,7 @@ void realDataGroundTests(bool& originalData) {
          else if(plan[cell].stampSide>1&&archive.sprites[index].tileSize==plan[cell].stampSide)++composite;
      }
      // Measured on the user's own Anyang.map + China_Terrain.sg3.
-     need(knownCells==9248&&resolved==9070&&geometry==8986&&composite==84&&geometry+composite==resolved,
+     need(knownCells==9799&&resolved==9621&&geometry==9537&&composite==84&&geometry+composite==resolved,
            "the terrain-only resolver explicitly excludes the new elevation predictions");
      // The stored surface-image grid (0x00FE9880) is the oracle for the chain. It
      // renders verbatim as recordId = low14 + 201 in the same archive; the chain
@@ -1224,8 +1268,8 @@ void realDataGroundTests(bool& originalData) {
               grid.stats.decodeFailures==0,
               "original Anyang.map stored image grid decodes with the measured low-14 base");
          const auto score=scoreGroundChainAgainstImageGrid(terrain,*state,archive,201,&elevation);
-         need(score.activeCells==9940&&score.emitted==9248&&score.matched==6009&&
-               score.mismatched==3239&&score.chainNoWrite==0&&score.chainUnknown==692&&
+         need(score.activeCells==9940&&score.emitted==9799&&score.matched==6009&&
+               score.mismatched==3790&&score.chainNoWrite==0&&score.chainUnknown==141&&
                score.chainNoWriteVsStoredZero==0&&score.chainNoWriteVsStoredNonzero==0,
               "original Anyang.map chain score against the stored grid is stable");
      }

@@ -27,6 +27,9 @@ struct GroundCodeRequest {
     // leaves the branches that read those arrays known=false instead of reading a
     // default zero as data. Defaults keep hand-built requests (terrain + random
     // only) valid.
+    // Also identifies the bare MAP-load phase: 0x00890210's pointer grid is
+    // cleared by 0x4B0999 -> FUN_0041F3B0 and is not restored by 0x52E7C0.
+    // Setter 4's 0x61A fallback can therefore exclude active river objects.
     bool hasLayers = false;
     uint32_t featureFlags = 0;  // 0x00F37DA0 (setter 10, FUN_0053FA20)
     uint8_t fertility = 0;      // 0x00E9F8E0 (setter 17, FUN_004BD8C0)

@@ -35,12 +35,56 @@ bool roadRingComplete(const GroundCodeRequest& request) {
     }
     return true;
 }
+struct ShorePattern {const char* neighbours;uint8_t offset,variants;};
+// 46 ordered 20-byte rows at VA 0x00848D00, file 0x448D00, owned exe SHA-256
+// 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658.
+// Bytes 0..7: 0=shore, 1=non-shore, 2=wildcard; byte 8=view-0 C;
+// byte 13=variant count. FUN_004BC090 @0x004BC090 compiles these predicates;
+// FUN_004BBDC0 @0x004BBDC0 uses the first match (0x4BBE91..0x4BBEA1),
+// writes C at 0x4BBEBF, R=random%variants at 0x4BBEDB/0x4BBEE3. Setter 4
+// first inverts the shore flags with FUN_004BC100 (call 0x53FCA4), then
+// supplies this table, 46 rows, random byte and forward mode (0x53FCAC..BA).
+// This overwrites the elevation matcher's scratch C/R within the same call.
+constexpr ShorePattern shorePatterns[]={
+    {"12121212",0x47,1},{"12121202",0x27,1},{"02121212",0x24,1},
+    {"12021212",0x25,1},{"12120212",0x26,1},{"12021202",0x20,2},
+    {"02120212",0x22,2},{"12120002",0x18,4},{"02121200",0x1C,4},
+    {"00021212",0x10,4},{"12000212",0x14,4},{"12120102",0x45,1},
+    {"02121201",0x46,1},{"01021212",0x43,1},{"12010212",0x44,1},
+    {"12000002",0x08,4},{"02120000",0x0C,4},{"00021200",0x00,4},
+    {"00000212",0x04,4},{"12010002",0x3D,1},{"02120100",0x40,1},
+    {"00021201",0x37,1},{"01000212",0x3A,1},{"12000102",0x3E,1},
+    {"02120001",0x41,1},{"01021200",0x38,1},{"00010212",0x3B,1},
+    {"12010102",0x3F,1},{"02120101",0x42,1},{"01021201",0x39,1},
+    {"01010212",0x3C,1},{"01010101",0x36,1},{"01010100",0x34,1},
+    {"00010101",0x35,1},{"01000101",0x32,1},{"01010001",0x33,1},
+    {"01000100",0x28,1},{"00010001",0x29,1},{"01010000",0x30,1},
+    {"00010100",0x31,1},{"00000101",0x2E,1},{"01000001",0x2F,1},
+    {"01000000",0x2C,1},{"00010000",0x2D,1},{"00000100",0x2A,1},
+    {"00000001",0x2B,1}
+};
+static_assert(sizeof(shorePatterns)/sizeof(*shorePatterns)==46,"0x53FCB3 shore row count");
+GroundSelection shoreDescriptorSelection(const GroundCodeRequest& request,uint16_t code,const char* branch) {
+    for(const auto& pattern:shorePatterns) {
+        bool match=true;
+        for(size_t i=0;i<8;++i) {
+            const char p=pattern.neighbours[i];
+            if(p!='2'&&bool(request.neighbourFlags[i]&4u)!=(p=='0')){match=false;break;}
+        }
+        if(match)return {code,true,false,branch,false,
+            uint8_t(pattern.offset+request.randomByte%pattern.variants)};
+    }
+    // All eight shore neighbours: this table has no match, so the executable
+    // retains incoming scratch C/R. The usual ring arm does not read them;
+    // the 0x10000 arm does, and needs unported cross-call scratch provenance.
+    return {0,false,false,"0x4-shore"};
+}
 }
 // Build the exactly-8-neighbour request from the loader's per-cell arrays
 // (original_terrain.hpp, FUN_0052E7C0 @0x0052E7C0 read order). The executable
 // reads 0x00F6A9E0 at the flat offsets N -228, NE -227, E +1, SE +229, S +228,
-// SW +227, W -1, NW -229. Only the count of neighbours per mask is consumed, so
-// the order is recorded for reproducibility rather than arithmetically significant.
+// SW +227, W -1, NW -229. Shore's ordered pattern table consumes directions;
+// the ring predicates consume only the count of neighbours sharing each mask.
 GroundCodeRequest groundCodeRequest(const OriginalTerrainState& state,size_t cell) {
     GroundCodeRequest request;
     if(!state.valid()||cell>=OriginalTerrainState::cells)return request;
@@ -89,10 +133,9 @@ GroundSelection farmSingle(const GroundCodeRequest& request,const char* branch) 
 // including feature (0x00F37DA0) and fertility (0x00E9F8E0), from the same `.map`
 // logical payload (original_terrain.hpp), so branches that read those two arrays
 // are MAP-determinable and are modelled. Branches whose only missing input is a
-// runtime array the read path does NOT restore (the object id 0x00FC3750, the
-// river/edge descriptor 0x0101C538/0x0101C540, the caches 0x00BB92F4/0x00B866B4/
-// 0x00B53A74) stay known=false and name the exact missing input rather than a
-// guessed code. Multi-cell block art is not expanded to the whole block here.
+// runtime array the read path does NOT restore stay known=false and name the
+// exact missing input rather than a guessed code. Multi-cell block art is not
+// expanded to the whole block here.
 GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     const uint32_t terrain=request.terrainFlags;
     const uint8_t variant=uint8_t(request.randomByte&7u);
@@ -126,15 +169,32 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     if(terrain&0x800u)return {0,false,false,"0x800-water"};
     // 4. FUN_0053FC30 @0x0053FC30: terrain&0x4 while 0x00FE9880[cell]==0 (true
     //    whenever the chain reaches here). Shore context selects 0x61B/0x61A/0x605
-    //    /0x61C and adds the runtime DAT_0101C538 + DAT_0101C540.
+    //    /0x61C. The table call at 0x53FCBA overwrites DAT_0101C538/540.
     if(terrain&0x4u) {
+        if(request.hasNeighbours&&((terrain&0x10000u)||neighbourMaskCount(request,0x10000u))) {
+            // Own 0x10000: 0x53FCCE..0x53FCE7 -> T(0x61A)+R+C at 0x53FF62.
+            // Neighbour 0x10000: local[i]=(pointer!=0 && pointer->byte18==0),
+            // 0x53FD0C..0x53FDD2. All are views of 0x00890210 at offsets
+            // -228,-227,+1,+229,+228,+227,-1,-229, not eight object arrays.
+            // Reset calls FUN_0041F3B0 at 0x4B0999, clearing 0xCB10 pointers
+            // (0x41F3B5..0x41F3BE). The MAP reader restores only this object's
+            // 36-byte metadata via FUN_00408C70 (0x52EAAD..0x52EAB7), not its
+            // pointer grid. FUN_00534410 calls ground reconstruction at
+            // 0x53449F before rebuilding river objects at 0x5344BD. At this
+            // bare-load phase all locals are false, so
+            // every switch case (0x53FE03..0x53FEDA) falls back to 0x61A;
+            // T(0x61B) at 0x53FF15 requires a nonnull active object pointer.
+            // hasLayers denotes the loader context supplying that premise.
+            if(!request.hasLayers)return {0,false,false,"0x4-shore"};
+            return shoreDescriptorSelection(request,0x61A,"0x4-shore-river");
+        }
         // Path to LAB_0053FF8A with the water-mode byte clear. `0x53FCC6 cmp
         // al,bl` (the byte FUN_00425250 @0x00425250 returned at 0x53FC53) `jne
         // 0x53FF8A` takes channel mode straight to the label; otherwise
         // `0x53FCCE test dword ptr [4*ebp+0x00F6A9E0],0x10000` and, for a
         // 0x10000 cell, `0x53FCDB cmp dword ptr [0x0101C540],ebx` / `0x53FCE1 jl
-        // 0x53FF8A`. DAT_0101C540 (C) is 0 or a 0x20xx descriptor (never
-        // negative), so a 0x10000 cell always goes to the 0x61A art instead;
+        // 0x53FF8A`. A matched shore descriptor is a nonnegative byte,
+        // so a 0x10000 cell goes to the 0x61A art instead;
         // the label is reached for a 0x10000-clear cell only when the 0x10000
         // neighbour count FUN_004BC140 @0x004BC140 is zero (`0x53FCF9 call;
         // 0x53FCFE cmp eax,ebx` / `0x53FD00 je 0x53FF8A`).
@@ -191,15 +251,8 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
             if(neighbourMaskCount(request,0x4u)==8)
                 return {0x61C,true,false,"0x4-shore-shore-ring",false,
                     uint8_t(request.randomByte%0x18u+(request.randomByte&1u))};
-            // Otherwise `0x540055 push 0x605` writes T(0x605) + DAT_0101C538 +
-            // DAT_0101C540. Both are runtime descriptors: 0x00473326 of
-            // FUN_00473210 @0x00473210 clears 0x0101C538 and 0x0047330C stores
-            // the table descriptor in 0x0101C540 from the 147-entry (0x93) table
-            // at 0x00825C28 fed by the elevation grid; no MAP byte carries them.
-            // Measured on the corpus, the stored id for these cells spreads over
-            // the whole 48-piece slot-5 art range (0..47, e.g. MP41 modes 42-45,
-            // 0-2, 9-19), which is authored/descriptor-driven, so the arm stays
-            // unknown rather than guessing a variant.
+            // 0x540055/0x540065..0x540073: T(0x605)+R+C from the shore table.
+            return shoreDescriptorSelection(request,0x605,"0x4-shore-edge");
         }
         return {0,false,false,"0x4-shore"};
     }
