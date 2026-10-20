@@ -10,10 +10,24 @@ struct OriginalFigureImageInputs {
     uint8_t attackDirection=0,attackFrame=0,state85=0,cartStyle=0,resource=0,stationary=0;
     int16_t counter=0,variant=0,amount=0;
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
+    int16_t leaderLink=0,target=0,x=0,y=0;
+    uint8_t alive=0,faction=0,height=0;
 };
 inline OriginalFigureImageInputs originalFigureImageInputs(const OriginalFigure& f){
     return {f.type,f.action,f.direction,f.previousDirection,f.frame,f.subtype,f.attackDirection,
-        f.attackFrame,f.state85,f.cartStyle,f.resource,f.stationary,f.counter,f.variant,f.amount,f.runtimeClass};
+        f.attackFrame,f.state85,f.cartStyle,f.resource,f.stationary,f.counter,f.variant,f.amount,f.runtimeClass,
+        f.leaderLink,f.target,f.x,f.y,f.alive,f.faction,f.height};
+}
+// Cross-figure state contains only the same non-image inputs as the selector.
+struct OriginalFigureImageState {
+    std::map<size_t,OriginalFigureImageInputs> figures;
+    std::optional<std::array<int16_t,22>> factionModels;
+};
+inline OriginalFigureImageState originalFigureImageState(const OriginalFigureProfile& profile){
+    OriginalFigureImageState out;
+    for(const auto& f:profile.live)out.figures.emplace(f.slot,originalFigureImageInputs(f));
+    out.factionModels=profile.factionModels;
+    return out;
 }
 enum class OriginalFigureImageStatus {Selected,UnsupportedType,OwnerState,ExternalState,InvalidInput,MissingGroup};
 inline const char* originalFigureImageStatusName(OriginalFigureImageStatus s){
@@ -50,9 +64,13 @@ inline std::optional<std::pair<uint32_t,const SG3Sprite*>> originalFigureImageGr
 // changes. This does not execute the updater or infer elapsed ticks.
 inline OriginalFigureImageSelection figureImage(const OriginalFigureImageInputs& f,
     const std::map<uint32_t,const SG3Archive*>& archives,uint32_t terrainFlags=0,unsigned view=0,
-    std::optional<uint16_t> ownerType=std::nullopt){
+    std::optional<uint16_t> ownerType=std::nullopt,const OriginalFigureImageState* state=nullptr){
     OriginalFigureImageSelection out;
     const auto refuse=[&](OriginalFigureImageStatus status){out.status=status;return out;};
+    const auto linked=[&](int slot)->const OriginalFigureImageInputs*{
+        if(!state||slot<=0)return nullptr;const auto found=state->figures.find(size_t(slot));
+        return found==state->figures.end()?nullptr:&found->second;
+    };
     if(view>6||(view&1)||f.direction>127||f.previousDirection>127)
         return refuse(OriginalFigureImageStatus::InvalidInput);
     if(f.runtimeClass==OriginalFigureClass::Pheasant&&f.type!=76)return refuse(OriginalFigureImageStatus::ExternalState);
@@ -74,6 +92,32 @@ inline OriginalFigureImageSelection figureImage(const OriginalFigureImageInputs&
         if(direction>=8||(special&&f.stationary)){direction=f.previousDirection;frame=0;}
         code=special?0x4ca6:((f.state85==0||f.state85==100||f.state85==101)?0x4e60:(f.cartStyle?0x4e61:0x4e62));
         if(f.action==4){code=special?0x4ca7:0x4e64;frame=f.counter;linear=true;clamp=true;direction=0;}break;
+    }
+    case 20:{
+        //0x4D4BE0/4C50 follows at most eight +72 links to types19/21/22.
+        auto leader=linked(f.leaderLink);bool direct=true;
+        for(unsigned n=0;leader&&leader->type!=19&&leader->type!=21&&leader->type!=22&&n<7;++n){
+            direct=false;leader=linked(leader->leaderLink);
+        }
+        if(!leader||(leader->type!=19&&leader->type!=21&&leader->type!=22)||leader->alive!=1)
+            return refuse(OriginalFigureImageStatus::OwnerState);
+        out.selectorVA=0x4d4c70;
+        const unsigned resource=leader->subtype?leader->subtype:leader->resource;
+        const bool bulk=resource==10||resource==18||resource==20; //0x4D6AC0
+        const bool large=leader->amount>400; //0x4D6B00
+        const unsigned cart=(f.state85==0||f.state85==100||f.state85==101)?0:2-unsigned(f.cartStyle!=0);
+        if(direction>=8)direction=f.previousDirection;if(direction>=8)direction=0;
+        if(f.action==4){ //0x4D4F01..76
+            code=bulk?(direct?(large?0x4e93:0x4e3b):0x4e8b):0x4c93;
+            frame=f.counter;linear=true;clamp=true;direction=0;
+        }else if(!direct){ //0x4D4FA3..506E
+            code=(bulk?(large?0x4e8c:0x4e88):0x4c99)+cart;
+        }else if(bulk&&f.action==6){ //0x4D50AD..513C
+            code=0x4e38+(large?0x58:0)+cart;
+        }else if(!bulk&&f.action==7){ //0x4D5141..5185
+            code=0x4c90+(cart?3-cart:0);
+        }else return refuse(OriginalFigureImageStatus::OwnerState); //no +8 store in this branch
+        break;
     }
     case 23:
         out.selectorVA=0x4d0270;code=0x4c01;
@@ -103,7 +147,17 @@ inline OriginalFigureImageSelection figureImage(const OriginalFigureImageInputs&
         if(f.action==4){frame=f.counter/2;direction=0;}clamp=true;break;
     case 40:
         out.selectorVA=0x4d2f10;if(direction>=8)direction=f.previousDirection;
-        if(f.action==7)return refuse(OriginalFigureImageStatus::ExternalState); // local attack eligibility bVar4
+        if(f.action==7){ //0x4D3023..3133,0x4D358B..35D3: surviving action7 uses max(|dx|,|dy|)>2.
+            const auto target=linked(f.target);
+            if(!target||target->alive!=1||target->action==4||target->action==10||target->type<75||target->type>77)
+                return refuse(OriginalFigureImageStatus::ExternalState);
+            const int distance=std::max(std::abs(int(f.x)-target->x),std::abs(int(f.y)-target->y));
+            // An expired counter may have just entered action7 from6, whose
+            // local bVar4 stays true. The near-target case then needs history.
+            if(distance<=2&&f.counter<=0)return refuse(OriginalFigureImageStatus::ExternalState);
+            code=distance>2?0x4ebf:0x4ec0;
+            if(code==0x4ec0)frame=0;clamp=true;break;
+        }
         code=f.action==4?0x4ec3:f.action==5||f.action==16||f.action==13?0x4ec0:
             f.action==8?0x4ec1:f.action==10?0x4ec2:0x4ebe;
         if(f.action==8){frame=f.counter;direction=0;linear=true;}
@@ -119,8 +173,46 @@ inline OriginalFigureImageSelection figureImage(const OriginalFigureImageInputs&
             code=entry0||f.action==31?0x4c2c:0x4c2b;
             if(!entry0&&(terrainFlags&0x0c000100u))code=0x4c2b;clamp=true;}break;
     }
-    case 20:case 30:case 34:case 35:case 36:return refuse(OriginalFigureImageStatus::OwnerState);
-    case 45:case 47:return refuse(OriginalFigureImageStatus::ExternalState);
+    case 30:case 34:case 35:case 36:{
+        if(!ownerType)return refuse(OriginalFigureImageStatus::OwnerState);
+        const auto owner=*ownerType;
+        if(owner==0xd3){ //+24=0x48A9A0;semantic type34 selects the second image pair.
+            if(f.type!=34)return refuse(OriginalFigureImageStatus::OwnerState);
+            out.selectorVA=0x48a9a0;code=f.action==4?0x4c6a:0x4c67;
+        }else{ //+24=0x51D0C0 (type47 thunk0x48B7E0);+24C=0x416A50 returns false.
+            if(owner==0xcf)code=0x4c1e; //vtable7B6114+244=0x51BD50
+            else if(owner==0x47)code=0x4ca0; //vtable7AD878+244=0x48B7C0
+            else if(owner==0xd6)code=0x4c11; //vtable7BC0B4+244=0x5AB520
+            else return refuse(OriginalFigureImageStatus::OwnerState);
+            out.selectorVA=0x51d0c0;if(f.action==4)++code;
+        }
+        if(direction>=8)direction=f.previousDirection;if(f.action==5&&owner!=0xd3)direction=f.attackDirection;
+        if(f.action==4){frame=owner==0xd3?std::min(int(f.counter),7):f.counter;linear=true;clamp=true;direction=0;}
+        break;
+    }
+    case 45:case 47:{
+        const auto* leader=&f;
+        if(f.type==47){ //0x4E39D0: direct45 or one intermediate47, both via saved+72.
+            leader=linked(f.leaderLink);
+            if(leader&&leader->type==47)leader=linked(leader->leaderLink);
+            if(!leader||leader->type!=45)return refuse(OriginalFigureImageStatus::ExternalState);
+        }
+        if(!state||!state->factionModels||leader->faction>=state->factionModels->size())
+            return refuse(OriginalFigureImageStatus::ExternalState);
+        const int model=state->factionModels->at(leader->faction);
+        //0x440120 lazily resolves3 through0x4403E0; that external choice is not guessed.
+        if(model<0||model>2)return refuse(OriginalFigureImageStatus::ExternalState);
+        if(direction>=8)direction=f.previousDirection;
+        if(f.type==45){ //0x4CE9A0..4D; faction virtual chain0x480740→0x481F10→0x440120.
+            out.selectorVA=0x4ce2d0;code=model==0?0x4e81:model==1?0x4eb4:0x4eb2;
+            if(f.action==4){++code;frame=f.counter/2;direction=0;clamp=true;}
+        }else{ //0x4CF4D9..5AE;state2 chooses bounded death, leader action8 static walk.
+            out.selectorVA=0x4cf380;code=model==0?0x1c12:model==1?0x1c18:0x1c16;
+            if(f.alive==2){++code;frame=f.counter/2;direction=0;clamp=true;}
+            else if(leader->action==8)frame=0;
+        }
+        break;
+    }
     default:return out;
     }
     if(direction<0||direction>15)return refuse(OriginalFigureImageStatus::InvalidInput);
@@ -138,5 +230,51 @@ inline OriginalFigureImageSelection figureImage(const OriginalFigureImageInputs&
     const auto& archive=*archives.at(code>>9);
     if(image>>14!=out.base>>14||(image&0x3fff)>=archive.sprites.size())return refuse(OriginalFigureImageStatus::InvalidInput);
     out.image=uint32_t(image);out.frame=frame;out.direction=direction;out.status=OriginalFigureImageStatus::Selected;return out;
+}
+// Carried goods are independently selected by0x4CB6B0→0x4CB320, then
+// direction is added by0x4CB910 or0x4D5093. No saved cargo word is available.
+inline OriginalFigureImageSelection figureSecondaryImage(const OriginalFigureImageInputs& f,
+    const std::map<uint32_t,const SG3Archive*>& archives,unsigned view=0,
+    const OriginalFigureImageState* state=nullptr){
+    OriginalFigureImageSelection out;out.status=OriginalFigureImageStatus::Selected;
+    const auto refuse=[&](OriginalFigureImageStatus status){out.status=status;return out;};
+    const OriginalFigureImageInputs* goods=&f;
+    if(f.runtimeClass!=OriginalFigureClass::Figure)return out;
+    if(f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22)return out;
+    out.selectorVA=0x4cb6b0;
+    if(f.action==4)return out;
+    if(f.type==20){
+        if(!state)return refuse(OriginalFigureImageStatus::OwnerState);
+        int slot=f.leaderLink;bool direct=true;goods=nullptr;
+        for(unsigned n=0;n<8;++n){
+            const auto found=state->figures.find(size_t(slot));
+            if(slot<=0||found==state->figures.end())break;
+            const auto& candidate=found->second;
+            if(candidate.type==19||candidate.type==21||candidate.type==22){goods=&candidate;break;}
+            direct=false;slot=candidate.leaderLink;
+        }
+        if(!goods||goods->alive!=1)return refuse(OriginalFigureImageStatus::OwnerState);
+        if(direct)return out; //0x4D513F/5188 clears secondary on direct carts.
+    }
+    const unsigned resource=goods->subtype?goods->subtype:goods->resource;
+    const bool special=resource==10||resource==18||resource==20||resource==11||resource==14||resource==15||
+        resource==16||resource==17||resource==21||resource==23||resource==25||resource==26||resource==27;
+    if(!goods->amount||(goods==&f&&special))return out; //0x4CB7A0..CF
+    if(goods->amount<0||goods->subtype<1||goods->subtype>27)return refuse(OriginalFigureImageStatus::InvalidInput);
+    unsigned style=0; //0x4CB723..79 compares cart+87 to saved height+86.
+    if(f.state85!=0&&f.state85!=100&&f.state85!=101)
+        style=f.cartStyle<f.height?2:f.cartStyle>f.height?1:0;
+    const uint32_t code=(style==0?0x4c71:style==1?0x4e12:0x4e3b)+goods->subtype;
+    int direction=f.direction;if(direction>=8||(goods==&f&&special&&f.stationary))direction=f.previousDirection;
+    if(f.type==20&&direction>=8)direction=0;
+    if(view>6||(view&1)||direction<0||direction>15)return refuse(OriginalFigureImageStatus::InvalidInput);
+    direction-=int(view);if(direction<0)direction+=8;
+    const auto group=originalFigureImageGroup(code,archives);out.code=code;
+    if(!group)return refuse(OriginalFigureImageStatus::MissingGroup);
+    const unsigned band=goods->amount<=200?0:goods->amount<=400?8:16;
+    const uint32_t image=group->first+band+unsigned(direction);
+    if(image>>14!=group->first>>14||(image&0x3fff)>=archives.at(code>>9)->sprites.size())
+        return refuse(OriginalFigureImageStatus::InvalidInput);
+    out.base=group->first;out.image=image;out.direction=unsigned(direction);return out;
 }
 } // namespace game_lab

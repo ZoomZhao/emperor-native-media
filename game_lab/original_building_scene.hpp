@@ -82,8 +82,8 @@ struct OriginalBuildingScene {
 };
 // Saved image0x46BAD1 ->0x413960. Tick0 only: walking/animation updates
 // are simulation-driven and cannot be inferred from elapsed milliseconds.
-// Forward reconstructs primary images only; untraced carried-goods secondary
-// images are omitted, never read as selector inputs or relabelled reconstructed.
+// Forward reconstructs primary and carried-goods secondary words from non-image
+// saved state; neither saved image word is available to either selector.
 enum class OriginalFigureRenderSource {Saved,Forward};
 inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const OriginalMapTerrain& terrain,
     const OriginalFigureProfile& figures,const std::map<uint32_t,const SG3Archive*>& archives,uint64_t tickMs=0,
@@ -95,6 +95,7 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
     scene.figureBoundTypes.clear();scene.figureBlockedTypes.clear();
     scene.figureForwardMatched=scene.figureForwardCompared=scene.figureForwardSelected=0;scene.figureForwardMismatch.clear();
     scene.figureLive=figures.live.size();const size_t origin=(228-terrain.activeSide)/2;
+    const auto imageState=originalFigureImageState(figures);
     std::map<size_t,const OriginalFigure*> bySlot;
     for(const auto& f:figures.live)if(f.slot>=8192||!bySlot.emplace(f.slot,&f).second){scene.figureUnsupported=scene.figureLive;return;}
     const auto linked=[&](const OriginalFigure& f){
@@ -111,7 +112,7 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
         std::optional<uint16_t> ownerType;
         if(buildings&&f.owner>=0&&size_t(f.owner)<buildings->slotTypes.size())ownerType=buildings->slotTypes[f.owner];
         const auto reconstructed=figureImage(originalFigureImageInputs(f),archives,
-            f.cell<terrain.flags.size()?terrain.flags[f.cell]:0,figures.savedView,ownerType);
+            f.cell<terrain.flags.size()?terrain.flags[f.cell]:0,figures.savedView,ownerType,&imageState);
         ++scene.figureForwardCompared;
         if(reconstructed.status==OriginalFigureImageStatus::Selected){++scene.figureForwardSelected;
             if(reconstructed.image==f.image)++scene.figureForwardMatched;
@@ -157,9 +158,15 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
         }
         const uint32_t primary=source==OriginalFigureRenderSource::Forward?reconstructed.image:f.image;
         bool good=add(primary,41+sub->first,baseline+sub->second,sequence);
-        if(source==OriginalFigureRenderSource::Saved&&f.secondaryImage){const bool type20=f.type==20;
-            good=good&&add(f.secondaryImage,39+sub->first+(type20?2:3)+f.extraX,
-                baseline-10+sub->second+(type20?10:11)+f.extraY,sequence+1);
+        const auto cargo=source==OriginalFigureRenderSource::Forward?
+            figureSecondaryImage(originalFigureImageInputs(f),archives,figures.savedView,&imageState):OriginalFigureImageSelection{};
+        const uint32_t secondary=source==OriginalFigureRenderSource::Forward?cargo.image:f.secondaryImage;
+        if(source==OriginalFigureRenderSource::Forward&&cargo.status!=OriginalFigureImageStatus::Selected)good=false;
+        if(secondary){const bool type20=f.type==20;
+            const int extraX=source==OriginalFigureRenderSource::Forward?0:f.extraX;
+            const int extraY=source==OriginalFigureRenderSource::Forward?0:f.extraY;
+            good=good&&add(secondary,39+sub->first+(type20?2:3)+extraX,
+                baseline-10+sub->second+(type20?10:11)+extraY,sequence+1);
         }
         if(!good){++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;}
         scene.overlays.insert(scene.overlays.end(),selected.begin(),selected.end());++scene.figurePlaced;++scene.figureBoundTypes[f.type];

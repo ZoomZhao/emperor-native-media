@@ -17,6 +17,9 @@ def main():
         ('stride', 'original_figure.hpp', 'base+frame*directions+direction;', 'base+direction*frames+frame;'),
         ('wire', 'original_figure.hpp', 'f.action=r[64];', 'f.action=r[65];'),
         ('selector', 'original_figure_image.hpp', 'code=f.subtype?0x4c13:0x4c15;', 'code=f.subtype?0x4c15:0x4c13;'),
+        ('leader', 'original_figure_image.hpp', 'leader->amount>400;', 'leader->amount>=400;'),
+        ('attack', 'original_figure_image.hpp', 'code=distance>2?0x4ebf:0x4ec0;', 'code=distance>3?0x4ebf:0x4ec0;'),
+        ('cargo', 'original_figure_image.hpp', 'goods->amount<=200?0:', 'goods->amount<200?0:'),
     ]
     env = dict(os.environ)
     env.pop('EMPEROR_GAMEDATA_ROOT', None)
@@ -29,9 +32,11 @@ def main():
             target = lab / path.relative_to(ROOT / 'game_lab')
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, target)
-        layout = private / 'file_io/include/city19_figure7_layout.hpp'
-        layout.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / 'file_io/include/city19_figure7_layout.hpp', layout)
+        for layout_name in ['city19_figure7_layout.hpp', 'city19_goods1_layout.hpp',
+                     'city19_empire2_layout.hpp', 'city19_empire_grid15_layout.hpp']:
+            layout = private / 'file_io/include' / layout_name
+            layout.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / 'file_io/include' / layout_name, layout)
         original = (lab / header).read_text()
         if original.count(before) != 1:
             raise ValueError('mutation must address exactly one site: ' + name)
@@ -47,7 +52,7 @@ def main():
         print(name, 'exit', result.returncode, result.stderr.strip(), flush=True)
         if result.returncode != 1:
             raise RuntimeError('mutation survived: ' + name)
-    print('6/6 private figure mutations rejected; production source unchanged')
+    print('9/9 private figure mutations rejected; production source unchanged')
 
 
 if __name__ == '__main__':

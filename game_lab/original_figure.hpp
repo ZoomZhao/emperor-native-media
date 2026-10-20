@@ -1,6 +1,9 @@
 #pragma once
 #include "original_building.hpp"
 #include "../file_io/include/city19_figure7_layout.hpp"
+#include "../file_io/include/city19_goods1_layout.hpp"
+#include "../file_io/include/city19_empire2_layout.hpp"
+#include "../file_io/include/city19_empire_grid15_layout.hpp"
 
 namespace game_lab {
 enum class OriginalFigureClass {Figure,Pheasant,Emissary};
@@ -15,7 +18,8 @@ struct OriginalFigure {
     uint8_t freeMovement=0,height=0,hidden=0,drawClass=0,state85=0,raise=0;
     // Non-image selector inputs: Figure7 calls cited in docs/SAV_FIGURES.md.
     uint8_t subtype=0,attackDirection=0,attackFrame=0,resource=0,cartStyle=0,stationary=0;
-    int16_t counter=0,owner=0,variant=0,amount=0;
+    int16_t counter=0,owner=0,variant=0,amount=0,leaderLink=0,target=0;
+    uint8_t faction=0;
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
 enum class OriginalFigureStatus {Complete,Unsupported,Malformed,BudgetExceeded};
@@ -26,7 +30,37 @@ struct OriginalFigureProfile {
     std::vector<OriginalFigure> live;
     std::map<uint8_t,size_t> liveTypes;
     std::vector<uint16_t> cellHeads; //0xFAA130, SAV19 T+207936, read0x531338.
+    std::optional<std::array<int16_t,22>> factionModels;
 };
+// SAV19 calls0x506710 then0x480800 immediately after the Figure list.
+// Only the complete cited Goods1/Empire3/Grid15/child5 layout publishes models;
+// an unknown following layout leaves the already parsed figures usable.
+inline std::optional<std::array<int16_t,22>> originalFigureFactionModels(
+    const std::vector<uint8_t>& data,size_t at,size_t limit){
+    using namespace emperor::file_io::research;
+    if(data.size()>8u*1024u*1024u||at>limit||limit>data.size())return std::nullopt;
+    const auto take=[&](size_t n){if(n>limit-at)return false;at+=n;return true;};
+    const auto version=[&](uint16_t v){return take(2)&&detail::u16(data.data()+at-2)==v;};
+    if(!version(1)||!take(4))return std::nullopt;
+    const auto goods=detail::u32(data.data()+at-4);if(goods>8192)return std::nullopt;
+    for(size_t n=0;n<goods;++n){if(!version(1))return std::nullopt;
+        for(const auto& f:goods1_fields)if(!take(f.bytes))return std::nullopt;}
+    if(!version(3)||!take(4))return std::nullopt;
+    const auto empire=detail::u32(data.data()+at-4);if(empire>8192)return std::nullopt;
+    for(size_t n=0;n<empire;++n){if(!version(2))return std::nullopt;
+        for(const auto& f:empire2_fields)if(!take(f.bytes))return std::nullopt;}
+    std::array<int16_t,22> models{};
+    for(auto& model:models){
+        if(!version(15))return std::nullopt;
+        for(const auto& f:empire_grid15_pre){if(!take(f.bytes))return std::nullopt;
+            if(f.receiver_offset==0x4ae)model=detail::i16(data.data()+at-f.bytes);}
+        for(size_t child=0;child<22;++child){if(!version(5))return std::nullopt;
+            for(const auto& f:empire_grid_child5_fields)if(!take(f.bytes))return std::nullopt;}
+        for(const auto& f:empire_grid15_post)if(!take(f.bytes))return std::nullopt;
+    }
+    if(!take(4))return std::nullopt; //Empire3 trailing parent word0x480960
+    return models;
+}
 // List0x4E1E40, called0x531265 immediately after Building0x42D790.
 // Class IDs use the SAME archive cache: goal cache + building declarations +
 // building objects. No byte-pattern resync, inferred class ID or default record.
@@ -98,9 +132,11 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.subtype=r[19];f.attackDirection=r[27];f.attackFrame=r[116];f.resource=r[136];
         f.cartStyle=r[135];f.stationary=r[137];
         f.counter=detail::i16(r+62);f.owner=detail::i16(r+98);f.variant=detail::i16(r+304);f.amount=detail::i16(r+130);
+        f.leaderLink=detail::i16(r+114);f.target=detail::i16(r+144);f.faction=r[122];
         objects.emplace(objectPID,f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }
-    out.end=at;out.status=OriginalFigureStatus::Complete;return out;
+    out.end=at;out.status=OriginalFigureStatus::Complete;
+    out.factionModels=originalFigureFactionModels(data,at,limit);return out;
 }
 inline const char* originalFigureArchiveName(uint32_t slot){
     // Startup0x475CA3 (14),0x475D44/4F/5A (38/39/40).
