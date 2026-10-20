@@ -329,16 +329,17 @@ them `chain-declined` / `chainNoWrite` (`original_ground.hpp`).
 Measured over all 167 `Cities/*.map` (whole crop, camera-free), after modelling
 setter 5 (the road arm), the two `LAB_0053FF8A` arms of setter 4 and the whole-map
 farm/plain-land block tiers, the land/flood/twin composite arms, the elevation
-prepass/setter-2 writers, the shore descriptor arms and the last four bare-load
-setters (0x40-road, monument, forest and farm-river; 167/167 processed, 0 failures):
+prepass/setter-2 writers, the shore descriptor arms, the last four bare-load
+setters (0x40-road, monument, forest and farm-river) and the city-load post-object
+monument redraw (167/167 processed, 0 failures):
 
 * grid `2,107,836` active cells, `28` stored zero, `2,107,808` stored nonzero;
-* **`1,763,857/2,107,836` active cells match (83.681 %)**; chain emits
-  `2,087,691/2,107,836` (99.044 % of active), with `1,763,857/2,087,691`
-  matched (84.488 % of emitted); mismatched `323,834`, unresolved `0`;
+* **`1,766,664/2,107,836` active cells match (83.814 %)**; chain emits
+  `2,087,691/2,107,836` (99.044 % of active), with `1,766,664/2,087,691`
+  matched (84.623 % of emitted); mismatched `321,027`, unresolved `0`;
 * mismatches partition into `28` stored zero, `64` stored tilesets different from
-  the prediction, `16,876` index deltas within ±8 and `306,866` larger deltas; the
-  17–32 bucket contains `281,801/306,866` (91.832 %) of those larger deltas;
+  the prediction, `14,069` index deltas within ±8 and `306,866` larger deltas; the
+  17–32 bucket contains `281,818/306,866` (91.837 %) of those larger deltas;
 * chain declines to write on `19,935` cells: `0` of them store zero, **all `19,935`
   store nonzero art** — direct evidence that "declined" is not "empty". Most former
   declined cells were elevation art now owned by the earlier elevation writers;
@@ -378,30 +379,43 @@ Historical matched/emitted fell to 85.191 % (was 86.579 %) only because 41,150 f
 unknown cells now carry mismatching predictions: 39,577 in shifted cities with
 vintage offsets and 1,573 in unshifted cities. No former match is lost and no
 existing branch's per-cohort rate decreases; the emitted ratio is confounded,
-so matched/active is the headline. The last four setters then add **16,761 matches**:
-matched was 1,747,096 and is now 1,763,857; historical unknown **37,203→210**; emitted
-2,050,792→2,087,691; mismatched was 303,696 and is now 323,834. Historical
-matched/active was 82.886 %, now 83.681 %; matched/emitted was 85.191 %, now
-84.488 %, as 20,138 newly emitted predictions mismatch. The other 94 formerly
+so matched/active is the headline. The last four setters then added **16,761 matches**:
+historical matched rose 1,747,096→1,763,857; unknown **37,203→210**; emitted
+2,050,792→2,087,691; mismatched rose 303,696→323,834. Historical
+matched/active rose 82.886 %→83.681 %; matched/emitted fell 85.191 %→84.488 %,
+as 20,138 newly emitted predictions mismatched. The other 94 formerly
 unknown road cells become no-writes (19,841→19,935). No existing branch's matched
 count changes. These setters derive their descriptors in-call from road table
 `0x84AEF0` (17 rows), monument `0x849818`, forest `0x84B548` plus road-distance
 `0x84B7C8`, and farm-river `0x84AB90`, with material grid `0xF11C70` zero and
 object-pointer grid `0x890210` null at load; see the executable hash and offsets
 in [the branch facts](MAP_GROUND_BRANCHES.md#remaining-ground-branches-bare-load-rules-2026-10-20).
+The city-load post-object monument redraw then adds **2,807 matches**:
+1,763,857→1,766,664, taking matched/active from 83.681 % to **83.814 %** and
+matched/emitted from 84.488 % to **84.623 %**; mismatched falls 323,834→321,027.
+Only monument changes: unshifted **662→3,469/3,533**, shifted **0→0/2,682**.
+All 2,871 old unshifted misses become exact, while 64 old base-only matches
+become recorded exceptions; every other branch's matched count is unchanged.
 Stored-grid exact rendering stays 139/167 and composite rendering is unchanged.)
 
-**Open question:** does the stored monument/forest grid reflect an authored
-post-object state? Monument matches only **662/3,533** unshifted. The decompiled
-null-object path writes `T(0x61B)+R`, with C cleared at `0x53FBC2` and R=0 for
-every table row. The other **2,871/3,533** stored values are base+1..5, consistent
-with the `.map` having been saved after monument objects existed: the
-`FUN_004BCE20` path adds an object's random%6 when the `0x890210` pointer is
-non-null. That would make the stored grid authored post-object state rather than
-bare-load state. The same may apply to forest, measured at **1,052/2,114**
-unshifted and **1,026/2,226** shifted (~50% in both cohorts). This explanation is
-an **inference, not a measurement**; port the later redraw only if the object
-state it reads is MAP-derivable.
+**Monument resolved:** ordinary city load rebuilds objects at
+`0x5344BD` → `FUN_0041F400`, whose tail calls `FUN_0053D630` at `0x41F63A`,
+then `FUN_005403C0` at `0x53D689`. Every own-`0x10000` cell receives an object;
+its +8 field is that cell's index (`0x41F23A`). `FUN_004BCE20` reads this index
+and returns `random[cell]%6`, so the post-object image
+`T(0x61B)+random[cell]%6` is MAP-derivable. It matches **3,469/3,533** unshifted
+cells; all **64** exceptions are base-only stored images in **ASSR-Niya.map**,
+recorded without special-casing. See the executable hash, file-offset convention
+and full construction trace in [the resolved branch facts](MAP_GROUND_BRANCHES.md#city-load-post-object-monument-redraw-forest-editor-premise-2026-10-20).
+
+Forest retains the ordinary city-load rule: **1,052/2,114** unshifted and
+**1,026/2,226** shifted matches, all from the plain `0x603` fallback. Its
+editor-only erosion calls (`0x53F8A6` → `FUN_004B9030`,
+`0x53F8E7` → `FUN_004B91B0`) would reach **2,049/2,114** unshifted matches,
+but ordinary city load does not reach them. The stored forest art is therefore
+inferred to be editor-authored; that save-history explanation is an
+**inference, not a measurement**. Modeling that state as an explicit opt-in
+premise remains a separate decision.
 
 ### The stored ids are an older archive vintage, and the shift is not derivable
 

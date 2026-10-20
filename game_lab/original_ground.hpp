@@ -66,6 +66,10 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest&);
 // Whole-map reconstruction in FUN_005403C0's row order. A stamp can replace an
 // earlier prediction; covered cells retain the stamping branch and origin.
 // The stored image/draw/subTile grids are never inputs to block selection.
+// Includes the proven monument output of the city-load post-object redraw:
+// 0x5344BD -> FUN_0041F400 -> 0x41F63A -> FUN_0053D630. The per-cell API
+// retains the earlier null-object phase. This is a partial snapshot projection,
+// not an emulation of the rebuild's complete terrain/height mutations or editor.
 struct GroundMapCell {
     GroundSelection selection;
     size_t origin = 0;

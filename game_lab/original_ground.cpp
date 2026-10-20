@@ -1095,6 +1095,31 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
             }
         }
     }
+    // Monument output after the city load's river-object rebuild. FUN_00534410
+    // first calls FUN_0053D630 at 0x53449F, then FUN_0041F400 at 0x5344BD;
+    // the latter calls FUN_0053D630 again at 0x41F63A. Every own-0x10000
+    // cell in the crop necessarily gets an object (0x41F54E..0x41F57C), with
+    // +8=cell (0x41F23A), +0x18=1 (0x41F25F). FUN_00416BB0 rejects that
+    // +0x18=1 flag, preserving the one-variant descriptor arm (R=0).
+    // FUN_0053FB30 clears C at 0x53FBC2, then adds
+    // FUN_004BCE20's unsigned random[object->cell]%6 at 0x53FBF1..F6.
+    // Project only that proven setter output onto the snapshot reconstruction;
+    // rebuilding all terrain/height/editor state is outside this partial port.
+    // In particular forest has no object read and city mode stays 0: the
+    // editor-only topology tiers must not be substituted for MAP distance 255.
+    for(int y=0;y<bounds.side;++y) {
+        const int storageY=bounds.first+y;
+        const int start=storageY<=bounds.middle?bounds.middle-y:
+            bounds.first-bounds.middle-1+storageY;
+        const int end=2*bounds.middle-start+2-bounds.first;
+        for(int x=start-bounds.first;x<end;++x) {
+            if(x<0||x>=bounds.side)continue;
+            const size_t cell=bounds.cell(x,y);
+            auto& selection=result[cell].selection;
+            if(selection.known&&std::strcmp(selection.branch,"0x10000-monument")==0)
+                selection.variant=uint8_t(state.randomByte[cell]%6u);
+        }
+    }
     return result;
 }
 bool resolveGroundTileCode(const SG3Archive& archive,uint16_t code,size_t& archiveIndex) {

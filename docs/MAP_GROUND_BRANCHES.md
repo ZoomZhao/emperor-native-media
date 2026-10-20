@@ -44,7 +44,7 @@ non-zero setter. Every setter that writes `img` also does `draw|=0x40` and `sub&
 | 11 | `FUN_00413A00 @0x00413A00` | none — 3-byte body | returns 0 (never handles a cell) | yes |
 | 12 | `FUN_00540360 @0x00540360` | `terrain&0x1000` | `T(0x612)+random&7` | yes |
 | 13 | `FUN_00540300 @0x00540300` | `terrain&0x40` → `FUN_004B6F90` | `0x61B`/`0x61D`/`0x435`/`0x491`/`0x621`/`0x61E`/`0x61F` (item 4) | yes: bare-load `0x61E/61D/623`, elevation default no-write |
-| 14 | `FUN_0053FB30 @0x0053FB30` | `terrain&0x10000` and `(terrain&0x48)==0` | `T(0x61B)+R` after C is cleared (+`FUN_004BCE20` with an object) | yes: null-object load has R=0, giving `T(0x61B)` |
+| 14 | `FUN_0053FB30 @0x0053FB30` | `terrain&0x10000` and `(terrain&0x48)==0` | `T(0x61B)+R` after C is cleared (+`FUN_004BCE20` with an object) | yes: per-cell null-object phase; whole-map post-object `T(0x61B)+random%6` |
 | 15 | `FUN_005400F0 @0x005400F0` | `terrain&0x40000` | **no direct `img` write**; delegates (item 6) | no |
 | 16 | `FUN_00540140 @0x00540140` | `terrain&0x20` | `T(0x401)+2..7` (tileset 2, block art) | partial |
 | 17 | `FUN_0053EE00 @0x0053EE00` | `(terrain&0x10001)==0` and `terrain&0x80` | `T(0x602)`+fertility variant, consecutive `T(0x604)` block cells, or `T(0x61B)+C+6` | yes: bare-load snapshot |
@@ -160,8 +160,11 @@ construction is separate: `FUN_0041F400` clears/rebuilds the grid using terrain,
 `FUN_0041F820` writes its per-cell pointer (`0x41F855`), and
 `FUN_0041F230` sets the object's +0x18 byte (`0x41F25F`). The bare city path
 `FUN_00534410` calls `FUN_0053D630` (ground reconstruction) at `0x53449F`
-**before** river-object construction at `0x5344BD`. The model covers this first
-bare-load phase, not a later live-object redraw.
+**before** river-object construction at `0x5344BD`. Construction itself calls a
+second ground reconstruction at **`0x41F63A`**. The per-cell API retains the first
+phase; the whole-map API now includes the proven monument output of the second
+phase (final section). Other live-object effects remain outside this partial
+snapshot reconstruction.
 
 All **94,493/94,493** post-elevation unknown shore cells now resolve: **89,887**
 take `0x605`, **4,606** take `0x61A`. Unshifted matches are **51,199/52,597**
@@ -351,8 +354,9 @@ The MAP `mapperRandom` grid (payload offset 729,311) is therefore **not** consum
 * Elevation's static table `0x00825C28` and neighbour offsets are now ported; in-place
   height repair remains outside the snapshot reconstruction (elevation section).
 * The `0x61B` reads are shifted views of the river-object pointer grid, null in the
-  first bare-load reconstruction (item 2). A later redraw after `FUN_0041F400`
-  builds active objects is outside this port.
+  first bare-load reconstruction (item 2). `FUN_0041F400` ends with a second
+  reconstruction at `0x41F63A`; its monument output is now ported. Full terrain
+  mutation, shore/road live-object effects and height repair remain outside it.
 * Setter 13's live-object and nonzero road-material paths remain outside the
   bare-load model. Its null-object, zero-material path and elevation default are
   resolved in the final section; the 208 elevation ramp remaps are unchanged.
@@ -431,7 +435,8 @@ an unknown.
 determinate `chain-declined` 19,935. The unknown residue is
 `elevation-road-material` 208 and `elevation-block-declined` 2.
 The image reconstruction is partial: elevation ramp remaps and live-object redraw
-paths remain outside the port. The four remaining ground arms remove 36,993
+paths other than the final section's monument projection remain outside the port.
+The four remaining ground arms remove 36,993
 unknowns: 36,899 emit and 94 are determinate no-writes. The whole-map block tiers removed
 the entire `0x80-farm-block` unknown branch:
 before block tiers, `169,520 - 36,950 = 132,570` unknown cells.
@@ -446,10 +451,10 @@ The `0x4-shore` residue fell from 156,935 to 94,897 when those arms were ported:
 
 ## Mismatch classes: every residual cell now has a named cause
 
-The headline is **1,763,857/2,107,836 active cells matched (83.681 %)**.
-`matched` counts emitted codes that equal the stored grid (`1,763,857` of
-`2,087,691`, 84.488 % of emitted). The remaining
-`323,834` cells are classified per branch, and the classes partition `mismatched`
+The headline is **1,766,664/2,107,836 active cells matched (83.814 %)**.
+`matched` counts emitted codes that equal the stored grid (`1,766,664` of
+`2,087,691`, 84.623 % of emitted). The remaining
+`321,027` cells are classified per branch, and the classes partition `mismatched`
 exactly - the sweep treats a city whose classes do not sum to its `mismatched` as a **failure**,
 so a silent drop cannot pass.
 
@@ -468,9 +473,9 @@ Measured over all 167 `Cities/*.map` (167/167 processed, 0 failures):
 |---|---:|
 | stored word is 0 while the chain emitted | 28 |
 | stored word names a tileset different from the prediction | 64 |
-| same tileset, stored index within +-8 of the prediction | 16,876 |
+| same tileset, stored index within +-8 of the prediction | 14,069 |
 | same tileset, stored index further off | 306,866 |
-| **total** | **323,834** |
+| **total** | **321,027** |
 
 Before the elevation port, the 9,829 non-tileset-3 cells all named **tileset 16 (`China_Elevation.sg3`)**; no
 other tileset appears (direct corpus probe of `stored>>14`). So the chain does not
@@ -482,9 +487,9 @@ JSON field `stored_not_tileset3` counts a different tileset from the prediction
 (3 or 16); retaining its name preserves existing serializers and the partition.
 
 The 306,866 "further off" cells are bucketed by magnitude of
-`storedIndex - predictedIndex`: 9-16, 12,271; 17-32, 281,801; 33-64, 10,114;
+`storedIndex - predictedIndex`: 9-16, 12,203; 17-32, 281,818; 33-64, 10,165;
 65-128, 1,324; 129-256, 315; 257-512, 1,011; 513+, 30. The 17-32 bucket accounts for
-281,801/306,866 (91.832 %) of larger deltas. The farm block tiers
+281,818/306,866 (91.837 %) of larger deltas. The farm block tiers
 contribute 34,362 cells to the 17-32 bucket because `0x604` carries the same known
 per-city vintage shift as the land and upper bands (next section). Note that the
 *shift* only accounts for the shifted cohort: in the 93 cities whose upper bands
@@ -595,7 +600,7 @@ on the owned data / exe SHA-256
   imageIndex[slot] - 201`), with no per-city adjustment.
 
 Two consequences follow, and they must not be confused. For the **score**, the stored
-grid is a stale oracle above the farm and plain-land bands, so the current `84.488 %` is a floor
+grid is a stale oracle above the farm and plain-land bands, so the current `84.623 %` is a floor
 on the reconstruction's agreement with it, not the reconstruction's accuracy. For the
 **render**, `recordId = low14 + 201` reads those stored ids against the installed
 archive, so in a shifted city it decodes a record 20/30/32 entries from the one the
@@ -1317,15 +1322,13 @@ the pointer check at `0x53FBE6..0x53FBEF` excludes it. All **6,215/6,215** cells
 resolve. Measured unshifted matches are only **662/3,533**: the other **2,871/3,533**
 stored values are exactly base+1..5 (611/628/547/558/527 cells).
 
-**Open question:** was the `.map` saved after monument objects existed, so its
-stored grid reflects authored post-object state rather than bare-load state?
-The decompiled null-object path writes `T(0x61B)+R` with C cleared at `0x53FBC2`
-and R=0; `FUN_004BCE20` adds an object's random%6 only when the `0x890210`
-pointer is non-null. The measured base+1..5 residuals are consistent with that
-later object path. This explanation is an **inference, not a measurement**.
-The same may apply to forest (~50% matched in both cohorts, measured below);
-port the post-object redraw only if the object state it reads is MAP-derivable.
-No random%6 was fitted or added to the null-load rule.
+**[Resolved below](#city-load-post-object-monument-redraw-forest-editor-premise-2026-10-20):**
+the ordinary city load rebuilds these objects and immediately
+redraws ground. Their cell field and random input are MAP-derived. The whole-map
+post-object monument output now matches **3,469/3,533** unshifted cells, recovering
+all 2,871 positive residuals and leaving 64 base-only exceptions in ASSR-Niya.
+The per-cell null-object rule stays unchanged. Forest has a separate editor-mode
+cause; its setter never reads an object pointer.
 The existing plain-land predicate's mixed-monument refusal
 (`0x4B7DB5..0x4B7DDC`) is retained; no new monument block writer exists here.
 
@@ -1354,9 +1357,8 @@ Other unmatched requests without proven scratch provenance remain unknown.
 All **4,340/4,340** corpus forest cells now resolve; their 2,078 matches and
 2,262 residuals remain measured: **1,052/2,114** unshifted (49.76%) and
 **1,026/2,226** shifted (46.09%). The plain-art fallback explains the 1,026
-shifted-cohort matches without compensating any vintage offset. The possible
-post-object-state explanation above remains an open inference for forest too;
-these match rates do not establish its cause.
+shifted-cohort matches without compensating any vintage offset. The final section
+probes the editor's topology-based tiers and separates them from city-load state.
 
 ### 4. `0x80-farm-river`: `FUN_0053EE00`
 
@@ -1373,16 +1375,16 @@ resolve, including **1,908/1,908** unshifted exact matches. Shifted matches stay
 
 ### Measurements and checks
 
-Sanctioned sweep, root environment unset: **167/167 cities**, **0 failures**.
+Historical bare-load sweep, root environment unset: **167/167 cities**, **0 failures**.
 Stored-grid render metrics remain identical, including **139/167** exact cities.
 
-| Metric | Historical `c303acb` baseline | Current |
+| Metric | Historical `c303acb` baseline | After bare-load setters, before post-object phase |
 |---|---:|---:|
 | Active cells | 2,107,836 | 2,107,836 |
 | Emitted | 2,050,792 | 2,087,691 |
-| Matched | was 1,747,096 | 1,763,857 |
+| Matched | was 1,747,096 | was 1,763,857 |
 | Unknown | was 37,203 | 210 |
-| Mismatched | was 303,696 | 323,834 |
+| Mismatched | was 303,696 | was 323,834 |
 | Unresolved | 0 | 0 |
 | Chain no-write | 19,841 | 19,935 |
 | Stored zero mismatch | 16 | 28 |
@@ -1390,12 +1392,13 @@ Stored-grid render metrics remain identical, including **139/167** exact cities.
 | Same tileset within ±8 | 13,701 | 16,876 |
 | Same tileset further off | 289,915 | 306,866 |
 
-Mismatch classes sum to **28+64+16,876+306,866=323,834** and partition every
-city independently. Absolute matches rise **16,761**; matched/active is
-83.681% (was 82.886%). Matched/emitted is 84.488% (was 85.191%) because 20,138 newly
-emitted cells mismatch. Every existing branch retains exactly its prior
-per-cohort cells, emitted and matched counts; only `chain-declined` adds the
-94 road no-writes. No existing per-cohort matched count decreases.
+Historical bare-load mismatch classes sum to **28+64+16,876+306,866=323,834**
+and partition every city independently. Absolute matches rose **16,761**;
+matched/active was 83.681% (previously 82.886%). Matched/emitted was 84.488%
+(previously 85.191%) because 20,138 newly emitted cells mismatched. Every existing
+branch retained exactly its prior per-cohort cells, emitted and matched counts;
+only `chain-declined` added the 94 road no-writes. No existing per-cohort matched
+count decreased.
 
 | Changed branch | Before unshifted/shifted unknown | After unshifted emitted / matched | After shifted emitted / matched |
 |---|---:|---:|---:|
@@ -1426,3 +1429,180 @@ monument arm clears C after matching and every table row cycles R modulo one”.
 The repository rule stays `0x61B`. Required tests pass: no-root release
 **1,371** assertions with successful SKIP; original-data release **2,612**;
 original-data UBSan **2,612**. `git diff --check` is clean.
+
+## City-load post-object monument redraw; forest editor premise (2026-10-20)
+
+**1,766,664/2,087,691 emitted cells now match** (84.623%;
+**1,766,664/2,107,836 active**, 83.814%).
+Baseline `a7e0c3a` was 1,763,857/2,087,691. The gain is **2,807**: all 2,871 unshifted monument misses
+are recovered, with 64 former base-only matches becoming measured residuals.
+Every existing branch's per-cohort matched count is preserved or increased.
+Forest remains **1,052/2,114** unshifted and **1,026/2,226** shifted; its
+editor-only topology rule is documented and tested as a diagnostic, not enabled.
+
+All executable facts use the header's owned executable SHA-256. Code VAs below
+map to file offset `VA-0x400000`; no listing or original binary is included.
+
+### Object fields, construction inputs and second-pass order
+
+`FUN_004BCE20 @0x4BCE20` has just one data dependency beyond its object pointer:
+read **i32 object+8** (`0x4BCE20`), read the **unsigned** random byte at
+`0xF1E780+cell` (`0x4BCE23..25`), return its remainder modulo **6**
+(`0x4BCE2D..35`). It reads no object type, orientation, image or neighbour grid.
+Thus precisely random remainders 1..5 select the observed base+1..5.
+
+The only direct construction chain found is `FUN_0041F400` → `FUN_0041F820`
+(`0x41F5AF`) → `FUN_0041F350` (`0x41F850`) → `FUN_0041F230`. There is no separate
+monument-pool builder behind the `0x890210` grid. Each object is 28 bytes:
+
+| Field | Constructor meaning | Evidence VA |
+|---|---|---|
+| +0 | owning pool pointer | `0x41F25D` |
+| +4 | initially zero; later sorted-list node | `0x41F256`, `FUN_0041F350` |
+| +8 | this exact cell's flat index | **`0x41F23A`** |
+| +12 / +16 | crop-local x / y | `0x41F241`, `0x41F248` |
+| +20 | pool number 1 on this rebuild | `0x41F24F`, `0x41F835` |
+| +24 byte | boolean own terrain bit `0x10000` | `0x41F533..536`, **`0x41F25F`** |
+
+The object pointer is stored at `grid[cell]` at **`0x41F855`**. The sorted-list
+allocation orders by this cell's random byte; it does not replace +8 or select
+the image variant.
+
+`FUN_0041F400` first clears all 51,984 pointer entries (`0x41F414` calls
+`FUN_0041F3B0`). It clamps the requested rectangle, expands it by one, then scans
+in increasing y/x order, repeating until a pass creates no object
+(`0x41F4F3..0x41F605`; a visited byte prevents duplicate allocation). For a cell:
+
+- Count its eight neighbours carrying `0x10000` with `FUN_004B4520` at
+  `0x41F542`. Count neighbours carrying `4` but clear of `0x90000` with
+  `FUN_004B4480` at `0x41F55E`.
+- Require own `0x10000` or a nonzero first count. Refuse only when the two counts
+  sum to 8 **and** own `(terrain&0x10004)==4` (`0x41F54E..0x41F57C`). Therefore
+  **every own-0x10000 cell in the crop gets a pointer**, regardless of neighbours.
+- Set terrain to `(old&0x7FF9FF7F)|0x80` (`0x41F584..0x41F591`), clearing
+  `0x80000000`, `0x40000` and `0x20000`, preserving `0x10000`. Call
+  `FUN_004B2CD0` at `0x41F593` for nearby farm image refresh, then allocate/store
+  the object. The nearby refresh (`FUN_004B3FD0`, param5=1) changes images but
+  not this pointer/terrain/random decision.
+
+These inputs are the already parsed MAP terrain and random arrays; neither the
+stored image grid nor serialised object pools supply the variant. MAP metadata
+at payload 989,239 is read into grid+`0x32C40`, not into the pointer array.
+**Derivability is established for the monument image after object rebuild.**
+
+The load sequence is **not** a single null-object pass:
+
+1. `FUN_00534410` calls `FUN_0053D630` at **`0x53449F`**.
+2. It calls the full-crop object rebuild at **`0x5344BD`**, ECX=`0x890210`.
+3. The rebuild itself calls `FUN_0053D630` at **`0x41F63A`** before returning.
+4. That driver calls `FUN_005403C0(3)` at **`0x53D689`**. This completes the
+   elevation prepass before row/column setter dispatch (`0x54040B..0x540482`).
+   `FUN_0053EAA0` clears ordinary working images at `0x53EAB9`, so the prior
+   image does not prevent the monument setter from running again.
+
+For own-monument objects +24=1, **`FUN_00416BB0` still returns false**: it accepts
+only nonnull pointers whose +24 is zero (`0x416BB4..0x416BC7`). Therefore the
+one-variant descriptor arm still supplies R=0, C is cleared at `0x53FBC2`, but
+the separate **nonnull-only** check at `0x53FBE6..0x53FBEF` now calls
+`FUN_004BCE20` at `0x53FBF1`. The resulting image is exactly
+**`T(0x61B)+random[cell]%6`**. No orientation chooses +1..+5.
+
+`selectGroundMap` explicitly projects this proven monument output after its
+existing snapshot pass, using the same diamond traversal. `selectGroundTileCode`
+continues to represent the null-object per-cell phase. This is a partial
+snapshot reconstruction, not an emulation of all terrain mutation, height repair,
+or live-object shore/road behavior. The phase only updates already-selected
+`0x10000-monument` variants, preserving earlier setter ownership and all origins.
+
+### Corpus probe: monument and separate forest cause
+
+The direct before-port probe of `base+random%6` reproduces **3,469/3,533** unshifted
+monument images. The old rule matches 662; **598/662** remain exact, **64/662**
+become mismatches, and **2,871/2,871** old misses become exact. All 64 exceptions
+are in **ASSR-Niya.map**, all stored exactly at the base (63 cells terrain
+`0x10000`, one `0x10080`). They are inside the redraw traversal. No file-name,
+image, or terrain-bit exception is fitted. Shifted matches remain **0/2,682**.
+These exceptions refute universal agreement of the stored monument grid with
+the current executable's completed city-load state; they do not invalidate the
+traced second pass. The branch's per-cohort count rises by 2,807 and 0.
+
+Forest reads **no object pointer** in `FUN_0053F840`. All **4,340/4,340** selected
+forest cells have distance 255; **0/4,340** have own/adjacent `0x10000`, so the
+object builder neither allocates there nor clears their forest bit. Re-running
+the city setter consequently leaves **2,078/4,340** exact. Its two output classes:
+
+| City-load output | Unshifted emitted / matched | Shifted emitted / matched |
+|---|---:|---:|
+| plain `0x603` | **1,052 / 1,052** | **1,026 / 1,026** |
+| outer `0x628` | **1,062 / 0** | **1,200 / 0** |
+
+The apparent ~50% in both cohorts is this split, not a shared variant failure.
+Plain-art base is low14 **46** (archive record 247); it lies below the shifted
+bands. The forest bases **771 / 805 / 865** for `0x628 / 0x626 / 0x622` lie
+inside the upper shifted band. They do not escape it. Stored nonplain forest
+low14 ranges are **811..924** unshifted and **779..894** shifted. Relative to the
+city prediction, all 1,062 unshifted residuals are positive **35..151**, and all
+1,200 shifted residuals positive **3..121**, with both parities. A modulo-six
+variant error cannot produce these distances.
+
+The executable supplies a separate **editor mode** at `0x53F893..0x53F90E`,
+requiring `[0x88EC38]==1`. City mode instead checks distance 255 at
+`0x53F91D..0x53F929` and bypasses both tiers. Editor mode chooses `0x626` using
+`FUN_004B9030(0x20000)` at `0x53F8A6`; if C remains zero, it chooses `0x622`
+using `FUN_004B91B0` at `0x53F8E7`. The first helper accepts a neighbour only if
+that neighbour and all eight around it carry the forest bit (`FUN_004BCFC0`);
+the second requires all eight neighbours to satisfy that first erosion
+(`FUN_004BD0F0`). Both invert the flags and use the existing 48-row table.
+These are deterministic MAP terrain rules **under the editor premise**. Mode 1
+is set by editor entry `FUN_0042E430`, case 2; the city path is mode 0.
+
+The diagnostic reuses the existing matcher and represents the two erosion masks
+as its exact 100/0 threshold inputs; it never changes production selection:
+
+| Forest premise | Unshifted matched / all forest | Shifted matched / all forest |
+|---|---:|---:|
+| city-load, before or after objects | **1,052 / 2,114** | **1,026 / 2,226** |
+| editor topology tiers | **2,049 / 2,114** | **1,026 / 2,226** |
+
+The editor probe resolves 2,113/2,114 unshifted requests (the existing one-cell
+scratch-state miss stays unresolved), gains **997/1,062** old residuals and loses
+**0/1,052** exact images. Its remaining 64 resolved unshifted deltas are
+`{-7:1,-4:37,-3:3,-1:3,+1:4,+2:1,+3:1,+9:3,+12:11}`. Shifted nonplain deltas
+now concentrate at **-30 (572/1,200)** and **-32 (550/1,200)**, with
+`{-34:45,-33:3,-31:5,-29:5,-28:2,-21:1,-18:17}` accounting for the other 78.
+This explains why the city-load forest score appears similar across cohorts:
+the exact half is plain art, while the stored forest tiers reflect a different
+context and still expose the established upper-band shift. It is evidence
+consistent with editor-authored stored images, not proof of their save history.
+**The editor rule is not ported as the default city-load behavior.**
+
+### Final measurements and verification
+
+| Metric | `a7e0c3a` baseline | Post-object monument phase |
+|---|---:|---:|
+| Active / emitted | 2,107,836 / 2,087,691 | 2,107,836 / 2,087,691 |
+| Matched | was 1,763,857 | **1,766,664** |
+| Mismatched | was 323,834 | **321,027** |
+| Unknown / unresolved / no-write | 210 / 0 / 19,935 | 210 / 0 / 19,935 |
+| Stored zero / other tileset | 28 / 64 | 28 / 64 |
+| Same tileset within ±8 / further off | 16,876 / 306,866 | **14,069 / 306,866** |
+| Stored-grid exact cities | 139/167 | 139/167 |
+
+The sanctioned sweep has **167/167 cities processed, 0 failed**; mismatch
+classes sum exactly **28+64+14,069+306,866=321,027**. Summing its JSON branch
+magnitude buckets gives **281,818/306,866 (91.837%)** in 17–32. Its before/after
+per-cohort comparison changes only monument: unshifted **662→3,469 / 3,533 emitted**,
+shifted **0→0 / 2,682**. Forest stays **1,052/2,114** and **1,026/2,226**. Every
+other branch retains exactly its cells, emitted and matched counts in both
+cohorts; **0 per-cohort matched counts decrease**. Unshifted total matches are
+**1,140,942/1,171,689 emitted**, shifted **625,722/916,002**.
+
+Required tests pass: no-root release **1,884** assertions with successful SKIP;
+original-data release **3,130**; original-data UBSan **3,130**. Assertions cover
+all 256 unsigned random bytes, phase distinction, earlier-setter ownership,
+stored-image independence, both cohort totals, all branch counts, the 64
+monument exceptions, forest class/delta structure and the excluded editor probe.
+A private-copy mutation **`%6→%5`** exits **1** at “post-object city-load monument
+redraw uses its own unsigned random byte modulo six”. No mutation touches the
+working source. `git diff --check` passes; no original assets, dumps, listings or
+binaries are added to the repository.

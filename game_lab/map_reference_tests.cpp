@@ -600,6 +600,31 @@ void remainingGroundBranchTests() {
       plan[cell].selection.code==0x628&&plan[cell].selection.variant==0,
       "forest table miss retains the immediately preceding plain fallback's proven R zero");
 }
+void postObjectGroundTests() {
+ using namespace game_lab;
+ OriginalMapTerrain terrain;terrain.activeSide=84;terrain.flags.assign(51984,0x80000u);
+ const size_t cell=113u*228u+113u,forest=cell+5,road=cell+10,water=cell+15;
+ terrain.flags[cell]=0x10000u;terrain.flags[forest]=0x20000u;
+ terrain.flags[road]=0x10040u;terrain.flags[water]=0x10004u;
+ auto state=terrainState(terrain);state.roadDistance.assign(51984,255u);
+ for(unsigned random=0;random<256;++random) {
+     state.randomByte[cell]=state.randomByte[forest]=uint8_t(random);
+     const auto bare=selectGroundTileCode(groundCodeRequest(state,cell));
+     const auto plan=selectGroundMap(state,84);const auto& post=plan[cell].selection;
+     need(bare.known&&bare.code==0x61B&&bare.variant==0&&post.known&&post.code==0x61B&&
+          post.variant==random%6u&&std::string(post.branch)=="0x10000-monument",
+          "post-object city-load monument redraw uses its own unsigned random byte modulo six");
+     need(plan[forest].selection.code==0x628&&plan[forest].selection.variant==random%6u&&
+          plan[road].selection.code==0x61D&&plan[water].selection.code==0x61A,
+          "post-object phase preserves city forest and earlier road and shore setter precedence");
+ }
+ const auto before=selectGroundMap(state,84);
+ state.image.assign(51984,UINT32_MAX);state.draw.assign(51984,255u);state.subTile.assign(51984,255u);
+ const auto after=selectGroundMap(state,84);
+ need(before[cell].selection.variant==after[cell].selection.variant&&
+      before[cell].origin==after[cell].origin&&after[cell].stampSide==1,
+      "post-object monument selection never reads stored image draw or sub-tile art");
+}
 void farmBlockTests() {
  using namespace game_lab;
  OriginalMapTerrain terrain;terrain.activeSide=226;terrain.flags.assign(51984,0x80u);
@@ -850,6 +875,11 @@ void realDataFarmBlockTests() {
  using Tally=std::array<size_t,3>; // cells, emitted, matched
  std::map<std::string,Tally> branches[2];
  std::array<size_t,5> origins{},consecutive{},constant{},subzero{};
+ std::array<size_t,2> monumentBareMatches{},monumentRecovered{},monumentLost{},forestPlain{},
+     forestOuter{},forestDistance255{},forestEditorResolved{},forestEditorMatches{},forestEditorLost{},
+     forestObjectCandidates{};
+ std::array<std::map<int64_t,size_t>,2> forestDelta,forestEditorDelta;
+ std::map<std::string,size_t> monumentLostCities;
  for(const auto& entry:std::filesystem::directory_iterator(citiesPath)) {
      if(entry.path().extension()!=".map")continue;
      const auto loaded=loadOriginalMapTerrain(entry.path().string());
@@ -874,6 +904,57 @@ void realDataFarmBlockTests() {
      classes+=cityClasses;
      for(size_t cell=0;cell<plan.size();++cell) {
          const auto& p=plan[cell];
+          if(!(state->terrain[cell]&0x80000u)&&p.selection.known&&
+             (std::string(p.selection.branch)=="0x10000-monument"||
+              std::string(p.selection.branch)=="0x20000-forest")) {
+              const auto request=groundCodeRequest(*state,cell);
+              const auto bare=selectGroundTileCode(request);
+              auto word=[&](const GroundSelection& selection)->uint32_t {
+                  size_t index=0;
+                  if(!selection.known||!resolveGroundTileCode(archive,3u,selection.code,selection.variant,index)||index<200)return 0;
+                  return (3u<<14)|uint32_t(index-200u);
+              };
+              const auto stored=state->image[cell],predicted=word(p.selection);
+              if(std::string(p.selection.branch)=="0x10000-monument") {
+                  const bool oldMatch=word(bare)==stored,newMatch=predicted==stored;
+                  monumentBareMatches[cohort]+=oldMatch;
+                  monumentRecovered[cohort]+=!oldMatch&&newMatch;
+                  monumentLost[cohort]+=oldMatch&&!newMatch;
+                  if(oldMatch&&!newMatch)++monumentLostCities[entry.path().filename().string()];
+              } else {
+                  forestPlain[cohort]+=p.selection.code==0x603;
+                  forestOuter[cohort]+=p.selection.code==0x628;
+                  forestDistance255[cohort]+=request.roadDistance==255;
+                  forestObjectCandidates[cohort]+=bool(request.terrainFlags&0x10000u)||
+                      std::any_of(request.neighbourFlags.begin(),request.neighbourFlags.end(),
+                          [](uint32_t f){return bool(f&0x10000u);});
+                  ++forestDelta[cohort][int64_t(stored)-predicted];
+                  // Diagnostic editor premise only. FUN_004B9030 requires a
+                  // neighbour and its eight neighbours to carry 0x20000;
+                  // FUN_004B91B0 repeats that erosion (0x4BCFC0/0x4BD0F0).
+                  // Encode those two boolean masks as the existing city
+                  // distance thresholds, reusing the production table matcher.
+                  auto eroded=[&](int64_t c) {
+                      if(c<0||c>=51984||!(state->terrain[size_t(c)]&0x20000u))return false;
+                      for(int d:{-228,-227,1,229,228,227,-1,-229})
+                          if(c+d<0||c+d>=51984||!(state->terrain[size_t(c+d)]&0x20000u))return false;
+                      return true;
+                  };
+                  auto editor=request;editor.roadDistance=0;
+                  constexpr int offsets[]={-228,-227,1,229,228,227,-1,-229};
+                  for(size_t i=0;i<8;++i) {
+                      const int64_t n=int64_t(cell)+offsets[i];bool twice=eroded(n);
+                      for(int d:offsets)twice&=eroded(n+d);
+                      editor.neighbourRoadDistance[i]=twice?0:eroded(n)?100:255;
+                  }
+                  const auto candidate=selectGroundTileCode(editor);const auto editorWord=word(candidate);
+                  if(editorWord) {
+                      ++forestEditorResolved[cohort];forestEditorMatches[cohort]+=editorWord==stored;
+                      forestEditorLost[cohort]+=predicted==stored&&editorWord!=stored;
+                      ++forestEditorDelta[cohort][int64_t(stored)-editorWord];
+                  }
+              }
+          }
          if((state->terrain[cell]&0x80000u)||p.origin!=cell||p.stampSide<2||p.selection.code!=0x604)continue;
          const size_t side=p.stampSide;++origins[side];bool seq=true,same=true,sub=true;
          for(size_t y=0;y<side;++y)for(size_t x=0;x<side;++x) {
@@ -885,9 +966,9 @@ void realDataFarmBlockTests() {
      }
  }
  need(cities==167&&cityCohorts==std::array<size_t,2>{93,74},"farm corpus covers 167 cities with the road-defined 93/74 cohort split");
- need(emitted==2087691&&matched==1763857&&unknown==210&&mismatched==323834&&classes==mismatched,
+ need(emitted==2087691&&matched==1766664&&unknown==210&&mismatched==321027&&classes==mismatched,
       "whole-map ground blocks reproduce the measured corpus totals without dropped mismatches");
- need(unresolved==0&&mismatchClasses==std::array<size_t,4>{28,64,16876,306866},
+ need(unresolved==0&&mismatchClasses==std::array<size_t,4>{28,64,14069,306866},
       "all original-data predictions resolve and the four mismatch classes retain explicit corpus denominators");
  const std::array<const char*,3> compositeNames={"0x2-land","0x80000000-flood","0x101000-twin"};
  const std::array<Tally,3> compositeUnshifted={{{39858,39858,39823},{6068,6068,6068},{1666,1666,1666}}};
@@ -930,7 +1011,7 @@ void realDataFarmBlockTests() {
        branches[1]["elevation-block"]==Tally{1672,1672,1496},
        "exe height descriptors and earlier elevation writers lock both cohorts without stored-image selection");
  const std::array<const char*,4> remainingNames={"0x40-road","0x10000-monument","0x20000-forest","0x80-farm-river"};
- const std::array<Tally,4> remainingUnshifted={{{12304,12304,12113},{3533,3533,662},
+ const std::array<Tally,4> remainingUnshifted={{{12304,12304,12113},{3533,3533,3469},
       {2114,2114,1052},{1908,1908,1908}}};
  const std::array<Tally,4> remainingShifted={{{10756,10756,0},{2682,2682,0},
       {2226,2226,1026},{1376,1376,0}}};
@@ -945,6 +1026,23 @@ void realDataFarmBlockTests() {
  need(origins==std::array<size_t,5>{0,0,5186,3123,1952}&&
       consecutive==std::array<size_t,5>{0,0,5035,2955,1706}&&constant==std::array<size_t,5>{}&&subzero==origins,
       "farm stamp originals store consecutive single-cell ids and group side one, unlike composite constant-word placements");
+ need(monumentBareMatches==std::array<size_t,2>{662,0}&&
+      monumentRecovered==std::array<size_t,2>{2871,0}&&monumentLost==std::array<size_t,2>{64,0}&&
+      monumentLostCities==std::map<std::string,size_t>{{"ASSR-Niya.map",64}},
+      "post-object monument rule recovers every positive residual while recording the 64 base-only ASSR-Niya exceptions");
+ need(forestPlain==std::array<size_t,2>{1052,1026}&&forestOuter==std::array<size_t,2>{1062,1200}&&
+      forestDistance255==std::array<size_t,2>{2114,2226}&&forestObjectCandidates==std::array<size_t,2>{},
+      "forest exact matches are plain art and all other city-load outputs retain 0x628 without river-object candidates");
+ need(forestDelta[0][0]==1052&&forestDelta[1][0]==1026&&
+      forestDelta[0].begin()->first==0&&forestDelta[0].rbegin()->first==151&&
+      forestDelta[1].begin()->first==0&&forestDelta[1].rbegin()->first==121&&
+      forestDelta[0].count(35)&&forestDelta[1].count(3),
+      "forest residuals are positive tier changes rather than a shared negative shift on 0x628");
+ need(forestEditorResolved==std::array<size_t,2>{2113,2226}&&
+      forestEditorMatches==std::array<size_t,2>{2049,1026}&&forestEditorLost==std::array<size_t,2>{},
+      "editor forest topology explains 997 unshifted mismatches but is excluded from the default city-load selector");
+ need(forestEditorDelta[0][0]==2049&&forestEditorDelta[1][-30]==572&&forestEditorDelta[1][-32]==550,
+      "editor forest tiers retain the shifted upper-band residual while plain art stays exact in both cohorts");
 }
 // The stored surface-image grid (0x00FE9880) render and the chain score against
 // it. A synthetic archive keeps the record-id base small so the two-cell grid
@@ -1656,6 +1754,7 @@ int main(){try{
  exclusiveOutputTests(root);
  groundSelectorTests();
  remainingGroundBranchTests();
+ postObjectGroundTests();
  farmBlockTests();
  compositeGroundBlockTests();
  elevationGroundTests();
