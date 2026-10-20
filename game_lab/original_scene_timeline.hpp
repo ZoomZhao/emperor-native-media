@@ -23,6 +23,7 @@ struct OriginalSceneTimeline {
     bool complete=false;
     unsigned updates=0,refusedUpdate=0;
     size_t frames=0,buildingDraws=0,buildingAdvances=0;
+    size_t buildingImageReselections=0;
     uint32_t admissionClock=0;
     OriginalAnimationClock animationClock;
     std::map<size_t,uint8_t> buildingPhases;
@@ -53,6 +54,9 @@ inline OriginalSceneTimeline originalSceneTimeline(const OriginalFigureUpdateCon
     if(!scene.accepted||scene.animationTickMs||initial.figures.size()!=2000||initial.terrain.size()!=51984||initial.terrain!=scene.surface.terrain||
         frames.size()>10000){out.refusal="timeline_inputs";return out;}
     std::map<size_t,const SG3Sprite*> bases;
+    // The cited selectors read none of cropDelivery.flags/pending,
+    // primaryFigure,watchRisk/serviceCount or house herbalist service.
+    // These carried writes therefore need zero base-image re-selections.
     for(const auto& p:scene.placed){if(p.components.size()!=1)continue;
         if(!p.binding.physicalId||p.binding.physicalId>general.sprites.size()){out.refusal="building_base";return out;}
         const auto& base=general.sprites[p.binding.physicalId-1];if(!base.animationSpriteCount)continue;

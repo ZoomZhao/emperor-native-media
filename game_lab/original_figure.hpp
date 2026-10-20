@@ -22,6 +22,7 @@ struct OriginalFigure {
     uint8_t subtype=0,attackDirection=0,attackFrame=0,resource=0,cartStyle=0,stationary=0;
     int16_t counter=0,owner=0,variant=0,amount=0,leaderLink=0,target=0;
     uint8_t faction=0,employmentAmount=0; //+6E, read0x4C86DC.
+    uint8_t watchCoverage=0; //+70,4C86F2;5B3E70 writes the figure, not its owner.
     // Inline ambient state at+17C, serialized by0x4C8AA0 (not optional FSA).
     uint8_t effectKind=0,effectVariant=0,effectFlags=0;
     int8_t effectX=0,effectY=0,effectVelocityX=0,effectVelocityY=0;
@@ -146,7 +147,8 @@ inline std::optional<OriginalFigurePopulation> originalFigureSavedPopulation(con
 //5D1830 reads five24-column HOUSE MODS then15 ALL HOUSES rows.
 //44CC80(row,17) reads capacity. Difficulty adds then clamps[-99,100];
 // publish only capacities identical across all five modifiers.
-inline std::optional<std::map<int,int>> originalFigureHouseCapacities(const std::string& text){
+inline std::optional<std::map<int,int>> originalFigureHouseModelColumn(const std::string& text,unsigned column){
+    if(column>=24)return std::nullopt;
     if(text.size()>1024u*1024u||text.find('\0')!=std::string::npos)return std::nullopt;
     std::istringstream input(text);std::string line;unsigned section=0;std::vector<int> mods;std::map<int,int> out;
     while(std::getline(input,line)){if(!line.empty()&&line.back()=='\r')line.pop_back();
@@ -155,10 +157,24 @@ inline std::optional<std::map<int,int>> originalFigureHouseCapacities(const std:
         const auto open=line.find("{,");if(!section||open==std::string::npos)continue;
         std::string values=line.substr(open+2);std::replace(values.begin(),values.end(),',',' ');std::istringstream fields(values);
         std::array<int32_t,24> row{};for(auto& value:row)if(!(fields>>value))return std::nullopt;
-        if(section==1){mods.push_back(row[17]);if(mods.size()>5)return std::nullopt;}
-        else {const auto cap=[&](int m){return int(std::max<int64_t>(-99,std::min<int64_t>(100,int64_t(row[17])+m)));};
+        if(section==1){mods.push_back(row[column]);if(mods.size()>5)return std::nullopt;}
+        else {const auto cap=[&](int m){return int(std::max<int64_t>(-99,std::min<int64_t>(100,int64_t(row[column])+m)));};
             const int c=cap(mods[0]);for(int m:mods)if(cap(m)!=c)return std::nullopt;out.emplace(int(out.size()),c);if(out.size()>15)return std::nullopt;}}
     if(section!=2||out.size()!=15)return std::nullopt;return out;
+}
+inline std::optional<std::map<int,int>> originalFigureHouseCapacities(const std::string& text){return originalFigureHouseModelColumn(text,17);}
+//44CC50(type,9) reads the raw thirteen-column building row.
+inline std::optional<int32_t> originalFigureWatchtowerReduction(const std::string& text){
+    if(text.size()>1024u*1024u||text.find('\0')!=std::string::npos)return std::nullopt;
+    std::istringstream input(text);std::string line;bool active=false;unsigned count=0;std::optional<int32_t> out;
+    while(std::getline(input,line)){if(!line.empty()&&line.back()=='\r')line.pop_back();
+        if(line=="ALL BUILDINGS"){if(active)return std::nullopt;active=true;continue;}
+        if(active&&line=="HOUSE MODS")return count>127?out:std::nullopt;
+        const auto open=line.find("{,");if(!active||open==std::string::npos)continue;
+        std::string fields=line.substr(open+2);std::replace(fields.begin(),fields.end(),',',' ');std::istringstream values(fields);
+        std::array<int32_t,13> row{};for(auto& v:row)if(!(values>>v))return std::nullopt;
+        if(count++==127)out=row[9];}
+    return std::nullopt;
 }
 struct OriginalFigureSpawnServices {
     uint32_t side=0,cropBase=0;
@@ -178,6 +194,13 @@ struct OriginalFigureBuildingLink {
     int16_t residents=0,freeSlots=0,houseModel=0;
     std::optional<uint8_t> laborDisabled;
     std::optional<std::array<uint8_t,3>> entertainment; //house+2B/+2C/+2E; owner+5D/+5E/+5F.
+    std::optional<uint8_t> herbalist; //house embedded+2D,517410 wire tail+44.
+    int32_t watchRisk=0; //common+8C,427430; mutable5B3ED0.
+    struct CropDelivery {uint16_t flags=0;uint32_t pending=0;};
+    std::optional<CropDelivery> cropDelivery; //embedded+6A and outer+150.
+    int16_t roadX=0,roadY=0;
+    std::optional<int32_t> suppliers;
+    bool cropSearchComplete=false;
 };
 // Common5:0x427430 reads live+4,type+14,worker+32,accepting+9 individually;
 // wire+2/+16/+45/+7 include the version. Read only framed public records.
@@ -200,11 +223,19 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         OriginalFigureBuildingLink link;link.type=type;link.alive=data[at+2];link.worker=detail::i16(data.data()+at+45);link.accepting=data[at+7];
         link.primaryFigure=detail::i16(data.data()+at+41);link.destinationEnabled=data[at+129];link.serviceCount=detail::i16(data.data()+at+23);
         link.x=detail::i16(data.data()+at+8);link.y=detail::i16(data.data()+at+10);
+        link.roadX=detail::i16(data.data()+at+37);link.roadY=detail::i16(data.data()+at+39);
         link.inspectorSecondary=detail::i16(data.data()+at+18)>0||data[at+100]!=0;
         link.residents=detail::i16(data.data()+at+27);link.freeSlots=detail::i16(data.data()+at+29);link.houseModel=detail::i16(data.data()+at+18);
+        const auto risk=detail::u32(data.data()+at+125);link.watchRisk=int32_t(risk>INT32_MAX?int64_t(risk)-4294967296LL:risk);
         const size_t tail=at+182;
+        if((type==0xc2||type==0xc4)&&data.size()-tail>=140&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&
+            detail::u16(data.data()+tail+130)==1&&detail::u16(data.data()+tail+132)==1&&detail::u16(data.data()+tail+138)==1)
+            link.cropDelivery=OriginalFigureBuildingLink::CropDelivery{detail::u16(data.data()+tail+106),detail::u32(data.data()+tail+134)};
+        if(type==0xc1&&data.size()-tail>=142&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&
+            detail::u16(data.data()+tail+130)==1&&detail::u16(data.data()+tail+140)==1){
+            const auto n=detail::u32(data.data()+tail+136);link.suppliers=int32_t(n>INT32_MAX?int64_t(n)-4294967296LL:n);}
         if(type>=2&&type<18&&data.size()-tail>=64&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
-            link.laborDisabled=data[tail+59];link.entertainment=std::array<uint8_t,3>{data[tail+42],data[tail+43],data[tail+45]};}
+            link.laborDisabled=data[tail+59];link.entertainment=std::array<uint8_t,3>{data[tail+42],data[tail+43],data[tail+45]};link.herbalist=data[tail+44];}
         if(type==0x47&&data.size()-tail>=352&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1)
             link.entertainment=std::array<uint8_t,3>{data[tail+93],data[tail+94],data[tail+95]};
         if((type==0x3a||type==0x3b||type==0x7c)&&data.size()-at>=312&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
@@ -219,6 +250,9 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         }
         out.emplace(b.first,link);
     }
+    bool complete=true;for(size_t slot=1;slot<4000;++slot)
+        if(buildings.slotTypes[slot]>=0xc3&&buildings.slotTypes[slot]<=0xc7&&!out.count(slot))complete=false;
+    for(auto& e:out)if(e.second.type==0xc1)e.second.cropSearchComplete=complete;
     return out;
 }
 // Read the already framed Hunter records without changing the building reader.
@@ -392,7 +426,7 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.freeTargetX=detail::i16(r+86);f.freeTargetY=detail::i16(r+88);f.freeRemainingX=detail::i16(r+90);
         f.freeRemainingY=detail::i16(r+92);f.freeError=detail::i16(r+94);f.freeAxis=r[96];f.cellMovement=r[72];
         f.attackers={detail::i16(r+154),detail::i16(r+156)};
-        f.employmentAmount=r[110];
+        f.employmentAmount=r[110];f.watchCoverage=r[112];
         f.flags120=detail::u32(r+288);
         objects.emplace(objectPID,f);out.slots.push_back(f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }

@@ -1,5 +1,56 @@
 # SAV19 figures on the city overlay layer
 
+## Delivery, service visibility and elevated movement,2026-10-21
+
+**Largest complete horizon N=2→N=3,6/6 pools; N=50 complete pools2/6→4/6,outcomes28/192→81/192.** This section supersedes the repeated-service limits below. The baseline was reproduced at HEAD9af9cf3:477/477 authored,5,203/5,203 total checks. Measurements use speed80,admission/animation clocks37,74,…,37N ms,one active-crop draw per frame,and explicitly supplied fresh-process Watchtower scratch maximum0. `D95080` is live process state,not SAV state; the library requires its caller to supply it and retains it across ordered calls. The App's opt-in preview declares0. Default Saved snapshot rendering is unchanged. No decompilation/disassembly was declined,no original game or post-update oracle was used,and no constants were fitted. The owned executable SHA-256 was reverified as `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`; every VA below has file offset VA−0x400000.
+
+|N|Pools /6 before→after|Computed /192 before→after|Placed/decoded /192 before→after|Figure components decoded before→after|Surviving primary consistency before→after|Building frames /53 before→after|Building image re-selections|
+|---:|---:|---:|---:|---:|---:|---:|---:|
+|1|6→6|192→192|185→185|201/201→201/201|191/191→191/191|53→53|0→0|
+|2|6→6|192→192|185→185|201/201→201/201|191/191→191/191|53→53|0→0|
+|3|4→6|81→192|81→185|81/81→201/201|81/81→191/191|6→53|0→0|
+|5|4→4|81→81|81→81|81/81→81/81|81/81→81/81|6→6|0→0|
+|10|3→4|49→81|49→81|49/49→81/81|49/49→81/81|3→6|0→0|
+|20|3→4|49→81|49→81|49/49→81/81|49/49→81/81|3→6|0→0|
+|50|2→4|28→81|28→81|28/28→81/81|28/28→81/81|0→6|0→0|
+
+Only entirely complete requested timelines contribute final output. N1/2/3 retain6 hidden and1 removed outcome in192. Final building-phase advances are0,0,53,6,18,36,96 for the seven rows; changed phases are0,0,53,6,6,6,6. Refusals partition original outcomes exactly:
+
+|N|Before refused outcomes /192|After refused outcomes /192|
+|---:|---|---|
+|1,2|0|0|
+|3|111=69 earlier-slot+39 successful-prefix withheld+1 prior-removed+1 segment service+1 supplier countdown|0|
+|5|111=69+39+1+1+1 in the same order|111=55 earlier-slot+53 successful-prefix withheld+1 prior-removed+1 Market segment service+1 supplier crop search|
+|10,20|143=78 earlier-slot+61 successful-prefix withheld+1 prior-removed+1 segment service+1 supplier countdown+1 movement height|111=55+53+1+1+1 in the preceding after order|
+|50|164=85 earlier-slot+74 successful-prefix withheld+1 prior-removed+1 segment service+1 supplier countdown+2 movement height|111=55+53+1+1+1 in that after order|
+
+**Crop delivery.** `0x4C2DC0` decrements signed Figure+3E,then on expiry resolves delivery+68,calls virtual+C8(−4),then+264. C2/C4 use predicate `0x4C11F0` and callback `0x4C1D20`; the latter ORs40 into embedded+6A,clears common+2E and outer+150,then the figure enters action6. Native publishes these three building writes with the figure,including the original remaining-visible action6 result of this action8 call. The existing common5 parser supplies primaryFigure; `0x51C3A0` puts embedded+6A at tail106. Crop serializers `0x4C25A0/0x4C26D0→0x4C08C0→0x4C05C0→0x51CE00` frame industrial1 at tail0,data1 at2,parent2 at130,crop1 at132,pending dword+150 at134,and final child1 at138. Counts and flags persist in `OriginalFigureBuildingLink` between passes.
+
+The following action6 countdown is ported only when a complete live C3..C7 pool proves that no candidate has common+2E equal to this figure. `0x4C2C70→0x4BFF80` then returns0 independently of vector order,availability and calendar: release reciprocal route,assign the owner's road+2A/+2C,enter9,decrement owner+154 modulo32 and clamp signed negatives to0. The owner is C1; `0x4C4E40→0x4C3130` frames+154 at tail136. Positive-candidate searches refuse `supplier_crop_search_4c2c70_4bff80_4c0760`.
+
+**Watchtower and Herbalist.** `0x5B3E70` obtains raw building-model column9 for type7F through `0x44CC50`,then `0x429DF0→0x429E10` invokes `0x5B3ED0`. For accepting houses with positive residents,the callback retains the maximum **pre-subtraction** common+8C,subtracts the model value modulo32,clamps to house-model column15 through `0x44CC80`,then caps100. Common5 `0x427430` serializes signed+8C at common125. Each occupied cell receives a callback on each radius visit,including duplicates. The +70 written after traversal is **Figure+70**,not building+70: assign the maximum's low byte when larger,otherwise subtract10 if above10,otherwise0. Figure7 reads it at `0x4C86F2`,receiver112. The live maximum is explicit and persists; it is never silently initialized by the library. Owner+1C adds callback count as signed16 and caps300; `0x4EACD0→0x4B9460` marks service-grid category2.
+
+Herbalist CF virtual+2C=`0x51BD00` writes96 to qualified house embedded+2D (`0x517410`,tail44) and marks grid category0. Entertainment remains category3. Road exit filtering `0x4B9590→0x4B9440` reads the walker's table category at `0x84E78C+40*type`,so Watchtower uses bits6..8,Herbalist0..2,Entertainment9..11. The individually checked zero-return owner chain+28=`0x429DF0`,+2C=`0x42A210` now also closes Kiln7BFC2C,Mill7B72C8,Warehouse7BE1BC and Stall7B6C5C; it preserves the original signed300 cap write.
+
+**Service visibility.** `0x429E10` clears16 shadow sectors,then visits clipped radius1 and radius2 rectangles in y/x order. Only positive owner cells participate. `0x42A1A0` uses terrain mask1 and feature4 plus4000/wall types. `0x44E550` initializes the16 angle intervals; `0x44E770/0x44E4D0` select the first inclusive match,with center−1. Native uses exact integer cross products for this radius2 domain,including its axis-swapped clockwise sector order. An occluder records the current radius and skips its callback;radius1 even sectors also fill adjacent odd sectors when the neighboring even sector is already blocked at1. A later callback is suppressed only when Manhattan distance `0x42B6D0` exceeds the recorded sector distance. This replaces the earlier corner-only sufficient case and closes the original Herbalist's wall row.
+
+**Height and harmless cell sharing.** `0x4E77C0` reads signed elevation through `0x408CF0` from existing public saved-ground `gBEBF3A`. The lookahead direction is current route[cursor] while cursor<length,otherwise direction/fallback/0. Terrain800000 uses two-cell lookahead and initializes state85=40 only when its previous value is0;existing transitions are preserved. Compare current height with prior-cell then ahead-cell height in original order; choose height/cartStyle40/0 or0/40. Equal neighbors leave the previous height/cartStyle values. Terrain10000400 uses one-cell lookahead,state85=20 and the corresponding up/down branch,otherwise clears state/style/height. Water byte49 follows terrain40;old100/101 clears drawClass at the tail. Existing per-substep height approach remains single on800000,double elsewhere. Bridges and their virtual/table paths stay refused. No ground implementation changed.
+
+`0x4E57A0→0x4E5340` additionally accepts ordinary figure types with model category1/2 against ordinary categories0/1/2: the six relation bytes at `0x84E584..586/0x84E590..592` are0. The bounded type set excludes animal and specialized pair callbacks. This closes Hunter/trader crew and Worker/Hunter sharing without inventing combat writes.
+
+**Building imagery.** All new writes are carried in the timeline context. None changes the cited building-selector inputs: crop stage reads embedded+4 through `0x4C1290→0x4C2360/0x4C2650`,Watchtower base reads common+16/+6F,house base reads resident/labor fields,and warehouse compartments are untouched. New delivery flags/pending and service/risk values do not change any selected base or animation gate. Therefore image re-selections are0 at every measured N; the timeline exposes that count. Existing building phase draws continue on the same timeline.
+
+|Source|Baseline first refusal|Current first refusal / next blocker|
+|---:|---|---|
+|1|none through50|21/21 outcomes complete50|
+|2|N3,slot1686,delivery callback|N4,slot1686,action6 crop search `0x4C2C70→0x4BFF80→0x4C0760`;Millet276 and281 retain primaryFigure1686. Requires crop availability/disable tables,calendar and original vector ordering. No no-candidate substitution.|
+|3|N3,slot271,Watchtower service|N5,slot302,type23/action1,Market32 virtual+2C=`0x5437B0`;resource allocation and storage/accounting writes remain unported. Intermediate blockers closed:Hunter slot324 N3,Kiln slot245 N4,Herbalist slot289 N4.|
+|4|N8,slot1982,elevated crossing|32/32 outcomes complete50;also closed harmless Worker/Hunter sharing atN25,slot1989|
+|5|none through50|7/7 effects complete50|
+|6|N40,slot14,elevated crossing|21/21 outcomes complete50|
+
+Reproduce with `EMPEROR_GAMEDATA_ROOT=/absolute/owned/root make scene-timeline-test scene-timeline-test-undefined`. Release and UBSan both pass495/495 authored,5,786/5,786 total (baseline477/5,203). Source boundaries,per-N coverage,zero image re-selections and refusal multiplicities are failing-if-wrong assertions. `make scene-timeline-bite` rejects8/8 mutations at intended assertions:timeline repetition,engine route tie,full movement mask,delivery flag,risk subtraction,two-cell lookahead,per-type service category and distinct-house shadow. Required regressions pass both modes:building-scene244/7,663,building-image1,283/3,880,saved-ground110/1,928,SAV94,map-reference1,884/3,130;CITY19 Figure7 passes912/912. The App builds28 units,matches99/99 production-manifest hashes and passes strict signature verification. Unset/empty-root controls SKIP2/2 with495/495 authored checks each. STATUS.md,review and commits remain with the lead. Only authored source,formula/prose facts and aggregate metrics are retained in Git;private listings,diagnostics and builds stay outside the repository.
+
 ## Repeated update services,2026-10-21
 
 **Largest complete horizon: N=1→N=2,6/6 pools; N=2 outcomes60/192→192/192,placed60/192→185/192,components60/60→201/201,primary consistency60/60→191/191,building frames6/53→53/53.** Inputs remain speed80,admissions/draws at37,74,…,37N ms and a full active-crop draw. Default rendering remains Saved snapshot. No original game or post-update oracle was used; no decompilation/disassembly was declined. Owned executable SHA-256 remains `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`. Every initialized VA below has file offset VA−0x400000. This section supersedes the historical N=1 limit below.

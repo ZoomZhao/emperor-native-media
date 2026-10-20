@@ -67,6 +67,11 @@ def main():
         ('timeline_draw', 'original_scene_timeline.hpp', 'out.animationClock.flags);', 'std::array<bool,51>{});'),
         ('engine_route_tie', 'original_figure_update.hpp', 'd==toward||chosen==8', 'd==((toward+4)&7)||chosen==8'),
         ('movement_full_mask', 'original_figure_update.hpp', 'out.cells[cell]=mask;', 'out.cells[cell]=mask&0x51c;'),
+        ('delivery_flags', 'original_figure_update.hpp', 'cropDelivery->flags|=0x40;', 'cropDelivery->flags|=0x20;'),
+        ('watch_risk', 'original_figure_update.hpp', 'uint32_t(h.watchRisk)-uint32_t(*context.watchtowerReduction)', 'uint32_t(h.watchRisk)+uint32_t(*context.watchtowerReduction)'),
+        ('elevated_lookahead', 'original_figure_update.hpp', '((flags&0x800000)?2:1)', '((flags&0x800000)?1:1)'),
+        ('watch_category', 'original_figure_update.hpp', 'const unsigned shift=f.type==29?6:f.type==30?0:9;', 'const unsigned shift=f.type==29?9:f.type==30?0:9;'),
+        ('service_shadow', 'original_figure_update.hpp', 'std::abs(dx)+std::abs(dy)>shadows[size_t(sector)]', 'std::abs(dx)+std::abs(dy)>100'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]

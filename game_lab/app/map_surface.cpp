@@ -87,14 +87,18 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     const auto modelText=std::string(bytes.begin(),bytes.end());const auto models=originalFigureModels(modelText);
     const auto modelSpeeds=originalFigureModelSpeeds(modelText);
     if(!detail::readFile(root_.resolve("Model/EmperorBuildingModels.txt"),1048576,bytes))return false;
-    const auto capacities=originalFigureHouseCapacities(std::string(bytes.begin(),bytes.end()));
+    const auto buildingText=std::string(bytes.begin(),bytes.end());
+    const auto capacities=originalFigureHouseCapacities(buildingText),watchFloors=originalFigureHouseModelColumn(buildingText,15);
+    const auto watchReduction=originalFigureWatchtowerReduction(buildingText);
     auto services=originalFigureSavedServices(payload,save.terrainOffset);const auto population=originalFigureSavedPopulation(payload,save.sizeOffset);
     const auto spawn=originalFigureSpawnServices(payload,save.sizeOffset);const auto contextSeed=originalFigureUpdateContext(figures);
     const auto buildings=originalFigureBuildingLinks(payload,save.buildings);const auto hunters=originalFigureHunterLinks(payload,save.buildings);
     const auto masks=originalFigureRoadMovementMasks(save.terrain,save.buildings);
     const auto festival=originalFigureSavedFestivalVenue(payload,save.terrainOffset,save.sizeOffset);
-    if(!models||!modelSpeeds||!capacities||!services||!population||!spawn||!contextSeed||!buildings||!hunters||!festival)return false;
+    if(!models||!modelSpeeds||!capacities||!watchFloors||!watchReduction||!services||!population||!spawn||!contextSeed||!buildings||!hunters||!festival)return false;
     services->population=population;auto context=*contextSeed;context.houseCapacities=*capacities;context.buildingOwners=ground.owner;
+    context.houseWatchFloors=*watchFloors;context.watchtowerReduction=watchReduction;context.elevation=ground.state.gBEBF3A;
+    context.watchMaximum=0; //explicit preview premise: fresh process scratchD95080.
     context.feature=ground.state.feature.empty()?std::vector<uint8_t>{}:std::vector<uint8_t>(ground.state.feature.size());
     for(size_t n=0;n<context.feature.size();++n)context.feature[n]=uint8_t(ground.state.feature[n]);
     context.activeSide=save.terrain.activeSide;context.festivalVenue=festival;context.entertainmentAvailable=spawn->entertainmentAvailable;
