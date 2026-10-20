@@ -1,5 +1,6 @@
 #include "original_ground.hpp"
 #include <cstring>
+#include <cstdlib>
 namespace game_lab {
 namespace {
 // FUN_004BC140 @0x004BC140 returns how many of the 8 neighbour flags (written by
@@ -115,12 +116,12 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     //    cell keeps its loaded stored art: a determinate chain no-write. Note
     //    0x800 is *not* part of the gate; setter 3 handles it further down.
     if(terrain&0x8C008u)return {0,false,false,"chain-declined",true};
-    // 2. FUN_0053F240 @0x0053F240. The guard reads per-cell river/edge descriptors
+    // 2. FUN_0053F240 @0x0053F240. The guard reads per-cell elevation descriptors
     //    0x00BB92F4[cell] and 0x00B866B4[cell] that an earlier runtime pass
     //    (FUN_0053EAE0 @0x0053EAE0) fills from the river/edge tables of
-    //    FUN_00474B90/B0/C50/C90; no MAP byte carries them, so a MAP-only request
-    //    cannot select this branch. It is skipped, never guessed; a request that
-    //    later carries the descriptor must report known=false as "river-edge".
+    //    FUN_00474B90/B0/C50/C90. The caches are reconstructed from signed MAP
+    //    heights (gBEBF3A) by selectGroundMap below; this per-cell request has no
+    //    heights or working images and therefore cannot run the earlier writer.
     // 3. FUN_00540330 @0x00540330: terrain&0x800 -> FUN_004B9E90 + FUN_00524E90(0).
     if(terrain&0x800u)return {0,false,false,"0x800-water"};
     // 4. FUN_0053FC30 @0x0053FC30: terrain&0x4 while 0x00FE9880[cell]==0 (true
@@ -495,6 +496,153 @@ bool acceptsPlainGroundBlock(const OriginalTerrainState& state,const GroundMapBo
     }
     return true;
 }
+struct ElevationPattern {const char* differences;uint16_t code;uint32_t flags;int8_t direction;bool ramp;};
+// Format facts from 0x00825C28 (file 0x425C28): 147 ordered 64-byte rows,
+// 8 signed height differences, 4 view codes, flags, direction, mask, ramp gate.
+// View 0 is used by the bare-map reconstruction. '3' is a wildcard, '4' means
+// abs(diff)<=1, 'm' means -1 (FUN_00473210 @0x00473210, 0x4732D4..0x4732F6).
+constexpr ElevationPattern elevationPatterns[]={
+    {"11112222",1,0,-1,false},{"11222211",1,0,-1,false},
+    {"22221111",1,0,-1,false},{"22111122",1,0,-1,false},
+    {"11100221",1,0,-1,false},{"10022111",1,0,-1,false},
+    {"02211110",1,0,-1,false},{"21111002",1,0,-1,false},
+    {"22200112",1,0,-1,false},{"20011222",1,0,-1,false},
+    {"01122220",1,0,-1,false},{"12222001",1,0,-1,false},
+    {"00021300",0x203A,0x400000,-1,false},{"00031200",0x203B,0x400000,-1,false},
+    {"00000213",0x203C,0x400000,-1,false},{"00000312",0x203D,0x400000,-1,false},
+    {"13000002",0x203E,0x400000,-1,false},{"12000003",0x203F,0x400000,-1,false},
+    {"02130000",0x2040,0x400000,-1,false},{"03120000",0x2041,0x400000,-1,false},
+    {"22222222",2,0,-1,false},{"23232323",2,0,-1,false},{"32323232",2,0,-1,false},
+    {"22233233",2,0,-1,false},{"33222332",2,0,-1,false},{"32332223",2,0,-1,false},
+    {"23323322",2,0,-1,false},{"33233323",2,0,-1,false},{"33323332",2,0,-1,false},
+    {"23332333",2,0,-1,false},{"32333233",2,0,-1,false},
+    {"23333322",0x2036,0x400000,0,false},{"22233333",0x2037,0x400000,2,false},
+    {"33222333",0x2038,0x400000,4,false},{"33332223",0x2039,0x400000,6,false},
+    {"11111111",1,0,-1,false},{"31313131",1,0,-1,false},{"13131313",1,0,-1,false},
+    {"11144144",1,0,-1,false},{"44111441",1,0,-1,false},{"41441114",1,0,-1,false},
+    {"14414411",1,0,-1,false},{"44144414",1,0,-1,false},{"44414441",1,0,-1,false},
+    {"14441444",1,0,-1,false},{"41444144",1,0,-1,false},{"31313133",1,0,-1,false},
+    {"33313131",1,0,-1,false},{"31333131",1,0,-1,false},{"31313331",1,0,-1,false},
+    {"22111100",1,0,-1,false},
+    {"13333311",0x204A,0x20400000,0,false},{"11133333",0x204B,0x20400000,2,false},
+    {"33111333",0x204C,0x20400000,4,false},{"33331113",0x204D,0x20400000,6,false},
+    {"33020333",0x202E,0x400000,-1,false},{"33330203",0x2030,0x400000,-1,false},
+    {"03333302",0x2032,0x400000,-1,false},{"02033333",0x2034,0x400000,-1,false},
+    {"33010333",0x2042,0x20400000,4,false},{"33330103",0x2044,0x20400000,6,false},
+    {"03333301",0x2046,0x20400000,0,false},{"01033333",0x2048,0x20400000,2,false},
+    {"33032303",0x202F,0x400000,-1,false},{"03330323",0x2031,0x400000,-1,false},
+    {"23033303",0x2033,0x400000,-1,false},{"03230333",0x2035,0x400000,-1,false},
+    {"33041403",0x204E,0x200,0,true},{"03330414",0x204F,0x200,2,true},
+    {"14033304",0x2050,0x200,4,true},{"04140333",0x2051,0x200,6,true},
+    {"33041403",0x2043,0x200,0,false},{"03330414",0x2045,0x200,2,false},
+    {"14033304",0x2047,0x200,4,false},{"04140333",0x2049,0x200,6,false},
+    {"33121333",1,0,-1,false},{"12133333",1,0,-1,false},{"13333312",1,0,-1,false},
+    {"33331213",1,0,-1,false},{"33122333",1,0,-1,false},{"12233333",1,0,-1,false},
+    {"23333312",1,0,-1,false},{"33331223",1,0,-1,false},{"33221333",1,0,-1,false},
+    {"22133333",1,0,-1,false},{"13333322",1,0,-1,false},{"33332213",1,0,-1,false},
+    {"33211333",1,0,-1,false},{"21133333",1,0,-1,false},{"13333321",1,0,-1,false},
+    {"33332113",1,0,-1,false},{"33112333",1,0,-1,false},{"11233333",1,0,-1,false},
+    {"23333311",1,0,-1,false},{"33331123",1,0,-1,false},{"33212333",1,0,-1,false},
+    {"21233333",1,0,-1,false},{"23333321",1,0,-1,false},{"33332123",1,0,-1,false},
+    {"33011333",0x2043,0x200,0,false},{"33330113",0x2045,0x200,2,false},
+    {"13333301",0x2047,0x200,4,false},{"01133333",0x2049,0x200,6,false},
+    {"03333311",0x204F,0x200,2,true},{"11033333",0x2050,0x200,4,true},
+    {"33110333",0x2051,0x200,6,true},{"33331103",0x204E,0x200,0,true},
+    {"03333311",0x2045,0x200,2,false},{"11033333",0x2047,0x200,4,false},
+    {"33110333",0x2049,0x200,6,false},{"33331103",0x2043,0x200,0,false},
+    {"13333310",1,0,-1,false},{"10133333",1,0,-1,false},{"33101333",1,0,-1,false},
+    {"33331013",1,0,-1,false},{"11300000",1,0,-1,false},{"33333001",1,0,-1,false},
+    {"13333300",1,0,-1,false},
+    {"1000mmmm",0x2047,0,-1,false},{"00mmmm10",0x2045,0,-1,false},
+    {"mmmm1000",0x2043,0,-1,false},{"mm1000mm",0x2049,0,-1,false},
+    {"1mmmm000",0x2043,0,-1,false},{"mmm0001m",0x2045,0,-1,false},
+    {"m0001mmm",0x2047,0,-1,false},{"001mmmm0",0x2049,0,-1,false},
+    {"000001m0",0x2044,0x20400000,6,false},{"mm100mmm",0x2049,0,-1,false},
+    {"mmmm100m",0x2043,0,-1,false},{"0mmmmm10",0x2045,0,-1,false},
+    {"100mmmmm",0x2047,0,-1,false},{"1mmmmm00",0x2043,0,-1,false},
+    {"mmmm001m",0x2045,0,-1,false},{"mm001mmm",0x2047,0,-1,false},
+    {"001mmmmm",0x2049,0,-1,false},{"00001mmm",0x2043,0,-1,false},
+    {"mm00001m",0x2045,0,-1,false},{"1mmm0000",0x2047,0,-1,false},
+    {"001mmm00",0x2049,0,-1,false},{"0mmm1000",0x2043,0,-1,false},
+    {"000mmm10",0x2045,0,-1,false},{"10000mmm",0x2047,0,-1,false},
+    {"mm10000m",0x2049,0,-1,false},{"0011mmm0",0x2049,0,-1,false},
+    {"m100000m",0x2048,0,-1,false},{"100m0002",0x2047,0,-1,false},
+    {"00mmm100",0x2044,0,-1,false}
+};
+static_assert(sizeof(elevationPatterns)/sizeof(*elevationPatterns)==147,"FUN_00473170 row count");
+struct ElevationDescriptor {uint16_t code=0;uint32_t flags=0;int direction=-1;bool unknown=false;};
+constexpr int elevationOffsets[8]={-228,-227,1,229,228,227,-1,-229}; // 0x007ACA48
+bool elevationBlockCandidate(uint16_t c) {
+    // FUN_00474B90 / FUN_00474BB0, the two deferred 2x2 classes.
+    return (c>=0x206A&&c<=0x206D)||(c>=0x2004&&c<=0x2007)||
+        c==0x2062||c==0x2064||c==0x2066||c==0x2068;
+}
+bool elevationPairedBlockCandidate(uint16_t c) {
+    // FUN_00474C50 / FUN_00474C90, setter 2's remaining 2x2 classes.
+    return (c>=0x2092&&c<=0x20A0&&(c&1u)==0u)||
+        c==0x2072||c==0x2074||c==0x2076||c==0x2078;
+}
+uint16_t elevationVariant(uint16_t c,uint8_t random) {
+    // FUN_00472EB0 @0x00472EB0 + FUN_00472F50 @0x00472F50.
+    constexpr uint16_t pairs[][2]={{0x202E,0x201E},{0x202F,0x2002},{0x2030,0x201D},
+        {0x2032,0x201C},{0x2034,0x201B},{0x2035,0x2003},{0x2042,0x200B},
+        {0x2043,0x200C},{0x2044,0x200A},{0x2046,0x2009},{0x2048,0x2008},
+        {0x2049,0x2010},{0x2062,0x2007},{0x2064,0x2006},{0x2066,0x2005},{0x2068,0x2004}};
+    for(const auto& pair:pairs)if(c==pair[0])return random&1u?pair[1]:c;
+    if(c==0x2031){constexpr uint16_t codes[]={0x2031,0x20AB,0x20AC,0x20AA};return codes[random&3u];}
+    if(c==0x2033){constexpr uint16_t codes[]={0x2033,0x2027,0x2025,0x2024};return codes[random&3u];}
+    if(c==0x2045){constexpr uint16_t codes[]={0x2045,0x201A,0x2019,0x2018};return codes[random&3u];}
+    if(c==0x2047){constexpr uint16_t codes[]={0x2047,0x2017,0x2016,0x2015};return codes[random&3u];}
+    return c;
+}
+ElevationDescriptor elevationDescriptor(const OriginalTerrainState& state,size_t cell) {
+    std::array<int,8> differences{};bool higher=false;
+    const int height=int8_t(state.gBEBF3A[cell]); // 0x408CF4, signed at 0x473232
+    for(size_t i=0;i<8;++i) {
+        const int64_t neighbour=int64_t(cell)+elevationOffsets[i];
+        if(neighbour>=0&&neighbour<int64_t(OriginalTerrainState::cells))
+            differences[i]=int8_t(state.gBEBF3A[size_t(neighbour)])-height;
+        higher|=differences[i]>0;
+    }
+    if(!higher)return {}; // 0x473288/28A: no strictly higher neighbour, no descriptor
+    const uint32_t terrain=state.terrain[cell];
+    for(const auto& pattern:elevationPatterns) {
+        if(pattern.ramp&&!(terrain&0x400u))continue; // 0x4732B4..2C9
+        bool match=true;
+        for(size_t i=0;i<8;++i) {
+            const char p=pattern.differences[i];
+            if(p=='3')continue;
+            if(p=='4'?std::abs(differences[i])>1:differences[i]!=(p=='m'?-1:p-'0')){match=false;break;}
+        }
+        if(!match)continue;
+        uint16_t code=pattern.code;
+        if(code<=2)return {code,0,-1}; // 0x47330A..473320: height-repair sentinels
+        if(terrain&0x800000u) {
+            // 0x47335C..4734B8: paired cliff art uses the cardinal neighbour's
+            // 0x800000 bit (FUN_00473180) and the descriptor's direction.
+            if(code>=0x2042&&code<=0x204D) {
+                if((code&1u)==0u||code>=0x204A)code=uint16_t(code+0x20u);
+                else {
+                    const int axis=pattern.direction/2;
+                    constexpr int adjacent[4][2]={{-1,1},{-228,228},{1,-1},{228,-228}}; // 0x8280E8
+                    auto paired=[&](int offset){const int64_t n=int64_t(cell)+offset;
+                        return n>=0&&n<int64_t(OriginalTerrainState::cells)&&(state.terrain[size_t(n)]&0x800000u);};
+                    const unsigned kind=(paired(adjacent[axis][0])?1u:0u)+(paired(adjacent[axis][1])?2u:0u);
+                    constexpr uint16_t codes[4][4]={{0x20A2,0x2094,0x2092,0x2072},
+                        {0x20A4,0x2098,0x2096,0x2074},{0x20A6,0x209A,0x209C,0x2076},
+                        {0x20A8,0x20A0,0x209E,0x2078}};
+                    code=codes[(code-0x2043)/2][kind];
+                }
+            } else if(code>=0x204E&&code<=0x2051)code=uint16_t(0x207A+2*(code-0x204E));
+            // The road-material array 0x00F11C70 is not restored by the MAP
+            // loader. Its 0x40 ramp arm is intentionally left unknown.
+            if((terrain&0x440u)==0x440u)return {0,pattern.flags,pattern.direction,true};
+        }
+        if(pattern.ramp&&(terrain&0x40u))return {0,pattern.flags,pattern.direction,true};
+        return {elevationVariant(code,state.randomByte[cell]),pattern.flags,pattern.direction};
+    }
+    return {};
+}
 }
 std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uint32_t activeSide) {
     if(!state.valid()||!activeSide||activeSide>228u)return {};
@@ -507,6 +655,47 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
     working.image.assign(OriginalTerrainState::cells,0u);
     const GroundMapBounds bounds(activeSide);
     std::vector<uint8_t> stamped(result.size(),0);
+    std::vector<ElevationDescriptor> elevation(result.size());
+    // FUN_005403C0 first completes FUN_0053EAA0/FUN_0053EAE0 over every
+    // row (0x54040B..43E), then starts the dispatcher traversal at 0x54044F.
+    // Direct elevation images therefore occupy the working image grid before
+    // any land/road composite predicate tests it. Stored images are not read.
+    for(int y=0;y<bounds.side;++y) {
+        const int storageY=bounds.first+y;
+        const int start=storageY<=bounds.middle?bounds.middle-y:bounds.first-bounds.middle-1+storageY;
+        const int end=2*bounds.middle-start+2-bounds.first;
+        for(int x=start-bounds.first;x<end;++x) {
+            if(x<0||x>=bounds.side)continue;
+            const size_t cell=bounds.cell(x,y);
+            if(working.terrain[cell]&0x8C008u)continue; // 0x53EAAB
+            // Reconstruct image writes from the stored terrain/height snapshot.
+            // Do not replay 0x53EAFA's derived-flag clearing independently of
+            // FUN_004740D0's in-place height repair; see the measured refusal in
+            // docs/MAP_GROUND_BRANCHES.md. The unchanged derived bits retain the
+            // snapshot's ground-block exclusions when no elevation image writes.
+            const auto descriptor=elevationDescriptor(working,cell);
+            elevation[cell]=descriptor;
+            if(descriptor.unknown) {
+                result[cell]={{0,false,false,"elevation-road-material"},cell,1};
+                stamped[cell]=1;working.image[cell]=1;
+                continue;
+            }
+            if(descriptor.code<=2||elevationBlockCandidate(descriptor.code))continue;
+            // FUN_00473760, called at 0x53EBDD, stores T(C) and optionally
+            // T(C)+1 at direction B when the origin carries 0x800000.
+            const GroundSelection selection{descriptor.code,true,false,"elevation-direct"};
+            result[cell]={selection,cell,1};working.image[cell]=1;stamped[cell]=1;
+            working.terrain[cell]|=descriptor.flags|0x200u;
+            if(descriptor.direction>=0&&(working.terrain[cell]&0x800000u)) {
+                const int64_t neighbour=int64_t(cell)+elevationOffsets[descriptor.direction];
+                if(neighbour>=0&&neighbour<int64_t(result.size())) {
+                    auto paired=selection;paired.variant=1;
+                    result[size_t(neighbour)]={paired,cell,1};working.image[size_t(neighbour)]=1;
+                    stamped[size_t(neighbour)]=1;working.terrain[size_t(neighbour)]|=0x200u;
+                }
+            }
+        }
+    }
     // FUN_005403C0 @0x005403C0, 0x54044F..0x540482: increasing row, then
     // increasing column from the row tables constructed at 0x4B0694..0x4B06DC.
     for(int y=0;y<bounds.side;++y) {
@@ -518,6 +707,89 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
             if(x<0||x>=bounds.side)continue;
             const size_t cell=bounds.cell(x,y);
             if(state.terrain[cell]&0x80000u)continue;
+            // Setter 2 precedes the img!=0 gate (0x53ECCA..53ECE0), so its
+            // successful 2x2 stamp may overwrite a direct or earlier block image.
+            const auto descriptor=elevation[cell];
+            if(elevationBlockCandidate(descriptor.code)&&descriptor.direction>=0&&
+               !(working.terrain[cell]&(0x100u|0x8C008u))) {
+                // FUN_004736A0 @0x004736A0 checks both adjacent working images
+                // against the 56-code membership table at 0x00828118.
+                constexpr uint16_t members[]={0x2045,0x201A,0x2019,0x2018,0x2049,0x2010,
+                    0x2047,0x2017,0x2016,0x2015,0x2043,0x200C,0x2072,0x2074,0x2076,0x2078,
+                    0x206A,0x206B,0x206C,0x206D,0x205A,0x205B,0x205C,0x205D,0x205F,0x205E,
+                    0x2060,0x2061,0x2092,0x2094,0x2096,0x2098,0x209C,0x209A,0x209E,0x20A0,
+                    0x20A2,0x20A4,0x20A6,0x20A8,0x2063,0x2065,0x2067,0x2069,0x2082,0x2084,
+                    0x2086,0x2088,0x208A,0x208C,0x208E,0x2090,0x207A,0x207C,0x207E,0x2080};
+                const bool outer=descriptor.code>=0x206A&&descriptor.code<=0x206D;
+                constexpr int innerDirections[4][2]={{0,6},{2,0},{4,2},{6,4}}; // 0x82821C
+                constexpr int outerDirections[4][2]={{4,2},{6,4},{0,6},{2,0}}; // 0x8281FC
+                const auto& adjacent=(outer?outerDirections:innerDirections)[descriptor.direction/2];
+                auto member=[&](int direction){const int64_t n=int64_t(cell)+elevationOffsets[direction];
+                    if(n<0||n>=int64_t(result.size())||!working.image[size_t(n)])return false;
+                    const auto& selected=result[size_t(n)].selection;if(!selected.known||selected.variant)return false;
+                    for(auto code:members)if(code==selected.code)return true;
+                    return false;};
+                if(member(adjacent[0])&&member(adjacent[1])) {
+                    // Setter 2 adjusts the 2x2 origin by B (0x53F2E8..53F32F).
+                    int bx=x,by=y;
+                    if(descriptor.direction==2||descriptor.direction==4)--bx;
+                    if(descriptor.direction==4||descriptor.direction==6)--by;
+                    if(bx>=0&&by>=0&&bx+1<bounds.side&&by+1<bounds.side) {
+                        const size_t origin=bounds.cell(bx,by);
+                        GroundSelection selection{descriptor.code,true,true,"elevation-block"};
+                        for(int row=0;row<2;++row)for(int column=0;column<2;++column) {
+                            const size_t target=blockCell(origin,row,column);
+                            result[target]={selection,origin,2};stamped[target]=1;working.image[target]=1;
+                            working.terrain[target]=(working.terrain[target]&0x93872790u)|0x200u;
+                        }
+                    }
+                }
+                // Setter 2 returns handled even if the membership predicate
+                // refused (0x53F452..53F468); do not fall through to land.
+                if(!stamped[cell])result[cell]={{0,false,false,"elevation-block-declined"},cell,1};
+                continue;
+            }
+            if(elevationPairedBlockCandidate(descriptor.code)&&descriptor.direction>=0&&
+               !(working.terrain[cell]&(0x100u|0x8C008u))) {
+                // FUN_00473800 / FUN_00473A70 compare two working images;
+                // constants from 0x82825C (initialised at 0x473800) / 0x8282DC.
+                constexpr int adjacent[4][2]={{0,-1},{0,-228},{0,1},{0,228}};
+                const int axis=descriptor.direction/2;
+                auto equals=[&](int offset,uint16_t code){const int64_t n=int64_t(cell)+offset;
+                    if(n<0||n>=int64_t(result.size())||!working.image[size_t(n)])return false;
+                    const auto& p=result[size_t(n)].selection;
+                    return p.known&&p.code==code&&p.variant==0;};
+                uint16_t code=0;
+                if(descriptor.code>=0x2092&&descriptor.code<=0x20A0) {
+                    constexpr uint16_t left[]={0x2072,0x2094,0x2074,0x2098,0x2076,0x209A,0x2078,0x20A0};
+                    constexpr uint16_t right[]={0x2092,0x2072,0x2096,0x2074,0x209C,0x2076,0x209E,0x2078};
+                    const size_t k=(descriptor.code-0x2092)/2;
+                    if(equals(adjacent[axis][0],left[k])&&equals(adjacent[axis][1],right[k])) {
+                        constexpr uint16_t codes[]={0x205A,0x205B,0x205C,0x205D,0x205F,0x205E,0x2060,0x2061};
+                        code=codes[k];
+                    }
+                } else if(equals(adjacent[axis][0],descriptor.code)&&equals(adjacent[axis][1],descriptor.code)) {
+                    constexpr uint16_t codes[4][4]={{0x2063,0x202C,0x200D,0x2028},
+                        {0x2065,0x202D,0x200E,0x2029},{0x2067,0x2001,0x200F,0x202A},
+                        {0x2069,0x2022,0x2026,0x202B}};
+                    code=codes[(descriptor.code-0x2072)/2][working.randomByte[cell]&3u];
+                }
+                if(code) {
+                    // 0x53F3A7..53F3DC: paired blocks shift N/NW/W.
+                    const int bx=x-((descriptor.direction==0||descriptor.direction==6)?1:0);
+                    const int by=y-((descriptor.direction==0||descriptor.direction==2)?1:0);
+                    if(bx>=0&&by>=0&&bx+1<bounds.side&&by+1<bounds.side) {
+                        const size_t origin=bounds.cell(bx,by);
+                        GroundSelection selection{code,true,true,"elevation-block"};
+                        for(int row=0;row<2;++row)for(int column=0;column<2;++column) {
+                            const size_t target=blockCell(origin,row,column);
+                            result[target]={selection,origin,2};stamped[target]=1;working.image[target]=1;
+                            working.terrain[target]=(working.terrain[target]&0x93872790u)|0x200u;
+                        }
+                    }
+                }
+                continue;
+            }
             // FUN_0053EC90 0x53ECF4..0x53ED02 skips setters 4..18 if img!=0.
             if(stamped[cell])continue;
             const auto request=groundCodeRequest(working,cell);
@@ -634,5 +906,14 @@ bool resolveGroundTileCode(const SG3Archive& archive,uint16_t code,uint8_t varia
     if(size_t(variant)>archive.sprites.size()-1-base)return false;
     archiveIndex=base+variant;
     return true;
+}
+bool resolveGroundTileCode(const SG3Archive& archive,uint32_t tileset,uint16_t code,
+        uint8_t variant,size_t& archiveIndex) {
+    archiveIndex=0;
+    const size_t slot=code&0x1FFu;
+    if((tileset!=3u&&tileset!=16u)||(code>>9)!=tileset||!slot||slot>=archive.imageIndex.size())return false;
+    const size_t id=archive.imageIndex[slot];
+    if(!id||id>archive.sprites.size()||size_t(variant)>archive.sprites.size()-id)return false;
+    archiveIndex=id-1+variant;return true;
 }
 }

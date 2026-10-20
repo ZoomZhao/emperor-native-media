@@ -12,8 +12,8 @@ without ``--output`` so no PNG is produced; the private build directory lives un
 The headline denominator is the number of ``Cities/*.map`` files found. A map that
 fails to run is listed with its exact reason; it is never silently skipped.
 
-Known limitation recorded in the output: the selector hardcodes tileset 3
-(``China_Terrain.sg3``) in ``resolveGroundTileCode``, while the ``0x20`` ground
+Known limitation recorded in the output: the per-cell viewport resolves tileset 3
+(``China_Terrain.sg3``), while the ``0x20`` ground
 branch of the original dispatch chain resolves in tileset 2 (``China_General.sg3``).
 Measured on all 167 city maps, that branch fires on 0 cities, so the hardcoded
 tileset is inert for it. ``unresolved_codes`` is *not* zero everywhere: it equals
@@ -22,6 +22,15 @@ composite, not single-cell geometry, so the ground render counts it as unresolve
 rather than an archive mismatch. The archive slots themselves never miss (no
 empty-slot resolve failure on the corpus).
 
+The image-grid chain score additionally resolves explicit tileset-16 predictions
+against the elevation archive already loaded by the view from ``--data-root``
+(``--sg3-elevation`` or ``China_Elevation.sg3`` next to ``--sg3``). Missing elevation
+archives leave those predictions unresolved, reported per city as ``chainUnres``
+and in JSON as ``chain.unresolved``. The two new
+branches are ``elevation-direct`` and ``elevation-block``; their archive identity
+is never inferred from the stored image. The legacy JSON field
+``stored_not_tileset3`` now means a stored tileset different from the prediction.
+
 With ``--image-grid`` the same harness instead sweeps the *stored* surface-image
 grid (``0x00FE9880``) verbatim: it runs ``scripts/map_reference.py view
 --image-grid`` and also reports how often the reconstructed dispatch chain agrees
@@ -29,7 +38,7 @@ with that stored grid. It aggregates an exact-render metric (cities whose stored
 nonzero cells all resolve to decodable single-cell records) over the same 167-city
 denominator and per-branch chain accuracy, and keeps the non-zero exit on failure.
 It also partitions the chain's emitted-but-mismatched cells into named classes
-(stored zero; stored tileset other than 3; same-tileset archive-index delta, bucketed
+(stored zero; stored tileset different from the prediction; same-tileset archive-index delta, bucketed
 by sign for +-8 and by magnitude above it) and refuses a city whose classes do not
 sum to its ``mismatched`` count.
 """
@@ -309,7 +318,7 @@ def image_grid_report(maps, rows, failures, args):
             'A viewport cannot cover a full 84..226-cell crop at 2048px cap, so '
             'drawn_cells is a viewport fraction; the decode counts are camera-free.',
             'Every emitted-but-mismatched cell of the chain score falls in exactly one '
-            'named class (stored zero, stored tileset other than 3, or a same-tileset '
+            'named class (stored zero, stored tileset different from the prediction, or a same-tileset '
             'archive-index delta bucketed by sign for +-8 and by magnitude above it). '
             'The classes must sum to mismatched for every city; a city that violates '
             'this is a failure, not a metric. See docs/MAP_GROUND_BRANCHES.md.',
@@ -324,12 +333,13 @@ def image_grid_report(maps, rows, failures, args):
     print(f'# exact render (all stored nonzero cells single-cell): '
           f'{len(exact)}/{len(maps)} cities at 100%')
     print(f'{"map":<28}{"grid":>7}{"nonzero":>8}{"drawn":>8}{"archUna":>8}'
-          f'{"compose":>8}{"unres":>7}{"decfail":>8}{"drawn/nz":>10}{"exact":>7}')
+          f'{"compose":>8}{"unres":>7}{"chainUnres":>11}{"decfail":>8}{"drawn/nz":>10}{"exact":>7}')
     for r in rows:
         dn = r['drawn_over_nonzero']
         print(f'{r["map"]:<28}{cell(r, "grid_cells"):>7}{cell(r, "nonzero_cells"):>8}'
               f'{cell(r, "drawn_cells"):>8}{cell(r, "archive_unavailable"):>8}'
               f'{cell(r, "geometry_unsupported"):>8}{cell(r, "unresolved_indices"):>7}'
+              f'{int((r["chain"] or {}).get("unresolved") or 0):>11}'
               f'{cell(r, "decode_failures"):>8}'
               f'{(f"{dn:.3f}" if dn is not None else "-"):>10}'
               f'{("yes" if r["exact"] else "no"):>7}')
@@ -349,7 +359,8 @@ def image_grid_report(maps, rows, failures, args):
           f'{chain_totals["cells"]}; chain-no-write-vs-stored-zero '
           f'{chain_totals["chain_no_write_vs_stored_zero"]}; '
           f'chain-no-write-vs-stored-nonzero '
-          f'{chain_totals["chain_no_write_vs_stored_nonzero"]}')
+          f'{chain_totals["chain_no_write_vs_stored_nonzero"]}; '
+          f'unresolved {chain_totals["unresolved"]}')
     if classes:
         print(f'# chain mismatch classes (sum {sum(classes.values())} == mismatched '
               f'{chain_totals["mismatched"]}): '

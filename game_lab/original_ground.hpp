@@ -43,10 +43,11 @@ struct GroundCodeRequest {
 // but no setter writes 0x00FE9880 for this cell. The oracle refutes calling that
 // "no ground": 0x00FE9880 is loaded from the `.map` payload (logical offset
 // 1535, original_terrain.hpp), not computed, so a cell the chain does not write
-// keeps the art it was loaded with. Measured over all 167 Cities/*.map:
-// chainNoWrite vs a stored zero == 0 cells, vs a stored nonzero == 114,937.
+// keeps the art it was loaded with. Before the elevation prepass, measured over
+// all 167 Cities/*.map: vs stored zero == 0, vs stored nonzero == 114,937.
+// The whole-map elevation writers now reduce the latter to 19,841.
 struct GroundSelection {
-    uint16_t code = 0;      // 0x600|ordinal for tileset 3, 0x400|n for tileset 2
+    uint16_t code = 0;      // tileset<<9|slot: 3 terrain, 16 elevation, 2 general
     bool known = false;
     bool block = false;     // the executable draws w x h block art for this cell
     const char* branch = "";// stable identifier, e.g. "plain-land"
@@ -87,4 +88,7 @@ bool resolveGroundTileCode(const SG3Archive&, uint16_t code, size_t& archiveInde
 // 14 bits are the 0-based tileset image index. false when the sum is out of range
 // for archive.sprites (never clamped).
 bool resolveGroundTileCode(const SG3Archive&, uint16_t code, uint8_t variant, size_t& archiveIndex);
+// Explicit archive identity: only 3 (China_Terrain) and 16 (China_Elevation).
+bool resolveGroundTileCode(const SG3Archive&, uint32_t tileset, uint16_t code,
+    uint8_t variant, size_t& archiveIndex);
 }

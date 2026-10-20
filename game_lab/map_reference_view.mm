@@ -227,7 +227,9 @@ int imageGridView(const std::map<std::string,std::string>& args,bool show) {
     const auto& archive=loaded.at(3).archive;
     game_lab::OriginalMapCamera camera;camera.centerX=real(args.at("--camera-x"));camera.centerY=real(args.at("--camera-y"));camera.width=uint32_t(vw);camera.height=uint32_t(vh);camera.scale=uint32_t(scale);camera.outlines=false;
     const auto rendered=game_lab::renderMapImageGridViewport(map.terrain,*state,tilesets,camera);if(!rendered.image.valid())throw std::runtime_error("stored image-grid viewport rejected");
-    const auto score=game_lab::scoreGroundChainAgainstImageGrid(map.terrain,*state,archive);
+    const auto elevation=loaded.find(16);
+    const auto score=game_lab::scoreGroundChainAgainstImageGrid(map.terrain,*state,archive,201,
+        elevation==loaded.end()?nullptr:&elevation->second.archive);
     CGImageRef cg=game_lab::createCGImageFromPremultipliedBGRA(rendered.image.width,rendered.image.height,rendered.image.pixelsBGRA);if(!cg)throw std::runtime_error("CGImage failed");
     const auto&s=rendered.stats;
     const bool exact=!s.unresolvedIndices&&!s.geometryUnsupported&&!s.archiveUnavailable&&!s.decodeFailures;

@@ -314,7 +314,7 @@ order (logical payload offsets; `original_terrain.hpp` carries the same table):
 | 885,271 | `0x00E92DD0` | u8 | road distance |
 | 937,255 | `0x00E9F8E0` | u8 | fertility |
 | 989,239 | — | 0x24 B | blob |
-| 989,275 | `0x00BEBF3A` | u8 | unmodelled |
+| 989,275 | `0x00BEBF3A` | signed byte | height input for the elevation descriptor/prepass |
 | 1,041,259 | `0x00BF8A4A` | u8 | unmodelled |
 | 1,093,243 | `0x010C6F18` | u32 | unmodelled |
 | 1,093,247 | `0x010C6DB0` | 0x168 B | blob; **flat run ends at 1,093,607** |
@@ -328,18 +328,20 @@ them `chain-declined` / `chainNoWrite` (`original_ground.hpp`).
 
 Measured over all 167 `Cities/*.map` (whole crop, camera-free), after modelling
 setter 5 (the road arm), the two `LAB_0053FF8A` arms of setter 4 and the whole-map
-farm/plain-land block tiers plus the land/flood/twin composite arms (167/167
-processed, 0 failures):
+farm/plain-land block tiers, the land/flood/twin composite arms and the elevation
+prepass/setter-2 writers (167/167 processed, 0 failures):
 
 * grid `2,107,836` active cells, `28` stored zero, `2,107,808` stored nonzero;
-* chain emits `1,860,329` (88.258 % of active), agrees with the stored grid on
-  `1,589,591` = **85.447 %** of emitted / **75.413 %** of active; mismatched `270,738`;
-* mismatches partition into `16` stored zero, `9,829` stored tileset 16,
-  `11,560` index deltas within ±8 and `249,333` larger deltas; the 17–32 bucket
-  contains `227,592/249,333` (91.28 %) of those larger deltas;
-* chain declines to write on `114,937` cells: `0` of them store zero, **all `114,937`
-  store nonzero art** — direct evidence that "declined" is not "empty";
-* unknown / non-terrain-determinable chain cells `132,570` (6.289 % of active).
+* chain emits `1,956,299` (92.811 % of active), agrees with the stored grid on
+  `1,693,753` = **86.579 %** of emitted / **80.355 %** of active; mismatched `262,546`;
+* mismatches partition into `16` stored zero, `64` stored tilesets different from
+  the prediction, `12,566` index deltas within ±8 and `249,900` larger deltas; the
+  17–32 bucket contains `227,692/249,900` (91.113 %) of those larger deltas;
+* chain declines to write on `19,841` cells: `0` of them store zero, **all `19,841`
+  store nonzero art** — direct evidence that "declined" is not "empty". Most former
+  declined cells were elevation art now owned by the earlier elevation writers;
+* unknown / non-terrain-determinable chain cells `131,696` (6.248 % of active),
+  including `208` road-material cells refused by the `FUN_00474920` boundary.
 
 (History: the pre-setter-5 numbers were `1,514,539` emitted / `1,299,617` matched = 85.809 %
 / `478,360` unknown; setter 5 adds the 246,802 road cells and setter 4's two
@@ -350,7 +352,19 @@ farm 4×4/3×3/2×2 + fallback and plain-land 4×4/3×3/2×2 tiers then add **94
 matched** and remove **36,950 unknown**, raising emitted agreement to 84.383 %.
 The land/flood/twin composite arms add **19,783 matches** (15,135 + 3,716 + 932),
 raising emitted agreement to 85.447 % without changing emitted, unknown or
-stored-grid rendering totals.)
+stored-grid rendering totals. The elevation prepass/setter-2 writers then add
+**104,162 matches**, taking the baseline from 1,589,591 matched / 270,738
+mismatched / 132,570 unknown to the current totals above; chain no-write was
+114,937 and is now 19,841. `FUN_005403C0` runs the prepass before dispatch:
+`FUN_0053EAE0` → `FUN_00473760`, using `FUN_00473210`'s 147-row table at
+`0x00825C28` / file `0x425C28` over the signed height byte above; setter 2
+`FUN_0053F240` adds constant-image 2×2 stamps. Stored-tileset-16 residuals fall
+from 9,829 to 64 different-tileset mismatches. The elevation archive is not affected
+by the terrain archive's vintage id offset: elevation-direct matches 60,679/61,651
+unshifted and 41,194/41,617 shifted; elevation-block matches 790/840 and
+1,496/1,672 respectively. No existing branch's per-cohort rate decreases. Unshifted
+land is 39,823/39,858 (99.91 %), flood 6,068/6,068 and canal 5,286/5,286.
+Stored-grid exact rendering stays 139/167 and composite rendering is unchanged.)
 
 ### The stored ids are an older archive vintage, and the shift is not derivable
 

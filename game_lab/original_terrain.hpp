@@ -63,7 +63,10 @@ struct OriginalTerrainState {
     std::vector<uint8_t> roadDistance; // 0x00E92DD0
     std::vector<uint8_t> fertility;   // 0x00E9F8E0 (FUN_004BD920 @0x004BD920 gate)
     std::array<uint8_t,blob24Size> blob24{}; // read into FUN_00408C70(0x00890210)
-    std::vector<uint8_t> gBEBF3A;     // 0x00BEBF3A
+    // Signed height at this+2 of the 0x00BEBF38 elevation object:
+    // FUN_00408CF0 @0x00408CF0, caller ECX=0x00BEBF38 at 0x00473225.
+    // Restored by the existing loader read at 0x0052EAC4..0x0052EACB.
+    std::vector<uint8_t> gBEBF3A;     // 0x00BEBF3A signed height (stored as bytes)
     std::vector<uint8_t> gBF8A4A;     // 0x00BF8A4A
     uint32_t g10C6F18=0;              // 0x010C6F18
     std::array<uint8_t,g10C6DB0Size> g10C6DB0{}; // 0x010C6DB0

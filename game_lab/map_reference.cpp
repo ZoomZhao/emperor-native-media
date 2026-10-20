@@ -499,7 +499,8 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
     }catch(const std::bad_alloc&){return {};}
 }
 ChainScoreStats scoreGroundChainAgainstImageGrid(const OriginalMapTerrain& terrain,
-        const OriginalTerrainState& state,const SG3Archive& tileset3,uint32_t firstRecordId) {
+        const OriginalTerrainState& state,const SG3Archive& tileset3,uint32_t firstRecordId,
+        const SG3Archive* tileset16) {
     ChainScoreStats result;
     const auto activity=analyzeOriginalMap(terrain);
     if(!terrain.valid()||!state.valid()||terrain.flags.size()!=state.terrain.size()||!activity.cropValid())
@@ -532,16 +533,18 @@ ChainScoreStats scoreGroundChainAgainstImageGrid(const OriginalMapTerrain& terra
         if(!selection.known){++result.chainUnknown;if(!stored)++result.storedZeroUnpredicted;continue;}
         ++result.chainKnown;
         size_t index=0;
-        if(!resolveGroundTileCode(tileset3,selection.code,selection.variant,index)) {
+        const uint32_t predictedTileset=selection.code>>9;
+        const auto* archive=predictedTileset==3u?&tileset3:predictedTileset==16u?tileset16:nullptr;
+        if(!archive||!resolveGroundTileCode(*archive,predictedTileset,selection.code,selection.variant,index)) {
             ++result.unresolved;if(!stored)++result.storedZeroUnpredicted;continue;
         }
         ++result.emitted;++stats.emitted;
-        if(stored&&storedTileset==3u&&index==storedIndex) {
+        if(stored&&storedTileset==predictedTileset&&index==storedIndex) {
             ++result.matched;++result.knownMatched;++stats.matched;
         } else {
             ++result.mismatched;
             if(!stored) {++result.storedZeroUnpredicted;++stats.storedZeroMismatch;}
-            else if(storedTileset!=3u) {
+            else if(storedTileset!=predictedTileset) {
                 ++stats.storedNotTileset3;
                 ++stats.storedTilesetOther[storedTileset<16u?size_t(storedTileset):size_t(15)];
             } else {

@@ -112,15 +112,17 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain&, const O
 // plus a classification of the emitted-but-mismatched cells so a residual is a
 // named cause and not a bare count. Every mismatch falls in exactly one class:
 // the stored word is 0 while the chain emitted (storedZeroMismatch); the stored
-// word names a tileset other than 3 (storedTilesetOther[stored>>14], with index 15
+// word names a tileset other than the prediction (storedTilesetOther[stored>>14], with index 15
 // holding "15 or more" - the corpus uses 2, 5, 6, 8 and 16); or both name
-// tileset 3 and the resolved archive indexes differ. For the last class the signed
+// the same tileset and the resolved archive indexes differ. For the last class the signed
 // stored-minus-predicted delta is bucketed: indexDelta[i] holds delta i-8 for
 // -8..+8, and indexDeltaMagnitude holds |delta|>8 in the doubling buckets 9-16,
 // 17-32, 33-64, 65-128, 129-256, 257-512, 513-1024, >1024, so a wrong variant
 // (small delta) separates from a wrong code (large, quantised delta).
 struct ChainScoreBranch {
     std::string branch; size_t cells=0,emitted=0,matched=0,storedZero=0;
+    // Historical JSON name retained: now counts a different tileset from the
+    // prediction (3 or 16), preserving the exact mismatch-class partition.
     size_t storedNotTileset3=0,storedZeroMismatch=0;
     std::array<size_t,17> indexDelta{};
     std::array<size_t,8> indexDeltaMagnitude{};
@@ -129,8 +131,8 @@ struct ChainScoreBranch {
 struct ChainScoreStats {
     size_t activeCells=0, storedZero=0, chainUnknown=0, chainNoWrite=0, chainKnown=0;
     // emitted: the chain produced a determinate ground code that resolved to a
-    // tileset-3 archive index (the candidate prediction). matched: that prediction
-    // equals the stored grid (same tileset 3 and same archive index). mismatched:
+    // tileset-3 or explicit tileset-16 archive index. matched: that prediction
+    // equals the stored grid (same tileset and same archive index). mismatched:
     // emitted but the stored grid differs. knownMatched is the total agreement:
     // matched plus the cells where the chain declines to write and the grid
     // stores 0.
@@ -138,8 +140,10 @@ struct ChainScoreStats {
     size_t chainNoWriteVsStoredZero=0, chainNoWriteVsStoredNonzero=0, storedZeroUnpredicted=0;
     std::vector<ChainScoreBranch> branches;
 };
+// Archives are supplied by the caller; a null tileset16 leaves elevation codes
+// unresolved. Scoring never reads the environment or loads an archive itself.
 ChainScoreStats scoreGroundChainAgainstImageGrid(const OriginalMapTerrain&, const OriginalTerrainState&,
-    const SG3Archive& tileset3, uint32_t firstRecordId=201);
+    const SG3Archive& tileset3, uint32_t firstRecordId=201,const SG3Archive* tileset16=nullptr);
 
 enum class SG3DiagnosticComponent { Full, Top };
 struct SG3DiagnosticLayer {
