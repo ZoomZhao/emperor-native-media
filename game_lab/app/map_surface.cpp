@@ -10,8 +10,10 @@ namespace game_lab {
 void AppMapSurface::clear() {
     state_.reset(); savedBuildings_.reset(); terrain_ = {}; error_.clear();
 }
-bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile,const OriginalSavedGround* ground,uint64_t tickMs,const OriginalFigureProfile* figures,OriginalFigureRenderSource figureSource){
+bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile,const OriginalSavedGround* ground,uint64_t tickMs,const OriginalFigureProfile* figures,OriginalFigureRenderSource figureSource,const OriginalFigureOrderedPass* ordered){
     clear();
+    if(figureSource==OriginalFigureRenderSource::PostLoadK1&&(tickMs||!figures||!ordered||!ordered->complete||!ordered->context)){
+        error_="post-load k=1 需要完整的一次有序人物更新";return false;}
     if(!archives_.count(2)){
         auto index=loadSG3(root_.resolve("DATA/China_General.sg3"));
         if((index.version!=213&&index.version!=214)||!index.numImages||index.numImages!=index.sprites.size()){
@@ -50,9 +52,37 @@ bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const
             }
             figureArchives[slot]=&archives_.at(slot).index;
         }
-        installOriginalFigureOverlays(scene,terrain,*figures,figureArchives,tickMs,figureSource,&profile);
+        installOriginalFigureOverlays(scene,terrain,*figures,figureArchives,tickMs,figureSource,&profile,ordered);
+        if(figureSource==OriginalFigureRenderSource::PostLoadK1&&!scene.figurePostLoadK1){error_="post-load k=1 人物池不完整";return false;}
     }
     terrain_=terrain;savedBuildings_=std::move(scene);return true;
+}
+bool AppMapSurface::selectPostLoadK1(const OriginalSaveResult& save,const std::vector<uint8_t>& payload){
+    clear();
+    if(save.status!=OriginalSaveStatus::LoadedSnapshot||!save.layers.figures||!save.layers.ground||!save.layers.ground->valid())return false;
+    const auto& figures=*save.layers.figures;const auto& ground=*save.layers.ground;
+    std::vector<uint8_t> bytes;
+    if(!detail::readFile(root_.resolve("Model/EmperorFigureModels.txt"),100000,bytes))return false;
+    const auto modelText=std::string(bytes.begin(),bytes.end());const auto models=originalFigureModels(modelText);
+    const auto modelSpeeds=originalFigureModelSpeeds(modelText);
+    if(!detail::readFile(root_.resolve("Model/EmperorBuildingModels.txt"),1048576,bytes))return false;
+    const auto capacities=originalFigureHouseCapacities(std::string(bytes.begin(),bytes.end()));
+    auto services=originalFigureSavedServices(payload,save.terrainOffset);const auto population=originalFigureSavedPopulation(payload,save.sizeOffset);
+    const auto spawn=originalFigureSpawnServices(payload,save.sizeOffset);const auto contextSeed=originalFigureUpdateContext(figures);
+    const auto buildings=originalFigureBuildingLinks(payload,save.buildings);const auto hunters=originalFigureHunterLinks(payload,save.buildings);
+    const auto masks=originalFigureRoadMovementMasks(save.terrain,save.buildings);
+    const auto festival=originalFigureSavedFestivalVenue(payload,save.terrainOffset,save.sizeOffset);
+    if(!models||!modelSpeeds||!capacities||!services||!population||!spawn||!contextSeed||!buildings||!hunters||!festival)return false;
+    services->population=population;auto context=*contextSeed;context.houseCapacities=*capacities;context.buildingOwners=ground.owner;
+    context.feature=ground.state.feature.empty()?std::vector<uint8_t>{}:std::vector<uint8_t>(ground.state.feature.size());
+    for(size_t n=0;n<context.feature.size();++n)context.feature[n]=uint8_t(ground.state.feature[n]);
+    context.activeSide=save.terrain.activeSide;context.festivalVenue=festival;context.entertainmentAvailable=spawn->entertainmentAvailable;
+    const auto passability=originalFigurePheasantPassability(save.terrain,save.layers.mapperStone,save.buildings,*spawn);
+    std::map<uint32_t,SG3Archive> owned;std::map<uint32_t,const SG3Archive*> refs;
+    for(unsigned slot:{14u,38u,39u,40u}){owned.emplace(slot,loadSG3(root_.resolve(std::string("DATA/")+originalFigureArchiveName(slot))));refs[slot]=&owned.at(slot);}
+    const auto pass=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,
+        &*hunters,&*buildings,*models,spawn->cropBase,masks?*masks:std::vector<uint16_t>{},&context);
+    return selectSavedBuildings(save.terrain,save.buildings,&ground,0,&figures,OriginalFigureRenderSource::PostLoadK1,&pass);
 }
 OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapCamera& camera,int bit)const{
     if(!savedBuildings_||!archives_.count(2))return {};

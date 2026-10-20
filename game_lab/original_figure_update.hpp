@@ -112,6 +112,7 @@ struct OriginalFigureFirstUpdate {
     std::optional<OriginalFigureSavedServices> services;
     std::map<size_t,OriginalFigure> linkedWrites;
     std::optional<std::vector<uint16_t>> cellHeads;
+    std::optional<std::map<size_t,OriginalFigureBuildingLink>> buildings;
 };
 struct OriginalFigurePassability {
     OriginalFigureSpawnServices spawn;
@@ -194,7 +195,25 @@ struct OriginalFigureUpdateContext {
     std::optional<uint32_t> cropBase;
     std::vector<uint16_t> movementMasks; // Explicit5AD440 A00 gates;FFFF denotes unknown. Never the reduced51C mask.
     std::optional<std::array<int16_t,22>> factionModels;
+    std::map<int,int> houseCapacities;
+    std::vector<uint16_t> buildingOwners;
+    std::vector<uint8_t> feature;
+    std::optional<unsigned> activeSide;
+    std::optional<int32_t> festivalVenue;
+    std::optional<std::array<int16_t,3>> entertainmentAvailable;
+    std::vector<size_t> freeSlots; //postload4E9FE0 descending inactive slots; removal appends.
+    size_t highestLiveSlot=0;
 };
+//42D790 clears the house vector/date through5178A0->444270 (year-10000),
+// then registers loaded live houses. SAV19 tail533E71->517CC0->517DE0
+// therefore recounts its accepting houses before publishing130F988.
+inline bool originalFigurePopulationAfterLoad(OriginalFigureSavedServices& services,
+    const std::map<size_t,OriginalFigureBuildingLink>& buildings){
+    if(!services.population)return false;int64_t total=0;
+    for(const auto& entry:buildings){const auto& h=entry.second;
+        if(h.type>=2&&h.type<18&&h.alive&&h.alive!=2&&h.alive!=5&&h.alive!=6&&h.accepting)total+=h.residents;}
+    if(total<INT32_MIN||total>INT32_MAX)return false;services.population->total=int32_t(total);return true;
+}
 //0x4189B0 advances both persisted registers31 times;destination0x59EDE0
 // consumes first&0x7FFF after each call. No process-start seed is substituted.
 inline uint16_t originalFigureRandomNext(OriginalFigureSavedServices& state){
@@ -223,7 +242,9 @@ inline std::optional<OriginalFigureUpdateContext> originalFigureUpdateContext(co
         if(f.slot>=2000)return std::nullopt;
         f.image=f.secondaryImage=0;
         if(!out.figures.emplace(f.slot,f).second)return std::nullopt;
+        if(f.alive)out.highestLiveSlot=std::max(out.highestLiveSlot,f.slot);
     }
+    for(size_t slot=1999;slot>0;--slot)if(!out.figures.at(slot).alive)out.freeSlots.push_back(slot);
     return out;
 }
 //0x5D2030 reads eighteen numbers per row;0x4C9310(type,8) reads speed.
@@ -426,19 +447,82 @@ inline OriginalFigureMovement originalFigureFollowRoute(const OriginalFigure& sa
     auto local=*context;auto result=originalFigureFollowRouteInContext(saved,speed,terrainFlags,&local);
     if(result.state)*context=std::move(local);return result;
 }
-//0x4E6B70 ->0x4E6D80, already-roaming interior only. At a segment end,
-// owner service and road choice are distinct from saved-route following.
+//0x4EACD0 ->429DF0 ->429E10 ->48B7F0, entertainment owner47.
+// This bounded traversal accepts no occluding cells (42A1A0 mask1 and
+// feature4). It visits the full clipped radius1 box then radius2 box,
+// preserving repeated callbacks for a multi-cell house and the signed cap.
+inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureUpdateContext& context){
+    if(f.type!=36||!context.buildings||!context.services||context.services->serviceGrid.size()!=51984||
+        context.buildingOwners.size()!=51984||context.feature.size()!=51984||context.terrain.size()!=51984||
+        !context.cropBase||!context.activeSide||!context.festivalVenue)return false;
+    auto owner=context.buildings->find(size_t(f.owner));if(owner==context.buildings->end()||owner->second.type!=0x47||!owner->second.entertainment)return false;
+    int count=0;
+    for(int radius=1;radius<=2;++radius)for(int y=std::max(0,int(f.y)-radius);y<=std::min(int(*context.activeSide)-1,int(f.y)+radius);++y)
+        for(int x=std::max(0,int(f.x)-radius);x<=std::min(int(*context.activeSide)-1,int(f.x)+radius);++x){
+            const int64_t cell=int64_t(*context.cropBase)+x+228LL*y;if(cell<0||cell>=51984)return false;
+            const unsigned slot=context.buildingOwners[size_t(cell)];if(!slot)continue;
+            auto house=context.buildings->find(slot);if(house==context.buildings->end())return false;auto& h=house->second;
+            if(context.terrain[size_t(cell)]&1)return false;
+            if((context.feature[size_t(cell)]&4)&&((context.terrain[size_t(cell)]&0x4000)||h.type==0xe7||h.type==0xe8||
+                h.type==0x59||h.type==0x5a||h.type==0x5b||h.type==0x68||h.type==0x69||h.type==0x6a)){
+                //42B6D0 tests Manhattan distance against recorded radius2.
+                //44E550's corner sector lies between slopes3/4 and1 (or
+                // its reflected interval). In this5x5 box the only points
+                // in that sector beyond distance2 are the corner itself.
+                // Its callback is skipped; no later distinct cell is hidden.
+                if(radius==2&&std::abs(x-int(f.x))==2&&std::abs(y-int(f.y))==2)continue;
+                return false;}
+            if((h.alive!=1&&h.alive!=3)||h.type<2||h.type>=18||!h.accepting||h.residents<1)continue;
+            if(!h.entertainment)return false;
+            if(*context.festivalVenue==f.owner){
+                if(!context.entertainmentAvailable||std::any_of(context.entertainmentAvailable->begin(),context.entertainmentAvailable->end(),[](int n){return n!=0;}))return false;
+            }else for(unsigned n=0;n<3;++n)if(owner->second.entertainment->at(n))h.entertainment->at(n)=96;
+            ++count;
+        }
+    owner->second.serviceCount=originalFigureWord(int(owner->second.serviceCount)+count);
+    if(owner->second.serviceCount>300)owner->second.serviceCount=300;
+    if(f.cell>=51984)return false;context.services->serviceGrid[f.cell]|=7u<<9; //category3,4B9460
+    return true;
+}
+//4B9590 cardinal road exits. Preserve the original grid-category minimum
+// filtering at >2 exits. Building/roadblock special paths remain refused.
+inline std::optional<std::array<bool,8>> originalFigureRoamRoads(const OriginalFigure& f,const OriginalFigureUpdateContext& context){
+    if(context.terrain.size()!=51984||!context.services||context.services->serviceGrid.size()!=51984)return std::nullopt;
+    std::array<bool,8> roads{};constexpr int delta[]={-228,-227,1,229,228,227,-1,-229};unsigned count=0,min=7;
+    for(unsigned d=0;d<8;d+=2){const int64_t cell=int64_t(f.cell)+delta[d];if(cell<0||cell>=51984)return std::nullopt;
+        const uint32_t t=context.terrain[size_t(cell)];
+        if((t&0x40)&&(t&(0xe03c92c|0x100|8)))return std::nullopt;
+        roads[d]=(t&0x40)!=0;count+=roads[d];if(roads[d])min=std::min(min,(context.services->serviceGrid[size_t(cell)]>>9)&7);}
+    if(count>2)for(unsigned d=0;d<8;d+=2)if(roads[d]){
+        const auto cell=size_t(int64_t(f.cell)+delta[d]);if(((context.services->serviceGrid[cell]>>9)&7)>min)roads[d]=false;}
+    return roads;
+}
+//0x4E6B70 ->0x4E6D80, including the bounded entertainment segment.
 inline OriginalFigureMovement originalFigureRoam(const OriginalFigure& saved,unsigned speed,uint32_t terrainFlags,
     OriginalFigureUpdateContext& context){
     if(!saved.roamState||saved.direction>7||saved.progress>19)return {OriginalFigureUpdateStatus::RouteBoundary,{}};
     auto local=context;auto f=saved;const auto schedule=originalFigureMovementSteps(speed,f.routePhase);
     f.roamSteps=originalFigureWord(int(f.roamSteps)+int(speed));
-    for(unsigned n=0;n<schedule.first;++n){if(f.progress>=19)return {OriginalFigureUpdateStatus::SegmentService,{}};
+    for(unsigned n=0;n<schedule.first;++n){if(f.progress>=19){
+            f.progress=20;f.roamTurns=uint8_t(f.roamTurns+1);
+            if(!originalFigureEntertainmentSegment(f,local))return {OriginalFigureUpdateStatus::SegmentService,{}};
+            const auto roads=originalFigureRoamRoads(f,local);if(!roads)return {OriginalFigureUpdateStatus::NextDirection,{}};
+            const unsigned count=unsigned(std::count(roads->begin(),roads->end(),true));
+            if(!count){f.direction=9;f.roamSteps=f.roamLimit;f.routePhase=schedule.second;context=std::move(local);return {OriginalFigureUpdateStatus::Computed,f};}
+            if(count==1){for(unsigned d=0;d<8;d+=2)if((*roads)[d])f.direction=uint8_t(d);}
+            else if(count==2&&f.roamCountdown!=255){if(!f.roamTurn)f.roamTurn=2;
+                const unsigned reverse=(f.previousDirection+4u)&7;unsigned attempt=0;
+                for(;attempt<4;++attempt){if((*roads)[f.direction]&&f.direction!=reverse)break;
+                    int d=int(f.direction)+int(int8_t(f.roamTurn));if(d>6)d=0;if(d<0)d=6;f.direction=uint8_t(d);}
+                if(attempt==4)return {OriginalFigureUpdateStatus::NextDirection,{}};
+            }else return {OriginalFigureUpdateStatus::NextDirection,{}}; //4E71D0/RNG turn selection
+            f.routeCursor=originalFigureWord(int(f.routeCursor)+1);f.previousDirection=f.direction;f.progress=0;
+        }else ++f.progress;
         //0x4E6D80 moves subcoordinates/height BEFORE the progress10 crossing.
         auto interior=f;interior.progress=0;interior.route=1;interior.routePhase=0;
         const auto step=originalFigureFollowRoute(interior,6,terrainFlags);if(!step.state)return step;
         f.subX=step.state->subX;f.subY=step.state->subY;f.height=step.state->height;f.state85=step.state->state85;
-        f.hidden=step.state->hidden;f.drawClass=step.state->drawClass;++f.progress;
+        f.hidden=step.state->hidden;f.drawClass=step.state->drawClass;
         if(f.progress==10){const auto crossed=originalFigureCrossCell(f,local);if(crossed!=OriginalFigureUpdateStatus::Computed)return {crossed,{}};
             terrainFlags=local.terrain[f.cell];}
     }
@@ -488,7 +572,7 @@ inline void originalFigurePublishWrites(OriginalFigureFirstUpdate& out,const Ori
     for(const auto& entry:after.figures){const auto& prior=before.figures.at(entry.first);
         if(entry.first!=f.slot&&(entry.second.next!=prior.next||entry.second.secondaryImage!=prior.secondaryImage))out.linkedWrites.emplace(entry);}
     if(before.cellHeads!=after.cellHeads)out.cellHeads=after.cellHeads;
-    out.services=after.services;out.state=f;out.status=OriginalFigureUpdateStatus::Computed;
+    out.services=after.services;out.buildings=after.buildings;out.state=f;out.status=OriginalFigureUpdateStatus::Computed;
 }
 inline bool originalFigureBulkGoods(const OriginalFigure& f){const unsigned r=f.subtype?f.subtype:f.resource;return r==10||r==18||r==20;}
 inline bool originalFigureSpecialGoods(const OriginalFigure& f){const unsigned r=f.subtype?f.subtype:f.resource;
@@ -595,7 +679,23 @@ inline OriginalFigureFirstUpdate originalWorkerFirstUpdate(const OriginalFigure&
     const auto speed=context->modelSpeeds.find(11);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
     auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;f.hidden=0;f.frame=uint8_t(f.frame+1);if(f.frame>=12)f.frame=0;
     if(f.action==8){f.freeMovement=1;const auto movement=originalFigureFreeStep(f,local);
-        if(!movement)return out;if(movement->second){out.status=OriginalFigureUpdateStatus::WorkerEmployment;return out;}f=movement->first;f.hidden=bool(f.cellMovement);
+        if(!movement)return out;f=movement->first;
+        if(movement->second){out.status=OriginalFigureUpdateStatus::WorkerEmployment;
+            auto& house=local.buildings->at(size_t(f.home));
+            const auto capacity=context->houseCapacities.find(house.type==11?11:house.houseModel);
+            if(capacity==context->houseCapacities.end()||!house.laborDisabled)return out;
+            // Empty-house arrival invokes notification virtual+230; its broader
+            // event effects remain refused. An occupied house bypasses it.
+            if(!house.residents)return out;
+            f.alive=2;
+            if(!*house.laborDisabled){if(!local.services||!local.services->population)return out;
+                house.residents=originalFigureWord(int(house.residents)+f.employmentAmount);
+                house.freeSlots=originalFigureWord(capacity->second-int(house.residents));
+                auto& pop=*local.services->population;pop.lastArrival=f.employmentAmount;
+                const uint32_t bits=uint32_t(pop.total)+f.employmentAmount;
+                pop.total=bits>INT32_MAX?0:int32_t(bits);pop.peak=std::max(pop.peak,pop.total);}
+            house.worker=0;
+        }f.hidden=bool(f.cellMovement);
     }else {const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
         if(f.direction==8){f.action=8;f.destinationX=home->second.x;f.destinationY=home->second.y;f.roamSteps=0;
@@ -1000,6 +1100,27 @@ struct OriginalFigureOrderedPass {
     std::map<size_t,OriginalFigureFirstUpdate> figures;
     std::optional<OriginalFigureUpdateContext> context;
 };
+//4E291B..32 removes a newly state2 worker before advancing the pool cursor.
+//4E1FA0 vectors reject type11 (59A3B0/4E2360/4E2380);+158=4C8B70
+// releases the route, unlinks and clears target references, then+E8=4C72B0
+// resets represented fields. The inline17C state and priorProgress190 survive.
+inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUpdateContext& context){
+    if(f.type!=11||f.alive!=2||f.runtimeClass!=OriginalFigureClass::Figure||f.owner||f.updateOwner||f.linkedBuilding||
+        !context.services||context.cellHeads.size()!=51984||f.cell>=51984)return false;
+    if(f.route>0){if(f.route>=1000)return false;if(context.services->routeOwners[f.route]==int(f.slot))context.services->routeOwners[f.route]=0;}
+    size_t previous=0,slot=context.cellHeads[f.cell];std::set<size_t> seen;bool found=false;
+    while(slot){const auto it=context.figures.find(slot);if(it==context.figures.end()||!seen.insert(slot).second||it->second.cell!=f.cell)return false;
+        if(slot==f.slot){if(previous)context.figures.at(previous).next=f.next;else context.cellHeads[f.cell]=f.next;found=true;break;}
+        previous=slot;slot=it->second.next;}
+    if(!found)return false;
+    if(f.flags120&2)for(auto& entry:context.figures)if(entry.second.target==int(f.slot))entry.second.target=0;
+    auto reset=OriginalFigure{};reset.slot=f.slot;reset.recordOffset=f.recordOffset;reset.runtimeClass=f.runtimeClass;reset.priorProgress=f.priorProgress;
+    reset.effectKind=f.effectKind;reset.effectVariant=f.effectVariant;reset.effectFlags=f.effectFlags;reset.effectX=f.effectX;reset.effectY=f.effectY;
+    reset.effectHeight=f.effectHeight;reset.effectVelocityX=f.effectVelocityX;reset.effectVelocityY=f.effectVelocityY;reset.effectVelocityZ=f.effectVelocityZ;
+    f=reset;context.figures.at(f.slot)=f;context.freeSlots.push_back(f.slot);
+    while(context.highestLiveSlot&&!context.figures.at(context.highestLiveSlot).alive)--context.highestLiveSlot;
+    return true;
+}
 //0x4E27E0,ascending pool slots. Compute the exact supported prefix; an unknown
 // earlier updater poisons later context rather than leaving that slot frozen.
 // The prepass0x4E2804..2818 resets/recounts external query counters,without
@@ -1011,7 +1132,7 @@ inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFi
     const OriginalFigurePassability* passability=nullptr,const std::map<size_t,OriginalFigureHunterLink>* hunterLinks=nullptr,
     const std::map<size_t,OriginalFigureBuildingLink>* buildings=nullptr,
     const std::map<unsigned,std::array<int32_t,18>>& models={},std::optional<uint32_t> cropBase=std::nullopt,
-    const std::vector<uint16_t>& movementMasks={}){
+    const std::vector<uint16_t>& movementMasks={},const OriginalFigureUpdateContext* additional=nullptr){
     OriginalFigureOrderedPass out;auto context=originalFigureUpdateContext(profile);
     auto canonical=profile;canonical.live.clear();
     for(const auto& f:profile.slots)if(f.alive)canonical.live.push_back(f);
@@ -1023,6 +1144,11 @@ inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFi
     if(hunterLinks)context->hunterLinks=*hunterLinks;
     if(buildings)context->buildings=*buildings;context->models=models;context->terrain=terrainFlags;context->cropBase=cropBase;
     context->movementMasks=movementMasks;
+    if(additional){context->houseCapacities=additional->houseCapacities;context->buildingOwners=additional->buildingOwners;
+        context->feature=additional->feature;context->activeSide=additional->activeSide;context->festivalVenue=additional->festivalVenue;
+        context->entertainmentAvailable=additional->entertainmentAvailable;}
+    if(context->services&&context->services->population&&context->buildings&&
+        !originalFigurePopulationAfterLoad(*context->services,*context->buildings))return out;
     for(const auto& entry:callbacks.figures){auto& f=context->figures.at(entry.first);
         f.image=entry.second.images->first;f.secondaryImage=entry.second.images->second;}
     out.accepted=true;bool priorBlocked=false;
@@ -1053,7 +1179,13 @@ inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFi
                     if(result.state){result.state->priorProgress=result.state->progress;context->figures.at(slot)=*result.state;
                         for(const auto& write:result.linkedWrites)context->figures.at(write.first)=write.second;
                         if(result.cellHeads)context->cellHeads=*result.cellHeads;
-                        if(result.services)context->services=result.services;}
+                        if(result.services)context->services=result.services;
+                        if(result.buildings)context->buildings=result.buildings;
+                        if(result.state->alive==2){if(!originalFigureRemoveArrivedWorker(*result.state,*context)){
+                                result.state.reset();result.services.reset();result.buildings.reset();result.cellHeads.reset();result.linkedWrites.clear();
+                                result.status=OriginalFigureUpdateStatus::PoolRemoval;*context=std::move(before);}
+                            else {result.services=context->services;result.buildings=context->buildings;result.cellHeads=context->cellHeads;}}
+                    }
                     else *context=std::move(before);
                 }
             }
@@ -1067,7 +1199,8 @@ inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFi
     // publishes final states. Incomplete prefix progress remains diagnostic.
     for(auto& entry:out.figures)if(entry.second.state){
         if(out.complete)entry.second.state=context->figures.at(entry.first);
-        else {entry.second.state.reset();entry.second.services.reset();entry.second.status=OriginalFigureUpdateStatus::LaterSlotEffects;}}
+        else {entry.second.state.reset();entry.second.services.reset();entry.second.buildings.reset();entry.second.cellHeads.reset();entry.second.linkedWrites.clear();
+            entry.second.status=OriginalFigureUpdateStatus::LaterSlotEffects;}}
     if(out.complete)out.context=std::move(context);
     else {out.blocked+=out.computed;out.computed=0;}
     return out;

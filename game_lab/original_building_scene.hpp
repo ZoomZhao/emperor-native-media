@@ -3,7 +3,7 @@
 #include "original_building_animation.hpp"
 #include "map_reference.hpp"
 #include "original_save.hpp"
-#include "original_figure_image.hpp"
+#include "original_figure_update.hpp"
 #include <set>
 #include <tuple>
 
@@ -71,6 +71,8 @@ struct OriginalBuildingScene {
     size_t figureForwardMatched=0,figureForwardCompared=0,figureForwardSelected=0;
     std::map<std::string,size_t> figureForwardMismatch;
     size_t figureZeroResolved=0,figureZeroBlocked=0;
+    bool figurePostLoadK1=false;
+    size_t figureRemoved=0;
     // Explicit first-tick diagnostics, never overlay commands or saved oracles.
     std::map<size_t,OriginalFigureImageSelection> figureFirstTickImages;
     uint64_t animationTickMs=0;
@@ -87,10 +89,21 @@ struct OriginalBuildingScene {
 // are simulation-driven and cannot be inferred from elapsed milliseconds.
 // Forward reconstructs primary and carried-goods secondary words from non-image
 // saved state; neither saved image word is available to either selector.
-enum class OriginalFigureRenderSource {Saved,Forward};
+enum class OriginalFigureRenderSource {Saved,Forward,PostLoadK1};
 inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const OriginalMapTerrain& terrain,
     const OriginalFigureProfile& figures,const std::map<uint32_t,const SG3Archive*>& archives,uint64_t tickMs=0,
-    OriginalFigureRenderSource source=OriginalFigureRenderSource::Saved,const OriginalBuildingProfile* buildings=nullptr){
+    OriginalFigureRenderSource source=OriginalFigureRenderSource::Saved,const OriginalBuildingProfile* buildings=nullptr,
+    const OriginalFigureOrderedPass* ordered=nullptr){
+    if(source==OriginalFigureRenderSource::PostLoadK1){
+        // Only a complete ordered pass can replace the snapshot. Keep the
+        // original live denominator, including the worker entering state2.
+        if(tickMs||!ordered||!ordered->complete||!ordered->context||ordered->computed!=figures.live.size())return;
+        auto updated=figures;updated.live.clear();updated.slots.clear();updated.cellHeads=ordered->context->cellHeads;
+        for(const auto& entry:ordered->context->figures){updated.slots.push_back(entry.second);if(entry.second.alive)updated.live.push_back(entry.second);}
+        installOriginalFigureOverlays(scene,terrain,updated,archives,0,OriginalFigureRenderSource::Saved,buildings);
+        scene.figureRemoved=figures.live.size()-updated.live.size();scene.figureLive=figures.live.size();
+        scene.figurePostLoadK1=true;return;
+    }
     if(!scene.accepted||!terrain.valid()||scene.surface.terrain!=terrain.flags||
        !analyzeOriginalMap(terrain).cropValid()||figures.status!=OriginalFigureStatus::Complete||figures.live.size()>8192)return;
     scene.overlays.erase(std::remove_if(scene.overlays.begin(),scene.overlays.end(),[](const auto& o){return o.mode==4;}),scene.overlays.end());
@@ -98,6 +111,8 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
     scene.figureBoundTypes.clear();scene.figureBlockedTypes.clear();
     scene.figureForwardMatched=scene.figureForwardCompared=scene.figureForwardSelected=0;scene.figureForwardMismatch.clear();
     scene.figureZeroResolved=scene.figureZeroBlocked=0;scene.figureFirstTickImages.clear();
+    scene.figurePostLoadK1=false;
+    scene.figureRemoved=0;
     scene.figureLive=figures.live.size();const size_t origin=(228-terrain.activeSide)/2;
     const auto imageState=originalFigureImageState(figures);
     std::map<size_t,const OriginalFigure*> bySlot;
@@ -364,6 +379,8 @@ struct OriginalBuildingSceneView {
     size_t figureForwardMatched=0,figureForwardCompared=0,figureForwardSelected=0;
     std::map<std::string,size_t> figureForwardMismatch;
     size_t figureZeroResolved=0,figureZeroBlocked=0;
+    bool figurePostLoadK1=false;
+    size_t figureRemoved=0;
     std::map<size_t,OriginalFigureImageSelection> figureFirstTickImages;
 };
 // The surface renderer remains the independent validation/accounting pass. Only
@@ -445,6 +462,8 @@ inline OriginalBuildingSceneView renderOriginalBuildingScene(const OriginalMapTe
     out.figureForwardMatched=scene.figureForwardMatched;out.figureForwardCompared=scene.figureForwardCompared;
     out.figureForwardSelected=scene.figureForwardSelected;out.figureForwardMismatch=scene.figureForwardMismatch;
     out.figureZeroResolved=scene.figureZeroResolved;out.figureZeroBlocked=scene.figureZeroBlocked;
+    out.figurePostLoadK1=scene.figurePostLoadK1;
+    out.figureRemoved=scene.figureRemoved;
     out.figureFirstTickImages=scene.figureFirstTickImages;
     out.figureZeroImage=scene.figureZeroImage;out.figureUnsupported=scene.figureUnsupported;
     auto background=renderOriginalBuildingFootprints(terrain,scene.withheldFootprints,camera,bit,scene.markers);

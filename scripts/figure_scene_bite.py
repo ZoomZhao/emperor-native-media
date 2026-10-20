@@ -54,6 +54,11 @@ def main():
         ('saved_fire_offset', 'original_figure.hpp', 'fireCount=fireBlocks80+2*80;', 'fireCount=fireBlocks80+2*80-4;'),
         ('inspector_fire_gate', 'original_figure_update.hpp', 'if(*context->services->fireCount>0)', 'if(*context->services->fireCount>=0)'),
         ('inspector_fire_threshold', 'original_figure_update.hpp', 'if(f.searchCounter>=20)', 'if(f.searchCounter>20)'),
+        ('worker_employment', 'original_figure_update.hpp', 'int(house.residents)+f.employmentAmount', 'int(house.residents)+1'),
+        ('entertainment_grid', 'original_figure_update.hpp', 'serviceGrid[f.cell]|=7u<<9;', 'serviceGrid[f.cell]|=7u<<6;'),
+        ('population_frame', 'original_figure.hpp', 'sizeAnchor-28-152-bytes;', 'sizeAnchor-28-152-bytes+4;'),
+        ('worker_removal', 'original_figure_update.hpp', 'reset.priorProgress=f.priorProgress;', 'reset.priorProgress=0;'),
+        ('load_population', 'original_figure_update.hpp', 'services.population->total=int32_t(total);', 'services.population->total+=int32_t(total);'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
     ]
     if args.only:
@@ -72,7 +77,7 @@ def main():
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, target)
         for layout_name in ['city19_figure7_layout.hpp', 'city19_goods1_layout.hpp',
-                     'city19_empire2_layout.hpp', 'city19_empire_grid15_layout.hpp']:
+                      'city19_empire2_layout.hpp', 'city19_empire_grid15_layout.hpp', 'city19_later7_layout.hpp']:
             layout = private / 'file_io/include' / layout_name
             layout.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / 'file_io/include' / layout_name, layout)

@@ -167,6 +167,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSPopUpButton* _originalMapBitPicker;
     NSButton* _originalMapCrop;
     NSButton* _originalMapSpatial;
+    NSPopUpButton* _originalFigureSource;
     NSButton* _originalMapOutlines;
     NSTextField* _originalMapCameraX;
     NSTextField* _originalMapCameraY;
@@ -1547,6 +1548,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapSpatial=[NSButton checkboxWithTitle:@"等距空间（SAV 含已绑定建筑基座）" target:self action:@selector(onOriginalMapPlaneChanged:)];
     _originalMapSpatial.frame=NSMakeRect(620,height-114,380,24);_originalMapSpatial.autoresizingMask=NSViewMinYMargin;
     _originalMapSpatial.accessibilityIdentifier=@"original-map-spatial";[_originalMapView addSubview:_originalMapSpatial];
+    _originalFigureSource=[[NSPopUpButton alloc]initWithFrame:NSMakeRect(620,height-82,380,24) pullsDown:NO];
+    [_originalFigureSource addItemsWithTitles:@[@"Saved snapshot",@"post-load k=1"]];
+    _originalFigureSource.target=self;_originalFigureSource.action=@selector(onOriginalFigureSourceChanged:);
+    _originalFigureSource.autoresizingMask=NSViewMinYMargin;_originalFigureSource.enabled=NO;
+    _originalFigureSource.accessibilityIdentifier=@"original-figure-render-source";[_originalMapView addSubview:_originalFigureSource];
     NSTextField* cameraLabel=[NSTextField labelWithString:@"相机中心 · 活动格 X / Y"];
     cameraLabel.frame=NSMakeRect(20,height-146,240,24);cameraLabel.autoresizingMask=NSViewMinYMargin;[_originalMapView addSubview:cameraLabel];
     _originalMapCameraX=[[NSTextField alloc] initWithFrame:NSMakeRect(264,height-148,104,26)];
@@ -1622,6 +1628,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const NSInteger index = _originalMapPicker.indexOfSelectedItem;
     _originalManualCandidate.reset();_originalSelectedSlot.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualAdopt.enabled=NO;_originalManualSave.enabled=NO;_originalManualClear.enabled=NO;_originalManualMessage.clear();_originalSaveRevision=0;_originalSourceRelative.clear();_originalBuildingSlot.stringValue=@"";
     _originalMapSourceInfo.clear();_originalMapPackageSummary=NO;_originalSaveLayers.reset();_originalSaveBuildings.reset();_originalBuildingLocate.enabled=NO;
+    [_originalFigureSource selectItemAtIndex:0];_originalFigureSource.enabled=NO;
     _originalSaveCellX.stringValue=@"0";_originalSaveCellY.stringValue=@"0";
     _originalSaveCellX.enabled=NO;_originalSaveCellY.enabled=NO;_originalSaveCellApply.enabled=NO;
     _originalMapSurface->clear();
@@ -1645,6 +1652,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     else if(_originalMapBitPicker.indexOfSelectedItem>=33&&_originalMapBitPicker.indexOfSelectedItem<38)[_originalMapBitPicker selectItemAtIndex:0];
     const auto& source=_originalMapSources[sourceIndex];
     if(source.kind==game_lab::OriginalMapSourceKind::SaveFile&&_originalSaveBuildings){
+        _originalFigureSource.enabled=_originalSaveLayers&&_originalSaveLayers->figures.has_value();
         if(!_originalMapSurface->selectSavedBuildings(_originalMapResult.terrain,*_originalSaveBuildings,
             _originalSaveLayers&&_originalSaveLayers->ground?&*_originalSaveLayers->ground:nullptr,0,
             _originalSaveLayers&&_originalSaveLayers->figures?&*_originalSaveLayers->figures:nullptr))
@@ -1666,6 +1674,23 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         _originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.2f",double(f.x)+(double(game_lab::originalFootprintWidth(f))-1)/2];
         _originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.2f",double(f.y)+(double(game_lab::originalFootprintHeight(f))-1)/2];
     }
+    [self onOriginalMapPlaneChanged:nil];
+}
+- (void)onOriginalFigureSourceChanged:(id)sender {
+    (void)sender;
+    if(!_originalSaveBuildings||!_originalSaveLayers||!_originalSaveLayers->figures)return;
+    bool selected=false;
+    if(_originalFigureSource.indexOfSelectedItem==1){
+        const auto save=game_lab::loadOriginalSave(_media->resourcePath(_originalSourceRelative));
+        std::vector<uint8_t> raw;
+        if(save.readStable&&save.snapshotRevision==_originalSaveRevision&&game_lab::detail::readFile(_media->resourcePath(_originalSourceRelative),4194304,raw)){
+            const auto decoded=game_lab::decodeOriginalMapContainer(raw);
+            const auto check=game_lab::decodeOriginalSave(raw);
+            if(decoded.complete&&check.snapshotRevision==save.snapshotRevision)selected=_originalMapSurface->selectPostLoadK1(save,decoded.payload);
+        }
+    }else selected=_originalMapSurface->selectSavedBuildings(_originalMapResult.terrain,*_originalSaveBuildings,
+        _originalSaveLayers->ground?&*_originalSaveLayers->ground:nullptr,0,&*_originalSaveLayers->figures);
+    if(!selected){_originalMapSourceInfo+="；所选人物来源无法完成；请重新选择存档";_originalMapSurface->clear();}
     [self onOriginalMapPlaneChanged:nil];
 }
 - (void)onOriginalMapPlaneChanged:(id)sender {
@@ -1737,7 +1762,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                             detail+="地面及建筑格解码 "+std::to_string(scene.bases.decodedCells)+"/"+std::to_string(scene.bases.nonzeroCells)+"；失败 "+std::to_string(scene.bases.decodeFailures)+"；当前视口绘制 "+std::to_string(scene.bases.drawnCells)+" 格。\n";
                             detail+="对象层解码 "+std::to_string(scene.overlayDecoded)+"/"+std::to_string(scene.overlayObjects)+"；失败 "+std::to_string(scene.overlayDecodeFailures+scene.overlayInvalid)+"；当前视口绘制 "+std::to_string(scene.overlayDrawn)+" 个。\n";
                             detail+="建筑动画条件通过 "+std::to_string(scene.animationEnabled)+"/"+std::to_string(scene.animationCandidates)+"；帧解码 "+std::to_string(scene.animationDecoded)+"/"+std::to_string(scene.animationSelected)+"；条件未知 "+std::to_string(scene.animationUnknown)+"，无效 "+std::to_string(scene.animationInvalid)+"。时间输入 tick=0，使用 SAV 保存的格子相位。\n";
-                            detail+="已保存人物放置 "+std::to_string(scene.figurePlaced)+"/"+std::to_string(scene.figureLive)+"；图像解码 "+std::to_string(scene.figureDecoded)+"；隐藏 "+std::to_string(scene.figureHidden)+"，图像为零 "+std::to_string(scene.figureZeroImage)+"，不支持 "+std::to_string(scene.figureUnsupported)+"。人物使用 tick=0 保存图像。\n";
+                            detail+="人物放置 "+std::to_string(scene.figurePlaced)+"/"+std::to_string(scene.figureLive)+"；图像解码 "+std::to_string(scene.figureDecoded)+"；隐藏 "+std::to_string(scene.figureHidden)+"，图像为零 "+std::to_string(scene.figureZeroImage)+"，不支持 "+std::to_string(scene.figureUnsupported)+"。\n";
+                            detail+=scene.figurePostLoadK1?"post-load k=1：恰好一次获准更新后的首次绘制；原版 k 依墙上时钟，未快进时 k∈{0,1}。建筑动画保留 tick 0。\n":"Saved snapshot：人物使用 tick=0 保存图像。\n";
+                            if(scene.figureRemoved)detail+="本次更新后移除 "+std::to_string(scene.figureRemoved)+" 人物。\n";
                             detail+="地面与建筑来自同一 SAV；按 view0 角格及对角线顺序绘制。未知处保留数值地形。阴影、高程遮挡及原版画面对照未验证；不是运行中的城市。\n";
                             text+="；基座及静态对象 "+std::to_string(scene.placedRecords)+"/"+std::to_string(scene.liveRecords)+"，未绑定 "+std::to_string(scene.withheldRecords);
                         }

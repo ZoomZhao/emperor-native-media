@@ -4,6 +4,8 @@
 #include "../file_io/include/city19_goods1_layout.hpp"
 #include "../file_io/include/city19_empire2_layout.hpp"
 #include "../file_io/include/city19_empire_grid15_layout.hpp"
+#include "../file_io/include/city19_later7_layout.hpp"
+#include <sstream>
 
 namespace game_lab {
 enum class OriginalFigureClass {Figure,Pheasant,Emissary};
@@ -19,7 +21,7 @@ struct OriginalFigure {
     // Non-image selector inputs: Figure7 calls cited in docs/SAV_FIGURES.md.
     uint8_t subtype=0,attackDirection=0,attackFrame=0,resource=0,cartStyle=0,stationary=0;
     int16_t counter=0,owner=0,variant=0,amount=0,leaderLink=0,target=0;
-    uint8_t faction=0;
+    uint8_t faction=0,employmentAmount=0; //+6E, read0x4C86DC.
     // Inline ambient state at+17C, serialized by0x4C8AA0 (not optional FSA).
     uint8_t effectKind=0,effectVariant=0,effectFlags=0;
     int8_t effectX=0,effectY=0,effectVelocityX=0,effectVelocityY=0;
@@ -37,6 +39,7 @@ struct OriginalFigure {
     uint8_t routePhase=0,speed=0;
     int16_t priorX=0,priorY=0,homeX=0,homeY=0,home=0,delivery=0;
     uint32_t priorCell=0;
+    uint32_t flags120=0; //4C891C, cleanup target-reference gate.
     uint8_t water=0; //+49, written by0x4E77C0.
     int16_t roamLimit=0,roamSteps=0; //+4A/+4C, model15*96 and movement accounting.
     uint8_t roamState=0,roamTurns=0,roamTurn=0,roamCountdown=0,searchCounter=0;
@@ -57,12 +60,57 @@ inline constexpr size_t fireTrailingScalars=fireBlock64000+64000; //0x531510/51E
 inline constexpr size_t fireBlock10=fireTrailingScalars+3*4; //0x53153A
 inline constexpr size_t fireBlocks80=fireBlock10+10; //0x531548/556
 inline constexpr size_t fireCount=fireBlocks80+2*80; //0xC82F28,i32,0x531564
+// Continue from road-distance0x5317E3, then32 bytes0x5317F1 and36
+// bytes0x531805. The preceding variable records are already framed at T.
+inline constexpr size_t serviceGrid=1510985+51984+32+36; //0x531816,D62440
+}
+struct OriginalFigurePopulation {int32_t total=0,peak=0;std::optional<uint32_t> lastArrival;};
+// Same ten bounded goal lists as SAV19's existing prefix walker, followed
+// by Flood1 (4EDDA0) and Festival4 (48ED30). Active festival needs date
+// qualification48E020; an inactive byte proves48ED00 returns null.
+inline std::optional<int32_t> originalFigureSavedFestivalVenue(const std::vector<uint8_t>& data,size_t terrain,size_t sizeAnchor){
+    if(data.size()<3355||data.size()>8u*1024u*1024u)return std::nullopt;
+    size_t at=3355;std::vector<std::string> cache(1);
+    const auto take=[&](size_t n){if(at>data.size()||n>data.size()-at)return false;at+=n;return true;};
+    const auto version=[&](unsigned v){return take(2)&&detail::u16(data.data()+at-2)==v;};
+    for(unsigned member=0;member<10;++member){if(!version(1)||!take(4))return std::nullopt;const auto count=detail::u32(data.data()+at-4);
+        if(count>128)return std::nullopt;
+        for(unsigned n=0;n<count;++n){if(!take(2))return std::nullopt;const auto tag=detail::u16(data.data()+at-2);std::string name;
+            if(tag==0xffff){if(!take(4))return std::nullopt;const auto len=detail::u16(data.data()+at-2);
+                if(detail::u16(data.data()+at-4)||!len||len>=64||!take(len))return std::nullopt;
+                name.assign(reinterpret_cast<const char*>(data.data()+at-len),len);cache.push_back(name);}
+            else if(tag&0x8000){const auto id=tag&0x7fff;if(size_t(id)>=cache.size()||cache[id].empty())return std::nullopt;name=cache[id];}
+            else {if(!tag||tag>=cache.size()||!cache[tag].empty())return std::nullopt;continue;}
+            if(cache.size()>=256||!version(1)||!take(4)||!take(2))return std::nullopt;cache.emplace_back();
+            const auto v=detail::u16(data.data()+at-2);size_t bytes=0;
+            if(name=="cHousingGoal"||name=="cYearlyProductionGoal"){if(v!=1)return std::nullopt;bytes=12;}
+            else if(name=="cTradingPartnersGoal"||name=="cPopulationGoal"||name=="cTreasuryGoal"){if(v!=1)return std::nullopt;bytes=4;}
+            else if(name=="cHomageGoal"||name=="cAlliedCitiesGoal"||name=="cMenagerieGoal"){if(v!=3)return std::nullopt;bytes=8;}
+            else if(name=="cYearlyProfitGoal"){if(v!=1)return std::nullopt;bytes=8;}
+            else if(name=="cConquerGoal"||name=="cMonumentGoal"){if(v!=2)return std::nullopt;bytes=8;}else return std::nullopt;
+            if(!take(bytes))return std::nullopt;}}
+    if(!version(1)||!take(4+1+4+4+4+51984))return std::nullopt;
+    const size_t festival=at;
+    if(!version(4)||!version(1)||!take(16+32+8+1))return std::nullopt;
+    const bool active=data[at-1]!=0;if(!take(1+4))return std::nullopt;const auto venue=detail::u32(data.data()+at-4);
+    if(venue>3999||!take(1+4+4+4+4))return std::nullopt;if(!active)return 0;
+    if(terrain>data.size()||original_save19::c82ef0+4>data.size()-terrain||sizeAnchor<180+152||sizeAnchor>data.size())return std::nullopt;
+    const auto i32=[&](size_t pos){const uint32_t v=detail::u32(data.data()+pos);return v>INT32_MAX?int64_t(v)-4294967296LL:int64_t(v);};
+    // Following boundary gives the two date scalars after593140.
+    const int64_t nowTick=i32(terrain+original_save19::c82ef8),nowPhase=i32(terrain+original_save19::c82ef0);
+    int64_t nowMonth=i32(sizeAnchor-180+4),startMonth=i32(festival+12);
+    if(!nowMonth)nowMonth=12;if(!startMonth)startMonth=12;
+    const int64_t elapsed=192*(i32(sizeAnchor-180)-i32(festival+16))+nowPhase-i32(festival+8)-
+        (nowTick<i32(festival+4))+16*(nowMonth-startMonth);
+    return elapsed>i32(festival+52)?0:int32_t(venue);
 }
 struct OriginalFigureSavedServices {
     std::array<int16_t,1000> routeOwners{};
     std::vector<uint8_t> directions;
     uint32_t randomFirst=0,randomSecond=0;
     std::optional<int32_t> fireCount;
+    std::vector<uint32_t> serviceGrid;
+    std::optional<OriginalFigurePopulation> population;
 };
 // SAV19 terrain-relative framing:0x5313D1 owners2000 bytes,0x5313E2
 // directions500000 bytes,100 version6 records of175 wire bytes, then
@@ -79,11 +127,43 @@ inline std::optional<OriginalFigureSavedServices> originalFigureSavedServices(
     out.randomFirst=detail::u32(data.data()+terrain+randomFirst);out.randomSecond=detail::u32(data.data()+terrain+randomSecond);
     if(fireCount+4<=data.size()-terrain){const auto bits=detail::u32(data.data()+terrain+fireCount);
         out.fireCount=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:int64_t(bits));}
+    if(serviceGrid+207936<=data.size()-terrain){out.serviceGrid.resize(51984);
+        for(size_t n=0;n<51984;++n)out.serviceGrid[n]=detail::u32(data.data()+terrain+serviceGrid+4*n);}
     return out;
+}
+//0x531293->593140 precedes two u32s and144 bytes (53129F/2AF/2C0),
+// then scenario6 (5312CB). Use the validated scenario start S-28 as the
+// following boundary; qualify the complete version7 request extent backwards.
+// Its wire+38 total and+11271 peak are read5941AB/594C68.
+inline std::optional<OriginalFigurePopulation> originalFigureSavedPopulation(const std::vector<uint8_t>& data,size_t sizeAnchor){
+    size_t bytes=2;for(const auto& f:emperor::file_io::research::later7_requests)bytes+=f.bytes;
+    if(data.size()>8u*1024u*1024u||sizeAnchor>data.size()||sizeAnchor<28+152+bytes)return std::nullopt;
+    const size_t at=sizeAnchor-28-152-bytes;
+    if(detail::u16(data.data()+sizeAnchor-28)!=6||detail::u16(data.data()+at)!=7)return std::nullopt;
+    const auto signed32=[](uint32_t bits){return int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:bits);};
+    return OriginalFigurePopulation{signed32(detail::u32(data.data()+at+38)),signed32(detail::u32(data.data()+at+11271)),{}};
+}
+//5D1830 reads five24-column HOUSE MODS then15 ALL HOUSES rows.
+//44CC80(row,17) reads capacity. Difficulty adds then clamps[-99,100];
+// publish only capacities identical across all five modifiers.
+inline std::optional<std::map<int,int>> originalFigureHouseCapacities(const std::string& text){
+    if(text.size()>1024u*1024u||text.find('\0')!=std::string::npos)return std::nullopt;
+    std::istringstream input(text);std::string line;unsigned section=0;std::vector<int> mods;std::map<int,int> out;
+    while(std::getline(input,line)){if(!line.empty()&&line.back()=='\r')line.pop_back();
+        if(line=="HOUSE MODS"){if(section)return std::nullopt;section=1;continue;}
+        if(line=="ALL HOUSES"){if(section!=1||mods.size()!=5)return std::nullopt;section=2;continue;}
+        const auto open=line.find("{,");if(!section||open==std::string::npos)continue;
+        std::string values=line.substr(open+2);std::replace(values.begin(),values.end(),',',' ');std::istringstream fields(values);
+        std::array<int32_t,24> row{};for(auto& value:row)if(!(fields>>value))return std::nullopt;
+        if(section==1){mods.push_back(row[17]);if(mods.size()>5)return std::nullopt;}
+        else {const auto cap=[&](int m){return int(std::max<int64_t>(-99,std::min<int64_t>(100,int64_t(row[17])+m)));};
+            const int c=cap(mods[0]);for(int m:mods)if(cap(m)!=c)return std::nullopt;out.emplace(int(out.size()),c);if(out.size()>15)return std::nullopt;}}
+    if(section!=2||out.size()!=15)return std::nullopt;return out;
 }
 struct OriginalFigureSpawnServices {
     uint32_t side=0,cropBase=0;
     std::array<std::pair<int16_t,int16_t>,4> spawns{};
+    std::array<int16_t,3> entertainmentAvailable{};
 };
 struct OriginalFigureHunterLink {uint8_t alive=0,enabled=0;int16_t workers=0;};
 struct OriginalFigureBuildingLink {
@@ -95,6 +175,9 @@ struct OriginalFigureBuildingLink {
     std::optional<int32_t> marketGoods;
     int16_t x=0,y=0;
     bool inspectorSecondary=false;
+    int16_t residents=0,freeSlots=0,houseModel=0;
+    std::optional<uint8_t> laborDisabled;
+    std::optional<std::array<uint8_t,3>> entertainment; //house+2B/+2C/+2E; owner+5D/+5E/+5F.
 };
 // Common5:0x427430 reads live+4,type+14,worker+32,accepting+9 individually;
 // wire+2/+16/+45/+7 include the version. Read only framed public records.
@@ -118,7 +201,12 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         link.primaryFigure=detail::i16(data.data()+at+41);link.destinationEnabled=data[at+129];link.serviceCount=detail::i16(data.data()+at+23);
         link.x=detail::i16(data.data()+at+8);link.y=detail::i16(data.data()+at+10);
         link.inspectorSecondary=detail::i16(data.data()+at+18)>0||data[at+100]!=0;
+        link.residents=detail::i16(data.data()+at+27);link.freeSlots=detail::i16(data.data()+at+29);link.houseModel=detail::i16(data.data()+at+18);
         const size_t tail=at+182;
+        if(type>=2&&type<18&&data.size()-tail>=64&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
+            link.laborDisabled=data[tail+59];link.entertainment=std::array<uint8_t,3>{data[tail+42],data[tail+43],data[tail+45]};}
+        if(type==0x47&&data.size()-tail>=352&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1)
+            link.entertainment=std::array<uint8_t,3>{data[tail+93],data[tail+94],data[tail+95]};
         if((type==0x3a||type==0x3b||type==0x7c)&&data.size()-at>=312&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
             for(unsigned n=0;n<2;++n)link.secondaryFigures[n]=detail::i16(data.data()+tail+106+2*n);
             for(unsigned n=0;n<8;++n)link.cargoFigures[n]=detail::i16(data.data()+tail+112+2*n);
@@ -167,6 +255,7 @@ inline std::optional<OriginalFigureSpawnServices> originalFigureSpawnServices(
     // Type76 is neither regional predator nor prey;0x59CB70 returns category0
     // for all three region rows.0x59C930 reads dword arrays through signed words.
     for(size_t n=0;n<4;++n)out.spawns[n]={detail::i16(data.data()+at+853+4*n),detail::i16(data.data()+at+869+4*n)};
+    for(size_t n=0;n<3;++n)out.entertainmentAvailable[n]=detail::i16(data.data()+at+919+2*n); //37C block+22,52D521
     return out;
 }
 enum class OriginalFigureStatus {Complete,Unsupported,Malformed,BudgetExceeded};
@@ -303,6 +392,8 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.freeTargetX=detail::i16(r+86);f.freeTargetY=detail::i16(r+88);f.freeRemainingX=detail::i16(r+90);
         f.freeRemainingY=detail::i16(r+92);f.freeError=detail::i16(r+94);f.freeAxis=r[96];f.cellMovement=r[72];
         f.attackers={detail::i16(r+154),detail::i16(r+156)};
+        f.employmentAmount=r[110];
+        f.flags120=detail::u32(r+288);
         objects.emplace(objectPID,f);out.slots.push_back(f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }
     out.end=at;out.status=OriginalFigureStatus::Complete;

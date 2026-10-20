@@ -568,6 +568,11 @@ void authored(){
             originalFigureSavedServices(services,t)->fireCount==-2,
             "SAV19 read order after shared terrain scalars reaches signed fire count at literal1363850 after two80-byte blocks");
         services.pop_back();need(!originalFigureSavedServices(services,t)->fireCount,"partial saved fire dword cannot publish zero or a truncated count");
+        services.resize(t+1770973,0);put(1563037,0x12345678);put(1770969,0x87654321);
+        const auto grid=originalFigureSavedServices(services,t);
+        need(grid&&grid->serviceGrid.size()==51984&&grid->serviceGrid.front()==0x12345678&&grid->serviceGrid.back()==0x87654321,
+            "service grid reads literal T+1563037 through1770973 with unaligned u32 endpoints");
+        services.pop_back();need(originalFigureSavedServices(services,t)->serviceGrid.empty(),"truncated service grid publishes no partial cells");
     }
     {
         std::vector<uint8_t> data(1600);const size_t scenario=11,anchor=scenario+28;
@@ -765,8 +770,91 @@ void authored(){
         auto duplicate=figures;duplicate.live.push_back(one);composed=composeOriginalBuildingScene(terrain,buildings,archive);
         installOriginalFigureOverlays(composed,terrain,duplicate,refs);need(composed.figurePlaced==0&&composed.figureUnsupported==2,"duplicate source slots fail before placement");
     }
+    {
+        auto group=archive;group.numImages=512;group.sprites.resize(512);group.imageIndex.fill(1);
+        group.sprites[0].animationSpriteCount=12;group.sprites[0].animationDirections=8;
+        const std::map<uint32_t,const SG3Archive*> refs{{38,&group}};
+        auto worker=one;worker.slot=2;worker.home=8;worker.action=8;worker.frame=11;worker.employmentAmount=4;
+        worker.x=5;worker.y=6;worker.cell=10000;worker.subX=100;worker.subY=120;
+        worker.freeRemainingX=worker.freeRemainingY=0;worker.raise=1;
+        OriginalFigureUpdateContext context;context.figures[2]=worker;context.cropBase=8627;
+        context.cellHeads.assign(51984,0);context.cellHeads[10000]=2;context.modelSpeeds[11]=8;
+        context.buildings.emplace();auto& house=(*context.buildings)[8];house.type=7;house.alive=1;house.accepting=1;house.worker=2;
+        house.residents=31;house.freeSlots=10;house.houseModel=4;house.laborDisabled=0;context.houseCapacities[4]=41;
+        context.services.emplace();context.services->population=OriginalFigurePopulation{993,997,0};
+        const auto arrived=originalFigureFirstUpdate(worker,refs,&context);
+        need(arrived.state&&arrived.state->alive==2&&arrived.state->frame==0&&arrived.state->raise==0&&
+            arrived.buildings->at(8).residents==35&&arrived.buildings->at(8).freeSlots==6&&arrived.buildings->at(8).worker==0&&
+            arrived.services->population->total==997&&arrived.services->population->peak==997&&arrived.services->population->lastArrival==4,
+            "occupied worker arrival adds four residents, subtracts capacity after the store, clears reciprocal link and accounts once");
+        need(context.buildings->at(8).residents==31&&context.services->population->total==993,
+            "worker arrival publishes building and accounting writes atomically without changing the source");
+        house.laborDisabled=1;const auto disabled=originalFigureFirstUpdate(worker,refs,&context);
+        need(disabled.state&&disabled.buildings->at(8).residents==31&&disabled.buildings->at(8).worker==0&&disabled.services->population->total==993,
+            "labor-disabled house clears arriving worker link but bypasses residents and accounting writes");
+        house.laborDisabled=0;context.houseCapacities.clear();const auto absent=originalFigureFirstUpdate(worker,refs,&context);
+        need(!absent.state&&!absent.services&&!absent.buildings,"unknown capacity withholds tentative free-step and employment writes");
+        context.houseCapacities[4]=41;house.residents=0;
+        need(!originalFigureFirstUpdate(worker,refs,&context).state,"empty house notification virtual remains an explicit refusal");
+        house.residents=31;house.entertainment=std::array<uint8_t,3>{};
+        auto loaded=*context.services;loaded.population->total=7;
+        need(originalFigurePopulationAfterLoad(loaded,*context.buildings)&&loaded.population->total==31&&loaded.population->peak==997,
+            "load recount replaces serialized total from accepting houses while preserving historical peak");
+        auto removed=*arrived.state;removed.priorProgress=20;context.figures[2]=removed;context.highestLiveSlot=3;
+        auto observer=one;observer.slot=3;observer.cell=10001;observer.target=2;context.figures[3]=observer;removed.flags120=2;
+        need(originalFigureRemoveArrivedWorker(removed,context)&&removed.alive==0&&removed.type==0&&removed.image==0&&removed.age==0&&
+            removed.priorProgress==20&&context.cellHeads[10000]==0&&context.figures.at(3).target==0&&context.freeSlots==std::vector<size_t>{2},
+            "dispatcher removal unlinks arrived worker, clears target references, resets fields and appends free slot");
+        auto entertainer=one;entertainer.type=36;entertainer.owner=9;entertainer.x=5;entertainer.y=6;entertainer.cell=10000;
+        entertainer.direction=2;entertainer.previousDirection=2;entertainer.progress=19;entertainer.roamState=1;entertainer.roamTurn=2;entertainer.roamCountdown=5;
+        entertainer.subX=100;entertainer.subY=120;entertainer.roamSteps=12;entertainer.routeCursor=8;
+        context.terrain.assign(51984,0x80);context.terrain[9999]=context.terrain[10228]=0xc0;
+        context.feature.assign(51984,0);context.buildingOwners.assign(51984,0);context.activeSide=84;context.festivalVenue=0;
+        context.services->serviceGrid.assign(51984,0x80000001);context.figures[2]=entertainer;
+        auto& owner=(*context.buildings)[9];owner.type=0x47;owner.alive=1;owner.serviceCount=298;owner.entertainment=std::array<uint8_t,3>{0,7,0};
+        context.buildingOwners[9999]=8;context.buildingOwners[9998]=8;
+        const auto serviced=originalFigureRoam(entertainer,6,0x80,context);
+        need(serviced.state&&serviced.state->direction==4&&serviced.state->progress==0&&serviced.state->subY==121&&
+            serviced.state->routeCursor==9&&serviced.state->roamTurns==1&&serviced.state->roamSteps==18&&
+            context.buildings->at(8).entertainment==std::array<uint8_t,3>{0,96,0}&&context.buildings->at(9).serviceCount==300&&
+            context.services->serviceGrid[10000]==0x80000e01,
+            "entertainment segment traverses repeated house cells, caps count, marks category3 preserving other bits, then chooses south road");
+        context.feature[9999]=4;context.buildings->at(8).type=0xe7;context.buildings->at(9).serviceCount=17;
+        const auto refused=originalFigureRoam(entertainer,6,0x80,context);
+        need(!refused.state&&context.buildings->at(9).serviceCount==17,"interior service occlusion refuses atomically before road choice");
+        std::vector<uint8_t> payload(28+152+12107+1461);const size_t size=28+152+12107;
+        payload[0]=7;payload[12107+152]=6;payload[38]=0xfe;payload[39]=payload[40]=payload[41]=255;payload[11271]=73;
+        const auto population=originalFigureSavedPopulation(payload,size);
+        need(population&&population->total==-2&&population->peak==73,"population7 uses complete12107-byte extent and literal38/11271 wire inputs");
+        payload[0]=6;need(!originalFigureSavedPopulation(payload,size),"population version6 cannot inherit the version7 extent");
+        std::string model="HOUSE MODS\n";
+        const auto row=[](int capacity){std::string s="row,{,";for(unsigned n=0;n<24;++n)s+=std::to_string(n==17?capacity:0)+",";return s+"\n";};
+        for(unsigned n=0;n<5;++n)model+=row(0);model+="ALL HOUSES\n";for(unsigned n=0;n<15;++n)model+=row(int(n)+7);
+        need(originalFigureHouseCapacities(model)->at(4)==11,"house capacity parser reads eighteenth column and sequential model row");
+        auto changed=model;changed.replace(changed.find("row,{,"),row(0).size(),row(1));
+        need(!originalFigureHouseCapacities(changed),"difficulty-dependent house capacity refuses without fitting a difficulty");
+        // Independently authored ten empty goal lists, Flood1 and Festival4.
+        // The active festival names9, starts one phase ago and lasts one.
+        std::vector<uint8_t> festivalBytes(1400000);
+        const auto put16=[&](size_t p,unsigned v){festivalBytes[p]=uint8_t(v);festivalBytes[p+1]=uint8_t(v>>8);};
+        const auto put32=[&](size_t p,uint32_t v){for(unsigned n=0;n<4;++n)festivalBytes[p+n]=uint8_t(v>>(8*n));};
+        for(unsigned n=0;n<10;++n)put16(3355+6*n,1);
+        put16(3415,1);const size_t festival=3415+2+17+51984;
+        put16(festival,4);put16(festival+2,1);put32(festival+12,1);put32(festival+16,100);
+        put32(festival+52,1);festivalBytes[festival+60]=1;put32(festival+62,9);
+        const size_t t=100000,dateSize=200000;put32(t+1299324+4,0);put32(t+1299332,1);put32(dateSize-180,100);put32(dateSize-176,1);
+        need(originalFigureSavedFestivalVenue(festivalBytes,t,dateSize)==9,"festival date equality remains active at the duration boundary");
+        put32(t+1299332,2);need(originalFigureSavedFestivalVenue(festivalBytes,t,dateSize)==0,"expired active flag cannot select festival entertainment branch");
+        put16(festival,3);need(!originalFigureSavedFestivalVenue(festivalBytes,t,dateSize),"unknown festival layout withholds venue and service traversal");
+    }
     auto elapsed=composeOriginalBuildingScene(terrain,buildings,archive);installOriginalFigureOverlays(elapsed,terrain,figures,refs,1);
     need(elapsed.figurePlaced==0&&elapsed.figureUnsupported==1,"nonzero caller tick refuses unproved simulation phase");
+    auto withheld=scene;OriginalFigureOrderedPass incomplete;
+    installOriginalFigureOverlays(withheld,terrain,figures,refs,0,OriginalFigureRenderSource::PostLoadK1,&buildings,&incomplete);
+    need(!withheld.figurePostLoadK1,"incomplete ordered context cannot label an existing snapshot as post-load k1");
+    AppMapSurface absentRoot(ResourceRoot{});
+    need(!absentRoot.selectSavedBuildings(terrain,buildings,nullptr,0,&figures,OriginalFigureRenderSource::PostLoadK1),
+        "App refuses explicit k1 without a complete ordered pass before reading archives");
     for(unsigned type:{11u,13u,19u,20u,21u,22u,23u,26u,28u,29u,30u,35u,36u,39u,40u,45u,47u,76u}){
         for(unsigned d=0;d<8;++d){auto p=figures;p.live[0].type=type;p.live[0].direction=d;p.live[0].progress=0;
             auto composed=composeOriginalBuildingScene(terrain,buildings,archive);installOriginalFigureOverlays(composed,terrain,p,refs);
@@ -781,6 +869,9 @@ void corpus(){
     std::vector<uint8_t> modelBytes;need(detail::readFile(root.resolve("Model/EmperorFigureModels.txt"),100000,modelBytes),"read supplied figure model without library environment access");
     const auto modelSpeeds=originalFigureModelSpeeds(std::string(modelBytes.begin(),modelBytes.end()));
     const auto models=originalFigureModels(std::string(modelBytes.begin(),modelBytes.end()));
+    std::vector<uint8_t> buildingModel;need(detail::readFile(root.resolve("Model/EmperorBuildingModels.txt"),1048576,buildingModel),"read supplied house capacity model");
+    const auto capacities=originalFigureHouseCapacities(std::string(buildingModel.begin(),buildingModel.end()));
+    need(capacities&&capacities->at(4)==41,"same supplied model capacity is derived from all five difficulty rows");
     need(models&&models->at(11)[2]==0&&models->at(11)[5]==0&&models->at(40)[6]==5,"same complete model gives worker zero attacks and Hunter range");
     need(modelSpeeds&&modelSpeeds->at(76)==11,"complete supplied model publishes Pheasant speed11");
     AppMapSurface app(root);size_t sources=0,slots=0,live=0,placed=0,hidden=0,zero=0,unsupported=0,decoded=0,failures=0;
@@ -797,6 +888,7 @@ void corpus(){
     size_t orderedComputed=0,orderedPrefix=0,orderedDecoded=0,orderedConsistent=0,orderedComplete=0,servicesParsed=0,routesValidated=0,orderedCargoDecoded=0;
     std::map<unsigned,size_t> orderedComputedTypes,orderedBlockedTypes;std::map<std::string,size_t> orderedBlockers;
     std::array<size_t,6> individualBySource{},orderedBySource{},prefixBySource{};
+    size_t k1Placed=0,k1Decoded=0,k1Hidden=0,k1Unsupported=0,k1Removed=0,k1Overlays=0,k1Animation=0,k1Objects=0;
     std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));need(save.readStable&&save.layers.figures.has_value(),"same-source stable figure profile");
@@ -814,7 +906,21 @@ void corpus(){
         need(figures.factionModels.has_value(),"complete following Goods1/Empire3/Grid15/child5 publishes faction models");
         std::vector<uint8_t> savedBytes;need(detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,savedBytes),"read original container for following-layout refusal checks");
         const auto payload=decodeOriginalMapContainer(savedBytes).payload;
-        const auto services=originalFigureSavedServices(payload,save.terrainOffset);
+        auto services=originalFigureSavedServices(payload,save.terrainOffset);
+        const auto population=originalFigureSavedPopulation(payload,save.sizeOffset);
+        const auto festival=originalFigureSavedFestivalVenue(payload,save.terrainOffset,save.sizeOffset);
+        need(population&&festival&&services&&services->serviceGrid.size()==51984,"six sources frame population7, Festival4 venue and the complete service grid");
+        constexpr std::array<int32_t,6> totals{0,572,993,28,0,28},peaks{0,1070,997,28,0,28};
+        need(population->total==totals[sources]&&population->peak==peaks[sources]&&
+            services->serviceGrid.front()==detail::u32(payload.data()+save.terrainOffset+1563037)&&
+            services->serviceGrid.back()==detail::u32(payload.data()+save.terrainOffset+1770969),
+            "all6 source population totals/peaks and service-grid endpoints agree with independent literal reads");
+        services->population=population;
+        updateContext->houseCapacities=decoyUpdateContext->houseCapacities=*capacities;
+        updateContext->activeSide=decoyUpdateContext->activeSide=save.terrain.activeSide;
+        updateContext->festivalVenue=decoyUpdateContext->festivalVenue=festival;
+        updateContext->buildingOwners=decoyUpdateContext->buildingOwners=save.layers.ground->owner;
+        for(auto value:save.layers.mapperObjects){updateContext->feature.push_back(uint8_t(value));decoyUpdateContext->feature.push_back(uint8_t(value));}
         need(services.has_value(),"same SAV19 contains complete route storage and persisted RNG state");++servicesParsed;
         need(figures.savedView==detail::u32(payload.data()+save.terrainOffset+1299324)&&figures.savedView==0&&
              services->randomFirst==detail::u32(payload.data()+save.terrainOffset+1299340)&&
@@ -825,6 +931,7 @@ void corpus(){
         std::cout<<"{\"saved_fire_source\":"<<sources+1<<",\"terrain_relative_offset\":1363850,\"fire_count\":"<<*services->fireCount<<"}\n";
         const auto spawn=originalFigureSpawnServices(payload,save.sizeOffset);
         need(spawn.has_value(),"same scenario6 supplies four type76 spawn coordinates and validated crop");
+        updateContext->entertainmentAvailable=decoyUpdateContext->entertainmentAvailable=spawn->entertainmentAvailable;
         const auto passability=originalFigurePheasantPassability(save.terrain,save.layers.mapperStone,save.buildings,*spawn);
         updateContext->services=decoyUpdateContext->services=*services;
         updateContext->passability=decoyUpdateContext->passability=passability;
@@ -833,7 +940,13 @@ void corpus(){
         updateContext->hunterLinks=decoyUpdateContext->hunterLinks=hunterLinks;
         const auto buildingLinks=originalFigureBuildingLinks(payload,save.buildings);
         need(buildingLinks.has_value(),"same-source framed building common5 provides worker/home validity");
+        int64_t loadPopulation=0;for(const auto& entry:*buildingLinks){const auto& h=entry.second;
+            if(h.type>=2&&h.type<18&&h.alive&&h.alive!=2&&h.alive!=5&&h.alive!=6&&h.accepting)loadPopulation+=h.residents;}
+        constexpr std::array<int32_t,6> loadedTotals{0,572,997,28,0,28};
+        need(loadPopulation==loadedTotals[sources],"post-read533E71->517CC0/517DE0 house recount validates all6 sources including993->997");
         updateContext->buildings=decoyUpdateContext->buildings=buildingLinks;
+        need(originalFigurePopulationAfterLoad(*updateContext->services,*buildingLinks)&&
+            originalFigurePopulationAfterLoad(*decoyUpdateContext->services,*buildingLinks),"individual context uses post-load population recount before any worker update");
         const auto roadMasks=originalFigureRoadMovementMasks(save.terrain,save.buildings);
         if(roadMasks)updateContext->movementMasks=decoyUpdateContext->movementMasks=*roadMasks;
         for(const auto& f:figures.live)if(f.route>0){need(size_t(f.route)<services->routeOwners.size()&&services->routeOwners[f.route]==int(f.slot)&&
@@ -858,8 +971,8 @@ void corpus(){
         postLoadComputed+=postLoad.computed;postLoadBlocked+=postLoad.blocked;
         const auto decodeWord=[&](uint32_t word){auto name=std::filesystem::path(originalFigureArchiveName(word>>14));name.replace_extension(".555");
             return decodeSG3Sprite(archives.at(word>>14),word&0x3fff,root.resolve("DATA/"+name.string())).image.valid();};
-        const auto ordered=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{}),
-            orderedDecoys=originalFigureOrderedFirstPass(decoys,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{});
+        const auto ordered=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{},&*updateContext),
+            orderedDecoys=originalFigureOrderedFirstPass(decoys,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{},&*decoyUpdateContext);
         need(ordered.accepted&&ordered.figures.size()==figures.live.size()&&ordered.computed+ordered.blocked==figures.live.size()&&
             ordered.computed==orderedDecoys.computed,"ordered pass partitions complete same-source live pool independent of saved images");
         orderedComputed+=ordered.computed;orderedPrefix+=ordered.prefixComputed;orderedComplete+=ordered.complete;
@@ -867,10 +980,23 @@ void corpus(){
         std::cout<<"{\"ordered_source\":"<<sources<<",\"complete\":"<<(ordered.complete?"true":"false")<<",\"computed\":"<<ordered.computed<<",\"prefix\":"<<ordered.prefixComputed<<",\"live\":"<<figures.live.size()<<",\"first_blocked_slot\":"<<ordered.firstBlockedSlot;
         if(ordered.firstBlockedSlot)std::cout<<",\"first_blocker\":\""<<originalFigureUpdateStatusName(ordered.figures.at(ordered.firstBlockedSlot).status)<<'"';
         std::cout<<"}\n";
+        auto k1=scene;installOriginalFigureOverlays(k1,save.terrain,figures,refs,0,OriginalFigureRenderSource::PostLoadK1,&save.buildings,&ordered);
+        need(k1.figurePostLoadK1&&k1.figureLive==figures.live.size()&&k1.animationTickMs==0,"explicit k1 scene accepts complete pool and retains building animation tick0");
+        need(app.selectPostLoadK1(save,payload),"App computes and installs explicit same-source post-load k1");
+        const auto k1View=app.renderSavedBuildings(camera);
+        need(k1View.image.valid()&&k1View.figurePostLoadK1&&k1View.figurePlaced==k1.figurePlaced&&k1View.overlayDecodeFailures==0&&k1View.overlayInvalid==0,
+            "k1 App decodes same ordered scene with no invalid overlay or decode failures");
+        k1Placed+=k1View.figurePlaced;k1Decoded+=k1View.figureDecoded;k1Hidden+=k1View.figureHidden;k1Unsupported+=k1View.figureUnsupported;
+        k1Removed+=k1View.figureRemoved;
+        k1Overlays+=k1View.overlayObjects;k1Animation+=k1View.animationDecoded;k1Objects+=k1View.overlayObjects-k1View.figureDecoded-k1View.animationDecoded;
+        std::cout<<"{\"k1_scene_source\":"<<sources<<",\"placed\":"<<k1View.figurePlaced<<",\"decoded_components\":"<<k1View.figureDecoded
+            <<",\"hidden\":"<<k1View.figureHidden<<",\"unsupported\":"<<k1View.figureUnsupported<<",\"overlays\":"<<k1View.overlayObjects<<"}\n";
         for(const auto& f:figures.live){const auto& result=ordered.figures.at(f.slot);const auto& decoy=orderedDecoys.figures.at(f.slot);
             need(result.status==decoy.status&&bool(result.state)==bool(decoy.state),"ordered statuses ignore both saved image words");
             if(!result.state){++orderedBlockedTypes[f.type];++orderedBlockers[originalFigureUpdateStatusName(result.status)];continue;}
             ++orderedComputedTypes[f.type];const auto& u=*result.state;
+            if(!u.alive){need(f.type==11&&u.type==0&&u.image==0&&u.age==0&&ordered.context->freeSlots.back()==f.slot&&
+                u.priorProgress==20,"ordered worker removal resets fields and appends the freed slot after employment writes");continue;}
             need(u.image==decoy.state->image&&u.age==f.age+1&&u.priorProgress==u.progress,"ordered computed output contains dispatch age and post-return progress");
             auto finalImages=imageState;if(ordered.context)finalImages=originalFigureUpdateImageState(*ordered.context);
             const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,
@@ -894,11 +1020,17 @@ void corpus(){
             const auto update=originalFigureFirstUpdate(f,refs,&*updateContext,save.terrain.flags.at(f.cell)),
                 decoyUpdate=originalFigureFirstUpdate(decoys.live.at(&f-figures.live.data()),refs,&*decoyUpdateContext,save.terrain.flags.at(f.cell));
             need(update.status==decoyUpdate.status&&bool(update.state)==bool(decoyUpdate.state),
-                "first-update computation status ignores saved primary and secondary words");
+            "first-update computation status ignores saved primary and secondary words");
             if(!update.state){++updateBlockedTypes[f.type];++updateBlockers[originalFigureUpdateStatusName(update.status)];
                 refusedSlots.emplace(sources,f.slot);
                 std::cout<<"{\"update_refusal_source\":"<<sources<<",\"slot\":"<<f.slot<<",\"type\":"<<unsigned(f.type)<<",\"action\":"<<unsigned(f.action)<<",\"blocker\":\""<<originalFigureUpdateStatusName(update.status)<<"\"}\n";continue;}
             ++updateComputed;++updateComputedTypes[f.type];++individualBySource.at(sources-1);const auto& u=*update.state;
+            if(sources==2&&f.slot==1750){need(u.direction==4&&u.progress==0&&u.subY==f.subY+1&&u.routeCursor==f.routeCursor+1&&
+                update.buildings->at(470).entertainment->at(1)==96&&update.services->serviceGrid[f.cell]==(services->serviceGrid[f.cell]|0xe00),
+                "original entertainer publishes house music96, category3 grid bits and south road before image");}
+            if(sources==3&&f.slot==320){need(f.employmentAmount==10&&u.alive==2&&update.buildings->at(61).residents==41&&
+                update.buildings->at(61).freeSlots==0&&update.buildings->at(61).worker==0&&update.services->population->total==1007&&
+                update.services->population->peak==1007,"original worker arrival publishes exact41 residents,0 free slots and1007 population before dispatcher removal");}
             if(u.cell!=f.cell){++updateCrossedTypes[f.type];
                 need(u.priorX==f.x&&u.priorY==f.y&&u.priorCell==f.cell&&(update.cellHeads||!update.linkedWrites.empty())&&
                     u.cell==uint32_t(int64_t(spawn->cropBase)+u.x+228LL*u.y),
@@ -1022,36 +1154,31 @@ void corpus(){
         <<"},\"selected_nonzero\":"<<postLoadSelected<<",\"decoded\":"<<postLoadDecoded<<",\"decode_failures\":0,\"post_update_oracle\":\"unmeasured\"}\n";
     std::cout<<"{\"update_measurement\":"<<updateComputed<<",\"cargo\":"<<updateCargoDecoded<<",\"ordered_prefix\":"<<orderedPrefix<<",\"types\":{";
     bool measuredComma=false;for(const auto& e:updateComputedTypes){if(measuredComma)std::cout<<',';measuredComma=true;std::cout<<'"'<<e.first<<"\":"<<e.second;}std::cout<<"}}\n";
-    need(updateComputed==190&&updateDecoded==190&&updateConsistent==190&&updateComputedTypes[76]==69&&
-        updateComputedTypes[11]==16&&updateComputedTypes[19]==18&&updateComputedTypes[20]==20&&updateComputedTypes[21]==2&&
+    need(updateComputed==192&&updateDecoded==192&&updateConsistent==192&&updateComputedTypes[76]==69&&
+        updateComputedTypes[11]==17&&updateComputedTypes[19]==18&&updateComputedTypes[20]==20&&updateComputedTypes[21]==2&&
         updateComputedTypes[22]==1&&updateComputedTypes[40]==14&&updateCargoDecoded==16,
-        "first-update state computes190/192, decodes206/206 including cargo16, selector consistency190/190; Pheasant69/69");
-    need(updateComputedTypes==std::map<unsigned,size_t>{{1,7},{11,16},{13,3},{19,18},{20,20},{21,2},{22,1},{23,4},{26,8},{28,1},
-        {29,2},{30,2},{34,1},{35,2},{36,3},{39,5},{40,14},{45,4},{47,8},{76,69}},"individual per-type counts close the complete192-occurrence denominator");
-    need(individualBySource==std::array<size_t,6>{21,45,64,32,7,21}&&orderedBySource==std::array<size_t,6>{21,0,0,32,7,21}&&
-        prefixBySource==std::array<size_t,6>{21,42,49,32,7,21},"per-pool individual, withheld final and exact prefix counts are separate measurements");
+        "first-update state computes192/192, decodes208/208 including cargo16, selector consistency192/192; Pheasant69/69");
+    need(updateComputedTypes==std::map<unsigned,size_t>{{1,7},{11,17},{13,3},{19,18},{20,20},{21,2},{22,1},{23,4},{26,8},{28,1},
+        {29,2},{30,2},{34,1},{35,2},{36,4},{39,5},{40,14},{45,4},{47,8},{76,69}},"individual per-type counts close the complete192-occurrence denominator");
+    need(individualBySource==std::array<size_t,6>{21,46,65,32,7,21}&&orderedBySource==individualBySource&&
+        prefixBySource==individualBySource,"all six ordered pools publish their complete final context");
     std::cout<<"{\"crossed_types\":{";measuredComma=false;for(const auto& e:updateCrossedTypes){if(measuredComma)std::cout<<',';measuredComma=true;std::cout<<'"'<<e.first<<"\":"<<e.second;}std::cout<<"}}\n";
     need(updateCrossedTypes==std::map<unsigned,size_t>{{20,1},{40,1},{45,1}},
         "original computed first updates publish all crossing prior-cell and list writes");
-    const std::map<std::string,size_t> expectedUpdateBlockers{
-        {"segment_owner_service_4eacd0",1},
-        {"worker_arrival_employment_building_writes_4c9fd0",1}};
-    need(updateBlockers==expectedUpdateBlockers,"individual refusal names and counts partition exactly2/192 occurrences");
-    need(refusedSlots==std::set<std::pair<size_t,size_t>>{{2,1750},{3,320}},
-        "both original refused identities are pinned by source ordinal and pool slot");
+    need(updateBlockers.empty()&&refusedSlots.empty(),"individual refusals partition exactly0/192 occurrences");
     std::cout<<"{\"first_update_state\":true,\"k\":1,\"computed\":"<<updateComputed<<",\"live_total\":"<<live
         <<",\"decoded\":"<<updateDecoded<<",\"cargo_decoded\":"<<updateCargoDecoded<<",\"image_consistency\":"<<updateConsistent<<",\"decode_failures\":0,\"computed_types\":{";
     bool updateComma=false;for(const auto& e:updateComputedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<e.first<<"\":"<<e.second;}
     std::cout<<"},\"blocked_types\":{";updateComma=false;for(const auto& entry:updateBlockedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
     std::cout<<"},\"blockers\":{";updateComma=false;for(const auto& entry:updateBlockers){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
     std::cout<<"},\"first_draw\":\"after_explicit_k_admitted_updates\",\"ordinary_k\":[0,1],\"fast_forward_max_k\":10000,\"post_update_oracle\":\"unmeasured\"}\n";
-    need(orderedComputed==81&&orderedPrefix==172&&orderedDecoded==81&&orderedConsistent==81&&orderedComplete==4&&servicesParsed==6&&routesValidated==78&&
-        orderedComputedTypes[76]==63&&orderedComputedTypes[1]==7&&orderedComputedTypes[11]==10&&orderedComputedTypes[40]==1,
-        "complete ordered pass computes81/192;172 prefix calls remain separately measured;78 reciprocal saved routes");
-    const std::map<std::string,size_t> expectedOrderedBlockers{{"segment_owner_service_4eacd0",1},
-        {"worker_arrival_employment_building_writes_4c9fd0",1},
-        {"earlier_ordered_slot_uncomputed",18},{"later_ordered_slot_may_write_earlier_figure",91}};
-    need(orderedBlockers==expectedOrderedBlockers,"ordered refusal names and counts partition exactly111/192 final states");
+    need(orderedComputed==192&&orderedPrefix==192&&orderedDecoded==191&&orderedConsistent==191&&orderedComplete==6&&servicesParsed==6&&routesValidated==78&&
+        orderedComputedTypes==updateComputedTypes,"complete ordered pass computes192/192 from6/6 pools,78 reciprocal saved routes");
+    need(orderedBlockers.empty(),"ordered refusal names and counts partition exactly0/192 final states");
+    need(k1Placed==178&&k1Decoded==194&&k1Hidden==6&&k1Removed==1&&k1Unsupported==7&&k1Overlays==267&&k1Animation==53&&k1Objects==20&&
+        k1Placed+k1Hidden+k1Removed+k1Unsupported==192,"k1 scene partitions192 originals:178 placed,6 hidden,1 removed,7 special-placement refusals;267 overlays");
+    std::cout<<"{\"k1_scene\":true,\"placed\":"<<k1Placed<<",\"live_total\":192,\"decoded_components\":"<<k1Decoded<<",\"hidden\":"<<k1Hidden
+        <<",\"removed\":"<<k1Removed<<",\"unsupported\":"<<k1Unsupported<<",\"overlays\":"<<k1Overlays<<",\"animation_overlays\":"<<k1Animation<<",\"object_overlays\":"<<k1Objects<<"}\n";
     std::cout<<"{\"ordered_first_pass\":true,\"k\":1,\"computed\":"<<orderedComputed<<",\"live_total\":"<<live
         <<",\"prefix_computed\":"<<orderedPrefix<<",\"decoded\":"<<orderedDecoded<<",\"cargo_decoded\":"<<orderedCargoDecoded<<",\"image_consistency\":"<<orderedConsistent<<",\"decode_failures\":0,\"complete_sources\":"<<orderedComplete
         <<",\"source_total\":6,\"services_parsed\":"<<servicesParsed<<",\"positive_routes_validated\":"<<routesValidated<<",\"computed_types\":{";
