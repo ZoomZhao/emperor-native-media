@@ -556,8 +556,8 @@ All executable facts below refer to the legally owned executable SHA-256 `0ca8fc
 | random0xF1E780 | T+415,872 |51,984 u8|0x53136B|
 | road material0xF11C70 | T+467,856 |51,984 i8|0x53137C|
 |0xF05160 (retained working-state member)|T+519,840|51,984 u8|0x53138D|
-|0x101D0AC /0x101D0B0|T+1,291,348 /+1,291,352|one u32 each|0x53146D /0x53147B|
-| saved view0x115F720 |T+1,291,324|one u32|0x531419|
+|0x101D0AC /0x101D0B0|T+1,299,348 /+1,299,352|one u32 each|0x53146D /0x53147B|
+| saved view0x115F720 |T+1,299,324|one u32|0x531419|
 |0xEAC3F0 (retained member)|T+1,383,817|51,984 u8|0x531760|
 | roadDistance0xE92DD0 | T+1,510,985 |51,984 u8|0x5317E3|
 | river metadata0x890210 |T+1,563,001|36 bytes|0x531805 (buffer0x408C70)|
@@ -614,7 +614,7 @@ Final Release/UBSan each pass saved-ground **17/17 authored and1,813/1,813 with 
 
 **Bound types 22/27→26/27; bound live records 927/1,065→1,063/1,065; placed and decoded surface cells 1,483/1,483→1,719/1,719.** This adds all126 residential walls,6 warehouses,2 trading stations and2 common markets. The two entertainment records retain their markers because their positioned object overlays are outside the surface-grid contract. Their underlying market surface is bound, so unbound bit8 surface occupancy falls **236/57,684→0/57,684 active cells**. All6/6 SAV scenes and1,063/1,063 focused record views decode without failures. The same saved-city order remains buildings0x534E36→0x4BC220 before ground0x534E40; no MAP, original asset, listing or derived binary is added.
 
-The following are interoperability format facts from executable SHA-256 `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`. Every VA below maps to file offset VA−0x400000. **T** is the independently validated terrain anchor; **tail** begins after the179/181/182-byte common body. Common serializer0x427430 supplies status at common+2, size+5, canonical x/y at+8/+10, gridIndex+12 and type+16. SAV19 branch0x5311DC restores draw atT−155,952 (read0x531305), owner atT−103,968 (u16,0x531316), subTile atT+311,904 (0x531349), random R atT+415,872 (0x53136B), and view atT+1,291,324 (u32,0x531419). Postload0x534DD8..0x534DF2 copies the saved view to0x101D0D0 before the building calls. All6/6 supplied saves use view0; alternate rendered views remain withheld.
+The following are interoperability format facts from executable SHA-256 `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`. Every VA below maps to file offset VA−0x400000. **T** is the independently validated terrain anchor; **tail** begins after the179/181/182-byte common body. Common serializer0x427430 supplies status at common+2, size+5, canonical x/y at+8/+10, gridIndex+12 and type+16. SAV19 branch0x5311DC restores draw atT−155,952 (read0x531305), owner atT−103,968 (u16,0x531316), subTile atT+311,904 (0x531349), random R atT+415,872 (0x53136B), and view atT+1,299,324 (u32,0x531419). Postload0x534DD8..0x534DF2 copies the saved view to0x101D0D0 before the building calls. All6/6 supplied saves use view0; alternate rendered views remain withheld.
 
 | Type and occurrences | Every surface image write and inputs | Saved transport / supported domain |
 |---|---|---|
@@ -672,7 +672,7 @@ Conditions and per-cell phase are serialized, with these independently byte-chec
 | signed workers+44 / suppression+4E | Common serializer`0x427430`, packed common-body+62/+72, for each supported common version3/4/5. Their read/write calls serialize2 bytes each. |
 | labor-disabled+6E | Same serializer, common-body+98 in version5, +97 in versions3/4 (the earlier runtime+62 field grows by one serialized byte in v5). |
 | animation phase+direction at0xF2B290 | Whole51,984-byte grid, read`0x53135A`, write`0x52FF65`; **T+363,888+drawCornerIndex**, between subTile and random. `0x418B04` reads the current scan cell, not the building's origin. The parser validates the draw-corner owner against the record slot using owner read`0x531316` atT−103,968. All58/58 candidate contexts agree with independent SAV bytes. |
-| view0 | Existing saved-view read`0x531419` atT+1,291,324. Alternate views remain unsupported. |
+| view0 | Saved-view read`0x531419` atT+1,299,324, corrected by the SAV19 read-order audit below. Alternate views remain unsupported. |
 
 Time is a caller input. `0x536B4D..0x536B53` obtains `timeGetTime()` into0x1156DEC;`0x418AA0` clears51 byte flags at0x8901CC and, for speed IDk, sets a flag when current time≥last[k]+20k milliseconds, then assigns last[k]=current time. `0x418C79..0x418D37` advances **one** frame on an eligible draw with that flag; it does not catch up missed draws. Without the flag it returns savedByte&127. The phase/direction grid is persisted, while these wall-clock origins are not serialized by SAV19; `0x418A80` initializes the clock arrays. No random byte or building-ID phase is added in this path.
 
@@ -697,7 +697,7 @@ Every required input is available in SAV19:
 | Type/live/size/x/y/gridIndex | Common serializer`0x427430`, common+16/+2/+5/+8/+10/+12; common versions3/4/5 have179/181/182 bytes. Type47's common size2 does not define a surface square. |
 | Parent market slot | `0x48CC80→0x48B630→0x51CE00`; nested versions1 at tail0,2,130,132; outer version5 at tail134. Reads of three u32s, two100-byte arrays and parent u32 culminate at`0x48CDB5`, tail348/runtime+150. Only this complete version5 tail is accepted. |
 | Parent orientation | `0x544920` reads the market descriptor's orientation; transported industrial byte runtime-data+60 is tail96, read`0x51C55C`. Both originals are common markets with orientation1 and a fully bound surface. |
-| View | SAV19 u32 atT+1,291,324, read`0x531419`, copied before rebuild at`0x534DD8..0x534DF2`. Native scene implements view0; alternate views remain explicit refusals. |
+| View | SAV19 u32 atT+1,299,324, read`0x531419`, copied before rebuild at`0x534DD8..0x534DF2`. Native scene implements view0; alternate views remain explicit refusals. |
 | Roles, variants, pixel offsets | Reconstructed immutable executable tables below. No serialized role, random seed, animation phase or per-object pixel offset is needed for this static writer. |
 | Owner check | Each descriptor row writes entertainment owner at`0x48D54C`; all20/20 art-bearing anchor cells independently match the saved owner slot atT−103,968. The underlying12-cell pavement remains the market surface. |
 
@@ -727,3 +727,56 @@ The city scan is screen-row then left-to-right (`0x4699D0`; surface draw`0x4708B
 General slotB0 resolves to physical603; the8 variants are603..610 and pass independent type256/tileSize0/bitmap-family/dimension checks (see SG3). The two originals use603:2,604:2,605:2,606:2,607:8,610:4; modes1:16,2:4. The existing surface renderer continues to validate and account every surface cell. Only scenes with objects replay their complete SAV stamps as an ordered command list, inserting objects at the verified cell phases; ground/MAP renderers are unchanged. Synthetic tests separately exercise both orientations, literal serialized offsets and unsupported versions, 1×/2× signed placement, all four clipping edges, mode order, list enumeration invariance, later-surface occlusion, and failed/offscreen payload accounting.
 
 Validation after this closure: scene Release/UBSan **166/166 authored,4,539/4,539 total**, from77/4,348; all8/8 possible object selector outputs decode and all20/20 actual occurrences bind/decode/paint. Two independent full viewport comparisons preserve the pre-existing ground/building pixels when the object's command path is active but its objects are offscreen. Building-image stays **1,283/3,880** (surface bindings26 types/1,063 records); saved-ground **110/1,915**, map-reference **1,884/3,130**, parser **4,554**, SAV **91**, SG3 **78**, candidate **76**, all passing in Release/UBSan. Unset/empty scene corpus gates succeed with authored tests only. `python3 -B scripts/building_overlay_bite.py` rejects **3/3** private mutations (scan-origin shift, reverse painter order, role variant); production headers stay unchanged. App build packages28 compiled units, embeds89/89 matching production fingerprints and passes strict signature verification. Runtime animation,walkers,alternate views,height occlusion,shadow fidelity and an original-screen oracle remain unmeasured.
+
+## SAV19 post-route scalar read-order correction
+
+**6/6 saved views remain0→0;6/6 ground validity gates remain accepted.** The former view offset T+1,291,324 and terrain scalar offsets T+1,291,348/+352 were8,000 bytes early, inside the serialized record block. Their zero values were unrelated bytes. The true offsets are T+1,299,324, T+1,299,348 and T+1,299,352. This removes the named offset-verification blocker; it does not increase original-data rendering coverage. All facts below use executable SHA-256 `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`; code VA maps to file offset VA−0x400000.
+
+The read-order derivation starts with terrain's207,936 bytes (`0x531327`), then103,968 (`0x531338`), five51,984-byte spans (`0x531349/35A/36B/37C/38D`),103,968 (`0x53139E`), and two51,984-byte spans (`0x5313AF/3C0`). These consume779,760 bytes from T. Route owners (`0x5313D1`) add2,000, then route directions (`0x5313E2`) add500,000, reaching T+1,281,760. The loop `0x5313EC..0x531400` calls `0x5501B0`100 times: runtime stride180 at`0x5313F4` is not a wire size. Version6 dispatch is`0x550641..0x550650→0x550A7D`. Its requests `0x550A80..0x550E93` plus final common read`0x5512B0` consume29×1+42×2+7×4+1×32=173 payload bytes. The version helper`0x5501C0→0x41FC10→0x41FCB0` consumes another2 bytes. Thus100×175=17,500 wire bytes end at **T+1,299,260**, independently of runtime padding.
+
+| Read target | True logical offset | Width | Read call |
+|---|---:|---:|---|
+|0x130F910 block|T+1,299,260|64 bytes|0x53140B|
+|0x115F720 saved view|T+1,299,324|u32|0x531419|
+|0xC82EF8|T+1,299,328|u32|0x531427|
+|0xC82EF0|T+1,299,332|u32|0x531435|
+|0xC82EF4|T+1,299,336|u32|0x531443|
+|0x10C714C RNG first|T+1,299,340|u32|0x531451|
+|0x10C7148 RNG second|T+1,299,344|u32|0x53145F|
+|0x101D0AC|T+1,299,348|u32|0x53146D|
+|0x101D0B0|T+1,299,352|u32|0x53147B|
+
+The64-byte block is opaque; each source has4/64 nonzero bytes. No interpretation or raw block dump is published. The three C82EF words are verified framing facts, not newly restored gameplay. RNG was already corrected in the preceding figure work and stays unchanged. The terrain scalars were retained inputs but have no ground-selector consumer, explaining why correcting their values changes no emitted art. The building profile now retains the full u32 view, and the scene composer rejects every nonzero view before emitting a surface. Ground validity and figure placement retain their view0 gates.
+
+The singleton and scenario scalar positions were independently rechecked through their readers. Prefix version6 `[2,45)` consumes43 bytes (`0x52FB58/65/72/7C/89/96/A3`, final read`0x52FCBF`); version2 `[45,95)` consumes50 (`0x52E731/73E/74B/758`, final`0x52E791`). Goal helper3 at95 calls owner4 at97 (`0x55A4BA→0x55A7A0`); its two-byte version plus1760+88+88+1320 bytes (`0x55A84F/85F/86F`, shared`0x55A8AD`) reach3355. Ten member lists are read at`0x55A8BF`, preserving class/object-cache and cited goal-payload lengths. The next caller`0x531220→0x425260` selects singleton`0x10AF4E0`; vtable`0x7B2BB8+8` is`0x4EDDA0`. Its version1 wire order is u16 version, u32 runtime+4 (`0x4EDE36`), u8 runtime+8 (`0x4EDE43`), three further u32s (`0x4EDE50/5D/6A`), then51,984 bytes (`0x4EDE7A`):52,003 bytes total. The mode is **singleton wire+6**, not wire+8; the existing bounded reader was correct. Unknown goal/singleton versions still withhold it.
+
+Scenario6 begins at **S−28** (`0x5312CB→0x52CD90`, version6 jump-table entry`0x52E430→0x52D1FC`). Before width, the reader consumes2-byte version+8×u16+u32+3×u16=28 bytes (`0x52D201..0x52D290`). Width/height/crop then read at **S/S+4/S+8** (`0x52D29D/2AA/2B7`) from runtime+1C/+20/+24. Postload copies them to`0x101D0C0/C4/C8` at`0x534CDE/CE8/CEE`. These offsets and the centered crop validation remain correct in6/6 sources.
+
+Ordinals use sorted native catalog order, including ordinal4's hidden `.sav`. `AC/B0` below means raw globals0x101D0AC/0x101D0B0. All old view/AC/B0 reads were0. The source-specific singleton offsets are absolute logical offsets; all singleton versions are1, runtime+4 values0, and modes0→0.
+
+| SAV ordinal | View before→after | AC before→after | B0 before→after | C82EF8/F0/F4 | RNG first/second, unchanged | Mode byte offset | Width,height,crop, unchanged |
+|---:|---:|---:|---:|---|---|---:|---|
+|1|0→0|0→108|0→212|0/0/0|889602988/1004666561|3742|112,112,13282|
+|2|0→0|0→117|0→224|0/0/672|574701425/1455191300|3985|112,112,13282|
+|3|0→0|0→94|0→196|0/0/576|1969212924/644893880|3985|112,112,13282|
+|4|0→0|0→105|0→228|19/1/113|2022927614/78127513|3742|112,112,13282|
+|5|0→0|0→131|0→182|0/0/0|1952495171/60432673|4004|226,226,229|
+|6|0→0|0→106|0→204|0/0/96|489630378/499274793|3742|112,112,13282|
+
+The following per-source metrics were measured before and after and are identical. Building records include the two entertainment records; ground-only counts exclude building cells. Every emitted ground cell matches its saved draw byte and subTile low nibble. Figure forward scores are independently recomputed from non-image inputs.
+
+| SAV ordinal | Ground emitted=decoded /active, before=after | Building records /live, before=after | Building surface cells, before=after | Entertainment overlays, before=after | Figures placed /live, before=after | Forward exact /visible nonzero, before=after |
+|---:|---:|---:|---:|---:|---:|---:|
+|1|6381/6384|0/0|0|0|0/21|0/0|
+|2|5540/6384|568/568|844|10|45/46|45/45|
+|3|5647/6384|473/473|737|10|60/65|60/60|
+|4|6292/6384|17/17|89|0|32/32|32/32|
+|5|25764/25764|0/0|0|0|0/7|0/0|
+|6|6332/6384|7/7|49|0|21/21|21/21|
+|Total|55956/57684|1065/1065|1719|20/20|158/192|158/158|
+
+Ground unknown remains0/57,684; no-write9/57,684; unbound building occupancy0/57,684. Ground-only draw/subTile agreement remains55,956/55,956; all written ground+building outputs57,675/57,675; building footprint checks1,751/1,751 across1,063 surface records. Building animation remains53/53 selected/decoded and954/954 frames. Figure components remain174/174 decoded, hidden6 andzero-image28; snapshot rendering remains distinct from the unmeasured first displayed frame after load. Original-screen agreement remains unmeasured.
+
+Regression fixtures independently write the175-byte record block,64-byte gap and distinct final words, with nonzero decoys at the three former offsets. They lock view/RNG/AC/B0 to the record block end and exercise parser→scene nonzero-view refusal. `python3 -B scripts/save_offset_bite.py` mutates private copies: view, each terrain scalar and RNG shifted8,000 bytes early, plus record width175→95. **5/5 mutations exit1 at failing assertions**; production sources and original inputs stay unchanged. Tests and App build use external temporary storage. STATUS.md and commit/push decisions remain with the lead.
+
+Final Release and undefined-sanitizer checks both pass: saved-ground110/110 authored,1,915→1,928/1,928 total; building-scene234→244/244 authored,7,653→7,663/7,663 total; building-image1,283/1,283 authored,3,880/3,880 total; figure-scene375/375 authored,2,595→2,601/2,601 total; SAV91→94/94; map-reference1,884/1,884 authored,3,130/3,130 total, unchanged. All20/20 unset/empty-root checks pass across the five corpus suites and two modes. The App builds28 compiled units, embeds96/96 matching source fingerprints and passes strict signature verification in a fresh external directory; it was not launched.

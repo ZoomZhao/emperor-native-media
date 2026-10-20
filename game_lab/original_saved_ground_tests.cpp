@@ -134,7 +134,7 @@ void corpus(){
     const auto catalog=enumerateOriginalMapSources(root);need(catalog.complete,"complete source catalog");
     size_t sources=0,withGround=0,active=0,emitted=0,decoded=0,unknown=0,noWrite=0,unresolved=0,buildings=0,buildingCells=0,unbound=0,native=0;
     size_t groundFullyAssigned=0,buildingFullyAssigned=0,buildingMarkerOnly=0;
-    std::map<std::string,Agreement> branches;Agreement total,storage;AppMapSurface app(root);
+    std::map<std::string,Agreement> branches;Agreement total,storage,groundOnly;AppMapSurface app(root);
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;++sources;
         const auto snapshot=loadOriginalSave(root.resolve(source.relativePath));
         need(snapshot.status==OriginalSaveStatus::LoadedSnapshot&&snapshot.readStable&&snapshot.layers.ground&&snapshot.layers.ground->valid(),"stable SAV19 has every rebuild input");
@@ -143,6 +143,28 @@ void corpus(){
         std::ifstream file(root.resolve(source.relativePath),std::ios::binary);std::vector<uint8_t> input{std::istreambuf_iterator<char>(file),std::istreambuf_iterator<char>()};
         const auto container=decodeOriginalMapContainer(input);const auto& raw=container.payload;const size_t base=snapshot.terrainOffset;
         need(container.complete&&base>=155952&&raw.size()>=base+2226670,"independent complete SAV19 raw byte bounds");
+        // Catalog ordinals independently walked through ten goal-member lists;
+        // version1 singleton byte+8 is wire+6, not runtime+8. Scenario6
+        // consumes u16 version,8*u16,u32,3*u16 before width/height/crop.
+        const size_t waterOffsets[]={3742,3985,3985,3742,4004,3742};
+        need(sources<=6&&detail::u16(raw.data()+waterOffsets[sources-1]-6)==1&&
+             saved.waterMode==raw[waterOffsets[sources-1]]&&detail::u16(raw.data()+snapshot.sizeOffset-28)==6&&
+             saved.activeSide==detail::u32(raw.data()+snapshot.sizeOffset)&&
+             saved.activeSide==detail::u32(raw.data()+snapshot.sizeOffset+4)&&
+             saved.cropStorageBase==detail::u32(raw.data()+snapshot.sizeOffset+8),
+             "independent goal-list cursor and scenario6 request widths preserve singleton and crop scalar offsets");
+        need(saved.savedView==detail::u32(raw.data()+base+1299324)&&
+             saved.state.g101D0AC==detail::u32(raw.data()+base+1299348)&&saved.state.g101D0B0==detail::u32(raw.data()+base+1299352),
+             "saved view and terrain scalars independently equal post-record SAV19 read order");
+        std::cout<<"{\"scalar_source_ordinal\":"<<sources<<",\"view_before\":"<<detail::u32(raw.data()+base+1291324)
+            <<",\"view_after\":"<<saved.savedView<<",\"g101D0AC_before\":"<<detail::u32(raw.data()+base+1291348)
+            <<",\"g101D0AC_after\":"<<saved.state.g101D0AC<<",\"g101D0B0_before\":"<<detail::u32(raw.data()+base+1291352)
+            <<",\"g101D0B0_after\":"<<saved.state.g101D0B0<<",\"C82EF8\":"<<detail::u32(raw.data()+base+1299328)
+            <<",\"C82EF0\":"<<detail::u32(raw.data()+base+1299332)<<",\"C82EF4\":"<<detail::u32(raw.data()+base+1299336)
+            <<",\"block64_nonzero_bytes\":"<<std::count_if(raw.begin()+base+1299260,raw.begin()+base+1299324,[](auto byte){return byte!=0;})
+            <<",\"water_mode_offset\":"<<waterOffsets[sources-1]
+            <<",\"water_mode\":"<<unsigned(*saved.waterMode)<<",\"active_side\":"<<saved.activeSide<<",\"crop_base\":"<<saved.cropStorageBase
+            <<",\"ground_valid\":"<<(saved.valid()?"true":"false")<<"}\n";
         bool byteAgreement=true;
         for(size_t cell=0;cell<saved.state.cells;++cell)byteAgreement&=
             saved.state.draw[cell]==raw[base-155952+cell]&&saved.owner[cell]==detail::u16(raw.data()+base-103968+2*cell)&&
@@ -159,6 +181,7 @@ void corpus(){
             local.add(cell,scene,saved);
             const std::string branch=scene.buildingOccupancy[cell]?(scene.buildingOccupancy[cell]==1?"building-bound":"building-unbound"):scene.groundSelections[cell].selection.branch;
             branches[branch].add(cell,scene,saved);
+            if(!scene.buildingOccupancy[cell]&&scene.groundSelections[cell].selection.known)groundOnly.add(cell,scene,saved);
             if(scene.buildingOccupancy[cell])need(!scene.groundSelections[cell].selection.known,"ground never fills occupied building cells");
         }
         need(localActive==scene.groundCells+scene.groundUnknown+scene.groundNoWrite+scene.groundUnresolved+scene.placedCells+scene.unboundBuildingCells,"active cells partition into emitted/unknown/no-write/unresolved/bound/unbound");
@@ -180,6 +203,8 @@ void corpus(){
     // ground partition here, while the building-scene suite locks their bindings.
     need(sources==6&&withGround==6&&native==6&&active==57684&&buildingCells+unbound==1719,"six-source/active-cell/building-occupancy denominators unchanged");
     need(emitted==55956&&decoded==55956&&unknown==0&&noWrite==9&&unresolved==0,"all active cells partition with every ground unknown resolved and no emitted decode failures");
+    need(groundOnly.cells==emitted&&groundOnly.draw==emitted&&groundOnly.side==emitted&&groundOnly.both==emitted,
+         "ground-only emitted cells independently match both saved draw bytes and subTile nibbles");
     need(groundFullyAssigned==3304,"ground-only fully assigned draw-byte denominator unchanged");
     need(buildingFullyAssigned+buildingMarkerOnly==buildingCells,"precise building draw-write masks partition fully assigned and marker-only cells");
     need(total.drawWritten==emitted+buildingCells&&total.drawPredicted==total.drawWritten&&total.markerPredicted==total.drawWritten&&total.sideWritten==total.drawWritten&&total.sidePredicted==total.sideWritten&&total.drawAssigned==groundFullyAssigned+buildingFullyAssigned&&total.drawAssignedEqual==total.drawAssigned,"every touched draw output, independently assigned draw byte and subTile nibble equals SAV19");
@@ -194,6 +219,7 @@ void corpus(){
              "each changed ground branch reproduces draw output and independently predicts marker and subTile nibble");
     }
     std::cout<<"{\"scope\":\"all backing cells (includes retained off-map bytes)\",";storage.print();std::cout<<"}\n";
+    std::cout<<"{\"scope\":\"emitted ground only\",";groundOnly.print();std::cout<<"}\n";
     for(const auto& entry:branches){std::cout<<"{\"branch\":\""<<entry.first<<"\",";entry.second.print();std::cout<<"}\n";}
     std::cout<<"{\"saved_sources\":"<<sources<<",\"sources_with_SG3_ground\":"<<withGround<<",\"active_cells\":"<<active<<",\"ground_emitted\":"<<emitted<<",\"ground_decoded\":"<<decoded<<",\"ground_unknown\":"<<unknown<<",\"chain_no_write\":"<<noWrite<<",\"unresolved\":"<<unresolved<<",\"buildings_placed\":"<<buildings<<",\"building_cells\":"<<buildingCells<<",\"building_unbound_cells\":"<<unbound<<",\"ground_draw_fully_assigned\":"<<groundFullyAssigned<<",\"building_draw_fully_assigned\":"<<buildingFullyAssigned<<",\"building_draw_marker_only\":"<<buildingMarkerOnly<<",\"native_CGImages\":"<<native<<",\"agreement\":{";total.print();std::cout<<"},\"stored_image_oracle\":false}\n";
 }

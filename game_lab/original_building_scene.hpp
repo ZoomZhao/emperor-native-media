@@ -199,6 +199,7 @@ inline OriginalBuildingScene composeOriginalBuildingScene(const OriginalMapTerra
     const OriginalBuildingEmployment* employment=nullptr){
     OriginalBuildingScene out;out.animationTickMs=tickMs;
     if(!terrain.valid()||!analyzeOriginalMap(terrain).cropValid()||profile.status!=OriginalBuildingStatus::Complete||
+        (profile.savedView&&*profile.savedView!=0)||
         profile.footprints.size()>4000||profile.objectBuildings.size()>4000||profile.liveSizedRecords>4000||profile.unplacedMarkers.size()>4000)return out;
     const size_t n=OriginalTerrainState::cells;
     auto& s=out.surface;s.terrain=terrain.flags;s.image.assign(n,0);s.draw.assign(n,0);s.subTile.assign(n,0);

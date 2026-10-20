@@ -640,6 +640,10 @@ void corpus(){
         const auto payload=decodeOriginalMapContainer(savedBytes).payload;
         const auto services=originalFigureSavedServices(payload,save.terrainOffset);
         need(services.has_value(),"same SAV19 contains complete route storage and persisted RNG state");++servicesParsed;
+        need(figures.savedView==detail::u32(payload.data()+save.terrainOffset+1299324)&&figures.savedView==0&&
+             services->randomFirst==detail::u32(payload.data()+save.terrainOffset+1299340)&&
+             services->randomSecond==detail::u32(payload.data()+save.terrainOffset+1299344),
+             "figure view and both RNG words independently equal corrected post-record read sites");
         const auto spawn=originalFigureSpawnServices(payload,save.sizeOffset);
         need(spawn.has_value(),"same scenario6 supplies four type76 spawn coordinates and validated crop");
         const auto passability=originalFigurePheasantPassability(save.terrain,save.layers.mapperStone,save.buildings,*spawn);
@@ -803,7 +807,8 @@ void corpus(){
                 std::any_of(canvas.pixelsBGRA.begin(),canvas.pixelsBGRA.end(),[](auto pixel){return pixel>>24;}),"each original figure itself paints a focused generic compositor view");
             ++focused;++placedDecoded;
         }
-        std::cout<<"{\"figure_source\":"<<sources<<",\"slots\":"<<figures.declared<<",\"live\":"<<figures.live.size()<<",\"placed\":"<<view.figurePlaced<<",\"hidden\":"<<view.figureHidden<<",\"zero_image\":"<<view.figureZeroImage<<",\"unsupported\":"<<view.figureUnsupported<<",\"decoded_images\":"<<view.figureDecoded<<"}\n";
+        std::cout<<"{\"figure_source\":"<<sources<<",\"saved_view\":"<<figures.savedView<<",\"slots\":"<<figures.declared<<",\"live\":"<<figures.live.size()<<",\"placed\":"<<view.figurePlaced<<",\"hidden\":"<<view.figureHidden<<",\"zero_image\":"<<view.figureZeroImage<<",\"unsupported\":"<<view.figureUnsupported<<",\"decoded_images\":"<<view.figureDecoded
+            <<",\"forward_matched\":"<<view.figureForwardMatched<<",\"forward_compared\":"<<view.figureForwardCompared<<"}\n";
     }
     need(sources==6&&slots==12000&&live==192&&types.size()==20&&boundTypes.size()==18&&placed==158&&hidden==6&&zero==28&&unsupported==0&&decoded==174&&failures==0&&focused==158&&placedDecoded==158,"six-source original denominator");
     need(postLoadComputed==192&&postLoadBlocked==0&&postLoadChanged+postLoadOracleMatched==192&&

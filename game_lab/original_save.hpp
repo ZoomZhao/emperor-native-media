@@ -9,7 +9,7 @@ struct OriginalSavedGround {
     OriginalTerrainState state; // SAV19 restored inputs; image is cleared, never persisted
     std::vector<uint8_t> material; // signed 0xF11C70 bytes, T+467856, read0x53137C
     std::vector<uint16_t> owner; // 0xFC3750, T-103968, read0x531316
-    uint32_t activeSide=0,cropStorageBase=0,savedView=0; //0x115F720,T+1291324,0x531419
+    uint32_t activeSide=0,cropStorageBase=0,savedView=0; //0x115F720,T+1299324,0x531419
     std::optional<uint8_t> waterMode; // saved singleton+8, serializer0x4EDDA0/read0x4EDE43
     bool valid() const {return state.valid()&&material.size()==state.cells&&owner.size()==state.cells&&
         activeSide>=1&&activeSide<=228&&cropStorageBase==((228-activeSide)/2)*229&&savedView==0&&waterMode&&*waterMode==0;}

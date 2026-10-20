@@ -48,13 +48,13 @@ struct OriginalFigureSavedServices {
 // independently validated terrain anchor, not a byte-pattern search here.
 inline std::optional<OriginalFigureSavedServices> originalFigureSavedServices(
     const std::vector<uint8_t>& data,size_t terrain){
-    constexpr size_t owners=779760,directions=781760,first=1299340,second=1299344;
-    if(data.size()>8u*1024u*1024u||terrain>data.size()||second+4>data.size()-terrain)return std::nullopt;
-    for(size_t n=0;n<100;++n)if(detail::u16(data.data()+terrain+1281760+175*n)!=6)return std::nullopt;
+    using namespace original_save19;
+    if(data.size()>8u*1024u*1024u||terrain>data.size()||randomSecond+4>data.size()-terrain)return std::nullopt;
+    for(size_t n=0;n<recordCount;++n)if(detail::u16(data.data()+terrain+records+recordBytes*n)!=6)return std::nullopt;
     OriginalFigureSavedServices out;
-    for(size_t n=0;n<1000;++n)out.routeOwners[n]=detail::i16(data.data()+terrain+owners+2*n);
-    out.directions.assign(data.begin()+terrain+directions,data.begin()+terrain+directions+500000);
-    out.randomFirst=detail::u32(data.data()+terrain+first);out.randomSecond=detail::u32(data.data()+terrain+second);
+    for(size_t n=0;n<1000;++n)out.routeOwners[n]=detail::i16(data.data()+terrain+routeOwners+2*n);
+    out.directions.assign(data.begin()+terrain+routeDirections,data.begin()+terrain+routeDirections+500000);
+    out.randomFirst=detail::u32(data.data()+terrain+randomFirst);out.randomSecond=detail::u32(data.data()+terrain+randomSecond);
     return out;
 }
 struct OriginalFigureSpawnServices {

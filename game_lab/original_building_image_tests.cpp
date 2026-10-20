@@ -163,7 +163,8 @@ void generalized(){
             if(slot<=2){b[body+2]=1;b[body+5]=1;word(b,body+8,uint16_t(6+slot));word(b,body+10,9);word(b,body+16,231);
                 const uint32_t cell=67*228+64+slot;for(unsigned j=0;j<4;++j)b[body+12+j]=uint8_t(cell>>(8*j));}
         }
-        const size_t terrainOffset=b.size()+155952;b.resize(terrainOffset+1291328);
+        const size_t terrainOffset=b.size()+155952;b.resize(terrainOffset+1299328);
+        word(b,terrainOffset+1291324,6); // old view offset is unrelated record data
         const size_t first=67*228+65;word(b,terrainOffset-103968+2*first,1);word(b,terrainOffset-103968+2*(first+1),2);
         auto p=parseOriginalSavedBuildings(b,terrainOffset,t);
         need(p.status==OriginalBuildingStatus::Complete&&p.footprints.size()==2&&p.slotTypes[2]==231,"complete authored wall slot context");
@@ -171,8 +172,8 @@ void generalized(){
         need(originalBuildingBaseSelection(p.footprints[0])->variant==0,"wall uses canonical coordinates for local seed");
         word(b,terrainOffset-103968+2*(first+1),4000);p=parseOriginalSavedBuildings(b,terrainOffset,t);
         need(p.footprints.size()==2&&!originalBuildingBaseSelection(p.footprints[0]),"out-of-domain adjacent owner withholds wall instead of assuming no neighbour");
-        word(b,terrainOffset-103968+2*(first+1),2);word(b,terrainOffset+1291324,2);p=parseOriginalSavedBuildings(b,terrainOffset,t);
-        need(p.footprints.size()==2&&p.footprints[0].imageInputs->savedView==2&&!originalBuildingBaseSelection(p.footprints[0]),"valid saved alternate view remains explicit but view0 renderer refuses");
+        word(b,terrainOffset-103968+2*(first+1),2);word(b,terrainOffset+1299324,2);p=parseOriginalSavedBuildings(b,terrainOffset,t);
+        need(p.savedView==2&&p.footprints.size()==2&&p.footprints[0].imageInputs->savedView==2&&!originalBuildingBaseSelection(p.footprints[0]),"valid saved alternate view remains explicit but view0 renderer refuses");
     }
     for(uint16_t version:{uint16_t(3),uint16_t(4),uint16_t(5)})for(uint16_t type:{uint16_t(5),uint16_t(54),uint16_t(58),uint16_t(124),uint16_t(127),uint16_t(194),uint16_t(196),uint16_t(214)}){
         const size_t common=version==3?179:version==4?181:182;

@@ -23,6 +23,14 @@ Bytes payload(size_t base=3003){Bytes body(base+2226670+17);body[0]=0x13;put(bod
 void write(const std::filesystem::path& p,const Bytes& b){std::ofstream f(p,std::ios::binary);f.write(reinterpret_cast<const char*>(b.data()),b.size());if(!f)throw std::runtime_error("authored fixture write");}
 }
 int main(){try{
+  using namespace original_save19;
+  need(records==1281760&&recordBytes==175&&recordCount==100&&recordsEnd==1299260,
+       "SAV19 directions end then100 version6 records consume175 wire bytes each, not runtime stride180");
+  need(block64==recordsEnd&&savedView==recordsEnd+64&&savedView==1299324&&
+       c82ef8==savedView+4&&c82ef0==savedView+8&&c82ef4==savedView+12&&
+       randomFirst==recordsEnd+80&&randomFirst==1299340&&randomSecond==randomFirst+4&&
+       g101D0AC==recordsEnd+88&&g101D0AC==1299348&&g101D0B0==recordsEnd+92&&g101D0B0==1299352,
+       "SAV19 block64, view, three C82EF words, RNG and terrain scalars lock to record block end");
  constexpr size_t base=3003;auto body=payload();auto bytes=frame(body);auto saved=decodeOriginalSave(bytes);
  need(saved.status==OriginalSaveStatus::LoadedSnapshot&&saved.terrain.valid()&&saved.layers.valid(),"SAV13 complete snapshot fields");
  need(saved.terrainOffset==base&&saved.sizeOffset==127&&saved.frames>1&&saved.decodedBytes==body.size(),"SAV dynamic unaligned markers and complete framing");
@@ -50,8 +58,21 @@ int main(){try{
   groundBody[3415]=1; // channel singleton v1,+4=0,+8=0
   for(size_t i=0;i<51984;++i){groundBody[groundBase-155952+i]=uint8_t(i+17);groundBody[groundBase+311904+i]=uint8_t(i+23);groundBody[groundBase+467856+i]=uint8_t(i+31);groundBody[groundBase+1874984+i]=uint8_t(i+47);groundBody[groundBase-103968+2*i]=uint8_t(i);groundBody[groundBase-103968+2*i+1]=uint8_t(i>>8);}
   put(groundBody,groundBase-4,0); // required terrain marker's preceding owner bytes
+  // Independent literal wire cursor: last record ends at T+1299260; no
+  // production offset constant constructs this fixture. Old sites are decoys.
+  put(groundBody,groundBase+1291324,6);put(groundBody,groundBase+1291348,0xdeadbeef);put(groundBody,groundBase+1291352,0xabcdef01);
+  for(size_t n=0;n<100;++n){groundBody[groundBase+1281760+175*n]=6;groundBody[groundBase+1281761+175*n]=0;}
+  std::fill_n(groundBody.begin()+groundBase+1299260,64,0xa5);
+  put(groundBody,groundBase+1299324,0);put(groundBody,groundBase+1299328,19);
+  put(groundBody,groundBase+1299332,1);put(groundBody,groundBase+1299336,113);
+  put(groundBody,groundBase+1299340,0x12345678);put(groundBody,groundBase+1299344,0x87654321);
+  put(groundBody,groundBase+1299348,108);put(groundBody,groundBase+1299352,212);
   auto groundSave=decodeOriginalSave(frame(groundBody));need(groundSave.layers.ground&&groundSave.layers.ground->valid(),"complete SAV19 prior spans and independently serialized crop publish ground inputs");
   const auto& ground=*groundSave.layers.ground;exact=true;
+  const auto services=originalFigureSavedServices(groundBody,groundBase);
+  need(ground.savedView==0&&ground.state.g101D0AC==108&&ground.state.g101D0B0==212&&
+       services&&services->randomFirst==0x12345678&&services->randomSecond==0x87654321,
+       "literal record-end fixture restores view/RNG/terrain scalars and ignores8000-byte-early decoys");
   for(size_t i=0;i<51984;++i)exact&=ground.state.image[i]==0&&ground.state.draw[i]==uint8_t(i+17)&&ground.state.subTile[i]==uint8_t(i+23)&&ground.material[i]==uint8_t(i+31)&&ground.owner[i]==uint16_t(i<51982?i:0)&&ground.state.gBEBF3A[i]==uint8_t(i+47)&&ground.state.feature[i]==(uint32_t(i)|0x40000000u)&&ground.state.fertility[i]==uint8_t(i%101)&&ground.state.roadDistance[i]==uint8_t(255-i)&&ground.state.randomByte[i]==uint8_t(i);
   need(exact,"every SAV19 ground value reads the literal serializer span; image remains cleared");
   put(groundBody,135,0);need(!decodeOriginalSave(frame(groundBody)).layers.ground,"inconsistent serialized crop refuses rebuild inputs without inventing a crop");
@@ -62,8 +83,8 @@ int main(){try{
   need(unknownWater.layers.ground&&!unknownWater.layers.ground->waterMode&&!unknownWater.layers.ground->valid(),"unknown singleton version withholds rebuild instead of assuming inactive");
   groundBody[3415]=1;groundBody[3355]=2;unknownWater=decodeOriginalSave(frame(groundBody));
   need(unknownWater.layers.ground&&!unknownWater.layers.ground->waterMode,"unknown intervening goal-list version cannot shift the singleton cursor");
-  groundBody[3355]=1;put(groundBody,groundBase+1291324,2);auto otherView=decodeOriginalSave(frame(groundBody));
-  need(otherView.layers.ground&&otherView.layers.ground->savedView==2&&!otherView.layers.ground->valid(),"saved nonzero view refuses view0 scene instead of borrowing incompatible corners");put(groundBody,groundBase+1291324,0);
+  groundBody[3355]=1;put(groundBody,groundBase+1299324,2);auto otherView=decodeOriginalSave(frame(groundBody));
+  need(otherView.layers.ground&&otherView.layers.ground->savedView==2&&!otherView.layers.ground->valid(),"saved nonzero view refuses view0 scene instead of borrowing incompatible corners");put(groundBody,groundBase+1299324,0);
   struct GoalSpan{const char* name;uint16_t version;size_t bytes;};
   for(const auto span:{GoalSpan{"cHousingGoal",1,12},{"cYearlyProductionGoal",1,12},{"cTradingPartnersGoal",1,4},{"cPopulationGoal",1,4},{"cTreasuryGoal",1,4},{"cHomageGoal",3,8},{"cAlliedCitiesGoal",3,8},{"cYearlyProfitGoal",1,8},{"cConquerGoal",2,8},{"cMonumentGoal",2,8},{"cMenagerieGoal",3,8}}){
    auto fixture=groundBody;std::fill(fixture.begin()+3355,fixture.begin()+5000,0);size_t at=3355;

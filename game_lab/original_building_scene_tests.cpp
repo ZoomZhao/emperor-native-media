@@ -87,6 +87,12 @@ void authored(const std::filesystem::path& temp){
     auto overlap=profile({f,footprint(72,2,4,4,1)});auto refused=composeOriginalBuildingScene(t,overlap,a);
     need(refused.accepted&&refused.placed.empty()&&refused.rejectedRecords==2&&refused.withheldFootprints.size()==2,"both overlapping records withheld without rebuild-order guess");
     auto malformed=p;malformed.status=OriginalBuildingStatus::UnsupportedTail;need(!composeOriginalBuildingScene(t,malformed,a).accepted,"partial saved table never presented as complete scene");
+    for(uint32_t view:{1u,2u,4u,6u,8u,256u,UINT32_MAX}){
+        auto rotated=p;rotated.savedView=view;
+        const auto refusedView=composeOriginalBuildingScene(t,rotated,a);
+        need(!refusedView.accepted&&refusedView.placed.empty()&&refusedView.surface.image.empty(),
+             "whole saved scene refuses every nonzero view before emitting view0 buildings");
+    }
     // Mixed-size disjoint footprints: size5 origin depth5,draw-corner depth9;
     // size1 origin/corner depth8. The size5 red top must be painted LAST.
     auto order=composeOriginalBuildingScene(t,profile({footprint(53,5,2,3,0),footprint(126,1,1,7,1)}),a);
@@ -203,7 +209,7 @@ void authored(const std::filesystem::path& temp){
         for(size_t pos:{size_t(0),size_t(2),size_t(130),size_t(132)})word(tail+pos,1);word(tail+134,5);
         dword(tail+344,3999);dword(tail+348,10);
         raw.insert(raw.end(),{1,0x80});at=raw.size();raw.resize(at+common);word(at,commonVersion);word(at+16,0x1234);
-        const size_t terrainOffset=raw.size()+155952;raw.resize(terrainOffset+1291328);
+        const size_t terrainOffset=raw.size()+155952;raw.resize(terrainOffset+1299328);
         auto parsed=parseOriginalSavedBuildings(raw,terrainOffset,t);
         need(parsed.status==OriginalBuildingStatus::UnsupportedTail&&parsed.objectBuildings.size()==1&&parsed.unplacedMarkers.size()==1&&parsed.objectBuildings[0].parentSlot==10,
             "literal entertainment tail parent survives all common-record versions without a fabricated square");
@@ -298,7 +304,8 @@ void animationAuthored(const std::filesystem::path& temp){
         word(at+8,10);word(at+10,10);word(at+16,72);dword(at+12,82*228+82);word(at+62,0xfffd);word(at+72,0x1234);
         bytes[at+(version==5?98:97)]=0x5a;bytes[at+(version==5?97:98)]=0x33;
         for(unsigned slot=2;slot<4000;++slot){bytes.insert(bytes.end(),{1,0x80});at=bytes.size();bytes.resize(at+common);word(at,version);}
-        const size_t terrainAt=bytes.size()+155952;bytes.resize(terrainAt+1291328);const size_t corner=83*228+82;
+        const size_t terrainAt=bytes.size()+155952;bytes.resize(terrainAt+1299328);const size_t corner=83*228+82;
+        dword(terrainAt+1291324,6); // stale offset must not suppress view0 inputs
         bytes[terrainAt+363888+corner]=0x82;bytes[terrainAt+363888+corner-228]=7;bytes[terrainAt+415872+corner]=9;
         word(terrainAt-103968+2*corner,1);const auto parsed=parseOriginalSavedBuildings(bytes,terrainAt,t);
         need(parsed.footprints.size()==1&&parsed.footprints[0].animationInputs&&parsed.footprints[0].animationInputs->workers==-3&&
@@ -306,7 +313,10 @@ void animationAuthored(const std::filesystem::path& temp){
             "literal common v3/v4/v5 animation fields retain signedness and exact shifted byte");
         const auto& inputs=*parsed.footprints[0].animationInputs;
         need(parsed.status==OriginalBuildingStatus::Complete&&inputs.phase==0x82&&inputs.owner==1&&inputs.savedView==0,
-            "literal SAV19 phase reads draw-corner animation span and owner, excluding origin/random decoys");
+             "literal SAV19 phase reads draw-corner animation span and owner, excluding origin/random decoys");
+        dword(terrainAt+1299324,2);const auto rotated=parseOriginalSavedBuildings(bytes,terrainAt,t);
+        need(rotated.savedView==2&&!composeOriginalBuildingScene(t,rotated,a).accepted,
+             "literal SAV19 saved view reaches whole-scene refusal through the building parser");
     }
 }
 void corpus(){
@@ -334,7 +344,7 @@ void corpus(){
     std::set<uint32_t> animationUnique;std::map<uint16_t,size_t> animatingTypes;
     AppMapSurface app(root);
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;++sources;
-        const auto snapshot=loadOriginalSave(root.resolve(source.relativePath));need(snapshot.status==OriginalSaveStatus::LoadedSnapshot&&snapshot.readStable,"original save stable complete snapshot");
+        const auto snapshot=loadOriginalSave(root.resolve(source.relativePath));need(snapshot.status==OriginalSaveStatus::LoadedSnapshot&&snapshot.readStable&&snapshot.buildings.savedView==0,"original save stable complete snapshot with explicit saved view0");
         std::vector<uint8_t> input;need(detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,input),"bounded independent SAV byte input");
         const auto reread=decodeOriginalSave(input);need(reread.status==OriginalSaveStatus::LoadedSnapshot&&reread.snapshotRevision==snapshot.snapshotRevision,"independent serializer audit reads the same saved snapshot revision");
         const auto container=decodeOriginalMapContainer(input);const auto& data=container.payload;const size_t base=snapshot.terrainOffset;
@@ -353,6 +363,9 @@ void corpus(){
         }
         auto s=composeOriginalBuildingScene(snapshot.terrain,snapshot.buildings,a);
         need(s.accepted&&s.rejectedRecords==0,"original base stamps have no shape or overlap rejection");++scenes;withBases+=!s.placed.empty();
+        std::cout<<"{\"building_scene_source\":"<<sources<<",\"saved_view\":"<<*snapshot.buildings.savedView
+            <<",\"live_records\":"<<s.liveRecords<<",\"placed_records\":"<<s.placed.size()+s.overlayRecords
+            <<",\"surface_cells\":"<<s.placedCells<<",\"entertainment_objects\":"<<s.overlays.size()<<"}\n";
         live+=s.liveRecords;bindable+=s.bindableRecords;placed+=s.placed.size()+s.overlayRecords;cells+=s.placedCells;
         const size_t crop=(228-snapshot.terrain.activeSide)/2;
         const auto animated=composeOriginalBuildingScene(snapshot.terrain,snapshot.buildings,a,0,&*employment);
@@ -389,7 +402,7 @@ void corpus(){
             if(detail::u16(data.data()+begin)==0xffff)body+=4+detail::u16(data.data()+begin+4);
             const size_t tail=body+182;
             need(sourceObject.type==71&&sourceObject.slot==37&&sourceObject.parentSlot==32&&sourceObject.savedView==0&&sourceObject.x==33&&sourceObject.y==60&&sourceObject.size==2&&
-                detail::u16(data.data()+body)==5&&detail::u32(data.data()+tail+348)==sourceObject.parentSlot&&detail::u32(data.data()+base+1291324)==0,
+                detail::u16(data.data()+body)==5&&detail::u32(data.data()+tail+348)==sourceObject.parentSlot&&detail::u32(data.data()+base+1299324)==0,
                 "independent SAV19 bytes close parent link, common position and saved view");
         }
         for(const auto& object:s.overlays){boundTypes.insert(71);++overlayPhysical[object.physicalId];++overlayModes[object.mode];

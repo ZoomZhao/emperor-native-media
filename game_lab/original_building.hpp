@@ -7,6 +7,27 @@
 #include <new>
 #include <map>
 namespace game_lab {
+namespace original_save19 {
+// Owned exe SHA256 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658.
+// Logical wire offsets relative to the independently validated terrain anchor T.
+// Runtime record stride180 (0x5313F4) is NOT its serialized width: version6
+// reads173 payload bytes at0x550A80..0x550E93 plus0x5512B0, and a u16
+// version through0x5501C0 ->0x41FC10 ->0x41FCB0.
+inline constexpr size_t routeOwners=779760; //2000 bytes,0x5313D1
+inline constexpr size_t routeDirections=routeOwners+2000; //500000 bytes,0x5313E2
+inline constexpr size_t records=routeDirections+500000;
+inline constexpr size_t recordBytes=2+173,recordCount=100; //0x5313EC..0x531400
+inline constexpr size_t recordsEnd=records+recordCount*recordBytes;
+inline constexpr size_t block64=recordsEnd; //0x130F910,64 bytes,0x53140B
+inline constexpr size_t savedView=block64+64; //0x115F720,u32,0x531419
+inline constexpr size_t c82ef8=savedView+4; //u32,0x531427
+inline constexpr size_t c82ef0=c82ef8+4; //u32,0x531435
+inline constexpr size_t c82ef4=c82ef0+4; //u32,0x531443
+inline constexpr size_t randomFirst=c82ef4+4; //0x10C714C,u32,0x531451
+inline constexpr size_t randomSecond=randomFirst+4; //0x10C7148,u32,0x53145F
+inline constexpr size_t g101D0AC=randomSecond+4; //u32,0x53146D
+inline constexpr size_t g101D0B0=g101D0AC+4; //u32,0x53147B
+}
 // Raw runtime-field identities, not guessed service/construction semantics.
 // Owned exe SHA256 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658:
 // FUN_00427430 serializes these at common+18 and common+(v5?100:99).
@@ -40,6 +61,7 @@ struct OriginalBuildingObjectSource {
 enum class OriginalBuildingStatus {Complete,UnsupportedTail,MissingAnchor,AmbiguousAnchor,Malformed,BudgetExceeded};
 struct OriginalBuildingProfile {
     OriginalBuildingStatus status=OriginalBuildingStatus::MissingAnchor;
+    std::optional<uint32_t> savedView; //SAV19 read0x531419; scene supports view0.
     size_t tableEnd=0,declaredClasses=0; // Complete list end; archive class declarations.
     size_t parsedRecords=0,namedWellRecords=0,rejectedTerrainFootprints=0,namedInspectorRecords=0,namedWatchtowerRecords=0,liveSizedRecords=0,unsupportedFootprintRecords=0,clearedClassRecords=0,classReferencesVerified=0;
     std::vector<OriginalBuildingFootprint> footprints;
@@ -428,11 +450,12 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
             }
         }
         // SAV19 branch0x5311DC: owner0xFC3750 read0x531316 at T-103968;
-        // saved view0x115F720 read0x531419 at T+1291324. 0x415464..0x4154D4
+        // saved view0x115F720 read0x531419 at T+1299324. 0x415464..0x4154D4
         // resolves each signed owner through0x47F1B0 and tests its semantic type.
         if(result.status==OriginalBuildingStatus::Complete&&terrainOffset>=155952&&
-            terrainOffset<=data.size()&&1291328<=data.size()-terrainOffset){
-            const uint32_t view=detail::u32(data.data()+terrainOffset+1291324);
+            terrainOffset<=data.size()&&original_save19::savedView+4<=data.size()-terrainOffset){
+            const uint32_t view=detail::u32(data.data()+terrainOffset+original_save19::savedView);
+            result.savedView=view;
             const size_t origin=(228-terrain.activeSide)/2;
             for(auto& f:result.footprints)if(f.animationInputs&&f.x<terrain.activeSide&&uint32_t(f.y)+f.size<=terrain.activeSide&&view==0){
                 const size_t corner=(origin+f.y+f.size-1)*228+origin+f.x;

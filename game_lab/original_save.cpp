@@ -118,14 +118,14 @@ OriginalSaveResult decodeOriginalSave(const std::vector<uint8_t>& input){
            detail::u32(data.data()+sizeOffset+8)==((228-side)/2)*229) {
             OriginalSavedGround ground;auto& s=ground.state;
             ground.activeSide=side;ground.cropStorageBase=detail::u32(data.data()+sizeOffset+8);
-            ground.savedView=detail::u32(data.data()+base+1291324);
+            ground.savedView=detail::u32(data.data()+base+original_save19::savedView);
             ground.waterMode=savedWaterMode(data);
             s.image.assign(cells,0);s.terrain=terrain.flags;s.feature=layers.mapperObjects;
             s.randomByte=layers.mapperRandom;s.roadDistance=layers.mapperStone;s.fertility=layers.mapperFertile;
             copy(311904,s.subTile);copy(519840,s.gF05160);copy(1383817,s.gEAC3F0);
             copy(1874984,s.gBEBF3A);copy(1926968,s.gBF8A4A);copy(467856,ground.material);
             s.draw.assign(data.begin()+base-155952,data.begin()+base-103968);
-            s.g101D0AC=detail::u32(data.data()+base+1291348);s.g101D0B0=detail::u32(data.data()+base+1291352);
+            s.g101D0AC=detail::u32(data.data()+base+original_save19::g101D0AC);s.g101D0B0=detail::u32(data.data()+base+original_save19::g101D0B0);
             std::copy_n(data.begin()+base+1563001,s.blob24.size(),s.blob24.begin());
             ground.owner.resize(cells);
             for(size_t i=0;i<cells;++i)ground.owner[i]=detail::u16(data.data()+base-103968+2*i);
@@ -133,9 +133,9 @@ OriginalSaveResult decodeOriginalSave(const std::vector<uint8_t>& input){
         }
         result.buildings=parseOriginalSavedBuildings(data,base,terrain);
         size_t goalCache=0;savedWaterMode(data,&goalCache);
-        if(result.buildings.status==OriginalBuildingStatus::Complete&&goalCache&&base+1291328<=data.size()){
+        if(result.buildings.status==OriginalBuildingStatus::Complete&&goalCache&&base+original_save19::savedView+4<=data.size()){
             layers.figures=parseOriginalSavedFigures(data,result.buildings.tableEnd,base,
-                goalCache+4000+result.buildings.declaredClasses,detail::u32(data.data()+base+1291324));
+                goalCache+4000+result.buildings.declaredClasses,detail::u32(data.data()+base+original_save19::savedView));
             if(layers.figures->status==OriginalFigureStatus::Complete){
                 auto& heads=layers.figures->cellHeads;heads.resize(cells);
                 for(size_t i=0;i<cells;++i)heads[i]=detail::u16(data.data()+base+207936+2*i);
