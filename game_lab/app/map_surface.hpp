@@ -40,7 +40,7 @@ public:
     void clear();
     bool select(const std::string& relativeMap, const OriginalMapTerrain& expected);
     bool select(const OriginalMapSource&,const OriginalMapTerrain& expected);
-    bool selectSavedBuildings(const OriginalMapTerrain&,const OriginalBuildingProfile&,const OriginalSavedGround* ground=nullptr,uint64_t tickMs=0);
+    bool selectSavedBuildings(const OriginalMapTerrain&,const OriginalBuildingProfile&,const OriginalSavedGround* ground=nullptr,uint64_t tickMs=0,const OriginalFigureProfile* figures=nullptr);
     OriginalBuildingSceneView renderSavedBuildings(const OriginalMapCamera&,int bit=-1) const;
     bool available() const { return state_.has_value(); }
     const std::string& error() const { return error_; }

@@ -10,7 +10,7 @@ namespace game_lab {
 void AppMapSurface::clear() {
     state_.reset(); savedBuildings_.reset(); terrain_ = {}; error_.clear();
 }
-bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile,const OriginalSavedGround* ground,uint64_t tickMs){
+bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile,const OriginalSavedGround* ground,uint64_t tickMs,const OriginalFigureProfile* figures){
     clear();
     if(!archives_.count(2)){
         auto index=loadSG3(root_.resolve("DATA/China_General.sg3"));
@@ -36,6 +36,20 @@ bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const
         scene=composeOriginalSavedGroundScene(terrain,profile,*ground,archives_.at(2).index,archives_.at(3).index,archives_.at(16).index,tickMs,employment?&*employment:nullptr);
     }
     if(!scene.accepted){error_="SAV 建筑表或活动框不完整；保留数值占地";return false;}
+    if(figures){
+        std::map<uint32_t,const SG3Archive*> figureArchives;
+        for(const auto& f:figures->live)for(const uint32_t word:{f.image,f.secondaryImage}){
+            if(!word)continue;const uint32_t slot=word>>14;const char* name=originalFigureArchiveName(slot);if(!name)continue;
+            if(!archives_.count(slot)){
+                const std::string relative=std::string("DATA/")+name;auto index=loadSG3(root_.resolve(relative));
+                if(index.version!=214||!index.numImages)continue;
+                auto companion=std::filesystem::path(relative);companion.replace_extension(".555");
+                archives_.emplace(slot,Archive{std::move(index),root_.resolve(companion.generic_string())});
+            }
+            figureArchives[slot]=&archives_.at(slot).index;
+        }
+        installOriginalFigureOverlays(scene,terrain,*figures,figureArchives,tickMs);
+    }
     terrain_=terrain;savedBuildings_=std::move(scene);return true;
 }
 OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapCamera& camera,int bit)const{
@@ -43,6 +57,9 @@ OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapC
     const auto& archive=archives_.at(2);
     std::vector<MapImageGridTileset> groundTilesets;
     if(savedBuildings_->groundRebuilt)for(uint32_t slot:{3u,16u})if(archives_.count(slot)) {
+        const auto& a=archives_.at(slot);groundTilesets.push_back({slot,&a.index,a.companion,201});
+    }
+    for(uint32_t slot:{14u,38u,39u,40u})if(archives_.count(slot)){
         const auto& a=archives_.at(slot);groundTilesets.push_back({slot,&a.index,a.companion,201});
     }
     return renderOriginalBuildingScene(terrain_,*savedBuildings_,archive.index,archive.companion,camera,bit,groundTilesets);

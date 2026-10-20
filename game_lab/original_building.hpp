@@ -40,6 +40,7 @@ struct OriginalBuildingObjectSource {
 enum class OriginalBuildingStatus {Complete,UnsupportedTail,MissingAnchor,AmbiguousAnchor,Malformed,BudgetExceeded};
 struct OriginalBuildingProfile {
     OriginalBuildingStatus status=OriginalBuildingStatus::MissingAnchor;
+    size_t tableEnd=0,declaredClasses=0; // Complete list end; archive class declarations.
     size_t parsedRecords=0,namedWellRecords=0,rejectedTerrainFootprints=0,namedInspectorRecords=0,namedWatchtowerRecords=0,liveSizedRecords=0,unsupportedFootprintRecords=0,clearedClassRecords=0,classReferencesVerified=0;
     std::vector<OriginalBuildingFootprint> footprints;
     std::vector<OriginalBuildingMarker> unplacedMarkers;
@@ -309,6 +310,7 @@ inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint
             const size_t begin=at;if(at>terrainOffset||terrainOffset-at<2)return failure(OriginalBuildingStatus::Malformed);
             const auto tag=detail::u16(data.data()+at);at+=2;std::string name,resolvedClass;
             if(tag==0xffff){
+                ++result.declaredClasses;
                 if(terrainOffset-at<4)return failure(OriginalBuildingStatus::Malformed);
                 const auto zero=detail::u16(data.data()+at),length=detail::u16(data.data()+at+2);at+=4;
                 if(zero||!length||length>255||length>terrainOffset-at)return failure(OriginalBuildingStatus::Malformed);
@@ -397,7 +399,7 @@ inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint
             }
             at+=common+*tail;++result.parsedRecords;
         }
-        result.status=OriginalBuildingStatus::Complete;return result;
+        result.tableEnd=at;result.status=OriginalBuildingStatus::Complete;return result;
     }catch(const std::bad_alloc&){return failure(OriginalBuildingStatus::BudgetExceeded);}
 }
 inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uint8_t>& data,size_t terrainOffset,const OriginalMapTerrain& terrain){

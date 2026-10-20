@@ -47,7 +47,7 @@ inline std::optional<std::vector<OriginalSceneOverlay>> bindOriginalEntertainmen
         const uint16_t x=uint16_t(source.x+(rotated?row/4:row%4)),y=uint16_t(source.y+(rotated?row%4:row/4));
         const uint8_t mode=role>=8?2:1;
         out.push_back({"DATA/China_General.sg3",uint32_t(id),2,x,y,offset[role][0],offset[role][1],
-            {uint32_t(x)+y,x,uint8_t(mode==1?1:3),row},role,mode,source.slot});
+            {uint32_t(x)+y,x,uint8_t(mode==1?1:4),row},role,mode,source.slot});
     }
     return out;
 }
@@ -65,6 +65,8 @@ struct OriginalBuildingScene {
     std::vector<OriginalSceneOverlay> overlays;
     size_t overlayRecords=0,overlayObjectsExpected=0;
     size_t animationCandidates=0,animationEnabled=0,animationGated=0,animationUnknown=0,animationInvalid=0,animationSelected=0;
+    size_t figureLive=0,figurePlaced=0,figureHidden=0,figureZeroImage=0,figureUnsupported=0;
+    std::map<uint8_t,size_t> figureBoundTypes,figureBlockedTypes;
     uint64_t animationTickMs=0;
     size_t liveRecords=0,bindableRecords=0,placedCells=0,rejectedRecords=0;
     bool accepted=false;
@@ -75,6 +77,73 @@ struct OriginalBuildingScene {
     // Metadata masks identify independently assigned bits, excluding saved input.
     std::vector<uint8_t> drawWritten,subTileWritten,buildingOccupancy;
 };
+// Saved image0x46BAD1 ->0x413960. Tick0 only: walking/animation updates
+// are simulation-driven and cannot be inferred from elapsed milliseconds.
+inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const OriginalMapTerrain& terrain,
+    const OriginalFigureProfile& figures,const std::map<uint32_t,const SG3Archive*>& archives,uint64_t tickMs=0){
+    if(!scene.accepted||!terrain.valid()||scene.surface.terrain!=terrain.flags||
+       !analyzeOriginalMap(terrain).cropValid()||figures.status!=OriginalFigureStatus::Complete||figures.live.size()>8192)return;
+    scene.overlays.erase(std::remove_if(scene.overlays.begin(),scene.overlays.end(),[](const auto& o){return o.mode==4;}),scene.overlays.end());
+    scene.figurePlaced=scene.figureHidden=scene.figureZeroImage=scene.figureUnsupported=0;
+    scene.figureBoundTypes.clear();scene.figureBlockedTypes.clear();
+    scene.figureLive=figures.live.size();const size_t origin=(228-terrain.activeSide)/2;
+    std::map<size_t,const OriginalFigure*> bySlot;
+    for(const auto& f:figures.live)if(f.slot>=8192||!bySlot.emplace(f.slot,&f).second){scene.figureUnsupported=scene.figureLive;return;}
+    const auto linked=[&](const OriginalFigure& f){
+        if(figures.cellHeads.size()!=51984||f.cell>=51984)return false;
+        size_t slot=figures.cellHeads[f.cell];std::set<size_t> visited;bool reached=false;
+        while(slot){if(visited.size()>=50||!visited.insert(slot).second)return false;const auto found=bySlot.find(slot);
+            if(found==bySlot.end()||found->second->cell!=f.cell)return false;
+            reached|=slot==f.slot;slot=found->second->next;
+        }return reached;
+    };
+    for(const auto& f:figures.live){
+        if(f.hidden){++scene.figureHidden;continue;}
+        if(!f.image){++scene.figureZeroImage;++scene.figureBlockedTypes[f.type];continue;}
+        const auto sub=originalFigureSubcell(f);
+        if(tickMs||figures.savedView||!sub||f.x<0||f.y<0||f.x>=int(terrain.activeSide)||f.y>=int(terrain.activeSide)||
+           f.cell!=(origin+f.y)*228+origin+f.x||(terrain.flags[f.cell]&0x80000u)||!linked(f)||f.drawClass||f.state85==101){
+            ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
+        }
+        // Simple and the four cited two-image branches0x46C636..0x46C6AD.
+        if(f.secondaryImage&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22){
+            ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
+        }
+        std::vector<OriginalSceneOverlay> selected;
+        const int score=f.alive==1&&f.action!=4?sub->second+(f.freeMovement?int(f.raise):int(f.height)):-100;
+        const size_t sequence=size_t(score+128)*8192*2+f.slot*2;
+        const auto add=[&](uint32_t word,int ox,int oy,size_t order){
+            const uint32_t slot=word>>14;const auto name=originalFigureArchiveName(slot);const auto found=archives.find(slot);
+            if(!name||found==archives.end()||!found->second)return false;
+            // These v214 figure archives have no Zeus_system.bmp prefix:
+            // loader0x5CD354..3B0 trims0, so physical ID=low14+1.
+            const auto& a=*found->second;const uint32_t id=(word&0x3fff)+1;
+            if(a.version!=214||a.numImages!=a.sprites.size()||a.imageIndex[0]!=1||a.bitmaps.empty()||
+               a.bitmaps[0].filename=="Zeus_system.bmp"||id>a.sprites.size())return false;
+            const auto& s=a.sprites[id-1];
+            if((s.type!=256&&s.type!=0)||s.tileSize||s.width<=0||s.height<=0||s.width>4096||s.height>4096||s.mirrorOffset>0)return false;
+            //41=half-width39+2;30=half-height20+10 (0x469820,
+            //0x46BC1C..93). Original subtracts the SELECTED sprite offsets,
+            // even for mirrored payloads. This is independent of image width.
+            selected.push_back({std::string("DATA/")+name,id,slot,uint16_t(f.x),uint16_t(f.y),
+                ox-s.animationOffsetX,oy-s.animationOffsetY,{uint32_t(f.x+f.y),uint32_t(f.x),3,order},f.type,4,f.slot});
+            return true;
+        };
+        int baseline=30;
+        if(terrain.flags[f.cell]&0x20000u){
+            if(scene.surface.roadDistance.size()!=51984){++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;}
+            if(!scene.surface.roadDistance[f.cell])baseline=38;
+            else if(scene.surface.roadDistance[f.cell]==100)baseline=34;
+        }
+        bool good=add(f.image,41+sub->first,baseline+sub->second,sequence);
+        if(f.secondaryImage){const bool type20=f.type==20;
+            good=good&&add(f.secondaryImage,39+sub->first+(type20?2:3)+f.extraX,
+                baseline-10+sub->second+(type20?10:11)+f.extraY,sequence+1);
+        }
+        if(!good){++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;}
+        scene.overlays.insert(scene.overlays.end(),selected.begin(),selected.end());++scene.figurePlaced;++scene.figureBoundTypes[f.type];
+    }
+}
 // Owned exe SHA256 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658.
 // 0x4B72B0: view codes0,2,4,6 mark (0,h-1),(0,0),(w-1,0),(w-1,h-1).
 // The existing flat projection is view0 (0x4699D0), so only that view is rendered.
@@ -251,6 +320,7 @@ struct OriginalBuildingSceneView {
     size_t groundCells=0,groundUnknown=0,groundNoWrite=0,groundUnresolved=0,unboundBuildingCells=0;
     size_t overlayObjects=0,overlayDecoded=0,overlayDrawn=0,overlayCulled=0,overlayDecodeFailures=0,overlayInvalid=0;
     size_t animationCandidates=0,animationEnabled=0,animationGated=0,animationUnknown=0,animationSelected=0,animationDecoded=0,animationInvalid=0;
+    size_t figureLive=0,figurePlaced=0,figureHidden=0,figureZeroImage=0,figureUnsupported=0,figureDecoded=0;
 };
 // The surface renderer remains the independent validation/accounting pass. Only
 // scenes containing objects replay its validated full SAV stamps as commands,
@@ -259,7 +329,7 @@ inline bool renderOriginalSceneOverlays(const OriginalMapTerrain& terrain,const 
     const std::vector<MapImageGridTileset>& tilesets,const OriginalMapCamera& camera,OriginalBuildingSceneView& out,DecodedImage& canvas){
     if(scene.overlays.empty())return true;
     if(scene.overlays.size()>40000)return false;
-    struct Command {OriginalSceneDepth depth;uint32_t tileset=0,id=0;int left=0,top=0;bool object=false,animation=false;};
+    struct Command {OriginalSceneDepth depth;uint32_t tileset=0,id=0;int left=0,top=0;bool object=false,animation=false,figure=false;};
     std::vector<Command> commands;const int scale=int(camera.scale);const size_t origin=(228-terrain.activeSide)/2;
     const auto position=[&](unsigned x,unsigned y,int ox,int oy){
         const double dx=double(x)-camera.centerX,dy=double(y)-camera.centerY;
@@ -280,19 +350,19 @@ inline bool renderOriginalSceneOverlays(const OriginalMapTerrain& terrain,const 
     out.overlayObjects=scene.overlays.size();
     for(const auto& object:scene.overlays){
         const auto* t=findTileset(object.tileset);
-        const auto* name=mapImageGridArchiveName(object.tileset);
+        const auto* name=object.mode==4?originalFigureArchiveName(object.tileset):mapImageGridArchiveName(object.tileset);
         if(object.anchorX>=terrain.activeSide||object.anchorY>=terrain.activeSide||!t||!t->archive||
             !name||object.archive!=std::string("DATA/")+name||!object.physicalId||object.physicalId>t->archive->sprites.size()||
             object.depth.diagonal!=uint32_t(object.anchorX)+object.anchorY||object.depth.column!=object.anchorX||
-            object.mode<1||object.mode>3||object.depth.phase!=(object.mode==1?1:object.mode==2?3:2)||
+            object.mode<1||object.mode>4||object.depth.phase!=(object.mode==1?1:object.mode==2?4:object.mode==4?3:2)||
             object.offsetX < -4096||object.offsetX>4096||object.offsetY < -4096||object.offsetY>4096){++out.overlayInvalid;continue;}
         const auto& s=t->archive->sprites[object.physicalId-1];
-        if((s.type!=256&&!(object.mode==3&&s.type==0))||s.mirrorOffset||s.width<=0||s.height<=0||s.width>4096||s.height>4096){++out.overlayInvalid;continue;}
+        if((s.type!=256&&!((object.mode==3||object.mode==4)&&s.type==0))||(s.mirrorOffset&&object.mode!=4)||s.width<=0||s.height<=0||s.width>4096||s.height>4096){++out.overlayInvalid;continue;}
         // 0x5CE800 positions the78x40 surface at the scan's (left,top).
         // Existing projection names its centre, so the scan origin is(-39,-20).
         // 0x44F86B uses that same origin + object's signed offsets directly.
         const auto p=position(object.anchorX,object.anchorY,object.offsetX-39,object.offsetY-20);
-        commands.push_back({object.depth,object.tileset,object.physicalId,p.first,p.second,true,object.mode==3});
+        commands.push_back({object.depth,object.tileset,object.physicalId,p.first,p.second,true,object.mode==3,object.mode==4});
     }
     std::stable_sort(commands.begin(),commands.end(),[](const auto& a,const auto& b){return a.depth<b.depth;});
     canvas.pixelsBGRA.assign(canvas.pixelsBGRA.size(),0);
@@ -306,6 +376,7 @@ inline bool renderOriginalSceneOverlays(const OriginalMapTerrain& terrain,const 
         }
         if(image==cache.end()){if(command.object)++out.overlayDecodeFailures;continue;}
         const auto& src=image->second;if(command.object)++out.overlayDecoded;if(command.animation)++out.animationDecoded;
+        if(command.figure)++out.figureDecoded;
         if(command.left>=int(canvas.width)||command.top>=int(canvas.height)||command.left+int(src.width)*scale<=0||command.top+int(src.height)*scale<=0){if(command.object)++out.overlayCulled;continue;}
         if(command.object)++out.overlayDrawn;
         for(unsigned y=0;y<src.height;++y)for(unsigned x=0;x<src.width;++x){
@@ -326,6 +397,8 @@ inline OriginalBuildingSceneView renderOriginalBuildingScene(const OriginalMapTe
     OriginalBuildingSceneView out;if(!scene.accepted||scene.surface.terrain!=terrain.flags)return out;
     out.animationCandidates=scene.animationCandidates;out.animationEnabled=scene.animationEnabled;out.animationGated=scene.animationGated;
     out.animationUnknown=scene.animationUnknown;out.animationSelected=scene.animationSelected;out.animationInvalid=scene.animationInvalid;
+    out.figureLive=scene.figureLive;out.figurePlaced=scene.figurePlaced;out.figureHidden=scene.figureHidden;
+    out.figureZeroImage=scene.figureZeroImage;out.figureUnsupported=scene.figureUnsupported;
     auto background=renderOriginalBuildingFootprints(terrain,scene.withheldFootprints,camera,bit,scene.markers);
     if(!background.image.valid())return out;
     auto tilesets=groundTilesets;tilesets.push_back({2,&archive,companion,201});

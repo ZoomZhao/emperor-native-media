@@ -1646,7 +1646,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const auto& source=_originalMapSources[sourceIndex];
     if(source.kind==game_lab::OriginalMapSourceKind::SaveFile&&_originalSaveBuildings){
         if(!_originalMapSurface->selectSavedBuildings(_originalMapResult.terrain,*_originalSaveBuildings,
-            _originalSaveLayers&&_originalSaveLayers->ground?&*_originalSaveLayers->ground:nullptr))
+            _originalSaveLayers&&_originalSaveLayers->ground?&*_originalSaveLayers->ground:nullptr,0,
+            _originalSaveLayers&&_originalSaveLayers->figures?&*_originalSaveLayers->figures:nullptr))
             _originalMapSourceInfo+="；"+_originalMapSurface->error();
         [_originalMapBitPicker selectItemAtIndex:0];_originalMapSpatial.state=NSControlStateValueOn;
     }
@@ -1736,6 +1737,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                             detail+="地面及建筑格解码 "+std::to_string(scene.bases.decodedCells)+"/"+std::to_string(scene.bases.nonzeroCells)+"；失败 "+std::to_string(scene.bases.decodeFailures)+"；当前视口绘制 "+std::to_string(scene.bases.drawnCells)+" 格。\n";
                             detail+="对象层解码 "+std::to_string(scene.overlayDecoded)+"/"+std::to_string(scene.overlayObjects)+"；失败 "+std::to_string(scene.overlayDecodeFailures+scene.overlayInvalid)+"；当前视口绘制 "+std::to_string(scene.overlayDrawn)+" 个。\n";
                             detail+="建筑动画条件通过 "+std::to_string(scene.animationEnabled)+"/"+std::to_string(scene.animationCandidates)+"；帧解码 "+std::to_string(scene.animationDecoded)+"/"+std::to_string(scene.animationSelected)+"；条件未知 "+std::to_string(scene.animationUnknown)+"，无效 "+std::to_string(scene.animationInvalid)+"。时间输入 tick=0，使用 SAV 保存的格子相位。\n";
+                            detail+="已保存人物放置 "+std::to_string(scene.figurePlaced)+"/"+std::to_string(scene.figureLive)+"；图像解码 "+std::to_string(scene.figureDecoded)+"；隐藏 "+std::to_string(scene.figureHidden)+"，图像为零 "+std::to_string(scene.figureZeroImage)+"，不支持 "+std::to_string(scene.figureUnsupported)+"。人物使用 tick=0 保存图像。\n";
                             detail+="地面与建筑来自同一 SAV；按 view0 角格及对角线顺序绘制。未知处保留数值地形。阴影、高程遮挡及原版画面对照未验证；不是运行中的城市。\n";
                             text+="；基座及静态对象 "+std::to_string(scene.placedRecords)+"/"+std::to_string(scene.liveRecords)+"，未绑定 "+std::to_string(scene.withheldRecords);
                         }
@@ -1765,7 +1767,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         text += details;
         text += "\n完整消费 " + std::to_string(result.frames) + " 个压缩块，逻辑数据 " + std::to_string(result.decodedBytes) + " 字节；只读原始网格，无城市状态绑定。";
     }
-    text += surface?"\n仅静态存储地表；重建选图准确度与原版画面对照另计，建筑/单位/规则未恢复。":_originalSaveLayers?"\n只读存档快照，非当前内存；空间视图显示重建地面与已绑定静态建筑基座；单位/规则、阴影/动画与原版画面对照未恢复。":"\n数值配色不等于原版外观；等距对照使用规范平面格坐标，不含高程/遮挡规则；SG3选图未知，不载入城市/建筑/单位。";
+    text += surface?"\n仅静态存储地表；重建选图准确度与原版画面对照另计，建筑/单位/规则未恢复。":_originalSaveLayers?"\n只读存档快照，非当前内存；空间视图显示重建地面、已绑定建筑与保存相位的人物；人物移动、规则、完整高程遮挡和原版画面对照尚未恢复。":"\n数值配色不等于原版外观；等距对照使用规范平面格坐标，不含高程/遮挡规则；SG3选图未知，不载入城市/建筑/单位。";
     _originalMapInfo.stringValue = [NSString stringWithUTF8String:text.c_str()];
     const bool inspect=_originalSaveLayers&&_originalSaveLayers->valid()&&result.terrain.valid()&&!buildingOverlay;
     _originalSaveCellX.enabled=inspect;_originalSaveCellY.enabled=inspect;_originalSaveCellApply.enabled=inspect;

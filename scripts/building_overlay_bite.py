@@ -36,6 +36,9 @@ def main():
             target = private / path.relative_to(source)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(path.read_bytes())
+        layout = private.parent / 'file_io/include/city19_figure7_layout.hpp'
+        layout.parent.mkdir(parents=True, exist_ok=True)
+        layout.write_bytes((ROOT / 'file_io/include/city19_figure7_layout.hpp').read_bytes())
         (private / header).write_text(original.replace(before, after))
         binary = private / 'test'
         units = ['original_building_scene_tests.cpp', 'app/map_surface.cpp', 'map_reference.cpp',

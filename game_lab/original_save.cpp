@@ -20,7 +20,7 @@ constexpr std::array<uint8_t,16> terrainMarker{{0,0,0,0,5,0,8,0,5,0,8,0,5,0,8,0}
 // at3355 (same bounded prefix contract as city19_goal_archive.hpp). This only
 // walks their closed modern payload extents to the NEXT singleton0x53122A;
 // no goals, factories or gameplay are restored. Unknown layouts withhold ground.
-std::optional<uint8_t> savedWaterMode(const std::vector<uint8_t>& data) {
+std::optional<uint8_t> savedWaterMode(const std::vector<uint8_t>& data,size_t* cacheEntries=nullptr) {
     if(data.size()<3355||detail::u16(data.data()+2)!=6||detail::u16(data.data()+45)!=2||
        detail::u16(data.data()+95)!=3||detail::u16(data.data()+97)!=4)return std::nullopt;
     size_t at=3355,items=0;std::vector<std::string> cache(1);
@@ -54,7 +54,7 @@ std::optional<uint8_t> savedWaterMode(const std::vector<uint8_t>& data) {
     // Singleton v1,4-byte+4,byte+8:0x4EDE36/43. The following
     // 0x53122A vcall is0x7B2BB8+8 ->0x4EDDA0.
     uint16_t version=0;if(!word(version)||version!=1||!take(5))return std::nullopt;
-    return data[at-1];
+    if(cacheEntries)*cacheEntries=cache.size();return data[at-1];
 }
 bool positions(const std::vector<uint8_t>& data,const std::array<uint8_t,16>& needle,size_t from,std::vector<size_t>& hits){
     if(from>data.size())return true;
@@ -132,6 +132,15 @@ OriginalSaveResult decodeOriginalSave(const std::vector<uint8_t>& input){
             layers.ground=std::move(ground);
         }
         result.buildings=parseOriginalSavedBuildings(data,base,terrain);
+        size_t goalCache=0;savedWaterMode(data,&goalCache);
+        if(result.buildings.status==OriginalBuildingStatus::Complete&&goalCache&&base+1291328<=data.size()){
+            layers.figures=parseOriginalSavedFigures(data,result.buildings.tableEnd,base,
+                goalCache+4000+result.buildings.declaredClasses,detail::u32(data.data()+base+1291324));
+            if(layers.figures->status==OriginalFigureStatus::Complete){
+                auto& heads=layers.figures->cellHeads;heads.resize(cells);
+                for(size_t i=0;i<cells;++i)heads[i]=detail::u16(data.data()+base+207936+2*i);
+            }
+        }
         result.terrain=std::move(terrain);result.layers=std::move(layers);result.frames=container.frames;result.decodedBytes=data.size();result.sizeOffset=sizeOffset;result.terrainOffset=base;result.status=OriginalSaveStatus::LoadedSnapshot;result.snapshotRevision=14695981039346656037ull;for(uint8_t byte:input){result.snapshotRevision^=byte;result.snapshotRevision*=1099511628211ull;}
     }catch(const std::bad_alloc&){result.status=OriginalSaveStatus::BudgetExceeded;}
     return result;

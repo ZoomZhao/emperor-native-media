@@ -160,7 +160,7 @@ void authored(const std::filesystem::path& temp){
     auto orderView=renderOriginalBuildingScene(t,ordered,a,(temp/"own.555").string(),c);
     need(orderView.image.pixelsBGRA[200*c.width+270]==0xff0000ffu,"later surface cell occludes earlier object; objects cannot be a final pass");
     ordered.surface.image[cell+228]=0;
-    ordered.overlays.push_back({"DATA/China_General.sg3",211,2,10,10,-8,-53,{20,10,3,0},8,2,2});
+    ordered.overlays.push_back({"DATA/China_General.sg3",211,2,10,10,-8,-53,{20,10,4,0},8,2,2});
     auto modeView=renderOriginalBuildingScene(t,ordered,a,(temp/"own.555").string(),c);
     need(modeView.image.pixelsBGRA[180*c.width+255]==0xff0000ffu,"mode2 follows mode1 for the same cell");
     std::reverse(ordered.overlays.begin(),ordered.overlays.end());
@@ -272,7 +272,7 @@ void animationAuthored(const std::filesystem::path& temp){
     }
     auto ordered=composed;ordered.overlays.push_back({"DATA/China_General.sg3",211,2,10,11,50,29,{21,10,1,0},1,1,2});camera.scale=1;
     need(renderOriginalBuildingScene(t,ordered,a,(temp/"animation.555").string(),camera).image.pixelsBGRA[259*600+311]==0xffff0000u,"animation follows same-cell mode1 object");
-    ordered.overlays.back().depth.phase=3;ordered.overlays.back().mode=2;
+    ordered.overlays.back().depth.phase=4;ordered.overlays.back().mode=2;
     need(renderOriginalBuildingScene(t,ordered,a,(temp/"animation.555").string(),camera).image.pixelsBGRA[259*600+311]==0xff0000ffu,"mode2 object follows same-cell animation");
     std::string model="BUILDING MODS\n";
     for(unsigned i=0;i<5;++i)model+=std::to_string(i)+",m,{,100,100,100,100,100,100,100,100,100,100,100,100,100,}\n";

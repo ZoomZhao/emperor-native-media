@@ -1,5 +1,10 @@
 .PHONY: final-dispatch-test final-dispatch-test-undefined bink-cancel-test bink-cancel-test-undefined all game-app run-game sg3-test sg3-test-undefined data-metrics map-test map-test-undefined map-metrics map-sg3-audit map-sg3-audit-test map-raw-spans map-raw-spans-test map-reference-test map-reference-test-undefined building-image-test building-image-test-undefined original-random-test original-random-test-undefined map-ground-sweep save-state-audit save-state-audit-test pak-payload-audit pak-payload-audit-test pak-native-test pak-native-test-undefined pak-native-metrics save-native-test save-native-test-undefined save-native-metrics base-content-audit-test reference-compare-test input-test input-test-undefined input-window-test
 all: game-app
+.PHONY: figure-scene-test figure-scene-test-undefined
+figure-scene-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py
+figure-scene-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --mode undefined
 game-app:
 	/bin/sh game_lab/app/build.sh
 run-game: game-app

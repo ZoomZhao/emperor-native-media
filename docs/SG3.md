@@ -1,5 +1,7 @@
 # SG3 / 555
 
+The [SAV19 figure consumer](SAV_FIGURES.md) now binds saved image words through startup slots14/38/39/40 (`SprAmbient`/`SprMain`/`SprMain2`/`SprMain3`). Those version214 archives have no system prefix, so physical ID is low14+1, unlike the version213 surface's low14+201. Selected sprite offsets34/36 anchor figures, including mirrored payloads; the forward group helper0x5CFDF0 uses frame-major interleaved directions. This bounded tick0 path decodes174/174 saved figure component images; it does not generalize the earlier explicit sequence previews or supply complete per-action animation.
+
 公开来源：[SG 格式](https://github.com/bvschaik/citybuilding-tools/wiki/SG-file-format)、[MIT sgreader](https://github.com/bvschaik/citybuilding-tools/tree/ea749c6e8bfa14ccb2ce5f1565b8f0501124a053/sgreader)；许可见根目录 THIRD_PARTY_NOTICES.md。实现是现代数据解析器，不使用原版代码。
 
 索引起点 40680 = 80 字节头 + 600 字节索引 + 200×200 字节保留 bitmap 表。213/214 的图像记录分别为64/72字节；跳过 dummy ID0，保留其后使用中的逻辑 ID，包括镜像引用。头部容量槽位与使用中的计数分别读取，STATUS 分母用后者。

@@ -2,6 +2,7 @@
 #include "original_map.hpp"
 #include "original_building.hpp"
 #include "original_terrain.hpp"
+#include "original_figure.hpp"
 namespace game_lab {
 enum class OriginalSaveStatus { LoadedSnapshot,ReadFailure,ChangedDuringRead,InvalidContainer,UnsupportedRole,UnsupportedAnchors,InvalidGrid,BudgetExceeded };
 struct OriginalSavedGround {
@@ -18,6 +19,7 @@ struct OriginalSaveCellLayers {
     std::vector<uint32_t> followingU32Unknown,mapperObjects;
     std::vector<uint8_t> mapperRandom,mapperStone,mapperFertile;
     std::optional<OriginalSavedGround> ground;
+    std::optional<OriginalFigureProfile> figures;
     bool valid() const{return followingU32Unknown.size()==cells&&mapperObjects.size()==cells&&mapperRandom.size()==cells&&mapperStone.size()==cells&&mapperFertile.size()==cells;}
 };
 struct OriginalSaveResult {

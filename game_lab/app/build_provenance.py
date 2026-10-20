@@ -8,6 +8,8 @@ repository = Path(__file__).resolve().parents[2]
 sources = [
     'game_lab/original_building_scene.hpp',
     'game_lab/original_building_animation.hpp',
+    'game_lab/original_figure.hpp',
+    'file_io/include/city19_figure7_layout.hpp',
     'game_lab/original_candidate_input.hpp',
     'game_lab/app/building_candidate_config.hpp', 'game_lab/original_building_candidate.hpp', 'game_lab/original_building.hpp', 'game_lab/original_building_view.hpp',
     'game_lab/sg3_sequence.hpp',
@@ -90,7 +92,7 @@ manifest = {
     'city_model_origin': 'self-authored; original rules not compared',
     'external_game_inputs': False,
     'app_executed_by_build': False,
-    'original_map_view': 'MAP-and-PAK-city-stored-surface-candidate-preview;SAV19-seeded-ground-building-bases-entertainment-and-saved-phase-animation-frames',
+    'original_map_view': 'MAP-and-PAK-city-stored-surface-candidate-preview;SAV19-seeded-ground-building-bases-entertainment-saved-phase-building-animation-and-saved-figure-images',
     'candidate_placement_verified': False,
     'strict_metrics_separate': True,
     'original_screen_accuracy_verified': False,
