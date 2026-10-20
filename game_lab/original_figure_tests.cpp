@@ -42,6 +42,7 @@ void authored(){
     raw[172]=11;raw[176]=12;raw[188]=13;raw[192]=14;raw[204]=199;
     raw[208]=2;raw[212]=1;raw[216]=0xff;raw[217]=raw[218]=raw[219]=0xff;raw[328]=17;raw[128]=5;raw[153]=1;
     raw[66]=3;raw[68]=4;raw[70]=5;raw[368]=2;raw[97]=11;raw[276]=77;raw[400]=19;raw[146]=8;raw[102]=9;
+    raw[32]=3;raw[34]=4;raw[52]=7;raw[54]=8;raw[100]=9;raw[104]=10;raw[300]=11;raw[73]=1;
     for(const auto& field:emperor::file_io::research::figure7_fields)
         for(size_t k=0;k<field.bytes;++k)bytes.push_back(std::string(field.helper)=="0x503db0"&&k==1?0xee:raw[field.receiver_offset+k]);
     bytes.push_back(0);
@@ -57,6 +58,8 @@ void authored(){
         "Pheasant dword links, signed cooldowns and idle counter retain separate Figure7 requests");
     need(p.route==3&&p.routeCursor==4&&p.routeLength==5&&p.routePhase==2&&p.speed==11&&p.age==77&&
         p.priorProgress==19&&p.reciprocalTarget==8&&p.follower==9,"route and ordered-pool inputs retain separate Figure7 wire requests");
+    need(p.priorX==3&&p.priorY==4&&p.homeX==7&&p.homeY==8&&p.home==9&&p.delivery==10&&p.priorCell==11&&p.water==1,
+        "crossing prior coordinates, home/delivery and water byte use separate cited Figure7 reads");
     auto bad=bytes;bad.back()=1;need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Unsupported,"FSA does not guess a variable extension length");
     bad=bytes;bad.pop_back();need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Malformed,"last byte truncation publishes no figures");
     bad=bytes;bad[18]=6;need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Unsupported,"unknown Figure version fails closed");
@@ -376,6 +379,78 @@ void authored(){
             "two-step call reaching a crossing withholds the earlier tentative step atomically");
     }
     {
+        auto group=archive;group.numImages=512;group.sprites.resize(512);group.imageIndex.fill(1);
+        group.sprites[0].animationSpriteCount=12;group.sprites[0].animationDirections=8;
+        const std::map<uint32_t,const SG3Archive*> refs{{38,&group},{39,&group}};
+        OriginalFigureUpdateContext context;context.terrain.assign(51984,0xc0);context.cellHeads.assign(51984,0);context.cropBase=8627;
+        auto walker=one;walker.type=11;walker.slot=2;walker.x=5;walker.y=6;walker.cell=10000;walker.progress=9;walker.direction=2;
+        walker.route=3;walker.routeLength=2;walker.routeCursor=0;walker.subX=90;walker.subY=120;walker.height=19;walker.state85=100;walker.drawClass=1;
+        auto old=walker;old.slot=1;old.next=2;auto other=walker;other.slot=3;other.cell=10001;other.x=6;other.next=0;
+        walker.next=0;context.figures={{1,old},{2,walker},{3,other}};context.cellHeads[10000]=1;context.cellHeads[10001]=3;
+        context.models[11]={};context.models[11][0]=1;
+        const auto blocked=originalFigureFollowRoute(walker,6,0xc0,&context);
+        need(!blocked.state&&blocked.status==OriginalFigureUpdateStatus::CellCombat&&context.figures.at(1).next==2&&
+            context.cellHeads[10000]==1&&context.figures.at(2).cell==10000,"neighbour combat refusal rolls back unlink, position and bridge writes");
+        context.models[11][0]=0;
+        // A model0 walker has the original combat early exit.
+        const auto crossed=originalFigureFollowRoute(walker,6,0xc0,&context);
+        need(crossed.state&&crossed.state->x==6&&crossed.state->y==6&&crossed.state->cell==10001&&crossed.state->progress==10&&
+            crossed.state->priorX==5&&crossed.state->priorY==6&&crossed.state->priorCell==10000&&crossed.state->subX==91&&
+            crossed.state->state85==0&&crossed.state->height==0&&crossed.state->drawClass==0&&crossed.state->water==1&&
+            context.figures.at(1).next==0&&context.cellHeads[10001]==3&&context.figures.at(3).next==2,
+            "crossing unlinks predecessor, appends tail, retains prior position then clears flat bridge state before substep");
+        context.services.emplace();context.services->directions.assign(500000,0);context.services->directions[1500]=4;
+        context.services->routeOwners[3]=2;context.movementMasks.assign(51984,4);
+        walker=*crossed.state;walker.progress=19;walker.movementMode=3;walker.routeCursor=0;
+        const auto advanced=originalFigureFollowRoute(walker,6,0xc0,&context);
+        need(advanced.state&&advanced.state->progress==0&&advanced.state->direction==4&&advanced.state->previousDirection==4&&
+            advanced.state->routeCursor==1&&advanced.state->subY==121,"segment selects before cursor increment, resets progress and moves in the selected direction");
+        context.movementMasks.clear();context.passability.emplace();context.passability->cells.assign(51984,4);
+        need(originalFigureFollowRoute(walker,6,0xc0,&context).status==OriginalFigureUpdateStatus::NextDirection,
+            "reduced reachability mask cannot establish bridge and transport gates for next direction");
+        context.movementMasks.assign(51984,4);
+        walker.routeCursor=2;const auto exhausted=originalFigureFollowRoute(walker,6,0xc0,&context);
+        need(exhausted.state&&exhausted.state->direction==8&&exhausted.state->progress==20&&exhausted.state->route==0&&
+            context.services->routeOwners[3]==0&&exhausted.state->subY==120,"segment exhaustion releases owner and returns before subcoordinate movement");
+        walker.owner=7;need(originalFigureFollowRoute(walker,6,0xc0,&context).status==OriginalFigureUpdateStatus::SegmentService,
+            "segment refuses owner virtual service even when route exhaustion is otherwise known");
+        auto goods=one;goods.type=19;goods.slot=4;goods.action=7;goods.subtype=10;goods.amount=401;goods.frame=9;goods.progress=5;
+        auto cart=one;cart.slot=5;cart.type=20;cart.action=6;cart.leaderLink=4;cart.progress=6;cart.priorProgress=6;cart.homeX=-1;
+        context.figures[4]=goods;context.figures[5]=cart;context.figures[4].secondaryImage=123;
+        const auto followed=originalFigureFirstUpdate(cart,refs,&context,0xc0);
+        need(followed.state&&followed.state->progress==7&&followed.state->frame==9&&followed.linkedWrites.at(4).secondaryImage==0&&
+            context.figures.at(4).secondaryImage==123,"cart uses leader minus18 modulo20, copies leader frame and publishes cargo clear atomically");
+        cart.homeX=cart.x;cart.homeY=cart.y;cart.progress=20;cart.priorProgress=20;cart.frame=4;
+        const auto home=originalFigureFirstUpdate(cart,refs,&context,0xc0);
+        need(home.state&&home.state->progress==20&&home.state->frame==4,"cart waiting at home preserves progress20 and its frame");
+        OriginalFigure innocent;innocent.type=11;context.models[11][2]=context.models[11][5]=0;
+        need(originalFigureHarmlessToPheasant(innocent,context),"zero attack and missile attack prove prey combat qualification false");
+        context.models[11][5]=1;need(!originalFigureHarmlessToPheasant(innocent,context),"nonzero missile attack cannot use harmless prey branch");
+        auto worker=one;worker.type=11;worker.action=7;worker.home=8;worker.route=3;worker.progress=3;worker.direction=2;
+        worker.frame=11;worker.subtype=1;context.figures[worker.slot]=worker;context.modelSpeeds[11]=8;
+        context.buildings=std::map<size_t,OriginalFigureBuildingLink>{{8,{3,3,int16_t(worker.slot),1}}};
+        const auto immigrated=originalFigureFirstUpdate(worker,refs,&context,0xc0);
+        need(immigrated.state&&immigrated.state->frame==0&&immigrated.state->progress==4&&immigrated.state->movementMode==3&&
+            immigrated.state->secondaryImage==0,"worker validates house live3, reciprocal home link and accepting byte before movement and frame wrap");
+        context.buildings->at(8).worker=77;
+        need(!originalFigureFirstUpdate(worker,refs,&context,0xc0).state,"worker refuses a home whose worker link belongs to another slot");
+        context.buildings->at(8).worker=int16_t(worker.slot);context.buildings->at(8).accepting=0;
+        need(!originalFigureFirstUpdate(worker,refs,&context,0xc0).state,"house virtual+B8 reads common accepting byte rather than assuming every live house accepts");
+        std::vector<uint8_t> data(184);data[0]=1;data[1]=128;data[2]=5;data[4]=3;data[9]=1;data[18]=3;data[47]=9;
+        OriginalBuildingProfile buildings;buildings.status=OriginalBuildingStatus::Complete;buildings.parsedRecords=4000;buildings.slotTypes[8]=3;
+        OriginalBuildingFootprint b;b.slot=8;b.recordOffset=0;buildings.footprints.push_back(b);
+        const auto links=originalFigureBuildingLinks(data,buildings);
+        need(links&&links->at(8).alive==3&&links->at(8).type==3&&links->at(8).worker==9&&links->at(8).accepting==1,
+            "framed common5 worker and accepting fields use literal wire45 and7 including version");
+        data[2]=4;need(!originalFigureBuildingLinks(data,buildings),"uncited common version cannot publish worker/home validity");
+        auto carrier=one;carrier.type=22;carrier.action=9;carrier.route=3;carrier.direction=2;carrier.progress=2;
+        carrier.subtype=1;carrier.amount=201;carrier.state85=2;carrier.height=7;carrier.cartStyle=8;
+        context.figures[carrier.slot]=carrier;context.modelSpeeds[22]=6;
+        const auto carried=originalFigureFirstUpdate(carrier,refs,&context,0xc0);
+        need(carried.state&&carried.state->height==8&&carried.state->state85==1&&carried.state->secondaryImage==(39u<<14)+10,
+            "goods select cargo style before movement reaches equal height, then add resulting direction");
+    }
+    {
         // Literal SAV19 terrain-relative addresses, distinct decoys either side.
         std::vector<uint8_t> services(17+1299348,0x5a);const size_t t=17;
         for(size_t n=0;n<100;++n){services[t+1281760+175*n]=6;services[t+1281761+175*n]=0;}
@@ -612,6 +687,8 @@ void corpus(){
     const auto root=ResourceRoot::fromAbsolute(env);const auto catalog=enumerateOriginalMapSources(root);need(catalog.complete,"complete source catalog");
     std::vector<uint8_t> modelBytes;need(detail::readFile(root.resolve("Model/EmperorFigureModels.txt"),100000,modelBytes),"read supplied figure model without library environment access");
     const auto modelSpeeds=originalFigureModelSpeeds(std::string(modelBytes.begin(),modelBytes.end()));
+    const auto models=originalFigureModels(std::string(modelBytes.begin(),modelBytes.end()));
+    need(models&&models->at(11)[2]==0&&models->at(11)[5]==0&&models->at(40)[6]==5,"same complete model gives worker zero attacks and Hunter range");
     need(modelSpeeds&&modelSpeeds->at(76)==11,"complete supplied model publishes Pheasant speed11");
     AppMapSurface app(root);size_t sources=0,slots=0,live=0,placed=0,hidden=0,zero=0,unsupported=0,decoded=0,failures=0;
     std::set<unsigned> types,boundTypes;std::map<unsigned,size_t> blocked;size_t focused=0,placedDecoded=0;
@@ -620,9 +697,10 @@ void corpus(){
     size_t zeroResolved=0,zeroBlocked=0,firstTickSelected=0,firstTickBlocked=0;std::map<unsigned,size_t> zeroTypes;
     size_t postLoadComputed=0,postLoadBlocked=0,postLoadChanged=0,postLoadOracleMatched=0;
     size_t postLoadPrimaryChanged=0,postLoadSecondaryChanged=0;std::map<unsigned,size_t> postLoadBlockedTypes;
-    size_t postLoadSelected=0,postLoadDecoded=0,updateComputed=0,updateDecoded=0,updateConsistent=0;
+    size_t postLoadSelected=0,postLoadDecoded=0,updateComputed=0,updateDecoded=0,updateConsistent=0,updateCargoDecoded=0;
+    std::map<unsigned,size_t> updateCrossedTypes;
     std::map<unsigned,size_t> updateBlockedTypes,updateComputedTypes;std::map<std::string,size_t> updateBlockers;
-    size_t orderedComputed=0,orderedPrefix=0,orderedDecoded=0,orderedConsistent=0,orderedComplete=0,servicesParsed=0,routesValidated=0;
+    size_t orderedComputed=0,orderedPrefix=0,orderedDecoded=0,orderedConsistent=0,orderedComplete=0,servicesParsed=0,routesValidated=0,orderedCargoDecoded=0;
     std::map<unsigned,size_t> orderedComputedTypes,orderedBlockedTypes;std::map<std::string,size_t> orderedBlockers;
     std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
@@ -635,6 +713,9 @@ void corpus(){
         auto updateContext=originalFigureUpdateContext(figures),decoyUpdateContext=originalFigureUpdateContext(decoys);
         need(updateContext&&decoyUpdateContext,"complete same-source saved context available for per-type virtual updates");
         updateContext->modelSpeeds=decoyUpdateContext->modelSpeeds=*modelSpeeds;
+        updateContext->models=decoyUpdateContext->models=*models;
+        updateContext->terrain=decoyUpdateContext->terrain=save.terrain.flags;
+        updateContext->cropBase=decoyUpdateContext->cropBase=((228-save.terrain.activeSide)/2)*229;
         need(figures.factionModels.has_value(),"complete following Goods1/Empire3/Grid15/child5 publishes faction models");
         std::vector<uint8_t> savedBytes;need(detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,savedBytes),"read original container for following-layout refusal checks");
         const auto payload=decodeOriginalMapContainer(savedBytes).payload;
@@ -652,6 +733,9 @@ void corpus(){
         const auto hunterLinks=originalFigureHunterLinks(payload,save.buildings);
         need(hunterLinks.has_value(),"same-source Hunter common5 and embedded data1 frame linked-building validation");
         updateContext->hunterLinks=decoyUpdateContext->hunterLinks=hunterLinks;
+        const auto buildingLinks=originalFigureBuildingLinks(payload,save.buildings);
+        need(buildingLinks.has_value(),"same-source framed building common5 provides worker/home validity");
+        updateContext->buildings=decoyUpdateContext->buildings=buildingLinks;
         for(const auto& f:figures.live)if(f.route>0){need(size_t(f.route)<services->routeOwners.size()&&services->routeOwners[f.route]==int(f.slot)&&
             f.routeLength>=0&&f.routeLength<=500&&f.routeCursor>=0&&f.routeCursor<=f.routeLength,
             "serialized positive route has reciprocal live owner and bounded saved cursor/length");++routesValidated;}
@@ -674,19 +758,22 @@ void corpus(){
         postLoadComputed+=postLoad.computed;postLoadBlocked+=postLoad.blocked;
         const auto decodeWord=[&](uint32_t word){auto name=std::filesystem::path(originalFigureArchiveName(word>>14));name.replace_extension(".555");
             return decodeSG3Sprite(archives.at(word>>14),word&0x3fff,root.resolve("DATA/"+name.string())).image.valid();};
-        const auto ordered=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks),
-            orderedDecoys=originalFigureOrderedFirstPass(decoys,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks);
+        const auto ordered=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase),
+            orderedDecoys=originalFigureOrderedFirstPass(decoys,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase);
         need(ordered.accepted&&ordered.figures.size()==figures.live.size()&&ordered.computed+ordered.blocked==figures.live.size()&&
             ordered.computed==orderedDecoys.computed,"ordered pass partitions complete same-source live pool independent of saved images");
         orderedComputed+=ordered.computed;orderedPrefix+=ordered.prefixComputed;orderedComplete+=ordered.complete;
+        std::cout<<"{\"ordered_source\":"<<sources<<",\"complete\":"<<(ordered.complete?"true":"false")<<",\"computed\":"<<ordered.computed<<",\"prefix\":"<<ordered.prefixComputed<<",\"live\":"<<figures.live.size()<<"}\n";
         for(const auto& f:figures.live){const auto& result=ordered.figures.at(f.slot);const auto& decoy=orderedDecoys.figures.at(f.slot);
             need(result.status==decoy.status&&bool(result.state)==bool(decoy.state),"ordered statuses ignore both saved image words");
             if(!result.state){++orderedBlockedTypes[f.type];++orderedBlockers[originalFigureUpdateStatusName(result.status)];continue;}
             ++orderedComputedTypes[f.type];const auto& u=*result.state;
             need(u.image==decoy.state->image&&u.age==f.age+1&&u.priorProgress==u.progress,"ordered computed output contains dispatch age and post-return progress");
-            const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,{},&imageState);
+            auto finalImages=imageState;if(ordered.context)finalImages=originalFigureUpdateImageState(*ordered.context);
+            const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,{},&finalImages);
             need(selected.status==OriginalFigureImageStatus::Selected&&selected.image==u.image,"ordered updated image matches independent phase selector");++orderedConsistent;
             need(decodeWord(u.image),"ordered computed primary image decodes");++orderedDecoded;
+            if(u.secondaryImage){need(decodeWord(u.secondaryImage),"ordered final cargo image decodes");++orderedCargoDecoded;}
         }
         for(const auto& f:figures.live){
             const auto& after=postLoad.figures.at(f.slot);const auto& decoy=postLoadDecoys.figures.at(f.slot);
@@ -706,8 +793,12 @@ void corpus(){
                 "first-update computation status ignores saved primary and secondary words");
             if(!update.state){++updateBlockedTypes[f.type];++updateBlockers[originalFigureUpdateStatusName(update.status)];continue;}
             ++updateComputed;++updateComputedTypes[f.type];const auto& u=*update.state;
+            if(u.cell!=f.cell){++updateCrossedTypes[f.type];
+                need(u.priorX==f.x&&u.priorY==f.y&&u.priorCell==f.cell&&(update.cellHeads||!update.linkedWrites.empty())&&
+                    u.cell==uint32_t(int64_t(spawn->cropBase)+u.x+228LL*u.y),
+                    "original crossing output publishes cell heads, prior coordinates and validated crop-derived cell");}
             need(u.image==decoyUpdate.state->image&&u.secondaryImage==decoyUpdate.state->secondaryImage&&
-                u.action==decoyUpdate.state->action&&u.x==f.x&&u.y==f.y&&u.counter==f.counter&&
+                u.action==decoyUpdate.state->action&&u.x==decoyUpdate.state->x&&u.y==decoyUpdate.state->y&&u.counter==decoyUpdate.state->counter&&
                 u.herdTarget==decoyUpdate.state->herdTarget&&u.herdDistance==decoyUpdate.state->herdDistance&&
                 u.threat==decoyUpdate.state->threat&&u.threatDistance==decoyUpdate.state->threatDistance&&
                 u.idleCounter==decoyUpdate.state->idleCounter&&u.cooldowns==decoyUpdate.state->cooldowns,
@@ -723,6 +814,7 @@ void corpus(){
             need(selected.status==OriginalFigureImageStatus::Selected&&selected.image==u.image,
                 "consistency only: figureImage of updated state equals updater image write; no saved post-update oracle");
             ++updateConsistent;need(decodeWord(u.image),"computed first-update image decodes");++updateDecoded;
+            if(u.secondaryImage){need(decodeWord(u.secondaryImage),"computed first-update cargo image decodes");++updateCargoDecoded;}
         }
         const auto scoreOne=[&](Score& item,const OriginalFigure& f,const OriginalFigureImageSelection& prediction){
             ++item.total;if(prediction.status==OriginalFigureImageStatus::Selected){++item.selected;
@@ -818,29 +910,31 @@ void corpus(){
         <<",\"blocked\":"<<postLoadBlocked<<",\"blocked_types\":{},\"saved_word_comparison\":{\"equal_pairs\":"<<postLoadOracleMatched
         <<",\"changed_pairs\":"<<postLoadChanged<<",\"primary_changed\":"<<postLoadPrimaryChanged<<",\"secondary_clears\":"<<postLoadSecondaryChanged
         <<"},\"selected_nonzero\":"<<postLoadSelected<<",\"decoded\":"<<postLoadDecoded<<",\"decode_failures\":0,\"post_update_oracle\":\"unmeasured\"}\n";
-    need(updateComputed==74&&updateDecoded==74&&updateConsistent==74&&updateComputedTypes[76]==67,
-        "first-update state computes74/192, decodes74/74, selector consistency74/74; Pheasant67/69");
+    need(updateComputed==133&&updateDecoded==133&&updateConsistent==133&&updateComputedTypes[76]==68&&
+        updateComputedTypes[11]==14&&updateComputedTypes[19]==11&&updateComputedTypes[20]==20&&updateComputedTypes[22]==1&&updateComputedTypes[40]==12,
+        "first-update state computes133/192, decodes133/133, selector consistency133/133; Pheasant68/69");
+    need(updateCrossedTypes==std::map<unsigned,size_t>{{20,1},{40,1}},
+        "two original computed first updates cross cells: one cart and one Hunter; authored crossings are a separate denominator");
     const std::map<std::string,size_t> expectedUpdateBlockers{
-        {"building_virtual24_ordered_update",9},{"cart_leader_order_and_movement_4e7520",20},
-        {"goods_route_4e47a0_and_owner_mutations",21},{"pheasant_threat_qualification_4e5340",2},
-        {"type_action_route_target_combat_update",49},
-        {"worker_owner_validity_and_movement_4e47a0_4e9620",17}};
-    need(updateBlockers==expectedUpdateBlockers,"individual refusal names and counts partition exactly118/192 occurrences");
+        {"building_virtual24_ordered_update",9},{"goods_route_4e47a0_and_owner_mutations",9},{"pheasant_threat_qualification_4e5340",1},
+        {"segment_owner_service_4eacd0",1},{"type_action_route_target_combat_update",36},
+        {"worker_owner_validity_and_movement_4e47a0_4e9620",3}};
+    need(updateBlockers==expectedUpdateBlockers,"individual refusal names and counts partition exactly59/192 occurrences");
     std::cout<<"{\"first_update_state\":true,\"k\":1,\"computed\":"<<updateComputed<<",\"live_total\":"<<live
-        <<",\"decoded\":"<<updateDecoded<<",\"image_consistency\":"<<updateConsistent<<",\"decode_failures\":0,\"computed_types\":{\"1\":"<<updateComputedTypes[1]<<",\"76\":"<<updateComputedTypes[76]<<"},\"blocked_types\":{";
-    bool updateComma=false;for(const auto& entry:updateBlockedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
+        <<",\"decoded\":"<<updateDecoded<<",\"cargo_decoded\":"<<updateCargoDecoded<<",\"image_consistency\":"<<updateConsistent<<",\"decode_failures\":0,\"computed_types\":{";
+    bool updateComma=false;for(const auto& e:updateComputedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<e.first<<"\":"<<e.second;}
+    std::cout<<"},\"blocked_types\":{";updateComma=false;for(const auto& entry:updateBlockedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
     std::cout<<"},\"blockers\":{";updateComma=false;for(const auto& entry:updateBlockers){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
     std::cout<<"},\"first_draw\":\"after_explicit_k_admitted_updates\",\"ordinary_k\":[0,1],\"fast_forward_max_k\":10000,\"post_update_oracle\":\"unmeasured\"}\n";
-    need(orderedComputed==49&&orderedPrefix==67&&orderedDecoded==49&&orderedConsistent==49&&orderedComplete==3&&servicesParsed==6&&routesValidated==78&&
-        orderedComputedTypes[76]==42&&orderedComputedTypes[1]==7&&orderedBlockers["earlier_ordered_slot_uncomputed"]==122&&
-        orderedBlockers["later_ordered_slot_may_write_earlier_figure"]==18,
-        "complete ordered pass computes49/192;67 prefix calls remain separately measured;78 reciprocal saved routes");
-    const std::map<std::string,size_t> expectedOrderedBlockers{{"cart_leader_order_and_movement_4e7520",1},
-        {"earlier_ordered_slot_uncomputed",122},{"goods_route_4e47a0_and_owner_mutations",1},
-        {"later_ordered_slot_may_write_earlier_figure",18},{"pheasant_threat_qualification_4e5340",1}};
-    need(orderedBlockers==expectedOrderedBlockers,"ordered refusal names and counts partition exactly143/192 final states");
+    need(orderedComputed==81&&orderedPrefix==84&&orderedDecoded==81&&orderedConsistent==81&&orderedComplete==4&&servicesParsed==6&&routesValidated==78&&
+        orderedComputedTypes[76]==63&&orderedComputedTypes[1]==7&&orderedComputedTypes[11]==10&&orderedComputedTypes[40]==1,
+        "complete ordered pass computes81/192;84 prefix calls remain separately measured;78 reciprocal saved routes");
+    const std::map<std::string,size_t> expectedOrderedBlockers{{"building_virtual24_ordered_update",1},
+        {"earlier_ordered_slot_uncomputed",106},{"type_action_route_target_combat_update",1},
+        {"later_ordered_slot_may_write_earlier_figure",3}};
+    need(orderedBlockers==expectedOrderedBlockers,"ordered refusal names and counts partition exactly111/192 final states");
     std::cout<<"{\"ordered_first_pass\":true,\"k\":1,\"computed\":"<<orderedComputed<<",\"live_total\":"<<live
-        <<",\"prefix_computed\":"<<orderedPrefix<<",\"decoded\":"<<orderedDecoded<<",\"image_consistency\":"<<orderedConsistent<<",\"decode_failures\":0,\"complete_sources\":"<<orderedComplete
+        <<",\"prefix_computed\":"<<orderedPrefix<<",\"decoded\":"<<orderedDecoded<<",\"cargo_decoded\":"<<orderedCargoDecoded<<",\"image_consistency\":"<<orderedConsistent<<",\"decode_failures\":0,\"complete_sources\":"<<orderedComplete
         <<",\"source_total\":6,\"services_parsed\":"<<servicesParsed<<",\"positive_routes_validated\":"<<routesValidated<<",\"computed_types\":{";
     updateComma=false;for(const auto& e:orderedComputedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<e.first<<"\":"<<e.second;}
     std::cout<<"},\"blocked_types\":{";updateComma=false;for(const auto& e:orderedBlockedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<e.first<<"\":"<<e.second;}

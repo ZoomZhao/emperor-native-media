@@ -43,6 +43,10 @@ def main():
         ('spawn_offset', 'original_figure.hpp', 'at+853+4*n', 'at+853+2*n'),
         ('destination_rng', 'original_figure_update.hpp', 'x+=int(14*scale/4)', 'x+=int(14*scale/2)'),
         ('ordered_rng', 'original_figure_update.hpp', 'if(result.services)context->services=result.services;', 'if(result.services)context->services=before.services;'),
+        ('crossing_prior', 'original_figure_update.hpp', 'next.priorX=f.x;next.priorY=f.y;', 'next.priorX=f.x+1;next.priorY=f.y;'),
+        ('cart_delay', 'original_figure_update.hpp', 'saved.action==9?13:18;', 'saved.action==9?13:17;'),
+        ('segment_cursor', 'original_figure_update.hpp', 'f.routeCursor=originalFigureWord(int(f.routeCursor)+1);', 'f.routeCursor=originalFigureWord(int(f.routeCursor)+2);'),
+        ('worker_accepting', 'original_figure.hpp', 'detail::i16(data.data()+at+45),data[at+7]', 'detail::i16(data.data()+at+45),data[at+8]'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
     ]
     if args.only:

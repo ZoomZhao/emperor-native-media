@@ -35,6 +35,9 @@ struct OriginalFigure {
     uint32_t destinationCell=0,age=0,priorProgress=0;
     int16_t reciprocalTarget=0,follower=0;
     uint8_t routePhase=0,speed=0;
+    int16_t priorX=0,priorY=0,homeX=0,homeY=0,home=0,delivery=0;
+    uint32_t priorCell=0;
+    uint8_t water=0; //+49, written by0x4E77C0.
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
 struct OriginalFigureSavedServices {
@@ -62,6 +65,31 @@ struct OriginalFigureSpawnServices {
     std::array<std::pair<int16_t,int16_t>,4> spawns{};
 };
 struct OriginalFigureHunterLink {uint8_t alive=0,enabled=0;int16_t workers=0;};
+struct OriginalFigureBuildingLink {
+    uint16_t type=0;uint8_t alive=0;int16_t worker=0;uint8_t accepting=0;
+};
+// Common5:0x427430 reads live+4,type+14,worker+32,accepting+9 individually;
+// wire+2/+16/+45/+7 include the version. Read only framed public records.
+inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigureBuildingLinks(
+    const std::vector<uint8_t>& data,const OriginalBuildingProfile& buildings){
+    if(data.size()>8u*1024u*1024u||buildings.status!=OriginalBuildingStatus::Complete||buildings.parsedRecords!=4000)return std::nullopt;
+    std::map<size_t,size_t> records;
+    for(const auto& b:buildings.footprints)records.emplace(b.slot,b.recordOffset);
+    for(const auto& b:buildings.objectBuildings)records.emplace(b.slot,b.recordOffset);
+    std::map<size_t,OriginalFigureBuildingLink> out;
+    for(const auto& b:records){size_t at=b.second;
+        if(at>data.size()||data.size()-at<2)return std::nullopt;
+        const auto tag=detail::u16(data.data()+at);at+=2;
+        if(tag==0xffff){if(data.size()-at<4)return std::nullopt;const size_t n=detail::u16(data.data()+at+2);
+            if(n>data.size()-at-4)return std::nullopt;at+=4+n;}
+        else if(tag<0x8000)continue; // Object aliases need their framed source; never guess a body.
+        if(data.size()-at<182||detail::u16(data.data()+at)!=5)return std::nullopt;
+        const auto type=detail::u16(data.data()+at+16);
+        if(b.first>=4000||type!=buildings.slotTypes[b.first])return std::nullopt;
+        out.emplace(b.first,OriginalFigureBuildingLink{type,data[at+2],detail::i16(data.data()+at+45),data[at+7]});
+    }
+    return out;
+}
 // Read the already framed Hunter records without changing the building reader.
 //0x5F36E0->0x5F1240->0x51CE00->0x51C3A0;embedded data+5C is tail+92.
 inline std::optional<std::map<size_t,OriginalFigureHunterLink>> originalFigureHunterLinks(
@@ -224,6 +252,8 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.destinationX=detail::i16(r+44);f.destinationY=detail::i16(r+46);f.destinationCell=detail::u32(r+48);
         f.routePhase=r[368];f.speed=r[97];f.age=detail::u32(r+276);f.priorProgress=detail::u32(r+400);
         f.reciprocalTarget=detail::i16(r+146);f.follower=detail::i16(r+102);
+        f.priorX=detail::i16(r+32);f.priorY=detail::i16(r+34);f.priorCell=detail::u32(r+300);
+        f.homeX=detail::i16(r+52);f.homeY=detail::i16(r+54);f.home=detail::i16(r+100);f.delivery=detail::i16(r+104);f.water=r[73];
         objects.emplace(objectPID,f);out.slots.push_back(f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }
     out.end=at;out.status=OriginalFigureStatus::Complete;
