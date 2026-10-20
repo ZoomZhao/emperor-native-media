@@ -42,6 +42,29 @@ inline OriginalBuildingCandidateView renderOriginalBuildingCandidate(const Origi
         }
     }out.image=std::move(base.image);out.accepted=true;return out;
 }
+struct OriginalWellBasePreview {
+    std::optional<OriginalBuildingImageBinding> binding;
+    OriginalBuildingCandidateView view;
+};
+// Exe-selected static base, using the existing explicit bottom-edge-centre
+// preview placement. This closes image choice only; it does not establish the
+// original anchor, shadows, occlusion, animation frame or complete SAV surface.
+inline OriginalWellBasePreview renderOriginalWellBasePreview(const OriginalMapTerrain& terrain,
+    const std::vector<OriginalBuildingFootprint>& footprints,const OriginalMapCamera& camera,
+    const OriginalBuildingFootprint& target,const std::string& archivePath,
+    const SG3Archive& archive,const std::string& companion555,int bit=-1){
+    OriginalWellBasePreview out;
+    const auto found=std::find_if(footprints.begin(),footprints.end(),[&](const auto& f){return sameOriginalCandidateTarget(f,target);});
+    if(found==footprints.end()||!validOriginalBuildingFootprint(terrain,*found))return out;
+    // Selection always uses the current profile's inputs, not a caller's stale
+    // copy of the same geometry/slot.
+    auto binding=bindOriginalWellBaseImage(*found,archivePath,archive);if(!binding)return out;
+    auto decoded=decodeSG3Sprite(archive,binding->archiveIndex,companion555);if(decoded.status!=SG3DecodeStatus::Decoded||!decoded.image.valid())return out;
+    OriginalBuildingCandidate c;c.source="snapshot";c.archive=archivePath;c.physicalId=binding->physicalId;c.target=*found;c.pixels=std::move(decoded.image);c.imageRevision=originalCandidateImageRevision(c.pixels);
+    out.view=renderOriginalBuildingCandidate(terrain,footprints,camera,c.source,0,c,bit);
+    if(out.view.accepted)out.binding=binding;
+    return out;
+}
 // Candidate configuration is always local andmust stay outside both the
 // supplied data root andany Git checkout,including symlink aliases/worktrees.
 inline bool originalCandidateConfigPath(const std::string& path,const std::string& dataRoot){

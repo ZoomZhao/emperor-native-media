@@ -207,3 +207,53 @@ Independent review of5817335/aaa5512 reports no P1/P2. The retained authored-onl
 The [explicit manual building candidate bridge](SAV.md#explicit-manual-sg3-candidate-preview) consumes an already-decoded static SG3 image selected inthe existing browser. Its physical ID remains1-based (vector index0 corresponds toID1),withno compaction ofempty/failed entries. It does not use animation offsets asa static city origin orassign bitmap names tosemantic building types. Manual preview/configuration acceptance andconfirmed original object-image binding are separate;confirmed binding remains0.
 
 A bounded local visual review advances **0/8→8/8 static base canvases** in the explicitly named `China_Safety.bmp` category of `DATA/China_General.sg3` (physical IDs1538..1727;8 type30 bases among190 records). Existing local image directories were checked first;they contained no Safety-base contact sheet,so the existing decoder exported this category only. Actual pixels select **ID1559,158×132** as the preferred well-like candidate:round open stone basin/well mouth,bucket-like vessels andbamboo/wood surroundings. **ID1538,158×93** is a weaker water-facility alternative witha dragon fountain/statue andround pool;the other6 bases are roofed buildings/towers. This is visual triage,not a proven semantic selector oranimation interpretation. Both candidates are manually placed over the real saved Well record (slot39,type72,coordinate29,38,2×2) in the existing App,andboth metadata-only configurations reload successfully **2/2**. A same-record `China_Terrain.sg3` ID466 rock remains the negative control. The three explicit cases render3/3 CGImages/configuration roundtrips;confirmed bindings remain0 andthe original game is not operated. Candidate configurations,raw exports,contact sheets andApp screenshots remain private/local. Before any original comparison,freeze this source/record/image choice;check object identity first,thenfootprint registration,anchor,shadow/occlusion andanimation separately.
+
+## Exe archive selection and Well record numbering
+
+The later [Well static-base trace](SAV.md#exe-cited-well-static-base-image-binding) closes **1/1 semantic type and2/2 supplied saved Well occurrences** by executable evidence. It selects General slot130/code0x482 or slot131/code0x483; those headers name physical records1559 and1538 respectively. No additional pixel search or original-game operation is used. Both branches pass the independent metadata contract and native decode **2/2**; saved records choose1559 **2/2**, and the existing explicit scene placement yields2/2 native CGImages. Original-screen image, anchor, shadow/occlusion and animation fidelity are separate and unverified.
+
+All VAs below refer to owned `Emperor.exe` SHA-256 **`0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`**. For these initialized sections, file offset is **VA−0x400000**. The tileset→filename map is **built as a41-pointer stack array**, rather than read from a contiguous static pointer table. **FUN_00475B60 @0x475B60** fills it at **0x475C3B..0x475D5A**, then passes it to **FUN_005CCDF0 at0x475D65**. Slot2 is written at **0x475C4B** with string **VA0x82B18C/file0x42B18C=`China_General`**. **FUN_005CCDF0** selects `array[currentTileset]`; **FUN_005CCF70** supplies that index and index<<9 to **FUN_005CD1F0**. The loader appends the `.sg3` extension; these are filename stems.
+
+| Tileset | Initialized filename stem | Pointer-store VA / string VA |
+|---|---|---|
+|0|China_Unloaded|0x475C3B /0x82B1AC|
+|1|China_Interface|0x475C43 /0x82B19C|
+|2|China_General|0x475C4B /0x82B18C|
+|3|China_Terrain|0x475C53 /0x82B17C|
+|4|China_Mon_Temple|0x475C5B /0x82B168|
+|5|China_Mon_Tumulus|0x475C63 /0x82B154|
+|6|China_Mon_Grand_Canal|0x475C6B /0x82B13C|
+|7|China_Mon_Splendid_Temple|0x475C73 /0x82B120|
+|8|China_Mon_Earthen_Greatwall_1|0x475C7B /0x82B100|
+|9|China_Mon_Earthen_Greatwall_2|0x475C83 /0x82B0E0|
+|10|China_Mon_Earthen_Greatwall_3|0x475C8B /0x82B0C0|
+|11..12|empty|0x475C93,0x475C97 /0x88EC4C|
+|13|China_MapOfChina01|0x475C9B /0x82B0AC|
+|14|SprAmbient|0x475CA3 /0x82B0A0|
+|15|China_Fonts|0x475CAB /0x82B094|
+|16|China_Elevation|0x475CB3 /0x82B084|
+|17|Destruction|0x475CBB /0x82B078|
+|18|China_Chinese|0x475CC3 /0x82B068|
+|19|China_Korean|0x475CCB /0x82B058|
+|20|China_Vietnamese|0x475CD3 /0x82B044|
+|21|China_Khitan|0x475CDB /0x82B034|
+|22|China_Mongol|0x475CE3 /0x82B024|
+|23|China_Tibetan|0x475CEB /0x82B014|
+|24|China_Xiongnu|0x475CF3 /0x82B004|
+|25..37|empty|0x475CFB..0x475D3D /0x88EC4C|
+|38|SprMain|0x475D44 /0x82AFFC|
+|39|SprMain2|0x475D4F /0x82AFF0|
+|40|SprMain3|0x475D5A /0x82AFE4|
+
+This is the startup map, not a claim that every slot is always loaded or immutable: **FUN_005CCE80** can reload tileset16 as `China_Elevation_Dirt` (stringVA0x86A674). The Well API only needs the verified slot2; it does not extend unrelated ground dispatch or introduce a duplicate global archive resolver.
+
+There are three numbering domains to keep distinct. A **code** packs tileset in bits9+ and its SG header group in low9. **T(code)** at0x408170 resolves the loader's group entry, then adds tileset×0x4000. A **native physical ID** is the on-disk record number, with dummy0 excluded and native vector index=physicalID−1. The original loader may trim its first200 system records: **FUN_005CD1F0 at0x5CD34F..0x5CD39A** tests nonzero tileset and first bitmap name `Zeus_system.bmp`, then subtracts200 from header group values at **0x5CD468..0x5CD471** before putting them into its tree. Publication at **0x5CD51B..0x5CD524** stores that normalized value−1. Thus the established `T=recordId−1+tileset×0x4000` uses the **loader-normalized record ID**, not necessarily the untrimmed physical SG record number. The native binding directly reads the physical SG header slot and does not subtract200 from its native vector index.
+
+For the supplied General index, bitmap0 is `Zeus_system.bmp`, so group130/header1559 produces runtime low14 **1358=1559−201**, full word **0x854E**; group131/header1538 produces **1337=1538−201**, full word **0x8539**. These intermediate words are reproducible format facts, not serialized SAV image fields. Both resolve back to the physical IDs above. The consumer **FUN_005CE800 @0x5CE800** splits tileset and low14, chooses the tileset's runtime archive, and draws that record; the generic low14 consumer0x5CD8A0 retains the same namespace distinction.
+
+| Branch | General imageIndex slot | Physical ID / native vector index | Independent SG format checks |
+|---|---:|---:|---|
+|predicate false,code0x482|130|1559 /1558|type30,width158,height132,tileSize2,uncompressed base12800 bytes,bitmap `China_Safety.bmp`,animation count20,speedID5|
+|predicate true,code0x483|131|1538 /1537|type30,width158,height93,tileSize2,uncompressed base12800 bytes,bitmap `China_Safety.bmp`,animation count20,speedID4|
+
+For each base, width **80×2−2=158**, height≥40×2, and uncompressed length **3200×2²=12800** agree with the independently saved/type-table2×2 footprint. Bitmap names are read through the record's bitmapId from **680+200×bitmapId**, not treated as per-image semantic names. The actual image association is supplied by the executable override; compatible dimensions/name alone would still be insufficient. Other building types in the24-byte table have not been bound by this change, since their state overrides and component rules require their own trace. Reproduce the86 authored/22 original assertions perRelease/UBSan with `scripts/building_image_binding.py`;it prints aggregates only and succeeds with SKIP for the data portion when `EMPEROR_GAMEDATA_ROOT` is unset/empty.

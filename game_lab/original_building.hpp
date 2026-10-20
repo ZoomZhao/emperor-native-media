@@ -6,7 +6,11 @@
 #include <string>
 #include <new>
 namespace game_lab {
-struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0,height=0;size_t slot=0,recordOffset=0;};
+// Raw runtime-field identities, not guessed service/construction semantics.
+// Owned exe SHA256 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658:
+// FUN_00427430 serializes these at common+18 and common+(v5?100:99).
+struct OriginalWellImageInputs {int16_t word16=0;uint8_t byte6f=0;};
+struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0,height=0;size_t slot=0,recordOffset=0;std::optional<OriginalWellImageInputs> wellImageInputs;};
 enum class OriginalBuildingStatus {Complete,UnsupportedTail,MissingAnchor,AmbiguousAnchor,Malformed,BudgetExceeded};
 struct OriginalBuildingProfile {
     OriginalBuildingStatus status=OriginalBuildingStatus::MissingAnchor;
@@ -26,6 +30,35 @@ inline bool namedOriginalBuilding(uint16_t type,const std::string& name){
 inline bool originalBuildingSquareType(uint16_t type);
 inline uint8_t originalFootprintWidth(const OriginalBuildingFootprint& f){return f.width?f.width:f.size;}
 inline uint8_t originalFootprintHeight(const OriginalBuildingFootprint& f){return f.height?f.height:f.size;}
+struct OriginalBuildingImageBinding {
+    const char* archive="DATA/China_General.sg3";
+    uint16_t imageCode=0;uint32_t tileset=2,physicalId=0;size_t archiveIndex=0;
+};
+// Static base only. Well factory 0x51BEF0 -> ctor 0x51C090 -> vtable 0x7B5EB4;
+// +0x214 is 0x51BAC0: 0x482 + bool(vcall+0x224). That predicate is 0x5B3AD0:
+// signed word at runtime+0x16 > 0 OR byte at runtime+0x6F != 0.
+// Type0x48/size2: table row VA0x823C58, image code at0x823C60 (file0x423C60).
+inline std::optional<uint16_t> originalWellBaseImageCode(const OriginalBuildingFootprint& f){
+    if(f.type!=0x48||f.size!=2||originalFootprintWidth(f)!=2||originalFootprintHeight(f)!=2||!f.wellImageInputs)return std::nullopt;
+    return uint16_t(0x482+(f.wellImageInputs->word16>0||f.wellImageInputs->byte6f!=0));
+}
+// FUN_0051DD20 @0x51DF22..0x51DF61 calls that selector, T(code), and the
+// surface writer0x4B72B0 without a variant. Startup0x475C4B puts China_General
+// (string VA0x82B18C/file0x42B18C) in tileset slot2. Physical SG ids below
+// refer to the on-disk table, before the original loader's system-record trim.
+// Caller supplies the named archive; the library never reads the environment.
+inline std::optional<OriginalBuildingImageBinding> bindOriginalWellBaseImage(const OriginalBuildingFootprint& f,
+    const std::string& archivePath,const SG3Archive& archive){
+    const auto code=originalWellBaseImageCode(f);if(!code||archivePath!="DATA/China_General.sg3")return std::nullopt;
+    const size_t group=*code&0x1ffu;
+    if((archive.version!=213&&archive.version!=214)||archive.numImages!=archive.sprites.size()||group>=archive.imageIndex.size())return std::nullopt;
+    const size_t id=archive.imageIndex[group];if(!id||id>archive.numImages)return std::nullopt;
+    // Public type30 2x2 base geometry is an independent format check, not a
+    // semantic-name test. Other/mirrored geometries stay unsupported here.
+    const auto& s=archive.sprites[id-1];
+    if(s.mirrorOffset<0||s.type!=30||s.width!=158||s.height<80||s.uncompressedLength!=12800||(s.tileSize&&s.tileSize!=2))return std::nullopt;
+    OriginalBuildingImageBinding out;out.imageCode=*code;out.physicalId=uint32_t(id);out.archiveIndex=id-1;return out;
+}
 inline bool validOriginalBuildingFootprint(const OriginalMapTerrain& terrain,const OriginalBuildingFootprint& f){
     const auto w=originalFootprintWidth(f),h=originalFootprintHeight(f);const bool market=f.type==0x3b||f.type==0x3c;
     if(!terrain.valid()||(!originalBuildingSquareType(f.type)&&!market)||!f.size||f.size>8||!w||!h||w>8||h>8||uint32_t(f.x)+w>terrain.activeSide||uint32_t(f.y)+h>terrain.activeSide)return false;
@@ -79,7 +112,8 @@ inline bool originalBuildingSquareType(uint16_t type){
 // a closed record span and matching saved terrain footprint is exposed. Unknown
 // type tails preserve the closed prefix; malformed data clears it completely.
 // Opaque class-reference tags stay opaque;eligibility comes from the separately stored semantic type.
-// No resync,SG3 binding or game logic.
+// No resync or game logic. Well image-choice inputs are retained separately;
+// archive binding is an explicit caller operation above.
 inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint8_t>& data,size_t start,
                                                          size_t terrainOffset,const OriginalMapTerrain& terrain,bool localClasses=false){
     const auto failure=[](OriginalBuildingStatus s){OriginalBuildingProfile r;r.status=s;return r;};
@@ -125,6 +159,7 @@ inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint
                 if(!originalBuildingSquareType(type)&&type!=0x3b&&type!=0x3c){++result.unsupportedFootprintRecords;at+=common+*tail;++result.parsedRecords;continue;}
                 OriginalBuildingFootprint f;f.type=type;f.x=detail::u16(data.data()+at+8);f.y=detail::u16(data.data()+at+10);f.size=data[at+5];f.slot=slot;f.recordOffset=begin;
                 if(type==0x3b||type==0x3c){const auto rotation=data[at+common+96];if(rotation>1){++result.unsupportedFootprintRecords;at+=common+*tail;++result.parsedRecords;continue;}const uint8_t side=type==0x3b?4:6;f.width=rotation?7:side;f.height=rotation?side:7;}
+                if(type==0x48){OriginalWellImageInputs inputs;inputs.word16=detail::i16(data.data()+at+18);inputs.byte6f=data[at+(version==5?100:99)];f.wellImageInputs=inputs;}
                 if(data[at+2]&&validOriginalBuildingFootprint(terrain,f))result.footprints.push_back(f);else ++result.rejectedTerrainFootprints;
             }
             at+=common+*tail;++result.parsedRecords;
