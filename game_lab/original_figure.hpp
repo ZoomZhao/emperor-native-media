@@ -64,6 +64,28 @@ inline constexpr size_t fireCount=fireBlocks80+2*80; //0xC82F28,i32,0x531564
 // Continue from road-distance0x5317E3, then32 bytes0x5317F1 and36
 // bytes0x531805. The preceding variable records are already framed at T.
 inline constexpr size_t serviceGrid=1510985+51984+32+36; //0x531816,D62440
+//531824/832/843/854/862/873/884/895/8A3/8B4/8C5/8D6/
+//8E7/8F8/909/91A precede the269-byte10BC7E0 table at53192B.
+inline constexpr size_t buildingDisabled=serviceGrid+207936+26+13+2*51984+4+2*51984+1436+4+224+3600+624+256+224+448+200;
+}
+struct OriginalFigureCropServices {
+    int32_t month=0;
+    std::array<int16_t,36> unavailable{}; //1312014, population7 +26B4.
+    std::array<uint8_t,269> disabled{}; //10BC7E0,53192B.
+};
+inline std::optional<OriginalFigureCropServices> originalFigureSavedCropServices(
+    const std::vector<uint8_t>& data,size_t terrain,size_t sizeAnchor){
+    size_t bytes=2;for(const auto& f:emperor::file_io::research::later7_requests)bytes+=f.bytes;
+    if(data.size()>8u*1024u*1024u||terrain>data.size()||original_save19::buildingDisabled+269>data.size()-terrain||
+        sizeAnchor>data.size()||sizeAnchor<28+152+bytes)return std::nullopt;
+    const size_t population=sizeAnchor-28-152-bytes;
+    if(detail::u16(data.data()+population)!=7||detail::u16(data.data()+sizeAnchor-28)!=6)return std::nullopt;
+    OriginalFigureCropServices out;const uint32_t month=detail::u32(data.data()+sizeAnchor-176); //5312AF,C82EEC.
+    out.month=int32_t(month>INT32_MAX?int64_t(month)-4294967296LL:month);
+    //5944BF reads72 bytes from population+26B4; preceding requests total9904.
+    for(unsigned n=0;n<36;++n)out.unavailable[n]=detail::i16(data.data()+population+9904+2*n);
+    std::copy_n(data.begin()+terrain+original_save19::buildingDisabled,269,out.disabled.begin());
+    return out;
 }
 struct OriginalFigurePopulation {int32_t total=0,peak=0;std::optional<uint32_t> lastArrival;};
 // Same ten bounded goal lists as SAV19's existing prefix walker, followed
@@ -164,16 +186,17 @@ inline std::optional<std::map<int,int>> originalFigureHouseModelColumn(const std
 }
 inline std::optional<std::map<int,int>> originalFigureHouseCapacities(const std::string& text){return originalFigureHouseModelColumn(text,17);}
 //44CC50(type,9) reads the raw thirteen-column building row.
-inline std::optional<int32_t> originalFigureWatchtowerReduction(const std::string& text){
+inline std::optional<int32_t> originalFigureWatchtowerReduction(const std::string& text,unsigned type=127){
+    if(type>268)return std::nullopt;
     if(text.size()>1024u*1024u||text.find('\0')!=std::string::npos)return std::nullopt;
     std::istringstream input(text);std::string line;bool active=false;unsigned count=0;std::optional<int32_t> out;
     while(std::getline(input,line)){if(!line.empty()&&line.back()=='\r')line.pop_back();
         if(line=="ALL BUILDINGS"){if(active)return std::nullopt;active=true;continue;}
-        if(active&&line=="HOUSE MODS")return count>127?out:std::nullopt;
+        if(active&&line=="HOUSE MODS")return count>type?out:std::nullopt;
         const auto open=line.find("{,");if(!active||open==std::string::npos)continue;
         std::string fields=line.substr(open+2);std::replace(fields.begin(),fields.end(),',',' ');std::istringstream values(fields);
         std::array<int32_t,13> row{};for(auto& v:row)if(!(values>>v))return std::nullopt;
-        if(count++==127)out=row[9];}
+        if(count++==type)out=row[9];}
     return std::nullopt;
 }
 struct OriginalFigureSpawnServices {
@@ -189,13 +212,22 @@ struct OriginalFigureBuildingLink {
     std::array<int16_t,8> cargoFigures{};
     std::array<int16_t,2> secondaryFigures{};
     std::optional<int32_t> marketGoods;
-    int16_t x=0,y=0;
+    std::optional<std::vector<OriginalStorageCompartment>> marketStorage;
+    std::optional<std::array<int16_t,7>> marketDemand;
+    std::optional<int32_t> marketQuality;
+    int16_t x=0,y=0;uint32_t cell=0;
     bool inspectorSecondary=false;
-    int16_t residents=0,freeSlots=0,houseModel=0;
+    int16_t residents=0,freeSlots=0,houseModel=0;uint8_t size=0;
+    std::optional<std::array<int16_t,12>> houseGoods;
+    std::optional<uint8_t> foodQuality;
+    std::optional<std::array<uint8_t,4>> religion;
+    std::optional<uint32_t> shrineReligion;std::optional<uint8_t> shrineElite;
     std::optional<uint8_t> laborDisabled;
     std::optional<std::array<uint8_t,3>> entertainment; //house+2B/+2C/+2E; owner+5D/+5E/+5F.
     std::optional<uint8_t> herbalist; //house embedded+2D,517410 wire tail+44.
     int32_t watchRisk=0; //common+8C,427430; mutable5B3ED0.
+    int16_t fireRisk=0,damageRisk=0; //common+4A/+4C, wire68/70.
+    std::optional<size_t> inspectorParent;int16_t parent=0; //common+3C,wire54;4B3930.
     struct CropDelivery {uint16_t flags=0;uint32_t pending=0;};
     std::optional<CropDelivery> cropDelivery; //embedded+6A and outer+150.
     int16_t roadX=0,roadY=0;
@@ -223,36 +255,50 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         OriginalFigureBuildingLink link;link.type=type;link.alive=data[at+2];link.worker=detail::i16(data.data()+at+45);link.accepting=data[at+7];
         link.primaryFigure=detail::i16(data.data()+at+41);link.destinationEnabled=data[at+129];link.serviceCount=detail::i16(data.data()+at+23);
         link.x=detail::i16(data.data()+at+8);link.y=detail::i16(data.data()+at+10);
+        link.cell=detail::u32(data.data()+at+12);
+        link.size=data[at+5];
         link.roadX=detail::i16(data.data()+at+37);link.roadY=detail::i16(data.data()+at+39);
         link.inspectorSecondary=detail::i16(data.data()+at+18)>0||data[at+100]!=0;
+        link.fireRisk=detail::i16(data.data()+at+68);link.damageRisk=detail::i16(data.data()+at+70);
+        link.parent=detail::i16(data.data()+at+54);
         link.residents=detail::i16(data.data()+at+27);link.freeSlots=detail::i16(data.data()+at+29);link.houseModel=detail::i16(data.data()+at+18);
         const auto risk=detail::u32(data.data()+at+125);link.watchRisk=int32_t(risk>INT32_MAX?int64_t(risk)-4294967296LL:risk);
         const size_t tail=at+182;
         if((type==0xc2||type==0xc4)&&data.size()-tail>=140&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&
             detail::u16(data.data()+tail+130)==1&&detail::u16(data.data()+tail+132)==1&&detail::u16(data.data()+tail+138)==1)
             link.cropDelivery=OriginalFigureBuildingLink::CropDelivery{detail::u16(data.data()+tail+106),detail::u32(data.data()+tail+134)};
-        if(type==0xc1&&data.size()-tail>=142&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&
+        if((type==0xc0||type==0xc1)&&data.size()-tail>=142&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&
             detail::u16(data.data()+tail+130)==1&&detail::u16(data.data()+tail+140)==1){
             const auto n=detail::u32(data.data()+tail+136);link.suppliers=int32_t(n>INT32_MAX?int64_t(n)-4294967296LL:n);}
         if(type>=2&&type<18&&data.size()-tail>=64&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
-            link.laborDisabled=data[tail+59];link.entertainment=std::array<uint8_t,3>{data[tail+42],data[tail+43],data[tail+45]};link.herbalist=data[tail+44];}
+            link.laborDisabled=data[tail+59];link.entertainment=std::array<uint8_t,3>{data[tail+42],data[tail+43],data[tail+45]};link.herbalist=data[tail+44];
+            link.houseGoods.emplace();for(unsigned n=0;n<12;++n)link.houseGoods->at(n)=detail::i16(data.data()+tail+17+2*n);
+            link.foodQuality=data[tail+53];}
+        if(type>=2&&type<18&&link.houseGoods)link.religion=std::array<uint8_t,4>{data[tail+13],data[tail+14],data[tail+15],data[tail+16]};
+        if(type==0xd6&&data.size()-tail>=165&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&
+            detail::u16(data.data()+tail+130)==1&&detail::u16(data.data()+tail+132)==1&&detail::u16(data.data()+tail+134)==1){
+            link.shrineReligion=detail::u32(data.data()+tail+152);link.shrineElite=data[tail+164];}
         if(type==0x47&&data.size()-tail>=352&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1)
-            link.entertainment=std::array<uint8_t,3>{data[tail+93],data[tail+94],data[tail+95]};
+            {link.entertainment=std::array<uint8_t,3>{data[tail+93],data[tail+94],data[tail+95]};link.inspectorParent=detail::u32(data.data()+tail+348);}
         if((type==0x3a||type==0x3b||type==0x7c)&&data.size()-at>=312&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
             for(unsigned n=0;n<2;++n)link.secondaryFigures[n]=detail::i16(data.data()+tail+106+2*n);
             for(unsigned n=0;n<8;++n)link.cargoFigures[n]=detail::i16(data.data()+tail+112+2*n);
-            if(type==0x3b&&data.size()-tail>=218&&detail::u16(data.data()+tail+130)==2&&detail::u16(data.data()+tail+216)==6){
-                int64_t sum=0;bool framed=true;for(unsigned n=0;n<6;++n){const size_t p=tail+132+14*n;
+            if(type==0x3b&&data.size()-tail>=266&&detail::u16(data.data()+tail+130)==2&&detail::u16(data.data()+tail+216)==6){
+                int64_t sum=0;bool framed=true;std::vector<OriginalStorageCompartment> storage;
+                for(unsigned n=0;n<6;++n){const size_t p=tail+132+14*n;
                     framed&=detail::u16(data.data()+p)==1;const auto amount=detail::u32(data.data()+p+6);
+                    storage.push_back({detail::u32(data.data()+p+2),amount,detail::u32(data.data()+p+10)});
                     sum+=amount>INT32_MAX?int64_t(amount)-4294967296LL:amount;}
-                if(framed&&sum>=INT32_MIN&&sum<=INT32_MAX)link.marketGoods=int32_t(sum);
+                if(framed&&sum>=INT32_MIN&&sum<=INT32_MAX){link.marketGoods=int32_t(sum);link.marketStorage=std::move(storage);
+                    link.marketDemand.emplace();for(unsigned n=0;n<7;++n)link.marketDemand->at(n)=detail::i16(data.data()+tail+78+2*n);
+                    const auto quality=detail::u32(data.data()+tail+242);link.marketQuality=int32_t(quality>INT32_MAX?int64_t(quality)-4294967296LL:quality);}
             }
         }
         out.emplace(b.first,link);
     }
     bool complete=true;for(size_t slot=1;slot<4000;++slot)
-        if(buildings.slotTypes[slot]>=0xc3&&buildings.slotTypes[slot]<=0xc7&&!out.count(slot))complete=false;
-    for(auto& e:out)if(e.second.type==0xc1)e.second.cropSearchComplete=complete;
+        if(buildings.slotTypes[slot]>=0xc2&&buildings.slotTypes[slot]<=0xc7&&!out.count(slot))complete=false;
+    for(auto& e:out)if(e.second.type==0xc0||e.second.type==0xc1)e.second.cropSearchComplete=complete;
     return out;
 }
 // Read the already framed Hunter records without changing the building reader.

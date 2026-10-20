@@ -99,6 +99,10 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     services->population=population;auto context=*contextSeed;context.houseCapacities=*capacities;context.buildingOwners=ground.owner;
     context.houseWatchFloors=*watchFloors;context.watchtowerReduction=watchReduction;context.elevation=ground.state.gBEBF3A;
     context.watchMaximum=0; //explicit preview premise: fresh process scratchD95080.
+    context.inspectorReduction=originalFigureWatchtowerReduction(buildingText,124);
+    context.inspectorMaximum=std::array<int32_t,2>{0,0}; //explicit fresh-processD95084/88.
+    context.crops=originalFigureSavedCropServices(payload,save.terrainOffset,save.sizeOffset);
+    for(unsigned col=9;col<=13;++col){const auto values=originalFigureHouseModelColumn(buildingText,col);if(!values)return false;context.houseMarketModels[col]=*values;}
     context.feature=ground.state.feature.empty()?std::vector<uint8_t>{}:std::vector<uint8_t>(ground.state.feature.size());
     for(size_t n=0;n<context.feature.size();++n)context.feature[n]=uint8_t(ground.state.feature[n]);
     context.activeSide=save.terrain.activeSide;context.festivalVenue=festival;context.entertainmentAvailable=spawn->entertainmentAvailable;

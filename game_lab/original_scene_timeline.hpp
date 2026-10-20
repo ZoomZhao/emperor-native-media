@@ -57,6 +57,10 @@ inline OriginalSceneTimeline originalSceneTimeline(const OriginalFigureUpdateCon
     // The cited selectors read none of cropDelivery.flags/pending,
     // primaryFigure,watchRisk/serviceCount or house herbalist service.
     // These carried writes therefore need zero base-image re-selections.
+    // Market5437B0 mutates its six internal compartments, but the existing
+    //544220/5428B0 selector reads child links/orientation and saved cell R,
+    //not those compartments. Warehouse compartments and crop stage+4 stay
+    //unchanged by the figure services; no stock-derived selector is invented.
     for(const auto& p:scene.placed){if(p.components.size()!=1)continue;
         if(!p.binding.physicalId||p.binding.physicalId>general.sprites.size()){out.refusal="building_base";return out;}
         const auto& base=general.sprites[p.binding.physicalId-1];if(!base.animationSpriteCount)continue;

@@ -483,6 +483,21 @@ void authored(){
         const auto carried=originalFigureFirstUpdate(carrier,refs,&context,0xc0);
         need(carried.state&&carried.state->height==8&&carried.state->state85==1&&carried.state->secondaryImage==(39u<<14)+10,
             "goods select cargo style before movement reaches equal height, then add resulting direction");
+        auto crew=one;crew.slot=2;crew.type=47;crew.action=6;crew.leaderLink=3;crew.x=5;crew.y=6;crew.cell=10000;crew.next=0;
+        crew.homeX=crew.homeY=-1;crew.progress=7;crew.state85=0;
+        auto trader=crew;trader.slot=3;trader.type=45;trader.action=9;trader.x=6;trader.cell=10001;trader.progress=8;trader.frame=9;trader.faction=0;
+        auto predecessor=crew;predecessor.slot=1;predecessor.type=11;predecessor.next=2;
+        context.figures={{1,predecessor},{2,crew},{3,trader}};context.cellHeads.assign(51984,0);
+        context.cellHeads[10000]=1;context.cellHeads[10001]=3;context.factionModels.emplace();context.factionModels->fill(0);
+        auto crewRefs=refs;crewRefs.emplace(14,&group);
+        const auto copied=originalFigureFirstUpdate(crew,crewRefs,&context,0xc0);
+        need(copied.state&&copied.state->progress==10&&copied.state->x==6&&copied.state->cell==10001&&copied.state->priorX==5&&
+            copied.state->priorCell==10000&&copied.state->frame==9&&copied.linkedWrites.at(1).next==0&&copied.linkedWrites.at(3).next==2&&
+            context.figures.at(1).next==2&&context.cellHeads[10000]==1,
+            "direct trader crew copies leader cell at progress10 and publishes both list edits with prior coordinates atomically");
+        context.terrain[10001]=4;const auto crewBridge=originalFigureFirstUpdate(crew,crewRefs,&context,0xc0);
+        need(!crewBridge.state&&crewBridge.status==OriginalFigureUpdateStatus::MovementHeight&&crewBridge.linkedWrites.empty()&&
+            context.figures.at(1).next==2,"unsupported crew bridge height withholds tentative cell and predecessor writes");
     }
     {
         auto group=archive;group.numImages=512;group.sprites.resize(512);group.imageIndex.fill(1);
@@ -516,6 +531,19 @@ void authored(){
         need(cropLink&&cropLink->at(9).cropDelivery&&cropLink->at(9).cropDelivery->pending==0x12345678&&
             cropLink->at(9).cropDelivery->flags==0x103&&cropLink->at(9).watchRisk==-7,
             "crop serializer frames embedded flags and full-width pending separately from signed common risk");
+        cropBytes[70]=0xf9;cropBytes[71]=255;cropBytes[72]=0x34;cropBytes[73]=0x12;cropBytes[56]=7;
+        const auto riskLink=originalFigureBuildingLinks(cropBytes,cropProfile);
+        need(riskLink&&riskLink->at(9).fireRisk==-7&&riskLink->at(9).damageRisk==0x1234&&riskLink->at(9).parent==7,
+            "common5 Inspector risk and parent fields use literal68/70/54 wire offsets");
+        std::vector<uint8_t> marketBytes(450);marketBytes[1]=128;marketBytes[2]=5;marketBytes[18]=0x3b;
+        marketBytes[184]=marketBytes[186]=1;marketBytes[314]=2;marketBytes[400]=6;
+        for(unsigned n=0;n<6;++n){marketBytes[316+14*n]=1;marketBytes[326+14*n]=0x90;marketBytes[327+14*n]=1;}
+        marketBytes[318]=28;marketBytes[322]=0x23;marketBytes[323]=1;marketBytes[426]=40;marketBytes[264]=0x34;marketBytes[265]=0x12;
+        auto marketProfile=cropProfile;marketProfile.slotTypes[9]=0x3b;
+        const auto marketLink=originalFigureBuildingLinks(marketBytes,marketProfile);
+        need(marketLink&&marketLink->at(9).marketStorage&&marketLink->at(9).marketStorage->at(0).amount==291&&
+            marketLink->at(9).marketStorage->at(0).resource==28&&marketLink->at(9).marketDemand->at(1)==0x1234&&*marketLink->at(9).marketQuality==40,
+            "Market frames each14-byte compartment and reads demand tail78/quality tail242 after storage2 and child6");
         auto returning=supplier;returning.action=6;returning.counter=0;context.figures[returning.slot]=returning;
         auto& hold=context.buildings->at(8);hold.type=0xc1;hold.cropSearchComplete=true;hold.suppliers=2;hold.roadX=7;hold.roadY=8;
         crop.primaryFigure=0;context.services.emplace();context.services->directions.assign(500000,0);
@@ -526,6 +554,35 @@ void authored(){
         crop.primaryFigure=int16_t(returning.slot);
         need(!originalFigureFirstUpdate(returning,refs,&context,0x88).state&&*context.buildings->at(8).suppliers==2,
             "linked crop search refuses missing calendar and availability rather than treating delivery completion as no crop");
+        context.crops.emplace();context.crops->month=6;crop.destinationEnabled=1;crop.cell=100;crop.x=9;crop.y=10;
+        const auto selectedCrop=originalFigureFirstUpdate(returning,refs,&context,0x88);
+        need(selectedCrop.state&&selectedCrop.state->action==7&&selectedCrop.state->delivery==9&&selectedCrop.state->destinationX==9&&
+            selectedCrop.state->destinationY==10&&selectedCrop.state->hidden==1&&*selectedCrop.buildings->at(8).suppliers==2&&
+            selectedCrop.buildings->at(9).primaryFigure==int(returning.slot),"first available reciprocal Millet selects destination without clearing links or supplier count");
+        context.crops->month=10;auto& laterCrop=(*context.buildings)[10];laterCrop=crop;laterCrop.type=0xc6;
+        need(originalFigureSupplierCrop(returning,context)==0,"first Millet out of season returns home even when later reciprocal crop is in season");
+        context.crops->disabled[0xc4]=1;
+        need(originalFigureSupplierCrop(returning,context)==10,"disabled first crop is skipped before selecting later in-season candidate");
+        context.crops->unavailable[3]=1;need(originalFigureSupplierCrop(returning,context)==0,"resource availability independently excludes reciprocal candidates");
+        context.crops->unavailable[3]=0;context.terrain[100]|=0x100;
+        need(originalFigureSupplierCrop(returning,context)==0,"crop terrain100 excludes otherwise qualified reciprocal candidate");
+        need(originalFigureCropInSeason(0xc4,6)==true&&originalFigureCropInSeason(0xc4,9)==true&&originalFigureCropInSeason(0xc4,10)==false&&
+            originalFigureCropInSeason(0xc4,5)==false&&originalFigureCropInSeason(0xc2,6)==true&&!originalFigureCropInSeason(0xc1,6),"crop month intervals are half-open and unknown rows refuse");
+        OriginalFigureBuildingLink market,house;market.type=0x3b;market.marketQuality=60;market.marketDemand=std::array<int16_t,7>{};
+        market.marketStorage=std::vector<OriginalStorageCompartment>{{28,3,400},{28,20,400},{19,7,400},{19,30,400},{13,40,400},{0,0,400}};
+        house.type=7;house.residents=10;house.accepting=1;house.size=1;house.houseModel=4;house.foodQuality=20;house.houseGoods=std::array<int16_t,12>{};
+        for(unsigned col=9;col<=13;++col)context.houseMarketModels[col][5]=col==9?12:0;
+        int served=0;need(originalFigureMarketHouse(market,house,context,served)&&served==1&&house.houseGoods->at(0)==5&&house.houseGoods->at(1)==12&&
+            *house.foodQuality==60&&market.marketStorage->at(0).amount==0&&market.marketStorage->at(0).resource==28&&market.marketStorage->at(1).amount==18&&
+            market.marketStorage->at(2).amount==0&&market.marketStorage->at(3).amount==25&&market.marketDemand->at(1)==2000&&*market.marketGoods==83,
+            "Market distributes food and hemp, consumes smallest compartments first and carries demand/quality atomically without clearing exhausted resource");
+        market.marketDemand->at(1)=INT16_MIN;house.residents=0;house.type=7;
+        need(originalFigureMarketHouse(market,house,context,served)&&served==1&&market.marketDemand->at(1)==INT16_MIN,
+            "Market non-elite empty house returns0 without touching demand");
+        house.type=7;house.residents=2;house.houseGoods->fill(0);house.foodQuality=0;market.marketStorage->assign(6,{0,0,400});
+        market.marketStorage->at(0)={28,1,800};market.marketQuality=60;
+        need(originalFigureMarketHouse(market,house,context,served)&&*market.marketQuality==0&&*house.foodQuality==60,
+            "last food allocation clears Market quality but uses entry quality for that house callback");
         auto delegated=one;delegated.type=34;delegated.action=6;delegated.owner=8;delegated.counter=10;delegated.searchCounter=99;
         context.figures[delegated.slot]=delegated;context.buildings->at(8).type=0xd3;context.models[34]={};context.models[34][15]=36;
         const auto waiting=originalFigureFirstUpdate(delegated,refs,&context,0xc0);
@@ -698,6 +755,17 @@ void authored(){
         routeContext.buildings->at(7).type=0xc1;
         need(originalFigureValidateNextDirection(routed,routeContext)&&routed.direction==9,
             "ordinary building with false pass-through rejects movement after its owner lookup");
+        auto cropRouteContext=routeContext;cropRouteContext.passability->cells.assign(51984,0);
+        for(unsigned x=0;x<3;++x)cropRouteContext.passability->cells[base+x]=0x10;
+        cropRouteContext.terrain.assign(51984,0);cropRouteContext.terrain[base+1]=0x10000000;
+        cropRouteContext.buildingOwners[base+1]=7;cropRouteContext.services->routeOwners.fill(0);
+        auto cropWalker=routed;cropWalker.type=26;cropWalker.movementMode=17;cropWalker.destinationX=2;cropWalker.destinationY=0;cropWalker.route=0;
+        need(originalFigureGenerateRoute(cropWalker,cropRouteContext)&&cropWalker.route==0&&cropWalker.direction==10,
+            "mode17 flood rejects a non-crop owner on terrain10000000 even when movement mask13D permits it");
+        cropRouteContext.buildings->at(7).type=0xc4;
+        need(originalFigureGenerateRoute(cropWalker,cropRouteContext)&&cropWalker.route==1&&cropWalker.routeLength==2&&
+            cropRouteContext.services->directions[500]==2&&cropRouteContext.services->directions[501]==2,
+            "mode17 flood crosses cited Millet owner and allocates the exact two east steps");
         auto group=archive;group.numImages=256;group.sprites.resize(256);group.imageIndex.fill(1);
         group.sprites[0].animationSpriteCount=12;group.sprites[0].animationDirections=8;
         const std::map<uint32_t,const SG3Archive*> refs{{38,&group}};
@@ -1041,16 +1109,45 @@ void authored(){
         const auto treated=originalFigureRoam(herbalist,6,0x80,context);
         need(treated.state&&context.buildings->at(8).herbalist==96&&context.services->serviceGrid[10000]==0x80000fc7,
             "herbalist writes house service96 and grid category0 preserving entertainment and watchtower categories");
+        context.buildings->at(9).type=0x7c;context.inspectorReduction=11;context.inspectorMaximum=std::array<int32_t,2>{0,0};
+        context.buildings->at(8).fireRisk=25;context.buildings->at(8).damageRisk=40;
+        auto inspector=entertainer;inspector.type=39;inspector.watchCoverage=3;
+        const auto inspected=originalFigureRoam(inspector,6,0x80,context);
+        need(inspected.state&&inspected.state->watchCoverage==40&&context.inspectorMaximum==std::array<int32_t,2>{25,40}&&
+            context.buildings->at(8).fireRisk==0&&context.buildings->at(8).damageRisk==7&&
+            (context.services->serviceGrid[10000]&(7u<<3))==(7u<<3),
+            "Inspector repeats signed word risk reductions per occupied cell and retains both pre-subtraction process maxima");
+        inspector.watchCoverage=60;const auto inspectedAgain=originalFigureRoam(inspector,6,0x80,context);
+        need(inspectedAgain.state&&inspectedAgain.state->watchCoverage==50&&context.inspectorMaximum==std::array<int32_t,2>{25,40}&&
+            context.buildings->at(8).damageRisk==0,"Inspector maxima persist while figure coverage decays by10");
+        context.buildings->at(9).type=0xd6;context.buildings->at(9).shrineReligion=2;context.buildings->at(9).shrineElite=0;
+        context.buildings->at(8).religion=std::array<uint8_t,4>{1,2,3,4};auto priest=entertainer;priest.type=35;
+        const auto blessed=originalFigureRoam(priest,6,0x80,context);
+        need(blessed.state&&context.buildings->at(8).religion==std::array<uint8_t,4>{1,2,40,4}&&
+            (context.services->serviceGrid[10000]&(7u<<15))==(7u<<15),"Shrine writes only its serialized religion service and category5");
+        context.buildings->at(9).shrineElite=1;context.buildings->at(8).religion->at(2)=7;
+        need(originalFigureRoam(priest,6,0x80,context).state&&context.buildings->at(8).religion->at(2)==7,
+            "elite-only Shrine gate skips ordinary occupied houses");
         context.terrain[9772]=0xc0;context.services->serviceGrid[9772]=7u<<6;
         context.services->serviceGrid[9999]=7u;context.services->serviceGrid[10228]=0;
         const auto watchRoads=originalFigureRoamRoads(watch,context),herbRoads=originalFigureRoamRoads(herbalist,context);
         need(watchRoads&&herbRoads&&!watchRoads->at(0)&&watchRoads->at(6)&&!herbRoads->at(6)&&herbRoads->at(0),
             "three-exit road filtering reads the walker's cited service category rather than universal entertainment bits");
+        context.terrain[9772]=0xc8;context.buildingOwners[9772]=8;
+        const auto builtRoad=originalFigureRoamRoads(herbalist,context);
+        need(builtRoad&&builtRoad->at(0),"ordinary building road bit survives4B9590 before service-category filtering");
         std::vector<uint8_t> payload(28+152+12107+1461);const size_t size=28+152+12107;
         payload[0]=7;payload[12107+152]=6;payload[38]=0xfe;payload[39]=payload[40]=payload[41]=255;payload[11271]=73;
         const auto population=originalFigureSavedPopulation(payload,size);
         need(population&&population->total==-2&&population->peak==73,"population7 uses complete12107-byte extent and literal38/11271 wire inputs");
         payload[0]=6;need(!originalFigureSavedPopulation(payload,size),"population version6 cannot inherit the version7 extent");
+        payload[0]=7;payload.resize(2100000);payload[size-176]=9;payload[9904+10]=0xfe;payload[9904+11]=255;
+        payload[1985968+196]=1;
+        const auto crops=originalFigureSavedCropServices(payload,0,size);
+        need(original_save19::buildingDisabled==1985968&&crops&&crops->month==9&&crops->unavailable[5]==-2&&crops->disabled[196]==1,
+            "SAV19 crop inputs follow independent literal wire9904,monthS-176 and disableT+1985968");
+        auto truncated=payload;truncated.resize(1985968+268);need(!originalFigureSavedCropServices(truncated,0,size),
+            "truncated final disable-table byte withholds every crop input");
         std::string model="HOUSE MODS\n";
         const auto row=[](int capacity){std::string s="row,{,";for(unsigned n=0;n<24;++n)s+=std::to_string(n==17?capacity:0)+",";return s+"\n";};
         for(unsigned n=0;n<5;++n)model+=row(0);model+="ALL HOUSES\n";for(unsigned n=0;n<15;++n)model+=row(int(n)+7);
@@ -1150,9 +1247,15 @@ void corpus(){
         const auto watchFloors=originalFigureHouseModelColumn(buildingText,15);const auto watchReduction=originalFigureWatchtowerReduction(buildingText);
         need(watchFloors&&watchReduction,"same model frames watchtower reduction and house risk floors");
         updateContext->houseWatchFloors=decoyUpdateContext->houseWatchFloors=*watchFloors;
+        for(unsigned col=9;col<=13;++col){const auto values=originalFigureHouseModelColumn(buildingText,col);need(bool(values),"same complete model supplies Market demand columns");
+            updateContext->houseMarketModels[col]=decoyUpdateContext->houseMarketModels[col]=*values;}
         updateContext->watchtowerReduction=decoyUpdateContext->watchtowerReduction=watchReduction;
         updateContext->elevation=decoyUpdateContext->elevation=save.layers.ground->state.gBEBF3A;
         updateContext->watchMaximum=decoyUpdateContext->watchMaximum=0; //declared fresh-process premise, not SAV state.
+        updateContext->inspectorReduction=decoyUpdateContext->inspectorReduction=originalFigureWatchtowerReduction(buildingText,124);
+        updateContext->inspectorMaximum=decoyUpdateContext->inspectorMaximum=std::array<int32_t,2>{0,0};
+        updateContext->crops=decoyUpdateContext->crops=originalFigureSavedCropServices(payload,save.terrainOffset,save.sizeOffset);
+        need(updateContext->crops.has_value(),"same SAV19 frames month, population resource availability and269 disable bytes");
         updateContext->activeSide=decoyUpdateContext->activeSide=save.terrain.activeSide;
         updateContext->festivalVenue=decoyUpdateContext->festivalVenue=festival;
         updateContext->buildingOwners=decoyUpdateContext->buildingOwners=save.layers.ground->owner;
@@ -1227,7 +1330,7 @@ void corpus(){
         const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,timelinePassability,
             &*hunterLinks,&*buildingLinks,*models,spawn->cropBase,timelineMasks,&*updateContext);
         need(initial.complete&&initial.context.has_value(),"timeline initializes callbacks/population exactly once");
-        for(unsigned n:{1u,2u,3u,5u,10u,20u,50u}){
+        for(unsigned n:{1u,2u,3u,4u,5u,10u,20u,50u}){
             std::vector<OriginalSceneTimelineFrame> frames;
             for(unsigned k=1;k<=n;++k){OriginalSceneTimelineFrame frame;frame.animationClock=37*k;
                 frame.admission.now=37*k;frame.admission.speed=80;frame.continueAfterPass={false};
@@ -1241,7 +1344,7 @@ void corpus(){
                 for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
                     frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
             const auto timeline=originalSceneTimeline(*initial.context,refs,timelineScene,general,&*employment,0,{},frames);
-            constexpr unsigned firstFailure[]={0,4,5,0,0,0};constexpr size_t firstSlot[]={0,1686,302,0,0,0};
+            constexpr unsigned firstFailure[]={0,10,6,0,0,0};constexpr size_t firstSlot[]={0,1702,384,0,0,0};
             const unsigned expected=firstFailure[sources-1];
             need(timeline.complete==(!expected||n<expected)&&timeline.updates==(expected&&n>=expected?expected-1:n)&&
                 timeline.refusedUpdate==(expected&&n>=expected?expected:0)&&timeline.lastPass.firstBlockedSlot==(expected&&n>=expected?firstSlot[sources-1]:0),
@@ -1471,15 +1574,16 @@ void corpus(){
     need(k1Placed==185&&k1Decoded==201&&k1Hidden==6&&k1Removed==1&&k1Unsupported==0&&k1Overlays==274&&k1Animation==53&&k1Objects==20&&
         k1Placed+k1Hidden+k1Removed+k1Unsupported==192,"k1 scene partitions192 originals:185 placed,6 hidden,1 removed,0 special-placement refusals;274 overlays");
     for(const auto& row:timelineScores){const auto& t=row.second;size_t refused=0;for(const auto& r:t.refusals)refused+=r.second;
-        const unsigned n=row.first;const size_t expectedPools=n<=3?6:4,expectedComputed=n<=3?192:81;
-        need(t.pools==expectedPools&&t.computed==expectedComputed&&t.placed==(n<=3?185:expectedComputed)&&
-            t.decoded==(n<=3?201:expectedComputed)&&t.animation==(n<=3?53:6),
-            "perN timeline coverage locks complete-pool placements, decoded components and building frames");
+        const unsigned n=row.first;const size_t expectedPools=n<=5?6:4,expectedComputed=n<=5?192:81;
+        need(t.pools==expectedPools&&t.computed==expectedComputed&&t.placed==(n<=5?(n==4?184:185):expectedComputed)&&
+            t.decoded==(n<=5?(n==4?200:201):expectedComputed)&&t.animation==(n<=5?53:6),
+         "perN timeline coverage locks complete-pool placements, decoded components and building frames");
         need(t.computed+refused==192&&t.consistent==t.primary,"perN computed/refused outcomes partition192 and all surviving primaries are consistent");
         std::map<std::string,size_t> expectedRefusals;
-        if(n>=5)expectedRefusals={{"earlier_ordered_slot_uncomputed",55},
-            {"later_ordered_slot_may_write_earlier_figure",53},
-            {"prior_removed_outcome_withheld",1},{"segment_owner_service_4eacd0",1},{"supplier_crop_search_4c2c70_4bff80_4c0760",1}};
+        if(n>=10){
+            expectedRefusals={{"earlier_ordered_slot_uncomputed",29},
+            {"later_ordered_slot_may_write_earlier_figure",79},
+             {"prior_removed_outcome_withheld",1},{"goods_delivery_arrival_virtual_4cd8f0",1},{"goods_expired_supplier_search_4cbec0_4e2960",1}};}
         need(t.refusals==expectedRefusals,"perN refusal classes and multiplicities match exact disjoint original-outcome partition");
         std::cout<<"{\"timeline_N\":"<<row.first<<",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"computed\":"<<t.computed
             <<",\"live_total\":192,\"placed\":"<<t.placed<<",\"decoded_components\":"<<t.decoded<<",\"primary_consistent\":"<<t.consistent

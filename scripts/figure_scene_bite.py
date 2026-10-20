@@ -70,8 +70,10 @@ def main():
         ('delivery_flags', 'original_figure_update.hpp', 'cropDelivery->flags|=0x40;', 'cropDelivery->flags|=0x20;'),
         ('watch_risk', 'original_figure_update.hpp', 'uint32_t(h.watchRisk)-uint32_t(*context.watchtowerReduction)', 'uint32_t(h.watchRisk)+uint32_t(*context.watchtowerReduction)'),
         ('elevated_lookahead', 'original_figure_update.hpp', '((flags&0x800000)?2:1)', '((flags&0x800000)?1:1)'),
-        ('watch_category', 'original_figure_update.hpp', 'const unsigned shift=f.type==29?6:f.type==30?0:9;', 'const unsigned shift=f.type==29?9:f.type==30?0:9;'),
+        ('watch_category', 'original_figure_update.hpp', 'const unsigned shift=f.type==29?6:f.type==30?0:f.type==39?3:f.type==23?21:f.type==35?15:9;', 'const unsigned shift=f.type==29?9:f.type==30?0:f.type==39?3:f.type==23?21:f.type==35?15:9;'),
         ('service_shadow', 'original_figure_update.hpp', 'std::abs(dx)+std::abs(dy)>shadows[size_t(sector)]', 'std::abs(dx)+std::abs(dy)>100'),
+        ('crop_season', 'original_figure_update.hpp', 'month<ends[type-0xc3]', 'month<=ends[type-0xc3]'),
+        ('market_smallest', 'original_figure_update.hpp', 'storage[k].amount<minimum', 'storage[k].amount>minimum'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]
