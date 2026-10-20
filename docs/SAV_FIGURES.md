@@ -1,5 +1,51 @@
 # SAV19 figures on the city overlay layer
 
+## Repeated update services,2026-10-21
+
+**Largest complete horizon: N=1→N=2,6/6 pools; N=2 outcomes60/192→192/192,placed60/192→185/192,components60/60→201/201,primary consistency60/60→191/191,building frames6/53→53/53.** Inputs remain speed80,admissions/draws at37,74,…,37N ms and a full active-crop draw. Default rendering remains Saved snapshot. No original game or post-update oracle was used; no decompilation/disassembly was declined. Owned executable SHA-256 remains `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`. Every initialized VA below has file offset VA−0x400000. This section supersedes the historical N=1 limit below.
+
+|N|Pools /6 before→after|Computed /192 before→after|Placed/decoded figures /192 before→after|Components decoded before→after|Surviving primary consistency before→after|Building final frames /53 before→after|
+|---:|---:|---:|---:|---:|---:|---:|
+|1|6→6|192→192|185→185|201/201→201/201|191/191→191/191|53→53|
+|2|3→6|60→192|60→185|60/60→201/201|60/60→191/191|6→53|
+|3|3→4|60→81|60→81|60/60→81/81|60/60→81/81|6→6|
+|5|2→4|28→81|28→81|28/28→81/81|28/28→81/81|3→6|
+|10|1→3|7→49|7→49|7/7→49/49|7/7→49/49|0→3|
+|20|1→3|7→49|7→49|7/7→49/49|7/7→49/49|0→3|
+|50|1→2|7→28|7→28|7/7→28/28|7/7→28/28|0→0|
+
+All seven baseline rows were remeasured in a private HEAD checkout with only the N list/assertions extended;the first refusals remain2,2,2,4,none,6. Complete requested timelines alone contribute rendered outputs. The original removed worker stays in the192 outcome denominator. After-change building phase advances are0,0,6,6,9,18,0 for the listed N values; changed final phases are0,0,6,6,3,3,0.
+
+|N|Exact disjoint refused-outcome partition /192|
+|---:|---|
+|1,2|0|
+|3,5|111=69 earlier-slot blocked+39 successful-prefix states withheld+1 prior-removed outcome withheld+1 segment service+1 supplier countdown|
+|10,20|143=78 earlier-slot blocked+61 successful-prefix states withheld+1 prior-removed+1 segment service+1 supplier countdown+1 movement height|
+|50|164=85 earlier-slot blocked+74 successful-prefix states withheld+1 prior-removed+1 segment service+1 supplier countdown+2 movement height|
+
+**Full movement words.** `0x5AD920` clears all51,984 words, then `0x5AD440` writes only the active square. Native `originalFigureMovementPassability` consumes the public `selectGroundMapSeeded` terrain result through `composeOriginalSavedGroundScene`, plus parsed owner types and road-distance bytes. The scene retains `rebuiltMovementTerrain` before restoring snapshot terrain for rendering; no ground implementation or building parser changed and no new ground accessor was needed. It preserves the full16-bit words (including2,80,100,400,1000,4000),rather than promoting the old51C projection to movement evidence. Building virtual+CC is accepted only for individually checked vtables pointing to `0x416A50` (false); crop predicate `0x4C11B0` accepts C2/C4 in this supplied domain; Roadblock7E selects4. The checked vtables are House7ABA38,Hunter7C09B4,Clay7BCA9C,Kiln7BFC2C,Mill7B72C8,Warehouse7BE1BC,Trading7BEAB8,Stall7B6C5C,Entertainment7AD878,Well7B5EB4,Inspector7BD274,Roadblock7B65E4,Watchtower7BD4D4,SingleHold7AF6E0,MultiHold7AF1E8,Hemp7AECC8,Millet7AEA40,Herbalist7B6114,Music7ACEDC,Shrine7BC0B4,Wall7AAAB8. Unknown virtuals,owner0 repair writes and typeD2's final+270 refuse the full grid. Any saved/rebuilt10000 terrain also refuses: `0x41F400`'s full pointer/terrain rebuild is not available. This publishes full grids for5/6 originals; source5 contains34 such cells and only kind13 figures,so it needs no movement map. No saved ground image is used to infer a mask.
+
+**Engine pathfinder.** `0x4E83E0` resets route/cursor/length,gets the first reusable buffer through `0x4E25A0`,then dispatches by movement mode. Mode5 calls `0x5AF1C0→0x5AF2C0`: start distance1 even if blocked; cardinal N,E,S,W queue; gate51C; stop when destination is dequeued. `0x5B18B0` backtracks the distance field in N,NE,E,SE,S,SW,W,NW order,excluding the just-used reverse,choosing lower positive distance and preferring `0x5B2730`'s direction toward the start on equality;it reverses those opposite directions into the500-byte buffer. A500-step result fails. This permits original diagonal shortcuts across a cardinal distance field; it is not a replacement shortest-path algorithm. Mode3 checks destinationB1C (`0x4FA3D0` is constant true),tries the roadB0C flood `0x5B00D0→0x5B0360`,then four-direction backtrack before eight; a failed road flood selects B1D through `0x5AE740→0x5AE840`. Allocation releases stale reciprocal owners and publishes linked route resets;successful routes write owner,route,length and progress20. No route bytes are fitted to saved routes.
+
+**Next direction.** `0x4E8BC0` uses next terrain maskedAFFEEF5F,full movement word and parsed owner. Native closes the default modes1,3,5,7,17,18 on flat land/road and the cited crop/ordinary-building branches. Bit800 jumps directly to the final terrain100 gate;it does not reject. Bit200/ferry creation,bridge tables,uncited owner predicates and specialized movement modes remain explicit refusals. `0x4E5340` supplies safe cell-sharing cases for two Pheasants (virtual+80=false and zero attack columns) and two Workers (relation1,1 byte atVA84E585 is0);other combat pairs refuse.
+
+**Owner and animal services.** MultiHoldC1 vtable7AF1E8 +28=`0x429DF0`,+2C=`0x42A210` returns0. Type26 category at84E78C+40×26 is−1,so `0x4EACD0` has no service-grid write. Its signed300 cap stays enforced. Supplier arrival `0x4CC8AA` sets action8;C1 +C8=`0x4C2A90(-4)` is false,so counter0 is assigned. `0x7650FC` is a float-to-integer helper,not RNG. The later expired countdown `0x4C2DC0` resolves delivery+68 and calls its+C8(-4);MilletC4 vtable7AEA40 points to`0x4C11F0` (true for−4),then+264=`0x4C1D20` sets embedded+6A bit40,clears common+2E and runtime+150. Those crop/building writes remain refused.
+
+Pheasant action30 runs the same predicate chain as initial19. `0x59EBD0` tests four spawn distances against virtual+1F4=14. When outside and the first herd predicate failed,`0x59E7B0` retries `0x59DBD0` with maximum100/early12. It returns an animal-vector ordinal,then rereads that ordinal as a pool slot. On this search branch EBX/EDI remain−1 (`0x59E860..0x59E8D7`),so two persisted RNG draws select destination−1+12−R%26 independently per axis,release the route and enter32. Spawn destination/reachability otherwise uses the existing `0x59EC60/0x59EDE0` formulas with the full grid. Route exhaustion `0x59F1C0→0x59E550` reaches Pheasant+1B4=`0x413A00` false,then `0x4C9740` clears idleCounter and enters31. Direction9/no target enters30. No unsupported threat,building interaction or removal is approximated.
+
+|Source|Before first refusal|After first refusal|Current blocker|
+|---:|---|---|---|
+|1|N2,slot1,route generation|none through50|21/21 Pheasant outcomes complete50 passes|
+|2|N2,slot1686,segment service|N3,slot1686|supplier expired countdown `0x4C2DC0`,delivery275 typeC4,+264=`0x4C1D20` sets embedded+6A bit40,clears common+2E and runtime+150;these writes are not ported|
+|3|N2,slot286,destination|N3,slot271|Watchtower segment `0x5B3E70→0x429DF0→0x5B3ED0`,house/service writes and+70 coverage|
+|4|N4,slot19,next direction|N8,slot1982|Worker crossing terrain800640;`0x4E77C0` elevated/height state|
+|5|none through50|none through50|7/7 kind13 outcomes complete50 passes|
+|6|N6,slot18,next direction|N40,slot14|Pheasant crossing terrain800200;`0x4E77C0` elevated/height state|
+
+No future checkpoint is established: the longest completions contain21 Pheasants or7 effects,with no independent post-update observation. Saved route/cursor,subcoordinates,phase and RNG are initial serialized state,not a verified future checkpoint. Across all six pools the complete horizon is2,so no later saved snapshot is treated as the result of these admissions.
+
+Reproduce with `EMPEROR_GAMEDATA_ROOT=/absolute/owned/root make scene-timeline-test scene-timeline-test-undefined`. Exact per-source boundaries,per-N coverage and refusal multiplicities are assertions. Release/UBSan pass477/477 authored and5,203/5,203 total (baseline460/4,328). `make scene-timeline-bite` rejects3/3 compiled mutations at intended assertions:timeline repetition,engine route tie ordering and full-word mask retention. Required regressions pass in both modes:building-scene244/7,663,building-image1,283/3,880,saved-ground110/1,928,SAV94,map-reference1,884/3,130;CITY19 Figure7 passes912/912. App builds,99/99 production-manifest hashes and strict signature verification pass;unset/empty-root controls SKIP2/2 with477/477 authored checks each. STATUS.md and commit/push remain with the lead.
+
 ## Kind13 placement and explicit update draw timeline,2026-10-21
 
 **k=1 placed/decoded 178/192→185/192; figure components 194/194→201/201; special-placement refusals 7/192→0/192.** Hidden 6 and removed 1 close the 192 denominator. All 274/274 overlays decode (201 figures + 53 building frames + 20 entertainment objects). Saved-snapshot playback remains 158/192, 174/174 components; type1 saved-zero occurrences remain 0/7 placed. Ordered state coverage stays 192/192 from 6/6 complete pools; surviving-primary consistency stays 191/191. No decompilation/disassembly was declined. The executable SHA-256 was reverified as `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`; each VA below maps to file offset VA−0x400000. Only authored formulas and prose facts are retained. No original game or post-update oracle was used. This section supersedes historical limits below.

@@ -84,6 +84,7 @@ struct OriginalBuildingScene {
     size_t groundCells=0,groundUnknown=0,groundNoWrite=0,groundUnresolved=0,unboundBuildingCells=0;
     size_t groundDrawFullyAssigned=0,buildingDrawFullyAssigned=0,buildingDrawMarkerOnly=0;
     std::vector<GroundMapCell> groundSelections;
+    std::vector<uint32_t> rebuiltMovementTerrain; // public ground rebuild output before snapshot terrain restoration
     // Metadata masks identify independently assigned bits, excluding saved input.
     std::vector<uint8_t> drawWritten,subTileWritten,buildingOccupancy;
 };
@@ -341,6 +342,7 @@ inline OriginalBuildingScene composeOriginalSavedGroundScene(const OriginalMapTe
         for(const auto& c:p.components)working.subTile[(origin+p.footprint.y+c.y)*228+origin+p.footprint.x+c.x]=0;
     auto rebuilt=selectGroundMapSeeded(working,terrain.activeSide,saved.material,saved.owner);
     if(rebuilt.cells.size()!=n||!rebuilt.surface.valid()){out.accepted=false;return out;}
+    out.rebuiltMovementTerrain=rebuilt.surface.terrain;
     out.surface=std::move(rebuilt.surface);out.surface.terrain=terrain.flags;
     out.drawWritten=std::move(rebuilt.drawWritten);out.subTileWritten=std::move(rebuilt.subTileWritten);
     out.groundSelections=std::move(rebuilt.cells);

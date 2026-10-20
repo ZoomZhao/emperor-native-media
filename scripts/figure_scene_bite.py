@@ -65,6 +65,8 @@ def main():
         ('animation_clock', 'original_building_animation.hpp', 'uint32_t(20*k)', 'uint32_t(19*k)'),
         ('timeline_repeat', 'original_scene_timeline.hpp', 'context=*out.lastPass.context;++out.updates;', 'context=initial;++out.updates;'),
         ('timeline_draw', 'original_scene_timeline.hpp', 'out.animationClock.flags);', 'std::array<bool,51>{});'),
+        ('engine_route_tie', 'original_figure_update.hpp', 'd==toward||chosen==8', 'd==((toward+4)&7)||chosen==8'),
+        ('movement_full_mask', 'original_figure_update.hpp', 'out.cells[cell]=mask;', 'out.cells[cell]=mask&0x51c;'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]

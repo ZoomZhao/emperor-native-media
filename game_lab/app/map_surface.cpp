@@ -101,9 +101,12 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     const auto passability=originalFigurePheasantPassability(save.terrain,save.layers.mapperStone,save.buildings,*spawn);
     std::map<uint32_t,SG3Archive> owned;std::map<uint32_t,const SG3Archive*> refs;
     for(unsigned slot:{14u,38u,39u,40u}){owned.emplace(slot,loadSG3(root_.resolve(std::string("DATA/")+originalFigureArchiveName(slot))));refs[slot]=&owned.at(slot);}
-    const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,
-        &*hunters,&*buildings,*models,spawn->cropBase,masks?*masks:std::vector<uint16_t>{},&context);
-    if(!initial.context||!selectSavedBuildings(save.terrain,save.buildings,&ground,0,&figures))return false;
+    if(!selectSavedBuildings(save.terrain,save.buildings,&ground,0,&figures))return false;
+    const auto fullPassability=originalSceneMovementPassability(*savedBuildings_,save.buildings,ground,*spawn);
+    const auto* timelinePassability=fullPassability?&*fullPassability:passability?&*passability:nullptr;
+    const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,timelinePassability,
+        &*hunters,&*buildings,*models,spawn->cropBase,fullPassability?fullPassability->cells:masks?*masks:std::vector<uint16_t>{},&context);
+    if(!initial.context)return false;
     const auto employment=parseOriginalBuildingEmployment(std::string(bytes.begin(),bytes.end()));
     if(!employment){clear();return false;}
     const auto timeline=originalSceneTimeline(*initial.context,refs,*savedBuildings_,archives_.at(2).index,&*employment,previousAdmission,clocks,suppliedFrames);

@@ -398,7 +398,7 @@ void authored(){
         OriginalFigureUpdateContext context;context.terrain.assign(51984,0xc0);context.cellHeads.assign(51984,0);context.cropBase=8627;
         auto walker=one;walker.type=11;walker.slot=2;walker.x=5;walker.y=6;walker.cell=10000;walker.progress=9;walker.direction=2;
         walker.route=3;walker.routeLength=2;walker.routeCursor=0;walker.subX=90;walker.subY=120;walker.height=19;walker.state85=100;walker.drawClass=1;
-        auto old=walker;old.slot=1;old.next=2;auto other=walker;other.slot=3;other.cell=10001;other.x=6;other.next=0;
+        auto old=walker;old.slot=1;old.next=2;auto other=walker;other.slot=3;other.type=13;other.cell=10001;other.x=6;other.next=0;
         walker.next=0;context.figures={{1,old},{2,walker},{3,other}};context.cellHeads[10000]=1;context.cellHeads[10001]=3;
         context.models[11]={};context.models[11][0]=1;
         const auto blocked=originalFigureFollowRoute(walker,6,0xc0,&context);
@@ -604,6 +604,53 @@ void authored(){
         const auto seen=originalFigureReachableCells(map,0,0);
         need(seen&&(*seen)[base]&&(*seen)[base+1]&&(*seen)[base+229]&&!(*seen)[base+230],"cardinal flood seeds blocked start, reaches via east then south, rejects mask1");
         map.cells[base+1]=0;need(!originalFigureReachableCells(map,0,0)->at(base+229),"cardinal flood cannot cross a diagonal-only connection");
+        OriginalTerrainState rebuilt;rebuilt.terrain=terrain.flags;rebuilt.image.resize(51984);rebuilt.draw.resize(51984);rebuilt.subTile.resize(51984);
+        rebuilt.randomByte.resize(51984);rebuilt.feature.resize(51984);rebuilt.fertility.resize(51984);rebuilt.roadDistance=roads;
+        rebuilt.gF05160.resize(51984);rebuilt.gEAC3F0.resize(51984);rebuilt.gBEBF3A.resize(51984);rebuilt.gBF8A4A.resize(51984);
+        std::vector<uint16_t> owners(51984);buildings.slotTypes[1]=0xc1;owners[base+6]=1;rebuilt.terrain[base+6]=8;
+        const auto full=originalFigureMovementPassability(rebuilt,buildings,owners,*spawn);
+        need(full&&full->fullMovementMasks&&full->cells[base]==0x10&&full->cells[base+1]==2&&full->cells[base+2]==0x400&&
+            full->cells[base+3]==2&&full->cells[base+4]==0x100&&full->cells[base+5]==0x80&&full->cells[base+6]==2,
+            "full movement words preserve blocked, elevation, transport and forest bits from rebuilt public layers");
+        rebuilt.terrain[base]=0x10000;need(!originalFigureMovementPassability(rebuilt,buildings,owners,*spawn),
+            "full masks refuse missing river object state instead of using saved image words");rebuilt.terrain[base]=0;
+        buildings.slotTypes[1]=0x3b;need(!originalFigureMovementPassability(rebuilt,buildings,owners,*spawn),
+            "uncited market pass-through virtual cannot become generic building passability");
+        map.fullMovementMasks=true;map.cells.assign(51984,0);for(unsigned y=0;y<5;++y)for(unsigned x=0;x<5;++x)map.cells[base+y*228+x]=0x10;
+        const auto route=originalFigureEngineRoute(map,0,0,2,2);
+        need(route&&*route==std::vector<uint8_t>({3,3}),"engine backtrack compresses cardinal distances to original eight-direction route");
+        map.cells[base+229]=0;const auto detour=originalFigureEngineRoute(map,0,0,2,2);
+        need(detour&&*detour==std::vector<uint8_t>({2,3,4}),"engine route follows distance tie ordering around blocked diagonal");
+        auto tied=map;tied.cells.assign(51984,0);
+        const char* openRows[]={"11101111","11111011","00001111","01111111","11110101","01111010","11111111","11101111"};
+        for(unsigned y=0;y<8;++y)for(unsigned x=0;x<8;++x)if(openRows[y][x]=='1')tied.cells[base+y*228+x]=0x10;
+        const auto tiedRoute=originalFigureEngineRoute(tied,0,0,7,7);
+        need(tiedRoute&&*tiedRoute==std::vector<uint8_t>({2,2,3,3,4,5,3,3,2,3}),
+            "engine equal-distance backtrack prefers direction toward source before reversing route bytes");
+        map.fullMovementMasks=false;need(!originalFigureEngineRoute(map,0,0,2,2),"reduced51C projection cannot authorize route generation");
+        OriginalFigureUpdateContext routeContext;routeContext.passability=map;routeContext.passability->fullMovementMasks=true;
+        routeContext.services.emplace();routeContext.services->directions.assign(500000,255);routeContext.terrain.assign(51984,0);
+        routeContext.movementMasks=routeContext.passability->cells;
+        auto routed=one;routed.type=76;routed.owner=0;routed.movementMode=5;routed.effectDraw=0;routed.x=routed.y=0;
+        routed.destinationX=routed.destinationY=2;routed.cell=base;routed.route=0;routeContext.figures.emplace(routed.slot,routed);
+        need(originalFigureGenerateRoute(routed,routeContext)&&routed.route==1&&routed.routeLength==3&&routed.routeCursor==0&&routed.progress==20&&
+            routed.direction==2&&routeContext.services->routeOwners[1]==int(routed.slot)&&routeContext.services->directions[500]==2,
+            "route allocation owns first free buffer and writes exact path without saved route fitting");
+        need(originalFigureValidateNextDirection(routed,routeContext)&&routed.direction==2,"mode5 accepts flat land through full movement validation");
+        routeContext.movementMasks[base+1]=0x800;need(originalFigureValidateNextDirection(routed,routeContext)&&routed.direction==2,
+            "transport mask800 reaches original final terrain100 gate without changing direction");
+        routeContext.terrain[base+1]=0x100;need(originalFigureValidateNextDirection(routed,routeContext)&&routed.direction==9,
+            "final terrain100 rejection survives the transport800 early branch");
+        routeContext.terrain[base+1]=8;routeContext.movementMasks[base+1]=0x10;routeContext.buildingOwners=owners;
+        routeContext.buildingOwners[base+1]=7;routeContext.buildings.emplace();routeContext.buildings->emplace(7,OriginalFigureBuildingLink{});
+        routeContext.buildings->at(7).type=0xc4;routed.direction=2;
+        need(originalFigureValidateNextDirection(routed,routeContext)&&routed.direction==2,
+            "mode3 hunter can follow engine route into a crop field through4C11B0");
+        routeContext.buildings->at(7).type=0x3b;
+        need(!originalFigureValidateNextDirection(routed,routeContext),"market virtual pass-through needs its cited specialized predicate");
+        routeContext.buildings->at(7).type=0xc1;
+        need(originalFigureValidateNextDirection(routed,routeContext)&&routed.direction==9,
+            "ordinary building with false pass-through rejects movement after its owner lookup");
         auto group=archive;group.numImages=256;group.sprites.resize(256);group.imageIndex.fill(1);
         group.sprites[0].animationSpriteCount=12;group.sprites[0].animationDirections=8;
         const std::map<uint32_t,const SG3Archive*> refs{{38,&group}};
@@ -618,6 +665,24 @@ void authored(){
             destination.state->destinationCell==base+11*229&&destination.state->route==0&&destination.state->progress==bird.progress&&
             destination.state->frame==1&&destination.services->randomFirst==0x800001&&destination.services->routeOwners[3]==0&&context.services->randomFirst==1,
             "Pheasant destination uses first equidistant spawn, two RNG draws, releases route then advances frame without movement");
+        auto choosing=bird;choosing.action=30;
+        const auto repeatedDestination=originalFigureFirstUpdate(choosing,refs,&context);
+        need(repeatedDestination.state&&repeatedDestination.state->action==32&&repeatedDestination.state->destinationX==11&&
+            repeatedDestination.services->randomFirst==0x800001,"action30 runs the same ordered destination predicate as initial19");
+        auto distant=bird;distant.slot=9;distant.action=30;distant.x=distant.y=0;distant.herdTarget=0;
+        auto remote=distant;remote.slot=10;remote.x=20;remote.route=0;
+        auto herdContext=context;herdContext.cropBase=base;herdContext.figures={{1,OriginalFigure{}},{9,distant},{10,remote}};
+        herdContext.passability->spawn.spawns.fill({19,19});herdContext.services->routeOwners[3]=9;
+        const auto herdDestination=originalFigureFirstUpdate(distant,refs,&herdContext);
+        need(herdDestination.state&&herdDestination.state->herdTarget==1&&herdDestination.state->herdDistance==0&&
+            herdDestination.state->destinationX==10&&herdDestination.state->destinationY==10&&herdDestination.state->action==32&&
+            herdDestination.services->randomFirst==0x800001&&herdDestination.services->routeOwners[3]==0,
+            "extended herd search rereads ordinal1 yet retains minus1 destination origin and consumes exactly two persisted random draws");
+        choosing.action=32;choosing.routeCursor=choosing.routeLength=1;choosing.progress=19;choosing.route=3;
+        auto arrivalContext=context;arrivalContext.services->directions.assign(500000,0);arrivalContext.modelSpeeds[76]=11;
+        const auto arrival=originalFigureFirstUpdate(choosing,refs,&arrivalContext);
+        need(arrival.state&&arrival.state->action==31&&arrival.state->idleCounter==0&&arrival.state->direction==8&&arrival.state->route==0,
+            "Pheasant route exhaustion runs59F1C0, clears idle counter and selects action31 frame");
         context.passability->cells[base+11*229]=0;
         const auto retry=originalFigureFirstUpdate(bird,refs,&context);
         need(retry.state&&retry.services->randomFirst==0x44000001&&retry.state->destinationX==5&&retry.state->destinationY==11,
@@ -1066,11 +1131,15 @@ void corpus(){
         const auto general=loadSG3(root.resolve("DATA/China_General.sg3"));
         const auto employment=parseOriginalBuildingEmployment(std::string(buildingModel.begin(),buildingModel.end()));
         need(bool(employment),"complete employment model supplies timeline building gates");
-        auto timelineScene=composeOriginalBuildingScene(save.terrain,save.buildings,general,0,&*employment);
-        const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,
-            &*hunterLinks,&*buildingLinks,*models,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{},&*updateContext);
+        const auto groundArchive=loadSG3(root.resolve("DATA/China_Terrain.sg3")),elevationArchive=loadSG3(root.resolve("DATA/China_Elevation.sg3"));
+        auto timelineScene=composeOriginalSavedGroundScene(save.terrain,save.buildings,*save.layers.ground,general,groundArchive,elevationArchive,0,&*employment);
+        const auto fullPassability=originalSceneMovementPassability(timelineScene,save.buildings,*save.layers.ground,*spawn);
+        const auto* timelinePassability=fullPassability?&*fullPassability:passability?&*passability:nullptr;
+        const auto timelineMasks=fullPassability?fullPassability->cells:roadMasks?*roadMasks:std::vector<uint16_t>{};
+        const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,timelinePassability,
+            &*hunterLinks,&*buildingLinks,*models,spawn->cropBase,timelineMasks,&*updateContext);
         need(initial.complete&&initial.context.has_value(),"timeline initializes callbacks/population exactly once");
-        for(unsigned n:{1u,2u,5u,10u,50u}){
+        for(unsigned n:{1u,2u,3u,5u,10u,20u,50u}){
             std::vector<OriginalSceneTimelineFrame> frames;
             for(unsigned k=1;k<=n;++k){OriginalSceneTimelineFrame frame;frame.animationClock=37*k;
                 frame.admission.now=37*k;frame.admission.speed=80;frame.continueAfterPass={false};
@@ -1084,7 +1153,7 @@ void corpus(){
                 for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
                     frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
             const auto timeline=originalSceneTimeline(*initial.context,refs,timelineScene,general,&*employment,0,{},frames);
-            constexpr unsigned firstFailure[]={2,2,2,4,0,6};constexpr size_t firstSlot[]={1,1686,286,19,0,18};
+            constexpr unsigned firstFailure[]={0,3,3,8,0,40};constexpr size_t firstSlot[]={0,1686,271,1982,0,14};
             const unsigned expected=firstFailure[sources-1];
             need(timeline.complete==(!expected||n<expected)&&timeline.updates==(expected&&n>=expected?expected-1:n)&&
                 timeline.refusedUpdate==(expected&&n>=expected?expected:0)&&timeline.lastPass.firstBlockedSlot==(expected&&n>=expected?firstSlot[sources-1]:0),
@@ -1313,11 +1382,17 @@ void corpus(){
     need(k1Placed==185&&k1Decoded==201&&k1Hidden==6&&k1Removed==1&&k1Unsupported==0&&k1Overlays==274&&k1Animation==53&&k1Objects==20&&
         k1Placed+k1Hidden+k1Removed+k1Unsupported==192,"k1 scene partitions192 originals:185 placed,6 hidden,1 removed,0 special-placement refusals;274 overlays");
     for(const auto& row:timelineScores){const auto& t=row.second;size_t refused=0;for(const auto& r:t.refusals)refused+=r.second;
-        const unsigned n=row.first;const size_t expectedPools=n==1?6:n==2?3:n==5?2:1,expectedComputed=n==1?192:n==2?60:n==5?28:7;
-        need(t.pools==expectedPools&&t.computed==expectedComputed&&t.placed==(n==1?185:expectedComputed)&&
-            t.decoded==(n==1?201:expectedComputed)&&t.animation==(n==1?53:n==2?6:n==5?3:0),
+        const unsigned n=row.first;const size_t expectedPools=n<=2?6:n<=5?4:n<=20?3:2,expectedComputed=n<=2?192:n<=5?81:n<=20?49:28;
+        need(t.pools==expectedPools&&t.computed==expectedComputed&&t.placed==(n<=2?185:expectedComputed)&&
+            t.decoded==(n<=2?201:expectedComputed)&&t.animation==(n<=2?53:n<=5?6:n<=20?3:0),
             "perN timeline coverage locks complete-pool placements, decoded components and building frames");
         need(t.computed+refused==192&&t.consistent==t.primary,"perN computed/refused outcomes partition192 and all surviving primaries are consistent");
+        std::map<std::string,size_t> expectedRefusals;
+        if(n>=3){expectedRefusals={{"earlier_ordered_slot_uncomputed",n<=5?69u:n<=20?78u:85u},
+            {"later_ordered_slot_may_write_earlier_figure",n<=5?39u:n<=20?61u:74u},
+            {"prior_removed_outcome_withheld",1},{"segment_owner_service_4eacd0",1},{"supplier_arrival_owner_delay_4cc8aa_4c2dc0",1}};
+            if(n>=10)expectedRefusals.emplace("movement_bridge_height_4e92c0",n<=20?1:2);}
+        need(t.refusals==expectedRefusals,"perN refusal classes and multiplicities match exact disjoint original-outcome partition");
         std::cout<<"{\"timeline_N\":"<<row.first<<",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"computed\":"<<t.computed
             <<",\"live_total\":192,\"placed\":"<<t.placed<<",\"decoded_components\":"<<t.decoded<<",\"primary_consistent\":"<<t.consistent
             <<",\"primary_total\":"<<t.primary<<",\"building_frames_decoded\":"<<t.animation<<",\"building_candidates\":"<<t.animationCandidates

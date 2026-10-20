@@ -2,6 +2,13 @@
 #include "original_building_scene.hpp"
 
 namespace game_lab {
+inline std::optional<OriginalFigurePassability> originalSceneMovementPassability(const OriginalBuildingScene& scene,
+    const OriginalBuildingProfile& buildings,const OriginalSavedGround& saved,const OriginalFigureSpawnServices& spawn){
+    if(!scene.accepted||!scene.groundRebuilt||scene.rebuiltMovementTerrain.size()!=51984||!saved.valid()||
+        std::any_of(saved.state.terrain.begin(),saved.state.terrain.end(),[](uint32_t t){return (t&0x10000)!=0;}))return std::nullopt;
+    auto surface=scene.surface;surface.terrain=scene.rebuiltMovementTerrain;
+    return originalFigureMovementPassability(surface,buildings,saved.owner,spawn);
+}
 // One frame-loop iteration: 536B4D captures animation time,418AA0 computes
 // flags,53A130 separately samples admission,then0..10000 ordered updates,
 // then the caller's explicitly observed building draws. No catch-up premise.
