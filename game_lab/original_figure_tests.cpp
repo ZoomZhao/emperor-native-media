@@ -39,6 +39,8 @@ void authored(){
     raw[8]=0x34;raw[9]=0x12;raw[28]=5;raw[30]=6;raw[114]=9;raw[144]=12;raw[122]=3;
     raw[380]=13;raw[381]=2;raw[382]=36;raw[316]=9;
     raw[383]=0xf9;raw[384]=19;raw[386]=0xf8;raw[387]=0xff;raw[388]=3;raw[389]=0xfe;raw[390]=9;raw[132]=6;
+    raw[172]=11;raw[176]=12;raw[188]=13;raw[192]=14;raw[204]=199;
+    raw[208]=2;raw[212]=1;raw[216]=0xff;raw[217]=raw[218]=raw[219]=0xff;raw[328]=17;raw[128]=5;raw[153]=1;
     for(const auto& field:emperor::file_io::research::figure7_fields)
         for(size_t k=0;k<field.bytes;++k)bytes.push_back(std::string(field.helper)=="0x503db0"&&k==1?0xee:raw[field.receiver_offset+k]);
     bytes.push_back(0);
@@ -49,6 +51,9 @@ void authored(){
     need(p.effectKind==13&&p.effectVariant==2&&p.effectFlags==36&&p.updateOwner==9,"inline effect state and updater gate are retained separately from absent FSA extension");
     need(p.effectX==-7&&p.effectY==19&&p.effectHeight==-8&&p.effectVelocityX==3&&p.effectVelocityY==-2&&
         p.effectVelocityZ==9&&p.effectDraw==6,"inline effect signed fields retain exact Figure7 twenty-byte request offsets");
+    need(p.threat==11&&p.threatDistance==12&&p.herdTarget==13&&p.herdDistance==14&&p.idleCounter==199&&
+        p.cooldowns==std::array<int32_t,3>{2,1,-1}&&p.linkedBuilding==17&&p.movementMode==5&&p.attackerCount==1,
+        "Pheasant dword links, signed cooldowns and idle counter retain separate Figure7 requests");
     auto bad=bytes;bad.back()=1;need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Unsupported,"FSA does not guess a variable extension length");
     bad=bytes;bad.pop_back();need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Malformed,"last byte truncation publishes no figures");
     bad=bytes;bad[18]=6;need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Unsupported,"unknown Figure version fails closed");
@@ -250,13 +255,80 @@ void authored(){
         need(!originalFigureAdvanceFrame(3,12,255,1,flags)&&!originalFigureAdvanceFrame(3,0,4,0,flags),
             "unsafe speed index or empty SG group refuses frame advance");
         auto refused=one;refused.runtimeClass=OriginalFigureClass::Pheasant;refused.type=76;refused.action=31;
-        need(originalFigureFirstUpdate(refused,{}).status==OriginalFigureUpdateStatus::PheasantPredicates&&
+        need(originalFigureFirstUpdate(refused,{}).status==OriginalFigureUpdateStatus::PheasantContext&&
             !originalFigureFirstUpdate(refused,{}).state,"saved Pheasant walk frame does not bypass earlier target predicates");
         refused.runtimeClass=OriginalFigureClass::Figure;refused.type=20;
         need(originalFigureFirstUpdate(refused,{}).status==OriginalFigureUpdateStatus::CartLeaderMovement,
             "cart refuses first update until leader order and movement are computed");
         refused.type=11;need(originalFigureFirstUpdate(refused,{}).status==OriginalFigureUpdateStatus::WorkerOwnerMovement,
             "known type11 load image does not imply a complete owner-dependent first update");
+    }
+    {
+        auto group=archive;group.numImages=256;group.sprites.resize(256);group.imageIndex.fill(1);
+        group.sprites[0].animationSpriteCount=20;group.sprites[0].animationDirections=8;
+        const std::map<uint32_t,const SG3Archive*> supplied{{38,&group}};
+        auto bird=one;bird.type=76;bird.runtimeClass=OriginalFigureClass::Pheasant;bird.action=31;
+        bird.frame=19;bird.direction=6;bird.idleCounter=198;bird.hidden=1;bird.freeMovement=1;
+        bird.herdTarget=4;bird.herdDistance=99;bird.cooldowns={2,1,-1};bird.threat=80;bird.threatDistance=2;
+        auto profile=figures;profile.declared=profile.parsed=2000;profile.live={bird};
+        profile.slots.resize(2000);for(size_t n=0;n<2000;++n)profile.slots[n].slot=n;profile.slots[bird.slot]=bird;
+        auto context=originalFigureUpdateContext(profile);need(bool(context),"complete saved pool supplies explicit Pheasant context");
+        const auto result=originalFigureFirstUpdate(bird,supplied,&*context);
+        need(result.state&&result.state->action==31&&result.state->frame==0&&result.state->idleCounter==199&&
+            result.state->cooldowns==std::array<int32_t,3>{1,0,-1}&&result.state->hidden==0&&result.state->freeMovement==0&&
+            result.state->movementMode==5&&result.state->herdTarget==4&&result.state->herdDistance==99&&
+            result.state->threat==0&&result.state->threatDistance==100&&result.state->image==((38u<<14)+6),
+            "Pheasant action31 preserves valid self target, decrements positive cooldowns and advances after idle increment");
+        bird.cooldowns={0,INT32_MIN,INT32_MAX};
+        need(originalFigureFirstUpdate(bird,supplied,&*context).state->cooldowns==std::array<int32_t,3>{0,INT32_MIN,INT32_MAX-1},
+            "Pheasant cooldown zero and negative values are retained while positive signed maximum decrements");
+        need(originalFigureStateAfterUpdates(bird,supplied,0,&*context).state->image==0&&
+            originalFigureStateAfterUpdates(bird,supplied,1,&*context).state->idleCounter==199&&
+            originalFigureStateAfterUpdates(bird,supplied,2,&*context).status==OriginalFigureUpdateStatus::OrderedPoolPass,
+            "explicit k0 applies clearing callback; k1 advances state; later Pheasant pool passes refuse");
+        group.imageIndex[42]=2;group.sprites[1].animationSpriteCount=12;group.sprites[1].animationDirections=8;
+        const auto terrain=originalFigureFirstUpdate(bird,supplied,&*context,0x100);
+        need(terrain.state&&terrain.state->frame==1&&terrain.state->image==((38u<<14)+15),
+            "Pheasant terrain replacement group is resolved before out-of-range frame reset then increment");
+        bird.idleCounter=199;const auto transitioned=originalFigureFirstUpdate(bird,supplied,&*context);
+        need(transitioned.state&&transitioned.state->action==30&&transitioned.state->idleCounter==200&&transitioned.state->frame==1&&
+            transitioned.state->image==((38u<<14)+15),
+            "Pheasant signed idle threshold200 changes action before selecting entry9");
+        bird.idleCounter=INT32_MAX;need(originalFigureFirstUpdate(bird,supplied,&*context).state->action==31,
+            "Pheasant idle counter wraps as32 bits before signed comparison");
+        bird.idleCounter=0;bird.herdTarget=0;auto other=bird;other.slot=2;other.x=12;other.y=0;other.action=32;
+        auto later=other;later.slot=6;later.x=1;auto inactive=OriginalFigure{};inactive.x=25;
+        context->figures={{0,inactive},{2,other},{4,bird},{6,later}};
+        const auto search=originalFigureFirstUpdate(bird,supplied,&*context);
+        need(search.state&&search.state->herdTarget==0&&search.state->herdDistance==25,
+            "Pheasant herd search returns vector ordinal0 then rereads inactive pool0; radius12 admits first candidate");
+        context->figures.at(2).x=13;
+        need(originalFigureFirstUpdate(bird,supplied,&*context).state->herdTarget==2&&
+            originalFigureFirstUpdate(bird,supplied,&*context).state->herdDistance==13,
+            "Pheasant herd range13 fails and next vector ordinal2 rereads pool2 rather than candidate slot6");
+        context->figures.at(6).action=4;
+        need(originalFigureFirstUpdate(bird,supplied,&*context).state->herdTarget==0&&
+            originalFigureFirstUpdate(bird,supplied,&*context).state->herdDistance==100,"dead-action herd member and self cannot satisfy new-target search");
+        auto threat=other;threat.type=11;threat.x=3;context->figures[2]=threat;
+        need(originalFigureFirstUpdate(bird,supplied,&*context).status==OriginalFigureUpdateStatus::PheasantThreat&&
+            !originalFigureFirstUpdate(bird,supplied,&*context).state,"nearby non-animal refuses unresolved combat qualification");
+        context->figures.at(2).x=4;
+        need(originalFigureFirstUpdate(bird,supplied,&*context).state.has_value(),"outside conservative threat radius does not require combat predicate");
+        bird.linkedBuilding=1;need(originalFigureFirstUpdate(bird,supplied,&*context).status==OriginalFigureUpdateStatus::PheasantBuilding,
+            "linked building validity is refused before publishing a Pheasant state");
+        bird.linkedBuilding=0;bird.action=32;
+        need(originalFigureFirstUpdate(bird,supplied,&*context).status==OriginalFigureUpdateStatus::PheasantRoute,"action32 refuses route and arrival mutation");
+        bird.action=19;need(originalFigureFirstUpdate(bird,supplied,&*context).status==OriginalFigureUpdateStatus::PheasantDestination,
+            "action19 refuses destination RNG and map selection after its known action30 assignment");
+        profile.slots[1]=profile.slots[0];need(!originalFigureUpdateContext(profile),"duplicate saved slots cannot supply complete updater context");
+    }
+    {
+        OriginalFigureSchedulerGlobals live;live.previousClock=1234;live.speed=70;live.fastForward=true;live.paused=true;
+        const auto single=originalFigureSchedulerAfterLoad(live,80,false),network=originalFigureSchedulerAfterLoad(live,80,true);
+        need(single.previousClock==1234&&single.speed==80&&single.fastForward&&!single.paused,
+            "SAV load keeps clock and fast-forward, restores personal speed and clears pause");
+        need(network.speed==70&&network.previousClock==1234&&network.fastForward&&!network.paused,
+            "network-active load preserves effective speed rather than applying personal preference");
     }
     {
         // Exercise missing dependencies and amount thresholds without an oracle.
@@ -363,14 +435,17 @@ void corpus(){
     size_t postLoadComputed=0,postLoadBlocked=0,postLoadChanged=0,postLoadOracleMatched=0;
     size_t postLoadPrimaryChanged=0,postLoadSecondaryChanged=0;std::map<unsigned,size_t> postLoadBlockedTypes;
     size_t postLoadSelected=0,postLoadDecoded=0,updateComputed=0,updateDecoded=0,updateConsistent=0;
-    std::map<unsigned,size_t> updateBlockedTypes;std::map<std::string,size_t> updateBlockers;
+    std::map<unsigned,size_t> updateBlockedTypes,updateComputedTypes;std::map<std::string,size_t> updateBlockers;
     std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));need(save.readStable&&save.layers.figures.has_value(),"same-source stable figure profile");
         const auto& figures=*save.layers.figures;
         const auto imageState=originalFigureImageState(figures);
         auto decoys=figures;for(auto& f:decoys.live){f.image=UINT32_MAX;f.secondaryImage=UINT32_MAX;}
+        for(auto& f:decoys.slots){f.image=UINT32_MAX;f.secondaryImage=UINT32_MAX;}
         const auto decoyState=originalFigureImageState(decoys);
+        const auto updateContext=originalFigureUpdateContext(figures),decoyUpdateContext=originalFigureUpdateContext(decoys);
+        need(updateContext&&decoyUpdateContext,"complete same-source saved context available for per-type virtual updates");
         need(figures.factionModels.has_value(),"complete following Goods1/Empire3/Grid15/child5 publishes faction models");
         std::vector<uint8_t> savedBytes;need(detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,savedBytes),"read original container for following-layout refusal checks");
         const auto payload=decodeOriginalMapContainer(savedBytes).payload;
@@ -405,15 +480,22 @@ void corpus(){
             if(after.images->first!=f.image)++postLoadPrimaryChanged;
             if(after.images->second!=f.secondaryImage)++postLoadSecondaryChanged;
             if(after.images->first){++postLoadSelected;need(decodeWord(after.images->first),"type11 post-load selected image decodes");++postLoadDecoded;}
-            const auto update=originalFigureFirstUpdate(f,refs),decoyUpdate=originalFigureFirstUpdate(decoys.live.at(&f-figures.live.data()),refs);
+            const auto update=originalFigureFirstUpdate(f,refs,&*updateContext,save.terrain.flags.at(f.cell)),
+                decoyUpdate=originalFigureFirstUpdate(decoys.live.at(&f-figures.live.data()),refs,&*decoyUpdateContext,save.terrain.flags.at(f.cell));
             need(update.status==decoyUpdate.status&&bool(update.state)==bool(decoyUpdate.state),
                 "first-update computation status ignores saved primary and secondary words");
             if(!update.state){++updateBlockedTypes[f.type];++updateBlockers[originalFigureUpdateStatusName(update.status)];continue;}
-            ++updateComputed;const auto& u=*update.state;
+            ++updateComputed;++updateComputedTypes[f.type];const auto& u=*update.state;
             need(u.image==decoyUpdate.state->image&&u.secondaryImage==decoyUpdate.state->secondaryImage&&
-                u.action==f.action&&u.direction==f.direction&&u.x==f.x&&u.y==f.y&&u.counter==f.counter,
-                "bounded kind13 original update computes state from serialized non-image inputs");
-            const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView);
+                u.action==f.action&&u.x==f.x&&u.y==f.y&&u.counter==f.counter&&
+                u.herdTarget==decoyUpdate.state->herdTarget&&u.herdDistance==decoyUpdate.state->herdDistance&&
+                u.threat==decoyUpdate.state->threat&&u.threatDistance==decoyUpdate.state->threatDistance&&
+                u.idleCounter==decoyUpdate.state->idleCounter&&u.cooldowns==decoyUpdate.state->cooldowns,
+                "bounded original virtual update computes state from serialized non-image inputs");
+            if(f.type==76)need(u.idleCounter==f.idleCounter+1&&u.threat==0&&u.threatDistance==100&&u.movementMode==5&&
+                u.hidden==0&&u.freeMovement==0&&u.linkedBuilding==0&&u.progress==f.progress&&u.cell==f.cell,
+                "original Pheasant action31 computes target/cooldown/idle prelude without movement");
+            const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,{},&imageState);
             need(selected.status==OriginalFigureImageStatus::Selected&&selected.image==u.image,
                 "consistency only: figureImage of updated state equals updater image write; no saved post-update oracle");
             ++updateConsistent;need(decodeWord(u.image),"computed first-update image decodes");++updateDecoded;
@@ -511,10 +593,10 @@ void corpus(){
         <<",\"blocked\":"<<postLoadBlocked<<",\"blocked_types\":{},\"saved_word_comparison\":{\"equal_pairs\":"<<postLoadOracleMatched
         <<",\"changed_pairs\":"<<postLoadChanged<<",\"primary_changed\":"<<postLoadPrimaryChanged<<",\"secondary_clears\":"<<postLoadSecondaryChanged
         <<"},\"selected_nonzero\":"<<postLoadSelected<<",\"decoded\":"<<postLoadDecoded<<",\"decode_failures\":0,\"post_update_oracle\":\"unmeasured\"}\n";
-    need(updateComputed==7&&updateDecoded==7&&updateConsistent==7&&updateBlockedTypes[76]==69,
-        "first-update state computes7/192, decodes7/7, selector consistency7/7; Pheasant69 refused");
+    need(updateComputed==29&&updateDecoded==29&&updateConsistent==29&&updateBlockedTypes[76]==47&&updateComputedTypes[76]==22,
+        "first-update state computes29/192, decodes29/29, selector consistency29/29; Pheasant22/69 computed");
     std::cout<<"{\"first_update_state\":true,\"k\":1,\"computed\":"<<updateComputed<<",\"live_total\":"<<live
-        <<",\"decoded\":"<<updateDecoded<<",\"image_consistency\":"<<updateConsistent<<",\"decode_failures\":0,\"blocked_types\":{";
+        <<",\"decoded\":"<<updateDecoded<<",\"image_consistency\":"<<updateConsistent<<",\"decode_failures\":0,\"computed_types\":{\"1\":"<<updateComputedTypes[1]<<",\"76\":"<<updateComputedTypes[76]<<"},\"blocked_types\":{";
     bool updateComma=false;for(const auto& entry:updateBlockedTypes){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
     std::cout<<"},\"blockers\":{";updateComma=false;for(const auto& entry:updateBlockers){if(updateComma)std::cout<<',';updateComma=true;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}
     std::cout<<"},\"first_draw\":\"after_explicit_k_admitted_updates\",\"ordinary_k\":[0,1],\"fast_forward_max_k\":10000,\"post_update_oracle\":\"unmeasured\"}\n";

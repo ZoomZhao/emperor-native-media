@@ -26,6 +26,11 @@ struct OriginalFigure {
     int16_t effectHeight=0,effectVelocityZ=0;
     uint8_t effectDraw=0; //+84, Figure7 request0x4C877F.
     uint32_t updateOwner=0; //+13C read0x4C8995;nonzero skips virtual+28 at0x4E2899.
+    // Pheasant virtual predicates/cooldowns, Figure7's cited dword requests.
+    uint32_t threat=0,threatDistance=0,herdTarget=0,herdDistance=0,idleCounter=0;
+    std::array<int32_t,3> cooldowns{}; //+D0/+D4/+D8; positive values decrement.
+    uint32_t linkedBuilding=0;
+    uint8_t movementMode=0,attackerCount=0;
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
 enum class OriginalFigureStatus {Complete,Unsupported,Malformed,BudgetExceeded};
@@ -34,6 +39,7 @@ struct OriginalFigureProfile {
     size_t start=0,end=0,declared=0,parsed=0;
     uint32_t savedView=0;
     std::vector<OriginalFigure> live;
+    std::vector<OriginalFigure> slots; // Includes inactive slots read by the animal-vector ordinal path.
     std::map<uint8_t,size_t> liveTypes;
     std::vector<uint16_t> cellHeads; //0xFAA130, SAV19 T+207936, read0x531338.
     std::optional<std::array<int16_t,22>> factionModels;
@@ -106,7 +112,7 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         }else{
             const auto found=objects.find(tag);if(found==objects.end())return fail(OriginalFigureStatus::Malformed);
             auto f=found->second;f.slot=slot;f.recordOffset=begin;
-            if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;continue;
+            out.slots.push_back(f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;continue;
         }
         if(nextPID>=32768)return fail(OriginalFigureStatus::BudgetExceeded);
         const size_t objectPID=nextPID++;
@@ -144,7 +150,12 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.effectHeight=detail::i16(r+386);f.effectVelocityX=int8_t(r[388]);f.effectVelocityY=int8_t(r[389]);
         f.effectVelocityZ=detail::i16(r+390);f.effectDraw=r[132];
         f.updateOwner=detail::u32(r+316);
-        objects.emplace(objectPID,f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
+        f.threat=detail::u32(r+172);f.threatDistance=detail::u32(r+176);
+        f.herdTarget=detail::u32(r+188);f.herdDistance=detail::u32(r+192);f.idleCounter=detail::u32(r+204);
+        for(size_t k=0;k<3;++k){const auto bits=detail::u32(r+208+4*k);
+            f.cooldowns[k]=bits>INT32_MAX?int32_t(int64_t(bits)-4294967296LL):int32_t(bits);}
+        f.linkedBuilding=detail::u32(r+328);f.movementMode=r[128];f.attackerCount=r[153];
+        objects.emplace(objectPID,f);out.slots.push_back(f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }
     out.end=at;out.status=OriginalFigureStatus::Complete;
     out.factionModels=originalFigureFactionModels(data,at,limit);return out;

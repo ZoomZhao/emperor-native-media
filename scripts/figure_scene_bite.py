@@ -30,6 +30,9 @@ def main():
         ('frame_reset', 'original_figure_update.hpp', 'if(int(out.counter)>=frames)out.counter=0;\n    if(speedArgument)', 'if(int(out.counter)>=frames)out.counter=2;\n    if(speedArgument)'),
         ('effect_position', 'original_figure_update.hpp', 'int(f.effectX)/8+int(f.x)*15', 'int(f.effectX)/8+int(f.x)*20'),
         ('scheduler', 'original_figure_update.hpp', ']+2)return out;', ']+1)return out;'),
+        ('pheasant_idle', 'original_figure_update.hpp', 'if(idle>=200)f.action=30;', 'if(idle>200)f.action=30;'),
+        ('pheasant_cooldown', 'original_figure_update.hpp', 'if(cooldown>0)--cooldown;', 'if(cooldown>=0)--cooldown;'),
+        ('scheduler_load', 'original_figure_update.hpp', 'if(!networkActive)live.speed=personalSpeed;', 'if(networkActive)live.speed=personalSpeed;'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
     ]
     if args.only:

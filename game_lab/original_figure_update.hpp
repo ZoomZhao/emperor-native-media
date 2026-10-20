@@ -2,6 +2,14 @@
 #include "original_figure_image.hpp"
 
 namespace game_lab {
+// Load0x534C78..91 restores the personal speed unless network play is active.
+// Neither clock epoch nor fast-forward is serialized/reset by the SAV load.
+struct OriginalFigureSchedulerGlobals {uint32_t previousClock=0;int32_t speed=90;bool fastForward=false,paused=false;};
+inline OriginalFigureSchedulerGlobals originalFigureSchedulerAfterLoad(OriginalFigureSchedulerGlobals live,
+    int32_t personalSpeed,bool networkActive){
+    if(!networkActive)live.speed=personalSpeed;
+    live.paused=false;return live;
+}
 // Effective live inputs at0x53A173, after its external event prelude. Clock is
 // timeGetTime(), not a SAV tick. No clock epoch or live gate is inferred.
 struct OriginalFigureAdmissionInputs {
@@ -57,7 +65,8 @@ inline std::optional<OriginalFigureFrameAdvance> originalFigureAdvanceFrame(uint
     return out;
 }
 enum class OriginalFigureUpdateStatus {Computed,DispatchGate,UnsupportedType,EffectState,CellListMutation,MissingGroup,
-    PheasantPredicates,CartLeaderMovement,GoodsRouteAndOwner,WorkerOwnerMovement,BuildingVirtualUpdate,CombatRouteAndTarget};
+    PheasantPredicates,CartLeaderMovement,GoodsRouteAndOwner,WorkerOwnerMovement,BuildingVirtualUpdate,CombatRouteAndTarget,
+    PheasantContext,PheasantThreat,PheasantRoute,PheasantDestination,PheasantBuilding,OrderedPoolPass};
 inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus status){
     switch(status){case OriginalFigureUpdateStatus::Computed:return "computed";
     case OriginalFigureUpdateStatus::DispatchGate:return "dispatch_gate";
@@ -65,6 +74,12 @@ inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus sta
     case OriginalFigureUpdateStatus::EffectState:return "inline_effect_state";
     case OriginalFigureUpdateStatus::CellListMutation:return "effect_cell_list_mutation";
     case OriginalFigureUpdateStatus::MissingGroup:return "missing_sg_group";
+    case OriginalFigureUpdateStatus::OrderedPoolPass:return "later_ordered_pool_pass";
+    case OriginalFigureUpdateStatus::PheasantContext:return "pheasant_complete_saved_context";
+    case OriginalFigureUpdateStatus::PheasantThreat:return "pheasant_threat_qualification_4e5340";
+    case OriginalFigureUpdateStatus::PheasantRoute:return "pheasant_route_4e47a0_and_arrival";
+    case OriginalFigureUpdateStatus::PheasantDestination:return "pheasant_destination_rng_and_map_59ede0";
+    case OriginalFigureUpdateStatus::PheasantBuilding:return "pheasant_linked_building_59f399";
     case OriginalFigureUpdateStatus::PheasantPredicates:return "pheasant_virtual_predicates_59f31b_then_route";
     case OriginalFigureUpdateStatus::CartLeaderMovement:return "cart_leader_order_and_movement_4e7520";
     case OriginalFigureUpdateStatus::GoodsRouteAndOwner:return "goods_route_4e47a0_and_owner_mutations";
@@ -78,15 +93,95 @@ struct OriginalFigureFirstUpdate {
     uint32_t updaterVA=0;
     std::optional<OriginalFigure> state;
 };
+// Complete saved context, ordered by pool slot. Both image words are erased.
+// This models one virtual call against that explicit context, not the global
+// pool pass: preceding unsupported slot updates are not silently invented.
+struct OriginalFigureUpdateContext {std::map<size_t,OriginalFigure> figures;unsigned view=0;};
+inline std::optional<OriginalFigureUpdateContext> originalFigureUpdateContext(const OriginalFigureProfile& profile){
+    if(profile.status!=OriginalFigureStatus::Complete||profile.declared!=2000||profile.parsed!=2000||profile.slots.size()!=2000)return std::nullopt;
+    OriginalFigureUpdateContext out;out.view=profile.savedView;
+    for(auto f:profile.slots){
+        if(f.slot>=2000)return std::nullopt;
+        f.image=f.secondaryImage=0;
+        if(!out.figures.emplace(f.slot,f).second)return std::nullopt;
+    }
+    return out;
+}
+inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigure& saved,
+    const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
+    OriginalFigureFirstUpdate out;out.updaterVA=0x59f310;out.status=OriginalFigureUpdateStatus::PheasantPredicates;
+    if(saved.type!=76)return out;
+    if(saved.action==32){out.status=OriginalFigureUpdateStatus::PheasantRoute;return out;}
+    if(saved.action==19||saved.action==30){out.status=OriginalFigureUpdateStatus::PheasantDestination;return out;}
+    if(saved.action!=31)return out;
+    if(!context||context->view>6||(context->view&1)||!context->figures.count(saved.slot)){
+        out.status=OriginalFigureUpdateStatus::PheasantContext;return out;}
+    if(saved.linkedBuilding){out.status=OriginalFigureUpdateStatus::PheasantBuilding;return out;}
+    const auto distance=[&](const OriginalFigure& f){return std::max(std::abs(int(saved.x)-f.x),std::abs(int(saved.y)-f.y));};
+    const auto linked=[&](uint32_t slot)->const OriginalFigure*{
+        const auto found=context->figures.find(slot);return found==context->figures.end()?nullptr:&found->second;};
+    //0x59DB70 rejects types75..77 before the unresolved combat qualification.
+    //0x59DDE0 scans all live slots for radius>=10; threat search radius is3.
+    // The radius<10 branch scans rings0..2. No candidate within3 is a strict
+    // sufficient domain; a candidate is refused, never treated as harmless.
+    if(saved.target>0||saved.attackerCount){out.status=OriginalFigureUpdateStatus::PheasantThreat;return out;}
+    for(const auto& entry:context->figures){const auto& f=entry.second;
+        if(f.slot!=saved.slot&&f.alive&&f.action!=4&&!(f.type>=75&&f.type<=77)&&distance(f)<=3){
+            out.status=OriginalFigureUpdateStatus::PheasantThreat;return out;}}
+    auto f=saved;f.image=f.secondaryImage=0;
+    f.threat=0;f.threatDistance=100; //0x59EB33..4A: no qualified threat in this domain.
+    //0x59E670 preserves a valid target INCLUDING self. Search0x59DBD0 excludes
+    // self, visits the saved/load animal vector ascending, and returns the
+    // first<=12 (early threshold16). Its output is the VECTOR ORDINAL, which
+    //0x59E773 then uses as a pool slot, even0. Preserve that original quirk.
+    const auto* target=linked(f.herdTarget);
+    if(!f.herdTarget||!target||!target->alive||target->action==4||target->type!=76||distance(*target)>12){
+        f.herdTarget=0;f.herdDistance=100;
+        uint32_t ordinal=0;
+        for(const auto& entry:context->figures){const auto& candidate=entry.second;
+            if(!candidate.slot||!candidate.alive||candidate.type<69||candidate.type>77)continue;
+            if(candidate.slot!=f.slot&&candidate.type==76&&candidate.action!=4&&distance(candidate)<=12){
+                const auto* reread=linked(ordinal);
+                if(!reread){out.status=OriginalFigureUpdateStatus::PheasantContext;return out;}
+                f.herdTarget=ordinal;f.herdDistance=uint32_t(distance(*reread));break;}
+            ++ordinal;
+        }
+    }
+    //0x59E350 is side-effect-free false for this class:virtual+1AC=0x413A00.
+    //0x59EBD0's read-only spawn proximity result is unused by action31.
+    f.movementMode=5; //VA0x85CD84/file0x45CD84, type76 row+2C.
+    f.freeMovement=0;f.hidden=0;
+    for(auto& cooldown:f.cooldowns)if(cooldown>0)--cooldown;
+    f.idleCounter+=1; //0x4C9750 increments modulo32 before signed >=200.
+    const int64_t idle=f.idleCounter>INT32_MAX?int64_t(f.idleCounter)-4294967296LL:f.idleCounter;
+    if(idle>=200)f.action=30;
+    //Action31 uses entry3;the just-entered30 uses entry9. Terrain replacement
+    // applies before frame advance;both speed arguments are0.
+    const uint32_t code=(terrainFlags&0x0c000100)?0x4c2b:f.action==31?0x4c2c:0x4c2b;
+    const auto group=originalFigureImageGroup(code,archives);
+    if(!group){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+    const auto advanced=originalFigureAdvanceFrame(f.frame,group->second->animationSpriteCount,group->second->animationSpeedId,0,{});
+    if(!advanced){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+    f.frame=advanced->counter;
+    int direction=f.direction<8?f.direction:f.previousDirection;
+    direction-=int(context->view);if(direction<0)direction+=8;
+    const auto directions=group->second->animationDirections;
+    if(f.direction>127||f.previousDirection>127||direction<0||!directions||directions>8){
+        out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+    const uint64_t image=uint64_t(group->first)+f.frame*directions+std::min(unsigned(direction),unsigned(directions)-1);
+    if(image>>14!=group->first>>14||(image&0x3fff)>=archives.at(code>>9)->sprites.size()){
+        out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+    f.image=uint32_t(image);out.state=f;out.status=OriginalFigureUpdateStatus::Computed;return out;
+}
 // One per-type virtual update, after callback clearing, with an explicit k=1
 // premise. This does not claim to run the entire figure-pool/city pass. Kind13
 // with no cell crossing has no world, RNG, speed or owner dependency. Crossing
 // needs the cell-list mutations at0x4EA610/0x4EA3B0 and is explicitly refused.
 inline OriginalFigureFirstUpdate originalFigureFirstUpdate(const OriginalFigure& saved,
-    const std::map<uint32_t,const SG3Archive*>& archives){
+    const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context=nullptr,uint32_t terrainFlags=0){
     OriginalFigureFirstUpdate out;
     if(!saved.slot||saved.slot>=2000||saved.alive!=1||saved.updateOwner){out.status=OriginalFigureUpdateStatus::DispatchGate;return out;}
-    if(saved.runtimeClass==OriginalFigureClass::Pheasant){out.updaterVA=0x59f310;out.status=OriginalFigureUpdateStatus::PheasantPredicates;return out;}
+    if(saved.runtimeClass==OriginalFigureClass::Pheasant)return originalPheasantFirstUpdate(saved,archives,context,terrainFlags);
     if(saved.runtimeClass!=OriginalFigureClass::Figure)return out;
     switch(saved.type){
     case 1:break;
@@ -123,5 +218,22 @@ inline OriginalFigureFirstUpdate originalFigureFirstUpdate(const OriginalFigure&
     if(f.image>>14!=group->first>>14||(f.image&0x3fff)>=archives.at(14)->sprites.size()){
         out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     out.state=f;out.status=OriginalFigureUpdateStatus::Computed;return out;
+}
+// Opt-in post-callback state after explicit k admitted virtual updates. For
+// context-dependent figures k>1 needs intervening pool/world mutations, which
+// are refused. The independent kind13 branch can repeat until its cell gate.
+inline OriginalFigureFirstUpdate originalFigureStateAfterUpdates(const OriginalFigure& saved,
+    const std::map<uint32_t,const SG3Archive*>& archives,unsigned k,
+    const OriginalFigureUpdateContext* context=nullptr,uint32_t terrainFlags=0,unsigned view=0){
+    OriginalFigureFirstUpdate out;
+    if(k>10000){out.status=OriginalFigureUpdateStatus::OrderedPoolPass;return out;}
+    const auto callback=originalFigurePostLoadImages(saved.slot,originalFigureImageInputs(saved),archives,view);
+    if(!callback.images){out.status=OriginalFigureUpdateStatus::DispatchGate;return out;}
+    auto f=saved;f.image=callback.images->first;f.secondaryImage=callback.images->second;
+    if(!k){out.status=OriginalFigureUpdateStatus::Computed;out.state=f;return out;}
+    if(k>1&&saved.type!=1){out.status=OriginalFigureUpdateStatus::OrderedPoolPass;return out;}
+    for(unsigned step=0;step<k;++step){out=originalFigureFirstUpdate(f,archives,context,terrainFlags);
+        if(!out.state)return out;f=*out.state;}
+    return out;
 }
 } // namespace game_lab
