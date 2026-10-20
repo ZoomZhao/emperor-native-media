@@ -647,6 +647,173 @@ void authored(){
             "typeD2 final virtual270 can rewrite derived masks and withholds the projection");
     }
     {
+        OriginalFigureGoodsServices goods;goods.policies.resize(1);goods.warehouse[25]=1000;
+        OriginalFigureBuildingLink warehouse;warehouse.type=0x36;warehouse.storagePolicy=0;
+        warehouse.storage=std::vector<OriginalStorageCompartment>{{25,200,400},{25,100,400},{25,100,400},{24,70,400}};
+        const auto rest=originalFigureStorageWithdraw(warehouse,25,150,true,goods);
+        need(rest==0&&warehouse.storage->at(0).amount==200&&warehouse.storage->at(1).resource==0&&
+            warehouse.storage->at(2).amount==50&&goods.warehouse[25]==850,
+            "withdrawal consumes smallest positive first tie before larger compartments and debits warehouse accounting");
+        const auto shortfall=originalFigureStorageWithdraw(warehouse,25,400,true,goods);
+        need(shortfall==150&&warehouse.storage->at(0).resource==0&&warehouse.storage->at(2).resource==0&&
+            warehouse.storage->at(3).amount==70&&goods.warehouse[25]==600,
+            "withdrawal returns unremoved remainder and clears only exhausted matching identities");
+        warehouse.type=0x3a;warehouse.storage=std::vector<OriginalStorageCompartment>{{25,80,400}};
+        goods.policies[0].trade[25]=7;goods.trade7[25]=40;
+        need(originalFigureStorageWithdraw(warehouse,25,50,false,goods)==0&&goods.trade7[25]==UINT32_MAX-9&&
+            warehouse.storage->front().amount==30,"station mode7 accounting retains unsigned x86 subtraction");
+        goods.policies[0].trade[25]=5;goods.trade5[25]=30;
+        need(originalFigureStorageWithdraw(warehouse,25,30,false,goods)==0&&goods.trade5[25]==0&&warehouse.storage->front().resource==25,
+            "station mode5 uses its own accounting and clear false preserves identity");
+        warehouse.storage->front().capacity=800;
+        need(!originalFigureStorageWithdraw(warehouse,25,1,true,goods),"uncited storage capacity refuses before mutation");
+        OriginalFigureUpdateContext context;context.cropBase=0;context.goods=goods;context.goods->storageSearch=std::array<uint8_t,36>{};
+        context.goods->industrySearch=std::array<uint8_t,36>{};context.goods->godGate=0;context.buildings.emplace();
+        context.services.emplace();context.services->directions.assign(500000,0);
+        auto carrier=one;carrier.type=19;carrier.subtype=25;carrier.movementMode=1;carrier.routeCursor=8;carrier.routeLength=20;
+        context.figures[carrier.slot]=carrier;context.services->routeOwners[1]=99;
+        const auto missing=originalFigureGoodsSupplier(carrier,context);
+        need(missing==0&&context.goods->storageSearch->at(25)==24&&context.goods->industrySearch->at(25)==1&&
+            carrier.delivery==0&&carrier.watchCoverage==1&&carrier.routeCursor==0&&carrier.routeLength==0&&context.services->routeOwners[1]==0,
+            "empty supplier search carries cache bits and allocator stale-owner cleanup despite no destination");
+        auto absent=context;absent.goods->storageSearch.reset();
+        need(!originalFigureGoodsSupplier(carrier,absent),"unknown process cache is unavailable rather than a zeroed premise");
+        auto granary=context;OriginalFigureBuildingLink unported;unported.type=0x38;unported.alive=1;unported.roadAccess=1;unported.roadDistance=1;
+        granary.buildings->emplace(10,unported);
+        need(!originalFigureGoodsSupplier(carrier,granary),"type38 trade-storage candidate refuses before reporting a no-candidate station search");
+        OriginalFigureBuildingLink candidate;candidate.type=0x36;candidate.alive=1;candidate.roadAccess=1;candidate.roadDistance=1;
+        candidate.workers=1;candidate.storagePolicy=0;candidate.storage=std::vector<OriginalStorageCompartment>(8,{0,0,400});
+        context.buildings->emplace(8,candidate);context.buildingEmployment[0x36]=1;context.goods->policies[0].limit[25]=400;
+        auto group=archive;group.numImages=512;group.sprites.resize(512);group.imageIndex.fill(1);
+        group.sprites[0].animationSpriteCount=12;group.sprites[0].animationDirections=8;
+        const std::map<uint32_t,const SG3Archive*> refs{{38,&group},{39,&group}};
+        carrier.action=6;carrier.counter=30;carrier.owner=9;carrier.route=0;carrier.resource=25;
+        context.buildings->emplace(9,candidate);context.figures[carrier.slot]=carrier;
+        const auto refused=originalFigureFirstUpdate(carrier,refs,&context,0xc0);
+        need(!refused.state&&!refused.goods&&!refused.services&&!refused.buildings&&carrier.counter==30&&
+            context.goods->storageSearch->at(25)==24,"positive warehouse candidate refuses all tentative cache and figure writes");
+        context.buildings->erase(8);context.buildings->erase(9);OriginalFigureBuildingLink station;
+        station.type=0x3a;station.alive=1;station.cargoFigures[0]=int16_t(carrier.slot);context.buildings->emplace(9,station);
+        candidate.type=0x36;candidate.storage->at(0)={25,100,400};context.buildings->emplace(8,candidate);
+        // Authored SG metadata exercises the EXISTING storage selector.
+        auto general=group;general.version=213;general.numImages=600;general.sprites.resize(600);general.imageIndex.fill(201);
+        general.bitmaps.resize(2);general.bitmaps[0].filename="China_StorNDist.bmp";general.bitmaps[1].filename="China_Stor-bays.bmp";
+        general.imageIndex[0x454&511]=300;general.imageIndex[0x456&511]=500;
+        for(auto& sprite:general.sprites){sprite.type=30;sprite.width=78;sprite.height=40;sprite.uncompressedLength=3200;
+            sprite.tileSize=1;sprite.mirrorOffset=0;sprite.animationSpriteCount=0;}
+        for(size_t k=299;k<500;++k)general.sprites[k].bitmapId=1;
+        OriginalBuildingScene scene;scene.accepted=true;scene.surface.terrain.assign(51984,0xc0);scene.surface.image.assign(51984,0);
+        OriginalBuildingPlacement placement;placement.footprint.slot=8;placement.footprint.type=0x36;placement.footprint.size=3;
+        placement.footprint.imageInputs.emplace();placement.footprint.imageInputs->compartments=candidate.storage;
+        placement.components=*bindOriginalBuildingComponents(placement.footprint,"DATA/China_General.sg3",general);
+        placement.binding=placement.components.front().binding;scene.placed.push_back(placement);
+        carrier.type=21;carrier.action=12;carrier.counter=3;carrier.delivery=8;carrier.homeX=4;carrier.homeY=7;
+        context.figures[carrier.slot]=carrier;context.goods->warehouse[25]=100;
+        const auto delay=originalFigureFirstUpdate(carrier,refs,&context,0xc0);
+        need(delay.state&&delay.state->counter==4&&delay.state->action==12&&delay.buildings->at(8).storage->front().amount==100,
+            "type21 action12 waits through counter4 without withdrawing");
+        carrier.counter=4;const auto loaded=originalFigureFirstUpdate(carrier,refs,&context,0xc0);
+        need(loaded.state&&loaded.state->action==10&&loaded.state->counter==0&&loaded.state->amount==100&&loaded.state->subtype==25&&
+            loaded.state->destinationX==4&&loaded.state->destinationY==7&&loaded.buildings->at(8).storage->front().resource==0&&
+            loaded.goods->warehouse[25]==0&&context.buildings->at(8).storage->front().amount==100,
+            "type21 withdrawal publishes storage accounting and home route transition together after counter4");
+        context.terrain=scene.surface.terrain;context.cellHeads.assign(51984,0);context.cellHeads[carrier.cell]=uint16_t(carrier.slot);
+        for(size_t slot=0;slot<2000;++slot)if(!context.figures.count(slot)){OriginalFigure inactive;inactive.slot=slot;context.figures.emplace(slot,inactive);}
+        context.figures[carrier.slot]=carrier;
+        OriginalSceneTimelineFrame frame;frame.animationClock=37;frame.admission.now=37;frame.admission.speed=80;frame.continueAfterPass={false};
+        const auto timeline=originalSceneTimeline(context,refs,scene,general,nullptr,0,{}, {frame});
+        need(timeline.complete&&timeline.buildingImageReselections==1&&timeline.buildingStorage.at(8).front().resource==0,
+            "shared timeline reselects a warehouse once when resource and amount change in a successful pool pass");
+        OriginalFigureProfile saved;saved.status=OriginalFigureStatus::Complete;saved.declared=saved.parsed=2000;saved.live={carrier};
+        saved.slots.resize(2000);for(size_t slot=0;slot<2000;++slot)saved.slots[slot]=context.figures.at(slot);
+        OriginalMapTerrain terrain;terrain.activeSide=228;terrain.flags=scene.surface.terrain;
+        OriginalBuildingProfile buildings;buildings.slotTypes[8]=0x36;buildings.slotTypes[9]=0x3a;
+        auto installed=scene;
+        need(installOriginalSceneTimeline(installed,terrain,saved,refs,buildings,general,timeline)&&
+            installed.placed.front().components.at(1).binding.imageCode==0x456&&installed.surface.image[1]==((2u<<14)|299u)&&
+            scene.placed.front().components.at(1).binding.imageCode==0x454,
+            "timeline atomically installs existing empty-bay selector output in component and surface grids");
+        auto invalid=timeline;invalid.buildingStorage.at(8).front().capacity=800;auto unchanged=scene;
+        need(!installOriginalSceneTimeline(unchanged,terrain,saved,refs,buildings,general,invalid)&&
+            unchanged.surface.image==scene.surface.image&&unchanged.placed.front().components.at(1).binding.imageCode==0x454,
+            "failed storage reselection leaves the entire original scene unchanged");
+        carrier.destinationX=6;carrier.destinationY=7;carrier.subX=100;carrier.subY=120;originalFigureFreeTarget(carrier);
+        need(carrier.freeRemainingX==20&&carrier.freeRemainingY==20&&carrier.freeError==0&&carrier.freeAxis==1,
+            "free target equal axes use zero Bresenham error rather than the unequal-axis expression");
+        context.figures[carrier.slot].alive=0;context.goods->storageSearch->at(25)=1;context.goods->industrySearch->at(25)=1;
+        context.goods->savedPhase=2;const auto reset=originalFigureOrderedNextPass(context,refs);
+        need(reset.complete&&reset.context->goods->storageSearch->at(25)==0&&reset.context->goods->industrySearch->at(25)==0&&
+            context.goods->storageSearch->at(25)==1,"saved phase2 clears both persistent search caches on the private ordered pass");
+        context.goods->savedPhase=1;const auto retained=originalFigureOrderedNextPass(context,refs);
+        need(retained.complete&&retained.context->goods->storageSearch->at(25)==1&&retained.context->goods->industrySearch->at(25)==1,
+            "other saved phases retain both process search caches across passes");
+        auto watch=one;watch.type=29;watch.action=8;watch.owner=9;watch.frame=11;watch.direction=2;watch.progress=2;
+        watch.roamState=1;watch.roamSteps=0;watch.x=5;watch.y=6;watch.cell=10000;watch.subX=100;watch.subY=120;
+        context.buildings->at(9).type=0x7f;context.buildings->at(9).primaryFigure=int16_t(watch.slot);
+        context.models[29]={};context.models[29][15]=30;context.modelSpeeds[29]=6;context.figures[watch.slot]=watch;
+        context.services->criminalCount=0;
+        const auto wrapped=originalFigureFirstUpdate(watch,refs,&context,0xc0);
+        need(wrapped.state&&wrapped.state->frame==0&&wrapped.state->progress==3,
+            "Watchtower frame wrap uses saved zero criminal count before continuing normal roam");
+        context.services->criminalCount.reset();need(!originalFigureFirstUpdate(watch,refs,&context,0xc0).state,
+            "Watchtower frame wrap refuses unknown criminal count");
+        context.services->criminalCount=1;need(!originalFigureFirstUpdate(watch,refs,&context,0xc0).state,
+            "positive criminal count requires target search rather than taking the zero-count branch");
+        auto school=watch;school.type=34;school.action=6;school.counter=1;school.owner=9;school.subX=100;school.subY=120;
+        context.models[34]={};context.models[34][15]=30;context.buildings->at(9).type=0xd3;
+        context.buildings->at(9).x=5;context.buildings->at(9).y=6;context.buildings->at(9).size=1;
+        context.buildings->at(9).roadX=5;context.buildings->at(9).roadY=6;context.buildings->at(9).delegatedCount=1;
+        context.activeSide=84;context.cropBase=8627;context.buildingOwners.assign(51984,0);context.figures[school.slot]=school;
+        const auto departed=originalFigureFirstUpdate(school,refs,&context,0xc0);
+        need(departed.state&&departed.state->action==7&&departed.state->counter==0&&departed.state->hidden==1&&
+            departed.state->freeRemainingX==0&&departed.state->freeRemainingY==0&&departed.state->destinationX==5,
+            "MusicSchool counter1 initializes owner-road free target without moving in the countdown call");
+        school=*departed.state;context.figures[school.slot]=school;context.cellHeads.assign(51984,0);context.cellHeads[10000]=uint16_t(school.slot);
+        OriginalFigureBuildingLink venue;venue.type=0x47;venue.alive=1;venue.entertainmentRoad=1;venue.entertainment=std::array<uint8_t,3>{0,20,0};
+        context.buildings->emplace(10,venue);
+        const auto finished=originalFigureFirstUpdate(school,refs,&context,0xc0);
+        need(finished.state&&finished.state->alive==2&&finished.state->movementMode==1&&finished.state->hidden==1,
+            "MusicSchool excludes venue music20 above both search thresholds before producing removal");
+        context.buildings->at(10).entertainment->at(1)=16;
+        need(!originalFigureFirstUpdate(school,refs,&context,0xc0).state,
+            "qualifying venue music16 refuses positive weighted routing without publishing free-step writes");
+        auto removed=*finished.state;context.figures[school.slot]=removed;
+        need(originalFigureRemoveArrivedWorker(removed,context)&&!removed.alive&&*context.buildings->at(9).delegatedCount==0,
+            "MusicSchool removal decrements its owner count and unlinks before resetting the figure");
+        auto migrant=one;migrant.type=13;migrant.action=9;migrant.counter=30;migrant.route=3;migrant.direction=2;migrant.progress=2;
+        context.modelSpeeds[13]=0;context.figures[migrant.slot]=migrant;
+        const auto noVacancy=originalFigureFirstUpdate(migrant,refs,&context,0xc0);
+        need(noVacancy.state&&noVacancy.state->counter==0&&noVacancy.state->action==9,
+            "type13 post-movement counter31 resets after proving no eligible house vacancy");
+        OriginalFigureBuildingLink house;house.type=3;house.alive=3;house.accepting=1;house.roadDistance=1;house.freeSlots=1;
+        context.buildings->emplace(11,house);
+        need(!originalFigureFirstUpdate(migrant,refs,&context,0xc0).state,
+            "positive house vacancy refuses nearest-house and road selection rather than taking no-target branch");
+        auto hunter=one;hunter.type=40;hunter.action=8;hunter.owner=9;hunter.counter=12;hunter.route=3;
+        context.figures[hunter.slot]=hunter;context.services->routeOwners[3]=int16_t(hunter.slot);
+        const auto returnHome=originalFigureFirstUpdate(hunter,refs,&context,0xc0);
+        need(returnHome.state&&returnHome.state->action==10&&returnHome.state->counter==13&&returnHome.state->route==0&&
+            returnHome.state->destinationX==5&&returnHome.state->destinationY==6&&returnHome.services->routeOwners[3]==0,
+            "Hunter action8 counter13 targets owner road and releases route before action10 image without movement");
+    }
+    {
+        // Literal Goods1/Population7 inputs, independent of runtime offsets.
+        std::vector<uint8_t> data(20000);const size_t population=100,anchor=12387,figuresEnd=10;
+        const auto put16=[&](size_t at,uint16_t n){data[at]=uint8_t(n);data[at+1]=uint8_t(n>>8);};
+        const auto put32=[&](size_t at,uint32_t n){for(unsigned k=0;k<4;++k)data[at+k]=uint8_t(n>>(8*k));};
+        put16(population,7);put16(figuresEnd,1);put32(figuresEnd+2,1);put16(figuresEnd+6,1);
+        data[figuresEnd+6+12+25]=2;put16(figuresEnd+6+54+2*25,0xfffe);data[figuresEnd+6+198+25]=7;
+        put32(population+10034+4*25,11);put32(population+10578+4*25,22);put32(population+10722+4*25,33);
+        put32(population+10866+4*25,44);data.resize(1400000);put32(1299328,2);
+        const auto parsed=originalFigureSavedGoodsServices(data,figuresEnd,anchor,0);
+        need(parsed&&parsed->policies.size()==1&&parsed->policies[0].accept[25]==2&&parsed->policies[0].limit[25]==-2&&
+            parsed->policies[0].trade[25]==7&&parsed->unavailable[25]==11&&parsed->trade7[25]==22&&parsed->trade5[25]==33&&
+            parsed->warehouse[25]==44&&parsed->savedPhase==2&&!parsed->storageSearch&&!parsed->industrySearch&&!parsed->godGate,
+            "Goods1 policy and all four Population7 arrays read independent literal wire offsets without process defaults");
+        put16(figuresEnd+6,2);need(!originalFigureSavedGoodsServices(data,figuresEnd,anchor,0),"uncited Goods1 record version refuses all policies");
+        put16(figuresEnd+6,1);put16(population,6);need(!originalFigureSavedGoodsServices(data,figuresEnd,anchor,0),"goods accounting requires Population7 framing");
+    }
+    {
         // Literal SAV19 terrain-relative addresses, distinct decoys either side.
         std::vector<uint8_t> services(17+1299348,0x5a);const size_t t=17;
         for(size_t n=0;n<100;++n){services[t+1281760+175*n]=6;services[t+1281761+175*n]=0;}
@@ -678,6 +845,11 @@ void authored(){
             originalFigureSavedServices(services,t)->fireCount==-2,
             "SAV19 read order after shared terrain scalars reaches signed fire count at literal1363850 after two80-byte blocks");
         services.pop_back();need(!originalFigureSavedServices(services,t)->fireCount,"partial saved fire dword cannot publish zero or a truncated count");
+        services.resize(t+1391646,0);put(1391638,123);put(1391642,0xfffffffd);
+        need(original_save19::criminalCount==1391642&&originalFigureSavedServices(services,t)->criminalCount==-3,
+            "Watchtower criminal count follows independent SAV19 request cursor to literal1391642");
+        services.pop_back();need(!originalFigureSavedServices(services,t)->criminalCount,
+            "truncated criminal count remains unknown rather than enabling Watchtower search early return");
         services.resize(t+1770973,0);put(1563037,0x12345678);put(1770969,0x87654321);
         const auto grid=originalFigureSavedServices(services,t);
         need(grid&&grid->serviceGrid.size()==51984&&grid->serviceGrid.front()==0x12345678&&grid->serviceGrid.back()==0x87654321,
@@ -1212,7 +1384,7 @@ void corpus(){
     std::map<unsigned,size_t> orderedComputedTypes,orderedBlockedTypes;std::map<std::string,size_t> orderedBlockers;
     std::array<size_t,6> individualBySource{},orderedBySource{},prefixBySource{};
     size_t k1Placed=0,k1Decoded=0,k1Hidden=0,k1Unsupported=0,k1Removed=0,k1Overlays=0,k1Animation=0,k1Objects=0;
-    struct TimelineScore {size_t pools=0,computed=0,placed=0,decoded=0,consistent=0,primary=0,animation=0,animationCandidates=0,animationAdvanced=0,animationChanged=0;
+    struct TimelineScore {size_t pools=0,computed=0,placed=0,decoded=0,consistent=0,primary=0,animation=0,animationCandidates=0,animationAdvanced=0,animationChanged=0,reselected=0;
         std::map<std::string,size_t> refusals;};
     std::map<unsigned,TimelineScore> timelineScores;
     std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
@@ -1255,6 +1427,13 @@ void corpus(){
         updateContext->inspectorReduction=decoyUpdateContext->inspectorReduction=originalFigureWatchtowerReduction(buildingText,124);
         updateContext->inspectorMaximum=decoyUpdateContext->inspectorMaximum=std::array<int32_t,2>{0,0};
         updateContext->crops=decoyUpdateContext->crops=originalFigureSavedCropServices(payload,save.terrainOffset,save.sizeOffset);
+        auto goods=originalFigureSavedGoodsServices(payload,figures.end,save.sizeOffset,save.terrainOffset);
+        need(bool(goods),"same SAV19 frames Goods1 storage policy and Population7 accounting inputs");
+        goods->storageSearch=std::array<uint8_t,36>{};goods->industrySearch=std::array<uint8_t,36>{}; //explicit fresh-process premises.
+        updateContext->goods=decoyUpdateContext->goods=goods;
+        updateContext->goods->godGate=decoyUpdateContext->goods->godGate=0; //5350A5 load reset.
+        const auto requiredEmployment=parseOriginalBuildingEmployment(buildingText);need(bool(requiredEmployment),"complete model supplies goods candidate employment");
+        updateContext->buildingEmployment=decoyUpdateContext->buildingEmployment=*requiredEmployment;
         need(updateContext->crops.has_value(),"same SAV19 frames month, population resource availability and269 disable bytes");
         updateContext->activeSide=decoyUpdateContext->activeSide=save.terrain.activeSide;
         updateContext->festivalVenue=decoyUpdateContext->festivalVenue=festival;
@@ -1267,6 +1446,17 @@ void corpus(){
               "figure view and both RNG words independently equal corrected post-record read sites");
         need(services->fireCount&&*services->fireCount==0&&detail::u32(payload.data()+save.terrainOffset+1363850)==0,
             "same-source framed SAV19 restores C82F28 at the independently cited literal T+1363850");
+        need(services->criminalCount&&uint32_t(*services->criminalCount)==detail::u32(payload.data()+save.terrainOffset+1391642),
+            "all six saved criminal counts equal independent literal T+1391642 reads");
+        const size_t populationAt=save.sizeOffset-12287;
+        need(goods->policies.size()==detail::u32(payload.data()+figures.end+2)&&
+            goods->policies.at(0).accept[25]==payload.at(figures.end+6+12+25)&&
+            goods->policies.at(0).limit[25]==detail::i16(payload.data()+figures.end+6+54+50)&&
+            goods->warehouse[25]==detail::u32(payload.data()+populationAt+10866+100)&&
+            goods->trade7[25]==detail::u32(payload.data()+populationAt+10578+100)&&
+            goods->trade5[25]==detail::u32(payload.data()+populationAt+10722+100)&&
+            goods->unavailable[25]==detail::u32(payload.data()+populationAt+10034+100),
+            "six original Goods1 policies and Population7 resource25 arrays match independently framed literal reads");
         std::cout<<"{\"saved_fire_source\":"<<sources+1<<",\"terrain_relative_offset\":1363850,\"fire_count\":"<<*services->fireCount<<"}\n";
         const auto spawn=originalFigureSpawnServices(payload,save.sizeOffset);
         need(spawn.has_value(),"same scenario6 supplies four type76 spawn coordinates and validated crop");
@@ -1330,7 +1520,7 @@ void corpus(){
         const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,timelinePassability,
             &*hunterLinks,&*buildingLinks,*models,spawn->cropBase,timelineMasks,&*updateContext);
         need(initial.complete&&initial.context.has_value(),"timeline initializes callbacks/population exactly once");
-        for(unsigned n:{1u,2u,3u,4u,5u,10u,20u,50u}){
+        for(unsigned n:{1u,2u,3u,4u,5u,6u,10u,11u,12u,20u,50u,100u,200u}){
             std::vector<OriginalSceneTimelineFrame> frames;
             for(unsigned k=1;k<=n;++k){OriginalSceneTimelineFrame frame;frame.animationClock=37*k;
                 frame.admission.now=37*k;frame.admission.speed=80;frame.continueAfterPass={false};
@@ -1344,22 +1534,24 @@ void corpus(){
                 for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
                     frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
             const auto timeline=originalSceneTimeline(*initial.context,refs,timelineScene,general,&*employment,0,{},frames);
-            constexpr unsigned firstFailure[]={0,10,6,0,0,0};constexpr size_t firstSlot[]={0,1702,384,0,0,0};
+            constexpr unsigned firstFailure[]={0,13,11,85,0,0};constexpr size_t firstSlot[]={0,1779,236,1981,0,0};
             const unsigned expected=firstFailure[sources-1];
             need(timeline.complete==(!expected||n<expected)&&timeline.updates==(expected&&n>=expected?expected-1:n)&&
                 timeline.refusedUpdate==(expected&&n>=expected?expected:0)&&timeline.lastPass.firstBlockedSlot==(expected&&n>=expected?firstSlot[sources-1]:0),
                 "six original timelines retain independently recorded first refusal boundaries and stop there");
             auto& total=timelineScores[n];total.animationCandidates+=timelineScene.animationEnabled;
-            need(timeline.buildingImageReselections==0,"delivery and service writes do not change any cited building selector input");
+            need(timeline.buildingImageReselections==0,"completed original passes precede storage withdrawal; no changed selector inputs are skipped");
             std::cout<<"{\"timeline_source\":"<<sources<<",\"requested_updates\":"<<n<<",\"complete\":"<<(timeline.complete?"true":"false")
                 <<",\"completed_updates\":"<<timeline.updates<<",\"first_refused_update\":"<<timeline.refusedUpdate
-                <<",\"first_refused_slot\":"<<timeline.lastPass.firstBlockedSlot<<",\"refusal\":\""<<timeline.refusal<<"\"}\n";
+                <<",\"first_refused_slot\":"<<timeline.lastPass.firstBlockedSlot<<",\"refusal\":\""<<timeline.refusal
+                <<"\",\"building_image_reselections\":"<<timeline.buildingImageReselections<<"}\n";
             if(!timeline.complete){need(!timeline.context,"failed timeline publishes no context from an earlier completed update");
                 for(const auto& f:figures.live){const auto found=timeline.lastPass.figures.find(f.slot);
                     ++total.refusals[found==timeline.lastPass.figures.end()?"prior_removed_outcome_withheld":originalFigureUpdateStatusName(found->second.status)];}
                 auto unchanged=timelineScene;need(!installOriginalSceneTimeline(unchanged,save.terrain,figures,refs,save.buildings,general,timeline),
                     "refused timeline cannot install earlier frame as requested N");continue;}
             ++total.pools;total.computed+=figures.live.size();
+            total.reselected+=timeline.buildingImageReselections;
             total.animationAdvanced+=timeline.buildingAdvances;
             for(const auto& p:timelineScene.placed){const auto found=timeline.buildingPhases.find(p.footprint.slot);
                 if(found!=timeline.buildingPhases.end())total.animationChanged+=found->second!=*p.footprint.animationInputs->phase;}
@@ -1574,22 +1766,25 @@ void corpus(){
     need(k1Placed==185&&k1Decoded==201&&k1Hidden==6&&k1Removed==1&&k1Unsupported==0&&k1Overlays==274&&k1Animation==53&&k1Objects==20&&
         k1Placed+k1Hidden+k1Removed+k1Unsupported==192,"k1 scene partitions192 originals:185 placed,6 hidden,1 removed,0 special-placement refusals;274 overlays");
     for(const auto& row:timelineScores){const auto& t=row.second;size_t refused=0;for(const auto& r:t.refusals)refused+=r.second;
-        const unsigned n=row.first;const size_t expectedPools=n<=5?6:4,expectedComputed=n<=5?192:81;
-        need(t.pools==expectedPools&&t.computed==expectedComputed&&t.placed==(n<=5?(n==4?184:185):expectedComputed)&&
-            t.decoded==(n<=5?(n==4?200:201):expectedComputed)&&t.animation==(n<=5?53:6),
+        const unsigned n=row.first;const size_t expectedPools=n<=10?6:n<=12?5:n<85?4:3,expectedComputed=n<=10?192:n<=12?127:n<85?81:49;
+        need(t.pools==expectedPools&&t.computed==expectedComputed&&t.placed==(n<=10?(n==4?184:185):n<=12?125:expectedComputed)&&
+            t.decoded==(n<=10?(n==4?200:201):n<=12?129:expectedComputed)&&t.animation==(n<=10?53:n<=12?28:n<85?6:3),
          "perN timeline coverage locks complete-pool placements, decoded components and building frames");
         need(t.computed+refused==192&&t.consistent==t.primary,"perN computed/refused outcomes partition192 and all surviving primaries are consistent");
+        need(t.primary==(n<=10?191u:n==11?127u:n==12?126u:n<85?81u:49u)&&t.reselected==0,
+            "perN surviving primary denominator and original-data building reselection count are locked");
         std::map<std::string,size_t> expectedRefusals;
-        if(n>=10){
-            expectedRefusals={{"earlier_ordered_slot_uncomputed",29},
-            {"later_ordered_slot_may_write_earlier_figure",79},
-             {"prior_removed_outcome_withheld",1},{"goods_delivery_arrival_virtual_4cd8f0",1},{"goods_expired_supplier_search_4cbec0_4e2960",1}};}
+        if(n>=11&&n<=12)expectedRefusals={{"building_virtual24_ordered_update",1},{"earlier_ordered_slot_uncomputed",59},
+            {"later_ordered_slot_may_write_earlier_figure",4},{"prior_removed_outcome_withheld",1}};
+        else if(n>12){expectedRefusals={{"building_virtual24_ordered_update",1},{"earlier_ordered_slot_uncomputed",n<85?59u:69u},
+            {"later_ordered_slot_may_write_earlier_figure",n<85?48u:69u},{"prior_removed_outcome_withheld",2},{"segment_owner_service_4eacd0",1}};
+            if(n>=85)expectedRefusals["type_action_route_target_combat_update"]=1;}
         need(t.refusals==expectedRefusals,"perN refusal classes and multiplicities match exact disjoint original-outcome partition");
         std::cout<<"{\"timeline_N\":"<<row.first<<",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"computed\":"<<t.computed
             <<",\"live_total\":192,\"placed\":"<<t.placed<<",\"decoded_components\":"<<t.decoded<<",\"primary_consistent\":"<<t.consistent
             <<",\"primary_total\":"<<t.primary<<",\"building_frames_decoded\":"<<t.animation<<",\"building_candidates\":"<<t.animationCandidates
             <<",\"building_admitted_advances\":"<<t.animationAdvanced<<",\"building_changed_phases\":"<<t.animationChanged
-            <<",\"building_image_reselections\":0,\"refusals\":{";
+            <<",\"building_image_reselections\":"<<t.reselected<<",\"refusals\":{";
         bool comma=false;for(const auto& r:t.refusals){if(comma)std::cout<<',';comma=true;std::cout<<'"'<<r.first<<"\":"<<r.second;}std::cout<<"}}\n";
     }
     std::cout<<"{\"k1_scene\":true,\"placed\":"<<k1Placed<<",\"live_total\":192,\"decoded_components\":"<<k1Decoded<<",\"hidden\":"<<k1Hidden

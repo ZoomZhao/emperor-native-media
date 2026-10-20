@@ -102,6 +102,13 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     context.inspectorReduction=originalFigureWatchtowerReduction(buildingText,124);
     context.inspectorMaximum=std::array<int32_t,2>{0,0}; //explicit fresh-processD95084/88.
     context.crops=originalFigureSavedCropServices(payload,save.terrainOffset,save.sizeOffset);
+    context.goods=originalFigureSavedGoodsServices(payload,figures.end,save.sizeOffset,save.terrainOffset);
+    if(!context.goods)return false;
+    context.goods->storageSearch=std::array<uint8_t,36>{}; //explicit fresh-process1E4EE08 premise.
+    context.goods->industrySearch=std::array<uint8_t,36>{}; //explicit fresh-process10BC928 premise.
+    context.goods->godGate=0; //5350A5 post-load reset,C5CDA0.
+    const auto buildingEmployment=parseOriginalBuildingEmployment(buildingText);if(!buildingEmployment)return false;
+    context.buildingEmployment=*buildingEmployment;
     for(unsigned col=9;col<=13;++col){const auto values=originalFigureHouseModelColumn(buildingText,col);if(!values)return false;context.houseMarketModels[col]=*values;}
     context.feature=ground.state.feature.empty()?std::vector<uint8_t>{}:std::vector<uint8_t>(ground.state.feature.size());
     for(size_t n=0;n<context.feature.size();++n)context.feature[n]=uint8_t(ground.state.feature[n]);

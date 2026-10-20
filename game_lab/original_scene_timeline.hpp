@@ -28,6 +28,7 @@ struct OriginalSceneTimeline {
     OriginalAnimationClock animationClock;
     std::map<size_t,uint8_t> buildingPhases;
     std::optional<OriginalFigureUpdateContext> context;
+    std::map<size_t,std::vector<OriginalStorageCompartment>> buildingStorage;
     OriginalFigureOrderedPass lastPass;
     std::string refusal;
 };
@@ -54,13 +55,9 @@ inline OriginalSceneTimeline originalSceneTimeline(const OriginalFigureUpdateCon
     if(!scene.accepted||scene.animationTickMs||initial.figures.size()!=2000||initial.terrain.size()!=51984||initial.terrain!=scene.surface.terrain||
         frames.size()>10000){out.refusal="timeline_inputs";return out;}
     std::map<size_t,const SG3Sprite*> bases;
-    // The cited selectors read none of cropDelivery.flags/pending,
-    // primaryFigure,watchRisk/serviceCount or house herbalist service.
-    // These carried writes therefore need zero base-image re-selections.
-    // Market5437B0 mutates its six internal compartments, but the existing
-    //544220/5428B0 selector reads child links/orientation and saved cell R,
-    //not those compartments. Warehouse compartments and crop stage+4 stay
-    //unchanged by the figure services; no stock-derived selector is invented.
+    // Market/service/crop-link writes do not feed a cited image selector.
+    // Warehouse/station resource+amount DO: rebind their existing components
+    // after every successful pass changing those inputs, then install atomically.
     for(const auto& p:scene.placed){if(p.components.size()!=1)continue;
         if(!p.binding.physicalId||p.binding.physicalId>general.sprites.size()){out.refusal="building_base";return out;}
         const auto& base=general.sprites[p.binding.physicalId-1];if(!base.animationSpriteCount)continue;
@@ -86,6 +83,16 @@ inline OriginalSceneTimeline originalSceneTimeline(const OriginalFigureUpdateCon
             if(!out.lastPass.complete||!out.lastPass.context){out.refusedUpdate=out.updates+1;
                 out.refusal=out.lastPass.firstBlockedSlot?originalFigureUpdateStatusName(out.lastPass.figures.at(out.lastPass.firstBlockedSlot).status):"ordered_pool_inputs";
                 return out;}
+            if(context.buildings&&out.lastPass.context->buildings)for(const auto& p:scene.placed){
+                const auto before=context.buildings->find(p.footprint.slot),after=out.lastPass.context->buildings->find(p.footprint.slot);
+                if(before==context.buildings->end()||after==out.lastPass.context->buildings->end()||!after->second.storage)continue;
+                bool changed=!before->second.storage||before->second.storage->size()!=after->second.storage->size();
+                if(!changed)for(size_t k=0;k<after->second.storage->size();++k){const auto& a=before->second.storage->at(k);const auto& b=after->second.storage->at(k);
+                    changed|=a.resource!=b.resource||a.amount!=b.amount;}
+                if(changed){auto footprint=p.footprint;if(!footprint.imageInputs){out.refusal="storage_image_inputs";return out;}
+                    footprint.imageInputs->compartments=after->second.storage;
+                    if(!bindOriginalBuildingComponents(footprint,"DATA/China_General.sg3",general)){out.refusal="storage_image_reselection";return out;}
+                    out.buildingStorage[p.footprint.slot]=*after->second.storage;++out.buildingImageReselections;}}
             context=*out.lastPass.context;++out.updates;
         }
         // One supplied slot means one actual draw, repetitions are meaningful.
@@ -113,6 +120,14 @@ inline bool installOriginalSceneTimeline(OriginalBuildingScene& scene,const Orig
     for(const auto& e:timeline.context->figures){updated.slots.push_back(e.second);if(e.second.alive)updated.live.push_back(e.second);}
     if(updated.live.size()>saved.live.size())return false;
     auto next=scene;
+    for(auto& p:next.placed){const auto storage=timeline.buildingStorage.find(p.footprint.slot);if(storage==timeline.buildingStorage.end())continue;
+        if(!p.footprint.imageInputs||!timeline.context->cropBase)return false;
+        p.footprint.imageInputs->compartments=storage->second;
+        const auto components=bindOriginalBuildingComponents(p.footprint,"DATA/China_General.sg3",general);if(!components)return false;
+        p.components=*components;p.binding=components->front().binding;
+        for(const auto& c:p.components){const size_t cell=*timeline.context->cropBase+(p.footprint.y+c.y)*228+p.footprint.x+c.x;
+            if(cell>=next.surface.image.size()||c.binding.physicalId<201)return false;
+            next.surface.image[cell]=(c.binding.tileset<<14)|(c.binding.physicalId-201);}}
     next.overlays.erase(std::remove_if(next.overlays.begin(),next.overlays.end(),[](const auto& o){return o.mode==3;}),next.overlays.end());
     next.animationSelected=0;
     for(const auto& p:next.placed){const auto found=timeline.buildingPhases.find(p.footprint.slot);if(found==timeline.buildingPhases.end())continue;

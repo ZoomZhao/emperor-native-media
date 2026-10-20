@@ -19,6 +19,15 @@ scene-timeline-bite:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only service_shadow
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only crop_season
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only market_smallest
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only goods_smallest
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only goods_remainder
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only goods_accounting
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only goods_delay
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only goods_policy
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only goods_cache
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only storage_reselection
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only watch_criminal
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only delegated_target
 game-app:
 	/bin/sh game_lab/app/build.sh
 run-game: game-app

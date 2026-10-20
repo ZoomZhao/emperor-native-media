@@ -56,7 +56,7 @@ def main():
         ('inspector_fire_threshold', 'original_figure_update.hpp', 'if(f.searchCounter>=20)', 'if(f.searchCounter>20)'),
         ('worker_employment', 'original_figure_update.hpp', 'int(house.residents)+f.employmentAmount', 'int(house.residents)+1'),
         ('entertainment_grid', 'original_figure_update.hpp', 'serviceGrid[f.cell]|=7u<<9;', 'serviceGrid[f.cell]|=7u<<6;'),
-        ('population_frame', 'original_figure.hpp', 'sizeAnchor-28-152-bytes;', 'sizeAnchor-28-152-bytes+4;'),
+        ('population_frame', 'original_figure.hpp', 'const size_t at=sizeAnchor-28-152-bytes;', 'const size_t at=sizeAnchor-28-152-bytes+4;'),
         ('worker_removal', 'original_figure_update.hpp', 'reset.priorProgress=f.priorProgress;', 'reset.priorProgress=0;'),
         ('load_population', 'original_figure_update.hpp', 'services.population->total=int32_t(total);', 'services.population->total+=int32_t(total);'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
@@ -74,6 +74,15 @@ def main():
         ('service_shadow', 'original_figure_update.hpp', 'std::abs(dx)+std::abs(dy)>shadows[size_t(sector)]', 'std::abs(dx)+std::abs(dy)>100'),
         ('crop_season', 'original_figure_update.hpp', 'month<ends[type-0xc3]', 'month<=ends[type-0xc3]'),
         ('market_smallest', 'original_figure_update.hpp', 'storage[k].amount<minimum', 'storage[k].amount>minimum'),
+        ('goods_smallest', 'original_figure_update.hpp', 'c.amount<minimum){minimum=c.amount;selected=k;}', 'c.amount>minimum){minimum=c.amount;selected=k;}'),
+        ('goods_remainder', 'original_figure_update.hpp', 'return wanted;\n}', 'return 0;\n}'),
+        ('goods_accounting', 'original_figure_update.hpp', 'goods.warehouse[resource]-=take;', 'goods.warehouse[resource]+=take;'),
+        ('goods_delay', 'original_figure_update.hpp', 'if(f.counter>4){if(!local.goods)', 'if(f.counter>=4){if(!local.goods)'),
+        ('goods_policy', 'original_figure.hpp', 'at+198,36,policy.trade.begin()', 'at+197,36,policy.trade.begin()'),
+        ('goods_cache', 'original_figure_update.hpp', 'context->goods->savedPhase==2', 'context->goods->savedPhase==1'),
+        ('storage_reselection', 'original_scene_timeline.hpp', '++out.buildingImageReselections;', 'out.buildingImageReselections+=0;'),
+        ('watch_criminal', 'original_figure_update.hpp', '*local.services->criminalCount>0', '*local.services->criminalCount>=0'),
+        ('delegated_target', 'original_figure_update.hpp', 'f.freeRemainingX==f.freeRemainingY?0:', 'f.freeRemainingX==f.freeRemainingY?1:'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]

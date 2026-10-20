@@ -61,6 +61,7 @@ inline constexpr size_t fireTrailingScalars=fireBlock64000+64000; //0x531510/51E
 inline constexpr size_t fireBlock10=fireTrailingScalars+3*4; //0x53153A
 inline constexpr size_t fireBlocks80=fireBlock10+10; //0x531548/556
 inline constexpr size_t fireCount=fireBlocks80+2*80; //0xC82F28,i32,0x531564
+inline constexpr size_t criminalCount=fireCount+5*4+8960+8800+4+1000+1000+8000+8; //10AEECC,531629.
 // Continue from road-distance0x5317E3, then32 bytes0x5317F1 and36
 // bytes0x531805. The preceding variable records are already framed at T.
 inline constexpr size_t serviceGrid=1510985+51984+32+36; //0x531816,D62440
@@ -88,6 +89,40 @@ inline std::optional<OriginalFigureCropServices> originalFigureSavedCropServices
     return out;
 }
 struct OriginalFigurePopulation {int32_t total=0,peak=0;std::optional<uint32_t> lastArrival;};
+struct OriginalFigureStoragePolicy {
+    std::array<uint8_t,36> accept{},trade{};
+    std::array<int16_t,36> limit{};
+};
+struct OriginalFigureGoodsServices {
+    std::vector<OriginalFigureStoragePolicy> policies;
+    std::array<uint32_t,36> unavailable{},trade7{},trade5{},warehouse{};
+    uint32_t savedPhase=0;
+    // 1E4EE08 and10BC928 are persistent process caches, never SAV fields.
+    std::optional<std::array<uint8_t,36>> storageSearch,industrySearch;
+    std::optional<uint32_t> godGate; //C5CDA0 process input;load5350A5 clears it.
+};
+inline std::optional<OriginalFigureGoodsServices> originalFigureSavedGoodsServices(
+    const std::vector<uint8_t>& data,size_t figuresEnd,size_t sizeAnchor,size_t terrain){
+    size_t bytes=2;for(const auto& f:emperor::file_io::research::later7_requests)bytes+=f.bytes;
+    if(data.size()>8u*1024u*1024u||figuresEnd>data.size()||data.size()-figuresEnd<6||sizeAnchor>data.size()||
+        sizeAnchor<28+152+bytes||terrain>data.size()||original_save19::c82ef8+4>data.size()-terrain)return std::nullopt;
+    const size_t population=sizeAnchor-28-152-bytes;
+    if(detail::u16(data.data()+population)!=7||detail::u16(data.data()+figuresEnd)!=1)return std::nullopt;
+    OriginalFigureGoodsServices out;size_t at=figuresEnd+6;const auto count=detail::u32(data.data()+figuresEnd+2);
+    if(count>8192)return std::nullopt;
+    for(size_t n=0;n<count;++n){if(at>data.size()||data.size()-at<270||detail::u16(data.data()+at)!=1)return std::nullopt;
+        OriginalFigureStoragePolicy policy; //506B0A/58/78;explicit Goods1 field requests.
+        std::copy_n(data.begin()+at+12,36,policy.accept.begin());
+        for(unsigned r=0;r<36;++r)policy.limit[r]=detail::i16(data.data()+at+54+2*r);
+        std::copy_n(data.begin()+at+198,36,policy.trade.begin());out.policies.push_back(policy);at+=270;}
+    // Population7 reads594522/594868/59487B/59488E; runtime bases
+    // 1312098/13123D0/131265C/13126EC. Unsigned bits retain x86 wrap.
+    for(unsigned r=0;r<36;++r){out.unavailable[r]=detail::u32(data.data()+population+10034+4*r);
+        out.trade7[r]=detail::u32(data.data()+population+10578+4*r);
+        out.trade5[r]=detail::u32(data.data()+population+10722+4*r);
+        out.warehouse[r]=detail::u32(data.data()+population+10866+4*r);}
+    out.savedPhase=detail::u32(data.data()+terrain+original_save19::c82ef8);return out;
+}
 // Same ten bounded goal lists as SAV19's existing prefix walker, followed
 // by Flood1 (4EDDA0) and Festival4 (48ED30). Active festival needs date
 // qualification48E020; an inactive byte proves48ED00 returns null.
@@ -132,6 +167,7 @@ struct OriginalFigureSavedServices {
     std::vector<uint8_t> directions;
     uint32_t randomFirst=0,randomSecond=0;
     std::optional<int32_t> fireCount;
+    std::optional<int32_t> criminalCount;
     std::vector<uint32_t> serviceGrid;
     std::optional<OriginalFigurePopulation> population;
 };
@@ -150,6 +186,8 @@ inline std::optional<OriginalFigureSavedServices> originalFigureSavedServices(
     out.randomFirst=detail::u32(data.data()+terrain+randomFirst);out.randomSecond=detail::u32(data.data()+terrain+randomSecond);
     if(fireCount+4<=data.size()-terrain){const auto bits=detail::u32(data.data()+terrain+fireCount);
         out.fireCount=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:int64_t(bits));}
+    if(criminalCount+4<=data.size()-terrain){const auto bits=detail::u32(data.data()+terrain+criminalCount);
+        out.criminalCount=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:int64_t(bits));}
     if(serviceGrid+207936<=data.size()-terrain){out.serviceGrid.resize(51984);
         for(size_t n=0;n<51984;++n)out.serviceGrid[n]=detail::u32(data.data()+terrain+serviceGrid+4*n);}
     return out;
@@ -232,7 +270,15 @@ struct OriginalFigureBuildingLink {
     std::optional<CropDelivery> cropDelivery; //embedded+6A and outer+150.
     int16_t roadX=0,roadY=0;
     std::optional<int32_t> suppliers;
+    std::optional<uint8_t> delegatedCount; //Music data+5C,51C520;removal4C8BD1.
+    std::optional<uint8_t> entertainmentRoad; //Entertainment data+69,48B950.
     bool cropSearchComplete=false;
+    std::optional<std::vector<OriginalStorageCompartment>> storage;
+    std::optional<size_t> storagePolicy;
+    uint8_t outputResource=0,roadAccess=0,category=0,storageLaborDisabled=0;
+    int16_t workers=0;
+    int16_t roadDistance=0,suppress=0;
+    int16_t incomingFigures=0,incomingAmount=0;
 };
 // Common5:0x427430 reads live+4,type+14,worker+32,accepting+9 individually;
 // wire+2/+16/+45/+7 include the version. Read only framed public records.
@@ -257,6 +303,11 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         link.x=detail::i16(data.data()+at+8);link.y=detail::i16(data.data()+at+10);
         link.cell=detail::u32(data.data()+at+12);
         link.size=data[at+5];
+        link.outputResource=data[at+65];link.roadAccess=data[at+66];link.roadDistance=detail::i16(data.data()+at+31);
+        link.category=data[at+20];link.workers=detail::i16(data.data()+at+62);link.storageLaborDisabled=data[at+98];
+        link.suppress=detail::i16(data.data()+at+72);
+        link.incomingFigures=detail::i16(data.data()+at+156);link.incomingAmount=detail::i16(data.data()+at+158);
+        const int policy=detail::i16(data.data()+at+88);if(policy>=0)link.storagePolicy=size_t(policy);
         link.roadX=detail::i16(data.data()+at+37);link.roadY=detail::i16(data.data()+at+39);
         link.inspectorSecondary=detail::i16(data.data()+at+18)>0||data[at+100]!=0;
         link.fireRisk=detail::i16(data.data()+at+68);link.damageRisk=detail::i16(data.data()+at+70);
@@ -264,6 +315,15 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         link.residents=detail::i16(data.data()+at+27);link.freeSlots=detail::i16(data.data()+at+29);link.houseModel=detail::i16(data.data()+at+18);
         const auto risk=detail::u32(data.data()+at+125);link.watchRisk=int32_t(risk>INT32_MAX?int64_t(risk)-4294967296LL:risk);
         const size_t tail=at+182;
+        if(type==0xd3&&data.size()-tail>=130&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1)
+            link.delegatedCount=data[tail+92];
+        for(const auto& footprint:buildings.footprints)if(footprint.slot==b.first&&footprint.imageInputs&&footprint.imageInputs->compartments)
+            link.storage=footprint.imageInputs->compartments;
+        if(type==0x35&&data.size()-tail>=288&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&detail::u16(data.data()+tail+130)==2){
+            std::vector<OriginalStorageCompartment> storage;bool framed=true;
+            for(unsigned n=0;n<8;++n){const size_t pos=tail+132+14*n;framed&=detail::u16(data.data()+pos)==1;
+                storage.push_back({detail::u32(data.data()+pos+2),detail::u32(data.data()+pos+6),detail::u32(data.data()+pos+10)});}
+            if(framed)link.storage=std::move(storage);}
         if((type==0xc2||type==0xc4)&&data.size()-tail>=140&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&
             detail::u16(data.data()+tail+130)==1&&detail::u16(data.data()+tail+132)==1&&detail::u16(data.data()+tail+138)==1)
             link.cropDelivery=OriginalFigureBuildingLink::CropDelivery{detail::u16(data.data()+tail+106),detail::u32(data.data()+tail+134)};
@@ -279,7 +339,8 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
             detail::u16(data.data()+tail+130)==1&&detail::u16(data.data()+tail+132)==1&&detail::u16(data.data()+tail+134)==1){
             link.shrineReligion=detail::u32(data.data()+tail+152);link.shrineElite=data[tail+164];}
         if(type==0x47&&data.size()-tail>=352&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1)
-            {link.entertainment=std::array<uint8_t,3>{data[tail+93],data[tail+94],data[tail+95]};link.inspectorParent=detail::u32(data.data()+tail+348);}
+            {link.entertainment=std::array<uint8_t,3>{data[tail+93],data[tail+94],data[tail+95]};link.inspectorParent=detail::u32(data.data()+tail+348);
+             link.entertainmentRoad=data[tail+105];}
         if((type==0x3a||type==0x3b||type==0x7c)&&data.size()-at>=312&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
             for(unsigned n=0;n<2;++n)link.secondaryFigures[n]=detail::i16(data.data()+tail+106+2*n);
             for(unsigned n=0;n<8;++n)link.cargoFigures[n]=detail::i16(data.data()+tail+112+2*n);
