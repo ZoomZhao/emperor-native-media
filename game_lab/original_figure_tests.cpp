@@ -155,6 +155,34 @@ void authored(){
             "Pheasant action19 load image is cleared but first tick requires actual state transitions");
     }
     {
+        OriginalFigureProfile saved;saved.status=OriginalFigureStatus::Complete;saved.declared=saved.parsed=2000;
+        auto nonzero=one;nonzero.type=19;nonzero.secondaryImage=(38u<<14)|1;nonzero.frame=17;nonzero.hidden=1;
+        auto zero=one;zero.type=76;zero.runtimeClass=OriginalFigureClass::Pheasant;zero.slot=7;zero.image=0;
+        auto unknown=one;unknown.type=11;unknown.slot=8;
+        saved.live={unknown,zero,nonzero};const auto step=originalFigurePostLoadStep(saved);
+        need(step.accepted&&step.computed==2&&step.blocked==1&&step.figures.begin()->first==4,
+            "explicit post-load image step accounts for every live slot in ascending pool order");
+        need(step.figures.at(nonzero.slot).images==std::make_pair(0u,0u)&&step.figures.at(nonzero.slot).callbackVA==0x4d6cf0,
+            "post-load callback clears BOTH nonzero image words even for hidden figures");
+        need(step.figures.at(zero.slot).images==std::make_pair(0u,0u),"post-load zero stays zero before any first update");
+        need(!step.figures.at(unknown.slot).images&&step.figures.at(unknown.slot).status==OriginalFigurePostLoadStatus::CallbackUnspecified&&
+            step.figures.at(unknown.slot).callbackVA==0x4d6d30,"type11 callback effects stay unknown rather than retaining a snapshot");
+        need(saved.live[2].image==one.image&&saved.live[2].secondaryImage==((38u<<14)|1)&&saved.live[2].frame==17&&saved.live[2].hidden==1,
+            "post-load image projection preserves source image words and non-image saved state");
+        auto input=originalFigureImageInputs(one);input.type=19;
+        need(!originalFigurePostLoadImages(0,input).images&&!originalFigurePostLoadImages(2000,input).images,
+            "post-load callback pool excludes slot0 and slots beyond1999");
+        input.alive=0;need(!originalFigurePostLoadImages(4,input).images,"dead slots do not reach live callback pass");
+        input.alive=2;need(originalFigurePostLoadImages(4,input).images.has_value(),"post-load live gate is nonzero, not state1 only");
+        input.type=12;need(!originalFigurePostLoadImages(4,input).images&&
+            originalFigurePostLoadImages(4,input).status==OriginalFigurePostLoadStatus::TypeUnspecified,
+            "uncited type does not inherit clearing from neighbouring callback entries");
+        saved.live.push_back(nonzero);const auto duplicate=originalFigurePostLoadStep(saved);
+        need(!duplicate.accepted&&duplicate.figures.empty(),"duplicate pool identities publish no partial post-load step");
+        saved.live.pop_back();saved.parsed=1999;
+        need(!originalFigurePostLoadStep(saved).accepted,"incomplete parsed pool cannot run a post-load image step");
+    }
+    {
         // Exercise missing dependencies and amount thresholds without an oracle.
         auto group=archive;group.sprites.resize(200);group.numImages=200;
         group.imageIndex.fill(1);group.sprites[0].animationSpriteCount=12;group.sprites[0].animationDirections=8;
@@ -256,6 +284,8 @@ void corpus(){
     struct Score {size_t matched=0,total=0,selected=0;std::map<std::string,size_t> mismatch;};
     Score score,hiddenScore,cargoScore;size_t cargoNonzero=0,cargoNonzeroMatched=0;
     size_t zeroResolved=0,zeroBlocked=0,firstTickSelected=0,firstTickBlocked=0;std::map<unsigned,size_t> zeroTypes;
+    size_t postLoadComputed=0,postLoadBlocked=0,postLoadChanged=0,postLoadOracleMatched=0;
+    size_t postLoadPrimaryChanged=0,postLoadSecondaryChanged=0;std::map<unsigned,size_t> postLoadBlockedTypes;
     std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));need(save.readStable&&save.layers.figures.has_value(),"same-source stable figure profile");
@@ -263,6 +293,22 @@ void corpus(){
         const auto imageState=originalFigureImageState(figures);
         auto decoys=figures;for(auto& f:decoys.live){f.image=UINT32_MAX;f.secondaryImage=UINT32_MAX;}
         const auto decoyState=originalFigureImageState(decoys);
+        const auto postLoad=originalFigurePostLoadStep(figures),postLoadDecoys=originalFigurePostLoadStep(decoys);
+        need(postLoad.accepted&&postLoad.figures.size()==figures.live.size()&&
+            postLoad.computed+postLoad.blocked==figures.live.size(),"post-load step partitions every original live occurrence");
+        postLoadComputed+=postLoad.computed;postLoadBlocked+=postLoad.blocked;
+        for(const auto& f:figures.live){
+            const auto& after=postLoad.figures.at(f.slot);const auto& decoy=postLoadDecoys.figures.at(f.slot);
+            need(after.status==decoy.status&&after.callbackVA==decoy.callbackVA&&after.images==decoy.images,
+                "post-load image computation ignores both saved image words on every original figure");
+            if(!after.images){++postLoadBlockedTypes[f.type];
+                need(f.type==11&&after.status==OriginalFigurePostLoadStatus::CallbackUnspecified,
+                    "only documented type11 callback blocks supplied post-load images");continue;}
+            need(after.images->first==0&&after.images->second==0&&after.callbackVA==0x4d6cf0,
+                "documented clearing callback computes both original post-load image words");
+            if(f.image||f.secondaryImage)++postLoadChanged;else ++postLoadOracleMatched;
+            if(f.image)++postLoadPrimaryChanged;if(f.secondaryImage)++postLoadSecondaryChanged;
+        }
         need(figures.factionModels.has_value(),"complete following Goods1/Empire3/Grid15/child5 publishes faction models");
         std::vector<uint8_t> savedBytes;need(detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,savedBytes),"read original container for following-layout refusal checks");
         const auto payload=decodeOriginalMapContainer(savedBytes).payload;
@@ -365,6 +411,13 @@ void corpus(){
         std::cout<<"{\"figure_source\":"<<sources<<",\"slots\":"<<figures.declared<<",\"live\":"<<figures.live.size()<<",\"placed\":"<<view.figurePlaced<<",\"hidden\":"<<view.figureHidden<<",\"zero_image\":"<<view.figureZeroImage<<",\"unsupported\":"<<view.figureUnsupported<<",\"decoded_images\":"<<view.figureDecoded<<"}\n";
     }
     need(sources==6&&slots==12000&&live==192&&types.size()==20&&boundTypes.size()==18&&placed==158&&hidden==6&&zero==28&&unsupported==0&&decoded==174&&failures==0&&focused==158&&placedDecoded==158,"six-source original denominator");
+    need(postLoadComputed==175&&postLoadBlocked==17&&postLoadChanged==147&&postLoadOracleMatched==28&&
+        postLoadPrimaryChanged==147&&postLoadSecondaryChanged==16&&postLoadBlockedTypes.size()==1&&postLoadBlockedTypes[11]==17,
+        "post-load image step computes175/192, blocks17 type11; snapshot comparison partitions28 equal plus147 intentional clears");
+    std::cout<<"{\"post_load_step\":\"callback_images_before_simulation\",\"computed\":"<<postLoadComputed<<",\"live_total\":"<<live
+        <<",\"blocked\":"<<postLoadBlocked<<",\"blocked_types\":{\"11\":17},\"saved_word_comparison\":{\"equal_pairs\":"<<postLoadOracleMatched
+        <<",\"cleared_nonzero_pairs\":"<<postLoadChanged<<",\"primary_clears\":"<<postLoadPrimaryChanged<<",\"secondary_clears\":"<<postLoadSecondaryChanged
+        <<"},\"selected_nonzero\":0,\"decode_failures\":0,\"post_update_oracle\":\"unmeasured\"}\n";
     const auto printScore=[](const Score& item){
         std::cout<<"\"matched\":"<<item.matched<<",\"compared\":"<<item.total<<",\"selected\":"<<item.selected<<",\"mismatch\":{";
         bool first=true;for(const auto& entry:item.mismatch){if(!first)std::cout<<',';first=false;std::cout<<'"'<<entry.first<<"\":"<<entry.second;}std::cout<<'}';

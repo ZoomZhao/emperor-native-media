@@ -53,6 +53,45 @@ inline bool originalFigureImageClearedAtLoad(const OriginalFigureImageInputs& f)
     return (f.type==1&&f.runtimeClass==OriginalFigureClass::Figure)||
         (f.type==76&&f.runtimeClass==OriginalFigureClass::Pheasant);
 }
+// Explicit post-load step: only the two image words at the return of the
+// 0x4D6C40(1) callback pass, before any admitted simulation update. This is
+// separate from saved/forward snapshot rendering and is not a complete Figure
+// update. SAV_FIGURES.md records 0x4D6CF0 for these nineteen supplied types;
+// type11's different callback is named but its effects are not documented.
+enum class OriginalFigurePostLoadStatus {ImagesCleared,CallbackUnspecified,TypeUnspecified,OutsideLivePool};
+struct OriginalFigurePostLoadImages {
+    OriginalFigurePostLoadStatus status=OriginalFigurePostLoadStatus::TypeUnspecified;
+    uint32_t callbackVA=0;
+    // Absent means unknown, never "retain the saved image" or an implicit zero.
+    std::optional<std::pair<uint32_t,uint32_t>> images;
+};
+inline OriginalFigurePostLoadImages originalFigurePostLoadImages(size_t slot,const OriginalFigureImageInputs& f){
+    OriginalFigurePostLoadImages out;
+    if(!slot||slot>=2000||!f.alive){out.status=OriginalFigurePostLoadStatus::OutsideLivePool;return out;}
+    switch(f.type){
+    case 11:out.status=OriginalFigurePostLoadStatus::CallbackUnspecified;out.callbackVA=0x4d6d30;return out;
+    case 1:case 13:case 19:case 20:case 21:case 22:case 23:case 26:case 28:case 29:
+    case 30:case 34:case 35:case 36:case 39:case 40:case 45:case 47:case 76:
+        out.status=OriginalFigurePostLoadStatus::ImagesCleared;out.callbackVA=0x4d6cf0;
+        out.images=std::make_pair(0u,0u);return out;
+    default:return out;
+    }
+}
+struct OriginalFigurePostLoadStep {
+    bool accepted=false;
+    size_t computed=0,blocked=0;
+    // Ordered by slot, like the documented pool traversal. No overlays and no
+    // partially updated OriginalFigureProfile are published by this model.
+    std::map<size_t,OriginalFigurePostLoadImages> figures;
+};
+inline OriginalFigurePostLoadStep originalFigurePostLoadStep(const OriginalFigureProfile& saved){
+    OriginalFigurePostLoadStep out;
+    if(saved.status!=OriginalFigureStatus::Complete||saved.declared!=2000||saved.parsed!=2000||saved.live.size()>2000)return out;
+    for(const auto& f:saved.live)
+        if(!out.figures.emplace(f.slot,originalFigurePostLoadImages(f.slot,originalFigureImageInputs(f))).second)return {};
+    for(const auto& entry:out.figures){if(entry.second.images)++out.computed;else ++out.blocked;}
+    out.accepted=true;return out;
+}
 // Resolve T(code) from supplied SG metadata. 0x408170 and loader0x5CD51B..524:
 // lookup entries become physicalID-1, packed with startup archive slot<<14.
 // Refuse sparse preceding lookup slots (engine compacts these at load).

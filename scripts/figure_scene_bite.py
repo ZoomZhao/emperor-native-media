@@ -1,5 +1,6 @@
 """Private figure mutations must fail authored pixel/wire/index regressions."""
 from pathlib import Path
+import argparse
 import os
 import shutil
 import subprocess
@@ -9,6 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--only', help='Run one named mutation')
+    args = parser.parse_args()
     work = Path(tempfile.mkdtemp(prefix='figure-scene-bite-'))
     mutations = [
         ('index', 'original_building_scene.hpp', '(word&0x3fff)+1;', '(word&0x3fff)+201;'),
@@ -21,8 +25,13 @@ def main():
         ('attack', 'original_figure_image.hpp', 'code=distance>2?0x4ebf:0x4ec0;', 'code=distance>3?0x4ebf:0x4ec0;'),
         ('cargo', 'original_figure_image.hpp', 'goods->amount<=200?0:', 'goods->amount<200?0:'),
         ('first_tick', 'original_figure_image.hpp', 'f.frame=uint8_t(f.frame+1);', 'f.frame=uint8_t(f.frame);'),
+        ('post_load', 'original_figure_image.hpp', 'out.images=std::make_pair(0u,0u);', 'out.images=std::make_pair(0u,1u);'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
     ]
+    if args.only:
+        mutations = [mutation for mutation in mutations if mutation[0] == args.only]
+        if not mutations:
+            parser.error('unknown mutation: ' + args.only)
     env = dict(os.environ)
     env.pop('EMPEROR_GAMEDATA_ROOT', None)
     for name, header, before, after in mutations:
