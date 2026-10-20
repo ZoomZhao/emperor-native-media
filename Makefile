@@ -5,6 +5,11 @@ figure-scene-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py
 figure-scene-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --mode undefined
+.PHONY: scene-timeline-test scene-timeline-test-undefined scene-timeline-bite
+scene-timeline-test: figure-scene-test
+scene-timeline-test-undefined: figure-scene-test-undefined
+scene-timeline-bite:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only timeline_repeat
 game-app:
 	/bin/sh game_lab/app/build.sh
 run-game: game-app

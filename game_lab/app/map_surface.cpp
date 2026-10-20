@@ -59,6 +59,27 @@ bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const
 }
 bool AppMapSurface::selectPostLoadK1(const OriginalSaveResult& save,const std::vector<uint8_t>& payload){
     clear();
+    // Explicit preview premise: speed80, previous admission0, fresh animation
+    // clocks, one full-scene draw at the first admitted millisecond. This is
+    // not inferred from SAV. Callers with observations use selectPostLoadTimeline.
+    OriginalSceneTimelineFrame frame;frame.admission.speed=80;frame.continueAfterPass={false};
+    do {++frame.admission.now;}while(!originalFigureAdmission(frame.admission).admitted);
+    frame.animationClock=frame.admission.now;
+    std::vector<uint8_t> bytes;if(!detail::readFile(root_.resolve("Model/EmperorBuildingModels.txt"),1048576,bytes))return false;
+    const auto employment=parseOriginalBuildingEmployment(std::string(bytes.begin(),bytes.end()));if(!employment)return false;
+    const auto general=loadSG3(root_.resolve("DATA/China_General.sg3"));
+    const auto scene=composeOriginalBuildingScene(save.terrain,save.buildings,general,0,&*employment);if(!scene.accepted)return false;
+    for(const auto& p:scene.placed)if(p.components.size()==1&&general.sprites[p.binding.physicalId-1].animationSpriteCount&&
+        originalBuildingAnimationEnabled(p.footprint,&*employment)==true)frame.buildingDraws.push_back(p.footprint.slot);
+    const unsigned origin=(228-save.terrain.activeSide)/2;
+    for(unsigned diagonal=0;diagonal<2*save.terrain.activeSide-1;++diagonal)
+        for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
+            frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
+    return selectPostLoadTimeline(save,payload,{frame},0,{});
+}
+bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const std::vector<uint8_t>& payload,
+    const std::vector<OriginalSceneTimelineFrame>& suppliedFrames,uint32_t previousAdmission,OriginalAnimationClock clocks){
+    clear();
     if(save.status!=OriginalSaveStatus::LoadedSnapshot||!save.layers.figures||!save.layers.ground||!save.layers.ground->valid())return false;
     const auto& figures=*save.layers.figures;const auto& ground=*save.layers.ground;
     std::vector<uint8_t> bytes;
@@ -80,9 +101,15 @@ bool AppMapSurface::selectPostLoadK1(const OriginalSaveResult& save,const std::v
     const auto passability=originalFigurePheasantPassability(save.terrain,save.layers.mapperStone,save.buildings,*spawn);
     std::map<uint32_t,SG3Archive> owned;std::map<uint32_t,const SG3Archive*> refs;
     for(unsigned slot:{14u,38u,39u,40u}){owned.emplace(slot,loadSG3(root_.resolve(std::string("DATA/")+originalFigureArchiveName(slot))));refs[slot]=&owned.at(slot);}
-    const auto pass=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,
+    const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,
         &*hunters,&*buildings,*models,spawn->cropBase,masks?*masks:std::vector<uint16_t>{},&context);
-    return selectSavedBuildings(save.terrain,save.buildings,&ground,0,&figures,OriginalFigureRenderSource::PostLoadK1,&pass);
+    if(!initial.context||!selectSavedBuildings(save.terrain,save.buildings,&ground,0,&figures))return false;
+    const auto employment=parseOriginalBuildingEmployment(std::string(bytes.begin(),bytes.end()));
+    if(!employment){clear();return false;}
+    const auto timeline=originalSceneTimeline(*initial.context,refs,*savedBuildings_,archives_.at(2).index,&*employment,previousAdmission,clocks,suppliedFrames);
+    if(!timeline.complete||!installOriginalSceneTimeline(*savedBuildings_,save.terrain,figures,refs,save.buildings,archives_.at(2).index,timeline)){
+        clear();error_="post-load timeline: "+timeline.refusal+" (update "+std::to_string(timeline.refusedUpdate)+")";return false;}
+    return true;
 }
 OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapCamera& camera,int bit)const{
     if(!savedBuildings_||!archives_.count(2))return {};

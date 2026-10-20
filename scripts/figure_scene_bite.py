@@ -60,6 +60,11 @@ def main():
         ('worker_removal', 'original_figure_update.hpp', 'reset.priorProgress=f.priorProgress;', 'reset.priorProgress=0;'),
         ('load_population', 'original_figure_update.hpp', 'services.population->total=int32_t(total);', 'services.population->total+=int32_t(total);'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
+        ('effect_draw_cell', 'original_figure.hpp', '(f.type==1?229u:0u)', '(f.type==1?228u:0u)'),
+        ('effect_extra_height', 'original_figure.hpp', 'x+y-int(f.raise)+f.extraY-int(f.height)', 'x+y-int(f.raise)+f.extraY'),
+        ('animation_clock', 'original_building_animation.hpp', 'uint32_t(20*k)', 'uint32_t(19*k)'),
+        ('timeline_repeat', 'original_scene_timeline.hpp', 'context=*out.lastPass.context;++out.updates;', 'context=initial;++out.updates;'),
+        ('timeline_draw', 'original_scene_timeline.hpp', 'out.animationClock.flags);', 'std::array<bool,51>{});'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]

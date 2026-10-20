@@ -1763,7 +1763,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                             detail+="对象层解码 "+std::to_string(scene.overlayDecoded)+"/"+std::to_string(scene.overlayObjects)+"；失败 "+std::to_string(scene.overlayDecodeFailures+scene.overlayInvalid)+"；当前视口绘制 "+std::to_string(scene.overlayDrawn)+" 个。\n";
                             detail+="建筑动画条件通过 "+std::to_string(scene.animationEnabled)+"/"+std::to_string(scene.animationCandidates)+"；帧解码 "+std::to_string(scene.animationDecoded)+"/"+std::to_string(scene.animationSelected)+"；条件未知 "+std::to_string(scene.animationUnknown)+"，无效 "+std::to_string(scene.animationInvalid)+"。时间输入 tick=0，使用 SAV 保存的格子相位。\n";
                             detail+="人物放置 "+std::to_string(scene.figurePlaced)+"/"+std::to_string(scene.figureLive)+"；图像解码 "+std::to_string(scene.figureDecoded)+"；隐藏 "+std::to_string(scene.figureHidden)+"，图像为零 "+std::to_string(scene.figureZeroImage)+"，不支持 "+std::to_string(scene.figureUnsupported)+"。\n";
-                            detail+=scene.figurePostLoadK1?"post-load k=1：恰好一次获准更新后的首次绘制；原版 k 依墙上时钟，未快进时 k∈{0,1}。建筑动画保留 tick 0。\n":"Saved snapshot：人物使用 tick=0 保存图像。\n";
+                            if(scene.timelineUpdates)detail+="post-load timeline："+std::to_string(*scene.timelineUpdates)+" 次获准更新 / "+std::to_string(scene.timelineFrames)+" 次显式绘制。k=1 预览使用 speed 80、时钟从 0 开始、37 ms 首次绘制；原版时刻未测。\n";
+                            else detail+=scene.figurePostLoadK1?"post-load k=1：一次显式人物更新；未指定建筑绘制时钟。\n":"Saved snapshot：人物使用 tick=0 保存图像。\n";
                             if(scene.figureRemoved)detail+="本次更新后移除 "+std::to_string(scene.figureRemoved)+" 人物。\n";
                             detail+="地面与建筑来自同一 SAV；按 view0 角格及对角线顺序绘制。未知处保留数值地形。阴影、高程遮挡及原版画面对照未验证；不是运行中的城市。\n";
                             text+="；基座及静态对象 "+std::to_string(scene.placedRecords)+"/"+std::to_string(scene.liveRecords)+"，未绑定 "+std::to_string(scene.withheldRecords);

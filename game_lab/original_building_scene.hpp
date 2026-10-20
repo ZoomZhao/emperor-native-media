@@ -72,6 +72,8 @@ struct OriginalBuildingScene {
     std::map<std::string,size_t> figureForwardMismatch;
     size_t figureZeroResolved=0,figureZeroBlocked=0;
     bool figurePostLoadK1=false;
+    std::optional<unsigned> timelineUpdates;
+    size_t timelineFrames=0;
     size_t figureRemoved=0;
     // Explicit first-tick diagnostics, never overlay commands or saved oracles.
     std::map<size_t,OriginalFigureImageSelection> figureFirstTickImages;
@@ -112,16 +114,19 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
     scene.figureForwardMatched=scene.figureForwardCompared=scene.figureForwardSelected=0;scene.figureForwardMismatch.clear();
     scene.figureZeroResolved=scene.figureZeroBlocked=0;scene.figureFirstTickImages.clear();
     scene.figurePostLoadK1=false;
+    scene.timelineUpdates.reset();scene.timelineFrames=0;
     scene.figureRemoved=0;
     scene.figureLive=figures.live.size();const size_t origin=(228-terrain.activeSide)/2;
     const auto imageState=originalFigureImageState(figures);
     std::map<size_t,const OriginalFigure*> bySlot;
     for(const auto& f:figures.live)if(f.slot>=8192||!bySlot.emplace(f.slot,&f).second){scene.figureUnsupported=scene.figureLive;return;}
+    //4EA3B0->418450->418430: kind13 is linked one diagonal cell
+    // forward in view0 (table7AB3B8=229), while+28 stays the logical cell.
     const auto linked=[&](const OriginalFigure& f){
-        if(figures.cellHeads.size()!=51984||f.cell>=51984)return false;
-        size_t slot=figures.cellHeads[f.cell];std::set<size_t> visited;bool reached=false;
+        if(figures.cellHeads.size()!=51984||originalFigureDrawCell(f)>=51984)return false;
+        size_t slot=figures.cellHeads[size_t(originalFigureDrawCell(f))];std::set<size_t> visited;bool reached=false;
         while(slot){if(visited.size()>=50||!visited.insert(slot).second)return false;const auto found=bySlot.find(slot);
-            if(found==bySlot.end()||found->second->cell!=f.cell)return false;
+            if(found==bySlot.end()||originalFigureDrawCell(*found->second)!=originalFigureDrawCell(f))return false;
             reached|=slot==f.slot;slot=found->second->next;
         }return reached;
     };
@@ -148,7 +153,8 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
             ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
         }
         const auto sub=originalFigureSubcell(f);
-        if(tickMs||figures.savedView||!sub||f.x<0||f.y<0||f.x>=int(terrain.activeSide)||f.y>=int(terrain.activeSide)||
+        const int anchorX=int(f.x)+(f.type==1),anchorY=int(f.y)+(f.type==1);
+        if(tickMs||figures.savedView||!sub||f.x<0||f.y<0||anchorX>=int(terrain.activeSide)||anchorY>=int(terrain.activeSide)||
            f.cell!=(origin+f.y)*228+origin+f.x||(terrain.flags[f.cell]&0x80000u)||!linked(f)||f.drawClass||f.state85==101){
             ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
         }
@@ -157,7 +163,9 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
             ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
         }
         std::vector<OriginalSceneOverlay> selected;
-        const int score=f.alive==1&&f.action!=4?sub->second+(f.freeMovement?int(f.raise):int(f.height)):-100;
+        const auto depthScore=originalFigureDepthScore(f);
+        if(!depthScore){++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;}
+        const int score=*depthScore;
         const size_t sequence=size_t(score+128)*8192*2+f.slot*2;
         const auto add=[&](uint32_t word,int ox,int oy,size_t order){
             const uint32_t slot=word>>14;const auto name=originalFigureArchiveName(slot);const auto found=archives.find(slot);
@@ -172,8 +180,8 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
             //41=half-width39+2;30=half-height20+10 (0x469820,
             //0x46BC1C..93). Original subtracts the SELECTED sprite offsets,
             // even for mirrored payloads. This is independent of image width.
-            selected.push_back({std::string("DATA/")+name,id,slot,uint16_t(f.x),uint16_t(f.y),
-                ox-s.animationOffsetX,oy-s.animationOffsetY,{uint32_t(f.x+f.y),uint32_t(f.x),3,order},f.type,4,f.slot});
+            selected.push_back({std::string("DATA/")+name,id,slot,uint16_t(anchorX),uint16_t(anchorY),
+                ox-s.animationOffsetX,oy-s.animationOffsetY,{uint32_t(anchorX+anchorY),uint32_t(anchorX),3,order},f.type,4,f.slot});
             return true;
         };
         int baseline=30;
@@ -380,6 +388,8 @@ struct OriginalBuildingSceneView {
     std::map<std::string,size_t> figureForwardMismatch;
     size_t figureZeroResolved=0,figureZeroBlocked=0;
     bool figurePostLoadK1=false;
+    std::optional<unsigned> timelineUpdates;
+    size_t timelineFrames=0;
     size_t figureRemoved=0;
     std::map<size_t,OriginalFigureImageSelection> figureFirstTickImages;
 };
@@ -463,6 +473,7 @@ inline OriginalBuildingSceneView renderOriginalBuildingScene(const OriginalMapTe
     out.figureForwardSelected=scene.figureForwardSelected;out.figureForwardMismatch=scene.figureForwardMismatch;
     out.figureZeroResolved=scene.figureZeroResolved;out.figureZeroBlocked=scene.figureZeroBlocked;
     out.figurePostLoadK1=scene.figurePostLoadK1;
+    out.timelineUpdates=scene.timelineUpdates;out.timelineFrames=scene.timelineFrames;
     out.figureRemoved=scene.figureRemoved;
     out.figureFirstTickImages=scene.figureFirstTickImages;
     out.figureZeroImage=scene.figureZeroImage;out.figureUnsupported=scene.figureUnsupported;

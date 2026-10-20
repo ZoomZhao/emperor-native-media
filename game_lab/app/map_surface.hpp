@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #pragma once
+#include "../original_scene_timeline.hpp"
 #include "../map_reference.hpp"
 #include "../original_building_scene.hpp"
 #include "../resource_root.hpp"
@@ -42,6 +43,8 @@ public:
     bool select(const OriginalMapSource&,const OriginalMapTerrain& expected);
     bool selectSavedBuildings(const OriginalMapTerrain&,const OriginalBuildingProfile&,const OriginalSavedGround* ground=nullptr,uint64_t tickMs=0,const OriginalFigureProfile* figures=nullptr,OriginalFigureRenderSource figureSource=OriginalFigureRenderSource::Saved,const OriginalFigureOrderedPass* ordered=nullptr);
     bool selectPostLoadK1(const OriginalSaveResult&,const std::vector<uint8_t>& decodedPayload);
+    bool selectPostLoadTimeline(const OriginalSaveResult&,const std::vector<uint8_t>& decodedPayload,
+        const std::vector<OriginalSceneTimelineFrame>&,uint32_t previousAdmission,OriginalAnimationClock);
     OriginalBuildingSceneView renderSavedBuildings(const OriginalMapCamera&,int bit=-1) const;
     bool available() const { return state_.has_value(); }
     const std::string& error() const { return error_; }

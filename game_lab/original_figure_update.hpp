@@ -1126,31 +1126,14 @@ inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUp
 // The prepass0x4E2804..2818 resets/recounts external query counters,without
 // changing Figure fields read by the currently supported virtual updates.
 // No completed city/world pass is asserted when any virtual call is refused.
-inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFigureProfile& profile,
-    const std::map<uint32_t,const SG3Archive*>& archives,const std::vector<uint32_t>& terrainFlags,
-    const std::map<unsigned,int>& modelSpeeds={},const OriginalFigureSavedServices* services=nullptr,
-    const OriginalFigurePassability* passability=nullptr,const std::map<size_t,OriginalFigureHunterLink>* hunterLinks=nullptr,
-    const std::map<size_t,OriginalFigureBuildingLink>* buildings=nullptr,
-    const std::map<unsigned,std::array<int32_t,18>>& models={},std::optional<uint32_t> cropBase=std::nullopt,
-    const std::vector<uint16_t>& movementMasks={},const OriginalFigureUpdateContext* additional=nullptr){
-    OriginalFigureOrderedPass out;auto context=originalFigureUpdateContext(profile);
-    auto canonical=profile;canonical.live.clear();
-    for(const auto& f:profile.slots)if(f.alive)canonical.live.push_back(f);
-    const auto callbacks=originalFigurePostLoadStep(canonical,archives);
-    if(!context||!callbacks.accepted||callbacks.blocked||terrainFlags.size()!=51984)return out;
-    context->modelSpeeds=modelSpeeds;
-    if(services)context->services=*services;
-    if(passability)context->passability=*passability;
-    if(hunterLinks)context->hunterLinks=*hunterLinks;
-    if(buildings)context->buildings=*buildings;context->models=models;context->terrain=terrainFlags;context->cropBase=cropBase;
-    context->movementMasks=movementMasks;
-    if(additional){context->houseCapacities=additional->houseCapacities;context->buildingOwners=additional->buildingOwners;
-        context->feature=additional->feature;context->activeSide=additional->activeSide;context->festivalVenue=additional->festivalVenue;
-        context->entertainmentAvailable=additional->entertainmentAvailable;}
-    if(context->services&&context->services->population&&context->buildings&&
-        !originalFigurePopulationAfterLoad(*context->services,*context->buildings))return out;
-    for(const auto& entry:callbacks.figures){auto& f=context->figures.at(entry.first);
-        f.image=entry.second.images->first;f.secondaryImage=entry.second.images->second;}
+inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFigureUpdateContext& prior,
+    const std::map<uint32_t,const SG3Archive*>& archives){
+    OriginalFigureOrderedPass out;
+    if(prior.figures.size()!=2000||prior.terrain.size()!=51984)return out;
+    for(size_t slot=0;slot<2000;++slot){const auto found=prior.figures.find(slot);
+        if(found==prior.figures.end()||found->second.slot!=slot)return out;}
+    auto context=std::optional<OriginalFigureUpdateContext>(prior);
+    const auto& terrainFlags=context->terrain;
     out.accepted=true;bool priorBlocked=false;
     for(size_t slot=1;slot<2000;++slot){auto f=context->figures.at(slot);if(!f.alive)continue;
         OriginalFigureFirstUpdate result;
@@ -1167,7 +1150,7 @@ inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFi
             else if(f.updateOwner){result.status=OriginalFigureUpdateStatus::Computed;result.state=f;}
             else if(f.alive!=1){result.status=OriginalFigureUpdateStatus::PoolRemoval;}
             else {
-                ++f.age; //unsigned32 increment and >19584 goods lifetime test.
+                ++f.age;
                 if(f.age>19584&&(f.type==19||f.type==21||f.type==22))result.status=OriginalFigureUpdateStatus::PoolRemoval;
                 else if(f.leaderLink&& !context->figures.count(size_t(f.leaderLink)))result.status=OriginalFigureUpdateStatus::DispatchGate;
                 else {
@@ -1195,8 +1178,6 @@ inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFi
         out.figures.emplace(slot,std::move(result));
     }
     out.prefixComputed=out.computed;out.complete=!out.blocked;
-    // A later follower may write an earlier leader's+66. Only a complete pass
-    // publishes final states. Incomplete prefix progress remains diagnostic.
     for(auto& entry:out.figures)if(entry.second.state){
         if(out.complete)entry.second.state=context->figures.at(entry.first);
         else {entry.second.state.reset();entry.second.services.reset();entry.second.buildings.reset();entry.second.cellHeads.reset();entry.second.linkedWrites.clear();
@@ -1204,6 +1185,44 @@ inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFi
     if(out.complete)out.context=std::move(context);
     else {out.blocked+=out.computed;out.computed=0;}
     return out;
+}
+inline OriginalFigureOrderedPass originalFigurePostLoadContext(const OriginalFigureProfile& profile,
+    const std::map<uint32_t,const SG3Archive*>& archives,const std::vector<uint32_t>& terrainFlags,
+    const std::map<unsigned,int>& modelSpeeds={},const OriginalFigureSavedServices* services=nullptr,
+    const OriginalFigurePassability* passability=nullptr,const std::map<size_t,OriginalFigureHunterLink>* hunterLinks=nullptr,
+    const std::map<size_t,OriginalFigureBuildingLink>* buildings=nullptr,
+    const std::map<unsigned,std::array<int32_t,18>>& models={},std::optional<uint32_t> cropBase=std::nullopt,
+    const std::vector<uint16_t>& movementMasks={},const OriginalFigureUpdateContext* additional=nullptr){
+    OriginalFigureOrderedPass out;auto context=originalFigureUpdateContext(profile);
+    auto canonical=profile;canonical.live.clear();
+    for(const auto& f:profile.slots)if(f.alive)canonical.live.push_back(f);
+    const auto callbacks=originalFigurePostLoadStep(canonical,archives);
+    if(!context||!callbacks.accepted||callbacks.blocked||terrainFlags.size()!=51984)return out;
+    context->modelSpeeds=modelSpeeds;
+    if(services)context->services=*services;
+    if(passability)context->passability=*passability;
+    if(hunterLinks)context->hunterLinks=*hunterLinks;
+    if(buildings)context->buildings=*buildings;context->models=models;context->terrain=terrainFlags;context->cropBase=cropBase;
+    context->movementMasks=movementMasks;
+    if(additional){context->houseCapacities=additional->houseCapacities;context->buildingOwners=additional->buildingOwners;
+        context->feature=additional->feature;context->activeSide=additional->activeSide;context->festivalVenue=additional->festivalVenue;
+        context->entertainmentAvailable=additional->entertainmentAvailable;}
+    if(context->services&&context->services->population&&context->buildings&&
+        !originalFigurePopulationAfterLoad(*context->services,*context->buildings))return out;
+    for(const auto& entry:callbacks.figures){auto& f=context->figures.at(entry.first);
+        f.image=entry.second.images->first;f.secondaryImage=entry.second.images->second;}
+    out.accepted=out.complete=true;out.computed=callbacks.computed;out.context=std::move(context);return out;
+}
+inline OriginalFigureOrderedPass originalFigureOrderedFirstPass(const OriginalFigureProfile& profile,
+    const std::map<uint32_t,const SG3Archive*>& archives,const std::vector<uint32_t>& terrainFlags,
+    const std::map<unsigned,int>& modelSpeeds={},const OriginalFigureSavedServices* services=nullptr,
+    const OriginalFigurePassability* passability=nullptr,const std::map<size_t,OriginalFigureHunterLink>* hunterLinks=nullptr,
+    const std::map<size_t,OriginalFigureBuildingLink>* buildings=nullptr,
+    const std::map<unsigned,std::array<int32_t,18>>& models={},std::optional<uint32_t> cropBase=std::nullopt,
+    const std::vector<uint16_t>& movementMasks={},const OriginalFigureUpdateContext* additional=nullptr){
+    auto initial=originalFigurePostLoadContext(profile,archives,terrainFlags,modelSpeeds,services,passability,hunterLinks,buildings,
+        models,cropBase,movementMasks,additional);
+    if(!initial.context)return initial;return originalFigureOrderedNextPass(*initial.context,archives);
 }
 // Opt-in post-callback state after explicit k admitted virtual updates. For
 // context-dependent figures k>1 needs intervening pool/world mutations, which

@@ -1,5 +1,6 @@
 #include "original_building_scene.hpp"
 #include "original_figure_update.hpp"
+#include "original_scene_timeline.hpp"
 #include "original_pak.hpp"
 #include "app/map_surface.hpp"
 #include <cstdlib>
@@ -33,6 +34,11 @@ void authored(){
     f.freeMovement=1;f.subX=47;f.subY=62;f.raise=3;
     need(originalFigureSubcell(f)==std::make_pair(10,6),"free movement modulo20 projected from independent (7,2) example");
     f.subX=-1;need(!originalFigureSubcell(f),"negative modulo table address refused");
+    {auto effect=f;effect.type=1;effect.effectKind=13;effect.effectFlags=0x24;effect.alive=1;
+        effect.subX=47;effect.subY=62;effect.raise=31;effect.height=4;effect.extraX=-6;effect.extraY=9;
+        need(originalFigureSubcell(effect)==std::make_pair(4,-17)&&originalFigureDepthScore(effect)==9,
+            "kind13 free placement includes signed extras and both heights while depth ignores all visual offsets");
+        effect.action=4;need(originalFigureDepthScore(effect)==-100,"kind13 death depth uses the same minus100 gate");}
     // Literal source wire offsets, decoy values in adjacent enum bytes.
     std::vector<uint8_t> bytes{1,0,1,0,0,0,255,255,0,0,6,0,'F','i','g','u','r','e',7,0};
     std::array<uint8_t,408> raw{};raw[18]=11;raw[22]=1;raw[5]=7;raw[25]=3;raw[26]=6;raw[64]=17;raw[65]=9;
@@ -661,7 +667,42 @@ void authored(){
         need(ordered.accepted&&ordered.complete&&ordered.computed==2&&ordered.blocked==0&&ordered.figures.at(1).state->age==0&&
             ordered.figures.at(1).state->reciprocalTarget==0&&ordered.figures.at(1).state->priorProgress==20&&
             ordered.figures.at(1).state->follower==2&&ordered.figures.at(2).state->follower==1&&ordered.figures.at(2).state->age==6,
-            "ordered pass wraps age, validates reciprocal link and retains later follower writes to earlier slots");
+             "ordered pass wraps age, validates reciprocal link and retains later follower writes to earlier slots");
+        const auto repeated=originalFigureOrderedNextPass(*ordered.context,supplied);
+        need(repeated.complete&&repeated.context->figures.at(1).age==1&&repeated.context->figures.at(2).age==7&&
+            repeated.context->figures.at(1).frame==uint8_t(ordered.context->figures.at(1).frame+1),
+            "next ordered pass retains prior state and advances age/frame without replaying load callbacks");
+        auto drawContext=*ordered.context;drawContext.cellHeads.assign(51984,0);
+        drawContext.figures.at(1).cell=drawContext.figures.at(2).cell=one.cell;
+        drawContext.figures.at(1).progress=20;drawContext.figures.at(2).progress=0;drawContext.figures.at(2).direction=0;
+        drawContext.cellHeads[one.cell]=1;drawContext.figures.at(1).next=2;
+        need(originalFigureSortDrawCell(drawContext,one.cell)&&drawContext.cellHeads[one.cell]==2&&drawContext.figures.at(2).next==1&&
+            drawContext.figures.at(1).next==0,"draw sorts and persists cell heads and next links before a later ordered update");
+        OriginalBuildingScene empty;empty.accepted=true;empty.surface.terrain=flags;OriginalSceneTimelineFrame frame;
+        frame.animationClock=37;frame.admission.now=37;frame.admission.speed=80;frame.continueAfterPass={false};
+        const auto timeline=originalSceneTimeline(*ordered.context,supplied,empty,group,nullptr,0,{}, {frame});
+        need(timeline.complete&&timeline.updates==1&&timeline.context->figures.at(1).age==1,
+            "explicit timeline uses admitted37ms update and the current pool rather than saved inputs");
+        frame.admission.now=36;const auto denied=originalSceneTimeline(*ordered.context,supplied,empty,group,nullptr,0,{}, {frame});
+        need(denied.complete&&!denied.updates&&denied.context->figures.at(1).age==0,
+            "timeline draw at36ms does not admit speed80 update");
+        frame.admission.now=37;frame.continueAfterPass.clear();
+        need(!originalSceneTimeline(*ordered.context,supplied,empty,group,nullptr,0,{}, {frame}).complete,
+            "timeline withholds outputs when the admitted loop observation is absent");
+        // Two updates in one fast-forward frame still make only one building
+        // draw; two separate frames can make two draws with the same speed flag.
+        auto animated=empty;auto footprint=OriginalBuildingFootprint{};footprint.slot=8;footprint.type=0x7c;footprint.size=1;
+        footprint.animationInputs=OriginalBuildingAnimationInputs{1,0,0,uint8_t(1),uint8_t(0),uint16_t(8)};
+        OriginalBuildingPlacement placement;placement.footprint=footprint;placement.binding.physicalId=1;placement.components.resize(1);
+        animated.placed.push_back(placement);group.sprites[0].animationSpeedId=0;
+        OriginalBuildingEmployment employment{{0x7c,0}};frame.continueAfterPass={true,false};frame.buildingDraws={8};
+        const auto fast=originalSceneTimeline(*ordered.context,supplied,animated,group,&employment,0,{}, {frame});
+        need(fast.complete&&fast.updates==2&&fast.buildingPhases.at(8)==2&&fast.buildingDraws==1&&
+            fast.context->figures.at(1).age==2,"two admitted fast-forward passes advance figures twice but speed0 building once per observed draw");
+        frame.continueAfterPass={false};auto later=frame;later.animationClock=later.admission.now=74;
+        const auto regular=originalSceneTimeline(*ordered.context,supplied,animated,group,&employment,0,{}, {frame,later});
+        need(regular.complete&&regular.updates==2&&regular.buildingPhases.at(8)==3&&regular.buildingDraws==2,
+            "same two updates with two observed draws produce a distinct building phase on one explicit timeline");
         profile.slots[1].leaderLink=1;profile.slots[2].leaderLink=0;
         need(originalFigureOrderedFirstPass(profile,supplied,flags).figures.at(1).state->follower==1,
             "self leader link writes follower on the same record before virtual dispatch");
@@ -677,6 +718,23 @@ void authored(){
         need(laterBlocked.prefixComputed==1&&laterBlocked.computed==0&&laterBlocked.blocked==2&&!laterBlocked.context&&
             laterBlocked.figures.at(1).status==OriginalFigureUpdateStatus::LaterSlotEffects&&!laterBlocked.figures.at(1).state,
             "unknown later updater withholds earlier prefix as final pass state because linked writes may return to it");
+    }
+    {
+        OriginalAnimationClock clock;clock=originalAnimationClockFrame(clock,79);
+        need(clock.flags[0]&&clock.flags[3]&&!clock.flags[4]&&clock.last[4]==0,"shared clock79 fires speed3 but not speed4");
+        clock=originalAnimationClockFrame(clock,80);
+        need(clock.flags[4]&&!clock.flags[3]&&clock.last[4]==80,"shared clock equality fires without catching up other slots");
+        clock.last.fill(0x7ffffff0);clock=originalAnimationClockFrame(clock,0x7fffffff);
+        need(clock.flags[1]&&clock.last[1]==0x7fffffff,"animation signed comparison follows wrapped last plus20");
+        SG3Sprite sprite;sprite.animationSpriteCount=3;sprite.animationSpeedId=0;sprite.animationReversible=1;
+        std::array<bool,51> flags{};flags[0]=true;uint8_t phase=0;
+        for(uint8_t expected:{1,2,3,131,130,129,1}){phase=*originalBuildingAnimationDraw(sprite,phase,flags);
+            need(phase==expected,"explicit building draw repeats each reversible endpoint including speed0");}
+        flags[0]=false;need(originalBuildingAnimationDraw(sprite,phase,flags)==phase,"ineligible draw preserves building phase");
+        sprite.animationReversible=0;sprite.animationSpeedId=5;phase=0;OriginalAnimationClock irregular;
+        for(uint32_t now:{99u,100u,999u}){irregular=originalAnimationClockFrame(irregular,now);
+            phase=*originalBuildingAnimationDraw(sprite,phase,irregular.flags);}
+        need(phase==2&&irregular.last[5]==999,"long gap advances once per draw without elapsed-time catch-up");
     }
     {
         OriginalFigureSchedulerGlobals live;live.previousClock=1234;live.speed=70;live.fastForward=true;live.paused=true;
@@ -733,6 +791,28 @@ void authored(){
         need(view.image.pixelsBGRA[top*200+left-1]!=0xffff0000u,"sprite left edge is exact");
     }
     camera.scale=1;auto ordered=scene;
+    {
+        auto effects=figures;auto& effect=effects.live[0];effect.type=1;effect.image=14u<<14;effect.effectKind=13;effect.effectFlags=0x24;
+        effect.freeMovement=1;effect.subX=7;effect.subY=2;effect.raise=31;effect.height=4;effect.extraX=-6;effect.extraY=9;
+        effects.cellHeads[one.cell]=0;effects.cellHeads[one.cell+229]=effect.slot;
+        auto composed=composeOriginalBuildingScene(terrain,buildings,archive);
+        const std::map<uint32_t,const SG3Archive*> ambient{{14,&archive}};
+        installOriginalFigureOverlays(composed,terrain,effects,ambient);
+        need(composed.figurePlaced==1&&composed.overlays[0].anchorX==1&&composed.overlays[0].anchorY==1&&
+            composed.overlays[0].offsetX==35&&composed.overlays[0].offsetY==-32,
+            "kind13 follows the view0 diagonal draw-cell list and exact selected sprite offsets");
+        const std::vector<MapImageGridTileset> resources{{14,&archive,file.string(),1}};
+        auto view=renderOriginalBuildingScene(terrain,composed,archive,file.string(),camera,-1,resources);
+        need(view.figureDecoded==1&&view.overlayDrawn==1&&view.image.pixelsBGRA[88*200+96]==0xffff0000u&&
+            view.image.pixelsBGRA[88*200+95]!=0xffff0000u,"kind13 paints exact pixel anchor after diagonal scan displacement");
+        camera.width=100;camera.height=100;camera.centerX=1.6;camera.centerY=0;
+        view=renderOriginalBuildingScene(terrain,composed,archive,file.string(),camera,-1,resources);
+        need(view.overlayDrawn==1&&view.figureDecoded==1&&view.image.pixelsBGRA[20*100+11]==0xffff0000u&&
+            view.image.pixelsBGRA[20*100+12]!=0xffff0000u,"kind13 partially clipped sprite keeps twelve visible source columns");
+        camera.width=200;camera.height=200;camera.centerX=camera.centerY=0;
+        effects.live[0].image=0;installOriginalFigureOverlays(composed,terrain,effects,ambient);
+        need(composed.figurePlaced==0&&composed.figureZeroImage==1,"kind13 saved image zero never selects a future frame for playback");
+    }
     ordered.overlays.push_back({"DATA/China_General.sg3",2,2,0,0,31,-15,{0,0,2,0},0,3,1});
     auto rendered=renderOriginalBuildingScene(terrain,ordered,archive,file.string(),camera,-1,tilesets);
     need(rendered.image.pixelsBGRA[65*200+92]==0xffff0000u,"figure pixel follows same-cell building animation");
@@ -889,6 +969,9 @@ void corpus(){
     std::map<unsigned,size_t> orderedComputedTypes,orderedBlockedTypes;std::map<std::string,size_t> orderedBlockers;
     std::array<size_t,6> individualBySource{},orderedBySource{},prefixBySource{};
     size_t k1Placed=0,k1Decoded=0,k1Hidden=0,k1Unsupported=0,k1Removed=0,k1Overlays=0,k1Animation=0,k1Objects=0;
+    struct TimelineScore {size_t pools=0,computed=0,placed=0,decoded=0,consistent=0,primary=0,animation=0,animationCandidates=0,animationAdvanced=0,animationChanged=0;
+        std::map<std::string,size_t> refusals;};
+    std::map<unsigned,TimelineScore> timelineScores;
     std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));need(save.readStable&&save.layers.figures.has_value(),"same-source stable figure profile");
@@ -980,11 +1063,63 @@ void corpus(){
         std::cout<<"{\"ordered_source\":"<<sources<<",\"complete\":"<<(ordered.complete?"true":"false")<<",\"computed\":"<<ordered.computed<<",\"prefix\":"<<ordered.prefixComputed<<",\"live\":"<<figures.live.size()<<",\"first_blocked_slot\":"<<ordered.firstBlockedSlot;
         if(ordered.firstBlockedSlot)std::cout<<",\"first_blocker\":\""<<originalFigureUpdateStatusName(ordered.figures.at(ordered.firstBlockedSlot).status)<<'"';
         std::cout<<"}\n";
+        const auto general=loadSG3(root.resolve("DATA/China_General.sg3"));
+        const auto employment=parseOriginalBuildingEmployment(std::string(buildingModel.begin(),buildingModel.end()));
+        need(bool(employment),"complete employment model supplies timeline building gates");
+        auto timelineScene=composeOriginalBuildingScene(save.terrain,save.buildings,general,0,&*employment);
+        const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,
+            &*hunterLinks,&*buildingLinks,*models,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{},&*updateContext);
+        need(initial.complete&&initial.context.has_value(),"timeline initializes callbacks/population exactly once");
+        for(unsigned n:{1u,2u,5u,10u,50u}){
+            std::vector<OriginalSceneTimelineFrame> frames;
+            for(unsigned k=1;k<=n;++k){OriginalSceneTimelineFrame frame;frame.animationClock=37*k;
+                frame.admission.now=37*k;frame.admission.speed=80;frame.continueAfterPass={false};
+                for(const auto& p:timelineScene.placed)if(p.components.size()==1&&general.sprites[p.binding.physicalId-1].animationSpriteCount&&
+                    originalBuildingAnimationEnabled(p.footprint,&*employment)==true)frame.buildingDraws.push_back(p.footprint.slot);
+                frames.push_back(frame);}
+            // Full active-crop draw premise, including empty cells which an
+            // admitted movement may populate. Original view0 scan order.
+            const unsigned origin=(228-save.terrain.activeSide)/2;
+            for(auto& frame:frames)for(unsigned diagonal=0;diagonal<2*save.terrain.activeSide-1;++diagonal)
+                for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
+                    frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
+            const auto timeline=originalSceneTimeline(*initial.context,refs,timelineScene,general,&*employment,0,{},frames);
+            constexpr unsigned firstFailure[]={2,2,2,4,0,6};constexpr size_t firstSlot[]={1,1686,286,19,0,18};
+            const unsigned expected=firstFailure[sources-1];
+            need(timeline.complete==(!expected||n<expected)&&timeline.updates==(expected&&n>=expected?expected-1:n)&&
+                timeline.refusedUpdate==(expected&&n>=expected?expected:0)&&timeline.lastPass.firstBlockedSlot==(expected&&n>=expected?firstSlot[sources-1]:0),
+                "six original timelines retain independently recorded first refusal boundaries and stop there");
+            auto& total=timelineScores[n];total.animationCandidates+=timelineScene.animationEnabled;
+            std::cout<<"{\"timeline_source\":"<<sources<<",\"requested_updates\":"<<n<<",\"complete\":"<<(timeline.complete?"true":"false")
+                <<",\"completed_updates\":"<<timeline.updates<<",\"first_refused_update\":"<<timeline.refusedUpdate
+                <<",\"first_refused_slot\":"<<timeline.lastPass.firstBlockedSlot<<",\"refusal\":\""<<timeline.refusal<<"\"}\n";
+            if(!timeline.complete){need(!timeline.context,"failed timeline publishes no context from an earlier completed update");
+                for(const auto& f:figures.live){const auto found=timeline.lastPass.figures.find(f.slot);
+                    ++total.refusals[found==timeline.lastPass.figures.end()?"prior_removed_outcome_withheld":originalFigureUpdateStatusName(found->second.status)];}
+                auto unchanged=timelineScene;need(!installOriginalSceneTimeline(unchanged,save.terrain,figures,refs,save.buildings,general,timeline),
+                    "refused timeline cannot install earlier frame as requested N");continue;}
+            ++total.pools;total.computed+=figures.live.size();
+            total.animationAdvanced+=timeline.buildingAdvances;
+            for(const auto& p:timelineScene.placed){const auto found=timeline.buildingPhases.find(p.footprint.slot);
+                if(found!=timeline.buildingPhases.end())total.animationChanged+=found->second!=*p.footprint.animationInputs->phase;}
+            auto installed=timelineScene;need(installOriginalSceneTimeline(installed,save.terrain,figures,refs,save.buildings,general,timeline),"complete timeline installs figure and building phases atomically");
+            total.placed+=installed.figurePlaced;
+            const auto finalImages=originalFigureUpdateImageState(*timeline.context);
+            for(const auto& e:timeline.context->figures){const auto& u=e.second;if(!u.alive)continue;
+                const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,
+                    save.buildings.slotTypes.at(size_t(u.owner)),&finalImages);
+                need(selected.status==OriginalFigureImageStatus::Selected&&selected.image==u.image,"timeline surviving primary agrees with independent selector");
+                ++total.consistent;++total.primary;}
+            for(const auto& overlay:installed.overlays){if(overlay.mode==4){const auto word=(overlay.tileset<<14)+overlay.physicalId-1;
+                    need(decodeWord(word),"every placed timeline primary/cargo component decodes");++total.decoded;}
+                if(overlay.mode==3){need(decodeSG3Sprite(general,overlay.physicalId-1,root.resolve("DATA/China_General.555")).image.valid(),"every timeline building frame decodes");++total.animation;}}
+        }
         auto k1=scene;installOriginalFigureOverlays(k1,save.terrain,figures,refs,0,OriginalFigureRenderSource::PostLoadK1,&save.buildings,&ordered);
         need(k1.figurePostLoadK1&&k1.figureLive==figures.live.size()&&k1.animationTickMs==0,"explicit k1 scene accepts complete pool and retains building animation tick0");
         need(app.selectPostLoadK1(save,payload),"App computes and installs explicit same-source post-load k1");
         const auto k1View=app.renderSavedBuildings(camera);
-        need(k1View.image.valid()&&k1View.figurePostLoadK1&&k1View.figurePlaced==k1.figurePlaced&&k1View.overlayDecodeFailures==0&&k1View.overlayInvalid==0,
+        need(k1View.image.valid()&&k1View.figurePostLoadK1&&k1View.timelineUpdates==1&&k1View.timelineFrames==1&&
+            k1View.figurePlaced==k1.figurePlaced&&k1View.overlayDecodeFailures==0&&k1View.overlayInvalid==0,
             "k1 App decodes same ordered scene with no invalid overlay or decode failures");
         k1Placed+=k1View.figurePlaced;k1Decoded+=k1View.figureDecoded;k1Hidden+=k1View.figureHidden;k1Unsupported+=k1View.figureUnsupported;
         k1Removed+=k1View.figureRemoved;
@@ -1175,8 +1310,20 @@ void corpus(){
     need(orderedComputed==192&&orderedPrefix==192&&orderedDecoded==191&&orderedConsistent==191&&orderedComplete==6&&servicesParsed==6&&routesValidated==78&&
         orderedComputedTypes==updateComputedTypes,"complete ordered pass computes192/192 from6/6 pools,78 reciprocal saved routes");
     need(orderedBlockers.empty(),"ordered refusal names and counts partition exactly0/192 final states");
-    need(k1Placed==178&&k1Decoded==194&&k1Hidden==6&&k1Removed==1&&k1Unsupported==7&&k1Overlays==267&&k1Animation==53&&k1Objects==20&&
-        k1Placed+k1Hidden+k1Removed+k1Unsupported==192,"k1 scene partitions192 originals:178 placed,6 hidden,1 removed,7 special-placement refusals;267 overlays");
+    need(k1Placed==185&&k1Decoded==201&&k1Hidden==6&&k1Removed==1&&k1Unsupported==0&&k1Overlays==274&&k1Animation==53&&k1Objects==20&&
+        k1Placed+k1Hidden+k1Removed+k1Unsupported==192,"k1 scene partitions192 originals:185 placed,6 hidden,1 removed,0 special-placement refusals;274 overlays");
+    for(const auto& row:timelineScores){const auto& t=row.second;size_t refused=0;for(const auto& r:t.refusals)refused+=r.second;
+        const unsigned n=row.first;const size_t expectedPools=n==1?6:n==2?3:n==5?2:1,expectedComputed=n==1?192:n==2?60:n==5?28:7;
+        need(t.pools==expectedPools&&t.computed==expectedComputed&&t.placed==(n==1?185:expectedComputed)&&
+            t.decoded==(n==1?201:expectedComputed)&&t.animation==(n==1?53:n==2?6:n==5?3:0),
+            "perN timeline coverage locks complete-pool placements, decoded components and building frames");
+        need(t.computed+refused==192&&t.consistent==t.primary,"perN computed/refused outcomes partition192 and all surviving primaries are consistent");
+        std::cout<<"{\"timeline_N\":"<<row.first<<",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"computed\":"<<t.computed
+            <<",\"live_total\":192,\"placed\":"<<t.placed<<",\"decoded_components\":"<<t.decoded<<",\"primary_consistent\":"<<t.consistent
+            <<",\"primary_total\":"<<t.primary<<",\"building_frames_decoded\":"<<t.animation<<",\"building_candidates\":"<<t.animationCandidates
+            <<",\"building_admitted_advances\":"<<t.animationAdvanced<<",\"building_changed_phases\":"<<t.animationChanged<<",\"refusals\":{";
+        bool comma=false;for(const auto& r:t.refusals){if(comma)std::cout<<',';comma=true;std::cout<<'"'<<r.first<<"\":"<<r.second;}std::cout<<"}}\n";
+    }
     std::cout<<"{\"k1_scene\":true,\"placed\":"<<k1Placed<<",\"live_total\":192,\"decoded_components\":"<<k1Decoded<<",\"hidden\":"<<k1Hidden
         <<",\"removed\":"<<k1Removed<<",\"unsupported\":"<<k1Unsupported<<",\"overlays\":"<<k1Overlays<<",\"animation_overlays\":"<<k1Animation<<",\"object_overlays\":"<<k1Objects<<"}\n";
     std::cout<<"{\"ordered_first_pass\":true,\"k\":1,\"computed\":"<<orderedComputed<<",\"live_total\":"<<live

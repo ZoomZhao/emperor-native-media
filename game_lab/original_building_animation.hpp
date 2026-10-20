@@ -5,6 +5,18 @@
 
 namespace game_lab {
 using OriginalBuildingEmployment=std::map<uint16_t,int32_t>;
+//0x418AA0: add modulo32 then compare as signed32 (not elapsed subtraction).
+// Clock-array origin is an explicit process input and is never read from SAV.
+struct OriginalAnimationClock {
+    std::array<uint32_t,51> last{};
+    std::array<bool,51> flags{};
+};
+inline OriginalAnimationClock originalAnimationClockFrame(OriginalAnimationClock clock,uint32_t now){
+    const auto signed32=[](uint32_t bits){return bits>INT32_MAX?int64_t(bits)-4294967296LL:int64_t(bits);};
+    for(size_t k=0;k<51;++k){clock.flags[k]=signed32(now)>=signed32(clock.last[k]+uint32_t(20*k));
+        if(clock.flags[k])clock.last[k]=now;}
+    return clock;
+}
 // 0x5D1830 loads BUILDING MODS/ALL BUILDINGS into0xA5B398, thirteen
 // integers per row;0x44CC50(type,5) reads employment. Only publish rows
 // whose employment is identical for all five difficulty modifiers. A changed
@@ -86,6 +98,18 @@ inline std::optional<uint8_t> originalBuildingAnimationState(const SG3Sprite& ba
     uint32_t phase=(saved&128)?2*count-frame:frame-1;
     phase=uint32_t((phase+steps%cycle)%cycle);
     return phase<count?uint8_t(phase+1):uint8_t((2*count-phase)|128);
+}
+// One actual enabled draw0x418C79..0x418D37, using the shared current flags.
+// Unlike the elapsed preview this can represent irregular draws and speed0.
+inline std::optional<uint8_t> originalBuildingAnimationDraw(const SG3Sprite& base,uint8_t saved,
+    const std::array<bool,51>& flags){
+    if(!originalBuildingAnimationState(base,saved))return std::nullopt;
+    if(!flags[base.animationSpeedId])return saved;
+    unsigned frame=saved&127;bool reverse=(saved&128)!=0;
+    if(!base.animationReversible){if(++frame>base.animationSpriteCount)frame=1;return uint8_t(frame);}
+    if(reverse){if(frame<=1){frame=1;reverse=false;}else --frame;}
+    else if(++frame>base.animationSpriteCount){frame=base.animationSpriteCount;reverse=true;}
+    return uint8_t(frame|(reverse?128:0));
 }
 //0x429903: physical base+positive frame.0x42994B/0x429BF3 horizontal
 // placement and0x429C11..2A vertical placement read BASE offsets/dimensions.

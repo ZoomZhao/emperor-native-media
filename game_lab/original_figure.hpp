@@ -414,12 +414,17 @@ inline std::optional<uint32_t> originalFigureFrameIndex(uint32_t base,unsigned f
 //0x46BA96..0x46BC1A /0x469690. Tables0x81E8D0/EA8C and
 //0x81EFC0/F068 are represented algebraically, not copied table listings.
 inline std::optional<std::pair<int32_t,int32_t>> originalFigureSubcell(const OriginalFigure& f){
-    if(f.direction>127||f.previousDirection>127||f.type==1||f.type==9)return std::nullopt;
+    if(f.direction>127||f.previousDirection>127||f.type==9)return std::nullopt;
+    if(f.type==1&&(f.effectKind!=13||f.effectVariant||f.effectFlags!=0x24||f.secondaryImage))return std::nullopt;
     unsigned direction=f.direction;if(direction>7)direction=f.previousDirection>7?0:f.previousDirection;
     if(f.freeMovement){
         if(f.subX<0||f.subY<0)return std::nullopt;
         const int x=f.subX%20,y=f.subY%20;
-        if(f.type==1||f.type==54)return std::nullopt; // special extra offset branches.
+        if(f.type==54)return std::nullopt;
+        //0x46BBCB..0x46BBE3: type1 adds +76/+78 and subtracts +86
+        // AFTER the free-position table and +24 raise. Inline kind13's
+        // updater supplies +52/+54/+24; drawing does not advance it.
+        if(f.type==1)return std::make_pair(2*(x-y)+f.extraX,x+y-int(f.raise)+f.extraY-int(f.height));
         return std::make_pair(2*(x-y),x+y-int(f.raise));
     }
     if(f.progress>20)return std::nullopt;
@@ -427,4 +432,11 @@ inline std::optional<std::pair<int32_t,int32_t>> originalFigureSubcell(const Ori
     static constexpr int8_t dx[8]={2,4,2,0,-2,-4,-2,0},dy[8]={-1,0,1,2,1,0,-1,-2};
     return std::make_pair(dx[direction]*step,dy[direction]*step-int(f.height));
 }
+inline std::optional<int> originalFigureDepthScore(const OriginalFigure& f){
+    if(f.alive!=1||f.action==4)return -100;
+    //0x469690 reads only the position table: no visual raise, extras or SG offsets.
+    if(f.freeMovement){if(f.subX<0||f.subY<0)return std::nullopt;return f.subX%20+f.subY%20;}
+    const auto sub=originalFigureSubcell(f);if(!sub)return std::nullopt;return sub->second+int(f.height);
+}
+inline uint64_t originalFigureDrawCell(const OriginalFigure& f){return uint64_t(f.cell)+(f.type==1?229u:0u);}
 } // namespace game_lab
