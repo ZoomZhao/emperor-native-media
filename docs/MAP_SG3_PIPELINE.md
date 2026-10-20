@@ -330,16 +330,18 @@ Measured over all 167 `Cities/*.map` (whole crop, camera-free), after modelling
 setter 5 (the road arm), the two `LAB_0053FF8A` arms of setter 4 and the whole-map
 farm/plain-land block tiers, the land/flood/twin composite arms, the elevation
 prepass/setter-2 writers, the shore descriptor arms, the last four bare-load
-setters (0x40-road, monument, forest and farm-river) and the city-load post-object
-monument redraw (167/167 processed, 0 failures):
+setters (0x40-road, monument, forest and farm-river), the city-load post-object
+monument redraw and the elevation key-order fix (167/167 processed, 0 failures):
 
 * grid `2,107,836` active cells, `28` stored zero, `2,107,808` stored nonzero;
-* **`1,766,664/2,107,836` active cells match (83.814 %)**; chain emits
-  `2,087,691/2,107,836` (99.044 % of active), with `1,766,664/2,087,691`
-  matched (84.623 % of emitted); mismatched `321,027`, unresolved `0`;
+* **`1,767,172/2,107,836` active cells match (83.838 %)** (was `1,766,664`,
+  83.814 %); chain emits `2,087,691/2,107,836` (99.044 % of active), with
+  `1,767,172/2,087,691` matched (84.647 % of emitted, was 84.623 %);
+  mismatched `320,519` (was `321,027`), unresolved `0`;
 * mismatches partition into `28` stored zero, `64` stored tilesets different from
-  the prediction, `14,069` index deltas within ±8 and `306,866` larger deltas; the
-  17–32 bucket contains `281,818/306,866` (91.837 %) of those larger deltas;
+  the prediction, `14,043` index deltas within ±8 (was `14,069`) and `306,384`
+  larger deltas (was `306,866`); the 17–32 bucket contains `281,728/306,384`
+  (91.953 %, was `281,818/306,866`, 91.837 %) of those larger deltas;
 * chain declines to write on `19,935` cells: `0` of them store zero, **all `19,935`
   store nonzero art** — direct evidence that "declined" is not "empty". Most former
   declined cells were elevation art now owned by the earlier elevation writers;
@@ -396,7 +398,20 @@ matched/emitted from 84.488 % to **84.623 %**; mismatched falls 323,834→321,02
 Only monument changes: unshifted **662→3,469/3,533**, shifted **0→0/2,682**.
 All 2,871 old unshifted misses become exact, while 64 old base-only matches
 become recorded exceptions; every other branch's matched count is unchanged.
-Stored-grid exact rendering stays 139/167 and composite rendering is unchanged.)
+The elevation key-order fix then adds **508 matches**: historical matched was
+1,766,664 and becomes **1,767,172/2,107,836**; matched/active rises from
+83.814 % to **83.838 %**, matched/emitted from 84.623 % to **84.647 %**, and
+mismatched falls from 321,027 to **320,519**. Only elevation changes:
+direct unshifted **60,679/61,651→60,693/61,599**, shifted
+**41,194/41,617→41,230/41,401**; block unshifted **790/840→860/892**,
+shifted **1,496/1,672→1,884/1,888**. `FUN_00473800` builds a keyed runtime
+table at **VA `0x82825C`, file `0x42825C`**; its `0x209C` row precedes
+`0x209A`. The port had swapped their comparisons and outputs: the correct
+pairs are `0x209A` + east `0x2076` → `0x205E`, and `0x2076` + east
+`0x209C` → `0x205F` (stores `0x473908..0x473976`; executable hash above).
+See [the keyed-elevation facts](MAP_GROUND_BRANCHES.md#paired-elevation-comparisons-are-keyed-not-numerically-ordered).
+Emitted, unknown, no-write and unresolved counts do not change; stored-grid
+exact rendering stays 139/167 and composite rendering is unchanged.)
 
 **Monument resolved:** ordinary city load rebuilds objects at
 `0x5344BD` → `FUN_0041F400`, whose tail calls `FUN_0053D630` at `0x41F63A`,

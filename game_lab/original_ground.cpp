@@ -75,6 +75,26 @@ constexpr ShorePattern roadPatterns[]={
     {"02120202",9,1},{"02021202",10,1},{"02020212",11,1},
     {"02020202",12,1},{"22222222",12,1}
 };
+// Positive signed material uses 48 rows at VA 0x0084B048/file 0x44B048,
+// selected at 0x4B70EA/0x4B7150. All rows have one variant, hence cycling R=0.
+constexpr ShorePattern materialRoadPatterns[]={
+    {"10101010",17,1},{"10101202",13,1},{"11111202",18,1},
+    {"10111202",26,1},{"11101202",30,1},{"02101012",14,1},
+    {"02111112",19,1},{"02101112",31,1},{"02111012",27,1},
+    {"12021010",15,1},{"12021111",20,1},{"12021011",32,1},
+    {"12021110",28,1},{"10120210",16,1},{"11120211",21,1},
+    {"11120210",33,1},{"10120211",29,1},{"11120002",22,1},
+    {"02111200",23,1},{"00021112",24,1},{"12000211",25,1},
+    {"10101111",34,1},{"11101011",35,1},{"11111010",36,1},
+    {"10111110",37,1},{"10101011",38,1},{"11101010",39,1},
+    {"10111010",40,1},{"10101110",41,1},{"11111011",42,1},
+    {"11111110",43,1},{"10111111",44,1},{"11101111",45,1},
+    {"11101110",46,1},{"10111011",47,1},{"12120202",4,1},
+    {"02121202",5,1},{"02021212",6,1},{"12020212",7,1},
+    {"12021202",0,1},{"02120212",1,1},{"12020202",8,1},
+    {"02120202",9,1},{"02021202",10,1},{"02020212",11,1},
+    {"00000000",12,1},{"11111111",48,1},{"22222222",12,1}
+};
 constexpr ShorePattern forestPatterns[]={
     {"12121212",0,6},{"12121202",0,6},{"02121212",0,6},
     {"12021212",0,6},{"12120212",0,6},{"12021202",0,6},
@@ -155,7 +175,7 @@ GroundSelection forestSelection(const GroundCodeRequest& request) {
     if(!pattern||!pattern->variants)return {0,false,false,"0x20000-forest"};
     return {code,true,false,"0x20000-forest",false,uint8_t(pattern->offset+request.randomByte%pattern->variants)};
 }
-GroundSelection roadSelection(const GroundCodeRequest& request) {
+GroundSelection roadSelection(const GroundCodeRequest& request,int material=0) {
     if(!request.hasLayers||!request.hasNeighbours)return {0,false,false,"0x40-road"};
     // FUN_004B6F90 0x4B6F9A..0x4B6FCE: bare-load object id is zero;
     // terrain&2 was consumed by setter 6, so FUN_00471D20 is false.
@@ -163,22 +183,30 @@ GroundSelection roadSelection(const GroundCodeRequest& request) {
     if((request.terrainFlags&0x600u)&&!(request.terrainFlags&0x10000u))
         return {0,false,false,"0x40-road"}; // FUN_00474920
     // FUN_004BDEF0 -> FUN_0044F180 reads signed 0xF11C70. Reset 0x4B0919
-    // clears all 51,984 bytes; MAP does not restore it. Bare load selects type 1.
+    // clears all 51,984 bytes; MAP does not restore it. Bare load selects type 1;
+    // SAV callers supply the persisted byte (1..25 type0, 26..127 type2).
     // FUN_005B22B0 preserves the negative (zero working img - T(0x61B)) value,
     // so an own-0x10000 cell takes the 0x61D table arm at 0x4B71F0 as well.
-    const auto pattern=matchGroundPattern(roadPatterns,groundPatternFlags(request,0x8000040u));
+    const bool river=(request.terrainFlags&0x10000u)!=0;
+    const int type=material<1?1:material<26?0:2; // FUN_004BDEF0, signed byte
+    const auto flags=groundPatternFlags(request,0x8000040u);
+    const auto pattern=!river&&type!=1?matchGroundPattern(materialRoadPatterns,flags):
+        matchGroundPattern(roadPatterns,flags);
     if(!pattern)return {0,false,false,"0x40-road"};
-    const uint16_t code=(request.terrainFlags&0x10000u)?0x61D:0x61E;
+    const uint16_t code=river?0x61D:type==0?0x621:type==1?0x61E:0x61F;
+    const char* branch=!river&&type!=1?(type==0?"0x40-road-material-0":"0x40-road-material-2"):"0x40-road";
     uint8_t variant=pattern->offset;
     // FUN_004B6E20 0x4B6EC7..0x4B6F77: exact neighbour equality, not mask.
-    // Own-0x10000 returns before this corner treatment (0x4B7248).
-    if(code==0x61E&&variant>=4&&variant<=7) {
+    // Own-0x10000 returns before this corner treatment (0x4B7248). The
+    // positive table also reaches offsets 22..25, with an extra corner band +4.
+    if(!river&&((variant>=4&&variant<=7)||(variant>=22&&variant<=25))) {
         constexpr size_t adjacent[4][2]={{6,4},{0,6},{0,2},{4,2}};
-        const size_t corner=variant-4;
+        const bool outer=variant>=22;
+        const size_t corner=variant-(outer?22:4);
         for(size_t i:adjacent[corner])if(request.neighbourFlags[i]==0x80u||request.neighbourFlags[i]==4u)
-            return {0x623,true,false,"0x40-road",false,uint8_t(corner)};
+            return {0x623,true,false,branch,false,uint8_t(corner+(type==0?4:type==2?12:0)+(outer?4:0))};
     }
-    return {code,true,false,"0x40-road",false,variant};
+    return {code,true,false,branch,false,variant};
 }
 static_assert(sizeof(shorePatterns)/sizeof(*shorePatterns)==46,"0x53FCB3 shore row count");
 GroundSelection shoreDescriptorSelection(const GroundCodeRequest& request,uint16_t code,const char* branch) {
@@ -489,9 +517,10 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
         if(terrain&0xC064u)return {0,false,false,"chain-declined",true};
         return {0x620,true,false,"0x40000-canal",false,uint8_t(request.randomByte%9u)};
     }
-    // 16. FUN_00540140 @0x00540140: terrain&0x20 -> tileset 2 (China_General). The
-    //     executable picks 0x401 + 2..7 by runtime orientation/reach; the native
-    //     per-cell model uses the first ordinal and records the tileset in the code.
+    // 16. FUN_00540140 @0x00540140: terrain&0x20 -> tileset 2 (China_General).
+    //     Coordinate-dependent single 0x401+0..3 or accepted 2x2/3x3 +4..7.
+    //     This coordinate-free API retains its legacy placeholder; groundMap
+    //     supplies the executable's coordinate and working-rectangle arms.
     if(terrain&0x20u)return {0x403,true,false,"0x20-general"};
     // 17. FUN_0053EE00 @0x0053EE00: (terrain&0x10001)==0 (0x0053EE07) and
     //     terrain&0x80 (0x0053EE12). Farm ground. Three sub-cases, in order:
@@ -777,7 +806,8 @@ uint16_t elevationVariant(uint16_t c,uint8_t random) {
     if(c==0x2047){constexpr uint16_t codes[]={0x2047,0x2017,0x2016,0x2015};return codes[random&3u];}
     return c;
 }
-ElevationDescriptor elevationDescriptor(const OriginalTerrainState& state,size_t cell) {
+ElevationDescriptor elevationDescriptor(const OriginalTerrainState& state,size_t cell,
+        const std::vector<uint8_t>* material=nullptr) {
     std::array<int,8> differences{};bool higher=false;
     const int height=int8_t(state.gBEBF3A[cell]); // 0x408CF4, signed at 0x473232
     for(size_t i=0;i<8;++i) {
@@ -816,11 +846,16 @@ ElevationDescriptor elevationDescriptor(const OriginalTerrainState& state,size_t
                     code=codes[(code-0x2043)/2][kind];
                 }
             } else if(code>=0x204E&&code<=0x2051)code=uint16_t(0x207A+2*(code-0x204E));
-            // The road-material array 0x00F11C70 is not restored by the MAP
-            // loader. Its 0x40 ramp arm is intentionally left unknown.
-            if((terrain&0x440u)==0x440u)return {0,pattern.flags,pattern.direction,true};
+            // 0x47358C..5BA: paired road ramps add 8 for signed material<=0,
+            // 16 for either positive-material type. SAV19 supplies this grid;
+            // MAP does not restore it, so preserve that diagnostic refusal.
+            if((terrain&0x440u)==0x440u) {
+                if(!material)return {0,pattern.flags,pattern.direction,true};
+                code=uint16_t(code+(int8_t((*material)[cell])<1?8:16));
+            }
         }
-        if(pattern.ramp&&(terrain&0x40u))return {0,pattern.flags,pattern.direction,true};
+        if(pattern.ramp&&(terrain&0x40u)&&!(terrain&0x800000u))
+            return {0,pattern.flags,pattern.direction,true};
         return {elevationVariant(code,state.randomByte[cell]),pattern.flags,pattern.direction};
     }
     return {};
@@ -878,7 +913,7 @@ std::vector<GroundMapCell> groundMap(const OriginalTerrainState& state,uint32_t 
             // FUN_004740D0's in-place height repair; see the measured refusal in
             // docs/MAP_GROUND_BRANCHES.md. The unchanged derived bits retain the
             // snapshot's ground-block exclusions when no elevation image writes.
-            const auto descriptor=elevationDescriptor(working,cell);
+            const auto descriptor=elevationDescriptor(working,cell,material);
             elevation[cell]=descriptor;
             if(descriptor.unknown) {
                 result[cell]={{0,false,false,"elevation-road-material"},cell,1};
@@ -974,11 +1009,13 @@ std::vector<GroundMapCell> groundMap(const OriginalTerrainState& state,uint32_t 
                     return p.known&&p.code==code&&p.variant==0;};
                 uint16_t code=0;
                 if(descriptor.code>=0x2092&&descriptor.code<=0x20A0) {
-                    constexpr uint16_t left[]={0x2072,0x2094,0x2074,0x2098,0x2076,0x209A,0x2078,0x20A0};
-                    constexpr uint16_t right[]={0x2092,0x2072,0x2096,0x2074,0x209C,0x2076,0x209E,0x2078};
+                    // 0x473800 initialises keys 0x209C before 0x209A. Index
+                    // by the key here, not by that initialisation order.
+                    constexpr uint16_t left[]={0x2072,0x2094,0x2074,0x2098,0x209A,0x2076,0x2078,0x20A0};
+                    constexpr uint16_t right[]={0x2092,0x2072,0x2096,0x2074,0x2076,0x209C,0x209E,0x2078};
                     const size_t k=(descriptor.code-0x2092)/2;
                     if(equals(adjacent[axis][0],left[k])&&equals(adjacent[axis][1],right[k])) {
-                        constexpr uint16_t codes[]={0x205A,0x205B,0x205C,0x205D,0x205F,0x205E,0x2060,0x2061};
+                        constexpr uint16_t codes[]={0x205A,0x205B,0x205C,0x205D,0x205E,0x205F,0x2060,0x2061};
                         code=codes[k];
                     }
                 } else if(equals(adjacent[axis][0],descriptor.code)&&equals(adjacent[axis][1],descriptor.code)) {
@@ -988,7 +1025,8 @@ std::vector<GroundMapCell> groundMap(const OriginalTerrainState& state,uint32_t 
                     code=codes[(descriptor.code-0x2072)/2][working.randomByte[cell]&3u];
                 }
                 if(code) {
-                    // 0x53F3A7..53F3DC: paired blocks shift N/NW/W.
+                    // 0x53F385..53F3BC: B=0 -> NW, 2 -> N, 6 -> W;
+                    // the successive subtractions compare 0,2,6, not 0,2,4.
                     const int bx=x-((descriptor.direction==0||descriptor.direction==6)?1:0);
                     const int by=y-((descriptor.direction==0||descriptor.direction==2)?1:0);
                     if(bx>=0&&by>=0&&bx+1<bounds.side&&by+1<bounds.side) {
@@ -1008,20 +1046,11 @@ std::vector<GroundMapCell> groundMap(const OriginalTerrainState& state,uint32_t 
             if(stamped[cell])continue;
             const auto request=groundCodeRequest(working,cell);
             auto selection=selectGroundTileCode(request);
-            // The MAP diagnostic's setter16 reports the first ordinal only.
-            // SAV must not emit that placeholder as a resolved square stamp:
-            // 0x540140 delegates orientation/reach and block geometry.
-            if(rebuild&&std::strcmp(selection.branch,"0x20-general")==0)
-                selection={0,false,false,"0x20-general-layout"};
             if(rebuild&&std::strcmp(selection.branch,"0x2000000-feature")==0)
                 selection={0,false,false,"0x2000000-feature-layout"}; // 0x53FB13 needs 5x5 origin recovery
             if(rebuild&&std::strcmp(selection.branch,"0x40-road")==0&&selection.known&&
                !(request.terrainFlags&0x10000u)) {
-                // 0x4BDF00 signed material <=0 ->1, 1..25 ->0, >=26 ->2.
-                // The two positive arms use the separate 48-row 0x84B048
-                // descriptor, not the MAP/null-material 17-row road table.
-                const int value=int8_t((*material)[cell]);
-                if(value>0)selection={0,false,false,value<26?"0x40-road-material-0":"0x40-road-material-2"};
+                selection=roadSelection(request,int8_t((*material)[cell]));
             }
             if(rebuild&&(*owner)[cell]&&
                (std::strncmp(selection.branch,"0x40-road",9)==0||std::strcmp(selection.branch,"0x1-road")==0))
@@ -1058,11 +1087,12 @@ std::vector<GroundMapCell> groundMap(const OriginalTerrainState& state,uint32_t 
             const bool land=std::strcmp(selection.branch,"0x2-land")==0;
             const bool flood=std::strcmp(selection.branch,"0x80000000-flood")==0;
             const bool twin=std::strcmp(selection.branch,"0x101000-twin")==0;
-            if(land||flood||twin) {
+            const bool general=std::strcmp(selection.branch,"0x20-general")==0;
+            if(land||flood||twin||general) {
                 // FUN_0053F660: 0x53F679/7E/8E selects both base and required
                 // terrain; the default resets the required mask to 2 at 0x53F69E.
                 const uint32_t selected=request.terrainFlags&0x300002u;
-                const uint32_t mask=twin?0x101000u:flood?0x80000000u:
+                const uint32_t mask=general?0x20u:twin?0x101000u:flood?0x80000000u:
                     selected==0x100002u||selected==0x200002u?selected:2u;
                 int side=1;
                 // Twin only attempts 2x2 and uses the subset predicate
@@ -1070,6 +1100,10 @@ std::vector<GroundMapCell> groundMap(const OriginalTerrainState& state,uint32_t 
                 if(!twin&&acceptsCompositeGroundBlock(working,bounds,x,y,3,mask,false))side=3;
                 else if(acceptsCompositeGroundBlock(working,bounds,x,y,2,mask,twin))side=2;
                 if(side==1) {
+                    // FUN_00540140 0x540230..2E2: local coordinate parity,
+                    // no random/orientation or stored draw input in this arm.
+                    if(general)result[cell].selection={0x401,true,false,"0x20-general",false,
+                        uint8_t(2*(y&1)+(x&1))};
                     working.image[cell]=1u;
                     working.subTile[cell]&=0xF0u;
                     if(twin)working.draw[cell]=0x40u; // 0x53F82B assigns, not ORs
@@ -1083,7 +1117,11 @@ std::vector<GroundMapCell> groundMap(const OriginalTerrainState& state,uint32_t 
                 // its FUN_004B8000 calls are 0x53F59B (3x3), 0x53F5E8 (2x2).
                 // Twin: origin random at 0x53F7E8, &3 at 0x53F7EE, +8 at
                 // 0x53F7F1, constant-image stamp FUN_004B72B0 at 0x53F7FE.
-                selection.variant=uint8_t(side==3?12u+(request.randomByte&1u):8u+(request.randomByte&3u));
+                if(general) {
+                    // 0x54018B: 3x3 +7; 0x5401D7..23E: 2x2 +6/+5/+4.
+                    const unsigned random=request.randomByte&3u;
+                    selection.code=0x401;selection.variant=uint8_t(side==3?7:random<2?6:random==2?5:4);
+                } else selection.variant=uint8_t(side==3?12u+(request.randomByte&1u):8u+(request.randomByte&3u));
                 selection.block=true;
                 for(int row=0;row<side;++row)for(int column=0;column<side;++column) {
                     const size_t target=blockCell(cell,row,column);

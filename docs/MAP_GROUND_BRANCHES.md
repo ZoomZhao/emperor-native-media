@@ -25,7 +25,9 @@ listing, binary or asset is stored. Tooling: Ghidra whole-program decompile + Ca
 `cell = y*228 + x`; grid origin `0x0101D0C8`, stride `0xE4`, size 51,984. `T(c)=0` when `c&0x1FF==0`.
 The chain `FUN_0053EC90 @0x0053EC90` calls `FUN_00425260`+`FUN_004EDC30` first; only if `FUN_004EDC30`
 returns low-byte 0 **and** `(terrain & 0x8C008)==0` does it run the list below, stopping at the first
-non-zero setter. Every setter that writes `img` also does `draw|=0x40` and `sub&=0xF0`.
+non-zero setter. Single-cell ground writers generally do `draw|=0x40` and `sub&=0xF0`;
+elevation assigns draw `0x40`/`0x41`, and constant-image blocks assign draw offsets
+and group size instead (see the elevation and SAV19 sections).
 
 ## Setter chain (one row per setter)
 
@@ -451,7 +453,8 @@ The `0x4-shore` residue fell from 156,935 to 94,897 when those arms were ported:
 
 ## Mismatch classes: every residual cell now has a named cause
 
-The headline is **1,766,664/2,107,836 active cells matched (83.814 %)**.
+The `f3b0eab` baseline headline was **1,766,664/2,107,836 active cells matched (83.814 %)**;
+the SAV19/paired-elevation section below records the current **1,767,172** matches.
 `matched` counts emitted codes that equal the stored grid (`1,766,664` of
 `2,087,691`, 84.623 % of emitted). The remaining
 `321,027` cells are classified per branch, and the classes partition `mismatched`
@@ -1432,7 +1435,7 @@ original-data UBSan **2,612**. `git diff --check` is clean.
 
 ## City-load post-object monument redraw; forest editor premise (2026-10-20)
 
-**1,766,664/2,087,691 emitted cells now match** (84.623%;
+At this historical phase, **1,766,664/2,087,691 emitted cells matched** (84.623%;
 **1,766,664/2,107,836 active**, 83.814%).
 Baseline `a7e0c3a` was 1,763,857/2,087,691. The gain is **2,807**: all 2,871 unshifted monument misses
 are recovered, with 64 former base-only matches becoming measured residuals.
@@ -1606,3 +1609,145 @@ A private-copy mutation **`%6→%5`** exits **1** at “post-object city-load mo
 redraw uses its own unsigned random byte modulo six”. No mutation touches the
 working source. `git diff --check` passes; no original assets, dumps, listings or
 binaries are added to the repository.
+
+## SAV19 material roads, general ground and paired-elevation correction (2026-10-20)
+
+This section supersedes the elevation and ground-unknown counts above. Baseline
+`f3b0eab`: **154/57,684** active SAV cells unknown, **55,790** emitted/decoded,
+21 no-write. After the changes: **0/57,684** unknown, **55,956** emitted/decoded,
+9 no-write, 0 unresolved. All **55,956/55,956** ground draw outputs and independently
+written subTile low nibbles agree with the saved arrays. Draw has **3,304/3,304**
+fully assigned bytes; the other writers independently predict the marker bit
+while preserving the other bits. Entirely retained bytes do not count toward
+these denominators. SAV19 has no persisted image-grid oracle, so these
+numbers establish decoding and metadata agreement, not image-word equality.
+
+All facts use the executable SHA-256 in the document header. Code file offsets
+are VA minus `0x400000`; static-table locations are stated explicitly below.
+No stored draw/subTile/image value chooses a descriptor, origin, tier or variant.
+
+### Paired-elevation comparisons are keyed, not numerically ordered
+
+`FUN_00473760` is already represented correctly: origin image store
+`0x47378E`, neighbour `T(C)+1` store `0x4737E0`, origin/paired draw assignments
+`0x473782` / `0x4737CC`, low-nibble clears `0x473772` / `0x4737C0`.
+The missing final stamp was in `FUN_00473800`, called by setter 2 at `0x53F33C`.
+Its runtime table starts at **VA `0x82825C`, file `0x42825C`**, eight rows of
+four dwords `(key, image0, image1, outputCode)`. Most entries are initialised
+by `0x473800..0x4739EE`, so their initial file zeros are not descriptor facts.
+The fifth and sixth rows are deliberately keyed **`0x209C` then `0x209A`**:
+
+| Key | Working image at offset0 | Working image at offset1 | Output |
+|---|---|---|---|
+| `0x209C` | `T(0x2076)` | `T(0x209C)` | `0x205F` |
+| `0x209A` | `T(0x209A)` | `T(0x2076)` | `0x205E` |
+
+Evidence: key stores `0x473908` / `0x473944`, image stores
+`0x473921` / `0x473935` / `0x47395D` / `0x473971`, output stores
+`0x47393A` / `0x473976`. The old numeric-index port exchanged the two complete
+comparison/output rows. Fixing the keys lets the intended 2×2 write replace the
+earlier paired direct art. Setter 2 calls `FUN_004B72B0` at `0x53F3DA`:
+constant image, `(terrain&0x93872790)|0x200`, sub `(old&0xE0)|1`, draw offsets
+0/1/0x48/9 in view 0. The offsets come from **VA `0x81FF18`, file `0x41FF18`**.
+The existing direction shifts are correct: the successive subtractions at
+`0x53F385..0x53F392` compare B=0,2,6, giving NW/N/W respectively; B=4 stays put.
+
+### Positive signed material and road corner bands
+
+SAV19 already restores signed byte grid `0xF11C70` (terrain-relative logical
+offset **T+467,856**, read `0x53137C`). `FUN_004BDEF0` calls the signed reader
+`FUN_0044F180`: <=0 selects type1, 1..25 type0, 26..127 type2. Setter 13's
+`FUN_004B6F90` chooses type0 base **`0x621`** at `0x4B70FC`, type2 base
+**`0x61F`** at `0x4B7162`, and calls the separate **48-row** table
+**VA `0x84B048`, file `0x44B048`** at `0x4B70EA` / `0x4B7150`.
+It has the same 20-byte row format as the 17-row type1 table at
+VA `0x84AEF0`, file `0x44AEF0`, but distinguishes diagonal connectivity.
+All 48 variant counts are 1, so the negative-random cycling matcher produces R=0.
+
+`FUN_004B6E20` handles offsets 4..7 and 22..25. If either oriented neighbour is
+exactly terrain `0x80` or `4`, it changes to `T(0x623)+corner+materialBand`, where
+materialBand is 4 for type0, 0 for type1, 12 for type2, plus another 4 for the
+22..25 family (`0x4B6E81..0x4B6F70`). Owner and subTile refusal gates retain
+their existing precedence. The original corpus contains **50 type0 + 34 type2**
+cells; all **84/84** now emit/decode, reproduce draw output and independently
+match marker/subTile.
+Gate-object neighbour augmentation in `FUN_004B9B20` is outside this port;
+the complete original SAV metadata agreement does not establish that unexercised
+gate-art variant logic.
+
+### General ground is a normal constant-image composite arm
+
+`FUN_00540140` tests terrain `0x20`, then calls `FUN_004B8000` with required
+mask `0x20`, empty working-image requirement 1 and excluded mask `0x100`:
+3×3 at `0x54016C`, 2×2 at `0x5401B4`. It uses **`T(0x401)`**, not header
+slot `0x403`. A 3×3 gets record offset 7 (`0x54018B`); a 2×2 gets offset 6
+for random&3 0/1, 5 for 2, 4 for 3. Both call `FUN_004B72B0`, using the same
+draw-offset table VA `0x81FF18`, file `0x41FF18` and constant image semantics.
+On rectangle refusal, single offset is **`2*(localY&1)+(localX&1)`**
+(`0x540230..0x5402E2`), with draw OR 0x40 and subTile low-nibble clear.
+All **64/64** previously unknown general-layout cells now emit/decode,
+reproduce draw output and independently match marker/subTile. The per-cell coordinate-free diagnostic API
+retains its legacy placeholder; both whole-map entry points use these rules.
+
+### Persisted material also closes the paired road-ramp dependency
+
+`FUN_00473210`'s existing 147-row elevation descriptor table is **VA `0x825C28`,
+file `0x425C28`**, stride 64. Ramp rows 67..70 and 103..106 require terrain
+`0x400`, carry S=`0x200`, cardinal B and mask `0x400`. On own `0x800000`,
+the code is remapped into paired art, then terrain `0x440` adds **8** for
+material type1 or **16** for type0/type2 (`0x47358C..0x4735BA`), before
+`FUN_00472F50`. The seeded SAV entry now supplies the persisted material to this
+arm. MAP still lacks that restored grid and keeps its explicit unknown.
+Three formerly unknown ramp cells write their paired neighbour as well; the
+result makes the adjacent setter-2 membership test succeed. This resolves all
+six remaining unknowns and replaces twelve no-writes, adding **18 emitted**
+cells. `FUN_00474920` uses the same cache and paired rule; its default no-write
+logic needs no change.
+
+### Measurements and regression evidence
+
+| SAV branch | Baseline draw output / subTile | Final draw output / subTile |
+|---|---|---|
+| elevation-direct | 2,391/2,405 / 2,391/2,405 | **2,403/2,403 / 2,403/2,403** |
+| elevation-block | 184/208 / 202/208 | **228/228 / 228/228** |
+| road material type0 | 0 written / 50 unknown | **50/50 / 50/50** |
+| road material type2 | 0 written / 34 unknown | **34/34 / 34/34** |
+| general layout | 0 written / 64 unknown | **64/64 / 64/64** |
+
+The baseline draw-marker-only values were 2,396/2,405 direct and 193/208 block;
+those differ from full draw-byte equality. Every other ground branch retains
+its cell denominator and exact agreement. Final ground-only touched draw output,
+independently predicted marker and subTile agreement are each **55,956/55,956**;
+fully assigned ground draw bytes are **3,304/3,304**. Parallel building work changes
+the bound/unbound partition separately; these ground assertions lock their
+combined 1,719-cell occupancy denominator and leave binding counts to its suite.
+
+The final sanctioned MAP sweep processes **167/167**, 0 failures:
+matched **1,766,664→1,767,172 / 2,107,836 active**, emitted unchanged
+2,087,691, mismatched **321,027→320,519**, unknown 210, no-write 19,935,
+unresolved 0. Mismatch classes are **28+64+14,043+306,384=320,519**.
+Stored-grid decoding is unchanged, with 139/167 exact cities.
+
+| MAP branch/cohort | Baseline matched/emitted | Final matched/emitted |
+|---|---:|---:|
+| direct, unshifted | 60,679/61,651 | **60,693/61,599** |
+| block, unshifted | 790/840 | **860/892** |
+| direct, shifted | 41,194/41,617 | **41,230/41,401** |
+| block, shifted | 1,496/1,672 | **1,884/1,888** |
+
+Unshifted still means road matched >=50% emitted, giving **93/74** cities.
+No per-branch/per-cohort matched count decreases; every non-elevation branch's
+cells/emitted/matched tuple is identical. No fitted constant enters selection.
+
+Regression checks cover the 209A→205E footprint, all signed material boundaries,
+diagonal-sensitive road rows, both corner material bands, general 1×1/2×2/3×3
+tiers and coordinate parity, and paired road ramps for all material classes.
+A private source copy restoring the old 209A left-image comparison exits **1**
+at “209A pairs with east 2076 and stamps 205E with independent block metadata”.
+The working source is never mutated for that check. Map-reference passes release
+and UBSan with **1,884 authored / 3,130 original-data** assertions; saved-ground
+passes both modes with **110 authored / 1,912 original-data** checks. The
+building-scene suite also passes both modes; its counts track parallel building
+work separately. Unset-root runs successfully SKIP original-data work.
+`git diff --check` passes. All executable probes, mutation copies and logs stay
+in the external private task directory.

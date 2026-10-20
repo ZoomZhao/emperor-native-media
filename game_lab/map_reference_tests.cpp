@@ -966,9 +966,9 @@ void realDataFarmBlockTests() {
      }
  }
  need(cities==167&&cityCohorts==std::array<size_t,2>{93,74},"farm corpus covers 167 cities with the road-defined 93/74 cohort split");
- need(emitted==2087691&&matched==1766664&&unknown==210&&mismatched==321027&&classes==mismatched,
+ need(emitted==2087691&&matched==1767172&&unknown==210&&mismatched==320519&&classes==mismatched,
       "whole-map ground blocks reproduce the measured corpus totals without dropped mismatches");
- need(unresolved==0&&mismatchClasses==std::array<size_t,4>{28,64,14069,306866},
+ need(unresolved==0&&mismatchClasses==std::array<size_t,4>{28,64,14043,306384},
       "all original-data predictions resolve and the four mismatch classes retain explicit corpus denominators");
  const std::array<const char*,3> compositeNames={"0x2-land","0x80000000-flood","0x101000-twin"};
  const std::array<Tally,3> compositeUnshifted={{{39858,39858,39823},{6068,6068,6068},{1666,1666,1666}}};
@@ -1005,10 +1005,10 @@ void realDataFarmBlockTests() {
       branches[0]["0x4-shore-river"]==Tally{2319,2319,2144}&&
       branches[1]["0x4-shore-river"]==Tally{2287,2287,0},
       "the shore-specific descriptor table removes all 94493 unknown shore cells with measured cohort denominators");
- need(branches[0]["elevation-direct"]==Tally{61651,61651,60679}&&
-       branches[1]["elevation-direct"]==Tally{41617,41617,41194}&&
-       branches[0]["elevation-block"]==Tally{840,840,790}&&
-       branches[1]["elevation-block"]==Tally{1672,1672,1496},
+ need(branches[0]["elevation-direct"]==Tally{61599,61599,60693}&&
+       branches[1]["elevation-direct"]==Tally{41401,41401,41230}&&
+       branches[0]["elevation-block"]==Tally{892,892,860}&&
+       branches[1]["elevation-block"]==Tally{1888,1888,1884},
        "exe height descriptors and earlier elevation writers lock both cohorts without stored-image selection");
  const std::array<const char*,4> remainingNames={"0x40-road","0x10000-monument","0x20000-forest","0x80-farm-river"};
  const std::array<Tally,4> remainingUnshifted={{{12304,12304,12113},{3533,3533,3469},

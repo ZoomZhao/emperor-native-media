@@ -33,11 +33,13 @@ void authored(){
     for(auto sample:{std::pair<uint8_t,const char*>{0,"0x40-road"},{255,"0x40-road"},{128,"0x40-road"},{1,"0x40-road-material-0"},{25,"0x40-road-material-0"},{26,"0x40-road-material-2"},{127,"0x40-road-material-2"}}){
         material[cell]=sample.first;seeded=selectGroundMapSeeded(s,112,material,owner);
         need(std::string(seeded.cells[cell].selection.branch)==sample.second,"signed persisted material boundaries select separate road arms");
+        need(seeded.cells[cell].selection.known&&seeded.cells[cell].selection.code==(int8_t(sample.first)>0?(sample.first<26?0x621:0x61F):0x61E)&&seeded.cells[cell].selection.variant==12,
+             "signed material arms resolve the separate descriptor and executable base code");
     }
     material[cell]=0;owner[cell]=1;seeded=selectGroundMapSeeded(s,112,material,owner);
     need(seeded.cells[cell].selection.chainNoWrite&&!seeded.cells[cell].selection.known,"saved nonzero owner refuses road writer");
     material[cell]=25;seeded=selectGroundMapSeeded(s,112,material,owner);
-    need(seeded.cells[cell].selection.chainNoWrite&&std::string(seeded.cells[cell].selection.branch)=="saved-owner-road-declined","owner gate also precedes unresolved positive-material table");owner[cell]=0;
+    need(seeded.cells[cell].selection.chainNoWrite&&std::string(seeded.cells[cell].selection.branch)=="saved-owner-road-declined","owner gate precedes the positive-material table");owner[cell]=0;
     s.terrain[cell]=0x2000000;seeded=selectGroundMapSeeded(s,112,material,owner);
     need(!seeded.cells[cell].selection.known&&std::string(seeded.cells[cell].selection.branch)=="0x2000000-feature-layout","unstamped feature composite stays explicitly unknown");
     s.terrain.assign(s.cells,2);s.randomByte.assign(s.cells,0);s.draw.assign(s.cells,0);s.subTile.assign(s.cells,0);
@@ -47,6 +49,69 @@ void authored(){
         need(seeded.surface.subTile[i]==2&&seeded.surface.draw[i]==uint8_t(8*dy+dx+(dx==0&&dy==2?64:0)),"3x3 constant stamp independently predicts offsets and lower-left draw corner");composite=true;break;}
     need(composite,"composite side-effect check actually exercised a stamp");
     need(selectGroundMapSeeded(s,112,{},owner).cells.empty(),"missing material grid refuses instead of assuming zero");
+    // A straight paired cliff run: direction 4, first C=0x209A followed
+    // by 0x2076. The non-numeric initialisation order must still match key 209A.
+    s=state();s.terrain.assign(s.cells,0x80000u);material.assign(s.cells,0);owner.assign(s.cells,0);
+    for(int x=-1;x<=4;++x)s.gBEBF3A[size_t(int(cell)-228+x)]=1;
+    for(size_t x=0;x<4;++x)s.terrain[cell+x]=0x800200u;
+    seeded=selectGroundMapSeeded(s,112,material,owner);
+    for(size_t row=0;row<2;++row)for(size_t column=0;column<2;++column){
+        const size_t target=cell+row*228+column;
+        need(seeded.cells[target].selection.code==0x205E&&seeded.cells[target].origin==cell&&seeded.cells[target].stampSide==2&&
+             seeded.surface.draw[target]==uint8_t(row*8+column+(row==1&&column==0?64:0))&&(seeded.surface.subTile[target]&15)==1,
+             "209A pairs with east 2076 and stamps 205E with independent block metadata");
+    }
+    // Positive-material table distinguishes diagonal connectivity that the
+    // 17-row null-material table deliberately ignores.
+    s=state();s.terrain.assign(s.cells,0x80000u);s.terrain[cell]=0x40;
+    for(int offset:{-228,-227,1,229,228,227,-1,-229})s.terrain[size_t(int(cell)+offset)]=0x40;
+    material[cell]=1;seeded=selectGroundMapSeeded(s,112,material,owner);
+    need(seeded.cells[cell].selection.code==0x621&&seeded.cells[cell].selection.variant==48,"positive material all-connected row selects offset 48");
+    s.terrain[cell-227]=0;s.terrain[cell+229]=0;s.terrain[cell+227]=0;s.terrain[cell-229]=0;
+    seeded=selectGroundMapSeeded(s,112,material,owner);
+    need(seeded.cells[cell].selection.variant==17,"positive material missing diagonals selects offset 17 instead of null-material offset 12");
+    for(int offset:{-228,-227,1,229,228,227,-1,-229})s.terrain[size_t(int(cell)+offset)]=0;
+    s.terrain[cell-228]=s.terrain[cell+1]=0x40;s.terrain[cell+228]=0x80;
+    seeded=selectGroundMapSeeded(s,112,material,owner);
+    need(seeded.cells[cell].selection.code==0x623&&seeded.cells[cell].selection.variant==4,"type0 corner uses 623 plus material band 4");
+    material[cell]=26;seeded=selectGroundMapSeeded(s,112,material,owner);
+    need(seeded.cells[cell].selection.code==0x623&&seeded.cells[cell].selection.variant==12,"type2 corner uses 623 plus material band 12");
+    for(unsigned side:{1u,2u,3u})for(unsigned random=0;random<4;++random){
+        s=state();s.terrain.assign(s.cells,0x80000u);s.randomByte.assign(s.cells,uint8_t(random));
+        for(unsigned row=0;row<side;++row)for(unsigned column=0;column<side;++column)s.terrain[cell+row*228+column]=0x20;
+        seeded=selectGroundMapSeeded(s,112,material,owner);
+        const auto& selected=seeded.cells[cell];
+        const unsigned expected=side==3?7:side==2?(random<2?6:random==2?5:4):0;
+        need(selected.selection.known&&selected.selection.code==0x401&&selected.selection.variant==expected&&selected.stampSide==side,
+             "general ground selects coordinate single or random 2x2 / fixed 3x3 tier in record space");
+        for(unsigned row=0;row<side;++row)for(unsigned column=0;column<side;++column){
+            const size_t target=cell+row*228+column;
+            need(seeded.cells[target].selection.code==0x401&&seeded.cells[target].selection.variant==expected&&seeded.cells[target].origin==cell&&
+                 (seeded.surface.subTile[target]&15)==side-1,
+                 "general footprint repeats the origin image and predicts its subTile size");
+        }
+    }
+    s=state();s.terrain.assign(s.cells,0x80000u);
+    for(unsigned y=0;y<2;++y)for(unsigned x=0;x<2;++x)s.terrain[cell+3*y*228+x]=0x20;
+    seeded=selectGroundMapSeeded(s,112,material,owner);
+    need(seeded.cells[cell].selection.variant==0&&seeded.cells[cell+1].selection.variant==1,
+         "general single even row uses local x parity");
+    need(seeded.cells[cell+3*228].selection.variant==2&&seeded.cells[cell+3*228+1].selection.variant==3,
+         "general single odd row adds two to local x parity");
+    // Row67 @0x826CE8: 33041403, paired road ramp remaps 207A
+    // by +8 (nonpositive signed material) or +16 (positive material).
+    for(uint8_t value:{uint8_t(0),uint8_t(1),uint8_t(26),uint8_t(255)}){
+        s=state();s.terrain.assign(s.cells,0x80000u);s.terrain[cell]=0x800440u;
+        s.gBEBF3A[cell+228]=1;material[cell]=value;
+        seeded=selectGroundMapSeeded(s,112,material,owner);
+        const uint16_t expected=int8_t(value)<1?0x2082:0x208A;
+        need(seeded.cells[cell].selection.known&&seeded.cells[cell].selection.code==expected&&
+             seeded.cells[cell-228].origin==cell&&seeded.cells[cell-228].selection.variant==1&&
+             seeded.surface.draw[cell]==0x40&&seeded.surface.draw[cell-228]==0x41,
+             "saved material remaps the paired road ramp before its origin and neighbour writes");
+        need(!selectGroundMap(s,112)[cell].selection.known,
+             "unseeded MAP ramp retains its explicit unknown without a restored material grid");
+    }
 }
 struct Agreement {
     size_t cells=0,draw=0,side=0,both=0,drawWritten=0,sideWritten=0,drawPredicted=0,sidePredicted=0,markerPredicted=0,drawAssigned=0,drawAssignedEqual=0;
@@ -108,9 +173,19 @@ void corpus(){
         ++withGround;active+=localActive;emitted+=scene.groundCells;decoded+=localDecoded;unknown+=scene.groundUnknown;noWrite+=scene.groundNoWrite;unresolved+=scene.groundUnresolved;buildings+=scene.placed.size();buildingCells+=scene.placedCells;unbound+=scene.unboundBuildingCells;total.merge(local);
         app.clear();need(!app.renderSavedBuildings(camera).image.valid(),"source replacement clears reconstructed scene");
     }
-    need(sources==6&&withGround==6&&native==6&&active==57684&&buildings==927&&buildingCells==1483,"six-source/active-cell/building denominators unchanged");
-    need(emitted==55790&&decoded==55790&&unknown==154&&noWrite==21&&unresolved==0&&unbound==236,"all active cells partition with named unknowns and no emitted decode failures");
-    need(total.drawWritten==57273&&total.drawPredicted==57235&&total.markerPredicted==57249&&total.sideWritten==57273&&total.sidePredicted==57253,"independent side-effect agreement locks explicit written denominators and elevation residuals");
+    // Building selectors evolve independently; lock the occupied denominator and
+    // ground partition here, while the building-scene suite locks their bindings.
+    need(sources==6&&withGround==6&&native==6&&active==57684&&buildingCells+unbound==1719,"six-source/active-cell/building-occupancy denominators unchanged");
+    need(emitted==55956&&decoded==55956&&unknown==0&&noWrite==9&&unresolved==0,"all active cells partition with every ground unknown resolved and no emitted decode failures");
+    need(total.drawWritten==emitted+buildingCells&&total.drawPredicted==total.drawWritten&&total.markerPredicted==total.drawWritten&&total.sideWritten==total.drawWritten&&total.sidePredicted==total.sideWritten&&total.drawAssigned==3304+buildingCells&&total.drawAssignedEqual==total.drawAssigned,"every touched draw output, independently assigned draw byte and subTile nibble equals SAV19");
+    need(branches.at("elevation-direct").cells==2403&&branches.at("elevation-block").cells==228&&
+         branches.at("0x40-road-material-0").cells==50&&branches.at("0x40-road-material-2").cells==34&&branches.at("0x20-general").cells==64,
+         "changed ground branches lock explicit original-cell denominators independent of building bindings");
+    for(const char* branch:{"elevation-direct","elevation-block","0x40-road-material-0","0x40-road-material-2","0x20-general"}){
+        const auto& agreement=branches.at(branch);
+        need(agreement.cells&&agreement.drawWritten==agreement.cells&&agreement.drawPredicted==agreement.cells&&agreement.markerPredicted==agreement.cells&&agreement.sideWritten==agreement.cells&&agreement.sidePredicted==agreement.cells,
+             "each changed ground branch reproduces draw output and independently predicts marker and subTile nibble");
+    }
     std::cout<<"{\"scope\":\"all backing cells (includes retained off-map bytes)\",";storage.print();std::cout<<"}\n";
     for(const auto& entry:branches){std::cout<<"{\"branch\":\""<<entry.first<<"\",";entry.second.print();std::cout<<"}\n";}
     std::cout<<"{\"saved_sources\":"<<sources<<",\"sources_with_SG3_ground\":"<<withGround<<",\"active_cells\":"<<active<<",\"ground_emitted\":"<<emitted<<",\"ground_decoded\":"<<decoded<<",\"ground_unknown\":"<<unknown<<",\"chain_no_write\":"<<noWrite<<",\"unresolved\":"<<unresolved<<",\"buildings_placed\":"<<buildings<<",\"building_cells\":"<<buildingCells<<",\"building_unbound_cells\":"<<unbound<<",\"native_CGImages\":"<<native<<",\"agreement\":{";total.print();std::cout<<"},\"stored_image_oracle\":false}\n";
