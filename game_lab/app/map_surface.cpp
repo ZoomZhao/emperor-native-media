@@ -10,7 +10,7 @@ namespace game_lab {
 void AppMapSurface::clear() {
     state_.reset(); savedBuildings_.reset(); terrain_ = {}; error_.clear();
 }
-bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile,const OriginalSavedGround* ground){
+bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile,const OriginalSavedGround* ground,uint64_t tickMs){
     clear();
     if(!archives_.count(2)){
         auto index=loadSG3(root_.resolve("DATA/China_General.sg3"));
@@ -19,7 +19,10 @@ bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const
         }
         archives_.emplace(2,Archive{std::move(index),root_.resolve("DATA/China_General.555")});
     }
-    auto scene=composeOriginalBuildingScene(terrain,profile,archives_.at(2).index);
+    std::vector<uint8_t> modelBytes;std::optional<OriginalBuildingEmployment> employment;
+    if(detail::readFile(root_.resolve("Model/EmperorBuildingModels.txt"),1024u*1024u,modelBytes))
+        employment=parseOriginalBuildingEmployment(std::string(modelBytes.begin(),modelBytes.end()));
+    auto scene=composeOriginalBuildingScene(terrain,profile,archives_.at(2).index,tickMs,employment?&*employment:nullptr);
     if(ground) {
         for(uint32_t slot:{3u,16u})if(!archives_.count(slot)) {
             const std::string relative=std::string("DATA/")+mapImageGridArchiveName(slot);
@@ -30,7 +33,7 @@ bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const
             auto companion=std::filesystem::path(relative);companion.replace_extension(".555");
             archives_.emplace(slot,Archive{std::move(index),root_.resolve(companion.generic_string())});
         }
-        scene=composeOriginalSavedGroundScene(terrain,profile,*ground,archives_.at(2).index,archives_.at(3).index,archives_.at(16).index);
+        scene=composeOriginalSavedGroundScene(terrain,profile,*ground,archives_.at(2).index,archives_.at(3).index,archives_.at(16).index,tickMs,employment?&*employment:nullptr);
     }
     if(!scene.accepted){error_="SAV 建筑表或活动框不完整；保留数值占地";return false;}
     terrain_=terrain;savedBuildings_=std::move(scene);return true;

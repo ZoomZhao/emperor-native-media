@@ -12,14 +12,18 @@ def main():
     source = ROOT / 'game_lab'
     original = (source / 'original_building_scene.hpp').read_text()
     mutations = [
-        ('anchor', 'object.offsetX-39,object.offsetY-20', 'object.offsetX,object.offsetY'),
-        ('order', 'return a.depth<b.depth;', 'return b.depth<a.depth;'),
-        ('role', 'variant[12]={0,1,2,3,5,5,4,4,7,7,6,6}',
+        ('anchor', 'original_building_scene.hpp', 'object.offsetX-39,object.offsetY-20', 'object.offsetX,object.offsetY'),
+        ('order', 'original_building_scene.hpp', 'return a.depth<b.depth;', 'return b.depth<a.depth;'),
+        ('role', 'original_building_scene.hpp', 'variant[12]={0,1,2,3,5,5,4,4,7,7,6,6}',
          'variant[12]={0,1,2,3,5,5,4,4,6,6,6,6}'),
+        ('animation-tick', 'original_building_animation.hpp', '20u*base.animationSpeedId', '40u*base.animationSpeedId'),
+        ('animation-gate', 'original_building_animation.hpp', 'if(a.suppress)return false;', 'if(a.suppress)return true;'),
+        ('animation-offset', 'original_building_animation.hpp', 'int32_t(base.animationOffsetX),', 'int32_t(frame.animationOffsetX),'),
     ]
     env = dict(os.environ)
     env.pop('EMPEROR_GAMEDATA_ROOT', None)
-    for name, before, after in mutations:
+    for name, header, before, after in mutations:
+        original = (source / header).read_text()
         if original.count(before) != 1:
             raise ValueError('mutation must address exactly one site: ' + name)
         private = build / name
@@ -32,7 +36,7 @@ def main():
             target = private / path.relative_to(source)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(path.read_bytes())
-        (private / 'original_building_scene.hpp').write_text(original.replace(before, after))
+        (private / header).write_text(original.replace(before, after))
         binary = private / 'test'
         units = ['original_building_scene_tests.cpp', 'app/map_surface.cpp', 'map_reference.cpp',
                  'original_map.cpp', 'original_save.cpp', 'original_pak.cpp', 'original_terrain.cpp',
@@ -46,7 +50,7 @@ def main():
         print(name, 'exit', result.returncode, result.stderr.strip(), flush=True)
         if result.returncode != 1:
             raise RuntimeError('mutation survived: ' + name)
-    print('3/3 private overlay mutations rejected; production source unchanged')
+    print('6/6 private overlay/animation mutations rejected; production source unchanged')
 
 
 if __name__ == '__main__':

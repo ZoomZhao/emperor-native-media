@@ -1,5 +1,6 @@
 #pragma once
 #include "original_building_view.hpp"
+#include "original_building_animation.hpp"
 #include "map_reference.hpp"
 #include "original_save.hpp"
 #include <set>
@@ -46,7 +47,7 @@ inline std::optional<std::vector<OriginalSceneOverlay>> bindOriginalEntertainmen
         const uint16_t x=uint16_t(source.x+(rotated?row/4:row%4)),y=uint16_t(source.y+(rotated?row%4:row/4));
         const uint8_t mode=role>=8?2:1;
         out.push_back({"DATA/China_General.sg3",uint32_t(id),2,x,y,offset[role][0],offset[role][1],
-            {uint32_t(x)+y,x,uint8_t(mode==1?1:2),row},role,mode,source.slot});
+            {uint32_t(x)+y,x,uint8_t(mode==1?1:3),row},role,mode,source.slot});
     }
     return out;
 }
@@ -63,6 +64,8 @@ struct OriginalBuildingScene {
     std::vector<OriginalBuildingMarker> markers;
     std::vector<OriginalSceneOverlay> overlays;
     size_t overlayRecords=0,overlayObjectsExpected=0;
+    size_t animationCandidates=0,animationEnabled=0,animationGated=0,animationUnknown=0,animationInvalid=0,animationSelected=0;
+    uint64_t animationTickMs=0;
     size_t liveRecords=0,bindableRecords=0,placedCells=0,rejectedRecords=0;
     bool accepted=false;
     bool groundRebuilt=false;
@@ -84,8 +87,9 @@ inline std::optional<std::pair<uint32_t,uint32_t>> originalBuildingDrawCorner(
 // Compose a base-image working grid, also used as the pre-ground SAV seed below.
 // SAV's followingU32Unknown is not an image field. No MAP is borrowed.
 inline OriginalBuildingScene composeOriginalBuildingScene(const OriginalMapTerrain& terrain,
-    const OriginalBuildingProfile& profile,const SG3Archive& archive){
-    OriginalBuildingScene out;
+    const OriginalBuildingProfile& profile,const SG3Archive& archive,uint64_t tickMs=0,
+    const OriginalBuildingEmployment* employment=nullptr){
+    OriginalBuildingScene out;out.animationTickMs=tickMs;
     if(!terrain.valid()||!analyzeOriginalMap(terrain).cropValid()||profile.status!=OriginalBuildingStatus::Complete||
         profile.footprints.size()>4000||profile.objectBuildings.size()>4000||profile.liveSizedRecords>4000||profile.unplacedMarkers.size()>4000)return out;
     const size_t n=OriginalTerrainState::cells;
@@ -132,6 +136,27 @@ inline OriginalBuildingScene composeOriginalBuildingScene(const OriginalMapTerra
         }
         out.placed.push_back(p);
     }
+    for(const auto& p:out.placed){
+        // Multipart parent components are owned/animated by their own records.
+        // All animation-bearing bound bases in the measured corpus are squares.
+        if(p.components.size()!=1)continue;
+        const auto& base=archive.sprites[p.binding.physicalId-1];if(!base.animationSpriteCount)continue;
+        ++out.animationCandidates;
+        const auto enabled=originalBuildingAnimationEnabled(p.footprint,employment);
+        if(!enabled){++out.animationUnknown;continue;}
+        if(!*enabled){++out.animationGated;continue;}
+        ++out.animationEnabled;
+        const auto state=originalBuildingAnimationState(base,*p.footprint.animationInputs->phase,tickMs);
+        if(!state){++out.animationInvalid;continue;}
+        const unsigned frame=*state&127;if(!frame)continue;
+        const size_t id=p.binding.physicalId+frame;
+        if(id>archive.sprites.size()){++out.animationInvalid;continue;}
+        const auto offset=originalBuildingAnimationOffset(base,archive.sprites[id-1],p.footprint.size);
+        if(!offset){++out.animationInvalid;continue;}
+        out.overlays.push_back({"DATA/China_General.sg3",uint32_t(id),2,uint16_t(p.drawX),uint16_t(p.drawY),offset->first,offset->second,
+            {p.drawX+p.drawY,p.drawX,2,p.footprint.slot},0,3,p.footprint.slot});
+        ++out.animationSelected;
+    }
     for(const auto& source:profile.objectBuildings){
         const auto overlays=bindOriginalEntertainmentOverlays(source,profile,archive);
         out.overlayObjectsExpected+=10;
@@ -157,8 +182,9 @@ inline OriginalBuildingScene composeOriginalBuildingScene(const OriginalMapTerra
 // at0x534E5B. Unknown building art remains occupancy, never a fake SG word.
 inline OriginalBuildingScene composeOriginalSavedGroundScene(const OriginalMapTerrain& terrain,
     const OriginalBuildingProfile& profile,const OriginalSavedGround& saved,
-    const SG3Archive& general,const SG3Archive& ground,const SG3Archive& elevation){
-    auto out=composeOriginalBuildingScene(terrain,profile,general);
+    const SG3Archive& general,const SG3Archive& ground,const SG3Archive& elevation,uint64_t tickMs=0,
+    const OriginalBuildingEmployment* employment=nullptr){
+    auto out=composeOriginalBuildingScene(terrain,profile,general,tickMs,employment);
     if(!out.accepted||!saved.valid()||saved.activeSide!=terrain.activeSide||saved.state.terrain!=terrain.flags){out.accepted=false;return out;}
     auto working=saved.state;working.image=out.surface.image;
     const size_t n=OriginalTerrainState::cells;
@@ -224,6 +250,7 @@ struct OriginalBuildingSceneView {
     size_t liveRecords=0,placedRecords=0,withheldRecords=0,withheldOutlines=0,unshapedMarkers=0;
     size_t groundCells=0,groundUnknown=0,groundNoWrite=0,groundUnresolved=0,unboundBuildingCells=0;
     size_t overlayObjects=0,overlayDecoded=0,overlayDrawn=0,overlayCulled=0,overlayDecodeFailures=0,overlayInvalid=0;
+    size_t animationCandidates=0,animationEnabled=0,animationGated=0,animationUnknown=0,animationSelected=0,animationDecoded=0,animationInvalid=0;
 };
 // The surface renderer remains the independent validation/accounting pass. Only
 // scenes containing objects replay its validated full SAV stamps as commands,
@@ -232,7 +259,7 @@ inline bool renderOriginalSceneOverlays(const OriginalMapTerrain& terrain,const 
     const std::vector<MapImageGridTileset>& tilesets,const OriginalMapCamera& camera,OriginalBuildingSceneView& out,DecodedImage& canvas){
     if(scene.overlays.empty())return true;
     if(scene.overlays.size()>40000)return false;
-    struct Command {OriginalSceneDepth depth;uint32_t tileset=0,id=0;int left=0,top=0;bool object=false;};
+    struct Command {OriginalSceneDepth depth;uint32_t tileset=0,id=0;int left=0,top=0;bool object=false,animation=false;};
     std::vector<Command> commands;const int scale=int(camera.scale);const size_t origin=(228-terrain.activeSide)/2;
     const auto position=[&](unsigned x,unsigned y,int ox,int oy){
         const double dx=double(x)-camera.centerX,dy=double(y)-camera.centerY;
@@ -257,15 +284,15 @@ inline bool renderOriginalSceneOverlays(const OriginalMapTerrain& terrain,const 
         if(object.anchorX>=terrain.activeSide||object.anchorY>=terrain.activeSide||!t||!t->archive||
             !name||object.archive!=std::string("DATA/")+name||!object.physicalId||object.physicalId>t->archive->sprites.size()||
             object.depth.diagonal!=uint32_t(object.anchorX)+object.anchorY||object.depth.column!=object.anchorX||
-            object.mode<1||object.mode>2||object.depth.phase!=(object.mode==1?1:2)||
+            object.mode<1||object.mode>3||object.depth.phase!=(object.mode==1?1:object.mode==2?3:2)||
             object.offsetX < -4096||object.offsetX>4096||object.offsetY < -4096||object.offsetY>4096){++out.overlayInvalid;continue;}
         const auto& s=t->archive->sprites[object.physicalId-1];
-        if(s.type!=256||s.mirrorOffset||s.width<=0||s.height<=0||s.width>4096||s.height>4096){++out.overlayInvalid;continue;}
+        if((s.type!=256&&!(object.mode==3&&s.type==0))||s.mirrorOffset||s.width<=0||s.height<=0||s.width>4096||s.height>4096){++out.overlayInvalid;continue;}
         // 0x5CE800 positions the78x40 surface at the scan's (left,top).
         // Existing projection names its centre, so the scan origin is(-39,-20).
         // 0x44F86B uses that same origin + object's signed offsets directly.
         const auto p=position(object.anchorX,object.anchorY,object.offsetX-39,object.offsetY-20);
-        commands.push_back({object.depth,object.tileset,object.physicalId,p.first,p.second,true});
+        commands.push_back({object.depth,object.tileset,object.physicalId,p.first,p.second,true,object.mode==3});
     }
     std::stable_sort(commands.begin(),commands.end(),[](const auto& a,const auto& b){return a.depth<b.depth;});
     canvas.pixelsBGRA.assign(canvas.pixelsBGRA.size(),0);
@@ -278,7 +305,7 @@ inline bool renderOriginalSceneOverlays(const OriginalMapTerrain& terrain,const 
             else {const size_t added=decoded.image.pixelsBGRA.size()*4;if(added>64u*1024u*1024u-bytes)return false;bytes+=added;image=cache.emplace(key,std::move(decoded.image)).first;}
         }
         if(image==cache.end()){if(command.object)++out.overlayDecodeFailures;continue;}
-        const auto& src=image->second;if(command.object)++out.overlayDecoded;
+        const auto& src=image->second;if(command.object)++out.overlayDecoded;if(command.animation)++out.animationDecoded;
         if(command.left>=int(canvas.width)||command.top>=int(canvas.height)||command.left+int(src.width)*scale<=0||command.top+int(src.height)*scale<=0){if(command.object)++out.overlayCulled;continue;}
         if(command.object)++out.overlayDrawn;
         for(unsigned y=0;y<src.height;++y)for(unsigned x=0;x<src.width;++x){
@@ -297,6 +324,8 @@ inline OriginalBuildingSceneView renderOriginalBuildingScene(const OriginalMapTe
     const OriginalBuildingScene& scene,const SG3Archive& archive,const std::string& companion,
     const OriginalMapCamera& camera,int bit=-1,const std::vector<MapImageGridTileset>& groundTilesets={}){
     OriginalBuildingSceneView out;if(!scene.accepted||scene.surface.terrain!=terrain.flags)return out;
+    out.animationCandidates=scene.animationCandidates;out.animationEnabled=scene.animationEnabled;out.animationGated=scene.animationGated;
+    out.animationUnknown=scene.animationUnknown;out.animationSelected=scene.animationSelected;out.animationInvalid=scene.animationInvalid;
     auto background=renderOriginalBuildingFootprints(terrain,scene.withheldFootprints,camera,bit,scene.markers);
     if(!background.image.valid())return out;
     auto tilesets=groundTilesets;tilesets.push_back({2,&archive,companion,201});

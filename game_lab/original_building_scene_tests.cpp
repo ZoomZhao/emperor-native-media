@@ -160,7 +160,7 @@ void authored(const std::filesystem::path& temp){
     auto orderView=renderOriginalBuildingScene(t,ordered,a,(temp/"own.555").string(),c);
     need(orderView.image.pixelsBGRA[200*c.width+270]==0xff0000ffu,"later surface cell occludes earlier object; objects cannot be a final pass");
     ordered.surface.image[cell+228]=0;
-    ordered.overlays.push_back({"DATA/China_General.sg3",211,2,10,10,-8,-53,{20,10,2,0},8,2,2});
+    ordered.overlays.push_back({"DATA/China_General.sg3",211,2,10,10,-8,-53,{20,10,3,0},8,2,2});
     auto modeView=renderOriginalBuildingScene(t,ordered,a,(temp/"own.555").string(),c);
     need(modeView.image.pixelsBGRA[180*c.width+255]==0xff0000ffu,"mode2 follows mode1 for the same cell");
     std::reverse(ordered.overlays.begin(),ordered.overlays.end());
@@ -211,12 +211,112 @@ void authored(const std::filesystem::path& temp){
         need(parsed.objectBuildings.empty()&&parsed.unplacedMarkers.size()==1,"unsupported entertainment serializer version retains its unresolved marker");
     }
 }
+void animationAuthored(const std::filesystem::path& temp){
+    SG3Sprite base;base.animationSpriteCount=3;base.animationSpeedId=5;
+    const std::vector<std::pair<uint64_t,unsigned>> forward{{0,0},{99,0},{100,1},{199,1},{200,2},{300,3},{400,1},{700,1}};
+    for(const auto& row:forward)need(originalBuildingAnimationState(base,0,row.first)==row.second,"literal forward tick table preserves initialization and wraps after last animation frame");
+    base.animationSpeedId=4;need(originalBuildingAnimationState(base,1,79)==1&&originalBuildingAnimationState(base,1,80)==2,"speed-four clock crosses its independently enumerated eighty millisecond boundary");base.animationSpeedId=5;
+    need(originalBuildingAnimationState(base,2,0)==2&&originalBuildingAnimationState(base,2,100)==3&&originalBuildingAnimationState(base,2,200)==1,"saved phase participates in selection rather than slot/random phase");
+    base.animationReversible=1;
+    const unsigned reverse[]={0,1,2,3,131,130,129,1,2,3,131};
+    for(unsigned tick=0;tick<11;++tick)need(originalBuildingAnimationState(base,0,tick*100)==reverse[tick],"literal reversible endpoint-repeat and direction-byte table");
+    need(originalBuildingAnimationState(base,130,100)==129&&originalBuildingAnimationState(base,129,100)==1,"saved reverse direction is retained at tick zero and traversed");
+    base.animationSpriteCount=1;need(originalBuildingAnimationState(base,0,100)==1&&originalBuildingAnimationState(base,1,100)==129&&originalBuildingAnimationState(base,129,100)==1,"one-frame reversible chain retains endpoint state");
+    base.animationSpriteCount=3;base.animationReversible=0;
+    need(!originalBuildingAnimationState(base,4)&&!originalBuildingAnimationState(base,129),"invalid saved index/direction refused");
+    base.animationSpeedId=0;need(originalBuildingAnimationState(base,2)==2&&!originalBuildingAnimationState(base,2,1),"speed zero retains saved phase but cannot infer draw count from elapsed time");
+    base.animationSpeedId=51;need(!originalBuildingAnimationState(base,0),"speed outside original 51 clock slots refused");
+    base.animationSpeedId=5;base.animationSpriteCount=128;need(!originalBuildingAnimationState(base,0),"unrepresentable seven-bit frame count refused");
+    auto a=archive(temp/"animation.555");auto t=terrain();auto f=footprint(72,2,10,10,1);
+    OriginalBuildingEmployment employment{{72,4}};
+    f.animationInputs=OriginalBuildingAnimationInputs{2,0,0,uint8_t(1),uint8_t(0),uint16_t(1)};
+    a.sprites[200].animationSpriteCount=2;a.sprites[200].animationSpeedId=5;a.sprites[200].animationOffsetX=50;a.sprites[200].animationOffsetY=69;
+    // Authored nonadjacent archive groups are irrelevant: frames are base+1/2.
+    for(unsigned id:{202u,203u}){a.sprites[id-1]=a.sprites[209];a.sprites[id-1].bitmapId=0;}
+    a.sprites[201].animationOffsetX=-1234;a.sprites[201].animationOffsetY=2345;
+    const int signedY[]={-27,-47,-67,-87,-107,-127};
+    for(unsigned side=1;side<=6;++side){auto b=a.sprites[200];b.width=int16_t(side*80-2);b.height=int16_t(side*40+10);b.animationOffsetX=-13;b.animationOffsetY=-17;
+        need(originalBuildingAnimationOffset(b,a.sprites[201],side)==std::optional<std::pair<int32_t,int32_t>>({-13,signedY[side-1]}),"literal six-side scan offsets preserve signed base fields and twenty-pixel side steps");
+    }
+    need(originalBuildingAnimationEnabled(f,&employment)==true,"partial positive worker ratio animates");
+    for(unsigned kind=0;kind<6;++kind){auto bad=f;auto model=employment;
+        if(kind==0)bad.animationInputs->workers=0;if(kind==1)bad.animationInputs->workers=-1;
+        if(kind==2)bad.animationInputs->suppress=1;if(kind==3)bad.animationInputs->laborDisabled=1;
+        if(kind==4)model[72]=0;if(kind==5){model[72]=1000;bad.animationInputs->workers=1;}
+        need(originalBuildingAnimationEnabled(bad,&model)==false,"operational gates retain signed workers, suppression, disabled employment and integer percentage");
+    }
+    for(unsigned kind=0;kind<6;++kind){auto bad=f;auto model=employment;
+        if(kind==0)bad.animationInputs.reset();if(kind==1)bad.animationInputs->phase.reset();if(kind==2)bad.animationInputs->owner=2;
+        if(kind==3)bad.animationInputs->savedView=2;if(kind==4)model.clear();if(kind==5)bad.type=0x1234;
+        need(!originalBuildingAnimationEnabled(bad,&model).has_value(),"unavailable owner/view/model/dispatch inputs are unknown rather than silently active");
+    }
+    need(!originalBuildingAnimationEnabled(f,nullptr),"library takes employment explicitly");
+    auto officer=f;officer.type=124;employment[124]=5;officer.animationInputs->laborDisabled=1;officer.animationInputs->workers=0;
+    need(originalBuildingAnimationEnabled(officer,&employment)==true,"nonindustrial zero-required branch does not manufacture a percentage gate");
+    const auto composed=composeOriginalBuildingScene(t,profile({f}),a,0,&employment);
+    need(composed.animationCandidates==1&&composed.animationEnabled==1&&composed.animationSelected==1&&composed.animationInvalid==0&&composed.overlays.size()==1,"enabled animation creates one generic overlay at explicit tick zero");
+    const auto& o=composed.overlays.front();
+    need(o.physicalId==202&&o.anchorX==10&&o.anchorY==11&&o.offsetX==50&&o.offsetY==29&&o.depth.phase==2&&o.mode==3,"base offsets and composite draw corner produce literal animation placement, independent of frame metadata");
+    need(composeOriginalBuildingScene(t,profile({f}),a,100,&employment).overlays.front().physicalId==203,"caller tick advances to adjacent second animation record");
+    OriginalMapCamera camera;camera.width=600;camera.height=500;camera.centerX=10;camera.centerY=11;camera.outlines=false;
+    for(unsigned scale:{1u,2u}){camera.scale=scale;const auto view=renderOriginalBuildingScene(t,composed,a,(temp/"animation.555").string(),camera);
+        const unsigned left=scale==1?311:322,top=scale==1?259:268;
+        need(view.image.valid()&&view.animationDecoded==1&&view.overlayDecodeFailures==0&&view.image.pixelsBGRA[top*600+left]==0xffff0000u,"animation applies signed base offset to scan origin at both scales");
+    }
+    {
+        auto raw=a;auto& frame=raw.sprites[201];frame.type=0;frame.width=1;frame.height=1;frame.offset=0;frame.length=2;
+        auto rawScene=composed;const auto view=renderOriginalBuildingScene(t,rawScene,raw,(temp/"animation.555").string(),camera);
+        need(view.image.valid()&&view.animationDecoded==1&&view.overlayInvalid==0&&view.overlayDecodeFailures==0,"animation layer accepts raw type0 frames through existing decoder");
+        const auto failed=renderOriginalBuildingScene(t,rawScene,raw,(temp/"missing-animation.555").string(),camera);
+        need(failed.animationDecoded==0&&failed.overlayDecodeFailures==1,"failed animation payload cannot count as decoded");
+    }
+    auto ordered=composed;ordered.overlays.push_back({"DATA/China_General.sg3",211,2,10,11,50,29,{21,10,1,0},1,1,2});camera.scale=1;
+    need(renderOriginalBuildingScene(t,ordered,a,(temp/"animation.555").string(),camera).image.pixelsBGRA[259*600+311]==0xffff0000u,"animation follows same-cell mode1 object");
+    ordered.overlays.back().depth.phase=3;ordered.overlays.back().mode=2;
+    need(renderOriginalBuildingScene(t,ordered,a,(temp/"animation.555").string(),camera).image.pixelsBGRA[259*600+311]==0xff0000ffu,"mode2 object follows same-cell animation");
+    std::string model="BUILDING MODS\n";
+    for(unsigned i=0;i<5;++i)model+=std::to_string(i)+",m,{,100,100,100,100,100,100,100,100,100,100,100,100,100,}\n";
+    model+="ALL BUILDINGS\n";
+    for(unsigned id=0;id<72;++id)model+=std::to_string(id)+",Authored,{,0,0,0,0,0,0,0,0,0,0,0,0,0,}\n";
+    model+="72,Well,{,25,4,2,-2,4,4,0,8,0,0,40,200,3,}\nHOUSE MODS\n";
+    const auto parsedModel=parseOriginalBuildingEmployment(model);
+    need(parsedModel&&parsedModel->size()==73&&parsedModel->at(72)==4,"authored model parses fifth zero-based employment column with all difficulties");
+    auto reordered=model;reordered.replace(reordered.find("72,Well"),2,"71");
+    need(!parseOriginalBuildingEmployment(reordered),"printed model IDs must agree with original loader's ordinal row meaning");
+    auto modified=model;modified.replace(modified.find("100,100,100,100,100,100"),23,"100,100,100,100,100,200");
+    need(!parseOriginalBuildingEmployment(modified),"difficulty-dependent employment is explicitly unsupported");
+    need(!parseOriginalBuildingEmployment("ALL BUILDINGS\n")&&!parseOriginalBuildingEmployment(model+std::string(1,'\0')),"incomplete and embedded-zero model refused");
+    // Literal common-version fixtures prove runtime fields and phase follow
+    // their own serialized extents; origin/random and adjacent bytes disagree.
+    for(uint16_t version:{uint16_t(3),uint16_t(4),uint16_t(5)}){
+        const size_t common=version==3?179:version==4?181:182;
+        std::vector<uint8_t> bytes{0x13,0,1,0,0xa0,0x0f,0,0,0xff,0xff,0,0,8,0,'B','u','i','l','d','i','n','g'};
+        const auto word=[&](size_t at,uint16_t n){bytes.at(at)=uint8_t(n);bytes.at(at+1)=uint8_t(n>>8);};
+        const auto dword=[&](size_t at,uint32_t n){for(unsigned j=0;j<4;++j)bytes.at(at+j)=uint8_t(n>>(j*8));};
+        size_t at=bytes.size();bytes.resize(at+common);word(at,version);
+        bytes.insert(bytes.end(),{1,0x80});at=bytes.size();bytes.resize(at+common+130);word(at,version);bytes[at+2]=1;bytes[at+5]=2;
+        word(at+8,10);word(at+10,10);word(at+16,72);dword(at+12,82*228+82);word(at+62,0xfffd);word(at+72,0x1234);
+        bytes[at+(version==5?98:97)]=0x5a;bytes[at+(version==5?97:98)]=0x33;
+        for(unsigned slot=2;slot<4000;++slot){bytes.insert(bytes.end(),{1,0x80});at=bytes.size();bytes.resize(at+common);word(at,version);}
+        const size_t terrainAt=bytes.size()+155952;bytes.resize(terrainAt+1291328);const size_t corner=83*228+82;
+        bytes[terrainAt+363888+corner]=0x82;bytes[terrainAt+363888+corner-228]=7;bytes[terrainAt+415872+corner]=9;
+        word(terrainAt-103968+2*corner,1);const auto parsed=parseOriginalSavedBuildings(bytes,terrainAt,t);
+        need(parsed.footprints.size()==1&&parsed.footprints[0].animationInputs&&parsed.footprints[0].animationInputs->workers==-3&&
+            parsed.footprints[0].animationInputs->suppress==0x1234&&parsed.footprints[0].animationInputs->laborDisabled==0x5a,
+            "literal common v3/v4/v5 animation fields retain signedness and exact shifted byte");
+        const auto& inputs=*parsed.footprints[0].animationInputs;
+        need(parsed.status==OriginalBuildingStatus::Complete&&inputs.phase==0x82&&inputs.owner==1&&inputs.savedView==0,
+            "literal SAV19 phase reads draw-corner animation span and owner, excluding origin/random decoys");
+    }
+}
 void corpus(){
     const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!env||!*env){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return;}
     const auto root=ResourceRoot::fromAbsolute(env);need(root.configured(),"original root configured");
     const auto a=loadSG3(root.resolve("DATA/China_General.sg3"));const auto catalog=enumerateOriginalMapSources(root);
     need(catalog.complete,"complete original catalog");
     need(a.imageIndex[0xb0]==603,"independent General header closes T(4B0) at physical603");
+    std::vector<uint8_t> modelBytes;need(detail::readFile(root.resolve("Model/EmperorBuildingModels.txt"),1024u*1024u,modelBytes),"bounded original model input");
+    const auto employment=parseOriginalBuildingEmployment(std::string(modelBytes.begin(),modelBytes.end()));need(employment.has_value(),"all five original difficulty modifiers agree on employment");
     const int objectWidths[]={65,99,69,99,68,71,57,57},objectHeights[]={95,76,95,76,75,75,44,44};
     for(unsigned variant=0;variant<8;++variant){const auto& sprite=a.sprites[602+variant];
         need(sprite.type==256&&!sprite.tileSize&&!sprite.mirrorOffset&&sprite.width==objectWidths[variant]&&sprite.height==objectHeights[variant]&&
@@ -230,6 +330,8 @@ void corpus(){
     size_t overlayRecords=0,overlayObjects=0,overlayDecoded=0,overlayFocused=0,overlayFailures=0,overlayExpected=0;
     std::map<unsigned,size_t> overlayPhysical,overlayModes;std::set<uint16_t> boundTypes;
     std::map<uint16_t,size_t> newlyBound;
+    size_t animationCandidates=0,animationEnabled=0,animationGated=0,animationSelected=0,animationDecoded=0,animationFrames=0,animationFramesDecoded=0;
+    std::set<uint32_t> animationUnique;std::map<uint16_t,size_t> animatingTypes;
     AppMapSurface app(root);
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;++sources;
         const auto snapshot=loadOriginalSave(root.resolve(source.relativePath));need(snapshot.status==OriginalSaveStatus::LoadedSnapshot&&snapshot.readStable,"original save stable complete snapshot");
@@ -253,6 +355,33 @@ void corpus(){
         need(s.accepted&&s.rejectedRecords==0,"original base stamps have no shape or overlap rejection");++scenes;withBases+=!s.placed.empty();
         live+=s.liveRecords;bindable+=s.bindableRecords;placed+=s.placed.size()+s.overlayRecords;cells+=s.placedCells;
         const size_t crop=(228-snapshot.terrain.activeSide)/2;
+        const auto animated=composeOriginalBuildingScene(snapshot.terrain,snapshot.buildings,a,0,&*employment);
+        std::cout<<"{\"animation_source_ordinal\":"<<sources<<",\"candidates\":"<<animated.animationCandidates<<",\"enabled\":"<<animated.animationEnabled<<",\"gated\":"<<animated.animationGated<<",\"unknown\":"<<animated.animationUnknown<<",\"invalid\":"<<animated.animationInvalid<<",\"selected\":"<<animated.animationSelected<<"}\n";
+        need(animated.accepted&&animated.animationUnknown==0&&animated.animationInvalid==0,"every animation-bearing bound base has a closed condition and frame at tick zero");
+        animationCandidates+=animated.animationCandidates;animationEnabled+=animated.animationEnabled;animationGated+=animated.animationGated;animationSelected+=animated.animationSelected;
+        for(const auto& p:animated.placed){
+            const auto& b=a.sprites[p.binding.physicalId-1];if(!b.animationSpriteCount)continue;
+            const auto& f=p.footprint;size_t body=f.recordOffset+2;
+            if(detail::u16(data.data()+f.recordOffset)==0xffff)body+=4+detail::u16(data.data()+f.recordOffset+4);
+            const size_t corner=(crop+p.drawY)*228+crop+p.drawX;
+            need(detail::u16(data.data()+body)==5&&f.animationInputs&&f.animationInputs->workers==detail::i16(data.data()+body+62)&&
+                f.animationInputs->suppress==detail::i16(data.data()+body+72)&&f.animationInputs->laborDisabled==data[body+98]&&
+                f.animationInputs->phase==data[base+363888+corner]&&f.animationInputs->owner==detail::u16(data.data()+base-103968+2*corner)&&f.animationInputs->savedView==0,
+                "independent SAV19 bytes close animation conditions and draw-corner phase, not origin/random bytes");
+            const bool enabled=*originalBuildingAnimationEnabled(f,&*employment);
+            need(enabled==(detail::i16(data.data()+body+62)>0),"original corpus operational gates equal positive workers with zero suppression and enabled labor");
+            if(!enabled)continue;++animatingTypes[f.type];
+            const std::map<uint16_t,std::pair<int32_t,int32_t>> expectedOffsets{{33,{4,-34}},{35,{28,-35}},{53,{160,-54}},{72,{50,-3}},{124,{26,-116}},
+                {127,{21,-143}},{192,{15,-41}},{193,{56,-114}},{207,{18,-31}},{211,{38,-43}},{214,{37,-40}}};
+            need(originalBuildingAnimationOffset(b,a.sprites[p.binding.physicalId],f.size)==expectedOffsets.at(f.type),"all original enabled occurrences match independently enumerated base/scan offset provenance");
+            for(unsigned frame=1;frame<=b.animationSpriteCount;++frame){
+                ++animationFrames;const uint32_t id=p.binding.physicalId+frame;need(id<=a.sprites.size(),"complete original animation frame interval resolves");
+                const auto& sprite=a.sprites[id-1];const auto offset=originalBuildingAnimationOffset(b,sprite,f.size);
+                need(offset&&(sprite.type==256||sprite.type==0)&&!sprite.tileSize&&!sprite.mirrorOffset&&sprite.bitmapId==b.bitmapId,"every frame retains original object geometry and base-derived offset provenance");
+                const auto decoded=decodeSG3Sprite(a,id-1,root.resolve("DATA/China_General.555"));
+                need(decoded.status==SG3DecodeStatus::Decoded&&decoded.image.valid(),"every enabled building frame decodes original payload");++animationFramesDecoded;animationUnique.insert(id);
+            }
+        }
         for(const auto& p:s.placed)boundTypes.insert(p.footprint.type);
         overlayRecords+=s.overlayRecords;overlayObjects+=s.overlays.size();overlayExpected+=s.overlayObjectsExpected;
         for(const auto& sourceObject:snapshot.buildings.objectBuildings){
@@ -311,7 +440,11 @@ void corpus(){
         auto view=app.renderSavedBuildings(c);
         need(view.image.valid()&&view.bases.decodedCells==s.placedCells&&view.bases.geometryUnsupported==0&&view.bases.unresolvedIndices==0&&view.bases.archiveUnavailable==0,"App scene decodes every stamped cell including offscreen");
         decoded+=view.bases.decodedCells;failures+=view.bases.decodeFailures;visible+=view.bases.drawnCells;
-        overlayDecoded+=view.overlayDecoded;overlayFailures+=view.overlayDecodeFailures+view.overlayInvalid;
+        overlayDecoded+=view.overlayDecoded-view.animationDecoded;overlayFailures+=view.overlayDecodeFailures+view.overlayInvalid;
+        need(view.animationCandidates==animated.animationCandidates&&view.animationEnabled==animated.animationEnabled&&view.animationGated==animated.animationGated&&
+            view.animationSelected==animated.animationSelected&&view.animationDecoded==animated.animationSelected&&view.animationInvalid==0&&view.animationUnknown==0,
+            "App adopts original employment and saved phase and decodes all selected animation overlays");
+        animationDecoded+=view.animationDecoded;
         withheld+=view.withheldRecords;outlines+=view.withheldOutlines;markers+=view.unshapedMarkers;
         auto cg=createCGImageFromPremultipliedBGRA(view.image.width,view.image.height,view.image.pixelsBGRA);need(cg,"App city scene creates native image");if(cg){++native;CGImageRelease(cg);}
         // All record occurrences must reach a visible native compositor blit,
@@ -333,7 +466,7 @@ void corpus(){
         }
         for(const auto& object:s.overlays){c.width=800;c.height=800;c.centerX=object.anchorX;c.centerY=object.anchorY;
             const auto objectView=app.renderSavedBuildings(c);
-            need(objectView.image.valid()&&objectView.overlayDecoded==s.overlays.size()&&objectView.overlayDrawn==s.overlays.size()&&objectView.overlayDecodeFailures==0&&objectView.overlayInvalid==0,
+            need(objectView.image.valid()&&objectView.overlayDecoded-objectView.animationDecoded==s.overlays.size()&&objectView.overlayDrawn>=s.overlays.size()&&objectView.overlayDecodeFailures==0&&objectView.overlayInvalid==0,
                 "every positioned original object reaches a visible App compositor blit");++overlayFocused;
         }
         app.clear();need(!app.renderSavedBuildings(c).image.valid(),"source clear drops saved scene without stale image");
@@ -345,6 +478,9 @@ void corpus(){
     std::cout<<"{\"bound_types\":"<<boundTypes.size()<<",\"live_types\":27,\"object_building_records\":"<<overlayRecords<<",\"overlay_objects_placed\":"<<overlayObjects<<",\"overlay_objects_expected\":"<<overlayExpected<<",\"overlay_decoded\":"<<overlayDecoded<<",\"overlay_focused_blits\":"<<overlayFocused<<",\"overlay_failures\":"<<overlayFailures<<"}\n";
     need(savedDrawMatches==1751&&savedSideMatches==1751&&savedMetadataRecords==1063&&cells==1719,"persisted SAV footprint metadata agrees for every bound record and cell");
     need(randomRecords==851&&changedRandomInputs==845&&changedSelections==389,"SAV serializer correction has an explicit affected-building denominator");
+    std::cout<<"{\"animation_candidate_buildings\":"<<animationCandidates<<",\"animation_enabled_buildings\":"<<animationEnabled<<",\"bound_buildings\":"<<placed<<",\"animation_gated_buildings\":"<<animationGated<<",\"animation_selected\":"<<animationSelected<<",\"animation_decoded\":"<<animationDecoded<<",\"animation_frames_resolved\":"<<animationFrames<<",\"animation_frames_decoded\":"<<animationFramesDecoded<<",\"animation_unique_frames\":"<<animationUnique.size()<<",\"animation_unknown\":0,\"animation_failures\":0,\"tick_ms\":0}\n";
+    need(animationCandidates==58&&animationEnabled==53&&animationGated==5&&animationSelected==53&&animationDecoded==53&&animationFrames==954&&animationFramesDecoded==954&&animationUnique.size()==197&&
+        animatingTypes==std::map<uint16_t,size_t>{{33,11},{35,8},{53,4},{72,2},{124,6},{127,2},{192,6},{193,8},{207,2},{211,2},{214,2}},"original animation occurrence, complete frame, unique frame and condition denominators");
     need(newlyBound==std::map<uint16_t,size_t>{{54,6},{58,2},{59,2},{231,126}}&&newUniqueCells==236&&newDrawIndependent==212&&newDrawPreserved==24&&newSubTileMatches==236&&unboundCells==0,"new record, unique-cell and independent metadata denominators");
     std::cout<<"{\"newly_bound_records\":136,\"new_unique_cells\":"<<newUniqueCells<<",\"new_full_draw_independent_matches\":"<<newDrawIndependent<<",\"new_draw_preserved_input_matches\":"<<newDrawPreserved<<",\"new_subtile_matches\":"<<newSubTileMatches<<",\"unbound_surface_occupancy\":"<<unboundCells<<"}\n";
     std::cout<<"{\"saved_draw_cells_matched\":"<<savedDrawMatches<<",\"saved_subtile_cells_matched\":"<<savedSideMatches<<",\"footprint_cells\":"<<cells<<",\"saved_metadata_records_matched\":"<<savedMetadataRecords<<",\"bound_records\":"<<placed<<",\"random_dependent_records\":"<<randomRecords<<",\"corrected_random_inputs\":"<<changedRandomInputs<<",\"corrected_image_selections\":"<<changedSelections<<",\"stored_image_word_checks_eligible\":0,\"chain_agreement_cells_eligible\":0}\n";
@@ -352,5 +488,5 @@ void corpus(){
 }
 }
 int main(int argc,char** argv){try{if(argc!=2)throw std::runtime_error("explicit temporary fixture directory required");
-    authored(argv[1]);const size_t authoredChecks=checks;corpus();std::cout<<"{\"passed\":true,\"authored_checks\":"<<authoredChecks<<",\"all_checks\":"<<checks<<"}\n";return 0;
+    authored(argv[1]);animationAuthored(argv[1]);const size_t authoredChecks=checks;corpus();std::cout<<"{\"passed\":true,\"authored_checks\":"<<authoredChecks<<",\"all_checks\":"<<checks<<"}\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

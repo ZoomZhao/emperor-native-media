@@ -12,6 +12,12 @@ namespace game_lab {
 // FUN_00427430 serializes these at common+18 and common+(v5?100:99).
 struct OriginalWellImageInputs {int16_t word16=0;uint8_t byte6f=0;};
 struct OriginalStorageCompartment {uint32_t resource=0,amount=0,capacity=0;};
+// Common serializer0x427430: runtime+44/+4E/+6E are common+62/+72/
+// +(v5?98:97). SAV19 additionally supplies the draw-corner owner and phase.
+struct OriginalBuildingAnimationInputs {
+    int16_t workers=0,suppress=0;uint8_t laborDisabled=0;
+    std::optional<uint8_t> phase,savedView;std::optional<uint16_t> owner;
+};
 struct OriginalBuildingImageInputs {
     uint32_t gridIndex=0,religiousCode=0;
     int16_t word20=0,cropWord4=0;
@@ -23,7 +29,7 @@ struct OriginalBuildingImageInputs {
     std::array<uint32_t,4> marketStalls{};
     std::vector<uint8_t> marketRandom,marketDraw;
 };
-struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0,height=0;size_t slot=0,recordOffset=0;std::optional<OriginalWellImageInputs> wellImageInputs;std::optional<OriginalBuildingImageInputs> imageInputs;};
+struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0,height=0;size_t slot=0,recordOffset=0;std::optional<OriginalWellImageInputs> wellImageInputs;std::optional<OriginalBuildingImageInputs> imageInputs;std::optional<OriginalBuildingAnimationInputs> animationInputs;};
 // A raw common-record position whose occupied shape is not yet established.
 struct OriginalBuildingMarker {uint16_t type=0,x=0,y=0;size_t slot=0;};
 // Positioned object writer, deliberately separate from an occupied square.
@@ -344,6 +350,7 @@ inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint
                     at+=common+*tail;++result.parsedRecords;continue;
                 }
                 OriginalBuildingFootprint f;f.type=type;f.x=detail::u16(data.data()+at+8);f.y=detail::u16(data.data()+at+10);f.size=data[at+5];f.slot=slot;f.recordOffset=begin;
+                f.animationInputs=OriginalBuildingAnimationInputs{detail::i16(data.data()+at+62),detail::i16(data.data()+at+72),data[at+(version==5?98:97)],std::nullopt,std::nullopt,std::nullopt};
                 if(type==0x3b||type==0x3c){const auto rotation=data[at+common+96];if(rotation>1){++result.unsupportedFootprintRecords;at+=common+*tail;++result.parsedRecords;continue;}const uint8_t side=type==0x3b?4:6;f.width=rotation?7:side;f.height=rotation?side:7;}
                 if(type==0x48||type==0x7c||type==0x7f){OriginalWellImageInputs inputs;inputs.word16=detail::i16(data.data()+at+18);inputs.byte6f=data[at+(version==5?100:99)];f.wellImageInputs=inputs;}
                 OriginalBuildingImageInputs inputs;inputs.gridIndex=detail::u32(data.data()+at+12);inputs.word20=detail::i16(data.data()+at+27);
@@ -425,6 +432,11 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
             terrainOffset<=data.size()&&1291328<=data.size()-terrainOffset){
             const uint32_t view=detail::u32(data.data()+terrainOffset+1291324);
             const size_t origin=(228-terrain.activeSide)/2;
+            for(auto& f:result.footprints)if(f.animationInputs&&f.x<terrain.activeSide&&uint32_t(f.y)+f.size<=terrain.activeSide&&view==0){
+                const size_t corner=(origin+f.y+f.size-1)*228+origin+f.x;
+                auto& a=*f.animationInputs;a.phase=data[terrainOffset+363888+corner];a.savedView=0;
+                a.owner=detail::u16(data.data()+terrainOffset-103968+2*corner);
+            }
             for(auto& object:result.objectBuildings)if(view<=6&&!(view&1)&&object.x<terrain.activeSide&&object.y<terrain.activeSide&&
                 object.gridIndex==(origin+object.y)*228+origin+object.x)object.savedView=uint8_t(view);
             for(auto& f:result.footprints)if(f.type==0x3b&&f.imageInputs&&f.imageInputs->marketOrientation&&view==0&&f.imageInputs->gridIndex==(origin+f.y)*228+origin+f.x){

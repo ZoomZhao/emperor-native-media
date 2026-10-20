@@ -1734,8 +1734,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                             detail="SAV 建筑基座及静态对象 "+std::to_string(scene.placedRecords)+"/"+std::to_string(scene.liveRecords)+" 记录已放置；保留数值占地/标记 "+std::to_string(scene.withheldRecords)+" 记录（"+std::to_string(scene.withheldOutlines)+" 占地，"+std::to_string(scene.unshapedMarkers)+" 未知形状坐标标记）。\n";
                             detail+="地面重建 "+std::to_string(scene.groundCells)+" 格；选图未知 "+std::to_string(scene.groundUnknown)+"，未写入 "+std::to_string(scene.groundNoWrite)+"，索引未解 "+std::to_string(scene.groundUnresolved)+"；未绑定建筑占格 "+std::to_string(scene.unboundBuildingCells)+"。\n";
                             detail+="地面及建筑格解码 "+std::to_string(scene.bases.decodedCells)+"/"+std::to_string(scene.bases.nonzeroCells)+"；失败 "+std::to_string(scene.bases.decodeFailures)+"；当前视口绘制 "+std::to_string(scene.bases.drawnCells)+" 格。\n";
-                            detail+="静态对象解码 "+std::to_string(scene.overlayDecoded)+"/"+std::to_string(scene.overlayObjects)+"；失败 "+std::to_string(scene.overlayDecodeFailures+scene.overlayInvalid)+"；当前视口绘制 "+std::to_string(scene.overlayDrawn)+" 个。\n";
-                            detail+="地面与建筑来自同一 SAV；按 view0 角格及对角线顺序绘制。未知处保留数值地形。阴影、动画、高程遮挡及原版画面对照未验证。\n";
+                            detail+="对象层解码 "+std::to_string(scene.overlayDecoded)+"/"+std::to_string(scene.overlayObjects)+"；失败 "+std::to_string(scene.overlayDecodeFailures+scene.overlayInvalid)+"；当前视口绘制 "+std::to_string(scene.overlayDrawn)+" 个。\n";
+                            detail+="建筑动画条件通过 "+std::to_string(scene.animationEnabled)+"/"+std::to_string(scene.animationCandidates)+"；帧解码 "+std::to_string(scene.animationDecoded)+"/"+std::to_string(scene.animationSelected)+"；条件未知 "+std::to_string(scene.animationUnknown)+"，无效 "+std::to_string(scene.animationInvalid)+"。时间输入 tick=0，使用 SAV 保存的格子相位。\n";
+                            detail+="地面与建筑来自同一 SAV；按 view0 角格及对角线顺序绘制。未知处保留数值地形。阴影、高程遮挡及原版画面对照未验证；不是运行中的城市。\n";
                             text+="；基座及静态对象 "+std::to_string(scene.placedRecords)+"/"+std::to_string(scene.liveRecords)+"，未绑定 "+std::to_string(scene.withheldRecords);
                         }
                     }
