@@ -1645,7 +1645,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     else if(_originalMapBitPicker.indexOfSelectedItem>=33&&_originalMapBitPicker.indexOfSelectedItem<38)[_originalMapBitPicker selectItemAtIndex:0];
     const auto& source=_originalMapSources[sourceIndex];
     if(source.kind==game_lab::OriginalMapSourceKind::SaveFile&&_originalSaveBuildings){
-        if(!_originalMapSurface->selectSavedBuildings(_originalMapResult.terrain,*_originalSaveBuildings))
+        if(!_originalMapSurface->selectSavedBuildings(_originalMapResult.terrain,*_originalSaveBuildings,
+            _originalSaveLayers&&_originalSaveLayers->ground?&*_originalSaveLayers->ground:nullptr))
             _originalMapSourceInfo+="；"+_originalMapSurface->error();
         [_originalMapBitPicker selectItemAtIndex:0];_originalMapSpatial.state=NSControlStateValueOn;
     }
@@ -1731,8 +1732,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                         if(scene.image.valid()){
                             image=std::move(scene.image);
                             detail="SAV 静态建筑基座 "+std::to_string(scene.placedRecords)+"/"+std::to_string(scene.liveRecords)+" 记录已放置；保留数值占地/标记 "+std::to_string(scene.withheldRecords)+" 记录（"+std::to_string(scene.withheldOutlines)+" 占地，"+std::to_string(scene.unshapedMarkers)+" 未知形状坐标标记）。\n";
-                            detail+="建筑格解码 "+std::to_string(scene.bases.decodedCells)+"/"+std::to_string(scene.bases.nonzeroCells)+"；失败 "+std::to_string(scene.bases.decodeFailures)+"；当前视口绘制 "+std::to_string(scene.bases.drawnCells)+" 格。\n";
-                            detail+="背景为同一 SAV 的数值地形；基座按 view0 占地角格 (x,y+size−1) 与对角线顺序绘制。阴影、动画、高程遮挡及原版画面对照未验证。\n";
+                            detail+="地面重建 "+std::to_string(scene.groundCells)+" 格；选图未知 "+std::to_string(scene.groundUnknown)+"，未写入 "+std::to_string(scene.groundNoWrite)+"，索引未解 "+std::to_string(scene.groundUnresolved)+"；未绑定建筑占格 "+std::to_string(scene.unboundBuildingCells)+"。\n";
+                            detail+="地面及建筑格解码 "+std::to_string(scene.bases.decodedCells)+"/"+std::to_string(scene.bases.nonzeroCells)+"；失败 "+std::to_string(scene.bases.decodeFailures)+"；当前视口绘制 "+std::to_string(scene.bases.drawnCells)+" 格。\n";
+                            detail+="地面与建筑来自同一 SAV；按 view0 角格及对角线顺序绘制。未知处保留数值地形。阴影、动画、高程遮挡及原版画面对照未验证。\n";
                             text+="；静态基座 "+std::to_string(scene.placedRecords)+"/"+std::to_string(scene.liveRecords)+"，未绑定 "+std::to_string(scene.withheldRecords);
                         }
                     }
@@ -1761,7 +1763,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         text += details;
         text += "\n完整消费 " + std::to_string(result.frames) + " 个压缩块，逻辑数据 " + std::to_string(result.decodedBytes) + " 字节；只读原始网格，无城市状态绑定。";
     }
-    text += surface?"\n仅静态存储地表；重建选图准确度与原版画面对照另计，建筑/单位/规则未恢复。":_originalSaveLayers?"\n只读存档快照，非当前内存；空间视图显示已绑定静态建筑基座，背景仍为数值地形；单位/规则、阴影/动画与原版画面对照未恢复。":"\n数值配色不等于原版外观；等距对照使用规范平面格坐标，不含高程/遮挡规则；SG3选图未知，不载入城市/建筑/单位。";
+    text += surface?"\n仅静态存储地表；重建选图准确度与原版画面对照另计，建筑/单位/规则未恢复。":_originalSaveLayers?"\n只读存档快照，非当前内存；空间视图显示重建地面与已绑定静态建筑基座；单位/规则、阴影/动画与原版画面对照未恢复。":"\n数值配色不等于原版外观；等距对照使用规范平面格坐标，不含高程/遮挡规则；SG3选图未知，不载入城市/建筑/单位。";
     _originalMapInfo.stringValue = [NSString stringWithUTF8String:text.c_str()];
     const bool inspect=_originalSaveLayers&&_originalSaveLayers->valid()&&result.terrain.valid()&&!buildingOverlay;
     _originalSaveCellX.enabled=inspect;_originalSaveCellY.enabled=inspect;_originalSaveCellApply.enabled=inspect;

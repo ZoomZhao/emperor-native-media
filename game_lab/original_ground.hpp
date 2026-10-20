@@ -76,6 +76,21 @@ struct GroundMapCell {
     uint8_t stampSide = 1;
 };
 std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState&,uint32_t activeSide);
+// SAV load (0x534E36 -> buildings, 0x534E40 -> ground). Unlike the MAP
+// diagnostic entry above, retain state.image as the pre-ground occupancy grid.
+// Nonzero unbound sentinels participate only in occupancy, never image decoding.
+// material is SAV19's signed 0xF11C70 grid; owner is persisted 0xFC3750.
+// surface returns predicted stamp metadata; image remains an occupancy grid
+// (new ground words are resolved by the caller from cells/code/variant).
+// written bit masks distinguish independently predicted metadata from retained SAV
+// bytes. A retained byte must never be counted as an independent agreement.
+struct GroundMapRebuild {
+    std::vector<GroundMapCell> cells;
+    OriginalTerrainState surface;
+    std::vector<uint8_t> drawWritten,subTileWritten;
+};
+GroundMapRebuild selectGroundMapSeeded(const OriginalTerrainState&,uint32_t activeSide,
+    const std::vector<uint8_t>& material,const std::vector<uint16_t>& owner);
 // FUN_004B7E80 @0x004B7E80: read-only farm rectangle predicate, in crop-local
 // coordinates. Exposed so margin/terrain/neighbour refusals can be tested directly.
 bool acceptsFarmGroundBlock(const OriginalTerrainState&,uint32_t activeSide,

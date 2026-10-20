@@ -1,6 +1,6 @@
 # SAV source identity and bounded diagnostic spans
 
-This is a read-only source audit, separate from the city MAP reader and frozen CitySimulation/EMP1. The later [native saved-building scene](#native-saved-building-base-scene) displays bound static bases over the same SAV's numerical terrain; walkers and game rules remain unresolved. The [SAV19 serializer trace](#sav19-rebuilds-the-surface-image-grid) establishes that this version rebuilds its surface-image grid after loading, and corrects the building selector's saved random-grid offset. Earlier sections retain their historical measurement boundaries. Inputs come only from `EMPEROR_GAMEDATA_ROOT`; unset/empty roots succeed with SKIP. No automatic save is requested or generated.
+This is a read-only source audit, separate from the city MAP reader and frozen CitySimulation/EMP1. The later [seeded SAV19 ground scene](#seeded-sav19-ground-scene) renders reconstructed ground and bound static bases from the same SAV; walkers and game rules remain unresolved. The [SAV19 serializer trace](#sav19-rebuilds-the-surface-image-grid) establishes that this version rebuilds its surface-image grid after loading, and corrects the building selector's saved random-grid offset. Earlier sections retain their historical measurement boundaries. Inputs come only from `EMPEROR_GAMEDATA_ROOT`; unset/empty roots succeed with SKIP. No automatic save is requested or generated.
 
 The pinned GPL2-or-later modern [mapper's role branch](https://github.com/bvschaik/citybuilding-mappers/blob/bb97d7c7edf7c6608d5e9d3d6d5b63ba3686cda6/emperorfile.cpp#L56-L69) recognizes logical prefix13,00 as SAV. Its [saved branch](https://github.com/bvschaik/citybuilding-mappers/blob/bb97d7c7edf7c6608d5e9d3d6d5b63ba3686cda6/emperorfile.cpp#L113-L151), [size marker](https://github.com/bvschaik/citybuilding-mappers/blob/bb97d7c7edf7c6608d5e9d3d6d5b63ba3686cda6/emperorfile.cpp#L813-L835) and [after-pattern pointer contract](https://github.com/bvschaik/citybuilding-mappers/blob/bb97d7c7edf7c6608d5e9d3d6d5b63ba3686cda6/gamefile.cpp#L262-L265) provide format facts. No mapper renderer, variable building/walker parser or original game code is copied or executed.
 
@@ -538,3 +538,72 @@ Correcting `parseOriginalSavedBuildings` to read runtime random atT+415,872 chan
 The negative result removes the premise that a persisted SAV image grid is the next parser target for this corpus. To replace numerical SAV ground, a subsequent change must parse the SAV-specific selector inputs, run the existing ground selector in the documented save-load order, and compose those reconstructed images with bound buildings. That would be explicitly reconstructed SAV surface art; a chain-agreement score requires an independent runtime oracle because these files contain no stored-image comparison grid. No fallback renderer or partial guessed parser is introduced here.
 
 Validation after the correction: Release/UBSan each pass **49/49 authored and3,665/3,665 total scene assertions**, including851 independent random-byte checks and927 saved-footprint-metadata checks; building-image **885/885 authored,2,972/2,972 total**; building parser **4,554/4,554**; SAV **61/61**; SG3 **78/78**; manual candidate **76/76**; map-reference **1,884/1,884 authored and3,130/3,130 total**; App surface **69/69＋9/9 residual cases**. Native SAV metrics retain6/6 stable loads,24,000/24,000 slots,1,063/1,065 footprints,1,751/1,751 footprint cell checks,36/36 numerical images and1,063/1,063 footprint CGImages in both modes. Unset/empty scene/image corpus inputs succeed withSKIP (**4/4** release invocations), preserving49 and885 authored checks. A private authored-source mutation restoring randomOffset467,856 fails the independent literal-offset fixture in both Release/UBSan (**2/2 bite runs**,exit1); production sources are never mutated. `make game-app` builds/packages/signs a fresh external App;strict signature verifies andits source manifest matches **89/89 files**,with28 compiled units. App execution andoriginal-screen comparison remain unmeasured. Shared render/MAP sources are untouched;the167-city sweep is left to thelead. Original-game operations0;STATUS.md andcommit/push remain thelead's work.
+
+## Seeded SAV19 ground scene
+
+**Sources with SG3 ground 0/6→6/6; emitted and decoded ground 55,790/57,684 active cells.** Buildings retain **927/1,065 records /1,483 cells**. Ground selection is unknown at **154/57,684 cells**, determinate no-write at **21/57,684**, and unresolved SG indices at **0/57,684**. Another **236/57,684** cells are explicitly building/unbound. These six filesystem snapshots contain repeated states, not six independent cities. Image-word equality remains **0/0 eligible** because SAV19 stores no image grid. The ground chain is a partial snapshot reconstruction; successful decoding is not proof of original image selection.
+
+All executable facts below refer to the legally owned executable SHA-256 `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`, image base0x400000. Code VAs in `.text` map to file offset VA−0x400000. No listing or asset is included. With **T** the structurally validated terrain anchor and **S** the existing side anchor, SAV serializer0x52FDA0/version19 branch0x5311DC reads the following inputs through0x780533:
+
+| Input/global | Relative logical offset | Count/width | Read call |
+|---|---:|---:|---|
+| draw0xFDCD70 | T−155,952 |51,984 u8|0x531305|
+| building owner0xFC3750 | T−103,968 |51,984 u16|0x531316|
+| terrain0xF6A9E0 | T |51,984 u32|0x531327|
+| subTile0xF9D620 | T+311,904 |51,984 u8|0x531349|
+| random0xF1E780 | T+415,872 |51,984 u8|0x53136B|
+| road material0xF11C70 | T+467,856 |51,984 i8|0x53137C|
+|0xF05160 (retained working-state member)|T+519,840|51,984 u8|0x53138D|
+|0x101D0AC /0x101D0B0|T+1,291,348 /+1,291,352|one u32 each|0x53146D /0x53147B|
+| saved view0x115F720 |T+1,291,324|one u32|0x531419|
+|0xEAC3F0 (retained member)|T+1,383,817|51,984 u8|0x531760|
+| roadDistance0xE92DD0 | T+1,510,985 |51,984 u8|0x5317E3|
+| river metadata0x890210 |T+1,563,001|36 bytes|0x531805 (buffer0x408C70)|
+| fertility0xE9F8E0 | T+1,822,996 |51,984 u8|0x531854|
+| signed height0xBEBF3A | T+1,874,984 |51,984 u8|0x531873|
+|0xBF8A4A (retained member)|T+1,926,968|51,984 u8|0x531884|
+| feature0xF37DA0, including setter10 orientations | T+2,018,734 |51,984 u32|0x5319A4|
+| active width /height /flat crop base0xC5CAFC/CB00/CB04 |S /S+4 /S+8|one u32 each|0x52D29D /0x52D2AA /0x52D2B7 inside0x52CD90, called0x5312CB|
+
+The crop runtime copies are0x534CDE/0x534CE8/0x534CEE;0x4B05F0 builds traversal bounds at0x534CF9. Both saved dimensions must equal the validated side and the saved flat base must equal the centered origin×229 before rebuild inputs are usable. These equalities hold **6/6 sources**. The saved view is0 in **6/6 sources**; other views withhold this view0 reconstruction because corner placement and directional selectors differ. Ten required arrays independently equal complete literal raw spans at **3,119,040/3,119,040 values**. Image starts with **0/311,904 nonzero words** across the six parsed working sets; it is newly cleared state, never a serialized image field. The old following-u32 diagnostic remains untouched and is not used as art.
+
+The water/fertility singleton also persists:0x531220→0x425260, vtable0x7B2BB8+8→0x4EDDA0; its version1 read0x4EDE43 restores byte+8. The bounded prefix walk follows existing version6 `[2,45)`, version2 `[45,95)`, helper3/owner4 `[95,3355)` and ten goal-member lists, then reads singleton version1,+4(u32),+8(u8). Intervening closed goal payloads are only skipped by their cited serializers, not interpreted as gameplay: base0x55FEB0; Housing0x560EF0 and YearlyProduction0x561160; Population0x560280; Treasury0x560380; Monument0x560580; Menagerie0x5608E0; Homage0x560A60; Trading0x560B90; Conquer0x560CA0; AlliedCities0x560DC0; YearlyProfit0x561000. Class descriptors0x859108/120/150/180/1C8/1F8 bind the additional names to their factory/vtable serializers. Unknown versions/classes/cache references withhold the scalar; an active scalar withholds this ground reconstruction. The inactive saved value supports the zero-mode premise in **6/6 sources**. This bounded cursor restores no goal objects or rules.
+
+Unlike bare MAP loading, SAV material is real persisted input.0x44F180 reads0xF11C70 and0x4BDF00..0x4BDF25 uses signed comparisons:≤0→type1,1..25→type0,≥26→type2. Type1 uses the existing17-row road table0x84AEF0; positive types use the different48-row table0x84B048 (push sites0x4B70EA/0x4B7150). The latter remain explicitly unknown, **50 type0＋34 type2 cells**, instead of silently substituting type1. Material-sensitive elevation remains unknown at3 cells. Persisted owner gates0x4B6F9A/0x4BC6DD are honored; the supplied corpus has **0/826 emitted ordinary-road cells** with nonzero owners. Setter16's MAP diagnostic first-ordinal placeholder is withheld as `0x20-general-layout` (**64 cells**) because0x540140's orientation/reach stamp is not ported. Remaining unknowns are3 declined elevation blocks, giving154 total. Setter10 uses the real feature grid, but its5×5 origin recovery through0x4B7BD0→0x53FB13 remains withheld in the seeded path (`0x2000000-feature-layout`, **0/57,684 observed cells**); no unstamped composite is emitted.
+
+Saved-city postload clears image at0x534CB9..0x534CD1, calls building rebuild0x4BC220 at0x534E36, ground0x53D630 at0x534E40, then river-object/post-ground redraw0x41F400 at0x534E5B.0x4BC2B3 dispatches each eligible building's virtual+0x100 before returning. The scene seeds the927 bound words before the elevation prepass and row/column chain; default MAP reconstruction still clears input occupancy.0x53ECF4..0x53ED02 skips later setters for nonzero working images. Terrain bit8 independently gates building cells at0x53ECBA, including unbound ones.
+
+Withheld types do write before ground: Warehouse initial footprint stamp0x5D6B05 plus component overrides0x5D5FF0; Trading station initial stamp0x5E1610 plus15 components; Market0x5451A0→0x544220→0x5428B0 emits its orientation-specific components; wall0x414830→0x4153B0 writes its final neighbour-dependent images. Entertainment0x48D230→0x48D4F0 installs parent-market components through0x416A10→0x44F480 rather than stamping its common2×2 size. Its two records lie inside the validated parent-market rectangles. All terrain bit8 cells without bound art remain **building/unbound**, so no unknown entertainment square is invented and no ground fills those cells. The236-cell union includes overlapping multipart ownership; it is not the sum of all withheld record areas. Bound words, ground words and corner metadata feed the existing `renderMapImageGridViewport` with view0 draw-corner ordering.6/6 scenes create native CGImages and **57,273/57,273 emitted ground＋building cells decode**, with0 geometry/index/archive/payload failures.
+
+| SAV ordinal (catalog order) | Ground emitted=decoded /active | Unknown | No-write | Unbound building cells | Bound records | Independent draw bit0x40 /written | Independent subTile nibble /written |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+|1|6,375/6,384|2|7|0|0|6,369/6,375|6,371/6,375|
+|2|5,466/6,384|74|0|118|499|6,189/6,192|6,188/6,192|
+|3|5,573/6,384|74|0|118|404|6,189/6,192|6,188/6,192|
+|4|6,286/6,384|2|7|0|17|6,369/6,375|6,371/6,375|
+|5|25,764/25,764|0|0|0|0|25,764/25,764|25,764/25,764|
+|6|6,326/6,384|2|7|0|7|6,369/6,375|6,371/6,375|
+|Total|55,790/57,684|154|21|236|927/1,065|57,249/57,273|57,253/57,273|
+
+The independent evidence is predicted stamp **side effects**, not stored image words. Writers0x4B7520 (individual/consecutive images) and0x4B72B0 (constant composite) set draw/subTile. Written bit masks distinguish ordinary `draw|=0x40` from complete assigned draw bytes. **4,731/4,769 fully assigned draw bytes** agree, including composite offsets/corners; the rest of the written-byte count only independently predicts bit0x40. Full output draw bytes equal57,235/57,273, but the lower retained bits are not independent. Active-grid output equality is57,646/57,684 draw and57,664/57,684 subTile; complete backing equality is311,866/311,904 and311,884/311,904. The latter include retained off-map inputs and must not be promoted to oracle agreement. Unknown/no-write/unbound bytes are retained with **0 eligible predictions**.
+
+| Final branch | Draw bit0x40 agreement /written cells | subTile low nibble agreement /written cells |
+|---|---:|---:|
+|0x1-road|7,502/7,502|7,502/7,502|
+|0x10000-monument (post-object variant)|34/34|34/34|
+|0x2-land|2,320/2,320|2,320/2,320|
+|0x4-shore-edge /river /shore-ring /water-fringe /water-ring|2,117/2,117;24/24;27/27;1,257/1,257;958/958|same denominators, all equal|
+|0x40-road|826/826|826/826|
+|0x80-farm|35,010/35,010|35,010/35,010|
+|farm-block2×2 /3×3 /4×4 /fallback /river|555/555;758/758;642/642;849/849;32/32|same denominators, all equal|
+|plain /block2×2 /3×3 /4×4|229/229;12/12;9/9;16/16|same denominators, all equal|
+|building-bound|1,483/1,483|1,483/1,483|
+|elevation-direct|2,396/2,405|2,391/2,405|
+|elevation-block|193/208|202/208|
+|general-layout64;material0=50;material2=34;elevation-material3;declined-block3;chain-no-write21;building-unbound236|0/0 eligible each|0/0 eligible each|
+
+Elevation full-byte draw equality is2,391/2,405 direct and184/208 block. All38 full-draw mismatches and20 low-nibble mismatches are confined to these two branches. The port deliberately preserves the existing snapshot elevation/terrain projection and does not replay complete height repair or all postload mutations; metadata residuals remain unresolved, not fitted away. The scene is a flat static rendering, with elevation image selection only; height-dependent screen displacement, overlays, animation, screen-pixel equality and restored city rules remain unverified.
+
+Reproduce with `make saved-ground-test` /`make saved-ground-test-undefined`, injecting only process-local `EMPEROR_GAMEDATA_ROOT=/absolute/owned/GameData`. `scripts/saved_ground.py --build-dir /absolute/temp` writes only authored fixtures/binaries outside the data root; library code reads no environment. Tests cover seeded occupancy, unchanged MAP default, signed material endpoints, saved owner refusal, stamp markers/corners, all ten literal raw spans, complete offscreen decoding, active-cell partition and source clearing. `scripts/saved_ground_bite.py` mutates private copies only: clearing occupancy, unsigned material and a wrong composite draw corner all fail at their independent assertions (**3/3**,exit1). No original-game operation, asset output or screenshot is needed.
+
+Final Release/UBSan each pass saved-ground **17/17 authored and1,813/1,813 with data**, SAV **91/91**, building-scene **49/49 authored and3,665/3,665 with data**, building-image **885/885 authored and2,972/2,972 with data**, building parser **4,554/4,554**, SG3 **78/78**, candidate **76/76**, map-reference **1,884/1,884 authored and3,130/3,130 with data**, and App surface **69/69＋9/9 residual cases**. Unset/empty-root original portions skip successfully in both modes, retaining authored checks. Native SAV metrics retain6/6 stable sources,24,000/24,000 slots,1,063/1,065 validated footprints,1,751/1,751 footprint cell checks,36/36 numerical CGImages and1,063/1,063 footprint CGImages. The167-city sweep retains **1,766,664 matched＋321,027 mismatched＋210 unknown＋19,935 no-write /2,107,836 active cells**, unresolved0. A private dual-implementation comparison against`b1add26` also verifies **8,681,328/8,681,328 complete backing-cell selection records** (167×51,984) equal, including branch/code/variant/origin/stamp side. Aggregate equality is therefore backed by complete output equality. App builds/packages/signs in external temp storage; App execution and original-screen comparison remain unmeasured. STATUS.md and all commit/push decisions remain with the lead.

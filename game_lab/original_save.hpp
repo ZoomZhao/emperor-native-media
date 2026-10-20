@@ -1,12 +1,23 @@
 #pragma once
 #include "original_map.hpp"
 #include "original_building.hpp"
+#include "original_terrain.hpp"
 namespace game_lab {
 enum class OriginalSaveStatus { LoadedSnapshot,ReadFailure,ChangedDuringRead,InvalidContainer,UnsupportedRole,UnsupportedAnchors,InvalidGrid,BudgetExceeded };
+struct OriginalSavedGround {
+    OriginalTerrainState state; // SAV19 restored inputs; image is cleared, never persisted
+    std::vector<uint8_t> material; // signed 0xF11C70 bytes, T+467856, read0x53137C
+    std::vector<uint16_t> owner; // 0xFC3750, T-103968, read0x531316
+    uint32_t activeSide=0,cropStorageBase=0,savedView=0; //0x115F720,T+1291324,0x531419
+    std::optional<uint8_t> waterMode; // saved singleton+8, serializer0x4EDDA0/read0x4EDE43
+    bool valid() const {return state.valid()&&material.size()==state.cells&&owner.size()==state.cells&&
+        activeSide>=1&&activeSide<=228&&cropStorageBase==((228-activeSide)/2)*229&&savedView==0&&waterMode&&*waterMode==0;}
+};
 struct OriginalSaveCellLayers {
     static constexpr size_t cells=228u*228u;
     std::vector<uint32_t> followingU32Unknown,mapperObjects;
     std::vector<uint8_t> mapperRandom,mapperStone,mapperFertile;
+    std::optional<OriginalSavedGround> ground;
     bool valid() const{return followingU32Unknown.size()==cells&&mapperObjects.size()==cells&&mapperRandom.size()==cells&&mapperStone.size()==cells&&mapperFertile.size()==cells;}
 };
 struct OriginalSaveResult {

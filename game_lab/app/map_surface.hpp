@@ -32,15 +32,15 @@ struct AppSurfacePreviewResult {
 // The strict renderer and its metrics remain unchanged.
 AppSurfacePreviewResult renderMapSurfaceCandidateViewport(const OriginalMapTerrain&,
     const OriginalTerrainState&,const std::vector<MapImageGridTileset>&,const OriginalMapCamera&);
-// App adapter for the existing stored-grid renderer. No terrain-to-image
-// reconstruction, original-screen registration, or authored gameplay is used.
+// App adapter for the existing image-grid renderer. SAV optionally reconstructs
+// ground from its persisted inputs; no screen registration or gameplay is used.
 class AppMapSurface {
 public:
     explicit AppMapSurface(ResourceRoot root) : root_(std::move(root)) {}
     void clear();
     bool select(const std::string& relativeMap, const OriginalMapTerrain& expected);
     bool select(const OriginalMapSource&,const OriginalMapTerrain& expected);
-    bool selectSavedBuildings(const OriginalMapTerrain&,const OriginalBuildingProfile&);
+    bool selectSavedBuildings(const OriginalMapTerrain&,const OriginalBuildingProfile&,const OriginalSavedGround* ground=nullptr);
     OriginalBuildingSceneView renderSavedBuildings(const OriginalMapCamera&,int bit=-1) const;
     bool available() const { return state_.has_value(); }
     const std::string& error() const { return error_; }

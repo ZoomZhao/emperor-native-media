@@ -826,17 +826,40 @@ ElevationDescriptor elevationDescriptor(const OriginalTerrainState& state,size_t
     return {};
 }
 }
-std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uint32_t activeSide) {
+namespace {
+std::vector<GroundMapCell> groundMap(const OriginalTerrainState& state,uint32_t activeSide,
+        GroundMapRebuild* rebuild=nullptr,const std::vector<uint8_t>* material=nullptr,
+        const std::vector<uint16_t>* owner=nullptr) {
     if(!state.valid()||!activeSide||activeSide>228u)return {};
     std::vector<GroundMapCell> result(OriginalTerrainState::cells);
     // Keep the per-cell selector the source for every arm outside this block port,
     // including diagnostic cells outside the engine's diamond traversal.
     for(size_t cell=0;cell<result.size();++cell)
         result[cell]={selectGroundTileCode(groundCodeRequest(state,cell)),cell,1};
+    if(rebuild)for(size_t cell=0;cell<result.size();++cell)
+        result[cell]={{0,false,false,"outside-ground-traversal",true},cell,1};
     auto working=state;
-    working.image.assign(OriginalTerrainState::cells,0u);
+    if(!rebuild)working.image.assign(OriginalTerrainState::cells,0u);
     const GroundMapBounds bounds(activeSide);
     std::vector<uint8_t> stamped(result.size(),0);
+    if(rebuild) {
+        rebuild->drawWritten.assign(result.size(),0);rebuild->subTileWritten.assign(result.size(),0);
+        for(size_t cell=0;cell<result.size();++cell)if(working.image[cell]) {
+            stamped[cell]=1;result[cell]={{0,false,false,"building-seeded",true},cell,1};
+        }
+    }
+    auto singleMetadata=[&](size_t cell,int draw=-1) {
+        if(!rebuild)return;
+        working.subTile[cell]&=0xF0u;
+        working.draw[cell]=draw<0?uint8_t(working.draw[cell]|0x40u):uint8_t(draw);
+        rebuild->subTileWritten[cell]=0x0F;rebuild->drawWritten[cell]|=draw<0?0x40:0xFF;
+    };
+    auto compositeMetadata=[&](size_t cell,int row,int column,int side) {
+        if(!rebuild)return;
+        working.subTile[cell]=uint8_t((working.subTile[cell]&0xE0u)|uint32_t(side-1));
+        working.draw[cell]=uint8_t(row*8+column+((column==0&&row==side-1)?0x40:0));
+        rebuild->subTileWritten[cell]=0x0F;rebuild->drawWritten[cell]=0xFF;
+    };
     std::vector<ElevationDescriptor> elevation(result.size());
     // FUN_005403C0 first completes FUN_0053EAA0/FUN_0053EAE0 over every
     // row (0x54040B..43E), then starts the dispatcher traversal at 0x54044F.
@@ -867,6 +890,7 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
             // T(C)+1 at direction B when the origin carries 0x800000.
             const GroundSelection selection{descriptor.code,true,false,"elevation-direct"};
             result[cell]={selection,cell,1};working.image[cell]=1;stamped[cell]=1;
+            singleMetadata(cell,0x40); // 0x473760: assign draw, clear sub low nibble
             working.terrain[cell]|=descriptor.flags|0x200u;
             if(descriptor.direction>=0&&(working.terrain[cell]&0x800000u)) {
                 const int64_t neighbour=int64_t(cell)+elevationOffsets[descriptor.direction];
@@ -874,6 +898,7 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
                     auto paired=selection;paired.variant=1;
                     result[size_t(neighbour)]={paired,cell,1};working.image[size_t(neighbour)]=1;
                     stamped[size_t(neighbour)]=1;working.terrain[size_t(neighbour)]|=0x200u;
+                    singleMetadata(size_t(neighbour),0x41); // 0x4737C0..E0
                 }
             }
         }
@@ -927,6 +952,7 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
                         for(int row=0;row<2;++row)for(int column=0;column<2;++column) {
                             const size_t target=blockCell(origin,row,column);
                             result[target]={selection,origin,2};stamped[target]=1;working.image[target]=1;
+                            compositeMetadata(target,row,column,2);
                             working.terrain[target]=(working.terrain[target]&0x93872790u)|0x200u;
                         }
                     }
@@ -971,6 +997,7 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
                         for(int row=0;row<2;++row)for(int column=0;column<2;++column) {
                             const size_t target=blockCell(origin,row,column);
                             result[target]={selection,origin,2};stamped[target]=1;working.image[target]=1;
+                            compositeMetadata(target,row,column,2);
                             working.terrain[target]=(working.terrain[target]&0x93872790u)|0x200u;
                         }
                     }
@@ -981,6 +1008,24 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
             if(stamped[cell])continue;
             const auto request=groundCodeRequest(working,cell);
             auto selection=selectGroundTileCode(request);
+            // The MAP diagnostic's setter16 reports the first ordinal only.
+            // SAV must not emit that placeholder as a resolved square stamp:
+            // 0x540140 delegates orientation/reach and block geometry.
+            if(rebuild&&std::strcmp(selection.branch,"0x20-general")==0)
+                selection={0,false,false,"0x20-general-layout"};
+            if(rebuild&&std::strcmp(selection.branch,"0x2000000-feature")==0)
+                selection={0,false,false,"0x2000000-feature-layout"}; // 0x53FB13 needs 5x5 origin recovery
+            if(rebuild&&std::strcmp(selection.branch,"0x40-road")==0&&selection.known&&
+               !(request.terrainFlags&0x10000u)) {
+                // 0x4BDF00 signed material <=0 ->1, 1..25 ->0, >=26 ->2.
+                // The two positive arms use the separate 48-row 0x84B048
+                // descriptor, not the MAP/null-material 17-row road table.
+                const int value=int8_t((*material)[cell]);
+                if(value>0)selection={0,false,false,value<26?"0x40-road-material-0":"0x40-road-material-2"};
+            }
+            if(rebuild&&(*owner)[cell]&&
+               (std::strncmp(selection.branch,"0x40-road",9)==0||std::strcmp(selection.branch,"0x1-road")==0))
+                selection={0,false,false,"saved-owner-road-declined",true}; // 0x4B6F9A / 0x4BC6DD
             if(!selection.known&&std::strcmp(selection.branch,"0x40-road")==0&&
                (request.terrainFlags&0x600u)&&!(request.terrainFlags&0x10000u)) {
                 // FUN_00474920 reloads this same elevation cache (0x474920..43).
@@ -1009,6 +1054,7 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
             precedingForestClearedR=selection.known&&selection.code==0x603&&
                 std::strcmp(selection.branch,"0x20000-forest")==0;
             result[cell]={selection,cell,1};
+            if(rebuild&&selection.known&&!selection.block)singleMetadata(cell);
             const bool land=std::strcmp(selection.branch,"0x2-land")==0;
             const bool flood=std::strcmp(selection.branch,"0x80000000-flood")==0;
             const bool twin=std::strcmp(selection.branch,"0x101000-twin")==0;
@@ -1028,6 +1074,7 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
                     working.subTile[cell]&=0xF0u;
                     if(twin)working.draw[cell]=0x40u; // 0x53F82B assigns, not ORs
                     else working.draw[cell]|=0x40u;
+                    singleMetadata(cell,twin?0x40:-1);
                     continue;
                 }
                 // 0x53F6E3/E6: 3x3 +12+(origin random&1); 0x53F729/2C:
@@ -1050,6 +1097,7 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
                     working.terrain[target]=(working.terrain[target]&0x93872790u)|mask;
                     working.subTile[target]=uint8_t((working.subTile[target]&0xE0u)|uint32_t(side-1));
                     working.draw[target]=uint8_t(row*8+column+((column==0&&row==side-1)?0x40:0));
+                    compositeMetadata(target,row,column,side);
                 }
                 continue;
             }
@@ -1071,6 +1119,7 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
             if(side==1) {
                 // 0x53F03B calls FUN_004BD8C0 directly, without FUN_004EDBA0.
                 if(farm)result[cell].selection=farmSingle(request,"0x80-farm-block-fallback");
+                singleMetadata(cell);
                 working.image[cell]=1u;
                 if(plain)working.terrain[cell]&=0x93872790u;
                 continue;
@@ -1092,6 +1141,7 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
                 working.terrain[target]&=0x93872790u; // 0x4B75DB (param_7==0)
                 working.subTile[target]&=0xF0u; // 0x4B760D
                 working.draw[target]|=0x40u; // 0x4B761C
+                singleMetadata(target);
             }
         }
     }
@@ -1120,7 +1170,18 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
                 selection.variant=uint8_t(state.randomByte[cell]%6u);
         }
     }
+    if(rebuild)rebuild->surface=std::move(working);
     return result;
+}
+}
+std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uint32_t activeSide) {
+    return groundMap(state,activeSide);
+}
+GroundMapRebuild selectGroundMapSeeded(const OriginalTerrainState& state,uint32_t activeSide,
+        const std::vector<uint8_t>& material,const std::vector<uint16_t>& owner) {
+    GroundMapRebuild out;
+    if(material.size()!=OriginalTerrainState::cells||owner.size()!=OriginalTerrainState::cells)return out;
+    out.cells=groundMap(state,activeSide,&out,&material,&owner);return out;
 }
 bool resolveGroundTileCode(const SG3Archive& archive,uint16_t code,size_t& archiveIndex) {
     archiveIndex=0;

@@ -10,7 +10,7 @@ namespace game_lab {
 void AppMapSurface::clear() {
     state_.reset(); savedBuildings_.reset(); terrain_ = {}; error_.clear();
 }
-bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile){
+bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile,const OriginalSavedGround* ground){
     clear();
     if(!archives_.count(2)){
         auto index=loadSG3(root_.resolve("DATA/China_General.sg3"));
@@ -20,13 +20,29 @@ bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const
         archives_.emplace(2,Archive{std::move(index),root_.resolve("DATA/China_General.555")});
     }
     auto scene=composeOriginalBuildingScene(terrain,profile,archives_.at(2).index);
+    if(ground) {
+        for(uint32_t slot:{3u,16u})if(!archives_.count(slot)) {
+            const std::string relative=std::string("DATA/")+mapImageGridArchiveName(slot);
+            auto index=loadSG3(root_.resolve(relative));
+            if(index.version!=213||!index.numImages||index.numImages!=index.sprites.size()) {
+                error_="SAV 地面图包不可用";return false;
+            }
+            auto companion=std::filesystem::path(relative);companion.replace_extension(".555");
+            archives_.emplace(slot,Archive{std::move(index),root_.resolve(companion.generic_string())});
+        }
+        scene=composeOriginalSavedGroundScene(terrain,profile,*ground,archives_.at(2).index,archives_.at(3).index,archives_.at(16).index);
+    }
     if(!scene.accepted){error_="SAV 建筑表或活动框不完整；保留数值占地";return false;}
     terrain_=terrain;savedBuildings_=std::move(scene);return true;
 }
 OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapCamera& camera,int bit)const{
     if(!savedBuildings_||!archives_.count(2))return {};
     const auto& archive=archives_.at(2);
-    return renderOriginalBuildingScene(terrain_,*savedBuildings_,archive.index,archive.companion,camera,bit);
+    std::vector<MapImageGridTileset> groundTilesets;
+    if(savedBuildings_->groundRebuilt)for(uint32_t slot:{3u,16u})if(archives_.count(slot)) {
+        const auto& a=archives_.at(slot);groundTilesets.push_back({slot,&a.index,a.companion,201});
+    }
+    return renderOriginalBuildingScene(terrain_,*savedBuildings_,archive.index,archive.companion,camera,bit,groundTilesets);
 }
 bool AppMapSurface::select(const std::string& relativeMap, const OriginalMapTerrain& expected) {
     clear();

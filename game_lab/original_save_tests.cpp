@@ -40,7 +40,42 @@ int main(){try{
  need(originalSaveCell(saved.terrain,saved.layers,0,0)&&originalSaveCell(saved.terrain,saved.layers,111,111),"both crop endpoints accepted");
  auto shortLayers=saved.layers;shortLayers.mapperStone.pop_back();need(!originalSaveCell(saved.terrain,shortLayers,0,0),"incomplete layer set never yields partial cell");
  auto invalidTerrain=saved.terrain;invalidTerrain.flags[0]=0;need(!originalSaveCell(invalidTerrain,saved.layers,0,0),"unverified crop never yields cell coordinates");
- auto moved=decodeOriginalSave(frame(payload(50003)));need(moved.status==OriginalSaveStatus::LoadedSnapshot&&moved.terrainOffset==50003&&moved.terrain.flags==saved.terrain.flags&&moved.layers.mapperObjects==saved.layers.mapperObjects,"marker offsets change without borrowing fixed MAP coordinates");
+  auto moved=decodeOriginalSave(frame(payload(50003)));need(moved.status==OriginalSaveStatus::LoadedSnapshot&&moved.terrainOffset==50003&&moved.terrain.flags==saved.terrain.flags&&moved.layers.mapperObjects==saved.layers.mapperObjects,"marker offsets change without borrowing fixed MAP coordinates");
+  // Literal SAV19 extents from serializer0x52FDA0/read0x5311DC. Distinct bytes
+  // prevent aliases with the historical following-u32 or neighbouring arrays.
+  constexpr size_t groundBase=200003;auto groundBody=payload(groundBase);
+  put(groundBody,131,112);put(groundBody,135,58*229);
+  groundBody[2]=6;groundBody[45]=2;groundBody[95]=3;groundBody[97]=4;
+  for(size_t member=0;member<10;++member){groundBody[3355+6*member]=1;}
+  groundBody[3415]=1; // channel singleton v1,+4=0,+8=0
+  for(size_t i=0;i<51984;++i){groundBody[groundBase-155952+i]=uint8_t(i+17);groundBody[groundBase+311904+i]=uint8_t(i+23);groundBody[groundBase+467856+i]=uint8_t(i+31);groundBody[groundBase+1874984+i]=uint8_t(i+47);groundBody[groundBase-103968+2*i]=uint8_t(i);groundBody[groundBase-103968+2*i+1]=uint8_t(i>>8);}
+  put(groundBody,groundBase-4,0); // required terrain marker's preceding owner bytes
+  auto groundSave=decodeOriginalSave(frame(groundBody));need(groundSave.layers.ground&&groundSave.layers.ground->valid(),"complete SAV19 prior spans and independently serialized crop publish ground inputs");
+  const auto& ground=*groundSave.layers.ground;exact=true;
+  for(size_t i=0;i<51984;++i)exact&=ground.state.image[i]==0&&ground.state.draw[i]==uint8_t(i+17)&&ground.state.subTile[i]==uint8_t(i+23)&&ground.material[i]==uint8_t(i+31)&&ground.owner[i]==uint16_t(i<51982?i:0)&&ground.state.gBEBF3A[i]==uint8_t(i+47)&&ground.state.feature[i]==(uint32_t(i)|0x40000000u)&&ground.state.fertility[i]==uint8_t(i%101)&&ground.state.roadDistance[i]==uint8_t(255-i)&&ground.state.randomByte[i]==uint8_t(i);
+  need(exact,"every SAV19 ground value reads the literal serializer span; image remains cleared");
+  put(groundBody,135,0);need(!decodeOriginalSave(frame(groundBody)).layers.ground,"inconsistent serialized crop refuses rebuild inputs without inventing a crop");
+  need(!saved.layers.ground,"small historical raw fixture cannot publish nonexistent preceding draw/owner grids");
+  put(groundBody,135,58*229);groundBody[3421]=1;
+  auto activeWater=decodeOriginalSave(frame(groundBody));need(activeWater.layers.ground&&activeWater.layers.ground->waterMode==1&&!activeWater.layers.ground->valid(),"saved active water mode is retained and unsupported rebuild refuses rather than using MAP zero premise");
+  groundBody[3421]=0;groundBody[3415]=2;auto unknownWater=decodeOriginalSave(frame(groundBody));
+  need(unknownWater.layers.ground&&!unknownWater.layers.ground->waterMode&&!unknownWater.layers.ground->valid(),"unknown singleton version withholds rebuild instead of assuming inactive");
+  groundBody[3415]=1;groundBody[3355]=2;unknownWater=decodeOriginalSave(frame(groundBody));
+  need(unknownWater.layers.ground&&!unknownWater.layers.ground->waterMode,"unknown intervening goal-list version cannot shift the singleton cursor");
+  groundBody[3355]=1;put(groundBody,groundBase+1291324,2);auto otherView=decodeOriginalSave(frame(groundBody));
+  need(otherView.layers.ground&&otherView.layers.ground->savedView==2&&!otherView.layers.ground->valid(),"saved nonzero view refuses view0 scene instead of borrowing incompatible corners");put(groundBody,groundBase+1291324,0);
+  struct GoalSpan{const char* name;uint16_t version;size_t bytes;};
+  for(const auto span:{GoalSpan{"cHousingGoal",1,12},{"cYearlyProductionGoal",1,12},{"cTradingPartnersGoal",1,4},{"cPopulationGoal",1,4},{"cTreasuryGoal",1,4},{"cHomageGoal",3,8},{"cAlliedCitiesGoal",3,8},{"cYearlyProfitGoal",1,8},{"cConquerGoal",2,8},{"cMonumentGoal",2,8},{"cMenagerieGoal",3,8}}){
+   auto fixture=groundBody;std::fill(fixture.begin()+3355,fixture.begin()+5000,0);size_t at=3355;
+   const auto u16=[&](uint16_t v){fixture[at++]=uint8_t(v);fixture[at++]=uint8_t(v>>8);};
+   const auto u32=[&](uint32_t v){put(fixture,at,v);at+=4;};
+   u16(1);u32(1);u16(65535);u16(0);u16(uint16_t(std::strlen(span.name)));
+   std::copy_n(span.name,std::strlen(span.name),fixture.begin()+at);at+=std::strlen(span.name);
+   u16(1);u32(0);u16(span.version);at+=span.bytes;
+   for(unsigned member=1;member<10;++member){u16(1);u32(0);}u16(1);u32(0);fixture[at++]=0;
+   auto closed=decodeOriginalSave(frame(fixture));need(closed.layers.ground&&closed.layers.ground->valid(),"each independently sized intervening goal payload reaches saved inactive singleton");
+   fixture[at-1]=1;closed=decodeOriginalSave(frame(fixture));need(closed.layers.ground&&closed.layers.ground->waterMode==1&&!closed.layers.ground->valid(),"each intervening payload preserves active singleton refusal");
+  }
  auto duplicate=body;put(duplicate,700,112);std::memcpy(duplicate.data()+716,"Brief descriptio",16);need(decodeOriginalSave(frame(duplicate)).status==OriginalSaveStatus::UnsupportedAnchors,"duplicate plausible size anchor refused");
  auto terrainDuplicate=body;std::memcpy(terrainDuplicate.data()+base+300000,body.data()+base-4,16);auto one=decodeOriginalSave(frame(terrainDuplicate));need(one.status==OriginalSaveStatus::LoadedSnapshot&&one.terrainOffset==base&&one.terrain.flags==saved.terrain.flags,"later marker without full known spans is not a second anchor");
  auto preceding=body;std::memcpy(preceding.data()+1000,body.data()+base-4,16);one=decodeOriginalSave(frame(preceding));need(one.status==OriginalSaveStatus::LoadedSnapshot&&one.terrainOffset==base&&one.terrain.flags==saved.terrain.flags,"earlier complete-span decoy fails crop; never choose first marker");

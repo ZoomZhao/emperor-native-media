@@ -15,6 +15,47 @@ constexpr size_t cells=228u*228u,maxInput=4u*1024u*1024u,maxMarkers=1024;
 constexpr size_t following=207936,randomOffset=415872,stoneOffset=1510985,fertileOffset=1822996,objectsOffset=2018734;
 constexpr std::array<uint8_t,16> brief{{'B','r','i','e','f',' ','d','e','s','c','r','i','p','t','i','o'}};
 constexpr std::array<uint8_t,16> terrainMarker{{0,0,0,0,5,0,8,0,5,0,8,0,5,0,8,0}};
+// SAV19 prefix:0x5311E4/0x52FA30 v6,0x531213/0x52E690 v2,
+// goals0x531218 ->0x55A430 v3 ->0x55A7A0 v4. Ten member lists begin
+// at3355 (same bounded prefix contract as city19_goal_archive.hpp). This only
+// walks their closed modern payload extents to the NEXT singleton0x53122A;
+// no goals, factories or gameplay are restored. Unknown layouts withhold ground.
+std::optional<uint8_t> savedWaterMode(const std::vector<uint8_t>& data) {
+    if(data.size()<3355||detail::u16(data.data()+2)!=6||detail::u16(data.data()+45)!=2||
+       detail::u16(data.data()+95)!=3||detail::u16(data.data()+97)!=4)return std::nullopt;
+    size_t at=3355,items=0;std::vector<std::string> cache(1);
+    const auto take=[&](size_t n){if(at>16384||at>data.size()||n>16384-at||n>data.size()-at)return false;at+=n;return true;};
+    const auto word=[&](uint16_t& v){if(!take(2))return false;v=detail::u16(data.data()+at-2);return true;};
+    for(unsigned member=0;member<10;++member){
+        uint16_t version=0;if(!word(version)||version!=1||!take(4))return std::nullopt;
+        const uint32_t count=detail::u32(data.data()+at-4);if(count>128-items)return std::nullopt;
+        for(uint32_t ordinal=0;ordinal<count;++ordinal){
+            ++items;uint16_t tag=0;if(!word(tag))return std::nullopt;std::string name;
+            if(tag==0xFFFF){
+                uint16_t schema=0,length=0;if(!word(schema)||schema||!word(length)||!length||length>=64||!take(length))return std::nullopt;
+                name.assign(reinterpret_cast<const char*>(data.data()+at-length),length);
+                cache.push_back(name);
+            }else if(tag&0x8000){if((tag&0x7FFF)>=cache.size()||cache[tag&0x7FFF].empty())return std::nullopt;name=cache[tag&0x7FFF];}
+            else {if(!tag||tag>=cache.size()||!cache[tag].empty())return std::nullopt;continue;}
+            if(cache.size()>=256)return std::nullopt;cache.emplace_back();
+            uint16_t baseVersion=0,ownVersion=0;
+            if(!word(baseVersion)||baseVersion!=1||!take(4)||!word(ownVersion))return std::nullopt;
+            size_t bytes=0;
+            if(name=="cHousingGoal"||name=="cYearlyProductionGoal"){if(ownVersion!=1)return std::nullopt;bytes=12;}
+            else if(name=="cTradingPartnersGoal"||name=="cPopulationGoal"||name=="cTreasuryGoal"){if(ownVersion!=1)return std::nullopt;bytes=4;}
+            else if(name=="cHomageGoal"||name=="cAlliedCitiesGoal"){if(ownVersion!=3)return std::nullopt;bytes=8;}
+            else if(name=="cYearlyProfitGoal"){if(ownVersion!=1)return std::nullopt;bytes=8;}
+            else if(name=="cConquerGoal"||name=="cMonumentGoal"){if(ownVersion!=2)return std::nullopt;bytes=8;}
+            else if(name=="cMenagerieGoal"){if(ownVersion!=3)return std::nullopt;bytes=8;}
+            else return std::nullopt;
+            if(!take(bytes))return std::nullopt;
+        }
+    }
+    // Singleton v1,4-byte+4,byte+8:0x4EDE36/43. The following
+    // 0x53122A vcall is0x7B2BB8+8 ->0x4EDDA0.
+    uint16_t version=0;if(!word(version)||version!=1||!take(5))return std::nullopt;
+    return data[at-1];
+}
 bool positions(const std::vector<uint8_t>& data,const std::array<uint8_t,16>& needle,size_t from,std::vector<size_t>& hits){
     if(from>data.size())return true;
     auto cursor=data.begin()+from;
@@ -70,6 +111,26 @@ OriginalSaveResult decodeOriginalSave(const std::vector<uint8_t>& input){
         for(size_t i=0;i<cells;++i){layers.followingU32Unknown[i]=detail::u32(data.data()+base+following+4*i);layers.mapperObjects[i]=detail::u32(data.data()+base+objectsOffset+4*i);}
         const auto copy=[&](size_t relative,std::vector<uint8_t>& values){values.assign(data.begin()+base+relative,data.begin()+base+relative+cells);};
         copy(randomOffset,layers.mapperRandom);copy(stoneOffset,layers.mapperStone);copy(fertileOffset,layers.mapperFertile);
+        // Owned exe/hash and complete SAV19 read-order evidence: docs/SAV.md.
+        // Keep the historical bounded raw profile usable for small authored
+        // fixtures; publish rebuild inputs only when the preceding grids exist.
+        if(base>=155952&&sizeOffset+12<=data.size()&&detail::u32(data.data()+sizeOffset+4)==side&&
+           detail::u32(data.data()+sizeOffset+8)==((228-side)/2)*229) {
+            OriginalSavedGround ground;auto& s=ground.state;
+            ground.activeSide=side;ground.cropStorageBase=detail::u32(data.data()+sizeOffset+8);
+            ground.savedView=detail::u32(data.data()+base+1291324);
+            ground.waterMode=savedWaterMode(data);
+            s.image.assign(cells,0);s.terrain=terrain.flags;s.feature=layers.mapperObjects;
+            s.randomByte=layers.mapperRandom;s.roadDistance=layers.mapperStone;s.fertility=layers.mapperFertile;
+            copy(311904,s.subTile);copy(519840,s.gF05160);copy(1383817,s.gEAC3F0);
+            copy(1874984,s.gBEBF3A);copy(1926968,s.gBF8A4A);copy(467856,ground.material);
+            s.draw.assign(data.begin()+base-155952,data.begin()+base-103968);
+            s.g101D0AC=detail::u32(data.data()+base+1291348);s.g101D0B0=detail::u32(data.data()+base+1291352);
+            std::copy_n(data.begin()+base+1563001,s.blob24.size(),s.blob24.begin());
+            ground.owner.resize(cells);
+            for(size_t i=0;i<cells;++i)ground.owner[i]=detail::u16(data.data()+base-103968+2*i);
+            layers.ground=std::move(ground);
+        }
         result.buildings=parseOriginalSavedBuildings(data,base,terrain);
         result.terrain=std::move(terrain);result.layers=std::move(layers);result.frames=container.frames;result.decodedBytes=data.size();result.sizeOffset=sizeOffset;result.terrainOffset=base;result.status=OriginalSaveStatus::LoadedSnapshot;result.snapshotRevision=14695981039346656037ull;for(uint8_t byte:input){result.snapshotRevision^=byte;result.snapshotRevision*=1099511628211ull;}
     }catch(const std::bad_alloc&){result.status=OriginalSaveStatus::BudgetExceeded;}
@@ -100,7 +161,7 @@ std::string describeOriginalSave(const OriginalSaveResult& save){
     case OriginalSaveStatus::BudgetExceeded:return "SAV 输入、标记或解码预算超限";
     case OriginalSaveStatus::LoadedSnapshot:break;
     }
-    return "SAV13 已保存快照；"+std::string(save.readStable?"两次读取一致":"内存字节输入")+"；5 组原始字段已保留，含未知 following_u32。非当前内存；空间视图单独绑定静态建筑基座，不恢复规则；"+describeOriginalBuildingProfile(save.buildings)+"。";
+    return "SAV19 已保存快照；"+std::string(save.readStable?"两次读取一致":"内存字节输入")+"；5 组原始字段已保留，含未知 following_u32。非当前内存；空间视图重建地面并绑定静态建筑基座，不恢复规则；"+describeOriginalBuildingProfile(save.buildings)+"。";
 }
 std::optional<OriginalSaveCell> originalSaveCell(const OriginalMapTerrain& terrain,
     const OriginalSaveCellLayers& layers,int64_t x,int64_t y){
