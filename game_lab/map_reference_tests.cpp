@@ -608,6 +608,79 @@ void farmBlockTests() {
  }
  need(identical,"stored image, draw and sub-tile grids cannot influence a predicted stamp or branch");
 }
+void compositeGroundBlockTests() {
+ using namespace game_lab;
+ OriginalMapTerrain terrain;terrain.activeSide=226;terrain.flags.assign(51984,0x80000u);
+ const auto empty=terrainState(terrain);
+ auto at=[](int x,int y){return size_t(y+1)*228u+size_t(x+1);};
+ auto rectangle=[&](uint32_t flag,int x,int y,int side) {
+     auto state=empty;
+     for(int row=0;row<side;++row)for(int column=0;column<side;++column)
+         state.terrain[at(x+column,y+row)]=flag;
+     return state;
+ };
+ // These setters attempt blocks for every random byte, unlike farm/plain's
+ // random&0xF8 gate. The common writer repeats one image, not consecutive ids.
+ for(const auto& item:std::vector<std::pair<uint32_t,uint16_t>>{{2u,0x606u},{0x100002u,0x607u},
+         {0x200002u,0x608u},{0x80000000u,0x60Eu},{0x101000u,0x60Fu}}) {
+     const bool twin=item.first==0x101000u;
+     for(int side=1;side<=(twin?2:3);++side)for(uint8_t random:{0u,1u,2u,3u,6u,7u,8u,255u}) {
+         auto state=rectangle(item.first,110,110,side);
+         state.randomByte.assign(51984,0u);state.randomByte[at(110,110)]=random;
+         const auto original=state;const auto plan=selectGroundMap(state,226);
+         const uint8_t variant=uint8_t(side==3?12u+(random&1u):side==2?8u+(random&3u):random&7u);
+         for(int row=0;row<side;++row)for(int column=0;column<side;++column) {
+             const auto& p=plan[at(110+column,110+row)];
+             need(p.selection.known&&p.selection.code==item.second&&p.selection.variant==variant&&
+                  p.origin==at(110,110)&&p.stampSide==side&&p.selection.block==(side>1),
+                  "composite ground tiers repeat the origin image across every covered cell for all random masks");
+         }
+         need(state.terrain==original.terrain&&state.image==original.image&&state.draw==original.draw&&
+              state.subTile==original.subTile,"composite ground reconstruction leaves supplied layers read-only");
+     }
+ }
+ // Equality mask 0xAFFEDE6F versus twin's subset test is an observable helper
+ // difference: additional 0x20 refuses land/flood but is permitted for twin.
+ for(uint32_t flag:{2u,0x80000000u,0x101000u}) {
+     auto state=rectangle(flag,110,110,2);state.terrain[at(111,111)]|=0x20u;
+     need(selectGroundMap(state,226)[at(110,110)].stampSide==(flag==0x101000u?2:1),
+          "land and flood require exact masked terrain while twin permits extra terrain bits");
+     state=rectangle(flag,110,110,2);state.terrain[at(111,111)]|=0x100u;
+     need(selectGroundMap(state,226)[at(110,110)].stampSide==1,
+          "each composite helper refuses a target carrying terrain 0x100");
+ }
+ for(unsigned bit=0;bit<32;++bit)if((0xAFFEDE6Fu&~2u)&(1u<<bit)) {
+     auto state=rectangle(2u,110,110,3);state.terrain[at(112,112)]|=1u<<bit;
+     need(selectGroundMap(state,226)[at(110,110)].stampSide==2,
+          "every additional bit of the exact composite terrain mask independently refuses the 3x3 tier");
+ }
+ auto mixed=rectangle(2u,110,110,3);mixed.terrain[at(112,112)]=0x100002u;
+ need(selectGroundMap(mixed,226)[at(110,110)].stampSide==2,
+      "mixed land base classes refuse 3x3 and retry the homogeneous 2x2 tier");
+ mixed=rectangle(0x300002u,110,110,3);
+ need(selectGroundMap(mixed,226)[at(110,110)].selection.code==0x606&&
+      selectGroundMap(mixed,226)[at(110,110)].stampSide==1,
+      "the land default base resets its required terrain to 2 even when both class bits are set");
+ // Inclusive local rectangle bounds, no three-cell farm/plain margin.
+ for(const auto& xy:std::vector<std::pair<int,int>>{{0,112},{112,0},{224,112},{112,224}}) {
+     const auto state=rectangle(2u,xy.first,xy.second,2);
+     need(selectGroundMap(state,226)[at(xy.first,xy.second)].stampSide==2,
+          "composite blocks accept the inclusive active rectangle edges without a three-cell margin");
+ }
+ auto occupied=empty;
+ for(const auto& xy:std::vector<std::pair<int,int>>{{111,110},{110,111}})
+     for(int row=0;row<2;++row)for(int column=0;column<2;++column)
+         occupied.terrain[at(xy.first+column,xy.second+row)]=2u;
+ const auto plan=selectGroundMap(occupied,226);
+ need(plan[at(111,111)].origin==at(111,110)&&plan[at(110,111)].stampSide==1,
+      "composite acceptance reads working images and refuses an overlap written by the preceding row");
+ occupied.image.assign(51984,UINT32_MAX);occupied.draw.assign(51984,255u);occupied.subTile.assign(51984,255u);
+ const auto changed=selectGroundMap(occupied,226);bool identical=true;
+ for(size_t cell=0;cell<plan.size();++cell)
+     identical&=plan[cell].origin==changed[cell].origin&&plan[cell].stampSide==changed[cell].stampSide&&
+         plan[cell].selection.code==changed[cell].selection.code&&plan[cell].selection.variant==changed[cell].selection.variant;
+ need(identical,"composite reconstruction never selects from stored image, draw or sub-tile art");
+}
 void realDataFarmBlockTests() {
  using namespace game_lab;
  const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!env||!*env)return;
@@ -652,8 +725,21 @@ void realDataFarmBlockTests() {
      }
  }
  need(cities==167&&cityCohorts==std::array<size_t,2>{93,74},"farm corpus covers 167 cities with the road-defined 93/74 cohort split");
- need(emitted==1860329&&matched==1569808&&unknown==132570&&mismatched==290521&&classes==mismatched,
-      "whole-map farm and plain blocks reproduce the measured corpus totals without dropped mismatches");
+ need(emitted==1860329&&matched==1589591&&unknown==132570&&mismatched==270738&&classes==mismatched,
+      "whole-map ground blocks reproduce the measured corpus totals without dropped mismatches");
+ const std::array<const char*,3> compositeNames={"0x2-land","0x80000000-flood","0x101000-twin"};
+ const std::array<Tally,3> compositeUnshifted={{{45754,45754,39820},{6159,6159,6068},{1666,1666,1666}}};
+ const std::array<Tally,3> compositeShifted={{{28739,28739,0},{9985,9985,0},{1700,1700,0}}};
+ for(size_t i=0;i<compositeNames.size();++i) {
+     need(branches[0][compositeNames[i]]==compositeUnshifted[i],"composite ground branches lock their unshifted emitted/matched denominator");
+     need(branches[1][compositeNames[i]]==compositeShifted[i],"composite ground branches leave the shifted cohort uncompensated");
+ }
+ const std::array<const char*,8> unchangedNames={"0x1-road","0x40000-canal","0x2000000-feature","0x80-farm",
+     "0x4-shore-water-ring","0x4-shore-water-fringe","0x4-shore-shore-ring","plain-land"};
+ const std::array<Tally,8> unchangedUnshifted={{{151646,151646,150824},{5364,5364,5286},{1256,1256,1250},
+     {594973,594973,594935},{47649,47649,33070},{33264,33264,22292},{3041,3041,1999},{81855,81855,81774}}};
+ for(size_t i=0;i<unchangedNames.size();++i)
+     need(branches[0][unchangedNames[i]]==unchangedUnshifted[i],"composite ground ports preserve every other unshifted branch's denominator and matches");
  const std::array<const char*,7> names={"0x80-farm-block-2x2","0x80-farm-block-3x3","0x80-farm-block-4x4",
      "0x80-farm-block-fallback","plain-land-block-2x2","plain-land-block-3x3","plain-land-block-4x4"};
  const std::array<Tally,7> unshifted={{{11897,11897,11890},{15471,15471,15462},{16856,16856,16844},
@@ -1041,15 +1127,15 @@ void realDataGroundTests(bool& originalData) {
  // until the 0x4-shore general arm is modelled.
  need(known*100>=active*67,"MAP-only known coverage stays at or above the measured floor");
  // The setter variant resolves in the record/id space. With the user's own
- // China_Terrain.sg3 present, every MAP-known cell lands on a real single-cell
- // record: the folded-variant bug left 1940 of them unresolved (empty slots or
- // large composite records selected by the wrong header slot).
+ // China_Terrain.sg3 present, every MAP-known cell resolves. The composite
+ // ground setters now correctly select multi-cell records for their footprints;
+ // the old folded-variant bug selected unrelated records through a wrong slot.
  const auto archivePath=std::filesystem::path(env)/"DATA"/"China_Terrain.sg3";
  if(std::filesystem::exists(archivePath)) {
      const auto archive=loadSG3(archivePath.string());
      need(archive.numImages&&archive.numImages==archive.sprites.size(),
           "original China_Terrain.sg3 loads with a consistent published image count");
-     size_t knownCells=0,resolved=0,geometry=0;
+     size_t knownCells=0,resolved=0,geometry=0,composite=0;
      for(size_t cell=0;cell<terrain.flags.size();++cell) {
          if(terrain.flags[cell]&0x80000u)continue;
          const auto& selection=plan[cell].selection;
@@ -1059,10 +1145,11 @@ void realDataGroundTests(bool& originalData) {
          ++resolved;
          const auto record=sg3SingleCellGeometry(archive,index);
          if(record&&record->height<=4096)++geometry;
+         else if(plan[cell].stampSide>1&&archive.sprites[index].tileSize==plan[cell].stampSide)++composite;
      }
      // Measured on the user's own Anyang.map + China_Terrain.sg3.
-     need(knownCells==9079&&resolved==9079&&geometry==9079,
-          "every MAP-known ground cell resolves to a real single-cell China_Terrain.sg3 record");
+     need(knownCells==9079&&resolved==9079&&geometry==8995&&composite==84&&geometry+composite==resolved,
+          "every MAP-known ground cell resolves to the measured single-cell or matching composite China_Terrain.sg3 record");
      // The stored surface-image grid (0x00FE9880) is the oracle for the chain. It
      // renders verbatim as recordId = low14 + 201 in the same archive; the chain
      // score then measures the reconstructed dispatch chain against it.
@@ -1382,6 +1469,7 @@ int main(){try{
  exclusiveOutputTests(root);
  groundSelectorTests();
  farmBlockTests();
+ compositeGroundBlockTests();
  imageGridTests(root);
  compositeSafetyTests(root);
  chainScoreTests();

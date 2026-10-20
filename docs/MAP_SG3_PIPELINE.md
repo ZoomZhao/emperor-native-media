@@ -328,11 +328,15 @@ them `chain-declined` / `chainNoWrite` (`original_ground.hpp`).
 
 Measured over all 167 `Cities/*.map` (whole crop, camera-free), after modelling
 setter 5 (the road arm), the two `LAB_0053FF8A` arms of setter 4 and the whole-map
-farm/plain-land block tiers:
+farm/plain-land block tiers plus the land/flood/twin composite arms (167/167
+processed, 0 failures):
 
 * grid `2,107,836` active cells, `28` stored zero, `2,107,808` stored nonzero;
 * chain emits `1,860,329` (88.258 % of active), agrees with the stored grid on
-  `1,569,808` = **84.383 %** of emitted / **74.475 %** of active; mismatched `290,521`;
+  `1,589,591` = **85.447 %** of emitted / **75.413 %** of active; mismatched `270,738`;
+* mismatches partition into `16` stored zero, `9,829` stored tileset 16,
+  `11,560` index deltas within ±8 and `249,333` larger deltas; the 17–32 bucket
+  contains `227,592/249,333` (91.28 %) of those larger deltas;
 * chain declines to write on `114,937` cells: `0` of them store zero, **all `114,937`
   store nonzero art** — direct evidence that "declined" is not "empty";
 * unknown / non-terrain-determinable chain cells `132,570` (6.289 % of active).
@@ -343,7 +347,10 @@ farm/plain-land block tiers:
 the emitted *ratio* because the newly claimed cells sit in the per-(city, band) id
 shift and match at 39-61 %; absolute matches rose `150,824 + 24,442`. The whole-map
 farm 4×4/3×3/2×2 + fallback and plain-land 4×4/3×3/2×2 tiers then add **94,925
-matched** and remove **36,950 unknown**, raising emitted agreement to 84.383 %.)
+matched** and remove **36,950 unknown**, raising emitted agreement to 84.383 %.
+The land/flood/twin composite arms add **19,783 matches** (15,135 + 3,716 + 932),
+raising emitted agreement to 85.447 % without changing emitted, unknown or
+stored-grid rendering totals.)
 
 ### The stored ids are an older archive vintage, and the shift is not derivable
 

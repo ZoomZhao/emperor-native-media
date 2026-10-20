@@ -35,9 +35,9 @@ non-zero setter. Every setter that writes `img` also does `draw|=0x40` and `sub&
 | 3 | `FUN_00540330 @0x00540330` | `terrain&0x800` | **no `img` write** (item 5) | no |
 | 4 | `FUN_0053FC30 @0x0053FC30` | `terrain&0x4` | `0x61B`/`0x61A`/`0x605`/`0x61C` (item 2) | partial |
 | 5 | `FUN_0053F520 @0x0053F520` | `terrain&0x1` → `FUN_004BC6A0` | `T(0x624|0x625)+9k+random%9` (k∈{0,1}) or `T(0x627)+random&7` (item 3) | yes |
-| 6 | `FUN_0053F660 @0x0053F660` | `terrain&0x2` | `T(0x607/0x608/0x606)+random&7` by `terrain&0x300002` | yes |
-| 7 | `FUN_0053F790 @0x0053F790` | `(terrain&0x101000)==0x101000` | `T(0x60F)+random&7` | yes |
-| 8 | `FUN_0053F560 @0x0053F560` | `terrain&0x80000000` | `T(0x60E)+random&7` (2×2/3×3 block art) | yes |
+| 6 | `FUN_0053F660 @0x0053F660` | `terrain&0x2` | `T(0x607/0x608/0x606)` by `terrain&0x300002`; 3×3 `+12+(random&1)`, 2×2 `+8+(random&3)`, else `+(random&7)` | yes: whole-map composite stamps |
+| 7 | `FUN_0053F790 @0x0053F790` | `(terrain&0x101000)==0x101000` | `T(0x60F)`; 2×2 `+8+(random&3)`, else `+(random&7)` | yes: whole-map composite stamps |
+| 8 | `FUN_0053F560 @0x0053F560` | `terrain&0x80000000` | `T(0x60E)`; 3×3 `+12+(random&1)`, 2×2 `+8+(random&3)`, else `+(random&7)` | yes: whole-map composite stamps |
 | 9 | `FUN_0053F840 @0x0053F840` | `terrain&0x20000` | `T(0x628/0x626/0x622/0x603)+R+C` (item 7) | no |
 | 10 | `FUN_0053FA20 @0x0053FA20` | `terrain&0x2000000` and `img==0` | `T(0x60D/0x60A/0x609/0x619)` by `feat` bits (item 8) | no |
 | 11 | `FUN_00413A00 @0x00413A00` | none — 3-byte body | returns 0 (never handles a cell) | yes |
@@ -380,9 +380,9 @@ The `0x4-shore` residue fell from 156,935 to 94,897 when those arms were ported:
 
 ## Mismatch classes: every residual cell now has a named cause
 
-`matched` is the count of emitted codes that equal the stored grid (`1,569,808` of
-`1,860,329`, 84.383 %; 74.475 % of all `2,107,836` active cells). The remaining
-`290,521` cells are classified per branch, and the classes partition `mismatched`
+`matched` is the count of emitted codes that equal the stored grid (`1,589,591` of
+`1,860,329`, 85.447 %; 75.413 % of all `2,107,836` active cells). The remaining
+`270,738` cells are classified per branch, and the classes partition `mismatched`
 exactly - the sweep treats a city whose classes do not sum to its `mismatched` as a **failure**,
 so a silent drop cannot pass.
 
@@ -401,9 +401,9 @@ Measured over all 167 `Cities/*.map` (167/167 processed, 0 failures):
 |---|---:|
 | stored word is 0 while the chain emitted | 16 |
 | stored word names a tileset other than 3 | 9,829 |
-| same tileset 3, stored index within +-8 of the prediction | 26,451 |
-| same tileset 3, stored index further off | 254,225 |
-| **total** | **290,521** |
+| same tileset 3, stored index within +-8 of the prediction | 11,560 |
+| same tileset 3, stored index further off | 249,333 |
+| **total** | **270,738** |
 
 The 9,829 non-tileset-3 cells all name **tileset 16 (`China_Elevation.sg3`)**; no
 other tileset appears (direct corpus probe of `stored>>14`). So the chain does not
@@ -413,8 +413,8 @@ namespace, and the engine's real choice for those cells produced elevation art.
 That is a missing branch, not a variant error, and it is the single largest
 *non-index* class.
 
-The 254,225 "further off" cells are bucketed by magnitude of
-`storedIndex - predictedIndex`: 9-16, 16,340; 17-32, 227,583; 33-64, 8,819;
+The 249,333 "further off" cells are bucketed by magnitude of
+`storedIndex - predictedIndex`: 9-16, 11,437; 17-32, 227,592; 33-64, 8,821;
 65-128, 425; 129-256, 14; 257-512, 1,014; 513+, 30. The farm block tiers
 contribute 34,362 cells to the 17-32 bucket because `0x604` carries the same known
 per-city vintage shift as the land and upper bands (next section). Note that the
@@ -425,11 +425,11 @@ was refuted. The selector keeps the executable's formulas without fitting either
 offset to the oracle.
 
 Per branch, residual counts (matched/emitted percentages) are `0x1-road` 95,978
-(61.11 %), `0x4-shore-water-ring` 50,159 (39.73 %), `0x2-land` 49,808 (33.14 %),
-`0x4-shore-water-fringe` 34,604 (39.32 %), `0x80000000-flood` 13,792 (14.57 %),
+(61.11 %), `0x4-shore-water-ring` 50,159 (39.73 %), `0x2-land` 34,673 (53.45 %),
+`0x4-shore-water-fringe` 34,604 (39.32 %), `0x80000000-flood` 10,076 (37.59 %),
 `0x80-farm-block-4x4` 13,500 (55.51 %), `0x80-farm-block-3x3` 12,242 (55.81 %),
 `0x80-farm-block-2x2` 8,665 (57.85 %), `0x40000-canal` 4,872 (52.04 %),
-`0x4-shore-shore-ring` 2,992 (40.33 %), `0x101000-twin` 2,632 (21.81 %),
+`0x4-shore-shore-ring` 2,992 (40.33 %), `0x101000-twin` 1,700 (49.49 %),
 `0x2000000-feature` 981 (56.03 %), `plain-land` 156 (99.92 %), `0x80-farm` 69
 (99.993 %), `plain-land-block-3x3` 58 (99.41 %), `plain-land-block-2x2` 7
 (99.89 %) and `0x80-farm-block-fallback` 6 (99.975 %); `plain-land-block-4x4`
@@ -439,12 +439,12 @@ has 0 residual (100 %).
 
 The 17-32 magnitude bucket is not one branch's problem. Cells whose stored index
 sits 17-32 records from the prediction, by branch: `0x1-road` 94,669,
-`0x4-shore-water-ring` 31,876, `0x2-land` 26,331, `0x4-shore-water-fringe` 21,923,
+`0x4-shore-water-ring` 31,876, `0x2-land` 26,340, `0x4-shore-water-fringe` 21,923,
 `0x80-farm-block-4x4` 13,488, `0x80-farm-block-3x3` 12,233,
 `0x80000000-flood` 9,949, `0x80-farm-block-2x2` 8,641, `0x40000-canal` 4,776,
 `0x4-shore-shore-ring` 1,941, `0x101000-twin` 1,700, `plain-land-block-3x3` 46,
 `0x80-farm` 6, `plain-land-block-2x2` 3 and `0x80-farm-block-fallback` 1 -
-**227,583 cells, 89.52 % of the 254,225 large-delta residual**. The dominant cause
+**227,592 cells, 91.28 % of the 249,333 large-delta residual**. The dominant cause
 is the per-(city, band) vintage shift; the small ordinary-farm and plain-land-block
 tails also occupy this magnitude bucket.
 
@@ -519,7 +519,7 @@ on the owned data / exe SHA-256
   imageIndex[slot] - 201`), with no per-city adjustment.
 
 Two consequences follow, and they must not be confused. For the **score**, the stored
-grid is a stale oracle above the farm and plain-land bands, so `84.383 %` is a floor
+grid is a stale oracle above the farm and plain-land bands, so `85.447 %` is a floor
 on the reconstruction's agreement with it, not the reconstruction's accuracy. For the
 **render**, `recordId = low14 + 201` reads those stored ids against the installed
 archive, so in a shifted city it decodes a record 20/30/32 entries from the one the
@@ -551,16 +551,16 @@ For these composite placements, art is written once and stamped across the footp
 `code = base + (random & 7)` evaluated *per cell* can match at most one cell per
 block, which is exactly the low-accuracy signature of the block branches.
 
-This suggested a specific fix for these composite placements - read the variant from the block anchor cell - and
+This suggested a specific fix for these composite placements - read the variant from the stored draw-grid anchor cell - and
 that prediction was **tested and refuted**. Applying it corpus-wide
 (`groundCodeRequest` taking `randomByte[anchor]`) moved `matched` from 1,299,617 to
 1,296,643 (measured before setter 5 was modelled; **worse by 2,974**; `0x80000000-flood` 14.57 % -> 11.88 %,
-`0x2-land` 33.14 % -> 30.05 %) and the change was reverted. The MAP's draw grid
-therefore does not identify the cell whose random byte produced the block's variant,
-and the variant is not derivable from the MAP's per-cell payload alone. That is a
-measured boundary, not a guess: for those branches the stored grid stays the
-faithful source for rendering, and the reimplementation's residual is bounded by
-state the MAP does not carry.
+`0x2-land` 33.14 % -> 30.05 %) and the change was reverted. This refutes that
+stored-anchor substitution; it does not refute the executable's rectangle
+acceptance and tier offsets. The whole-map port below derives the origin from
+working terrain and image occupancy, tries the executable's arms, and uses
+`+8+(origin random&3)` or `+12+(origin random&1)`. It recovers 19,783 matches.
+The stored draw/sub grids never choose a predicted origin or variant.
 
 ### Every farm residual is a wrong branch, not a wrong variant
 
@@ -602,7 +602,7 @@ The historical probe established that the chain **claimed cells the engine gave
 other art**, rather than selecting the wrong farm variant; it did not identify
 which writer owned them. The whole-map stamp pass now resolves the dominant cause.
 The remaining 132,570 `chain_unknown` cells require the runtime descriptors listed
-above, while 227,583 of the 254,225 large-delta mismatches lie in the 17-32 bucket,
+above, while 227,592 of the 249,333 large-delta mismatches lie in the 17-32 bucket,
 dominated by the known vintage offset. Porting more setters addresses the unknown
 branches, but cannot recover the missing authoring-time archive table. The stored grid
 remains the measured render source, with intended art in shifted cities still open.
@@ -761,19 +761,19 @@ were MP48 cells outside the traversal with b==0. Resolving that context-free
 fallback adds 3 emitted cells, 0 matches, and removes all three unknowns. The
 plain-land phase then adds **26,715 matches** without changing coverage.
 
-| Metric | Before block tiers (`1e87f22`) | Final |
+| Metric | Before block tiers (`1e87f22`) | Current, including composite tiers |
 |---|---:|---:|
 | Active cells | 2,107,836 | 2,107,836 |
 | Emitted / active | before: 1,823,379 (86.505%) | 1,860,329 (88.258%) |
-| Matched / emitted | before: 1,474,883 (80.887%) | 1,569,808 (84.383%) |
+| Matched / emitted | before: 1,474,883 (80.887%) | 1,589,591 (85.447%) |
 | Unknown / active | before: 169,520 | 132,570 |
-| Mismatched / emitted | before: 348,496 | 290,521 |
-| Mismatch class sum | before: 348,496 | 290,521 |
+| Mismatched / emitted | before: 348,496 | 270,738 |
+| Mismatch class sum | before: 348,496 | 270,738 |
 
-Final classes: stored zero 16, other tileset 9,829, same-tileset delta within ±8
-26,451, larger delta 254,225; **16+9,829+26,451+254,225=290,521**. The emitted
+Current classes: stored zero 16, other tileset 9,829, same-tileset delta within ±8
+11,560, larger delta 249,333; **16+9,829+11,560+249,333=270,738**. The emitted
 ratio is confounded by newly covered cells and archived id vintages; absolute
-matches rise **94,925**, unknown falls **36,950**, and neither closed offset class
+matches rise **114,708**, unknown falls **36,950**, and neither closed offset class
 is fitted. Farm's ordinary branch becomes 1,031,658/1,031,727 matched; 37 old
 accidental matches are reassigned by exact non-local stamps, alongside the much
 larger correction of formerly mismatched farm cells.
@@ -791,7 +791,7 @@ the other 74. In each table entry below **cells=emitted**; the numerator is matc
 | `plain-land-block-3x3` | 9,815/9,873 | 3,748/3,789 (98.918%) | 6,067/6,084 (99.721%) |
 | `plain-land-block-4x4` | 10,496/10,496 | 4,032/4,032 (100%) | 6,464/6,464 (100%) |
 
-The whole-chain final cohort results are 987,802/1,041,309 emitted matches
+The whole-chain current cohort results are 1,007,585/1,041,309 emitted matches
 (unshifted, 75,473 unknown / 1,179,755 active), and 582,006/819,020
 (shifted, 57,097 unknown / 928,081 active). `0x604` sits above the plain-land band;
 its shifted cohort remains uncompensated. Ordinary plain land moves from
@@ -811,6 +811,93 @@ origin skip, plain occupancy refusal, unchanged source layers, and exact corpus
 totals/branch cohorts/consecutive-vs-constant structure. Temporarily replacing
 `variant+row*side+column` with `variant` fails the stamp-order assertion; the rule
 was restored. No decreasing-match/increasing-unknown candidate was retained.
-Final required runs: no-data release **428 assertions** with successful SKIP;
-original-data release **1,635 assertions**; original-data UBSan **1,635 assertions**,
+Current required runs: no-data release **1,066 assertions** with successful SKIP;
+original-data release **2,287 assertions**; original-data UBSan **2,287 assertions**,
 all passing. `git diff --check` is clean.
+
+## Land, flood and twin composite tiers
+
+The `f88d75a` baseline emitted 1,860,329, matched 1,569,808, left 132,570 unknown,
+and mismatched 290,521. Reading setters 6/8/7 and both acceptance helpers against
+the same executable hash above found omitted arms, with no discrepancy in the
+existing base codes, terrain dispatch order or random-byte source:
+
+| Branch | Setter evidence | Missing whole-map behavior |
+|---|---|---|
+| `0x2-land` | `0x53F679/7E/8E` chooses `0x607/608`, else `0x606` and required terrain 2 at `0x53F69E` | `FUN_004B8000` calls `0x53F6CA` (3×3), `0x53F710` (2×2); variants `12+(r&1)` at `0x53F6E3/E6`, `8+(r&3)` at `0x53F729/2C`; fallback `r&7` at `0x53F76C` |
+| `0x80000000-flood` | `0x53F560` tests the high bit; `0x53F570` selects `0x60E` | Same 3×3→2×2→single order; helper calls `0x53F59B/0x53F5E8`, variants `0x53F5B8/BB`, `0x53F605/608`, fallback `0x53F647` |
+| `0x101000-twin` | `0x53F794/99` tests both bits; `0x53F7A6` selects `0x60F` | Only 2×2 via `FUN_004B8100` at `0x53F7D1`, `8+(r&3)` at `0x53F7EE/F1`, fallback `r&7` at `0x53F81D` |
+
+Here `r` is the origin's `0x00F1E780` byte, read at `0x53F6DD/0x53F723`,
+`0x53F5B2/0x53F5FF`, or `0x53F7E8`; no auxiliary byte feeds these variants and
+there is no farm/plain `r&0xF8` gate or divisor. All callers pass image test 1 and
+excluded terrain `0x100`. `FUN_004B8000 @0x004B8000` requires nonnegative local
+x/y and `x+side-1<activeSide`, `y+side-1<activeSide` (`0x4B8007/17/30/49`), then
+for every target `(terrain&0xAFFEDE6F)==required` (`0x4B8099/9F`), image 0
+(`0x4B80AD/AE`), and no `0x100` (`0x4B80BF`). It has no diamond-edge test or
+three-cell margin. Twin's `FUN_004B8100 @0x004B8100` instead requires
+`(terrain&0x101000)==0x101000` (`0x4B819D/9F`), permitting extra terrain bits;
+its image and `0x100` checks are `0x4B81AB/AC` and `0x4B81BD`.
+
+The writer is **`FUN_004B72B0 @0x004B72B0`**, distinct from farm/plain's
+`FUN_004B7520`: it writes the same image word to every target (`0x4B7423`),
+terrain `(old&0x93872790)|required` (`0x4B73BA/C0`), and sub-tile
+`(old&0xE0)|(side-1)` (`0x4B73DC..0x4B7415`). Table `0x0081FF18` (file
+`0x41FF18`) has flat offsets `row*228+column` and draw offsets `row*8+column`;
+`0x4B742A/2E` copies the latter, setting draw `0x40` on the view's draw cell
+(`0x4B72C8..0x4B7300`, `0x4B7434..43`). Twin's single-cell fallback assigns
+draw `0x40` (`0x53F82B`), while land/flood OR it. The pass already builds requests
+from working state; these predicates read its zero/nonzero images and the stamp
+mutates its terrain/sub/draw before later row/column visits. Stored draw, sub-tile
+and image words never select an arm or origin.
+
+Before porting, a cheap unshifted-cohort structural probe reproduced the exact
+baseline. Same-tileset residuals included both parities and all residues mod 4/8;
+apart from land's 22 distant cells, every mismatch had a **positive** delta 1–13
+(land/flood) or 1–11 (twin). This differs from shore's even authored offset:
+
+| Branch | Same-tileset cells | Even / odd deltas, including exact | Matched by stored group size 1 / 2 / 3 |
+|---|---:|---:|---|
+| land | 39,845 | 33,898 / 5,947 | 24,685/24,706; 0/11,701; 0/3,438 |
+| flood | 6,068 | 4,599 / 1,469 | 2,352/2,352; 0/2,276; 0/1,440 |
+| twin | 1,666 | 1,335 / 331 | 734/734; 0/932; no 3×3 |
+
+Neighbour-pattern dependence was strong: pattern 0 (no same-kind neighbours) was
+exact for land 3,000/3,000, flood 82/82 and twin 65/65; pattern 255 was land
+398/2,645, flood 75/1,233 and twin 1/80. Coordinate parity did not select an
+arm: the four x/y parity groups had land match rates 61.69–62.57%, flood
+37.01–40.54%, and twin 41.01–46.92% among same-tileset cells. Stored variants
+covered exactly 0–13 (land/flood) or 0–11 (twin), plus the land tail. The apparent
+9–16 errors therefore came from missing block arms, not an authored offset or
+an alternative random/auxiliary byte. The stored group measurements diagnose the
+error; they are never predictor inputs.
+
+Every baseline unshifted land cell is accounted for:
+**24,685 exact + 11,537 within ±8 + 3,601 in 9–16 + 22 distant + 5,909 tileset 16
+= 45,754**. After the port: **39,820 exact + 2 within ±8 + 1 in 9–16 + 22 distant
++ 5,909 tileset 16 = 45,754**. The three small residuals are -7, -4 and -11;
+no rule is fitted to them. Flood leaves only 91 tileset-16 cells. Twin is exact
+on all 1,666 unshifted cells.
+
+| Branch | Unshifted matched/emitted before → after | Shifted matched/emitted before → after |
+|---|---|---|
+| land | 24,685/45,754 (53.95%) → 39,820/45,754 (87.03%) | 0/28,739 → 0/28,739 |
+| flood | 2,352/6,159 (38.19%) → 6,068/6,159 (98.52%) | 0/9,985 → 0/9,985 |
+| twin | 734/1,666 (44.06%) → 1,666/1,666 (100%) | 0/1,700 → 0/1,700 |
+
+Sequential probes added 15,135 matches for land, 3,716 for flood and 932 for twin:
+**19,783 total**. All other branches' emitted and matched counts are identical in
+both cohorts. The full sanctioned sweep processes 167/167 cities with 0 failures:
+emitted 1,860,329; matched 1,589,591; unknown 132,570; mismatched 270,738;
+`16+9,829+11,560+249,333=270,738` mismatch classes. Stored-grid exact rendering
+remains 139/167. No per-city or band offset is compensated.
+
+`compositeGroundBlockTests` covers every base, all tiers and random masks,
+constant-word footprints, exact versus subset predicates, each masked terrain bit,
+mixed land classes, inclusive rectangle edges, working-image overlap refusal and
+source-layer independence. Corpus assertions lock the three branch denominators,
+both cohorts, all other unshifted branch rates and total mismatch accounting.
+A scratch-only mutation changing the 2×2 offset from 8 to 9 exits 1 at
+“composite ground tiers repeat the origin image across every covered cell for all
+random masks”; the repository rule remains 8. Required tests pass: no-data release
+1,066 assertions with successful SKIP, original-data release 2,287 and UBSan 2,287.

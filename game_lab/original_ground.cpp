@@ -247,20 +247,19 @@ GroundSelection selectGroundTileCode(const GroundCodeRequest& request) {
     //    (0x0053F697), else 0x606. The store is T(base)+offset with three tiers:
     //    FUN_004B8000 @0x004B8000 accepting 3x3 -> +0xC+(random&1) as 3x3 art
     //    (0x0053F6E6), 2x2 -> +8+(random&3) as 2x2 art (0x0053F72C), else the 1x1
-    //    T(base)+(random&7) (0x0053F76C). Only the 1x1 tier is emitted here: the
-    //    block acceptance (FUN_004B8000, same per-cell predicate family as
-    //    FUN_004B7E80) and the block art are not modelled, so `variant` is exact
-    //    for the 1x1 tier and approximate (too small) where a block tier is
-    //    accepted. Documented rather than silently wrong; the measured Anyang
-    //    corpus shows 212/303 of these cells on the 1x1 tier.
+    //    T(base)+(random&7) (0x0053F76C). This per-cell API supplies that fallback;
+    //    selectGroundMap tests the working rectangle and stamps the accepted
+    //    composite tier through FUN_004B72B0's constant-image semantics.
     if(terrain&0x2u) {
         const uint32_t select=terrain&0x300002u;
         const uint16_t base=select==0x100002u?uint16_t(0x607):select==0x200002u?uint16_t(0x608):uint16_t(0x606);
         return {base,true,false,"0x2-land",false,variant};
     }
-    // 7. FUN_0053F790 @0x0053F790: (terrain&0x101000)==0x101000 -> 0x60F + random&7.
+    // 7. FUN_0053F790 @0x0053F790: (terrain&0x101000)==0x101000 -> 0x60F +
+    //    random&7 fallback; selectGroundMap tests FUN_004B8100's 2x2 arm.
     if((terrain&0x101000u)==0x101000u)return {0x60F,true,false,"0x101000-twin",false,variant};
-    // 8. FUN_0053F560 @0x0053F560: terrain&0x80000000 -> 0x60E + random&7.
+    // 8. FUN_0053F560 @0x0053F560: terrain&0x80000000 -> 0x60E + random&7
+    //    fallback; selectGroundMap supplies the 3x3/2x2 composite arms.
     if(terrain&0x80000000u)return {0x60E,true,false,"0x80000000-flood",false,variant};
     // 9. FUN_0053F840 @0x0053F840: terrain&0x20000 -> 0x628/0x626/0x622 from runtime state.
     if(terrain&0x20000u)return {0,false,false,"0x20000-forest"};
@@ -452,6 +451,27 @@ bool acceptsFarmGroundBlock(const OriginalTerrainState& state,uint32_t activeSid
     return true;
 }
 namespace {
+bool acceptsCompositeGroundBlock(const OriginalTerrainState& state,const GroundMapBounds& bounds,
+        int x,int y,int side,uint32_t mask,bool allowOtherTerrain) {
+    // FUN_004B8000 @0x004B8000: nonnegative local coordinates and inclusive
+    // far edge (0x4B8007/17/30/49), with no farm/plain three-cell margin or
+    // diamond-edge check. The table at 0x0081FF18 supplies row*228+column.
+    if(x<0||y<0||x+side-1>=bounds.side||y+side-1>=bounds.side)return false;
+    const size_t origin=bounds.cell(x,y);
+    for(int row=0;row<side;++row)for(int column=0;column<side;++column) {
+        const size_t cell=blockCell(origin,row,column);
+        const uint32_t flag=state.terrain[cell];
+        // 0x4B8099/9F: exact masked equality, not merely sharing the origin's
+        // bits. FUN_004B8100 @0x004B8100 (twin) instead uses mask itself at
+        // 0x4B819D/9F and permits additional terrain bits.
+        if((flag&(allowOtherTerrain?mask:0xAFFEDE6Fu))!=mask)return false;
+        // All three callers pass param_6=1 and param_7=0x100: img==0 at
+        // 0x4B80AD/AE or 0x4B81AB/AC, then terrain&0x100 clear at
+        // 0x4B80BF or 0x4B81BD. Read the pass's working state, never stored art.
+        if(state.image[cell]!=0u||(flag&0x100u))return false;
+    }
+    return true;
+}
 bool acceptsPlainGroundBlock(const OriginalTerrainState& state,const GroundMapBounds& bounds,
         int x,int y,int side) {
     // FUN_004B7CA0 @0x004B7CA0, called with (-1,1,0,1,1) at 0x53F10F,
@@ -503,6 +523,50 @@ std::vector<GroundMapCell> selectGroundMap(const OriginalTerrainState& state,uin
             const auto request=groundCodeRequest(working,cell);
             auto selection=selectGroundTileCode(request);
             result[cell]={selection,cell,1};
+            const bool land=std::strcmp(selection.branch,"0x2-land")==0;
+            const bool flood=std::strcmp(selection.branch,"0x80000000-flood")==0;
+            const bool twin=std::strcmp(selection.branch,"0x101000-twin")==0;
+            if(land||flood||twin) {
+                // FUN_0053F660: 0x53F679/7E/8E selects both base and required
+                // terrain; the default resets the required mask to 2 at 0x53F69E.
+                const uint32_t selected=request.terrainFlags&0x300002u;
+                const uint32_t mask=twin?0x101000u:flood?0x80000000u:
+                    selected==0x100002u||selected==0x200002u?selected:2u;
+                int side=1;
+                // Twin only attempts 2x2 and uses the subset predicate
+                // FUN_004B8100 (call 0x53F7D1); land/flood use exact equality.
+                if(!twin&&acceptsCompositeGroundBlock(working,bounds,x,y,3,mask,false))side=3;
+                else if(acceptsCompositeGroundBlock(working,bounds,x,y,2,mask,twin))side=2;
+                if(side==1) {
+                    working.image[cell]=1u;
+                    working.subTile[cell]&=0xF0u;
+                    if(twin)working.draw[cell]=0x40u; // 0x53F82B assigns, not ORs
+                    else working.draw[cell]|=0x40u;
+                    continue;
+                }
+                // 0x53F6E3/E6: 3x3 +12+(origin random&1); 0x53F729/2C:
+                // 2x2 +8+(origin random&3). Neither uses an auxiliary byte.
+                // Flood repeats those literals at 0x53F5B8/BB and 0x53F605/608;
+                // its FUN_004B8000 calls are 0x53F59B (3x3), 0x53F5E8 (2x2).
+                // Twin: origin random at 0x53F7E8, &3 at 0x53F7EE, +8 at
+                // 0x53F7F1, constant-image stamp FUN_004B72B0 at 0x53F7FE.
+                selection.variant=uint8_t(side==3?12u+(request.randomByte&1u):8u+(request.randomByte&3u));
+                selection.block=true;
+                for(int row=0;row<side;++row)for(int column=0;column<side;++column) {
+                    const size_t target=blockCell(cell,row,column);
+                    // FUN_004B72B0, unlike FUN_004B7520: same image at 0x4B7423
+                    // throughout the footprint, terrain=(old&0x93872790)|mask
+                    // (0x4B73BA/C0), sub=(old&0xE0)|(side-1) (0x4B73DC..7415),
+                    // draw from the table (0x4B742A/2E). View 0's draw cell is
+                    // column 0, last row (0x4B72C8..D3, 0x4B7434..43).
+                    result[target]={selection,cell,uint8_t(side)};stamped[target]=1;
+                    working.image[target]=1u;
+                    working.terrain[target]=(working.terrain[target]&0x93872790u)|mask;
+                    working.subTile[target]=uint8_t((working.subTile[target]&0xE0u)|uint32_t(side-1));
+                    working.draw[target]=uint8_t(row*8+column+((column==0&&row==side-1)?0x40:0));
+                }
+                continue;
+            }
             const bool farm=std::strcmp(selection.branch,"0x80-farm-block")==0;
             const bool plain=std::strcmp(selection.branch,"plain-land")==0;
             if(!farm&&!plain) {
