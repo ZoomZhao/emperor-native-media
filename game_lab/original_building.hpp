@@ -534,6 +534,56 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
     }
     return out;
 }
+// Additive industry inputs for0x51E4A0; existing record/image readers unchanged.
+// Common5 read0x427430: runtime+16/+1C/+40/+44/+6E/+72/+74/+90
+// are wire18/23/58/62/98/101/103/129. Data1 is0x51C3A0.
+struct OriginalBuildingProductionInputs {
+    int16_t primaryResource=0,operational=0,primaryStock=0,workers=0,secondaryStock=0,secondaryResource=0;
+    uint8_t laborDisabled=0,enabled=0;
+    std::array<uint8_t,126> industry{};
+};
+inline std::optional<std::map<size_t,OriginalBuildingProductionInputs>> originalBuildingProductionInputs(
+    const std::vector<uint8_t>& data,const OriginalBuildingProfile& profile){
+    if(data.size()>8u*1024u*1024u||profile.status!=OriginalBuildingStatus::Complete||profile.parsedRecords!=4000)return std::nullopt;
+    std::map<size_t,OriginalBuildingProductionInputs> out;
+    for(const auto& f:profile.footprints){if(f.type!=33&&f.type!=35&&f.type!=43)continue;
+        size_t at=f.recordOffset;if(at>data.size()||data.size()-at<2)return std::nullopt;
+        const auto tag=detail::u16(data.data()+at);at+=2;
+        if(tag==0xffff){if(data.size()-at<4)return std::nullopt;const size_t n=detail::u16(data.data()+at+2);
+            if(n>data.size()-at-4)return std::nullopt;at+=4+n;}
+        else if(tag<0x8000)return std::nullopt;
+        const size_t tailBytes=f.type==35?136:134;
+        if(data.size()-at<182+tailBytes||detail::u16(data.data()+at)!=5||detail::u16(data.data()+at+16)!=f.type||
+            detail::u32(data.data()+at+162)!=f.slot)return std::nullopt;
+        const auto* p=data.data()+at;const auto* tail=p+182;
+        // Hunter5F36E0/Clay5AC400/Kiln5F2850 ->5F1240 ->51CE00.
+        // Outer1/data1, industry1, then derived1; Clay adds a final word.
+        for(size_t offset:{0u,2u,130u,132u})if(detail::u16(tail+offset)!=1)return std::nullopt;
+        OriginalBuildingProductionInputs v;v.primaryResource=detail::i16(p+18);v.operational=detail::i16(p+23);
+        v.primaryStock=detail::i16(p+58);v.workers=detail::i16(p+62);v.laborDisabled=p[98];
+        v.secondaryStock=detail::i16(p+101);v.secondaryResource=detail::i16(p+103);v.enabled=p[129];
+        std::copy_n(tail+4,126,v.industry.begin());if(!out.emplace(f.slot,v).second)return std::nullopt;
+    }
+    return out;
+}
+//Opt-in common5 inputs for4AD3D0;427D4A/8B/98/DA5/DB2 and
+//517410 restore model/residents/free/distance/peak and embedded+3C.
+struct OriginalBuildingHouseCapacityInputs {uint16_t type=0;int16_t model=0,residents=0,free=0,distance=0,peak=0;uint8_t laborDisabled=0;};
+inline std::optional<std::map<size_t,OriginalBuildingHouseCapacityInputs>> originalBuildingHouseCapacityInputs(
+    const std::vector<uint8_t>& data,const OriginalBuildingProfile& profile){
+    if(data.size()>8u*1024u*1024u||profile.status!=OriginalBuildingStatus::Complete||profile.parsedRecords!=4000)return std::nullopt;
+    std::map<size_t,OriginalBuildingHouseCapacityInputs> out;
+    for(const auto& f:profile.footprints)if(f.type>=2&&f.type<=17){
+        size_t at=f.recordOffset;if(at>data.size()||data.size()-at<2)return std::nullopt;const auto tag=detail::u16(data.data()+at);at+=2;
+        if(tag==0xffff){if(data.size()-at<4)return std::nullopt;const size_t n=detail::u16(data.data()+at+2);if(n>data.size()-at-4)return std::nullopt;at+=4+n;}
+        else if(tag<0x8000)return std::nullopt;
+        if(data.size()-at<247||detail::u16(data.data()+at)!=5||detail::u16(data.data()+at+16)!=f.type||
+            detail::u32(data.data()+at+162)!=f.slot||detail::u16(data.data()+at+182)!=1||detail::u16(data.data()+at+184)!=1)return std::nullopt;
+        const auto* p=data.data()+at;out.emplace(f.slot,OriginalBuildingHouseCapacityInputs{
+            f.type,detail::i16(p+18),detail::i16(p+27),detail::i16(p+29),detail::i16(p+31),detail::i16(p+33),p[182+59]});
+    }
+    return out;
+}
 inline std::string describeOriginalBuildingProfile(const OriginalBuildingProfile& p){
     const bool prefix=p.status==OriginalBuildingStatus::UnsupportedTail;
     if(p.status!=OriginalBuildingStatus::Complete&&!prefix)return "建筑记录不兼容或锚点不唯一；没有占地可发布";
