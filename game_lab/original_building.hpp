@@ -516,6 +516,9 @@ struct OriginalBuildingUpdateInputs {
     uint8_t spawnCounter=0,spawnAux=0,roadFailure=0;
     int16_t primaryFigure=0,word30=0,word34=0;
     std::optional<std::array<uint8_t,126>> hookIndustry;
+    int16_t stock=0; //common5 runtime+40,wire58,427E75.
+    uint8_t faction=0,direction=0,houseInUse=0; //+5/+38/+9,427CD5/427E34/427D09.
+    int8_t desirability=0;uint8_t desirabilityBonus=0; //+5E/+60,427F6C/427F86;wire84/86.
 };
 inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuildingUpdateInputs(
     const std::vector<uint8_t>& data,const OriginalBuildingProfile& profile){
@@ -542,6 +545,8 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         v.houseWater=p[52];v.houseService=p[61];
         v.spawnCounter=p[49];v.spawnAux=p[50];v.roadFailure=p[91];
         v.primaryFigure=detail::i16(p+41);v.word30=detail::i16(p+43);v.word34=detail::i16(p+47);
+        v.stock=detail::i16(p+58);v.faction=p[3];v.direction=p[51];v.houseInUse=p[7];
+        v.desirability=int8_t(p[84]);v.desirabilityBonus=p[86];
         const size_t tail=at+182;const uint16_t type=profile.slotTypes[e.first];
         if(type==0xc2||type==0xc4){
             if(data.size()-tail<140||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1||

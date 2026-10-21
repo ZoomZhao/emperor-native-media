@@ -177,7 +177,7 @@ inline std::optional<OriginalBuildingFormationResult> originalBuildingFormationS
 }
 enum class OriginalBuildingUpdateBlocker {None,InvalidState,MissingContext,ExternalWrites,
     ProductionVirtuals,RoadRefresh,Employment,HousingEvolution,BuildingVirtual20,
-    RiskAndFire,MonthlyCity,Availability,CityPhase,UnclosedPhase,HousingCapacity,CityLabor};
+    RiskAndFire,MonthlyCity,Availability,CityPhase,UnclosedPhase,HousingCapacity,CityLabor,Trade};
 inline const char* originalBuildingUpdateBlockerName(OriginalBuildingUpdateBlocker b){
     switch(b){case OriginalBuildingUpdateBlocker::None:return "computed";
     case OriginalBuildingUpdateBlocker::InvalidState:return "invalid_saved_building_update_inputs";
@@ -194,6 +194,7 @@ inline const char* originalBuildingUpdateBlockerName(OriginalBuildingUpdateBlock
     case OriginalBuildingUpdateBlocker::CityPhase:return "city_accounting_4f1560_4ac2fa";
     case OriginalBuildingUpdateBlocker::HousingCapacity:return "housing_capacity_4ad3d0_44cc80";
     case OriginalBuildingUpdateBlocker::CityLabor:return "city_labor_4ad4a0_4ada10_4adc90";
+    case OriginalBuildingUpdateBlocker::Trade:return "empire_trade_5dbcc0_4b02a0";
     case OriginalBuildingUpdateBlocker::UnclosedPhase:return "scheduled_phase_callee_not_closed";}
     return "invalid_saved_building_update_inputs";
 }
@@ -510,6 +511,40 @@ struct OriginalBuildingUpdateContext {
     std::optional<bool> walkersDisabled; //saved10BC7E0[172],53192B
     std::optional<int32_t> buildingHookCountdown; //saved1032658,53166F
     unsigned hookPreambleCalls=0;
+    struct Trade {
+        struct Partner {
+            uint8_t alive=0,kind=0,faction=0,sea=0,blocked=0;
+            int32_t enabled=0,relationship=0;
+            int16_t timer=0,suspended=0;
+            std::array<int16_t,3> traders{};
+            std::array<uint8_t,36> quota{},quotaBonus{};
+            std::array<uint8_t,4> buys{},sells{};
+        };
+        std::array<Partner,22> partners{};
+        std::array<int16_t,4> counters{}; //Population7 59498E..5949BE.
+        //5DC500 returns process service1E4FBD8; its timer words+8/+C
+        //have no SAV reader. Required only when a saved timer expires.
+        std::optional<std::array<int32_t,2>> dispatchDelay;
+        std::optional<std::array<int16_t,2>> seaEntry;
+        unsigned calls=0,eligible=0,timersChanged=0;
+    };
+    std::optional<Trade> trade;
+    struct BuildingTotals {
+        std::array<int32_t,269> total{},staffed{};
+        std::array<int32_t,36> producers{},staffedProducers{};
+        unsigned calls=0;
+    };
+    std::optional<BuildingTotals> buildingTotals;
+    //51CF90 positive service creation uses4EA050 then4E6A70. The
+    //existing cited figure roam service supplies terrain owners/random bytes.
+    std::optional<std::vector<uint16_t>> terrainOwners;
+    std::optional<std::vector<uint8_t>> terrainRandom;
+    std::optional<std::map<uint16_t,std::array<int32_t,13>>> buildingModels;
+    std::optional<std::vector<int8_t>> desirability;
+    unsigned desirabilityCalls=0;
+    //4BA6F0 hook query ranks adjacent roads before checking distance;
+    //its shared10C72A8/AC differs from4BAF40's refresh selection.
+    std::optional<std::map<size_t,OriginalBuildingRoadAccess>> poolHookRoadAccess;
     OriginalBuildingUpdateContext(OriginalBuildingUpdateScope operation,bool isolated)
         :scope(operation),isolateBuildingWrites(isolated){}
 };
@@ -587,6 +622,38 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookPreamble(OriginalBuildi
         ++i->second.hookIndustry->at(0x5c-4);}
     ++c.hookPreambleCalls;return OriginalBuildingUpdateBlocker::None;
 }
+inline std::optional<size_t> originalBuildingAllocateService(OriginalBuildingUpdateContext& c,uint8_t type,uint8_t faction,int16_t x,int16_t y,uint8_t direction){
+    if(!c.figures||c.figures->size()!=2000||!c.figureServices||!c.figureServices->allocationSerial||!c.cropBase||
+        !c.figureCellHeads||c.figureCellHeads->size()!=51984||!c.figureStationary||!c.scenarioFigurePlacementCheck||*c.scenarioFigurePlacementCheck)return std::nullopt;
+    size_t slot=0;for(unsigned attempt=0;attempt<6&&!c.freeFigureSlots.empty();++attempt){const auto candidate=c.freeFigureSlots.front();c.freeFigureSlots.erase(c.freeFigureSlots.begin());
+        if(attempt==5)break;if(candidate&&candidate<2000&&!c.figures->at(candidate).alive){slot=candidate;break;}}
+    if(!slot)return size_t(0);
+    //4C9250 reads84E798+40*type. These group IDs are executable metadata.
+    const int speech=type==28?271:type==39?275:type==40?254:-1;
+    if(speech<0||!c.figureSpeechCounters||!c.figureSpeechCounts)return std::nullopt;
+    const uint32_t divisor=c.figureSpeechCounts->at(unsigned(speech));if(!divisor||divisor>INT32_MAX)return std::nullopt;
+    const int64_t cell=int64_t(*c.cropBase)+x+228LL*y;if(cell<0||cell>=51984)return std::nullopt;
+    //4C9160+17 receives caller faction;represented faction+7A remains
+    //the constructor0. The +15 constructor byte is not freeMovement+14.
+    OriginalFigure f;f.slot=slot;f.type=type;f.alive=1;f.direction=direction;f.progress=20;
+    (void)faction;
+    f.x=f.priorX=f.homeX=f.destinationX=x;f.y=f.priorY=f.homeY=f.destinationY=y;f.cell=uint32_t(cell);
+    f.subX=originalBuildingSignedWord(uint16_t(uint32_t(uint16_t(x))*20));f.subY=originalBuildingSignedWord(uint16_t(uint32_t(uint16_t(y))*20));
+    f.allocationSerial=uint16_t((*c.figureServices->allocationSerial)++);f.allocationPhase=f.allocationPhaseCopy=uint8_t(originalFigureRandomNext(*c.figureServices)&3);
+    auto& counter=c.figureSpeechCounters->at(unsigned(speech));c.figureSpeechChoices[slot]=originalBuildingSignedWord(uint16_t(counter%int32_t(divisor)));
+    counter=originalBuildingAdd32(counter,1);
+    auto& head=c.figureCellHeads->at(size_t(cell));if(!head)head=uint16_t(slot);else{size_t tail=head;std::set<size_t> seen;
+        for(;;){if(tail>=2000||!seen.insert(tail).second)return std::nullopt;auto& prior=c.figures->at(tail);if(prior.cell!=uint32_t(cell))return std::nullopt;
+            if(!prior.next){prior.next=uint16_t(slot);break;}tail=prior.next;}}
+    c.figures->at(slot)=f;c.figureStationary->operator[](slot)=0;c.allocatedFigures.push_back(slot);
+    c.highestFigureSlot=std::max(c.highestFigureSlot,slot);c.highestEverFigureSlot=std::max(c.highestEverFigureSlot,slot);return slot;
+}
+inline bool originalBuildingBeginServiceRoam(OriginalFigure& f,OriginalBuildingUpdateInputs& i,OriginalBuildingUpdateContext& c){
+    if(!c.terrain||!c.terrainOwners||!c.terrainRandom||!c.buildingLinks||!c.activeSide||!c.figureServices)return false;
+    OriginalFigureUpdateContext roam;roam.terrain=*c.terrain;roam.buildingOwners=*c.terrainOwners;roam.randomByte=*c.terrainRandom;
+    roam.buildings=c.buildingLinks;roam.activeSide=c.activeSide;roam.services=c.figureServices;
+    if(!originalFigureBeginRoam(f,roam))return false;c.figureServices=roam.services;i.direction=roam.buildings->at(size_t(f.owner)).roamDirection;return true;
+}
 //53166F reads1032658 after the four saved10AEE* dwords following
 //criminalCount;both gates are serialized,not additional process premises.
 inline bool originalBuildingSavedHookContext(const std::vector<uint8_t>& data,size_t terrain,OriginalBuildingUpdateContext& c){
@@ -595,8 +662,8 @@ inline bool originalBuildingSavedHookContext(const std::vector<uint8_t>& data,si
     c.walkersDisabled=data[terrain+original_save19::buildingDisabled+172]!=0;
     c.buildingHookCountdown=originalBuildingI32(detail::u32(data.data()+terrain+countdown));return true;
 }
-//Per-type+20 targets are individually cited in SAV.md. Successful guarded
-//branches include counter/link writes;allocation branches keep an atomic refusal.
+//Per-type+20 targets are individually cited in SAV.md. Guarded service/Hunter
+//allocation executes;unported positive dispatch retains the named refusal.
 inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c){
     auto& i=s.inputs;const auto type=s.building.type;
     if(i.alive!=1&&i.alive!=3)return OriginalBuildingUpdateBlocker::None;
@@ -633,7 +700,18 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
         if(extra)percent=percent*120/100;
         const int limit=type==211||type==214?(percent>=100?3:percent>=75?6:percent>=50?12:percent>=25?24:32):
             percent>=100?1:percent>=75?3:percent>=50?5:percent>=25?10:15;
-        ++i.spawnCounter;if(i.spawnCounter>limit)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+        ++i.spawnCounter;if(i.spawnCounter>limit){
+            if(type!=72&&type!=124)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+            if(!c.poolHookRoadAccess||!c.poolHookRoadAccess->count(s.building.slot))return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+            const auto& road=c.poolHookRoadAccess->at(s.building.slot);i.spawnCounter=0;
+            const auto slot=originalBuildingAllocateService(c,uint8_t(figureType),i.faction,road.x,road.y,i.direction);
+            if(!slot)return OriginalBuildingUpdateBlocker::BuildingVirtual20;if(!*slot)return OriginalBuildingUpdateBlocker::None;
+            if(i.primaryFigure>0){if(!i.hookIndustry)return OriginalBuildingUpdateBlocker::MissingContext;
+                i.hookIndustry->at(0x6a-4)=uint8_t(*slot);i.hookIndustry->at(0x6b-4)=uint8_t(*slot>>8);}else i.primaryFigure=int16_t(*slot);
+            auto& f=c.figures->at(*slot);f.owner=int16_t(s.building.slot);f.action=6;f.counter=30;
+            i.direction=uint8_t((i.direction+4)&7);f.previousDirection=i.direction;
+            if(!originalBuildingBeginServiceRoam(f,i,c))return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+        }
         return OriginalBuildingUpdateBlocker::None;
     }
     if(type==35||type==43){ //5F1280,+29C=5F14A0
@@ -655,11 +733,50 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
         if(percent<1)return OriginalBuildingUpdateBlocker::None;
         const unsigned threshold=percent>=100?1:percent>=75?4:percent>=50?16:percent>=25?32:64;
         ++i.spawnCounter;if(i.spawnCounter<=threshold)return OriginalBuildingUpdateBlocker::None;
+        i.spawnCounter=0;
+        const auto present=originalBuildingHookFigure(i.primaryFigure,19,s.building.slot,c);if(!present)return OriginalBuildingUpdateBlocker::MissingContext;
+        if(!*present&&s.production&&s.production->secondaryStock>99)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+        if(!s.production||!i.hookIndustry||!c.figures||!c.poolHookRoadAccess||!c.poolHookRoadAccess->count(s.building.slot))return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+        int hunters=percent>=100?3:percent>=75?2:percent>=25?1:0; //4F1520 cap400.
+        hunters=std::min(hunters,(400-int(s.production->secondaryStock))/100);
+        auto& active=i.hookIndustry->at(0x5c-4);
+        if(active>5){active=0;for(const auto& f:*c.figures)if(f.alive==1&&f.type==40&&f.owner==int(s.building.slot))++active;}
+        const auto& road=c.poolHookRoadAccess->at(s.building.slot);
+        while(int(active)<hunters){const auto slot=originalBuildingAllocateService(c,40,i.faction,road.x,road.y,0);if(!slot)return OriginalBuildingUpdateBlocker::MissingContext;if(!*slot)break;
+            auto& f=c.figures->at(*slot);f.owner=int16_t(s.building.slot);f.action=12;f.counter=int16_t((originalFigureRandomNext(*c.figureServices)&31)+20);++active;}
+        return OriginalBuildingUpdateBlocker::None;
+    }
+    if(type==192||type==193){ //4C50E0/4C4B90 ->4C3550 old-byte threshold.
+        if(i.operational<=0)i.roadFailure=2;
+        if(!c.poolRoadSelected||!c.poolRoadSelected->count(s.building.slot)||!c.employmentModel)return OriginalBuildingUpdateBlocker::MissingContext;
+        if(!c.poolRoadSelected->at(s.building.slot))return OriginalBuildingUpdateBlocker::None;
+        if(!c.typeDisabled||!c.unavailableResources)return OriginalBuildingUpdateBlocker::MissingContext;if(*c.typeDisabled)return OriginalBuildingUpdateBlocker::None;
+        if(type==192){if(c.unavailableResources->at(19)||!i.enabled)return OriginalBuildingUpdateBlocker::None;}
+        else{bool all=true;for(unsigned r:{1u,3u,5u,6u,7u})all=all&&c.unavailableResources->at(r)!=0;if(all||!i.enabled)return OriginalBuildingUpdateBlocker::None;}
+        const auto required=c.employmentModel->find(type);if(required==c.employmentModel->end())return OriginalBuildingUpdateBlocker::MissingContext;
+        const int workers=i.laborDisabled?0:required->second,percent=workers>0?int(i.workers)*100/workers:0;
+        if(!percent)return OriginalBuildingUpdateBlocker::None;
+        const unsigned limit=percent>=100?1:percent>=75?4:percent>=50?8:percent>=25?16:32;
+        const unsigned old=i.spawnCounter;++i.spawnCounter;if(old<limit)return OriginalBuildingUpdateBlocker::None;
+        //Positive4C36A0/4C3980 farmer/field allocation requires its registry.
         return OriginalBuildingUpdateBlocker::BuildingVirtual20;
     }
     if(type==53||type==54||type==58||type==59||type==62||type==66||type==67){
         if(!c.walkersDisabled)return OriginalBuildingUpdateBlocker::MissingContext;
         if(*c.walkersDisabled)return OriginalBuildingUpdateBlocker::None;
+        if(type==59){const auto present=originalBuildingHookFigure(i.primaryFigure,23,s.building.slot,c);
+            if(!present)return OriginalBuildingUpdateBlocker::MissingContext;if(*present)return OriginalBuildingUpdateBlocker::None;}
+        if(type==62)return OriginalBuildingUpdateBlocker::None; //541B80 C8(-1)=5408D0 false for empty62.
+        if(type==53){ //556130 validates all3 links before its50-percent gate.
+            if(!i.hookIndustry||!c.employmentModel||!c.employmentModel->count(type))return OriginalBuildingUpdateBlocker::MissingContext;
+            auto first=originalBuildingHookFigure(i.primaryFigure,21,s.building.slot,c);if(!first)return OriginalBuildingUpdateBlocker::MissingContext;
+            for(unsigned offset:{0x6au,0x6cu}){int16_t id=detail::i16(i.hookIndustry->data()+offset-4);
+                const auto live=originalBuildingHookFigure(id,offset==0x6a?22:21,s.building.slot,c);if(!live)return OriginalBuildingUpdateBlocker::MissingContext;
+                i.hookIndustry->at(offset-4)=uint8_t(id);i.hookIndustry->at(offset-3)=uint8_t(uint16_t(id)>>8);}
+            if(i.operational<=0)i.roadFailure=2;
+            const int required=i.laborDisabled?0:c.employmentModel->at(type),percent=required>0?int(i.workers)*100/required:0;
+            if(percent<50)return OriginalBuildingUpdateBlocker::None;
+        }
         //Storage/market/stall dispatches have positive supplier/reservation
         //effects;retain the named refusal until those complete services exist.
         return OriginalBuildingUpdateBlocker::BuildingVirtual20;
@@ -837,17 +954,32 @@ inline std::optional<std::array<uint8_t,22>> originalBuildingSavedEmpireStates(c
     std::array<uint8_t,22> out{};
     std::array<std::array<uint8_t,29>,22> production{};
     std::array<int16_t,22> placeIDs{};
+    OriginalBuildingUpdateContext::Trade trade;
     for(unsigned n=0;n<22;++n){if(!version(15))return std::nullopt;
-        for(const auto& f:empire_grid15_pre){if(!take(f.bytes))return std::nullopt;if(f.receiver_offset==5)out[n]=data[at-f.bytes];
+        auto& partner=trade.partners[n];
+        for(const auto& f:empire_grid15_pre){if(!take(f.bytes))return std::nullopt;const auto* p=data.data()+at-f.bytes;if(f.receiver_offset==5)out[n]=p[0];
+            if(f.receiver_offset==4)partner.alive=p[0];if(f.receiver_offset==6)partner.kind=p[0];
+            if(f.receiver_offset==40)partner.faction=p[0];if(f.receiver_offset==51)partner.sea=p[0];
+            if(f.receiver_offset==44)for(unsigned k=0;k<3;++k)partner.traders[k]=detail::i16(p+2*k);
+            if(f.receiver_offset==74)partner.timer=detail::i16(p);if(f.receiver_offset==76)partner.suspended=detail::i16(p);
+            if(f.receiver_offset==152)for(unsigned k=0;k<36;++k)partner.quotaBonus[k]=p[24*k];
+            if(f.receiver_offset==1016)std::copy_n(p,36,partner.quota.begin());
+            if(f.receiver_offset==1118)std::copy_n(p,4,partner.buys.begin());
+            if(f.receiver_offset==1122)std::copy_n(p,4,partner.sells.begin());
             if(f.receiver_offset==42)placeIDs[n]=detail::i16(data.data()+at-f.bytes);
             if(f.receiver_offset<=0x440&&f.receiver_offset+f.bytes>=0x440+29)std::copy_n(data.begin()+at-f.bytes+(0x440-f.receiver_offset),29,production[n].begin());}
-        for(unsigned k=0;k<22;++k){if(!version(5))return std::nullopt;for(const auto& f:empire_grid_child5_fields)if(!take(f.bytes))return std::nullopt;}
-        for(const auto& f:empire_grid15_post)if(!take(f.bytes))return std::nullopt;}
+        for(unsigned k=0;k<22;++k){if(!version(5))return std::nullopt;for(const auto& f:empire_grid_child5_fields){if(!take(f.bytes))return std::nullopt;
+            if(city&&city->statistics&&int(k)==city->statistics->currentFaction&&f.receiver_offset==116)
+                partner.relationship=originalBuildingI32(detail::u32(data.data()+at-f.bytes));}}
+        for(const auto& f:empire_grid15_post){if(!take(f.bytes))return std::nullopt;
+            if(f.receiver_offset==15052)partner.enabled=originalBuildingI32(detail::u32(data.data()+at-f.bytes));
+            if(f.receiver_offset==15056)partner.blocked=data[at-f.bytes];}}
     if(!take(4))return std::nullopt;
     if(city){if(!city->statistics||city->statistics->currentFaction<0||city->statistics->currentFaction>=22)return std::nullopt;
         const auto id=placeIDs[size_t(city->statistics->currentFaction)];if(id<0||size_t(id)>=places.size())return std::nullopt;
         const auto place=places[size_t(id)];city->empireProduction=std::array<bool,36>{};
-        if(place.alive==1&&place.faction<22)for(auto resource:production[place.faction])if(resource<36)city->empireProduction->at(resource)=true;}
+        if(place.alive==1&&place.faction<22)for(auto resource:production[place.faction])if(resource<36)city->empireProduction->at(resource)=true;
+        city->trade=std::move(trade);}
     return out;
 }
 inline OriginalBuildingUpdateBlocker originalBuildingUnavailableStep(OriginalBuildingUpdateContext& c){
@@ -858,6 +990,189 @@ inline OriginalBuildingUpdateBlocker originalBuildingUnavailableStep(OriginalBui
             else if(type==193){unavailable=true;for(unsigned r:{1u,3u,5u,6u,7u})if(!c.unavailableResources->at(r)&&c.empireProduction->at(r))unavailable=false;}
             else {if(i.output>=36)return OriginalBuildingUpdateBlocker::Employment;unavailable=c.unavailableResources->at(i.output)!=0;}}
         c.buildingUnavailable->emplace(e.first,unavailable);}
+    return OriginalBuildingUpdateBlocker::None;
+}
+//The four adjacent Population7 shorts are serialized by59498E..5949BE;
+//the outer5311DC reader alone cannot establish whether a global is saved.
+inline bool originalBuildingSavedTradeContext(const std::vector<uint8_t>& data,size_t side,OriginalBuildingUpdateContext& c){
+    if(!c.trade||side<12287||side>data.size())return false;const size_t p=side-12287;
+    if(detail::u16(data.data()+p)!=7)return false;
+    for(unsigned n=0;n<4;++n)c.trade->counters[n]=detail::i16(data.data()+p+11091+2*n);
+    return true;
+}
+//5DBCC0:eligibility441690->441640/440470,resource classification
+//443E20/443E50->441590,then the first vacant reciprocal trader slot.
+//Positive creation remains an explicit refusal until its complete constructor
+//and three-figure caravan registration are supplied;nonempty quotas/timers run.
+inline OriginalBuildingUpdateBlocker originalBuildingTradeStep(OriginalBuildingUpdateContext& c){
+    if(!c.trade||!c.statistics||!c.figures||c.figures->size()!=2000||!c.buildings||!c.buildingInputs)
+        return OriginalBuildingUpdateBlocker::Trade;
+    const int faction=c.statistics->currentFaction;if(faction<0||faction>=22)return OriginalBuildingUpdateBlocker::InvalidState;
+    auto& t=*c.trade;t.counters[0]=t.counters[1]=0;
+    for(unsigned n=2;n<4;++n)t.counters[n]=int16_t(std::max(0,int(t.counters[n])-1));
+    t.eligible=0;
+    size_t seaBuildings=0;for(const auto& b:*c.buildings)if(b.second.type==56)++seaBuildings;
+    for(auto& p:t.partners){
+        if(!p.alive||p.kind==5||p.kind==6||(p.kind==0&&p.faction==faction)||!p.enabled||(p.blocked&4)||p.relationship)continue;
+        if(p.sea==1){if(!seaBuildings)continue;if(!t.seaEntry)return OriginalBuildingUpdateBlocker::MissingContext;
+            if(t.seaEntry->at(0)==-1&&t.seaEntry->at(1)==-1)continue;}
+        ++t.eligible;auto& total=t.counters[p.sea==1?0:1];total=originalBuildingSignedWord(uint16_t(uint16_t(total)+1));
+        unsigned resources=0,weight=0;
+        for(unsigned r=1;r<29;++r){if(std::find(p.buys.begin(),p.buys.end(),r)==p.buys.end()&&std::find(p.sells.begin(),p.sells.end(),r)==p.sells.end())continue;
+            unsigned quota=p.quota[r];if(p.quotaBonus[r]&&quota)quota=quota==12?24:36;
+            if(!quota)continue;++resources;weight+=quota>=25?3:quota>=13?2:1;}
+        const unsigned wanted=resources>1?(weight+resources-1)/resources:weight;
+        if(!wanted||p.suspended)continue;
+        bool vacancy=false;for(unsigned k=0;k<std::min(3u,wanted);++k){const int id=p.traders[k];
+            if(id<0||id>=2000)return OriginalBuildingUpdateBlocker::InvalidState;
+            if(!id||!c.figures->at(size_t(id)).alive||c.figures->at(size_t(id)).action==4){vacancy=true;break;}}
+        if(!vacancy)continue;
+        if(p.timer>0){--p.timer;++t.timersChanged;continue;}
+        if(!t.dispatchDelay||!c.statistics->religionBonusEnabled)return OriginalBuildingUpdateBlocker::MissingContext;
+        int32_t delay=t.dispatchDelay->at(p.sea==1?0:1);
+        if(p.faction!=faction&&*c.statistics->religionBonusEnabled){if(!c.statistics->religionBonus)return OriginalBuildingUpdateBlocker::MissingContext;
+            if(*c.statistics->religionBonus==11)delay=delay>=0?delay/2:-int32_t((-(int64_t(delay))+1)/2);}
+        p.timer=originalBuildingSignedWord(uint16_t(delay));
+        if(t.counters[p.sea==1?2:3])continue;
+        const int partnerIndex=int(&p-t.partners.data()); //5DBB00 receives the Grid ordinal.
+        for(const auto& b:*c.buildings)if((b.second.type==56||b.second.type==58)&&c.buildingInputs->at(b.first).model==partnerIndex&&
+            (c.buildingInputs->at(b.first).alive==1||c.buildingInputs->at(b.first).alive==3))return OriginalBuildingUpdateBlocker::Trade;
+    }
+    //4B02A0's562F70 predicate is a literal type switch,not an empty-pool premise.
+    for(const auto& b:*c.buildings){const auto type=b.second.type;
+        if((type>=76&&type<=86)||type==92||type==93||(type>=253&&type<=268))return OriginalBuildingUpdateBlocker::Trade;}
+    ++t.calls;return OriginalBuildingUpdateBlocker::None;
+}
+//4AF230 resets all269 type rows and30 resource rows,then ordered+9C.
+//The resource arrays retain entries30..35;ordinary type arrays reset entirely.
+inline OriginalBuildingUpdateBlocker originalBuildingTotalsStep(OriginalBuildingUpdateContext& c){
+    if(!c.buildingInputs||!c.buildings||!c.figures||!c.employmentModel)return OriginalBuildingUpdateBlocker::MissingContext;
+    if(!c.buildingTotals)return OriginalBuildingUpdateBlocker::MissingContext;auto& totals=*c.buildingTotals;totals.total.fill(0);totals.staffed.fill(0);
+    std::fill_n(totals.producers.begin(),30,0);std::fill_n(totals.staffedProducers.begin(),30,0);
+    for(auto& e:*c.buildingInputs){auto& i=e.second;if(i.alive!=1&&i.alive!=3)continue;
+        const auto found=c.buildings->find(e.first);if(found==c.buildings->end()||found->second.type>=269)return OriginalBuildingUpdateBlocker::InvalidState;
+        const auto type=found->second.type;
+        if(originalBuildingIsHouse(type)){if(!i.house)return OriginalBuildingUpdateBlocker::InvalidState;
+            if(i.houseInUse){++totals.total[type];if(i.residents)++totals.staffed[type];}
+            continue;}
+        if(type==56)return OriginalBuildingUpdateBlocker::UnclosedPhase;
+        ++totals.total[type];
+        if(type==71){++totals.staffed[type];} //+1B4=4F1540 returns100.
+        else {const auto model=c.employmentModel->find(type);if(model==c.employmentModel->end())return OriginalBuildingUpdateBlocker::MissingContext;
+            if(!i.laborDisabled&&model->second>0&&int(i.workers)*100/model->second>0)++totals.staffed[type];}
+        if(type==33||type==35||type==43||type==194||type==196){
+            const unsigned resource=type==194?19:type==196?1:i.output;if(resource>=36)return OriginalBuildingUpdateBlocker::InvalidState;
+            ++totals.producers[resource];if(i.workers>0)++totals.staffedProducers[resource];}
+        if(type==71||type==211){if(!i.hookIndustry)return OriginalBuildingUpdateBlocker::MissingContext;unsigned active=0;
+            for(unsigned off:{0x5du,0x5eu,0x5fu}){auto& v=i.hookIndustry->at(off-4);if(v){--v;++active;}}i.hookIndustry->at(0x5c-4)=uint8_t(active);}
+        if(i.migrant){if(i.migrant<0||size_t(i.migrant)>=c.figures->size())return OriginalBuildingUpdateBlocker::InvalidState;
+            const auto& f=c.figures->at(size_t(i.migrant));if(f.alive!=1||f.delivery!=int(e.first))i.migrant=0;}
+    }
+    ++totals.calls;return OriginalBuildingUpdateBlocker::None;
+}
+//5D1830 multiplies each ALL BUILDINGS column by its selected BUILDING
+//MODS percentage,then44CC50 indexes13*dword. No executable/table IO here.
+inline std::optional<std::map<uint16_t,std::array<int32_t,13>>> originalBuildingModels(const std::string& text,unsigned difficulty){
+    if(difficulty>=5||text.size()>1048576||text.find('\0')!=std::string::npos)return std::nullopt;
+    std::istringstream input(text);std::string line;unsigned section=0,mods=0;std::array<int32_t,13> modifier{};
+    std::map<uint16_t,std::array<int32_t,13>> out;
+    while(std::getline(input,line)){if(!line.empty()&&line.back()=='\r')line.pop_back();
+        if(line=="BUILDING MODS"){section=1;continue;}if(line=="ALL BUILDINGS"){if(mods!=5)return std::nullopt;section=2;continue;}
+        if(line=="HOUSE MODS"){if(section!=2||out.size()!=269)return std::nullopt;return out;}
+        const auto open=line.find("{,");if(!section||open==std::string::npos)continue;
+        std::string fields=line.substr(open+2);std::replace(fields.begin(),fields.end(),',',' ');std::istringstream values(fields);std::array<int32_t,13> row{};
+        for(auto& v:row)if(!(values>>v))return std::nullopt;
+        if(section==1){if(mods==difficulty)modifier=row;if(++mods>5)return std::nullopt;}
+        else{if(out.size()>=269)return std::nullopt;for(unsigned k=0;k<13;++k)row[k]=originalBuildingPercent(row[k],modifier[k]);out.emplace(uint16_t(out.size()),row);}}
+    return std::nullopt;
+}
+//Size1 uses4B0710's y/x perimeter. Size2..6 use44CDE0's generated
+//top from x0,then right,bottom,left,remainder top. Order affects shadows.
+inline std::vector<std::pair<int,int>> originalBuildingInfluenceRing(unsigned size,unsigned radius){
+    std::vector<std::pair<int,int>> out;if(!size||size>6||!radius||radius>10)return out;
+    const int left=-int(radius),right=int(size)+int(radius)-1;int x=0,y=left;
+    if(size==1){for(int yy=left;yy<=right;++yy)for(int xx=left;xx<=right;++xx)if(xx==left||xx==right||yy==left||yy==right)out.emplace_back(xx,yy);return out;}
+    for(;x<right;++x)out.emplace_back(x,y);for(;y<right;++y)out.emplace_back(x,y);
+    for(;x>left;--x)out.emplace_back(x,y);for(;y>left;--y)out.emplace_back(x,y);
+    for(;x<0;++x)out.emplace_back(x,y);return out;
+}
+inline OriginalBuildingUpdateBlocker originalBuildingDesirabilityStep(OriginalBuildingUpdateContext& c){
+    if(!c.buildingModels||!c.terrain||!c.terrainOwners||!c.resourceGrowth||!c.activeSide||!c.cropBase||!c.buildings||!c.buildingInputs)
+        return OriginalBuildingUpdateBlocker::MissingContext;
+    const auto& feature=c.resourceGrowth->surface.feature;auto& sub=c.resourceGrowth->surface.subTile;
+    if(feature.size()!=51984||sub.size()!=51984||c.terrain->size()!=51984||c.terrainOwners->size()!=51984)return OriginalBuildingUpdateBlocker::InvalidState;
+    std::vector<int8_t> grid(51984);
+    const auto influence=[&](int x,int y,unsigned size,int value,int step,int change,int range)->bool{
+        if(!size||size>6||range>10)return false;if(!value)return true;const bool negative=value<0;std::array<int,16> shadows{};
+        for(int radius=1;radius<=range;++radius){const auto ring=originalBuildingInfluenceRing(size,unsigned(radius));for(const auto& offset:ring){
+            const int xx=x+offset.first,yy=y+offset.second;if(xx< -1||yy< -1||xx>int(*c.activeSide)||yy>int(*c.activeSide))continue;
+            const bool clipped=x-radius< -1||y-radius< -1||x+int(size)+radius-1>int(*c.activeSide)||y+int(size)+radius-1>int(*c.activeSide);
+            //44F0DE's clipped branch tests each perimeter coordinate,but
+            //repeatedly writes101C560 (the source origin),without shadows.
+            const int64_t cell=int64_t(*c.cropBase)+228LL*(clipped?y:yy)+(clipped?x:xx);if(cell<0||cell>=51984)return false;const size_t at=size_t(cell);
+            //44ED90 uses x*4/y*4 (+size*2 for size>1) in its sector call.
+            const int sector=originalFigureServiceSector(xx-4*x-(size>1?int(2*size):0),yy-4*y-(size>1?int(2*size):0));
+            if(!clipped&&value<0){if(feature[at]&4){if(sector>=0){if(!shadows[size_t(sector)]||radius<shadows[size_t(sector)])shadows[size_t(sector)]=radius;
+                        if(ring.size()<16&&!(sector&1)){if(shadows[size_t((sector+2)&15)]==1)shadows[size_t((sector+1)&15)]=radius;if(shadows[size_t((sector+14)&15)]==1)shadows[size_t((sector+15)&15)]=radius;}}continue;}
+                if(sector>=0&&shadows[size_t(sector)]&&radius>shadows[size_t(sector)])continue;}
+            grid[at]=int8_t(std::clamp(originalBuildingAdd32(int(grid[at]),value),-100,100));}
+            if(step<=0||radius%step==0){const int next=originalBuildingAdd32(value,change);value=negative?std::min(0,next):std::max(0,next);}}
+        return true;};
+    for(const auto& b:*c.buildings){const auto& i=c.buildingInputs->at(b.first);if((i.alive!=1&&i.alive!=3)||i.parent)continue;
+        const auto model=c.buildingModels->find(b.second.type);if(model==c.buildingModels->end())return OriginalBuildingUpdateBlocker::MissingContext;
+        const auto& m=model->second;
+        if(!m[1]||m[4]<=0)continue;
+        //Market+16C delegates542D10 to the28-row orientation descriptor.
+        //Its last row is(3,6)/(6,3),so these are inclusive bounds.
+        if(b.second.type==59){
+            if(!b.second.imageInputs||!b.second.imageInputs->marketOrientation||*b.second.imageInputs->marketOrientation>1)return OriginalBuildingUpdateBlocker::InvalidState;
+            //44E7F0 consults process8254E4 for nonnegative influence. Until
+            //that input is supplied,positive rectangular influence refuses.
+            if(m[1]>=0)return OriginalBuildingUpdateBlocker::MissingContext;
+            const bool rotated=*b.second.imageInputs->marketOrientation==1;
+            int left=b.second.x,top=b.second.y,right=left+(rotated?6:3),bottom=top+(rotated?3:6),value=m[1],counter=1;
+            std::array<int,16> shadows{};
+            for(int radius=1;radius<=std::min(10,m[4]);++radius){
+                if(value>=0)return OriginalBuildingUpdateBlocker::MissingContext; //8254E4,including sign changes.
+                const int centerX=((left+right)/2)*4,centerY=((top+bottom)/2)*4;
+                for(int y=top-1;y<=bottom+1;++y)for(int x=left-1;x<=right+1;++x){
+                    if(y!=top-1&&y!=bottom+1&&x!=left-1&&x!=right+1)continue;
+                    const int64_t cell=int64_t(*c.cropBase)+228LL*y+x;if(cell<0||cell>=51984)return OriginalBuildingUpdateBlocker::InvalidState;
+                    const size_t at=size_t(cell);const int sector=originalFigureServiceSector(x-centerX,y-centerY);
+                    if(value<0&&sector>=0){if(feature[at]&4){
+                            if(!shadows[size_t(sector)]||radius<shadows[size_t(sector)])shadows[size_t(sector)]=radius;
+                            if(radius==1&&!(sector&1)){if(shadows[size_t((sector+2)&15)]==1)shadows[size_t((sector+1)&15)]=1;if(shadows[size_t((sector+14)&15)]==1)shadows[size_t((sector+15)&15)]=1;}continue;}
+                        if(shadows[size_t(sector)]&&radius>shadows[size_t(sector)])continue;}
+                    grid[at]=int8_t(std::clamp(originalBuildingAdd32(int(grid[at]),value),-100,100));}
+                //44EAED increments its initial1 counter BEFORE comparison;
+                //unlike44ECD0,the rectangle delta is not clamped atzero.
+                if(++counter>=m[2]){value=originalBuildingAdd32(value,m[3]);counter=0;}
+                --left;--top;++right;++bottom;
+            }
+            continue;
+        }
+        if(!influence(b.second.x,b.second.y,b.second.size,m[1],m[2],m[3],std::min(10,m[4])))return OriginalBuildingUpdateBlocker::InvalidState;}
+    const auto rows=originalBuildingResourceRows(*c.activeSide,*c.cropBase);if(!rows)return OriginalBuildingUpdateBlocker::InvalidState;
+    for(unsigned y=0;y<rows->size();++y)for(unsigned n=0;n<rows->at(y).second;++n){const size_t cell=rows->at(y).first+n;const unsigned owner=c.terrainOwners->at(cell);unsigned model=0;
+        if(owner){const auto b=c.buildings->find(owner);if(b==c.buildings->end())return OriginalBuildingUpdateBlocker::InvalidState;
+            if(b->second.type==111||b->second.type==113)model=b->second.type;}
+        if(!model){if(sub[cell]&0x80){if(c.terrain->at(cell)&2)model=2;else{sub[cell]&=0x7f;continue;}}else if(c.terrain->at(cell)&0x20)model=115;
+            else if(c.terrain->at(cell)&0x1000){const int xx=int(cell-*c.cropBase)%228;
+                if(!influence(xx,int(y),1,-2,1,1,2))return OriginalBuildingUpdateBlocker::InvalidState;continue;}else continue;}
+        const auto m=c.buildingModels->find(uint16_t(model));if(m==c.buildingModels->end())return OriginalBuildingUpdateBlocker::MissingContext;
+        if(!influence(int(cell-*c.cropBase)%228,int(y),1,m->second[1],m->second[2],m->second[3],std::min(10,m->second[4])))return OriginalBuildingUpdateBlocker::InvalidState;}
+    c.desirability=std::move(grid);++c.desirabilityCalls;return OriginalBuildingUpdateBlocker::None;
+}
+//4ACD10:single-cell+1F8=4273D0 reads origin;larger footprints
+//take the signed maximum over the size-square,then byte+60 adds10.
+inline OriginalBuildingUpdateBlocker originalBuildingApplyDesirability(OriginalBuildingUpdateContext& c){
+    if(!c.desirability||c.desirability->size()!=51984||!c.buildings||!c.buildingInputs)return OriginalBuildingUpdateBlocker::MissingContext;
+    for(auto& e:*c.buildingInputs){auto& i=e.second;if(i.alive!=1&&i.alive!=3)continue;auto b=c.buildings->find(e.first);
+        if(b==c.buildings->end()||!b->second.imageInputs||!b->second.size||b->second.size>6)return OriginalBuildingUpdateBlocker::InvalidState;
+        const uint32_t origin=b->second.imageInputs->gridIndex;int value=-9999;
+        for(unsigned y=0;y<b->second.size;++y)for(unsigned x=0;x<b->second.size;++x){const uint64_t cell=uint64_t(origin)+228*y+x;if(cell>=51984)return OriginalBuildingUpdateBlocker::InvalidState;
+            value=std::max(value,int(c.desirability->at(size_t(cell))));}
+        i.desirability=int8_t(uint8_t(value+(i.desirabilityBonus?10:0)));}
     return OriginalBuildingUpdateBlocker::None;
 }
 //4AC36A..394 ->591EC0/5925A0. Positive empire transitions remain
@@ -1145,7 +1460,7 @@ inline bool originalBuildingSynchronizePool(OriginalBuildingUpdateContext& c){
     for(const auto& e:*c.buildingInputs){const auto& i=e.second;
         if(c.buildingLinks){const auto found=c.buildingLinks->find(e.first);if(found==c.buildingLinks->end())return false;auto& b=found->second;
             b.alive=i.alive;b.residents=i.residents;b.freeSlots=i.free;b.houseModel=i.model;b.worker=i.migrant;
-            b.workers=i.workers;b.roadAccess=i.available;b.roadDistance=i.distance;b.roadX=i.roadX;b.roadY=i.roadY;
+            b.workers=i.workers;b.roadAccess=i.available;b.roadDistance=i.distance;b.roadX=i.roadX;b.roadY=i.roadY;b.roamDirection=i.direction;
             b.primaryFigure=i.primaryFigure;
             b.suppress=i.suppression;b.storageLaborDisabled=i.laborDisabled;b.category=i.employmentCategory;
             if(i.house){b.laborDisabled=i.house->at(55);b.religion=std::array<uint8_t,4>{i.house->at(9),i.house->at(10),i.house->at(11),i.house->at(12)};
@@ -1318,6 +1633,15 @@ inline void originalBuildingDecayHouseServices(OriginalBuildingUpdateInputs& i){
         auto& v=i.house->at(offset-4);if(v)--v;
     }
 }
+//518D60 ->517330/5173E0. House1 omits runtime padding11;
+//runtime32/34/36/37/38 map to wire49/51/53/54/55 respectively.
+inline void originalBuildingAggregateHouseServices(OriginalBuildingUpdateInputs& i){
+    auto& h=*i.house;const auto get=[&](unsigned wire){return h.at(wire-4);};
+    const unsigned entertainment=get(53);const unsigned band=entertainment>89?5:entertainment>69?4:entertainment>49?3:entertainment>29?2:entertainment>0?1:0;
+    constexpr unsigned entertainmentValue[]={0,10,20,30,35,40};
+    h.at(55-4)=uint8_t((get(51)?15:get(49)?5:0)+(get(44)?30:0)+(get(41)?15:0)+entertainmentValue[band]);
+    h.at(54-4)=uint8_t(33u*(unsigned(get(43)!=0)+unsigned(get(42)!=0)+unsigned(get(45)!=0)));
+}
 //0x51E4A0 -> C8(-4)=4C11F0 ->4C0F60.0x4C2600 gives
 // hemp125/63/0;0x4C2260 gives millet157/79/0 except final harvest
 // month10(table0x7AE1AC). Addition wraps16 BEFORE signed10000 clamp.
@@ -1428,6 +1752,10 @@ inline OriginalBuildingUpdateResult originalBuildingStateAfterUpdates(
             else if(phase==25)blocker=originalBuildingEmploymentStep(c);
             else if(phase==27)blocker=originalBuildingIrrigationStep(c);
             else if(phase==28)blocker=originalBuildingWaterStep(c);
+            else if(phase==32)blocker=originalBuildingTradeStep(c);
+            else if(phase==33)blocker=originalBuildingTotalsStep(c);
+            else if(phase==37)blocker=originalBuildingDesirabilityStep(c);
+            else if(phase==38)blocker=originalBuildingApplyDesirability(c);
             else if(phase==39&&house)blocker=OriginalBuildingUpdateBlocker::HousingEvolution;
             else if(phase==6)blocker=originalBuildingLaborCountdown(c);
             else if(phase==7)blocker=originalBuildingNetworkStep(c);
@@ -1448,7 +1776,7 @@ inline OriginalBuildingUpdateResult originalBuildingStateAfterUpdates(
             else if(phase==16)blocker=originalBuildingStorageStep(c);
             else if(phase==17)blocker=originalBuildingFoodStep(c);
             else if(phase==18)blocker=originalBuildingReligionStep(c);
-            else if(phase==36&&house)blocker=OriginalBuildingUpdateBlocker::HousingEvolution;
+            else if(phase==36&&house){localWrites=true;if(s.inputs.houseInUse&&(s.inputs.alive==1||s.inputs.alive==3))originalBuildingAggregateHouseServices(s.inputs);}
             else if(phase==1)blocker=originalBuildingAccountingStep(c);
             else if(phase==3||phase==30)c.citySignal=1;
             else if(phase==4){if(!c.treasury)blocker=OriginalBuildingUpdateBlocker::CityPhase;else if(*c.treasury>=0)c.cityCountA=c.cityCountB=0;}

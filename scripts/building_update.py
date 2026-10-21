@@ -14,7 +14,7 @@ def main():
     parser.add_argument('--mode', choices=['release', 'undefined'], default='release')
     parser.add_argument('--build-dir', type=Path)
     parser.add_argument('--bite', action='store_true')
-    parser.add_argument('--bite-kind', choices=['crop', 'industry', 'road', 'accounting', 'religion', 'migration', 'emigration', 'overflow', 'population', 'employment', 'market', 'stall', 'load', 'resource', 'hook', 'hunter'], default='crop')
+    parser.add_argument('--bite-kind', choices=['crop', 'industry', 'road', 'accounting', 'religion', 'migration', 'emigration', 'overflow', 'population', 'employment', 'market', 'stall', 'load', 'resource', 'hook', 'hunter', 'trade', 'totals', 'aggregate', 'model', 'rectangle', 'service'], default='crop')
     args = parser.parse_args()
     if args.build_dir and not args.build_dir.is_absolute():
         parser.error('absolute build directory required')
@@ -49,6 +49,12 @@ def main():
             'resource': ('value=next<old?255:next', 'value=next<old?254:next', 'resource unsigned byte overflow saturates at255 and grows owned cells'),
             'hook': ('if(i.spawnCounter>limit)', 'if(i.spawnCounter>=limit)', 'Well exact counter boundary advances without premature allocation'),
             'hunter': ('if(i.spawnCounter<=threshold)', 'if(i.spawnCounter<threshold)', 'Hunter hook counter1 closes before its strict greater-than1 allocation branch'),
+            'trade': ('if(p.timer>0){--p.timer;', 'if(p.timer>0){++p.timer;', 'active saved trade quota decrements dispatch timer after resetting and saturating four counters'),
+            'totals': ('f.delivery!=int(e.first)', 'f.home!=int(e.first)', 'totals preserves high resource rows and coverage and validates figure delivery link rather than home'),
+            'aggregate': ('h.at(55-4)=uint8_t(', 'h.at(54-4)=uint8_t(', 'House1 aggregation writes literal service55 religion54 and preserves entertainment53'),
+            'model': ('originalBuildingPercent(row[k],modifier[k])', 'originalBuildingPercent(row[k],100)', 'building model difficulty multiplies thirteen independent columns with signed truncation'),
+            'rectangle': ('if(++counter>=m[2])', 'if(counter++>=m[2])', 'Market rectangle uses inclusive descriptor bounds and initial counter1 delta schedule'),
+            'service': ('f.action=6;f.counter=30;', 'f.action=6;f.counter=29;', 'Well positive allocation publishes reciprocal identity action and delay after strict counter gate'),
         }
         before, after, assertion = mutations[args.bite_kind]
         assert header.count(before) == 1

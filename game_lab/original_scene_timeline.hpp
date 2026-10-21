@@ -2,6 +2,7 @@
 #include "original_building_scene.hpp"
 #include "original_building_update.hpp"
 #include "original_city_clocks.hpp"
+#include "original_post_figure_pass.hpp"
 
 namespace game_lab {
 // Same owned-exe hash as original_city_clocks.hpp; all VAs map to file VA-400000.
@@ -17,6 +18,13 @@ struct OriginalCombinedProcessInputs {
     std::optional<std::vector<uint8_t>> eventRecordModes; //C75090+10, stride268
     std::optional<uint8_t> managerGate8; //425250; only needed for mode5
     std::optional<uint32_t> wildlifeCounter,wildlifePeriod; //12A6E78/859DA0
+    std::optional<uint8_t> wildlifePause,wildlifeMode; //10DE0D0/10DE045
+    std::optional<std::array<int32_t,11>> serviceCoverage; //C82D58, preserved columns4..6
+    std::optional<bool> shortageNotice,unemploymentNotice,religionBonusEnabled;
+    std::optional<int32_t> religionPreviousRating,religionSelected,migrantSpacing;
+    std::optional<bool> scenarioFigurePlacementCheck;
+    std::optional<uint32_t> highestEverBuildingSlot;
+    std::optional<std::array<int32_t,6>> producerTail,staffedProducerTail; //phase33 preserves resource30..35
 };
 struct OriginalCombinedBuilding {
     OriginalBuildingUpdateState state;
@@ -26,17 +34,20 @@ struct OriginalCombinedState {
     OriginalFigureUpdateContext figures;
     std::map<size_t,OriginalCombinedBuilding> buildings;
     OriginalCombinedProcessInputs process;
+    std::optional<OriginalBuildingUpdateContext> buildingContext;
+    std::vector<OriginalPostFigureRegistryObject> postFigureRegistry;
+    std::optional<OriginalPostFigurePassResult> postFigureResult;
     uint32_t phase=0;
 };
 // Checks the ENTIRE phase, including work outside the per-building API.
 // 0/49 have no case; empty table cases target4AC4C8.50 tails into4AC650.
 inline std::string originalCombinedPhaseBlocker(uint32_t phase){
     switch(phase){
-    case 0:case 2:case 14:case 15:case 19:case 26:case 34:case 41:case 42:case 46:case 49:return {};
+    case 0:case 1:case 2:case 3:case 4:case 5:case 6:case 7:case 8:case 9:case 10:case 11:
+    case 12:case 13:case 14:case 15:case 16:case 17:case 18:case 19:case 20:
+    case 21:case 22:case 23:case 24:case 25:case 26:case 27:case 28:case 29:case 30:case 31:
+    case 32:case 33:case 34:case 35:case 36:case 37:case 38:case 39:case 41:case 42:case 46:case 49:return {};
     case 48:return {}; //closed common byte52 countdown; no figure-link consumer
-    case 35:return "shared_house_service_bridge_517b40_required";
-    case 1:return "city_accounting_4f1560_4ac2fa";
-    case 20:return "terrain_resource_growth_4bc440_after_51e4a0";
     case 50:return "monthly_city_4ac650";
     default:return "unported_city_phase_"+std::to_string(phase)+"_4ac2b0";
     }
@@ -68,6 +79,89 @@ inline std::optional<OriginalCombinedState> originalCombinedSavedState(const Ori
     }
     return out;
 }
+// Complete saved city services are shared, not independently replayed for each
+// record. Archive/model inputs are supplied by the caller; no file/environment IO.
+inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,const OriginalBuildingProfile& profile,
+    const OriginalFigureProfile& figures,const std::vector<uint8_t>& payload,size_t terrain,size_t side,
+    const OriginalSavedGround& ground,const OriginalBuildingScene& scene,const SG3Archive& general,
+    const SG3Archive& terrainArchive,const std::string& buildingModels,
+    std::optional<std::array<uint32_t,359>> speechCounts=std::nullopt){
+    OriginalBuildingUpdateContext c(OriginalBuildingUpdateScope::AdmittedTicks,true);
+    if(!originalBuildingSavedCityContext(payload,side,c)||!originalBuildingSavedNoticeCountdown(payload,terrain,c)||
+        !originalBuildingSavedHookContext(payload,terrain,c)||!ground.valid()||!scene.accepted)return false;
+    c.phase=city.phase;c.monthPart=detail::u32(payload.data()+terrain+original_save19::c82ef0);
+    c.cycle=detail::u32(payload.data()+terrain+original_save19::c82ef4);c.month=detail::u32(payload.data()+side-176);
+    c.formations=originalBuildingSavedFormations(payload,terrain);c.figureModels=city.figures.models;
+    c.goodsRecords=originalBuildingSavedGoodsRecords(payload,figures.end);
+    c.houseTaxModel=originalFigureHouseModelColumn(buildingModels,18);c.houseModelCapacity=originalFigureHouseCapacities(buildingModels);
+    c.houses=originalBuildingHouseCapacityInputs(payload,profile);c.employmentModel=parseOriginalBuildingEmployment(buildingModels);
+    c.religion=originalBuildingSavedReligion(payload,side);
+    const auto empire=originalBuildingSavedEmpireStates(payload,figures.end,&c);
+    if(!c.formations||!c.goodsRecords||!c.houseTaxModel||!c.houseModelCapacity||!c.houses||!c.employmentModel||!c.religion||!empire)return false;
+    c.figureSpeechCounters=originalBuildingSavedSpeechCounters(payload,terrain);
+    c.figureSpeechCounts=speechCounts;
+    const auto difficulty=originalFigureSavedDifficulty(payload,side);if(!difficulty)return false;
+    c.buildingModels=originalBuildingModels(buildingModels,*difficulty);if(!c.buildingModels)return false;
+    if(!originalBuildingSavedTradeContext(payload,side,c))return false;
+    c.terrainOwners=ground.owner;c.terrainRandom=ground.state.randomByte;
+    c.statistics->empireState=*empire;c.statistics->religionBonusEnabled=city.process.religionBonusEnabled;
+    c.religion->previousRating=city.process.religionPreviousRating;c.religion->selected=city.process.religionSelected;
+    c.cityEmployment->shortageNotice=city.process.shortageNotice;c.cityEmployment->unemploymentNotice=city.process.unemploymentNotice;
+    c.serviceCoverage=city.process.serviceCoverage;if(city.process.migrantSpacing)c.labor->spacing=*city.process.migrantSpacing;
+    if(city.process.producerTail&&city.process.staffedProducerTail){c.buildingTotals.emplace();
+        std::copy(city.process.producerTail->begin(),city.process.producerTail->end(),c.buildingTotals->producers.begin()+30);
+        std::copy(city.process.staffedProducerTail->begin(),city.process.staffedProducerTail->end(),c.buildingTotals->staffedProducers.begin()+30);}
+    c.scenarioFigurePlacementCheck=city.process.scenarioFigurePlacementCheck;
+    c.labor->populationNotices=std::array<bool,10>{};
+    for(unsigned n=0;n<10;++n)c.labor->populationNotices->at(n)=payload.at(terrain+1363680+n)!=0; //53153A
+    c.buildingInputs.emplace();c.buildings.emplace();c.productionInputs.emplace();
+    c.poolRoadAccess.emplace();c.poolRoadReachable.emplace();c.poolRoadSelected.emplace();c.storageRoadStatus.emplace();
+    c.highestBuildingSlot=0;c.buildingRegistrySize=4000;c.highestEverBuildingSlot=city.process.highestEverBuildingSlot;
+    //Highest-ever is not restored; phase10 requires its explicit caller value.
+    c.cropBase=city.figures.cropBase;c.activeSide=city.figures.activeSide;c.terrain=city.figures.terrain;
+    c.movement=city.figures.passability;c.roadNetworks=city.figures.roadNetworks;
+    c.roadRefreshOrdinaryExit=false;
+    std::optional<OriginalBuildingRoadInputs> roads;
+    if(c.movement&&c.cropBase&&c.activeSide&&c.roadEndpoints){
+        const int entry=int(*c.cropBase)+c.roadEndpoints->at(0)+228*c.roadEndpoints->at(1);
+        const auto distance=entry>=0?originalBuildingRoadDistances(c.movement->cells,uint32_t(entry)):std::nullopt;
+        const auto ranked=originalBuildingRankedRoadNetworks(c.roadNetworks);
+        if(distance&&ranked){roads.emplace();roads->cropBase=*c.cropBase;roads->terrain=scene.rebuiltMovementTerrain;
+            roads->distance=*distance;roads->owners=ground.owner;roads->networks=c.roadNetworks;roads->rankedNetworks=*ranked;roads->ownerTypes=profile.slotTypes;
+            const int exit=int(*c.cropBase)+c.roadEndpoints->at(2)+228*c.roadEndpoints->at(3);
+            c.roadRefreshOrdinaryExit=exit>=0&&exit<51984&&distance->at(size_t(exit))!=0;}}
+    for(auto& e:city.buildings){auto& b=e.second;const auto& f=b.state.building;
+        c.buildingInputs->emplace(e.first,b.state.inputs);c.buildings->emplace(e.first,f);
+        if(b.state.production)c.productionInputs->emplace(e.first,*b.state.production);
+        *c.highestBuildingSlot=std::max(*c.highestBuildingSlot,uint32_t(e.first));
+        b.context.unavailable=originalBuildingSavedUnavailable(payload,side,b.state.inputs.output);
+        const auto required=c.employmentModel->find(f.type);if(required!=c.employmentModel->end())b.context.requiredWorkers=required->second;
+        if(b.state.production)b.context.festivalProductionBoost=originalBuildingSavedProductionBoost(payload,f.type);
+        if(roads){const auto access=f.type==59||f.type==62||f.type==66||f.type==67?
+                originalBuildingMultipartRoadAccess(f,profile,*roads,b.state.inputs.parentSlot):
+                originalBuildingIsHouse(f.type)?originalBuildingHouseRoadAccess(f,*roads):originalBuildingRoadAccess(f,*roads);
+            if(!access)return false;c.poolRoadAccess->emplace(e.first,*access);c.poolRoadReachable->emplace(e.first,access->distance!=0);
+            if(originalBuildingIsHouse(f.type)&&!originalBuildingHouseRoadAccess(f,*roads))c.roadRefreshOrdinaryExit=false;
+            const auto adjacent=originalBuildingHouseRoadAccess(f,*roads,false);
+            if(adjacent)c.poolRoadSelected->emplace(e.first,adjacent->selected);
+            if(f.type==53||f.type==54||f.type==58){if(!adjacent)return false;uint8_t status=adjacent->selected?1:0;
+                if(!status&&f.type==53){auto wider=f;wider.size=5;const auto fallback=originalBuildingHouseRoadAccess(wider,*roads,false);if(!fallback)return false;if(fallback->selected)status=2;}
+                c.storageRoadStatus->emplace(e.first,status);}}}
+    c.resourceGrowth.emplace();auto& growth=*c.resourceGrowth;growth.surface=ground.state;growth.surface.image=scene.surface.image;
+    growth.surface.subTile=scene.surface.subTile;growth.owners=ground.owner;
+    for(uint16_t code:{uint16_t(0x620),uint16_t(0x624),uint16_t(0x625),uint16_t(0x627)}){size_t index=0;
+        if(!resolveGroundTileCode(terrainArchive,code,index))return false;growth.imageBases.emplace(code,(3u<<14)|uint32_t(index));}
+    if(general.imageIndex.size()<=0x35||general.imageIndex[0x35]<201)return false;
+    c.irrigation.emplace();c.irrigation->image=scene.surface.image;c.irrigation->subTile=scene.surface.subTile;
+    c.irrigation->owners=ground.owner;c.irrigation->ownerTypes=profile.slotTypes;c.irrigation->baseImage=(2u<<14)|uint32_t(general.imageIndex[0x35]-201);
+    for(const auto& e:city.buildings)if(e.second.state.building.type==57)return false; //524360 registry needs its source descriptor
+    //The post-pass registry is the complete building slot vector (413B40(1)).
+    //Only non-whitelisted types can ignore missing live/word inputs; the
+    //post-pass adapter below refuses a whitelisted slot absent from this pool.
+    city.postFigureRegistry.resize(profile.parsedRecords);
+    for(size_t n=0;n<profile.parsedRecords;++n){auto& o=city.postFigureRegistry[n];o.type0x14=int16_t(profile.slotTypes.at(n));}
+    city.buildingContext=std::move(c);return true;
+}
 // Figure links are canonical for the fields figures can write. Bridge their
 // overlapping common5/data1 fields before another building operation or publish.
 // Wire positions are427430/517410/51C3A0, shared with the existing link readers.
@@ -79,25 +173,133 @@ inline std::string originalCombinedSyncBuildings(OriginalCombinedState& city){
         if(link.type>=2&&link.type<18){s.inputs.model=link.houseModel;s.inputs.residents=link.residents;s.inputs.free=link.freeSlots;}
         s.inputs.distance=link.roadDistance;s.inputs.roadX=link.roadX;s.inputs.roadY=link.roadY;
         s.inputs.migrant=link.worker;s.inputs.workers=link.workers;s.inputs.upgrade=link.upgrade;
+        s.inputs.primaryFigure=link.primaryFigure;
+        s.inputs.houseInUse=link.accepting;s.inputs.stock=link.industryInput;s.inputs.direction=link.roamDirection;
+        s.inputs.operational=link.serviceCount;s.inputs.enabled=link.destinationEnabled;
         s.inputs.output=link.outputResource;s.inputs.available=link.roadAccess;s.inputs.network=link.category;
+        if(link.type<2||link.type>=18)s.inputs.model=link.traderFaction;
         if(s.building.wellImageInputs)s.building.wellImageInputs->byte6f=link.upgrade;
         if(s.building.animationInputs)s.building.animationInputs->workers=link.workers;
-        if(s.building.imageInputs){if(link.type>=2&&link.type<18)s.building.imageInputs->word20=link.residents;
+        if(s.building.imageInputs){if(link.type>=2&&link.type<18){s.building.imageInputs->word20=link.residents;
+                if(link.laborDisabled)s.building.imageInputs->houseByte3c=*link.laborDisabled;}
             if(link.storage)s.building.imageInputs->compartments=link.storage;}
         if(s.production){s.production->workers=link.workers;s.production->primaryStock=link.industryInput;
             s.production->secondaryStock=link.hunterReturnGoods;s.production->operational=link.serviceCount;
             s.production->enabled=link.destinationEnabled;}
         if(s.inputs.industry&&link.cropDelivery)originalBuildingSetCropFlags(s.inputs,link.cropDelivery->flags);
+        if(s.inputs.hookIndustry){auto& data=*s.inputs.hookIndustry;
+            if(link.delegatedCount)data.at(0x5c-4)=*link.delegatedCount;
+            if(link.type==54||link.type==58||link.type==59||link.type==71||link.type==124)
+                for(unsigned n=0;n<2;++n){const uint16_t id=uint16_t(link.secondaryFigures[n]);data.at(0x6a-4+2*n)=uint8_t(id);data.at(0x6b-4+2*n)=uint8_t(id>>8);}}
         if(!s.inputs.house)continue;
         if(!link.religion||!link.entertainment||!link.herbalist||!link.waterService||!link.houseGoods||!link.foodQuality)
             return "shared_house_service_fields_required";
         auto& h=*s.inputs.house;
+        if(link.laborDisabled)h.at(55)=*link.laborDisabled;
         for(unsigned n=0;n<4;++n)h.at(13-4+n)=link.religion->at(n);
         for(unsigned n=0;n<12;++n){const uint16_t v=uint16_t(link.houseGoods->at(n));h.at(17-4+2*n)=uint8_t(v);h.at(18-4+2*n)=uint8_t(v>>8);}
         for(unsigned n=0;n<3;++n)h.at((n==2?45:42+n)-4)=link.entertainment->at(n);
         h.at(44-4)=*link.herbalist;h.at(49-4)=link.waterService->at(0);h.at(51-4)=link.waterService->at(1);
         h.at(53-4)=*link.foodQuality;
     }
+    return {};
+}
+inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city){
+    const auto blocker=originalCombinedPhaseBlocker(city.phase);if(!blocker.empty())return blocker;
+    //Empty cases are dispatch targets4AC4C8;9 calls40FC20, a RET.
+    const bool empty=city.phase==0||city.phase==2||city.phase==9||city.phase==14||city.phase==15||city.phase==19||
+        city.phase==26||city.phase==34||city.phase==41||city.phase==42||city.phase==46||city.phase==49;
+    if(!city.buildingContext){if(empty)return {};return "combined_shared_building_context_required";}
+    auto& c=*city.buildingContext;auto& f=city.figures;
+    const auto sync=originalCombinedSyncBuildings(city);if(!sync.empty())return sync;
+    c.phase=city.phase;c.figureServices=f.services;c.buildingLinks=f.buildings;c.goods=f.goods;c.figures.emplace();c.figureStationary.emplace();
+    c.figureOrdinals.clear(); //54CC60 writes only when called, not on intervening phases
+    for(const auto& e:f.figures){if(e.first!=c.figures->size())return "combined_ordered_figure_pool_required";
+        c.figures->push_back(e.second);c.figureStationary->operator[](e.first)=e.second.formationStationary;}
+    c.figureModels=f.models;c.figureCellHeads=f.cellHeads;c.freeFigureSlots=f.freeSlots;c.highestFigureSlot=f.highestLiveSlot;
+    c.crtRandom=f.crtRandom;c.crtRandomCalls=f.crtRandomCalls;c.soundEnabled=f.soundEffectsEnabled;
+    c.terrain=f.terrain;c.movement=f.passability;
+    if(f.services&&f.services->population){c.populationTotal=f.services->population->total;c.populationPeak=f.services->population->peak;}
+    for(const auto& e:city.buildings){c.buildingInputs->at(e.first)=e.second.state.inputs;c.buildings->at(e.first)=e.second.state.building;
+        if(e.second.state.production)c.productionInputs->at(e.first)=*e.second.state.production;}
+    OriginalBuildingUpdateBlocker result=OriginalBuildingUpdateBlocker::None;
+    switch(city.phase){
+    case 1:result=originalBuildingAccountingStep(c);break;
+    case 3:case 30:c.citySignal=1;break; //4819F0/4AC42D store13F8E78=1
+    case 4:if(!c.treasury)result=OriginalBuildingUpdateBlocker::CityPhase;else if(*c.treasury>=0)c.cityCountA=c.cityCountB=0;
+        else return "negative_treasury_city_counters_required";break;
+    case 5:case 29:result=originalBuildingFormationPhase(c,city.phase==5);break;
+    case 6:result=originalBuildingLaborCountdown(c);break;
+    case 7:result=originalBuildingNetworkStep(c);break;
+    case 8:result=originalBuildingGoodsPoolStep(c);break;
+    case 10:if(!c.highestEverBuildingSlot||!c.goodsRecords||c.goodsRecords->empty())result=OriginalBuildingUpdateBlocker::CityPhase;
+        else{uint32_t highest=0;for(const auto& e:*c.buildingInputs)if(e.second.alive)highest=uint32_t(e.first);
+            c.highestBuildingSlot=highest;*c.highestEverBuildingSlot=std::max(*c.highestEverBuildingSlot,highest);c.goodsRegistryLast=uint32_t(c.goodsRecords->size()-1);}break;
+    case 11:if(!c.populationTotal||!c.populationPeak)result=OriginalBuildingUpdateBlocker::CityPhase;else *c.populationPeak=std::max(*c.populationPeak,*c.populationTotal);break;
+    case 12:result=originalBuildingAvailabilityStep(c);break;
+    case 13:result=originalBuildingStatisticsStep(c);break;
+    case 16:result=originalBuildingStorageStep(c);break;
+    case 17:result=originalBuildingFoodStep(c);break;
+    case 18:result=originalBuildingReligionStep(c);break;
+    case 21:if(!c.roadRefreshOrdinaryExit||!*c.roadRefreshOrdinaryExit)result=OriginalBuildingUpdateBlocker::RoadRefresh;
+        else result=originalBuildingPoolRoadStep(c);break;
+    case 22:if(city.buildings.empty()){if(!c.houses||!c.houses->empty())result=OriginalBuildingUpdateBlocker::HousingCapacity;else c.cityHouseCapacity=c.cityHouseFree=0;}
+        else result=originalBuildingHouseCapacityStep(city.buildings.begin()->second.state,c);break;
+    case 23:if(!city.process.migrantSpacing)return "migrant_spacing_d62418_required";result=originalBuildingCityLaborStep(c);break;
+    case 24:result=originalBuildingExcessResidents(c);break;
+    case 25:result=originalBuildingEmploymentStep(c);break;
+    case 27:result=originalBuildingIrrigationStep(c);break;
+    case 28:result=originalBuildingWaterStep(c);break;
+    case 31:result=originalBuildingHookPreamble(c);break;
+    case 32:result=originalBuildingTradeStep(c);break;
+    case 33:result=originalBuildingTotalsStep(c);break;
+    case 37:result=originalBuildingDesirabilityStep(c);break;
+    case 38:result=originalBuildingApplyDesirability(c);break;
+    default:break;
+    }
+    if(result!=OriginalBuildingUpdateBlocker::None)return originalBuildingUpdateBlockerName(result);
+    //Local writes run once, in ascending slot order. Phase20's resource scan
+    //follows ALL production records (4AC3BF then4AC3C4), never one scan per record.
+    if(city.phase==20||city.phase==31||city.phase==35||city.phase==36||city.phase==39||city.phase==48)for(auto& e:city.buildings){auto& b=e.second;
+        b.state.inputs=c.buildingInputs->at(e.first);
+        if(city.phase==20){c.unavailable=b.context.unavailable;c.requiredWorkers=b.context.requiredWorkers;
+            c.festivalProductionBoost=b.context.festivalProductionBoost;c.terrainFlags=b.context.terrainFlags;c.typeDisabled=b.context.typeDisabled;
+            result=originalBuildingProductionStep(b.state,c);}
+        else if(city.phase==31){c.typeDisabled=b.context.typeDisabled;c.terrainFlags=b.context.terrainFlags;
+            result=originalBuildingHookStep(b.state,c);}
+        else if(city.phase==35){if(originalBuildingIsHouse(b.state.building.type)&&(b.state.inputs.alive==1||b.state.inputs.alive==3))originalBuildingDecayHouseServices(b.state.inputs);}
+        else {auto local=b.context;local.phase=city.phase;const auto step=originalBuildingStateAfterUpdates(b.state,local,1);
+            result=step.blocker;if(step.state)b.state=*step.state;}
+        if(result!=OriginalBuildingUpdateBlocker::None)return originalBuildingUpdateBlockerName(result);
+        c.buildingInputs->at(e.first)=b.state.inputs;if(b.state.production)c.productionInputs->at(e.first)=*b.state.production;
+    }
+    if(city.phase==20){result=originalBuildingResourceGrowthStep(c);if(result!=OriginalBuildingUpdateBlocker::None)return originalBuildingUpdateBlockerName(result);}
+    if(!originalBuildingSynchronizePool(c))return "combined_building_pool_bridge_required";
+    //427DE6/427D93: road network is common wire20; employment category
+    //wire64 is a distinct field. Figures' category name refers to wire20.
+    if(c.buildingLinks)for(const auto& e:*c.buildingInputs)c.buildingLinks->at(e.first).category=e.second.network;
+    if(c.buildingLinks)for(const auto& e:*c.buildingInputs){auto& link=c.buildingLinks->at(e.first);
+        const auto& i=e.second;link.serviceCount=i.operational;link.destinationEnabled=i.enabled;
+        link.roamDirection=i.direction;link.accepting=i.houseInUse;link.industryInput=i.stock;
+        if(i.industry&&link.cropDelivery)link.cropDelivery->flags=originalBuildingCropFlags(i);
+        if(i.hookIndustry){const auto& data=*i.hookIndustry;
+            if(link.delegatedCount)link.delegatedCount=data.at(0x5c-4);
+            if(link.type==54||link.type==58||link.type==59||link.type==71||link.type==124)
+                for(unsigned n=0;n<2;++n)link.secondaryFigures[n]=detail::i16(data.data()+0x6a-4+2*n);}}
+    f.services=c.figureServices;f.buildings=c.buildingLinks;f.goods=c.goods;f.crtRandom=c.crtRandom;f.crtRandomCalls=c.crtRandomCalls;
+    f.roadNetworks=c.roadNetworks;
+    if(f.hunterLinks)for(auto& e:*f.hunterLinks){const auto link=f.buildings->find(e.first);if(link==f.buildings->end())return "combined_hunter_link_required";
+        e.second.alive=link->second.alive;e.second.enabled=link->second.destinationEnabled;e.second.workers=link->second.workers;}
+    f.freeSlots=c.freeFigureSlots;f.highestLiveSlot=c.highestFigureSlot;f.cellHeads=*c.figureCellHeads;
+    for(const auto& value:*c.figures)f.figures.at(value.slot)=value;
+    for(const auto& e:c.figureOrdinals)f.figures.at(e.first).formationOrdinal=e.second;
+    for(size_t slot:c.allocatedFigures)f.allocatedSlots.insert(slot);
+    for(auto& e:city.buildings){auto& b=e.second;b.state.inputs=c.buildingInputs->at(e.first);
+        if(b.state.production)b.state.production=c.productionInputs->at(e.first);
+        if(b.state.building.imageInputs&&b.state.inputs.house){b.state.building.imageInputs->word20=b.state.inputs.residents;
+            b.state.building.imageInputs->houseByte3c=b.state.inputs.house->at(55);}
+        b.context.phase=city.phase+1;}
+    city.process.randomHistory=f.services->randomHistory;
     return {};
 }
 // 5371A0 prefix, then exactly one scheduler phase. The only accepted event
@@ -123,22 +325,7 @@ inline std::string originalCombinedBeforeFigures(OriginalCombinedState& city,std
     //to4AC2E4 without the two later, effectful scheduler prechecks.
     if(!p.schedulerGate16||*p.schedulerGate16)return "scheduler_precheck_4fae50_55b540_55cee0";
     if(city.phase>50)return "invalid_city_phase";
-    const auto blocker=originalCombinedPhaseBlocker(city.phase);if(!blocker.empty())return blocker;
-    for(auto& e:city.buildings){auto& b=e.second;
-        if(e.first!=b.state.building.slot||b.context.scope!=OriginalBuildingUpdateScope::AdmittedTicks)
-            return "combined_building_pool_inputs";
-        if(!city.figures.buildings||!city.figures.buildings->count(e.first))return "combined_building_link_required";
-        const auto& link=city.figures.buildings->at(e.first);
-        if(link.type!=b.state.building.type)return "shared_building_type_bridge_required";
-        b.state.inputs.alive=link.alive;
-        // The accepted phases read no figure-written fields. The per-record
-        // public API is isolated only for this single, ordered operation.
-        b.context.phase=city.phase;
-        const auto result=originalBuildingStateAfterUpdates(b.state,b.context,1);
-        if(result.blocker!=OriginalBuildingUpdateBlocker::None||!result.state||!result.context)
-            return originalBuildingUpdateBlockerName(result.blocker);
-        b.state=*result.state;b.context=*result.context;
-    }
+    const auto blocker=originalCombinedBuildingPhase(city);if(!blocker.empty())return blocker;
     ++city.phase; //50 was refused before4AC650; no invented wrap/month writes.
     if(city.figures.goods)city.figures.goods->savedPhase=city.phase;
     order.push_back(0x466e90);
@@ -154,11 +341,20 @@ inline std::string originalCombinedBeforeFigures(OriginalCombinedState& city,std
 inline std::string originalCombinedAfterFigures(OriginalCombinedState& city,std::vector<uint32_t>& order){
     auto& p=city.process;p.randomHistory=city.figures.services->randomHistory;
     order.push_back(0x564b50);
-    if(!p.wildlifeCounter||!p.wildlifePeriod)return "wildlife_564b50_counter_period_required";
-    const uint32_t next=*p.wildlifeCounter+1u;*p.wildlifeCounter=next;
-    //564B5C/63 uses signed JLE, and stores the increment even on early return.
-    if(originalBuildingI32(next)>originalBuildingI32(*p.wildlifePeriod))return "wildlife_scan_564b50_not_closed";
-    return {};
+    OriginalPostFigurePassInputs inputs;inputs.gate0x88EC38=p.cityMode&&*p.cityMode<=255?std::optional<uint8_t>(uint8_t(*p.cityMode)):std::nullopt;
+    inputs.pause0x10DE0D0=p.wildlifePause;inputs.mode0x10DE045=p.wildlifeMode;
+    inputs.counterInitial0x12A6E78=p.wildlifeCounter;inputs.periodInitial0x859DA0=p.wildlifePeriod;
+    if(!originalPostFigurePassInputsComplete(inputs))return originalPostFigurePassStatusName(OriginalPostFigurePassStatus::RefusedMissingSessionInput);
+    for(const auto& e:city.buildings){if(e.first>=city.postFigureRegistry.size())return "post_figure_building_registry_required";
+        auto& o=city.postFigureRegistry[e.first];o.type0x14=int16_t(e.second.state.building.type);o.word0x16=e.second.state.inputs.model;o.live0x04=e.second.state.inputs.alive;}
+    const bool due=originalBuildingI32(*p.wildlifeCounter+1u)>originalBuildingI32(*p.wildlifePeriod);
+    for(size_t n=0;n<city.postFigureRegistry.size();++n){const auto& o=city.postFigureRegistry[n];
+        if(due&&n&&originalPostFigureWhitelisted(uint32_t(int32_t(o.type0x14)))&&!city.buildings.count(n))
+            return "post_figure_registry_live_fields_required";
+        inputs.registry.push_back(&o);}
+    auto state=*originalPostFigurePassSessionState(inputs);city.postFigureResult=advanceOriginalPostFigurePass(state,inputs);
+    p.wildlifeCounter=state.counter;p.wildlifePeriod=state.period;
+    return city.postFigureResult->status==OriginalPostFigurePassStatus::Ok?"":originalPostFigurePassStatusName(city.postFigureResult->status);
 }
 inline std::optional<OriginalFigurePassability> originalSceneMovementPassability(const OriginalBuildingScene& scene,
     const OriginalBuildingProfile& buildings,const OriginalSavedGround& saved,const OriginalFigureSpawnServices& spawn){
@@ -196,6 +392,7 @@ struct OriginalSceneTimeline {
     std::optional<OriginalCombinedState> combinedState;
     std::vector<uint32_t> lastUpdateOrder;
     size_t buildingOutcomes=0;
+    std::map<size_t,OriginalBuildingFootprint> buildingSelections;
 };
 //4711A9->469580 sorts and REWRITES +10/cell heads before drawing.
 // Preserve that mutation for the next admitted pass; a draw is not read-only.
@@ -251,6 +448,18 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
             if(city){city->figures=context;
                 out.refusal=originalCombinedBeforeFigures(*city,out.lastUpdateOrder);
                 if(!out.refusal.empty()){out.refusedUpdate=out.updates+1;out.lastPass={};return out;}
+                OriginalBuildingProfile selectionProfile;
+                for(const auto& e:city->buildings)selectionProfile.footprints.push_back(e.second.state.building);
+                for(const auto& p:scene.placed){const auto& footprint=city->buildings.at(p.footprint.slot).state.building;
+                    const auto previous=out.buildingSelections.find(p.footprint.slot);
+                    const auto before=bindOriginalBuildingComponents(previous==out.buildingSelections.end()?p.footprint:previous->second,"DATA/China_General.sg3",general,&selectionProfile);
+                    const auto after=bindOriginalBuildingComponents(footprint,"DATA/China_General.sg3",general,&selectionProfile);
+                    if(!before||!after){out.refusal="combined_building_image_inputs_slot_"+std::to_string(p.footprint.slot)+
+                        "_type_"+std::to_string(footprint.type)+(before?"_after":"_before");out.refusedUpdate=out.updates+1;return out;}
+                    bool changed=before->size()!=after->size();
+                    if(!changed)for(size_t k=0;k<before->size();++k)changed|=before->at(k).binding.physicalId!=after->at(k).binding.physicalId;
+                    if(changed)++out.buildingImageReselections;
+                    out.buildingSelections[p.footprint.slot]=footprint;}
                 context=city->figures;out.lastUpdateOrder.push_back(0x4e27e0);}
             context.animationFlags=out.animationClock.flags;
             out.lastPass=originalFigureOrderedNextPass(context,archives);
@@ -282,7 +491,8 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
             if(city){city->figures=*out.lastPass.context;
                 out.refusal=originalCombinedSyncBuildings(*city);
                 if(out.refusal.empty())out.refusal=originalCombinedAfterFigures(*city,out.lastUpdateOrder);
-                if(!out.refusal.empty()){out.refusedUpdate=out.updates+1;out.lastPass={};return out;}}
+                if(!out.refusal.empty()){out.refusedUpdate=out.updates+1;out.lastPass={};return out;}
+                for(const auto& p:scene.placed)out.buildingSelections[p.footprint.slot]=city->buildings.at(p.footprint.slot).state.building;}
             context=*out.lastPass.context;++out.updates;
         }
         // One supplied slot means one actual draw, repetitions are meaningful.
@@ -309,7 +519,7 @@ inline OriginalSceneTimeline originalSceneTimeline(const OriginalFigureUpdateCon
     const std::vector<OriginalSceneTimelineFrame>& frames,const OriginalCombinedState* combined=nullptr){
     auto out=originalSceneTimelineImpl(initial,archives,scene,general,employment,previousAdmission,animationClock,frames,combined);
     if(combined&&!out.complete){out.context.reset();out.combinedState.reset();out.lastPass={};
-        out.buildingPhases.clear();out.buildingStorage.clear();out.buildingHouses.clear();}
+        out.buildingPhases.clear();out.buildingStorage.clear();out.buildingHouses.clear();out.buildingSelections.clear();}
     return out;
 }
 // Install an entirely completed timeline only. Figure placement and building
@@ -324,6 +534,17 @@ inline bool installOriginalSceneTimeline(OriginalBuildingScene& scene,const Orig
     const size_t outcomes=saved.live.size()+timeline.context->allocatedSlots.size();
     if(updated.live.size()>outcomes)return false;
     auto next=scene;
+    if(timeline.combinedState&&timeline.combinedState->buildingContext){const auto& c=*timeline.combinedState->buildingContext;
+        if(c.resourceGrowth&&(c.resourceGrowth->calls||c.desirabilityCalls)){const auto& s=c.resourceGrowth->surface;
+            if(s.image.size()!=51984||s.subTile.size()!=51984)return false;next.surface.image=s.image;next.surface.subTile=s.subTile;}
+        if(c.irrigation&&c.irrigationCalls){if(c.irrigation->image.size()!=51984)return false;next.surface.image=c.irrigation->image;}
+        for(auto& p:next.placed){const auto selected=timeline.buildingSelections.find(p.footprint.slot);if(selected==timeline.buildingSelections.end())return false;
+            const auto components=bindOriginalBuildingComponents(selected->second,"DATA/China_General.sg3",general,&buildings);if(!components)return false;
+            p.footprint=selected->second;p.components=*components;p.binding=components->front().binding;
+            for(const auto& component:p.components){if(!timeline.context->cropBase||component.binding.physicalId<201)return false;
+                for(unsigned y=0;y<component.side;++y)for(unsigned x=0;x<component.side;++x){
+                    const size_t cell=*timeline.context->cropBase+(p.footprint.y+component.y+y)*228+p.footprint.x+component.x+x;
+                    if(cell>=next.surface.image.size())return false;next.surface.image[cell]=(component.binding.tileset<<14)|(component.binding.physicalId-201);}}}}
     for(auto& p:next.placed){const auto house=timeline.buildingHouses.find(p.footprint.slot);if(house==timeline.buildingHouses.end())continue;
         if(!p.footprint.imageInputs||!timeline.context->cropBase)return false;
         p.footprint.type=house->second.first;p.footprint.imageInputs->word20=house->second.second;

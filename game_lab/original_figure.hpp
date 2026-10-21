@@ -56,6 +56,7 @@ struct OriginalFigure {
     uint32_t damage=0; //+A8,Figure7 request4C88BD;4E5A60 adds modulo32.
     uint8_t projectileHits=0; //+A0,5E63C6 increments modulo8.
     int16_t formation=0; //+6A,Figure7 request4C86BB;combat formation modifiers.
+    uint8_t formationOrdinal=0,formationStationary=0; //+6C/+6D;54CC60 gather inputs/writes
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
 namespace original_save19 {
@@ -601,6 +602,7 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.attackers={detail::i16(r+154),detail::i16(r+156)};
         f.damage=detail::u32(r+168);f.projectileHits=r[160];
         f.formation=detail::i16(r+106);
+        f.formationOrdinal=r[108];f.formationStationary=r[109];
         f.employmentAmount=r[110];f.watchCoverage=r[112];
         f.flags120=detail::u32(r+288);
         f.previousAction=r[24];f.allocationSerial=detail::u16(r+148);f.projectile=r[297]!=0;

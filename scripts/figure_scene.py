@@ -31,7 +31,7 @@ def main():
             p.error('timeline horizons must be in 1..10000')
     if a.build_dir and not a.build_dir.is_absolute():
         p.error('absolute build directory required')
-    build = (a.build_dir or Path(tempfile.mkdtemp(prefix='a2-figure-scene-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))).resolve()
+    build = (a.build_dir or Path(tempfile.mkdtemp(prefix='a3-figure-scene-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))).resolve()
     configured = os.environ.get('EMPEROR_GAMEDATA_ROOT')
     if configured and (build == Path(configured).resolve() or Path(configured).resolve() in build.parents):
         p.error('build directory must stay outside GameData')
