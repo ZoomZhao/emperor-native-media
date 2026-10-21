@@ -590,6 +590,84 @@ void authored(){
     need(modelStep.state&&modelStep.context->buildings->at(7).wellImageInputs->word16==1,"phase40 publishes changed Well selector into continued building pool");
     auto modelTail=*modelStep.context;modelTail.phase=50;const auto keptModel=originalBuildingStateAfterUpdates(*modelStep.state,modelTail,1);
     need(keptModel.state&&keptModel.state->building.wellImageInputs->word16==1&&keptModel.state->inputs.model==1,"phase50 preserves phase40 model selection through copied continuation");
+    auto positiveRisk=service;positiveRisk.phase=44;positiveRisk.disasters.emplace();positiveRisk.evolutionDisabled=false;positiveRisk.engineRegion=0;
+    positiveRisk.figureServices->randomFirst=positiveRisk.figureServices->randomSecond=0;
+    positiveRisk.buildingModels.emplace();positiveRisk.buildingModels->operator[](33)[6]=2;
+    positiveRisk.terrainRandom->at(1144)=1;positiveRisk.buildings->at(7)=riskBuilding.building;
+    riskBuilding.inputs.damageRisk=999;riskBuilding.inputs.fireRisk=0;riskBuilding.inputs.fireDirection=5;riskBuilding.inputs.workers=8;
+    positiveRisk.buildingInputs->at(7)=riskBuilding.inputs;positiveRisk.freeFigureSlots={19};
+    const auto ignited=originalBuildingStateAfterUpdates(riskBuilding,positiveRisk,1);
+    need(ignited.state&&ignited.state->inputs.damageRisk==0&&ignited.state->inputs.fireRisk==0&&ignited.state->inputs.distance==0&&ignited.state->inputs.burning==6&&ignited.state->inputs.workers==0&&ignited.state->inputs.fireproof==1,"positive damage threshold calls42A700 and initializes burning from saved direction low bits");
+    need(ignited.context->createdFigureRecords.size()==1&&ignited.context->createdFigureRecords[0].slot==19&&ignited.context->createdFigureRecords[0].type==2&&ignited.context->createdFigureRecords[0].delivery==7&&ignited.context->createdFigureRecords[0].subtype==33&&ignited.context->createdFigureRecords[0].speed==1&&ignited.context->disasters->figureEffects[0].animation==1,"ignition publishes finalized type2 figure and separate16C animation without speech or CRT draws");
+    auto exhaustedFire=positiveRisk;exhaustedFire.freeFigureSlots.clear();exhaustedFire.figureSpeechCounters.reset();exhaustedFire.figureSpeechCounts.reset();
+    const auto noFlame=originalBuildingStateAfterUpdates(riskBuilding,exhaustedFire,1);
+    need(noFlame.state&&noFlame.state->inputs.burning==6&&noFlame.context->createdFigureRecords.empty(),"fire allocation exhaustion preserves ignition and requires no unused speech inputs");
+    auto ignitionContinuation=*ignited.context;ignitionContinuation.phase=46;
+    const auto afterIgnition=originalBuildingStateAfterUpdates(*ignited.state,ignitionContinuation,1);
+    need(afterIgnition.state&&afterIgnition.context->createdFigureRecords.empty()&&afterIgnition.context->removedFigureRecords.empty()&&afterIgnition.context->allocatedFigures==std::vector<size_t>{19},"created records describe only this call while cumulative allocator bookkeeping survives continuation");
+    auto cart=allocatingHunter;cart.building.type=43;cart.inputs.output=11;cart.inputs.primaryFigure=0;cart.inputs.upgrade=1;cart.production->industry[0]=0x40;cart.production->industry[1]=1;
+    cart.production->primaryResource=18;cart.production->primaryStock=150;cart.production->secondaryResource=20;cart.production->secondaryStock=200;
+    auto cartContext=harvesting;cartContext.industryCarts=true;cartContext.freeFigureSlots={19};cartContext.productionInputs=std::map<size_t,OriginalBuildingProductionInputs>{{7,*cart.production}};
+    cartContext.buildings->at(7)=cart.building;cartContext.buildingInputs->at(7)=cart.inputs;
+    const auto shipped=originalBuildingStateAfterUpdates(cart,cartContext,1);
+    need(shipped.state&&shipped.state->production->industry[0]==0&&shipped.state->production->industry[1]==0&&shipped.state->production->primaryStock==50&&shipped.state->production->secondaryStock==100&&shipped.state->inputs.upgrade==0,"Kiln cart consumes progress and both100 input stocks before allocation using literal runtime70 flag");
+    need(shipped.context->createdFigureRecords.size()==1&&shipped.context->createdFigureRecords[0].type==19&&shipped.context->createdFigureRecords[0].amount==400&&shipped.context->createdFigureRecords[0].subtype==11&&shipped.context->createdFigureRecords[0].action==21&&shipped.context->createdFigureRecords[0].counter==30&&shipped.state->inputs.primaryFigure==19&&shipped.context->dispatchedProduction[11]==400,"Kiln publishes finalized cart19 amount400 pottery action21 reciprocal link and production total");
+    auto exhaustedCart=cartContext;exhaustedCart.freeFigureSlots.clear();exhaustedCart.figureSpeechCounts.reset();const auto lostShipment=originalBuildingStateAfterUpdates(cart,exhaustedCart,1);
+    need(lostShipment.state&&lostShipment.state->production->primaryStock==50&&lostShipment.context->createdFigureRecords.empty()&&lostShipment.context->dispatchedProduction[11]==0,"exhausted cart allocator still consumes industry inputs without publishing shipment totals or unused speech");
+    auto clay=cart;clay.building.type=35;clay.inputs.upgrade=0;clay.inputs.output=18;clay.production->industry[0]=160;clay.production->industry[1]=0;
+    cartContext.buildings->at(7)=clay.building;cartContext.buildingInputs->at(7)=clay.inputs;
+    const auto rawShipment=originalBuildingStateAfterUpdates(clay,cartContext,1);
+    need(rawShipment.state&&rawShipment.context->createdFigureRecords[0].amount==100&&rawShipment.context->createdFigureRecords[0].action==17,"Clay160 threshold dispatches100 raw resource18 with action17 rather than generic delivery6");
+    auto legacyCart=cartContext;legacyCart.industryCarts.reset();const auto refusedCart=originalBuildingStateAfterUpdates(clay,legacyCart,1);
+    need(!refusedCart.state&&refusedCart.blocker==OriginalBuildingUpdateBlocker::BuildingVirtual20,"positive industry cart remains opt in for legacy callers");
+    auto supplier=service;supplier.stallSuppliers=true;supplier.goodsRecords=std::vector<OriginalBuildingGoodsRecord>(2);supplier.goods.emplace();supplier.goods->policies.resize(2);supplier.movement.emplace();supplier.movement->cells.resize(51984);
+    auto hempStall=stallState;hempStall.building.type=67;hempStall.inputs.parentSlot=6;hempStall.inputs.spawnCounter=9;
+    supplier.stallHookRoadAccess=std::map<size_t,OriginalBuildingRoadAccess>{{7,{1,3,4,std::nullopt,true}}};
+    supplier.buildings->emplace(6,stallParent);supplier.buildingInputs->emplace(6,OriginalBuildingUpdateInputs{});supplier.buildingLinks->emplace(6,OriginalFigureBuildingLink{});supplier.buildingLinks->at(6).marketStorage=std::vector<OriginalStorageCompartment>(1);
+    need(originalBuildingStallSupplier(hempStall,supplier,19)==OriginalBuildingUpdateBlocker::None&&hempStall.inputs.supplierStatus==1&&hempStall.inputs.spawnCounter==0&&supplier.allocatedFigures.empty(),"empty qualified supplier search resets counter and reports status1 without fabricated stock");
+    supplier.goods->unavailable[19]=1;
+    need(originalBuildingStallSupplier(hempStall,supplier,19)==OriginalBuildingUpdateBlocker::None&&hempStall.inputs.supplierStatus==3,"unavailable resource19 reports supplier status3 before allocation");
+    supplier.goods->unavailable[19]=0;auto sourceBay=hempStall.building;sourceBay.type=54;sourceBay.slot=8;sourceBay.x=4;
+    supplier.buildings->emplace(8,sourceBay);supplier.buildingInputs->emplace(8,OriginalBuildingUpdateInputs{});auto& sourceLink=supplier.buildingLinks->operator[](8);sourceLink.type=54;sourceLink.alive=1;sourceLink.roadAccess=1;sourceLink.roadDistance=1;sourceLink.roadX=4;sourceLink.roadY=4;sourceLink.storage=std::vector<OriginalStorageCompartment>{{19,100,400}};
+    supplier.goodsRecords->at(1).alive=1;supplier.goodsRecords->at(1).owner=8;supplier.movement->cells[1145]=4;supplier.poolHookRoadAccess->operator[](8)={1,4,4,std::nullopt,true};supplier.figureSpeechCounts->at(254)=3;supplier.figureSpeechCounts->at(266)=5;supplier.figureSpeechCounters->at(266)=7;supplier.freeFigureSlots={19};
+    need(originalBuildingStallSupplier(hempStall,supplier,19)==OriginalBuildingUpdateBlocker::None&&hempStall.inputs.word30==19&&supplier.figures->at(19).delivery==8&&supplier.figures->at(19).destinationX==4&&supplier.figures->at(19).action==6&&supplier.supplierRequests.at(19)==std::array<int32_t,7>{1,-1,-1,-1,-1,-1,-1},"positive supplier flood chooses stocked Warehouse and publishes type24 delivery request category1");
+    need(supplier.figureSpeechCounters->at(254)==1&&supplier.figureSpeechCounters->at(266)==8&&supplier.figureSpeechChoices.at(19)==2,"Stall supplier applies constructor254 then descriptor266 speech rotation");
+    auto burning=positiveRisk;burning.phase=43;burning.buildingInputs->at(7)=ignited.state->inputs;burning.buildingInputs->at(7).burning=3;burning.buildingInputs->at(7).fireDirection=0;
+    auto spreading=*ignited.state;spreading.inputs=burning.buildingInputs->at(7);
+    const auto missingWind=originalBuildingStateAfterUpdates(spreading,burning,1);
+    need(!missingWind.state&&!missingWind.context&&missingWind.blocker==OriginalBuildingUpdateBlocker::FireWind&&missingWind.refusedPhase==43&&burning.buildingInputs->at(7).burning==3,"positive spread requires actual process wind only after periodic and random gates and refuses atomically");
+    auto collapse=positiveRisk;collapse.phase=44;collapse.buildingModels->at(33)[7]=1;collapse.resourceGrowth.emplace();auto& ruinSurface=collapse.resourceGrowth->surface;
+    ruinSurface.image.resize(51984);ruinSurface.subTile.resize(51984,0x9f);ruinSurface.draw.resize(51984);ruinSurface.feature.resize(51984,4);
+    collapse.irrigation.emplace();collapse.irrigation->image.resize(51984);collapse.irrigation->owners.resize(51984);collapse.disasters->freeBuildingSlots=std::vector<size_t>{8};collapse.disasters->buildingSerial=37;collapse.disasters->ruinImageBase=100;collapse.disasters->effectPlacementCulled=true;collapse.freeFigureSlots={19};
+    auto destroyed=riskBuilding;destroyed.building.size=1;destroyed.inputs.damageRisk=0;destroyed.inputs.fireRisk=999;collapse.buildings->at(7)=destroyed.building;collapse.buildingInputs->at(7)=destroyed.inputs;collapse.terrainOwners->at(1144)=7;
+    const auto ruins=originalBuildingStateAfterUpdates(destroyed,collapse,1);
+    need(ruins.state&&ruins.state->inputs.alive==4&&ruins.context->disasters->createdBuildings.size()==1&&ruins.context->disasters->destroyedBuildings==std::vector<size_t>{7}&&ruins.context->buildingInputs->at(8).alive==3&&ruins.context->buildingInputs->at(8).burning==0&&ruins.context->disasters->buildingSerial==38,"fire threshold replaces original with ascending free-slot ruin161 and retains original tombstone identity");
+    need(ruins.context->terrainOwners->at(1144)==8&&ruins.context->terrain->at(1144)==0x1008&&ruins.context->resourceGrowth->surface.image[1144]==101&&ruins.context->createdFigureRecords.empty(),"ruin terrain612 image and owner use threshold argument0 without flames while viewport culling skips debris");
+    auto burningRuin=collapse;need(originalBuildingDestroy(burningRuin,7,true)==OriginalBuildingUpdateBlocker::None&&burningRuin.buildingInputs->at(8).burning==2&&burningRuin.figures->at(19).delivery==8&&burningRuin.figures->at(19).subtype==161,"active fire destruction argument1 independently creates burning ruins and flame2");
+    auto musicService=service;musicService.additionalWalkers=true;musicService.employmentModel=OriginalBuildingEmployment{{211,8}};musicService.figureSpeechCounts->at(276)=3;
+    auto musician=allocatingWell;musician.building.type=211;musician.inputs.spawnCounter=3;musicService.buildings->at(7)=musician.building;musicService.buildingInputs->at(7)=musician.inputs;
+    const auto musicWalker=originalBuildingStateAfterUpdates(musician,musicService,1);
+    need(musicWalker.state&&musicWalker.context->createdFigureRecords.size()==1&&musicWalker.context->createdFigureRecords[0].type==34&&musicWalker.context->createdFigureRecords[0].counter==30,"Music strict greater than3 allocates shared service34 through opt in without wall time");
+    auto annual=savedPart2;annual.month=1;annual.monthlyServices=true;annual.trade->partners[0].faction=1;annual.trade->partners[0].relations[21].annualFlag=9;annual.trade->partners[0].relations[20].annualFlag=7;
+    need(originalBuildingCycleTailStep(annual)==OriginalBuildingUpdateBlocker::None&&annual.trade->partners[0].relations[21].annualFlag==0&&annual.trade->partners[0].relations[20].annualFlag==7,"annual false444160 branch clears only current faction annual flag and preserves other children");
+    auto annualWar=savedPart2;annualWar.month=1;annualWar.monthlyServices=true;annualWar.trade->partners[0].faction=1;annualWar.trade->partners[0].relations[21].state=2;annualWar.trade->partners[0].relations[21].war=0;
+    need(originalBuildingCycleTailStep(annualWar)==OriginalBuildingUpdateBlocker::MonthlyCity,"positive annual offer or war service remains refused rather than inferred from absent event state");
+    hookBytes[hookAt+4]=0x34;hookBytes[hookAt+5]=0x12;hookBytes[hookAt+8]=99;
+    need(originalBuildingSavedDisasterContext(hookBytes,0,restoredHook)&&restoredHook.disasters->buildingSerial==0x1234,"saved building allocation serial follows hook countdown at53167D and excludes following decoy");
+    exact.resize(184+140);exact16(18,194);exact16(184+130,1);exact16(184+132,1);exact16(184+138,1);exact16(2+56,0x1234);bay32(2+105,0xfffffffd);
+    const auto extraCommon=originalBuildingUpdateInputs(exact,p);
+    need(extraCommon&&extraCommon->at(7).nextPart==0x1234&&extraCommon->at(7).supplierStatus==-3,"additive Common5 next3E and supplier74 retain signed56 and105 wire values without legacy changes");
+    saved32(10722,0x1234);saved32(10722+4*35,0xfffffffd);saved32(10578,99);
+    need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.dispatchedProduction[0]==0x1234&&restoredCity.dispatchedProduction[35]==-3,"nested Population7 production array reads59487B wire10722 independently of prior trade7 array");
+    auto fortification=tailContext;fortification.monthPart=3;fortification.monthlyServices=true;fortification.trade.emplace();fortification.statistics.emplace();fortification.statistics->currentFaction=0;fortification.trade->partners[0].faction=0;fortification.trade->partners[0].kind=0;fortification.trade->partners[0].fortified=1;fortification.activeSide=1;fortification.cropBase=229;fortification.terrain=std::vector<uint32_t>(51984);fortification.terrainOwners=std::vector<uint16_t>(51984);
+    for(unsigned n=0;n<99;++n)fortification.terrain->at(229+n)=0x4000;const auto belowFort=fortification;
+    need(originalBuildingCycleTailStep(fortification)==OriginalBuildingUpdateBlocker::None&&fortification.trade->partners[0].fortified==0,"part4 current city fortification rescans99 wall cells and clears prior flag");
+    fortification=belowFort;fortification.terrain->at(328)=0x8000;
+    need(originalBuildingCycleTailStep(fortification)==OriginalBuildingUpdateBlocker::None&&fortification.trade->partners[0].fortified==1,"part4 inclusive100 terrain wall cells sets fortified using full228 row scan");
+    auto debrisContext=positiveRisk;debrisContext.disasters->effectPlacementCulled=false;debrisContext.disasters->visualEffectCount=2999;debrisContext.freeFigureSlots={19,18};
+    need(originalBuildingDebris(debrisContext,3,4,1)==OriginalBuildingUpdateBlocker::None&&debrisContext.disasters->visualEffectCount==3000&&debrisContext.allocatedFigures==std::vector<size_t>{19}&&debrisContext.figures->at(19).effectFlags==2&&debrisContext.figures->at(19).freeMovement==1,"debris respects actual3000 process effect limit between individual allocations");
+    auto missingDebrisCount=positiveRisk;missingDebrisCount.disasters->effectPlacementCulled=false;
+    need(originalBuildingDebris(missingDebrisCount,3,4,1)==OriginalBuildingUpdateBlocker::MissingContext,"visible debris requires consumed process effect count rather than defaulting it to zero");
 }
 void original(){
     const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!env||!*env){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return;}
@@ -605,11 +683,12 @@ void original(){
     std::vector<uint8_t> figureModelBytes;need(detail::readFile(root.resolve("Model/EmperorFigureModels.txt"),100000,figureModelBytes),"bounded figure model input");
     std::vector<uint8_t> speechBytes;need(detail::readFile(root.resolve("EmperorText.eng"),8u*1024u*1024u,speechBytes),"bounded original speech group metadata");
     const auto speechCounts=originalBuildingSpeechCounts(speechBytes);need(bool(speechCounts),"framed EmperorText group counts");
-    for(unsigned count:{1u,10u,20u,48u,51u,100u}){
+    for(unsigned count:{1u,10u,20u,48u,51u,100u,153u,200u}){
         std::map<uint16_t,size_t> live,tickComputed,productionComputed,selectorInputs,changedImages,decodedImages;
         std::map<std::string,size_t> tickRefused,productionRefused;size_t saves=0,consistent=0,growthRecords=0,serviceRecords=0,serviceChanged=0,serviceBytes=0;
         size_t roadComputed=0,roadRefused=0,industryChanged=0,industryGated=0,phase21Computed=0,phase22Computed=0,accountingComputed=0;
          std::map<uint16_t,size_t> tickSelectorInputs,tickImages,tickDecoded,industrialChanges;
+         std::map<uint16_t,size_t> createdFigures,removedFigures;size_t figureRecordOutcomes=0;
          std::map<std::pair<uint16_t,uint32_t>,size_t> typeRefused;
         std::map<uint32_t,size_t> refusedPhases;std::map<size_t,std::pair<uint32_t,uint32_t>> capacityTotals;
         for(const auto& source:catalog.sources)if(source.kind==OriginalMapSourceKind::SaveFile){++saves;
@@ -653,6 +732,16 @@ void original(){
             OriginalBuildingUpdateContext cityContext(OriginalBuildingUpdateScope::AdmittedTicks,true);
             need(originalBuildingSavedCityContext(container.payload,snapshot.sizeOffset,cityContext),"complete nested city context");
             cityContext.cycleTail->alternateMode=false; //10DE044 explicit ordinary live-mode premise.
+            cityContext.disasters.emplace(); //opt-in42A700 service;no clock or CRT premise.
+            cityContext.stallSuppliers=true;
+            cityContext.monthlyServices=true;
+            cityContext.additionalWalkers=true;
+            cityContext.industryCarts=true;
+            cityContext.cycleTail->previousHealthRating=0; //explicitD6241C notification history
+            cityContext.disasters->freeBuildingSlots=originalBuildingSavedInactiveSlots(container.payload,snapshot.buildings);
+            need(bool(cityContext.disasters->freeBuildingSlots)&&originalBuildingSavedDisasterContext(container.payload,snapshot.terrainOffset,cityContext),"complete framed inactive building slots and nested saved serial for disaster allocations");
+            cityContext.disasters->effectPlacementCulled=false; //explicit417460 viewport premise:effect cells visible.
+            cityContext.disasters->visualEffectCount=0; //explicit8900E8 process effect count
             if(snapshot.layers.ground){cityContext.cycleTail->cropQuality=snapshot.layers.ground->state.gEAC3F0;cityContext.cycleTail->waterMode=snapshot.layers.ground->waterMode;}
             need(bool(snapshot.layers.figures),"complete original figure pool");cityContext.figures=snapshot.layers.figures->slots;
             cityContext.formations=originalBuildingSavedFormations(container.payload,snapshot.terrainOffset);
@@ -725,7 +814,8 @@ void original(){
                 for(const auto& b:buildings)need(b.type!=57,"original irrigation registry is empty by complete type pool");}
              if(roads){cityContext.resourceGrowth.emplace();auto& gr=*cityContext.resourceGrowth;
                  gr.surface=snapshot.layers.ground->state;gr.surface.image=cityContext.irrigation->image;gr.owners=snapshot.layers.ground->owner;
-                 for(uint16_t code:{uint16_t(0x620),uint16_t(0x624),uint16_t(0x625),uint16_t(0x627)}){size_t index=0;need(resolveGroundTileCode(ground,code,index),"resource image uses existing cited terrain table lookup");gr.imageBases.emplace(code,(3u<<14)|uint32_t(index));}}
+                  for(uint16_t code:{uint16_t(0x620),uint16_t(0x624),uint16_t(0x625),uint16_t(0x627)}){size_t index=0;need(resolveGroundTileCode(ground,code,index),"resource image uses existing cited terrain table lookup");gr.imageBases.emplace(code,(3u<<14)|uint32_t(index));}
+                  size_t ruinIndex=0;need(resolveGroundTileCode(ground,0x612,ruinIndex),"disaster replacement uses existing cited terrain612 selector");cityContext.disasters->ruinImageBase=(3u<<14)|uint32_t(ruinIndex);}
              for(const auto& f:buildings){++live[f.type];OriginalBuildingUpdateState state{f,parsed->at(f.slot),std::nullopt};
                 const auto ip=industry->find(f.slot);if(ip!=industry->end())state.production=ip->second;
                 const auto access=roads?(f.type==59||f.type==62||f.type==66||f.type==67?
@@ -753,6 +843,12 @@ void original(){
                       need(resource==OriginalBuildingUpdateBlocker::None,"complete original terrain-resource phase closes with saved engine random");
                       std::cout<<"{\"resource_source\":"<<saves<<",\"changed\":"<<growth.resourceGrowth->changed<<",\"image_writes\":"<<growth.resourceGrowth->imageWrites<<",\"random_draws\":"<<growth.resourceGrowth->randomCalls<<",\"mature_trees\":"<<growth.resourceGrowth->matureTrees.size()<<",\"mature_reeds\":"<<growth.resourceGrowth->matureReeds.size()<<"}\n";}
                    if(result.state){++tickComputed[f.type];tickSelectorInputs[f.type]+=result.changedSelectorInputs;
+                       createdFigures[f.type]+=result.context->createdFigureRecords.size();removedFigures[f.type]+=result.context->removedFigureRecords.size();++figureRecordOutcomes;
+                       need(result.context->createdFigureRecords.size()==result.context->allocatedFigures.size()&&result.context->removedFigureRecords.empty(),"complete original call publishes every new figure record and no unexecuted removals");
+                       if(f.slot==buildings.front().slot)std::cout<<"{\"N\":"<<count<<",\"source\":"<<saves<<",\"created_figures\":"<<result.context->createdFigureRecords.size()<<",\"removed_figures\":"<<result.context->removedFigureRecords.size()<<",\"new_ruins\":"<<result.context->disasters->createdBuildings.size()<<",\"supplier_calls\":"<<result.context->stallSupplierCalls<<"}\n";
+                       if(count==100&&saves==4){std::map<unsigned,size_t> effectTypes;for(const auto& effect:result.context->createdFigureRecords)++effectTypes[effect.type];
+                           need(effectTypes==std::map<unsigned,size_t>{{1,72}}&&result.context->disasters->createdBuildings.size()==25&&result.context->disasters->destroyedBuildings==std::vector<size_t>{5},"original Mill threshold produces25 nonburning ruins72 debris and original slot5 tombstone");}
+                       if(f.type==67&&count>=100)need(result.state->inputs.supplierStatus==1&&result.context->stallSupplierCalls>0&&result.context->supplierRequests.empty(),"original Stall67 qualified resource19 search finds no supplier and preserves explicit status1");
                       if(count==1&&f.slot==buildings.front().slot){auto later=*result.context;
                           need(originalBuildingTradeStep(later)==OriginalBuildingUpdateBlocker::None&&later.trade->calls==1&&later.trade->eligible==(saves==2||saves==3?1u:0u),"original nonempty trade context closes four cities with exact eligible partner count");
                           size_t quotas=0;for(const auto& partner:later.trade->partners)for(auto quota:partner.quota)quotas+=quota!=0;
@@ -762,12 +858,13 @@ void original(){
                           size_t affected=0,changedDesirability=0;for(auto value:*later.desirability)affected+=value!=0;
                           for(const auto& entry:*later.buildingInputs)changedDesirability+=entry.second.desirability!=parsed->at(entry.first).desirability;
                           std::cout<<"{\"later_services_source\":"<<saves<<",\"trade_eligible\":"<<later.trade->eligible<<",\"nonzero_quotas\":"<<quotas<<",\"timers_changed\":"<<later.trade->timersChanged<<",\"desirability_cells\":"<<affected<<",\"building_desirability_changed\":"<<changedDesirability<<"}\n";}
-                      if((count==10||count==51||count==100)&&f.slot==buildings.front().slot){const unsigned prefixCount=count==10?4:count==51?32:51;const auto prefix=originalBuildingStateAfterUpdates(state,*ctx,prefixCount);
+                       if((count==10||count>=51)&&f.slot==buildings.front().slot){const unsigned prefixCount=count==10?4:count==51?32:count==100?51:102;const auto prefix=originalBuildingStateAfterUpdates(state,*ctx,prefixCount);
                           need(bool(prefix.state),"original split prefix closes");const auto suffix=originalBuildingStateAfterUpdates(*prefix.state,*prefix.context,count-prefixCount);
                           need(suffix.state&&suffix.context->phase==result.context->phase&&suffix.context->accountingCalls==result.context->accountingCalls&&
                               suffix.context->networkCalls==result.context->networkCalls&&suffix.context->allocatedFigures==result.context->allocatedFigures&&
                               suffix.context->freeFigureSlots==result.context->freeFigureSlots&&suffix.context->populationTotal==result.context->populationTotal,
-                              "original N10 N51 N100 split preserves load order city services and allocator state");
+                               "original split through N200 preserves load order city services and allocator state");
+                           need(prefix.context->createdFigureRecords.size()+suffix.context->createdFigureRecords.size()==result.context->createdFigureRecords.size()&&suffix.context->removedFigureRecords.empty(),"split continuation publishes disjoint per-call figure deltas without duplicate allocations");
                           need(suffix.state->inputs.model==result.state->inputs.model&&suffix.state->inputs.modelUpgrade==result.state->inputs.modelUpgrade&&suffix.state->inputs.fireRisk==result.state->inputs.fireRisk&&suffix.state->inputs.damageRisk==result.state->inputs.damageRisk&&suffix.context->cycle==result.context->cycle&&suffix.context->monthPart==result.context->monthPart&&suffix.context->notificationEffects==result.context->notificationEffects,"split continuation retains late-phase model risk cycle and notification writes");}
                       if(count==1&&f.slot==buildings.front().slot){auto serviceContext=*result.context;serviceContext.phase=1;serviceContext.applyLoadRoadRefresh=false;
                           const auto accountState=originalBuildingStateAfterUpdates(*result.state,serviceContext,1);need(bool(accountState.state),"full accounting phase closes original source after road initialization");
@@ -784,10 +881,10 @@ void original(){
                          need(image.status==SG3DecodeStatus::Decoded&&image.image.valid(),"admitted changed image decodes");++tickDecoded[f.type];}
                      if(count==1)need(result.changedSelectorInputs==0&&!result.selectorChanged,"N1 admitted tick keeps all existing image selectors");
                   }else {++tickRefused[originalBuildingUpdateBlockerName(result.blocker)];need(bool(result.refusedPhase),"admitted refusal names its exact phase");++refusedPhases[*result.refusedPhase];
-                      ++typeRefused[{f.type,*result.refusedPhase}];
+                       ++typeRefused[{f.type,*result.refusedPhase}];
                       need(result.operations<count&&result.operations%51==(*result.refusedPhase+51-*ctx->phase)%51&&!result.context,"atomic refusal reports exact executed prefix without publishing state");
-                      if(count==100&&result.operations>=51){const auto prefix=originalBuildingStateAfterUpdates(state,*ctx,51);need(bool(prefix.state),"second-cycle refusal has a complete first51 prefix");
-                          const auto suffix=originalBuildingStateAfterUpdates(*prefix.state,*prefix.context,49);
+                      if(count>=100&&result.operations>=51){const auto prefix=originalBuildingStateAfterUpdates(state,*ctx,51);need(bool(prefix.state),"later-cycle refusal has a complete first51 prefix");
+                          const auto suffix=originalBuildingStateAfterUpdates(*prefix.state,*prefix.context,count-51);
                           need(!suffix.state&&!suffix.context&&suffix.blocker==result.blocker&&suffix.refusedPhase==result.refusedPhase&&suffix.operations+51==result.operations,"second-cycle split refusal preserves exact total completed operations and phase");}}
                 ctx->scope=OriginalBuildingUpdateScope::ProductionPasses;result=originalBuildingStateAfterUpdates(state,*ctx,count);
                 if(!result.state){++productionRefused[originalBuildingUpdateBlockerName(result.blocker)];continue;}
@@ -805,35 +902,39 @@ void original(){
         size_t ticks=0,production=0,changed=0,decoded=0,inputs=0;for(const auto& e:tickComputed)ticks+=e.second;for(const auto& e:productionComputed)production+=e.second;
         for(const auto& e:changedImages)changed+=e.second;for(const auto& e:decodedImages)decoded+=e.second;for(const auto& e:selectorInputs)inputs+=e.second;
          need(production==1065&&productionComputed==expected&&productionComputed[194]==287&&productionComputed[196]==490&&productionComputed[59]==2,"production closes all27 types including32 industrial records");
-        need(ticks==(count<=20?1065u:count==100?1044u:1063u),"exact retained admissions for N1 N10 N20 N48 N51 N100");
+        need(ticks==(count<=20?1065u:1063u),"exact retained admissions through N200 with genuine farmer wall time refusals");
         need(growthRecords==137&&inputs==137&&selectorInputs[194]==114&&selectorInputs[196]==23,"real growth and selector-input changes from saved flags, never fitted deltas");
         if(count==1||count==10||count==100)need(changed==(count==1?9u:count==10?82u:137u)&&changedImages[194]==(count==1?6u:count==10?63u:114u)&&
             changedImages[196]==(count==1?3u:count==10?19u:23u),"per-type image-stage transition denominator locks");
         need(serviceRecords==70,"all70 house service records close");
         need(serviceChanged==52&&serviceBytes==208,"52 of70 saved houses change208 service bytes without selector changes");
          std::map<std::string,size_t> refused;if(count>=48)refused["farmer_wall_clock_766da0_required"]=2;
-         if(count==100){refused["building_virtual20_416d20"]=2;refused["risk_fire_4af5d0_42a220"]=17;}
          need(tickRefused==refused&&productionRefused.empty(),"exact admitted and isolated refusal partitions");
           need(ticks+std::accumulate(refusedPhases.begin(),refusedPhases.end(),size_t(0),[](size_t total,const auto& e){return total+e.second;})==1065,"exact reached scheduler phase partitions");
          std::map<std::pair<uint16_t,uint32_t>,size_t> expectedTypeRefused;
          if(count>=48)expectedTypeRefused[{192,31}]=2;
-         if(count==100){expectedTypeRefused[{67,31}]=2;
-             for(const auto& e:std::map<uint16_t,size_t>{{2,10},{3,4},{33,2},{53,1}})expectedTypeRefused[{e.first,44}]=e.second;}
          need(typeRefused==expectedTypeRefused,"all27 semantic types retain exact refused-phase partitions");
-         std::map<uint32_t,size_t> phaseExpected;if(count>=48)phaseExpected[31]=count==100?4:2;if(count==100)phaseExpected[44]=17;
+         std::map<uint32_t,size_t> phaseExpected;if(count>=48)phaseExpected[31]=2;
          need(refusedPhases==phaseExpected,"exact first-refused scheduler phases through second cycle");
          for(const auto& e:expected){size_t typeMissing=0;for(const auto& r:expectedTypeRefused)if(r.first.first==e.first)typeMissing+=r.second;
              need(tickComputed[e.first]==e.second-typeMissing,"per-type admitted denominator includes every success and precise refusal");
              const size_t expectedInputs=count<48?0:e.first==194?114:e.first==196?23:e.first==7?3:0;
-             const size_t expectedImages=count<48?0:e.first==194?(count==100?11:6):e.first==196?3:0;
+             const size_t expectedImages=count<48?0:e.first==194?(count==200?25:count==153?19:count==100?11:6):e.first==196?(count>=153?4:3):0;
              need(tickSelectorInputs[e.first]==expectedInputs&&tickImages[e.first]==expectedImages&&tickDecoded[e.first]==expectedImages,"per-type admitted selector inputs image changes and decodes stay independently exact");}
+         std::map<uint16_t,size_t> expectedCreated;
+         if(count>=48)expectedCreated={{33,4},{72,1},{124,1}};
+         if(count>=100){expectedCreated[2]=720;expectedCreated[3]=288;expectedCreated[33]=148;expectedCreated[53]=72;}
+         if(count>=153){expectedCreated[33]=149;expectedCreated[211]=1;}
+         if(count==200){expectedCreated[35]=1;expectedCreated[43]=1;}
+         for(const auto& e:expected)need(createdFigures[e.first]==expectedCreated[e.first]&&removedFigures[e.first]==0,"all27 types assert exact exported figure records across successful independent outcomes");
         need(industryChanged==20&&industryGated==12,"20 of32 industrial records mutate and12 remain gated or saturated");
         need(industrialChanges==std::map<uint16_t,size_t>{{33,4},{35,8},{43,8}},"industrial mutation counts partition exactly by Hunter Clay Kiln");
         need(accountingComputed==6,"accounting allocation service closes6 of6 original cities");
         if(count==1)need(roadComputed==1065&&roadRefused==0&&phase21Computed==1065&&phase22Computed==1065,"road helper and ordinary phase21 close all10 multipart overrides;phase22 covers1065");
         need(changed==decoded,"all changed image words decoded denominator");
         std::cout<<"{\"N\":"<<count<<",\"buildings\":1065,\"admitted_ticks_computed\":"<<ticks<<",\"production_passes_computed\":"<<production<<",\"crop_progress_records_changed\":"<<growthRecords<<",\"image_selector_inputs_changed\":"<<inputs<<",\"image_words_changed\":"<<changed<<",\"image_words_decoded\":"<<decoded<<",\"crop_raw_selector_consistency\":"<<consistent<<",\"house_service_records\":"<<serviceRecords<<",\"house_service_records_changed\":"<<serviceChanged<<",\"house_service_bytes_changed\":"<<serviceBytes<<"}\n";
-        for(const auto& e:live)std::cout<<"{\"N\":"<<count<<",\"type\":"<<e.first<<",\"live\":"<<e.second<<",\"ticks_computed\":"<<tickComputed[e.first]<<",\"tick_selector_inputs_changed\":"<<tickSelectorInputs[e.first]<<",\"tick_images_changed\":"<<tickImages[e.first]<<",\"tick_images_decoded\":"<<tickDecoded[e.first]<<",\"production_computed\":"<<productionComputed[e.first]<<",\"industry_records_changed\":"<<industrialChanges[e.first]<<",\"selector_inputs_changed\":"<<selectorInputs[e.first]<<",\"images_changed\":"<<changedImages[e.first]<<",\"images_decoded\":"<<decodedImages[e.first]<<"}\n";
+        need(figureRecordOutcomes==ticks,"figure output denominator equals successful retained outcomes");
+        for(const auto& e:live)std::cout<<"{\"N\":"<<count<<",\"type\":"<<e.first<<",\"live\":"<<e.second<<",\"ticks_computed\":"<<tickComputed[e.first]<<",\"tick_selector_inputs_changed\":"<<tickSelectorInputs[e.first]<<",\"tick_images_changed\":"<<tickImages[e.first]<<",\"tick_images_decoded\":"<<tickDecoded[e.first]<<",\"created_figures\":"<<createdFigures[e.first]<<",\"removed_figures\":"<<removedFigures[e.first]<<",\"production_computed\":"<<productionComputed[e.first]<<",\"industry_records_changed\":"<<industrialChanges[e.first]<<",\"selector_inputs_changed\":"<<selectorInputs[e.first]<<",\"images_changed\":"<<changedImages[e.first]<<",\"images_decoded\":"<<decodedImages[e.first]<<"}\n";
          for(const auto& e:tickRefused)std::cout<<"{\"N\":"<<count<<",\"scope\":\"admitted_ticks\",\"blocker\":\""<<e.first<<"\",\"refused\":"<<e.second<<"}\n";
          for(const auto& e:typeRefused)std::cout<<"{\"N\":"<<count<<",\"type\":"<<e.first.first<<",\"refused_phase\":"<<e.first.second<<",\"refused\":"<<e.second<<"}\n";
         for(const auto& e:productionRefused)std::cout<<"{\"N\":"<<count<<",\"scope\":\"production_passes\",\"blocker\":\""<<e.first<<"\",\"refused\":"<<e.second<<"}\n";

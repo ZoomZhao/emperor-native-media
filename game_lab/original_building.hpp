@@ -537,6 +537,8 @@ struct OriginalBuildingUpdateInputs {
     //resource/amount/capacity dwords,and the wrapper's trailing own1.
     std::optional<std::array<OriginalStorageCompartment,5>> cropBays;
     std::optional<int32_t> stallResourceIndex; //541E46 restores+150 at tail132.
+    std::optional<int32_t> supplierStatus; //common+78,wire105,428008;not process scratch.
+    std::optional<int16_t> nextPart; //common+3E,wire56,427E6D;multipart fire chain.
 };
 inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuildingUpdateInputs(
     const std::vector<uint8_t>& data,const OriginalBuildingProfile& profile){
@@ -570,6 +572,8 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         const auto watch=detail::u32(p+125);v.watchRisk=int32_t(watch>INT32_MAX?int64_t(watch)-4294967296LL:watch);
         v.modelDesirability=int8_t(p[85]);v.modelUpgrade=p[100];
         v.modelDesirabilityBonus=p[87];
+        {const auto bits=detail::u32(p+105);v.supplierStatus=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:bits);}
+        v.nextPart=detail::i16(p+56);
         const size_t tail=at+182;const uint16_t type=profile.slotTypes[e.first];
         if(type==0xc2||type==0xc4){
             if(data.size()-tail<140||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1||

@@ -14,7 +14,7 @@ def main():
     parser.add_argument('--mode', choices=['release', 'undefined'], default='release')
     parser.add_argument('--build-dir', type=Path)
     parser.add_argument('--bite', action='store_true')
-    parser.add_argument('--bite-kind', choices=['crop', 'industry', 'road', 'accounting', 'religion', 'migration', 'emigration', 'overflow', 'population', 'employment', 'market', 'stall', 'load', 'resource', 'hook', 'hunter', 'trade', 'totals', 'aggregate', 'model', 'rectangle', 'service', 'farmer', 'crop-order', 'bay', 'evolution', 'lifecycle', 'fire', 'risk', 'effect', 'counter', 'tail', 'timer', 'timer-faction', 'saved-tail', 'saved-crop-festival', 'stall-capacity', 'storage-export', 'station', 'house-model'], default='crop')
+    parser.add_argument('--bite-kind', choices=['crop', 'industry', 'road', 'accounting', 'religion', 'migration', 'emigration', 'overflow', 'population', 'employment', 'market', 'stall', 'load', 'resource', 'hook', 'hunter', 'trade', 'totals', 'aggregate', 'model', 'rectangle', 'service', 'farmer', 'crop-order', 'bay', 'evolution', 'lifecycle', 'fire', 'risk', 'effect', 'counter', 'tail', 'timer', 'timer-faction', 'saved-tail', 'saved-crop-festival', 'stall-capacity', 'storage-export', 'station', 'house-model', 'ignition', 'figure-delta', 'cart-input', 'cart-cargo', 'supplier-status', 'supplier-speech', 'ruin-owner', 'annual-child', 'saved-serial', 'saved-production', 'threshold-ruins', 'fortification'], default='crop')
     args = parser.parse_args()
     if args.build_dir and not args.build_dir.is_absolute():
         parser.error('absolute build directory required')
@@ -54,7 +54,7 @@ def main():
             'aggregate': ('h.at(55-4)=uint8_t(', 'h.at(54-4)=uint8_t(', 'House1 aggregation writes literal service55 religion54 and preserves entertainment53'),
             'model': ('originalBuildingPercent(row[k],modifier[k])', 'originalBuildingPercent(row[k],100)', 'building model difficulty multiplies thirteen independent columns with signed truncation'),
             'rectangle': ('if(++counter>=m[2])', 'if(counter++>=m[2])', 'Market rectangle uses inclusive descriptor bounds and initial counter1 delta schedule'),
-            'service': ('f.action=6;f.counter=30;', 'f.action=6;f.counter=29;', 'Well positive allocation publishes reciprocal identity action and delay after strict counter gate'),
+            'service': ('f.owner=int16_t(s.building.slot);f.action=6;f.counter=30;', 'f.owner=int16_t(s.building.slot);f.action=6;f.counter=29;', 'Well positive allocation publishes reciprocal identity action and delay after strict counter gate'),
             'farmer': ('if(skip){--skip;target.primaryFigure=0;', 'if(skip){--skip;target.primaryFigure=19;', 'farmer grouping clears skipped candidates rather than assigning the new farmer'),
             'crop-order': ('return a.first<b.first;', 'return a.first!=b.first?a.first<b.first:a.second>b.second;', 'farmer grouping clears skipped candidates rather than assigning the new farmer'),
             'bay': ('if(bay.resource&&bay.amount>=100)', 'if(bay.resource&&bay.amount>100)', 'fifth crop bay at100 reaches named positive cart boundary'),
@@ -73,6 +73,18 @@ def main():
             'storage-export': ('if(percent<50)return -1;', 'if(percent<51)return -1;', 'storage export accepts earliest mode3 bay only from staffing50'),
             'station': ('if(type==58)i.available=1;', 'if(type==58)i.suppression=1;', 'TradingStation hook writes runtime48 availability while preserving legacy suppression contract'),
             'house-model': ('originalBuildingAdd32(row[k],modifier[k])', 'originalBuildingSub32(row[k],modifier[k])', 'HOUSE MODS adds selected row then clamps all24 independent model columns'),
+            'ignition': ('i.burning=int16_t((i.fireDirection&7)+1)', 'i.burning=int16_t((i.fireDirection&7)+2)', 'positive damage threshold calls42A700 and initializes burning from saved direction low bits'),
+            'figure-delta': ('const size_t allocatedBefore=c.allocatedFigures.size()', 'const size_t allocatedBefore=0', 'created records describe only this call while cumulative allocator bookkeeping survives continuation'),
+            'cart-input': ('uint16_t(p.secondaryStock)-100u', 'uint16_t(p.secondaryStock)-99u', 'Kiln cart consumes progress and both100 input stocks before allocation using literal runtime70 flag'),
+            'cart-cargo': ('const int amount=i.upgrade?400:100', 'const int amount=i.upgrade?399:100', 'Kiln publishes finalized cart19 amount400 pottery action21 reciprocal link and production total'),
+            'supplier-status': ('c.goods->unavailable[resource]?3:1', 'c.goods->unavailable[resource]?3:2', 'empty qualified supplier search resets counter and reports status1 without fabricated stock'),
+            'supplier-speech': ('speech=originalBuildingAdd32(speech,1)', 'speech=originalBuildingAdd32(speech,2)', 'Stall supplier applies constructor254 then descriptor266 speech rotation'),
+            'ruin-owner': ('c.terrainOwners->at(size_t(cell))=uint16_t(next)', 'c.terrainOwners->at(size_t(cell))=uint16_t(slot)', 'ruin terrain612 image and owner use threshold argument0 without flames while viewport culling skips debris'),
+            'annual-child': ('auto& r=p.relations[size_t(current)]', 'auto& r=p.relations[20]', 'annual false444160 branch clears only current faction annual flag and preserves other children'),
+            'saved-serial': ('serial=original_save19::criminalCount+24', 'serial=original_save19::criminalCount+28', 'saved building allocation serial follows hook countdown at53167D and excludes following decoy'),
+            'saved-production': ('c.dispatchedProduction[n]=value(10722+4*n)', 'c.dispatchedProduction[n]=value(10578+4*n)', 'nested Population7 production array reads59487B wire10722 independently of prior trade7 array'),
+            'threshold-ruins': ('originalBuildingDestroy(c,e.first,false)', 'originalBuildingDestroy(c,e.first,true)', 'fire threshold replaces original with ascending free-slot ruin161 and retains original tombstone identity'),
+            'fortification': ('p.fortified=uint8_t(count>=100)', 'p.fortified=uint8_t(count>100)', 'part4 inclusive100 terrain wall cells sets fortified using full228 row scan'),
         }
         before, after, assertion = mutations[args.bite_kind]
         assert header.count(before) == 1
