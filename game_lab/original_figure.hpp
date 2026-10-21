@@ -315,6 +315,8 @@ struct OriginalFigureBuildingLink {
     int16_t workers=0;
     int16_t roadDistance=0,suppress=0;
     int16_t incomingFigures=0,incomingAmount=0;
+    int16_t traderFaction=0; //common+16,wire18;5D3510 station lookup.
+    std::optional<size_t> currentTrader; //building+160:5DDBDC constructs null;station serializers do not restore it.
     int16_t industryInput=0; //common runtime+40,wire58;Kiln main input stock.
 };
 // Common5:0x427430 reads live+4,type+14,worker+32,accepting+9 individually;
@@ -326,6 +328,17 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
     for(const auto& b:buildings.footprints)records.emplace(b.slot,b.recordOffset);
     for(const auto& b:buildings.objectBuildings)records.emplace(b.slot,b.recordOffset);
     std::map<size_t,OriginalFigureBuildingLink> out;
+    //4C909E also addresses Building slot0 when an animal's+64 timer is
+    //nonzero and its+62 owner is0. Preserve that serialized common+32 word;
+    //slot0 has no live footprint and is therefore absent from records above.
+    constexpr std::array<uint8_t,20> preamble{{1,0,0xa0,0x0f,0,0,0xff,0xff,0,0,8,0,'B','u','i','l','d','i','n','g'}};
+    const auto first=std::search(data.begin(),data.end(),preamble.begin(),preamble.end());
+    if(first!=data.end()){
+        const size_t at=size_t(first-data.begin())+preamble.size();
+        if(data.size()-at<182||detail::u16(data.data()+at)!=5||detail::u16(data.data()+at+16)!=0||
+            std::search(first+1,data.end(),preamble.begin(),preamble.end())!=data.end())return std::nullopt;
+        OriginalFigureBuildingLink zero;zero.worker=detail::i16(data.data()+at+45);out.emplace(0,zero);
+    }
     for(const auto& b:records){size_t at=b.second;
         if(at>data.size()||data.size()-at<2)return std::nullopt;
         const auto tag=detail::u16(data.data()+at);at+=2;
@@ -346,6 +359,8 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         link.hunterReturnGoods=detail::i16(data.data()+at+101);
         link.incomingFigures=detail::i16(data.data()+at+156);link.incomingAmount=detail::i16(data.data()+at+158);
         link.industryInput=detail::i16(data.data()+at+58);
+        link.traderFaction=detail::i16(data.data()+at+18);
+        if(type==0x38||type==0x3a)link.currentTrader=0; //5E1420->5DDBC0,5E1510->5DDC60->5D5BC0:load-reconstructed null.
         const int policy=detail::i16(data.data()+at+88);if(policy>=0)link.storagePolicy=size_t(policy);
         link.roadX=detail::i16(data.data()+at+37);link.roadY=detail::i16(data.data()+at+39);link.roamDirection=data[at+51];
         link.inspectorSecondary=detail::i16(data.data()+at+18)>0||data[at+100]!=0;
@@ -448,12 +463,15 @@ struct OriginalFigureProfile {
     std::map<uint8_t,size_t> liveTypes;
     std::vector<uint16_t> cellHeads; //0xFAA130, SAV19 T+207936, read0x531338.
     std::optional<std::array<int16_t,22>> factionModels;
+    struct EmpireTraderSlots {std::array<int16_t,3> figures{};int16_t active=0;};
+    std::optional<std::array<EmpireTraderSlots,22>> empireTraders; //Grid15 runtime+2C..30,+4C;43E7F1/43E880.
 };
 // SAV19 calls0x506710 then0x480800 immediately after the Figure list.
 // Only the complete cited Goods1/Empire3/Grid15/child5 layout publishes models;
 // an unknown following layout leaves the already parsed figures usable.
 inline std::optional<std::array<int16_t,22>> originalFigureFactionModels(
-    const std::vector<uint8_t>& data,size_t at,size_t limit){
+    const std::vector<uint8_t>& data,size_t at,size_t limit,
+    std::optional<std::array<OriginalFigureProfile::EmpireTraderSlots,22>>* traders=nullptr){
     using namespace emperor::file_io::research;
     if(data.size()>8u*1024u*1024u||at>limit||limit>data.size())return std::nullopt;
     const auto take=[&](size_t n){if(n>limit-at)return false;at+=n;return true;};
@@ -466,17 +484,19 @@ inline std::optional<std::array<int16_t,22>> originalFigureFactionModels(
     const auto empire=detail::u32(data.data()+at-4);if(empire>8192)return std::nullopt;
     for(size_t n=0;n<empire;++n){if(!version(2))return std::nullopt;
         for(const auto& f:empire2_fields)if(!take(f.bytes))return std::nullopt;}
-    std::array<int16_t,22> models{};
-    for(auto& model:models){
+    std::array<int16_t,22> models{};std::array<OriginalFigureProfile::EmpireTraderSlots,22> traderSlots{};
+    for(size_t faction=0;faction<models.size();++faction){auto& model=models[faction];
         if(!version(15))return std::nullopt;
         for(const auto& f:empire_grid15_pre){if(!take(f.bytes))return std::nullopt;
-            if(f.receiver_offset==0x4ae)model=detail::i16(data.data()+at-f.bytes);}
+            if(f.receiver_offset==0x4ae)model=detail::i16(data.data()+at-f.bytes);
+            if(f.receiver_offset==44)for(unsigned k=0;k<3;++k)traderSlots[faction].figures[k]=detail::i16(data.data()+at-f.bytes+2*k);
+            if(f.receiver_offset==76)traderSlots[faction].active=detail::i16(data.data()+at-f.bytes);}
         for(size_t child=0;child<22;++child){if(!version(5))return std::nullopt;
             for(const auto& f:empire_grid_child5_fields)if(!take(f.bytes))return std::nullopt;}
         for(const auto& f:empire_grid15_post)if(!take(f.bytes))return std::nullopt;
     }
     if(!take(4))return std::nullopt; //Empire3 trailing parent word0x480960
-    return models;
+    if(traders)*traders=traderSlots;return models;
 }
 // List0x4E1E40, called0x531265 immediately after Building0x42D790.
 // Class IDs use the SAME archive cache: goal cache + building declarations +
@@ -583,7 +603,7 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         objects.emplace(objectPID,f);out.slots.push_back(f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }
     out.end=at;out.status=OriginalFigureStatus::Complete;
-    out.factionModels=originalFigureFactionModels(data,at,limit);return out;
+    out.factionModels=originalFigureFactionModels(data,at,limit,&out.empireTraders);return out;
 }
 inline const char* originalFigureArchiveName(uint32_t slot){
     // Startup0x475CA3 (14),0x475D44/4F/5A (38/39/40).

@@ -12,7 +12,17 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--mode', choices=['release', 'undefined'], default='release')
     p.add_argument('--build-dir', type=Path)
+    p.add_argument('--timeline-horizons', help='Comma-separated positive horizons, at most 10000 (default: regression corpus)')
+    p.add_argument('--timeline-audio', choices=['off', 'on', 'both'], default='both')
     a = p.parse_args()
+    horizons = None
+    if a.timeline_horizons:
+        try:
+            horizons = sorted(set(int(value) for value in a.timeline_horizons.split(',')))
+        except ValueError:
+            p.error('timeline horizons must be comma-separated integers')
+        if not horizons or horizons[0] < 1 or horizons[-1] > 10000:
+            p.error('timeline horizons must be in 1..10000')
     if a.build_dir and not a.build_dir.is_absolute():
         p.error('absolute build directory required')
     build = (a.build_dir or Path(tempfile.mkdtemp(prefix='emperor-figure-scene-'))).resolve()
@@ -28,7 +38,10 @@ def main():
     subprocess.run(['/usr/bin/clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror', *flags,
                     *[str(ROOT / 'game_lab' / s) for s in sources], '-framework', 'CoreGraphics',
                     '-framework', 'CoreFoundation', '-lz', '-o', str(binary)], check=True)
-    return subprocess.run([str(binary)], check=False).returncode
+    command = [str(binary), '--timeline-audio', a.timeline_audio]
+    if horizons:
+        command += ['--timeline-horizons', ','.join(map(str, horizons))]
+    return subprocess.run(command, check=False).returncode
 
 
 if __name__ == '__main__':

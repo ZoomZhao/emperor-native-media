@@ -9,10 +9,13 @@
 #include <fstream>
 #include <filesystem>
 #include <chrono>
+#include <tuple>
 #include <unistd.h>
 using namespace game_lab;
 namespace {
 size_t checks=0;
+std::vector<unsigned> timelineHorizons{1,83,84,100,150,178,192,200,300,500,1000};
+std::vector<bool> timelineAudio{false,true};
 void need(bool ok,const char* message){++checks;if(!ok)throw std::runtime_error(message);}
 void authored(){
     // Explicit independent frame-major truth tables: 0x5CFDF0 uses metadata
@@ -425,6 +428,12 @@ void authored(){
             const auto share=originalFigureFollowRoute(walker,6,0xc0,&peaceful);
             need(share.state&&share.state->cell==10001&&peaceful.figures.at(3).next==2,
                 "ordinary categories1 and2 share destination after zero combat relation without target writes");}
+        {auto hunt=context;auto hunter=walker;hunter.type=40;hunt.figures[2]=hunter;hunt.figures[3].type=76;
+            hunt.figures[3].runtimeClass=OriginalFigureClass::Pheasant;hunt.models[40]={};hunt.models[40][0]=2;
+            hunt.models[76]={};hunt.models[76][0]=6;
+            const auto entered=originalFigureFollowRoute(hunter,6,0xc0,&hunt);
+            need(entered.state&&entered.state->cell==10001&&hunt.figures.at(3).next==2&&hunt.figures.at(3).damage==0,
+                "Hunter category2 enters prey category6 cell through zero relation without collision damage or target mutation");}
         // A model0 walker has the original combat early exit.
         const auto crossed=originalFigureFollowRoute(walker,6,0xc0,&context);
         need(crossed.state&&crossed.state->x==6&&crossed.state->y==6&&crossed.state->cell==10001&&crossed.state->progress==10&&
@@ -492,6 +501,28 @@ void authored(){
         need(links&&links->at(8).alive==3&&links->at(8).type==3&&links->at(8).worker==9&&links->at(8).accepting==1,
             "framed common5 worker and accepting fields use literal wire45 and7 including version");
         data[2]=4;need(!originalFigureBuildingLinks(data,buildings),"uncited common version cannot publish worker/home validity");
+        data[2]=5;data[18]=0x3a;data[20]=4;buildings.slotTypes[8]=0x3a;
+        const auto stationLinks=originalFigureBuildingLinks(data,buildings);
+        need(stationLinks&&stationLinks->at(8).traderFaction==4&&stationLinks->at(8).currentTrader==0,
+            "station frames common faction16 while runtime160 is reconstructed constructor-null without a saved pointer surrogate");
+        std::vector<uint8_t> zeroBytes{1,0,0xa0,0x0f,0,0,0xff,0xff,0,0,8,0,'B','u','i','l','d','i','n','g'};
+        zeroBytes.resize(202);zeroBytes[20]=5;zeroBytes[65]=0x34;zeroBytes[66]=0x12;
+        OriginalBuildingProfile emptyBuildings;emptyBuildings.status=OriginalBuildingStatus::Complete;emptyBuildings.parsedRecords=4000;
+        const auto zeroLinks=originalFigureBuildingLinks(zeroBytes,emptyBuildings);
+        need(zeroLinks&&zeroLinks->at(0).worker==0x1234,"complete framed Building slot0 restores common32 from wire45 for animal timer cleanup");
+        zeroBytes.pop_back();need(!originalFigureBuildingLinks(zeroBytes,emptyBuildings),"truncated Building slot0 cannot supply an invented cleanup word");
+        std::vector<uint8_t> empire(12+22*(1194+22*629+334)+4);empire[0]=1;empire[6]=3;
+        for(unsigned faction=0;faction<22;++faction){const size_t start=12+faction*(1194+22*629+334);empire[start]=15;
+            for(unsigned child=0;child<22;++child)empire[start+1194+child*629]=5;}
+        empire[12+41]=0x34;empire[12+42]=0x12;empire[12+43]=0xfe;empire[12+44]=255;empire[12+45]=7;
+        empire[12+70]=9;empire[12+1192]=2;
+        std::optional<std::array<OriginalFigureProfile::EmpireTraderSlots,22>> traders;
+        const auto factionModels=originalFigureFactionModels(empire,0,empire.size(),&traders);
+        need(factionModels&&factionModels->at(0)==2&&traders&&traders->at(0).figures==std::array<int16_t,3>{0x1234,-2,7}&&
+            traders->at(0).active==9&&traders->at(1).figures==std::array<int16_t,3>{},
+            "complete Grid15 restores trader slots at literal wire41 and active word70 independently from model1192");
+        traders.reset();empire.pop_back();need(!originalFigureFactionModels(empire,0,empire.size(),&traders)&&!traders,
+            "truncated Empire3 trailer publishes neither faction models nor partial trader slots");
         auto carrier=one;carrier.type=22;carrier.action=9;carrier.route=3;carrier.direction=2;carrier.progress=2;
         carrier.subtype=1;carrier.amount=201;carrier.state85=2;carrier.height=7;carrier.cartStyle=8;
         context.figures[carrier.slot]=carrier;context.modelSpeeds[22]=6;
@@ -513,6 +544,25 @@ void authored(){
         context.terrain[10001]=4;const auto crewBridge=originalFigureFirstUpdate(crew,crewRefs,&context,0xc0);
         need(!crewBridge.state&&crewBridge.status==OriginalFigureUpdateStatus::MovementHeight&&crewBridge.linkedWrites.empty()&&
             context.figures.at(1).next==2,"unsupported crew bridge height withholds tentative cell and predecessor writes");
+        auto returning=trader;returning.owner=returning.home=0;returning.follower=2;returning.route=0;
+        returning.destinationX=returning.x;returning.destinationY=returning.y;returning.progress=20;returning.direction=8;
+        context.terrain[10001]=0xc0;context.figures[3]=returning;context.modelSpeeds[45]=6;
+        context.passability.emplace();context.passability->fullMovementMasks=true;context.passability->cells.assign(51984,0x10);context.passability->spawn.cropBase=0;
+        context.services.emplace();context.services->directions.assign(500000,0);context.roadblockGate=0;
+        const auto exited=originalFigureFirstUpdate(returning,crewRefs,&context,0xc0);
+        need(exited.state&&exited.state->action==6&&exited.state->alive==2,
+            "trader action9 entry arrival marks action6 and removal after the same movement call");
+        context.empireTraders.emplace();context.empireTraders->at(0).figures={3,77,3};context.empireTraders->at(0).active=5;
+        auto removed=*exited.state;context.figures[3]=removed;
+        need(originalFigureRemoveArrivedWorker(removed,context)&&!removed.alive&&context.empireTraders->at(0).active==0&&
+            context.empireTraders->at(0).figures==std::array<int16_t,3>{0,77,3}&&context.freeSlots.back()==3,
+            "trader cleanup clears active empire word and only the first matching of three serialized trader slots");
+        auto orphan=crew;orphan.progress=2;orphan.direction=2;orphan.counter=0;context.figures[2]=orphan;context.modelSpeeds[47]=6;
+        context.figures.emplace(0,OriginalFigure{});
+        context.figures.at(3).x=orphan.x;context.figures.at(3).y=orphan.y;
+        const auto orphaned=originalFigureFirstUpdate(orphan,crewRefs,&context,0xc0);
+        need(orphaned.state&&orphaned.state->alive==2&&orphaned.state->progress==3&&orphaned.state->image==(14u<<14),
+            "crew with removed trader still runs its self-speed substep before state2 death image and dispatcher cleanup");
     }
     {
         auto group=archive;group.numImages=512;group.sprites.resize(512);group.imageIndex.fill(1);
@@ -713,6 +763,25 @@ void authored(){
         goods.policies[0].limit[18]=3200;receiving.storage->at(2)={0,0,400};
         need(originalFigureWarehouseDeliver(receiving,18,2,goods)==2&&receiving.storage->at(2).resource==18&&receiving.storage->at(2).amount==2,
             "warehouse delivery assigns resource identity to the first empty bay after full matching bays");
+        auto mill=receiving;mill.type=0x35;mill.storage=std::vector<OriginalStorageCompartment>(8,{0,0,400});
+        goods.policies[0].limit[1]=3200;const auto beforeFood=goods.warehouse[1];
+        need(originalFigureWarehouseDeliver(mill,1,100,goods)==100&&mill.storage->front().resource==1&&
+            mill.storage->front().amount==100&&goods.warehouse[1]==beforeFood+100,
+            "Mill food delivery uses fullest-bay acceptance and the common warehouse accounting callback");
+        need(originalFigureWarehouseDeliver(mill,18,100,goods)==0&&mill.storage->at(1).amount==0,
+            "Mill virtual154 rejects nonfood before common storage acceptance");
+        {auto delivery=one;delivery.slot=2;delivery.type=19;delivery.action=11;delivery.counter=5;delivery.subtype=1;delivery.amount=100;
+            delivery.delivery=9;delivery.homeX=5;delivery.homeY=6;delivery.owner=8;delivery.cell=10000;delivery.direction=8;delivery.previousDirection=0;
+            auto millArchive=archive;millArchive.numImages=512;millArchive.sprites.resize(512);millArchive.imageIndex.fill(1);
+            millArchive.sprites[0].animationSpriteCount=12;millArchive.sprites[0].animationDirections=8;
+            const std::map<uint32_t,const SG3Archive*> millRefs{{38,&millArchive},{39,&millArchive},{14,&millArchive}};
+            OriginalFigureUpdateContext millContext;millContext.figures[2]=delivery;millContext.goods=goods;millContext.buildings.emplace();
+            mill.storage=std::vector<OriginalStorageCompartment>(8,{0,0,400});mill.incomingFigures=1;mill.incomingAmount=100;
+            millContext.buildings->emplace(9,mill);const auto accepted=originalFigureFirstUpdate(delivery,millRefs,&millContext,0x40);
+            need(accepted.state&&accepted.state->action==13&&accepted.state->amount==0&&accepted.state->counter==0&&
+                accepted.buildings->at(9).storage->front().amount==100&&accepted.buildings->at(9).incomingFigures==0&&
+                accepted.buildings->at(9).incomingAmount==0,
+                "Mill arrival at sixth call accepts food,debits both original-cargo reservation words and returns carrier home");}
         OriginalFigureUpdateContext context;context.cropBase=0;context.goods=goods;context.goods->storageSearch=std::array<uint8_t,36>{};
         context.goods->industrySearch=std::array<uint8_t,36>{};context.goods->godGate=0;context.buildings.emplace();
         context.services.emplace();context.services->directions.assign(500000,0);
@@ -821,6 +890,12 @@ void authored(){
             projectiles.sprites[100].animationDirections=projectiles.sprites[200].animationDirections=32;
             projectiles.sprites[100].animationSpeedId=projectiles.sprites[200].animationSpeedId=2;
             const std::map<uint32_t,const SG3Archive*> shotRefs{{14,&projectiles},{38,&group},{39,&group}};
+            {auto close=shot;auto waiting=hunter;waiting.counter=5;waiting.frame=7;waiting.progress=8;waiting.direction=2;waiting.route=3;
+                close.figures.at(1).x=12;close.figures.at(1).y=10;close.figures.at(2)=waiting;close.modelSpeeds[40]=6;
+                const auto held=originalFigureFirstUpdate(waiting,shotRefs,&close,0x80);
+                need(held.state&&held.state->counter==4&&held.state->progress==8&&held.state->frame==7&&held.state->action==7&&
+                    held.state->image==(39u<<14)+2&&held.crtRandomCalls==0,
+                    "nearby Hunter with positive attack countdown holds route/progress/frame and selects static attack image without allocation");}
             const auto pass=originalFigureOrderedNextPass(shot,shotRefs);
             need(pass.complete&&pass.computed==3&&pass.context->allocatedSlots==std::set<size_t>{1999}&&
                 pass.context->freeSlots==std::vector<size_t>{1998}&&pass.context->highestLiveSlot==1999,
@@ -874,6 +949,15 @@ void authored(){
             const auto empty=originalFigureFirstUpdate(arrived,shotRefs,&landing,0);
             need(empty.state&&empty.state->home==20&&empty.state->secondaryImage==0&&empty.state->attackFrame==arrived.attackFrame,
                 "empty projectile arrival retains ten lifetime calls and clears the shadow without advancing its secondary phase");
+            auto occupied=landing;occupied.buildingOwners[arrived.cell]=403;
+            const auto buildingArrival=originalFigureFirstUpdate(arrived,shotRefs,&occupied,0);
+            need(buildingArrival.state&&buildingArrival.state->home==2&&buildingArrival.state->alive==1&&buildingArrival.state->secondaryImage==0&&
+                buildingArrival.crtRandom==empty.crtRandom&&buildingArrival.services->randomFirst==empty.services->randomFirst,
+                "Hunter projectile building arrival has no type40 impact case and bypasses empty-cell lifetime clamp");
+            auto inFlight=p;inFlight.home=0;occupied.figures[inFlight.slot]=inFlight;
+            const auto buildingFlight=originalFigureFirstUpdate(inFlight,shotRefs,&occupied,0);
+            need(buildingFlight.state&&buildingFlight.state->home==1&&buildingFlight.state->secondaryImage&&
+                buildingFlight.state->subX!=inFlight.subX,"in-flight Hunter projectile crosses an occupied building cell without an arrival impact");
             auto victim=prey;victim.cell=arrived.cell;victim.next=uint16_t(arrived.slot);
             landing.figures[victim.slot]=victim;landing.cellHeads[arrived.cell]=uint16_t(victim.slot);
             const auto collision=originalFigureFirstUpdate(arrived,shotRefs,&landing,0);
@@ -906,6 +990,13 @@ void authored(){
             auto unknownAudio=landing;unknownAudio.soundEffectsEnabled.reset();
             need(!originalFigureFirstUpdate(struck,shotRefs,&unknownAudio,0).state,
                 "impact cannot infer a disabled original sound service from absent process input");
+            auto enabledAudio=landing;enabledAudio.soundEffectsEnabled=true;
+            const auto audibleHit=originalFigureFirstUpdate(struck,shotRefs,&enabledAudio,0);
+            need(audibleHit.state&&audibleHit.linkedWrites.at(1).damage==killed.linkedWrites.at(1).damage&&
+                audibleHit.linkedWrites.at(1).action==10&&audibleHit.linkedWrites.at(2).action==9&&
+                audibleHit.crtRandom==killed.crtRandom&&audibleHit.crtRandomCalls==killed.crtRandomCalls&&
+                audibleHit.services->randomFirst==killed.services->randomFirst&&audibleHit.services->randomSecond==killed.services->randomSecond,
+                "enabled impact audio retains identical simulation state and saved/CRT RNG without another random draw");
             auto armored=landing;armored.models[76][3]=20;armored.figures.at(1).damage=0;
             const auto blockedDamage=originalFigureFirstUpdate(struck,shotRefs,&armored,0);
             need(blockedDamage.state&&!blockedDamage.linkedWrites.count(1),
@@ -925,6 +1016,11 @@ void authored(){
             const auto dead=originalFigureFirstUpdate(corpse,shotRefs,&landing,0);
             need(dead.state&&dead.state->action==10&&dead.state->counter==1&&dead.state->image==((38u<<14)+1),
                 "Pheasant corpse increments counter and selects linear death frame before collection");
+            auto audibleCorpse=landing;audibleCorpse.soundEffectsEnabled=true;
+            const auto audibleDead=originalFigureFirstUpdate(corpse,shotRefs,&audibleCorpse,0);
+            need(audibleDead.state&&audibleDead.state->action==dead.state->action&&audibleDead.state->counter==dead.state->counter&&
+                audibleDead.state->image==dead.state->image&&audibleDead.crtRandomCalls==dead.crtRandomCalls,
+                "first corpse update accepts enabled category6 audio with identical counter,image and CRT consumption");
             corpse.counter=499;const auto stillDead=originalFigureFirstUpdate(corpse,shotRefs,&landing,0);
             need(stillDead.state&&stillDead.state->action==10&&stillDead.state->counter==500,"corpse remains action10 at exact signed counter500");
             corpse.counter=500;const auto decay=originalFigureFirstUpdate(corpse,shotRefs,&landing,0);
@@ -950,7 +1046,11 @@ void authored(){
             auto discarded=collected.linkedWrites.at(1);discarded.owner=discarded.home=0;landing.figures[1]=discarded;
             landing.figures.at(2).target=1;discarded.flags120|=2;
             need(originalFigureRemoveArrivedWorker(discarded,landing)&&!discarded.alive&&landing.figures.at(2).target==0,
-                "collected corpse cleanup clears target references before resetting its freed pool slot");}
+                "collected corpse cleanup clears target references before resetting its freed pool slot");
+            discarded=collected.linkedWrites.at(1);discarded.home=1800;discarded.owner=0;discarded.next=2;
+            landing.figures[1]=discarded;landing.cellHeads[discarded.cell]=1;landing.buildings.emplace();landing.buildings->operator[](0).worker=77;
+            need(originalFigureRemoveArrivedWorker(discarded,landing)&&!discarded.alive&&landing.buildings->at(0).worker==0&&
+                landing.cellHeads[corpse.cell]==2,"collected animal timer clears owner building32 even when its owner is slot0");}
         {OriginalFigureUpdateContext hunt;hunt.cropBase=0;hunt.passability.emplace();hunt.passability->fullMovementMasks=true;
             hunt.passability->cells.assign(51984,0);auto hunter=one;hunter.cell=2290;hunter.owner=9;
             auto prey=one;prey.type=76;prey.runtimeClass=OriginalFigureClass::Pheasant;prey.cell=2290;prey.slot=5;
@@ -982,6 +1082,13 @@ void authored(){
             "Watchtower frame wrap refuses unknown criminal count");
         context.services->criminalCount=1;need(!originalFigureFirstUpdate(watch,refs,&context,0xc0).state,
             "positive criminal count requires target search rather than taking the zero-count branch");
+        {auto returned=context;returned.services->criminalCount=0;returned.cropBase=8627;returned.activeSide=84;
+            returned.buildingOwners.assign(51984,0);returned.buildingOwners[watch.cell]=9;
+            auto entering=watch;entering.action=7;entering.frame=0;entering.freeRemainingX=entering.freeRemainingY=0;
+            entering.home=0;returned.figures[entering.slot]=entering;returned.cellHeads.assign(51984,0);returned.cellHeads[watch.cell]=uint16_t(watch.slot);
+            const auto home=originalFigureFirstUpdate(entering,refs,&returned,0xc0);
+            need(home.state&&home.state->alive==2&&home.state->frame==1&&home.state->hidden==1,
+                "Watchtower return free arrival reaches occupied owner cell and removes with its literal frame1");}
         auto school=watch;school.type=34;school.action=6;school.counter=1;school.owner=9;school.subX=100;school.subY=120;
         context.models[34]={};context.models[34][15]=30;context.buildings->at(9).type=0xd3;
         context.buildings->at(9).x=5;context.buildings->at(9).y=6;context.buildings->at(9).size=1;
@@ -1373,6 +1480,13 @@ void authored(){
         const auto arrival=originalFigureFirstUpdate(choosing,refs,&arrivalContext);
         need(arrival.state&&arrival.state->action==31&&arrival.state->idleCounter==0&&arrival.state->direction==8&&arrival.state->route==0,
             "Pheasant route exhaustion runs59F1C0, clears idle counter and selects action31 frame");
+        auto unreachable=choosing;unreachable.route=0;unreachable.destinationX=19;unreachable.destinationY=19;
+        arrivalContext.passability->cells.assign(51984,0);arrivalContext.passability->fullMovementMasks=true;arrivalContext.cropBase=base;
+        const auto failedRoute=originalFigureFirstUpdate(unreachable,refs,&arrivalContext);
+        need(failedRoute.state&&failedRoute.state->action==30&&failedRoute.state->direction==10&&failedRoute.state->route==0&&
+            failedRoute.state->x==unreachable.x&&failedRoute.state->idleCounter==unreachable.idleCounter&&
+            failedRoute.services->randomFirst==arrivalContext.services->randomFirst,
+            "Pheasant failed route enters action30 without moving or selecting another destination in the same call");
         context.passability->cells[base+11*229]=0;
         const auto retry=originalFigureFirstUpdate(bird,refs,&context);
         need(retry.state&&retry.services->randomFirst==0x44000001&&retry.state->destinationX==5&&retry.state->destinationY==11,
@@ -1631,7 +1745,36 @@ void authored(){
         need(!absent.state&&!absent.services&&!absent.buildings,"unknown capacity withholds tentative free-step and employment writes");
         context.houseCapacities[4]=41;house.residents=0;
         need(!originalFigureFirstUpdate(worker,refs,&context).state,"empty house notification virtual remains an explicit refusal");
-        house.residents=31;house.entertainment=std::array<uint8_t,3>{};
+        context.buildingEditMode=false;house.type=2;house.houseModel=0;context.houseCapacities[0]=3;worker.employmentAmount=4;
+        const auto settled=originalFigureFirstUpdate(worker,refs,&context);
+        need(settled.state&&settled.state->employmentAmount==3&&settled.buildings->at(8).type==3&&
+            settled.buildings->at(8).houseModel==0&&settled.buildings->at(8).residents==3&&settled.buildings->at(8).freeSlots==0,
+            "explicit nonedit empty-house arrival caps residents and invokes ordinary type3 model0 conversion");
+        context.buildingEditMode=true;const auto editing=originalFigureFirstUpdate(worker,refs,&context);
+        need(editing.state&&editing.buildings->at(8).type==2&&editing.buildings->at(8).residents==3&&editing.buildings->at(8).worker==0,
+            "explicit edit mode bypasses empty-house conversion while retaining capped arrival accounting and link cleanup");
+        context.buildingEditMode=false;
+        {auto general=group;general.version=213;general.numImages=512;general.bitmaps.resize(1);general.bitmaps[0].filename="China_Housing.bmp";
+            general.imageIndex[0x471&511]=300;auto& sprite=general.sprites[300];sprite.type=30;sprite.width=158;sprite.height=80;
+            sprite.uncompressedLength=12800;sprite.tileSize=2;sprite.animationSpriteCount=0;
+            OriginalBuildingPlacement p;p.footprint.slot=8;p.footprint.type=2;p.footprint.x=5;p.footprint.y=6;p.footprint.size=2;
+            p.footprint.imageInputs.emplace();p.footprint.imageInputs->randomByte=1;
+            p.components=*bindOriginalBuildingComponents(p.footprint,"DATA/China_General.sg3",general);p.binding=p.components.front().binding;
+            OriginalBuildingScene scene;scene.accepted=true;scene.surface.terrain.assign(51984,0);scene.surface.image.assign(51984,77);scene.placed={p};
+            auto initial=context;initial.terrain=scene.surface.terrain;initial.figures[2]=worker;
+            for(size_t slot=0;slot<2000;++slot)if(!initial.figures.count(slot)){OriginalFigure f;f.slot=slot;initial.figures.emplace(slot,f);}
+            OriginalSceneTimelineFrame frame;frame.animationClock=37;frame.admission.now=37;frame.admission.speed=80;frame.continueAfterPass={false};
+            const auto timeline=originalSceneTimeline(initial,refs,scene,general,nullptr,0,{}, {frame});
+            need(timeline.complete&&timeline.buildingImageReselections==1&&timeline.buildingHouses.at(8)==std::make_pair(uint16_t(3),int16_t(3)),
+                "empty-house worker conversion reselects the existing house component once in the shared timeline");
+            OriginalMapTerrain terrain;terrain.activeSide=84;terrain.flags=scene.surface.terrain;
+            OriginalFigureProfile saved;saved.live={worker};OriginalBuildingProfile buildings;buildings.slotTypes[8]=2;
+            need(installOriginalSceneTimeline(scene,terrain,saved,refs,buildings,general,timeline)&&scene.placed.front().footprint.type==3&&
+                scene.placed.front().footprint.imageInputs->word20==3&&scene.placed.front().binding.physicalId==301&&
+                scene.surface.image[10000]==((2u<<14)|100u)&&scene.surface.image[10001]==((2u<<14)|100u)&&
+                scene.surface.image[10228]==((2u<<14)|100u)&&scene.surface.image[10229]==((2u<<14)|100u),
+                "house conversion installs selector binding,resident input and every two-by-two footprint surface cell atomically");}
+        house.type=7;house.houseModel=4;house.residents=31;house.entertainment=std::array<uint8_t,3>{};
         auto loaded=*context.services;loaded.population->total=7;
         need(originalFigurePopulationAfterLoad(loaded,*context.buildings)&&loaded.population->total==31&&loaded.population->peak==997,
             "load recount replaces serialized total from accepting houses while preserving historical peak");
@@ -1822,7 +1965,7 @@ void corpus(){
     size_t k1Placed=0,k1Decoded=0,k1Hidden=0,k1Unsupported=0,k1Removed=0,k1Overlays=0,k1Animation=0,k1Objects=0;
     struct TimelineScore {size_t pools=0,computed=0,outcomes=0,allocated=0,placed=0,decoded=0,consistent=0,primary=0,animation=0,animationCandidates=0,animationAdvanced=0,animationChanged=0,reselected=0,prefixReselected=0;
         std::map<std::string,size_t> refusals;};
-    std::map<unsigned,TimelineScore> timelineScores,timelineUnseededScores;
+    std::map<std::pair<bool,bool>,std::map<unsigned,TimelineScore>> timelineScores;
     std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));need(save.readStable&&save.layers.figures.has_value(),"same-source stable figure profile");
@@ -1968,9 +2111,14 @@ void corpus(){
         const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,timelinePassability,
             &*hunterLinks,&*buildingLinks,*sourceModels,spawn->cropBase,timelineMasks,&*updateContext);
         need(initial.complete&&initial.context.has_value(),"timeline initializes callbacks/population exactly once");
-        for(bool suppliedCrt:{false,true})for(unsigned n:{1u,83u,84u,100u,150u,178u,192u,200u}){
+        std::map<std::pair<bool,bool>,OriginalSceneTimeline> checkpoints;
+        std::map<std::pair<bool,bool>,double> checkpointRuntime;
+        for(bool suppliedCrt:{false,true})for(unsigned n:timelineHorizons)for(bool audio:timelineAudio){
+            const auto key=std::make_pair(audio,suppliedCrt);const auto previous=checkpoints.find(key);
+            const unsigned completed=previous!=checkpoints.end()&&previous->second.complete?previous->second.updates:0;
+            const bool reusableFailure=previous!=checkpoints.end()&&!previous->second.complete;
             std::vector<OriginalSceneTimelineFrame> frames;
-            for(unsigned k=1;k<=n;++k){OriginalSceneTimelineFrame frame;frame.animationClock=37*k;
+            for(unsigned k=completed+1;!reusableFailure&&k<=n;++k){OriginalSceneTimelineFrame frame;frame.animationClock=37*k;
                 frame.admission.now=37*k;frame.admission.speed=80;frame.continueAfterPass={false};
                 for(const auto& p:timelineScene.placed)if(p.components.size()==1&&general.sprites[p.binding.physicalId-1].animationSpriteCount&&
                     originalBuildingAnimationEnabled(p.footprint,&*employment)==true)frame.buildingDraws.push_back(p.footprint.slot);
@@ -1981,32 +2129,77 @@ void corpus(){
             for(auto& frame:frames)for(unsigned diagonal=0;diagonal<2*save.terrain.activeSide-1;++diagonal)
                 for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
                     frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
-            auto timelineInitial=*initial.context;timelineInitial.soundEffectsEnabled=false;
+            auto timelineInitial=*initial.context;timelineInitial.soundEffectsEnabled=audio;timelineInitial.buildingEditMode=false;
             if(suppliedCrt)timelineInitial.crtRandom=1;else timelineInitial.crtRandom.reset();
+            auto checkpointScene=timelineScene;
+            if(completed){timelineInitial=*previous->second.context;
+                for(auto& p:checkpointScene.placed){const auto phase=previous->second.buildingPhases.find(p.footprint.slot);
+                    if(phase!=previous->second.buildingPhases.end())p.footprint.animationInputs->phase=phase->second;}}
             const auto start=std::chrono::steady_clock::now();
-            const auto timeline=originalSceneTimeline(timelineInitial,refs,timelineScene,general,&*employment,0,{},frames);
-            const auto runtime=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
-            const unsigned firstFailure[]={0,suppliedCrt?0u:178u,0,suppliedCrt?0u:85u,0,0};
-            const size_t firstSlot[]={0,suppliedCrt?0u:1669u,0,suppliedCrt?0u:1981u,0,0};
+            auto timeline=previous!=checkpoints.end()&&!previous->second.complete?previous->second:
+                originalSceneTimeline(timelineInitial,refs,checkpointScene,general,&*employment,
+                    completed?previous->second.admissionClock:0,completed?previous->second.animationClock:OriginalAnimationClock{},frames);
+            if(completed){timeline.updates+=completed;if(timeline.refusedUpdate)timeline.refusedUpdate+=completed;
+                timeline.frames+=previous->second.frames;timeline.buildingDraws+=previous->second.buildingDraws;
+                timeline.buildingAdvances+=previous->second.buildingAdvances;timeline.buildingImageReselections+=previous->second.buildingImageReselections;
+                timeline.preyDeaths+=previous->second.preyDeaths;timeline.preyCollections+=previous->second.preyCollections;
+                for(const auto& storage:previous->second.buildingStorage)if(!timeline.buildingStorage.count(storage.first))timeline.buildingStorage.insert(storage);
+                for(const auto& house:previous->second.buildingHouses)if(!timeline.buildingHouses.count(house.first))timeline.buildingHouses.insert(house);}
+            checkpointRuntime[key]+=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
+            const auto runtime=checkpointRuntime[key];checkpoints[key]=timeline;
+            if(audio){const auto off=checkpoints.find({false,suppliedCrt});if(off!=checkpoints.end()&&off->second.updates==timeline.updates){
+                need(off->second.complete==timeline.complete&&off->second.refusal==timeline.refusal&&
+                    off->second.lastPass.crtRandomCalls==timeline.lastPass.crtRandomCalls&&off->second.preyDeaths==timeline.preyDeaths&&
+                    off->second.preyCollections==timeline.preyCollections,"audio gate preserves pool completion,CRT calls and reached prey transitions");
+                if(timeline.context&&off->second.context)need(timeline.context->crtRandom==off->second.context->crtRandom&&
+                    timeline.context->services->randomFirst==off->second.context->services->randomFirst&&
+                    timeline.context->services->randomSecond==off->second.context->services->randomSecond&&
+                    timeline.context->services->allocationSerial==off->second.context->services->allocationSerial&&
+                    timeline.context->services->routeOwners==off->second.context->services->routeOwners&&
+                    timeline.context->services->directions==off->second.context->services->directions&&
+                    timeline.context->freeSlots==off->second.context->freeSlots&&timeline.context->allocatedSlots==off->second.context->allocatedSlots&&
+                    timeline.context->cellHeads==off->second.context->cellHeads&&timeline.buildingPhases==off->second.buildingPhases,
+                    "audio on/off retain identical saved/CRT RNG,figure cell ordering and building phases");
+                if(timeline.context&&off->second.context)for(const auto& e:timeline.context->figures){const auto& a=e.second;const auto& b=off->second.context->figures.at(e.first);
+                    need(std::tie(a.type,a.alive,a.action,a.counter,a.frame,a.image,a.secondaryImage,a.x,a.y,a.cell,a.next,a.subX,a.subY,
+                            a.direction,a.progress,a.route,a.routeCursor,a.routeLength,a.target,a.damage,a.attackerCount,a.attackers,a.owner,a.home,
+                            a.destinationCell,a.destinationX,a.destinationY,a.linkedBuilding,a.herdTarget,a.herdDistance,a.threat,a.threatDistance,
+                            a.idleCounter,a.cooldowns,a.flags120,a.age,a.routePhase,a.hidden,a.amount)==
+                        std::tie(b.type,b.alive,b.action,b.counter,b.frame,b.image,b.secondaryImage,b.x,b.y,b.cell,b.next,b.subX,b.subY,
+                            b.direction,b.progress,b.route,b.routeCursor,b.routeLength,b.target,b.damage,b.attackerCount,b.attackers,b.owner,b.home,
+                            b.destinationCell,b.destinationX,b.destinationY,b.linkedBuilding,b.herdTarget,b.herdDistance,b.threat,b.threatDistance,
+                            b.idleCounter,b.cooldowns,b.flags120,b.age,b.routePhase,b.hidden,b.amount),
+                        "audio on/off preserve every pool slot's movement,combat,links,images and animation state");}}}
+            const unsigned firstFailure[]={0,suppliedCrt?0u:178u,suppliedCrt?0u:314u,suppliedCrt?0u:85u,0,0};
+            const size_t firstSlot[]={0,suppliedCrt?0u:1669u,suppliedCrt?0u:285u,suppliedCrt?0u:1981u,0,0};
             const unsigned expected=firstFailure[sources-1];
-            auto& total=(suppliedCrt?timelineScores:timelineUnseededScores)[n];total.animationCandidates+=timelineScene.animationEnabled;
-            const size_t expectedReselections=sources==2?(n<19?0:n<27?1:suppliedCrt&&n>=196?3:2):sources==3?(n<=27?0:n==50?3:5):0;
+            auto& total=timelineScores[{audio,suppliedCrt}][n];total.animationCandidates+=timelineScene.animationEnabled;
+            const size_t expectedReselections=sources==2?(n<19?0:n<27?1:suppliedCrt&&n>=196?3:2):
+                sources==3?(n>=300?8:n<=27?0:n==50?3:5):sources==4&&suppliedCrt?(n>=1000?10:n>=500?7:0):0;
             need(timeline.buildingImageReselections==expectedReselections,
                 "timeline warehouse delivery and withdrawal reselect existing components exactly in the completed prefix");
             std::set<size_t> outcomeSlots;for(const auto& f:figures.live)outcomeSlots.insert(f.slot);
             for(size_t slot:timeline.lastPass.allocatedSlots)outcomeSlots.insert(slot);
+            if(n==200)need(timeline.preyDeaths==0&&timeline.preyCollections==0,"N200 prefix has no original prey death or collection");
             total.outcomes+=outcomeSlots.size();total.allocated+=timeline.lastPass.allocatedSlots.size();
-            std::cout<<"{\"timeline_source\":"<<sources<<",\"crt_seed\":\""<<(suppliedCrt?"explicit_1":"none")<<"\",\"requested_updates\":"<<n<<",\"complete\":"<<(timeline.complete?"true":"false")
+            std::cout<<"{\"timeline_source\":"<<sources<<",\"sound_effects\":"<<(audio?"true":"false")<<",\"crt_seed\":\""<<(suppliedCrt?"explicit_1":"none")<<"\",\"requested_updates\":"<<n<<",\"complete\":"<<(timeline.complete?"true":"false")
                 <<",\"completed_updates\":"<<timeline.updates<<",\"first_refused_update\":"<<timeline.refusedUpdate
                 <<",\"first_refused_slot\":"<<timeline.lastPass.firstBlockedSlot<<",\"refusal\":\""<<timeline.refusal
                 <<"\",\"building_image_reselections_in_completed_prefix\":"<<timeline.buildingImageReselections
                 <<",\"outcome_total\":"<<outcomeSlots.size()<<",\"allocated_slots\":"<<timeline.lastPass.allocatedSlots.size()
+                <<",\"prey_deaths_in_prefix\":"<<timeline.preyDeaths<<",\"prey_collections_in_prefix\":"<<timeline.preyCollections
                 <<",\"crt_rand_calls_in_prefix\":"<<timeline.lastPass.crtRandomCalls<<",\"runtime_seconds\":"<<runtime<<"}\n";
             need(timeline.complete==(!expected||n<expected)&&timeline.updates==(expected&&n>=expected?expected-1:n)&&
                 timeline.refusedUpdate==(expected&&n>=expected?expected:0)&&timeline.lastPass.firstBlockedSlot==(expected&&n>=expected?firstSlot[sources-1]:0),
                 "six original timelines retain independently recorded first refusal boundaries and stop there");
-            need(timeline.lastPass.crtRandomCalls==size_t(suppliedCrt&&((sources==4&&n>=85)||(sources==2&&n>=178))),
-                "timeline CRT consumption occurs only at source4 N85 and source2 N178 successful allocations");
+            const size_t expectedCalls=!suppliedCrt?0:sources==2?(n>=1000?5:n>=500?3:n>=300?2:n>=178?1:0):
+                sources==3?(n>=1000?4:n>=500?3:0):sources==4?(n>=500?2:n>=85?1:0):0;
+            need(timeline.lastPass.crtRandomCalls==expectedCalls&&timeline.lastPass.allocatedSlots.size()==expectedCalls,
+                "timeline original projectile allocations consume exactly the recorded CRT draws and retain their distinct outcome identities");
+            const size_t expectedPrey=!suppliedCrt?0:sources==2?(n>=1000?3:n>=500?2:n>=300?1:0):
+                sources==3?(n>=1000?2:n>=500?1:0):sources==4&&n>=500?1:0;
+            if(n==200||n==300||n==500||n==1000)need(timeline.preyDeaths==expectedPrey&&timeline.preyCollections==expectedPrey,
+                "original prey death and collection counts match each source and requested horizon independently of audio gate");
             if(!timeline.complete){need(!timeline.context,"failed timeline publishes no context from an earlier completed update");
                 total.prefixReselected+=timeline.buildingImageReselections;
                 for(size_t slot:outcomeSlots){const auto found=timeline.lastPass.figures.find(slot);
@@ -2026,6 +2219,9 @@ void corpus(){
                 if(sources==2)need(!timeline.context->figures.at(1702).alive&&
                     timeline.context->goods->trade7[25]==timelineInitial.goods->trade7[25]+100,
                     "original station return credits100 mode7 goods and removes type21 slot1702 before N200");}
+            if(n>=300&&sources==3){const auto& mill=timeline.context->buildings->at(101);
+                need(mill.incomingFigures==0&&mill.incomingAmount==0&&timeline.context->figures.at(278).amount==0,
+                    "original Mill101 delivery clears original-cargo reservations and carrier278 cargo by N300");}
             total.reselected+=timeline.buildingImageReselections;
             total.animationAdvanced+=timeline.buildingAdvances;
             for(const auto& p:timelineScene.placed){const auto found=timeline.buildingPhases.find(p.footprint.slot);
@@ -2240,7 +2436,8 @@ void corpus(){
     need(orderedBlockers.empty(),"ordered refusal names and counts partition exactly0/192 final states");
     need(k1Placed==185&&k1Decoded==201&&k1Hidden==6&&k1Removed==1&&k1Unsupported==0&&k1Overlays==274&&k1Animation==53&&k1Objects==20&&
         k1Placed+k1Hidden+k1Removed+k1Unsupported==192,"k1 scene partitions192 originals:185 placed,6 hidden,1 removed,0 special-placement refusals;274 overlays");
-    for(bool suppliedCrt:{false,true})for(const auto& row:(suppliedCrt?timelineScores:timelineUnseededScores)){
+    for(const auto& mode:timelineScores)for(const auto& row:mode.second){
+        const bool audio=mode.first.first,suppliedCrt=mode.first.second;
         const auto& t=row.second;size_t refused=0;for(const auto& r:t.refusals)refused+=r.second;
         const unsigned n=row.first;
         // Measured original corpus outcomes;authored tests above establish branch semantics.
@@ -2253,7 +2450,10 @@ void corpus(){
             {150,{5,160,192,0,133,146,134,50,2500,50,7,0}},
             {178,{4,114,192,0,91,99,91,28,1652,28,5,2}},
             {192,{4,114,192,0,87,95,87,28,1792,28,5,2}},
-            {200,{4,114,192,0,82,90,84,28,1848,28,5,2}}};
+            {200,{4,114,192,0,82,90,84,28,1848,28,5,2}},
+            {300,{4,114,192,0,72,77,72,28,2800,21,8,2}},
+            {500,{3,49,192,0,49,49,49,3,498,3,0,10}},
+            {1000,{3,49,192,0,49,49,49,3,999,3,0,10}}};
         auto measured=expectedTimeline.at(n);
         if(suppliedCrt&&n>=100){
             const std::map<unsigned,std::array<size_t,12>> seeded{
@@ -2261,7 +2461,10 @@ void corpus(){
                 {150,{6,193,193,1,165,178,166,53,2650,53,7,0}},
                 {178,{6,194,194,2,158,171,158,53,3127,53,7,0}},
                 {192,{6,194,194,2,153,165,153,53,3392,53,7,0}},
-                {200,{6,194,194,2,144,155,146,53,3498,53,8,0}}};measured=seeded.at(n);}
+                {200,{6,194,194,2,144,155,146,53,3498,53,8,0}},
+                {300,{6,195,195,3,128,136,128,53,5300,43,11,0}},
+                {500,{6,200,200,8,99,107,99,53,8798,53,18,0}},
+                {1000,{6,203,203,11,82,90,82,53,17649,53,21,0}}};measured=seeded.at(n);}
         need(std::array<size_t,12>{t.pools,t.computed,t.outcomes,t.allocated,t.placed,t.decoded,t.primary,t.animation,
             t.animationAdvanced,t.animationChanged,t.reselected,t.prefixReselected}==measured,
             "perN timeline output denominators and installed building consequences match recorded originals");
@@ -2272,7 +2475,9 @@ void corpus(){
             {"earlier_ordered_slot_uncomputed",10},{"later_ordered_slot_may_write_earlier_figure",21}};
         if(!suppliedCrt&&n>=178)expectedRefusals={{"crt_rand_state_required_wall_clock_seeded_not_in_sav",2},
             {"earlier_ordered_slot_uncomputed",37},{"later_ordered_slot_may_write_earlier_figure",28},{"prior_removed_outcome_withheld",11}};
-        std::cout<<"{\"timeline_N\":"<<row.first<<",\"crt_seed\":\""<<(suppliedCrt?"explicit_1":"none")<<"\",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"computed\":"<<t.computed
+        if(!suppliedCrt&&n>=500)expectedRefusals={{"crt_rand_state_required_wall_clock_seeded_not_in_sav",3},
+            {"earlier_ordered_slot_uncomputed",52},{"later_ordered_slot_may_write_earlier_figure",35},{"prior_removed_outcome_withheld",53}};
+        std::cout<<"{\"timeline_N\":"<<row.first<<",\"sound_effects\":"<<(audio?"true":"false")<<",\"crt_seed\":\""<<(suppliedCrt?"explicit_1":"none")<<"\",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"computed\":"<<t.computed
             <<",\"original_total\":192,\"outcome_total\":"<<t.outcomes<<",\"allocated_slots\":"<<t.allocated
             <<",\"placed\":"<<t.placed<<",\"decoded_components\":"<<t.decoded<<",\"primary_consistent\":"<<t.consistent
             <<",\"primary_total\":"<<t.primary<<",\"building_frames_decoded\":"<<t.animation<<",\"building_candidates\":"<<t.animationCandidates
@@ -2310,4 +2515,15 @@ void corpus(){
     bool first=true;for(const auto& t:blocked){if(!first)std::cout<<',';first=false;std::cout<<'"'<<t.first<<"\":"<<t.second;}std::cout<<"}}\n";
 }
 }
-int main(){try{authored();const size_t synthetic=checks;corpus();std::cout<<"{\"passed\":true,\"authored_checks\":"<<synthetic<<",\"all_checks\":"<<checks<<"}\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(int argc,char** argv){std::cout.setf(std::ios::unitbuf);try{
+    for(int i=1;i<argc;++i){const std::string option=argv[i];if(++i==argc)throw std::runtime_error("missing timeline option value");
+        const std::string value=argv[i];
+        if(option=="--timeline-audio"){if(value=="off")timelineAudio={false};else if(value=="on")timelineAudio={true};
+            else if(value=="both")timelineAudio={false,true};else throw std::runtime_error("invalid timeline audio");}
+        else if(option=="--timeline-horizons"){timelineHorizons.clear();std::istringstream input(value);std::string item;
+            while(std::getline(input,item,',')){size_t end=0;const auto n=std::stoul(item,&end);if(end!=item.size()||n<1||n>10000)throw std::runtime_error("invalid timeline horizon");timelineHorizons.push_back(unsigned(n));}
+            if(timelineHorizons.empty())throw std::runtime_error("empty timeline horizons");
+            std::sort(timelineHorizons.begin(),timelineHorizons.end());timelineHorizons.erase(std::unique(timelineHorizons.begin(),timelineHorizons.end()),timelineHorizons.end());}
+        else throw std::runtime_error("unknown figure test option");}
+    authored();const size_t synthetic=checks;corpus();std::cout<<"{\"passed\":true,\"authored_checks\":"<<synthetic<<",\"all_checks\":"<<checks<<"}\n";return 0;
+    }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -1,6 +1,130 @@
 # SAV19 figures on the city overlay layer
 
+## N300, N500 and N1000 with audio enabled, 2026-10-21
+
+This extension starts at `4d4634226da5036994c5fe28c379b7c2d10b5c2f`, reproduced at **638/638 authored and 10,029/10,029 total figure checks**. The six original saves contain 12,000 slots and 192 initially live outcomes. Outcome counts retain removed originals and add distinct successfully allocated slots. Only a pool completing the requested N contributes installed figures or building frames; a refused pool installs no earlier prefix.
+
+**Shared complete measured horizon N200→N1000 with explicit CRT state1:6/6 pools,203/203 outcomes at N1000.** The following before→after rows use the same requested horizons. All installed figure components decode, and all surviving primaries agree with the independent selector; component/primary cells below abbreviate equal numerator/denominator pairs. Placed figures use the outcome denominator in that row. Building frames use the fixed53-candidate denominator. Audio off/on have identical final results but different baseline limits.
+
+|N|CRT|Audio|Pools /6|Outcomes|Allocations|Placed/outcomes|Components decoded|Primaries consistent|Building frames /53|Installed reselections|
+|---:|---|---|---:|---|---:|---:|---:|---:|---:|---:|
+|200|none|both|4→4|114/192→114/192|0→0|82→82|90→90|84→84|28→28|5→5|
+|300|none|both|3→4|49/192→114/192|0→0|49→72|49→77|49→72|3→28|0→8|
+|500|none|both|3→3|49/192→49/192|0→0|49→49|49→49|49→49|3→3|0→0|
+|1000|none|both|3→3|49/192→49/192|0→0|49→49|49→49|49→49|3→3|0→0|
+|200|explicit1|off|6→6|194/194→194/194|2→2|144→144|155→155|146→146|53→53|8→8|
+|300|explicit1|off|4→6|82/194→195/195|2→3|81→128|81→136|81→128|6→53|0→11|
+|500|explicit1|off|3→6|49/194→200/200|2→8|49→99|49→107|49→99|3→53|0→18|
+|1000|explicit1|off|3→6|49/194→203/203|2→11|49→82|49→90|49→82|3→53|0→21|
+|200|explicit1|on|4→6|114/194→194/194|2→2|82→144|90→155|84→146|28→53|5→8|
+|300|explicit1|on|3→6|49/194→195/195|2→3|49→128|49→136|49→128|3→53|0→11|
+|500|explicit1|on|3→6|49/194→200/200|2→8|49→99|49→107|49→99|3→53|0→18|
+|1000|explicit1|on|3→6|49/194→203/203|2→11|49→82|49→90|49→82|3→53|0→21|
+
+For N200/300/500/1000, final building advances are1848/2800/498/999 without CRT and3498/5300/8798/17649 with explicit1. Changed final phases are28/21/3/3 and53/43/53/53. Withheld prefix reselections are2/2/10/10 and0/0/0/0. Explicit1 CRT draws and allocated identities total2/3/8/11; reached original prey death/collection pairs total0/0,1/1,4/4,6/6. At N1000 sources2/3/4 contribute3/3,2/2,1/1 respectively. The other sources contribute0/0. These counts describe native original-data continuations, not original executable output observations.
+
+The supplied timing remains speed80, one admitted update at `37k` milliseconds and a full active-crop figure/building draw per frame. Caller CRT state1 is a reproducible timeline-entry input, not a recovered SAV seed. CRT state stays absent by default and is required only when consumed. The new empty-house branch additionally requires the caller's `buildingEditMode`; the corpus explicitly supplies false, while the App leaves it absent. Saved snapshot remains the default. The library reads no environment, and original-data tests read only process-local `EMPEROR_GAMEDATA_ROOT`.
+
+Without CRT input, source4 refuses update85/slot1981, source2 refuses178/slot1669, and source3 now reaches314/slot285. Sources1/5/6 complete1000/1000. The exact long-horizon absent-CRT partition at N300 is78/192 =2 missing-CRT +37 earlier-slot +28 later-slot +11 prior-removed; N500/N1000 is143/192 =3 missing-CRT +52 earlier-slot +35 later-slot +53 prior-removed. No non-CRT blocker remains in these refused prefixes. The status strings are `crt_rand_state_required_wall_clock_seeded_not_in_sav`, `earlier_ordered_slot_uncomputed`, `later_ordered_slot_may_write_earlier_figure`, and `prior_removed_outcome_withheld`.
+
+|Source|Completed updates at requested N1000,CRT absent before→after|Explicit1/audio off before→after|Explicit1/audio on before→after|Final explicit1 outcomes|Final deaths/collections|
+|---:|---:|---:|---:|---|---:|
+|1|1000→1000|1000→1000|1000→1000|21/21,0 allocations|0/0|
+|2|177→177|217→1000|191→1000|51/51,5 allocations|3/3|
+|3|212→313|212→1000|212→1000|69/69,4 allocations|2/2|
+|4|84→84|305→1000|98→1000|34/34,2 allocations|1/1|
+|5|1000→1000|1000→1000|1000→1000|7/7,0 allocations|0/0|
+|6|1000→1000|1000→1000|1000→1000|21/21,0 allocations|0/0|
+
+Exact before→after refusal partitions below count outcomes, not updater calls. C=missing CRT, E=earlier slot, P=later slot, R=prior removed, D=`goods_delivery_arrival_virtual_4cd8f0`, I=`type_action_route_target_combat_update`, W=`worker_arrival_employment_building_writes_4c9fd0`, J=`projectile_allocation_or_collision_5ea510_5e6200`. The four C/E/P/R strings are expanded above.
+
+|N|CRT|Audio|Before refused outcomes|After refused outcomes|
+|---:|---|---|---|---|
+|200|none|both|78/192=2C+37E+28P+11R|same78/192|
+|300|none|both|143/192=2C+62E+1D+37P+41R|78/192=2C+37E+28P+11R|
+|500,1000|none|both|143/192=2C+62E+1D+37P+41R|143/192=3C+52E+35P+53R|
+|200|explicit1|off|0/194|0/194|
+|300|explicit1|off|112/194=29E+1D+33P+48R+1I|0/195|
+|500,1000|explicit1|off|145/194=29E+1D+64P+49R+1I+1W|0/200,0/203|
+|200|explicit1|on|80/194=66P+12R+2J|0/194|
+|300,500,1000|explicit1|on|145/194=25E+1D+75P+42R+2J|0/195,0/200,0/203|
+
+**Audio finding.** Both explicit `soundEffectsEnabled=false` and true are accepted for the reached impact and first-corpse calls. `4EA090/4EA1D0→5C4D00` read the existing `10C7138` playback-variation word, write the audio request at `1156D78..1156D88`, and call the Miles sample manager `762884`. Its sample selection, file/cache, pan, volume, loop and start operations do not advance saved-game or CRT RNG and do not write figure/building state. UI/audio predicates can suppress playback but cannot change the simulation result of these calls. The native timeline preserves that simulation behavior; it does not claim sound playback. An absent audio input retains its explicit refusal. The separate projectile-allocation path `4EA120→7665FD` still consumes exactly one CRT draw per successful allocation, including with audio disabled. This finding covers these reached calls, not every original sound or frame-loop consumer.
+
+**Ported continuations and provenance.** The owned executable SHA-256 is `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`. Every file-backed VA in this section maps to file offset VA−`0x400000`; analysis listings remain private.
+
+- Mill delivery `4CC3CE→555230→5DB4C0→5D4E80` accepts only food resources1..9 and uses the existing per-unit storage/policy/accounting path. `4E2A20` debits the original cargo from incoming reservations without clamping before handling any retained cargo. Source3 reaches this at update213; Mill101 and carrier278 are checked after delivery.
+- Trader action9 `4CE95C..4CE997` handles entry arrival, route release and removal. Cleanup `4C8CA9..4C8D42` clears the first matching serialized empire trader slot and active word. Grid15 runtime+44 carries three signed slots, and runtime+76 carries the active word (`43E7F1/43E880`). Station `currentTrader` at runtime+160 is explicitly reconstructed null: constructor `5DDBDC` clears it and the complete load chain `5E1510→5DDC60→5D5BC0→5D4890→51CE00` does not restore it. This is a constructor/load fact, not a guessed permanent zero. Crew orphan continuation `4CF380/4E7460` still moves before its removal/death image.
+- Empty-house worker arrival `4CA203..4CA24F→518DE0` caps the arriving amount, converts an ordinary house to type3/model0 when not editing, and carries residents/population/link writes. `D62408` has no established SAV/load reset and stays optional. The shared timeline reruns the existing house selector and installs its component binding and every footprint surface cell atomically; no new house-image formula is added.
+- Hunter positive countdown `4D31E1..4D3214` holds within distance2, retaining the attack frame and selecting its static attack image. The cell-entry qualification uses the cited zero relation bytes at `84E578` rows0..2,column6. Death and collection carry the earlier damage/formation semantics and reciprocal route cleanup. Animal cleanup `4C909E` tests the nonzero runtime+64 timer and clears the owner building's runtime+32 word, including owner slot0. The figure consumer now frames Building slot0's common5 wire45 instead of inventing that field or dropping the write.
+- Watchtower actions7/8/9 `4D3B50` carry owner-road return, the final same-call roam step, route-segment services and primary/embedded-link cleanup through the existing callbacks. Pheasant failed-route direction10 follows `59F4C3→4E1B00→59F540`, entering action30 without choosing another destination in that call. Hunter projectiles traverse occupied building cells; `5E646A` has no type40 building-impact case, and `5E658F` bypasses the empty-cell lifetime clamp when a building owns the arrival cell. The intervening scenario/network/damage queries are read-only in this branch.
+
+**Validation and reproduction.** The authored suite grows638→662 checks. The default figure target now checks all eleven horizons1/83/84/100/150/178/192/200/300/500/1000, both CRT modes and both audio gates. Every final aggregate, per-source refusal boundary, allocation/CRT count and reached prey count is asserted; there is no long-horizon acceptance bypass. Audio pairs compare the full2000-slot movement/combat/link/image state plus saved/CRT RNG, route storage, allocator/FIFO, cell heads and building phases. Corpus prefixes are checkpointed between increasing horizons, retaining clocks, selector changes and accounting; a failed prefix is diagnostic only and cannot install as a later requested frame.
+
+Final Release and UBSan each pass662/662 authored and251,301/251,301 total assertions. The increased total includes per-slot audio comparisons over the complete matrix and is not a like-for-like progress measure against10,029. All44/44 aggregate rows and264/264 source/horizon/input/audio rows agree exactly between builds and are retained in private JSON. Each long-horizon result has explicit computed/refused/outcome closure; original-data progress is the table above.
+
+Required dependent Release/UBSan checks pass at the original counts: building-scene244 authored/7,663 total; building-image1,283/3,880; saved-ground110/1,928; SAV94/94; map-reference3,130/3,130. CITY19 Figure7 passes912/912 across456 cases per mode, and Pheasant properties46/46. Four unset/empty-root controls pass662/662 authored checks with original-data SKIP. Twenty new/retargeted mutations and five additional retained CRT/corpse/collection/projectile mutations fail at their intended assertions. The figure timeline bite target has82 individually unique mutation sites; this extension does not claim a fresh full82-mutation run. These authored checks do not increase original-data coverage.
+
+The fresh private App `a-app-handoff/EmperorApp.app` compiles28 translation units, matches99/99 embedded production-source hashes and passes `codesign --verify --deep --strict`; it was not launched. A fresh k1 Release/UBSan integration also passes against the concurrent additive building-input helper. The retained input manifest check passes238/238 SAV/MAP/model files. Source tests and derived App/build evidence stay outside GameData. Listings, original assets, captures and binaries remain outside Git. Work remains uncommitted for lead review; no commit, push, stash or reset is performed by implementer A. Concurrent lead/other-implementer commits are separate from this nine-file diff.
+
+```sh
+EMPEROR_GAMEDATA_ROOT="$PWD/GameData" python3 scripts/figure_scene.py --mode release --build-dir "$task_evidence/release"
+EMPEROR_GAMEDATA_ROOT="$PWD/GameData" python3 scripts/figure_scene.py --mode undefined --build-dir "$task_evidence/undefined"
+```
+
+Use a fresh absolute private `task_evidence` outside GameData. `--timeline-horizons 200,300,500,1000 --timeline-audio off|on|both` selects a measurement subset; defaults retain the complete regression matrix. Private `a-*` evidence under the approved OpenCode temporary directory records baseline, final runs, exact source hashes, per-source runtimes and before/after JSON. Aggregate tables above are independent of runtime sampling; timings are cumulative checkpoint costs for each source/mode, including failed-prefix work, not isolated benchmarks.
+
+Final Release cumulative source runtimes, seconds, use the complete default horizon matrix. Absent-CRT sources2/4 reuse their already-refused prefix at all three requested horizons; source3 refuses314 after completing300. Every source completes the explicit1 horizons in both audio modes.
+
+|Source|N|CRT absent/audio off|CRT absent/audio on|Explicit1/audio off|Explicit1/audio on|
+|---:|---:|---:|---:|---:|---:|
+|1|300|11.190|10.706|9.619|9.998|
+|1|500|17.107|16.972|16.570|16.204|
+|1|1000|35.457|33.149|30.835|26.721|
+|2|300|12.953|14.372|25.201|25.483|
+|2|500|12.953|14.372|33.761|34.209|
+|2|1000|12.953|14.372|43.935|45.923|
+|3|300|26.549|26.160|27.353|27.734|
+|3|500|27.160|26.806|36.243|35.514|
+|3|1000|27.160|26.806|44.600|43.913|
+|4|300|3.802|4.571|15.973|16.312|
+|4|500|3.802|4.571|24.647|24.753|
+|4|1000|3.803|4.571|40.083|39.011|
+|5|300|0.962|0.984|1.060|1.066|
+|5|500|1.619|1.629|1.662|1.617|
+|5|1000|3.248|3.274|3.018|2.991|
+|6|300|7.012|6.552|7.041|6.662|
+|6|500|11.277|10.897|11.296|11.626|
+|6|1000|22.229|22.285|24.501|22.404|
+
+Final UBSan cumulative source runtimes, seconds, use the same columns and checkpoint accounting:
+
+|Source|N|CRT absent/audio off|CRT absent/audio on|Explicit1/audio off|Explicit1/audio on|
+|---:|---:|---:|---:|---:|---:|
+|1|300|31.001|33.102|32.579|33.447|
+|1|500|50.885|48.616|52.548|56.600|
+|1|1000|104.030|103.289|107.105|110.761|
+|2|300|35.441|33.908|47.350|46.379|
+|2|500|35.441|33.908|62.537|62.160|
+|2|1000|35.441|33.908|82.719|82.109|
+|3|300|43.642|44.636|50.454|51.405|
+|3|500|44.684|45.681|64.680|64.907|
+|3|1000|44.684|45.681|79.725|79.632|
+|4|300|8.811|8.819|32.363|32.366|
+|4|500|8.811|8.819|50.144|50.286|
+|4|1000|8.811|8.819|86.591|85.849|
+|5|300|2.431|2.489|2.539|2.491|
+|5|500|4.132|4.275|4.178|4.139|
+|5|1000|8.324|8.334|8.383|8.305|
+|6|300|20.972|21.194|21.185|21.375|
+|6|500|34.224|34.553|34.477|35.492|
+|6|1000|69.954|68.725|69.808|69.463|
+
+The original game was not run, no disassembly/decompilation was declined, no original future-frame oracle was used, and no constants were fitted. These are native computed continuations under explicit inputs and independent selector consistency. Original post-update/screen agreement remains **unmeasured**. Building/city generation outside the bounded figure/admission/draw timeline remains outside this measurement. STATUS.md and commits remain owned by the lead.
+
 ## Retained cargo and live impact,2026-10-21
+
+Historical measurements below describe the preceding extension; the N300/N500/N1000 section above supersedes its horizon and audio limits.
 
 **Largest measured shared horizon N83→N200 with explicit CRT state1:6/6 pools,194/194 outcomes.** N200 installs144/194 placed figures,155/155 decoded figure components,146/146 consistent surviving primaries,53/53 building frames and8 building image re-selections. Without CRT input,N200 improves3/6→4/6 complete pools and49/192→114/192 computed outcomes. The shared no-CRT horizon advances83→84;source4 still requires caller CRT state at85 and source2 at178. The named retained-cargo and positive-impact blockers are removed within the measured200;STATUS.md remains owned by the lead.
 

@@ -24,11 +24,13 @@ struct OriginalSceneTimeline {
     unsigned updates=0,refusedUpdate=0;
     size_t frames=0,buildingDraws=0,buildingAdvances=0;
     size_t buildingImageReselections=0;
+    size_t preyDeaths=0,preyCollections=0;
     uint32_t admissionClock=0;
     OriginalAnimationClock animationClock;
     std::map<size_t,uint8_t> buildingPhases;
     std::optional<OriginalFigureUpdateContext> context;
     std::map<size_t,std::vector<OriginalStorageCompartment>> buildingStorage;
+    std::map<size_t,std::pair<uint16_t,int16_t>> buildingHouses; //518DE0 type conversion and resident selector input.
     OriginalFigureOrderedPass lastPass;
     std::string refusal;
 };
@@ -84,9 +86,21 @@ inline OriginalSceneTimeline originalSceneTimeline(const OriginalFigureUpdateCon
             if(!out.lastPass.complete||!out.lastPass.context){out.refusedUpdate=out.updates+1;
                 out.refusal=out.lastPass.firstBlockedSlot?originalFigureUpdateStatusName(out.lastPass.figures.at(out.lastPass.firstBlockedSlot).status):"ordered_pool_inputs";
                 return out;}
+            for(const auto& e:context.figures){const auto& before=e.second;const auto& after=out.lastPass.context->figures.at(e.first);
+                if(before.type==76&&before.alive==1&&before.action!=10&&after.action==10)++out.preyDeaths;
+                if(before.type==40&&before.action==9&&after.type==40&&after.action==8&&before.target>0){
+                    const auto prey=context.figures.find(size_t(before.target));
+                    if(prey!=context.figures.end()&&prey->second.type==76&&prey->second.action==10)++out.preyCollections;}}
             if(context.buildings&&out.lastPass.context->buildings)for(const auto& p:scene.placed){
                 const auto before=context.buildings->find(p.footprint.slot),after=out.lastPass.context->buildings->find(p.footprint.slot);
-                if(before==context.buildings->end()||after==out.lastPass.context->buildings->end()||!after->second.storage)continue;
+                if(before==context.buildings->end()||after==out.lastPass.context->buildings->end())continue;
+                if(before->second.type>=2&&before->second.type<18&&
+                    before->second.type!=after->second.type){
+                    auto footprint=p.footprint;if(!footprint.imageInputs){out.refusal="house_image_inputs";return out;}
+                    footprint.type=after->second.type;footprint.imageInputs->word20=after->second.residents;
+                    if(!bindOriginalBuildingComponents(footprint,"DATA/China_General.sg3",general)){out.refusal="house_image_reselection";return out;}
+                    out.buildingHouses[p.footprint.slot]={after->second.type,after->second.residents};++out.buildingImageReselections;}
+                if(!after->second.storage)continue;
                 bool changed=!before->second.storage||before->second.storage->size()!=after->second.storage->size();
                 if(!changed)for(size_t k=0;k<after->second.storage->size();++k){const auto& a=before->second.storage->at(k);const auto& b=after->second.storage->at(k);
                     changed|=a.resource!=b.resource||a.amount!=b.amount;}
@@ -122,6 +136,16 @@ inline bool installOriginalSceneTimeline(OriginalBuildingScene& scene,const Orig
     const size_t outcomes=saved.live.size()+timeline.context->allocatedSlots.size();
     if(updated.live.size()>outcomes)return false;
     auto next=scene;
+    for(auto& p:next.placed){const auto house=timeline.buildingHouses.find(p.footprint.slot);if(house==timeline.buildingHouses.end())continue;
+        if(!p.footprint.imageInputs||!timeline.context->cropBase)return false;
+        p.footprint.type=house->second.first;p.footprint.imageInputs->word20=house->second.second;
+        const auto components=bindOriginalBuildingComponents(p.footprint,"DATA/China_General.sg3",general);if(!components)return false;
+        p.components=*components;p.binding=components->front().binding;
+        if(p.binding.physicalId<201)return false;
+        for(unsigned y=0;y<originalFootprintHeight(p.footprint);++y)for(unsigned x=0;x<originalFootprintWidth(p.footprint);++x){
+            const size_t cell=*timeline.context->cropBase+(p.footprint.y+y)*228+p.footprint.x+x;
+            if(cell>=next.surface.image.size())return false;
+            next.surface.image[cell]=(p.binding.tileset<<14)|(p.binding.physicalId-201);}}
     for(auto& p:next.placed){const auto storage=timeline.buildingStorage.find(p.footprint.slot);if(storage==timeline.buildingStorage.end())continue;
         if(!p.footprint.imageInputs||!timeline.context->cropBase)return false;
         p.footprint.imageInputs->compartments=storage->second;

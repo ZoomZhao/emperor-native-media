@@ -286,7 +286,9 @@ struct OriginalFigureUpdateContext {
     // prey without selecting its image again (4D31DE..4D321C).
     std::map<size_t,OriginalFigureImageInputs> primaryImageInputs;
     std::optional<int32_t> roadblockGate; //1032664;4E7F6E clears after route following.
-    std::optional<bool> soundEffectsEnabled; //10DE0D3,5C4D29:explicit false bypasses all UI/audio reads;unknown/true refuses impact.
+    std::optional<bool> soundEffectsEnabled; //10DE0D3,5C4D29:explicit caller gate;both branches are simulation-neutral (5C4DFE reads RNG without advancing it).
+    std::optional<std::array<OriginalFigureProfile::EmpireTraderSlots,22>> empireTraders;
+    std::optional<bool> buildingEditMode; //D62408,4CA226:caller input,not a recovered SAV/reset value.
     std::vector<uint8_t> roadNetworks; //4AF350/4AF490 post-load EC5A10 component labels.
 };
 //534EBA rebuilds EC5A10:row-major road seeds,cardinal B0C traversal,
@@ -348,7 +350,7 @@ inline std::optional<OriginalFigureRouteDirection> originalFigureSavedRouteDirec
 }
 inline std::optional<OriginalFigureUpdateContext> originalFigureUpdateContext(const OriginalFigureProfile& profile){
     if(profile.status!=OriginalFigureStatus::Complete||profile.declared!=2000||profile.parsed!=2000||profile.slots.size()!=2000)return std::nullopt;
-    OriginalFigureUpdateContext out;out.view=profile.savedView;out.cellHeads=profile.cellHeads;out.factionModels=profile.factionModels;
+    OriginalFigureUpdateContext out;out.view=profile.savedView;out.cellHeads=profile.cellHeads;out.factionModels=profile.factionModels;out.empireTraders=profile.empireTraders;
     for(auto f:profile.slots){
         if(f.slot>=2000)return std::nullopt;
         f.image=f.secondaryImage=0;
@@ -652,6 +654,8 @@ inline OriginalFigureUpdateStatus originalFigureCrossCell(OriginalFigure& f,Orig
                 // model attack columns5/2 zero return before relation lookup.
                 if(next.type==76&&other.type==76&&model!=context.models.end()&&model->second[2]==0&&model->second[5]==0)continue;
                 const auto otherModel=context.models.find(other.type);
+                if(next.type==40&&other.type==76&&model!=context.models.end()&&otherModel!=context.models.end()&&
+                    model->second[0]>=0&&model->second[0]<=2&&otherModel->second[0]==6)continue; //84E578 rows0..2,col6=0 after Hunter attack qualification.
                 const auto ordinary=[](unsigned type){switch(type){case 11:case 13:case 19:case 20:case 21:case 22:case 23:case 26:
                     case 28:case 29:case 30:case 34:case 35:case 36:case 39:case 40:case 45:case 47:return true;default:return false;}};
                 //84E578+12*category+other: rows1/2 columns0/1/2 are0.
@@ -682,10 +686,10 @@ inline OriginalFigureMovement originalFigureFollowRouteInContext(const OriginalF
             if(!context)return {OriginalFigureUpdateStatus::RouteBoundary,{}};
             //0x4EACD0: table service category-1 means no service-grid write.
             // A present owner needs the cited zero-return virtual chain below.
-            if(f.type==39||f.type==28||f.type==23||f.type==30||f.type==35||f.type==36){if(!originalFigureEntertainmentSegment(f,*context))return {OriginalFigureUpdateStatus::SegmentService,{}};}
+            if(f.type==39||f.type==29||f.type==28||f.type==23||f.type==30||f.type==35||f.type==36){if(!originalFigureEntertainmentSegment(f,*context))return {OriginalFigureUpdateStatus::SegmentService,{}};}
             else if(f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=26&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=76)
                 return {OriginalFigureUpdateStatus::SegmentService,{}};
-            if(f.owner&&f.type!=39&&f.type!=28&&f.type!=23&&f.type!=30&&f.type!=35&&f.type!=36&&f.type!=26){if(!context->buildings)return {OriginalFigureUpdateStatus::SegmentService,{}};
+            if(f.owner&&f.type!=39&&f.type!=29&&f.type!=28&&f.type!=23&&f.type!=30&&f.type!=35&&f.type!=36&&f.type!=26){if(!context->buildings)return {OriginalFigureUpdateStatus::SegmentService,{}};
                 const auto owner=context->buildings->find(size_t(f.owner));
                 // Individually cited ordinary owner vtables:+28=429DF0,
                 // +2C=42A210 returns0;4EACD0 still caps signed+1C at300.
@@ -1076,12 +1080,13 @@ inline std::optional<unsigned> originalFigureStorageWithdraw(OriginalFigureBuild
 // rebinds changed compartments; no stock-based image formula is added here.
 inline std::optional<unsigned> originalFigureWarehouseDeliver(OriginalFigureBuildingLink& b,unsigned resource,
     unsigned amount,OriginalFigureGoodsServices& goods){
-    if((b.type!=0x36&&b.type!=0x3a)||!b.storage||b.storage->size()!=(b.type==0x36?8:15)||!b.storagePolicy||*b.storagePolicy>=goods.policies.size()||resource>28||amount>32767)return std::nullopt;
+    if((b.type!=0x35&&b.type!=0x36&&b.type!=0x3a)||!b.storage||b.storage->size()!=(b.type==0x3a?15:8)||!b.storagePolicy||*b.storagePolicy>=goods.policies.size()||resource>28||amount>32767)return std::nullopt;
+    if(b.type==0x35&&(resource<1||resource>9))return 0; //7B72C8+154=555230->5DB4C0 food-only gate.
     for(const auto& c:*b.storage)if(c.capacity!=400||c.amount>400||c.resource>28||(!c.resource&&c.amount))return std::nullopt;
     if((b.alive!=1&&b.alive!=3)||b.workers<=0||b.suppress)return 0;
     const auto& policy=goods.policies[*b.storagePolicy];
     const auto stock=[&](unsigned r){unsigned n=0;for(const auto& c:*b.storage)if(c.resource==r&&c.resource)n+=c.amount;return n;};
-    const auto rejects=[&](unsigned r,unsigned n){return (b.type==0x36?(policy.accept[r]!=0&&policy.accept[r]!=2):(policy.trade[r]!=5&&policy.trade[r]!=7))||
+    const auto rejects=[&](unsigned r,unsigned n){return (b.type!=0x3a?(policy.accept[r]!=0&&policy.accept[r]!=2):(policy.trade[r]!=5&&policy.trade[r]!=7))||
         (n?int64_t(stock(r))+n>policy.limit[r]:int64_t(stock(r))>=policy.limit[r]);};
     if(rejects(resource,0))return 0;
     unsigned withheld=0;
@@ -1093,7 +1098,7 @@ inline std::optional<unsigned> originalFigureWarehouseDeliver(OriginalFigureBuil
             if(((c.resource==0&&c.amount==0)||c.resource==resource)&&c.amount<c.capacity&&int(c.amount)>maximum){maximum=int(c.amount);selected=k;}}
         if(selected==b.storage->size())return 0; //original retains partial bay/accounting writes but returns0.
         auto& c=b.storage->at(selected);
-        if(b.type==0x36)++goods.warehouse[resource];
+        if(b.type!=0x3a)++goods.warehouse[resource];
         else if(policy.trade[resource]==7)++goods.trade7[resource];else if(policy.trade[resource]==5)++goods.trade5[resource];
         c.resource=resource;++c.amount;
     }
@@ -1297,9 +1302,13 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
     }else if(f.type==19&&(f.action==10||f.action==11)){
         f.counter=originalFigureWord(int(f.counter)+1);f.frame=0;
         if(f.counter>=(f.action==10?11:6)){out.status=OriginalFigureUpdateStatus::GoodsArrival;
-            if(f.action!=10||!local.buildings||!local.goods)return out;
+            if(!local.buildings||!local.goods)return out;
             auto destination=local.buildings->find(size_t(f.delivery));if(destination==local.buildings->end())return out;
+            if(destination->second.type!=(f.action==11?0x35:0x36))return out;
             const auto delivered=originalFigureWarehouseDeliver(destination->second,f.subtype,unsigned(uint16_t(f.amount)),*local.goods);if(!delivered)return out;
+            if(f.action==11){ //4E2A99..AE0:Mill reservation counters subtract the original cargo,without clamping.
+                destination->second.incomingFigures=originalFigureWord(int(destination->second.incomingFigures)-1);
+                destination->second.incomingAmount=originalFigureWord(int(destination->second.incomingAmount)-f.amount);}
             //4E2A20:Warehouse+C8(-8)=false,+D8=false,so no incoming
             //counter write.4E2B17 subtracts only the accepted amount and
             //searches with the remaining cargo;failure enters6,not home13.
@@ -1403,9 +1412,11 @@ inline OriginalFigureFirstUpdate originalWorkerFirstUpdate(const OriginalFigure&
             auto& house=local.buildings->at(size_t(f.home));
             const auto capacity=context->houseCapacities.find(house.type==11?11:house.houseModel);
             if(capacity==context->houseCapacities.end()||!house.laborDisabled)return out;
-            // Empty-house arrival invokes notification virtual+230; its broader
-            // event effects remain refused. An occupied house bypasses it.
-            if(!house.residents)return out;
+            if(!house.residents){ //4CA203..24F:cap arriving residents,then+230=518DE0 unless editing.
+                if(!local.buildingEditMode)return out;
+                f.employmentAmount=uint8_t(std::min<int>(f.employmentAmount,std::max(0,capacity->second)));
+                if(!*local.buildingEditMode){if(house.type<2||house.type>10)return out;
+                    house.type=3;house.houseModel=0;}} //518DE0 ordinary family;existing selector supplies its image.
             f.alive=2;
             if(!*house.laborDisabled){if(!local.services||!local.services->population)return out;
                 house.residents=originalFigureWord(int(house.residents)+f.employmentAmount);
@@ -1515,6 +1526,7 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
         if(f.action==12){auto draw=f;draw.frame=0;if(!originalFigureWriteWalkingImage(draw,code,archives,context->view)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}f.image=draw.image;}
         else if(!originalFigureWriteWalkingImage(f,code,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     }else if(f.action==7||f.action==9||f.action==10){
+        bool nearby=false;
         if(f.action==7){const auto target=context->figures.find(size_t(f.target));const auto model=context->models.find(40);
             if(target==context->figures.end()||model==context->models.end()||model->second[6]==INT32_MIN)return out;
             const auto& t=target->second;
@@ -1533,11 +1545,11 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
                     f.next=local.figures.at(f.slot).next;
                     if(!originalFigureWriteWalkingImage(f,0x4ec0,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
                     originalFigurePublishWrites(out,f,*context,local);return out;}}
-            if(distance<=2)return out;code=0x4ebf;
+            nearby=distance<=2;code=nearby?0x4ec0:0x4ebf;
         }else code=f.action==10?0x4ec2:0x4ebe;
         const auto speed=context->modelSpeeds.find(40);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
-        const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
-        if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
+        if(!nearby){const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+            if(!movement.state){out.status=movement.status;return out;}f=*movement.state;}
         if((f.direction==9||f.direction==8)&&f.action==7){ //4D3249/4D3299:retarget a still-qualified prey after route end.
             const auto target=local.figures.find(size_t(f.target));if(target==local.figures.end()||!local.services)return out;
             f.destinationX=target->second.x;f.destinationY=target->second.y;
@@ -1554,16 +1566,19 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
             b.hunterReturnGoods=originalFigureWord(int(b.hunterReturnGoods)+50);f.alive=2;}
         else if(f.direction==10)f.alive=2;
         else if(f.direction>=8)return out;
-        if(!originalFigureWriteWalkingImage(f,code,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+        if(nearby){auto draw=f;draw.frame=0;if(!originalFigureWriteWalkingImage(draw,code,archives,context->view)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}f.image=draw.image;}
+        else if(!originalFigureWriteWalkingImage(f,code,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     }else return out;
     originalFigurePublishWrites(out,f,*context,local);return out;
 }
 //4E5A60 Hunter->Pheasant only.54B930 is an executable stub returning-1,
 //so neither formation relation modifier applies.4EA090/4EA1D0 reach5C4D00 with
-//categories6/5 and consume no CRT rand.10DE0D3=false proves the audio gate.
+//categories6/5.5C4D00..5C4EA1 reads existing10C7138 for playback variation,
+//writes only audio request1156D78..88 and calls762884 (Miles sample state).
+//Neither gate value advances saved/CRT RNG or writes figure/building state.
 inline bool originalFigureHunterImpact(OriginalFigure& hunter,OriginalFigure& prey,OriginalFigureUpdateContext& context){
     if(hunter.type!=40||prey.type!=76||prey.alive!=1||prey.action==4||prey.action==10||
-        !context.soundEffectsEnabled||*context.soundEffectsEnabled||!context.services)return false;
+        !context.soundEffectsEnabled||!context.services)return false;
     const auto attack=context.models.find(40),defense=context.models.find(76);
     if(attack==context.models.end()||defense==context.models.end()||attack->second[2]==INT32_MIN||
         defense->second[1]==INT32_MIN||defense->second[3]==INT32_MIN)return false;
@@ -1577,7 +1592,8 @@ inline bool originalFigureHunterImpact(OriginalFigure& hunter,OriginalFigure& pr
             if(context.services->routeOwners[hunter.route]==int(hunter.slot))context.services->routeOwners[hunter.route]=0;hunter.route=0;}}
     return true;
 }
-//5E6200 type54 ordinary shooter branch. Building impacts remain refused.
+//5E6200 type54 Hunter shooter branch. Building impact switch5E646A has
+//no type40 case; an occupied cell also bypasses the final lifetime clamp.
 inline OriginalFigureFirstUpdate originalProjectileFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context){
     OriginalFigureFirstUpdate out;out.updaterVA=0x5e6200;out.status=OriginalFigureUpdateStatus::Projectile;
@@ -1590,7 +1606,7 @@ inline OriginalFigureFirstUpdate originalProjectileFirstUpdate(const OriginalFig
     f.freeMovement=1;bool arrived=false;
     for(unsigned n=0;n<7;++n){const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;
         if(moved->second){arrived=true;break;}}
-    if(f.cell>=51984||local.buildingOwners[f.cell])return out;
+    if(f.cell>=51984)return out;
     if(arrived){ //5E34D0 has no soldier in this bounded cell;5E3400 first eligible candidate.
         std::set<size_t> seen;
         //The soldier query precedes the ordinary query even when an animal is
@@ -1613,7 +1629,7 @@ inline OriginalFigureFirstUpdate originalProjectileFirstUpdate(const OriginalFig
                 f.alive=2;++f.projectileHits;break; //40E630(18) is an executable stub.
             }
             slot=other.next;}
-        f.home=std::max<int16_t>(f.home,int16_t(10*(3*range/4)-10));}
+        if(!local.buildingOwners[f.cell])f.home=std::max<int16_t>(f.home,int16_t(10*(3*range/4)-10));} //5E658F:Hunter40 has4E2510=false.
     //5E670F default shooter40:32-direction code1C6D;secondary1C6C
     //uses a copy of the already advanced primary counter.
     const auto group=originalFigureImageGroup(0x1c6d,archives),secondary=originalFigureImageGroup(0x1c6c,archives);
@@ -1813,6 +1829,22 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
         if(!originalFigureWriteWalkingImage(f,0x4c09,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
         originalFigurePublishWrites(out,f,*context,local);return out;
     }
+    if(f.type==29&&(f.action==7||f.action==9||(f.action==8&&f.roamSteps>=f.roamLimit))){ //4D3B50 action7/8/9 return continuations.
+        f.frame=uint8_t(f.frame+1);if(f.frame>11){f.frame=0;
+            if(!local.services||!local.services->criminalCount||*local.services->criminalCount>0)return out;}
+        if(f.action==8){const auto road=originalFigureMusicRoad(owner->second,local);if(!road)return out;
+            if(!*road)f.alive=2;else {f.action=9;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;
+                if(f.route>0){if(!local.services||f.route>=1000)return out;if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+            const auto moved=originalFigureRoam(f,unsigned(speed->second),terrainFlags,local);if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
+        }else if(f.action==9){const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+            if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
+            if(f.direction==8){f.action=7;f.destinationX=owner->second.x;f.destinationY=owner->second.y;originalFigureFreeTarget(f);f.roamSteps=0;}
+            else if(f.direction==9||f.direction==10)f.alive=2;else if(f.direction>7)return out;
+        }else {f.frame=1;f.freeMovement=f.hidden=1;const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;
+            if(moved->second){if(local.buildingOwners.size()!=51984)return out;
+                if(local.buildingOwners[f.cell]==f.owner)f.alive=2;else {f.action=8;if(!originalFigureBeginRoam(f,local))return out;f.roamSteps=0;}}}
+        if(!originalFigureWriteWalkingImage(f,0x4c1b,archives,context->view)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+        originalFigurePublishWrites(out,f,*context,local);return out;}
     f.frame=uint8_t(f.frame+1);if(f.frame>11){f.frame=0;
         if(f.type==29&&(!local.services||!local.services->criminalCount||*local.services->criminalCount>0))return out;}
     if(f.type==23||f.type==28){if(f.action!=1&&f.action!=2)return out;
@@ -1883,11 +1915,17 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
         if(f.action!=9||follower==context->figures.end()||!live(follower->second))return out;
         const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;
         const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
-        if(!moved.state){out.status=moved.status;return out;}f=*moved.state;if(f.direction>=8)return out;
-    }else {const auto immediate=context->figures.find(size_t(f.leaderLink));if(f.action!=6||immediate==context->figures.end()||!live(immediate->second))return out;
+        if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
+        if(f.direction==8){f.action=6;f.alive=2;} //4CE972..976:leave map after returning to entry.
+        else if(f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
+            if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+        else if(f.direction==10)f.alive=2;
+        else if(f.direction>10)return out;
+    }else {const auto immediate=context->figures.find(size_t(f.leaderLink));if(f.action!=6||immediate==context->figures.end())return out;
         const auto& lead=immediate->second;const OriginalFigure* trader=&lead;
         if(trader->type==47){const auto next=context->figures.find(size_t(trader->leaderLink));if(next==context->figures.end())return out;trader=&next->second;}
-        if(trader->type!=45||!live(*trader))return out;
+        const bool removedLeader=!f.leaderLink||!live(lead)||(lead.type!=45&&lead.type!=47);
+        if(removedLeader)f.alive=2; //4CF499 marks2 but still follows and writes the death image in this call.
         if(lead.type==45){const bool atHome=f.x==f.homeX&&f.y==f.homeY;bool copy=true;if(atHome)f.hidden=1;
             if(f.progress==20&&atHome&&(lead.progress<18||lead.progress==20))copy=false;
             else {int p=int(lead.progress)-18;f.progress=uint8_t(p<0?p+20:p);}
@@ -1904,9 +1942,11 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
                 else {const auto approach=[&](){if(f.height<f.cartStyle)++f.height;else if(f.height>f.cartStyle)--f.height;};
                     approach();if(!(local.terrain[f.cell]&0x800000))approach();}}
             if(copy)f.frame=lead.frame;
-        }else {if(lead.type!=47)return out;const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;
-            unsigned steps=std::max(1u,std::min(3u,originalFigureFollowerSteps(unsigned(speed->second),trader->routePhase)));
-            if(std::max(std::abs(int(f.x)-lead.x),std::abs(int(f.y)-lead.y))>2)++steps;
+        }else {if(lead.type!=47&&!removedLeader)return out;
+            const auto& speedSource=trader->type==45?*trader:lead.type?lead:f;
+            const auto speed=context->modelSpeeds.find(speedSource.type);if(speed==context->modelSpeeds.end())return out;
+            unsigned steps=std::max(1u,std::min(3u,originalFigureFollowerSteps(unsigned(speed->second),speedSource.routePhase)));
+            if(f.leaderLink&&std::max(std::abs(int(f.x)-lead.x),std::abs(int(f.y)-lead.y))>2)++steps;
             if((f.x==f.homeX&&f.y==f.homeY)||(f.x==lead.x&&f.y==lead.y))f.hidden=1;
             for(unsigned n=0;n<steps;++n){if(f.progress>=19){f.progress=20;f.direction=originalFigureDirectionTo(f.x,f.y,lead.priorX,lead.priorY);
                     if(f.direction>7)break;f.previousDirection=f.direction;f.progress=0;}
@@ -1924,10 +1964,14 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
     }
     const OriginalFigure* selectedLeader=&f;
     if(f.type==47){selectedLeader=&local.figures.at(size_t(f.leaderLink));
-        if(selectedLeader->type==47)selectedLeader=&local.figures.at(size_t(selectedLeader->leaderLink));}
+        if(selectedLeader->type==47)selectedLeader=&local.figures.at(size_t(selectedLeader->leaderLink));
+        if(selectedLeader->type!=45){const auto zero=local.figures.find(0);if(zero==local.figures.end())return out;selectedLeader=&zero->second;}}
     if(!context->factionModels||selectedLeader->faction>=22)return out;
     const int model=context->factionModels->at(selectedLeader->faction);if(model<0||model>2)return out;
     const uint32_t code=f.type==45?(model==0?0x4e81:model==1?0x4eb4:0x4eb2):(model==0?0x1c12:model==1?0x1c18:0x1c16);
+    if(f.type==47&&f.alive==2){const auto group=originalFigureImageGroup(code+1,archives);if(!group||!group->second->animationSpriteCount||f.counter<0)return out;
+        f.image=group->first+std::min<unsigned>(unsigned(f.counter/2),group->second->animationSpriteCount-1);f.hidden=0;
+        originalFigurePublishWrites(out,f,*context,local);return out;}
     auto draw=f;if(f.type==47&&selectedLeader->action==8)draw.frame=0;
     if(!originalFigureWriteWalkingImage(draw,code,archives,context->view)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     if(f.type==47)f.hidden=0;f.image=draw.image;originalFigurePublishWrites(out,f,*context,local);return out;
@@ -1991,7 +2035,7 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
     f.freeMovement=0;f.hidden=0;
     for(auto& cooldown:f.cooldowns)if(cooldown>0)--cooldown;
     if(f.action==4||f.action==10){
-        if(f.action==10){if(!f.counter&&(!context->soundEffectsEnabled||*context->soundEffectsEnabled))return out;
+        if(f.action==10){if(!f.counter&&!context->soundEffectsEnabled)return out; //59F401->4EA090:simulation-neutral audio,as above.
             f.counter=originalFigureWord(int(f.counter)+1);if(f.counter>500)f.action=4;
         }else {if(f.counter<0)f.counter=0;f.counter=originalFigureWord(int(f.counter)+1);if(f.counter>127){f.counter=127;f.alive=2;}}
         const auto group=originalFigureImageGroup(0x4c2d,archives);if(!group||f.counter<0)return out;
@@ -2069,7 +2113,8 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
         const unsigned half=speed->second<=3?1:unsigned(speed->second)/2;
         const auto movement=originalFigureFollowRoute(f,half,terrainFlags,&local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
-        if(f.direction==9){if(f.target>0){out.status=OriginalFigureUpdateStatus::PheasantRoute;return out;}f.action=30;}
+        if(f.direction==10)f.action=30; //59F4C3->4E1B00,59F540: failed route restarts destination predicates next call.
+        else if(f.direction==9){if(f.target>0){out.status=OriginalFigureUpdateStatus::PheasantRoute;return out;}f.action=30;}
         else if(f.direction==8){
             //59F1C0 ->59E550: Pheasant+1B4=413A00(false), then
             //4C9740 clears idle counter and enters31, without movement.
@@ -2159,7 +2204,7 @@ struct OriginalFigureOrderedPass {
 // releases the route, unlinks and clears target references, then+E8=4C72B0
 // resets represented fields. The inline17C state and priorProgress190 survive.
 inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUpdateContext& context){
-    if((f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=23&&f.type!=26&&f.type!=28&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=39&&f.type!=40&&f.type!=54&&f.type!=76)||f.alive!=2||
+    if((f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=23&&f.type!=26&&f.type!=28&&f.type!=29&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=39&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=54&&f.type!=76)||f.alive!=2||
         (f.runtimeClass!=OriginalFigureClass::Figure&&!(f.type==76&&f.runtimeClass==OriginalFigureClass::Pheasant))||f.updateOwner||(f.linkedBuilding&&f.type!=76)||
         !context.services||context.cellHeads.size()!=51984||f.cell>=51984)return false;
     if(f.type==34||f.type==40){if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
@@ -2194,17 +2239,28 @@ inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUp
         if(owner==context.buildings->end()||owner->second.type!=0x3b)return false;
         if(owner->second.primaryFigure==int(f.slot))owner->second.primaryFigure=0;
         else if(owner->second.secondaryFigures[1]==int(f.slot))owner->second.secondaryFigures[1]=0;
-    }else if(f.type==39){ //4C8D4C..4C8E08: primary first, then embedded+6C.
+    }else if(f.type==39||f.type==29){ //4C8D4C..4C8E08: primary first, then embedded+6C.
         if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
-        if(owner==context.buildings->end()||owner->second.type!=0x7c)return false;
+        if(owner==context.buildings->end()||owner->second.type!=(f.type==39?0x7c:0x7f))return false;
         if(owner->second.primaryFigure==int(f.slot))owner->second.primaryFigure=0;
         else if(owner->second.secondaryFigures[1]==int(f.slot))owner->second.secondaryFigures[1]=0;
+    }else if(f.type==45||f.type==47){ //4C8CA9..4C8D42:station pointer then serialized empire active/three figure slots.
+        if(!context.empireTraders||f.faction>=22||!context.buildings||f.owner)return false;
+        if(f.type==45)for(auto& e:*context.buildings){auto& b=e.second;
+            if(b.alive!=1&&b.alive!=3)continue;
+            if((b.type==0x38||b.type==0x3a)&&b.traderFaction==f.faction){
+                if(!b.currentTrader)return false;if(*b.currentTrader==f.slot)b.currentTrader=0;break;}}
+        auto& empire=context.empireTraders->at(f.faction);empire.active=0;
+        for(auto& slot:empire.figures)if(slot==int(f.slot)){slot=0;break;}
     }else if(f.type==54){ //4C8B70 skips projectile owner cleanup;4C909E clears shooter+32 when lifetime+64!=0.
         const auto shooter=context.figures.find(size_t(f.owner));if(shooter==context.figures.end()||shooter->second.type!=40)return false;
         if(f.home)shooter->second.destinationCell&=0xffffu; //runtime+32 is high word of+30 destinationCell.
     }else if(f.owner)return false;
     //4C909E tests+64,then addresses the+62 owner (not the home index).
-    if(f.home&&f.type!=11&&f.type!=54)return false; //worker arrival already cleared its reciprocal home link.
+    if(f.home&&f.type==76){ //4C909E:animal timer+64 is not a home index;owner+62 selects the building.
+        if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
+        if(owner==context.buildings->end())return false;owner->second.worker=0;
+    }else if(f.home&&f.type!=11&&f.type!=54)return false; //worker arrival already cleared its reciprocal home link.
     if(f.route>0){if(f.route>=1000)return false;if(context.services->routeOwners[f.route]==int(f.slot))context.services->routeOwners[f.route]=0;}
     size_t previous=0,slot=context.cellHeads[f.cell];std::set<size_t> seen;bool found=false;
     while(slot){const auto it=context.figures.find(slot);if(it==context.figures.end()||!seen.insert(slot).second||it->second.cell!=f.cell)return false;
@@ -2325,7 +2381,7 @@ inline OriginalFigureOrderedPass originalFigurePostLoadContext(const OriginalFig
           context->watchMaximum=additional->watchMaximum;context->crops=additional->crops;
            context->goods=additional->goods;context->buildingEmployment=additional->buildingEmployment;}
     if(additional){context->crtRandom=additional->crtRandom;context->animationFlags=additional->animationFlags;
-        context->soundEffectsEnabled=additional->soundEffectsEnabled;}
+        context->soundEffectsEnabled=additional->soundEffectsEnabled;context->buildingEditMode=additional->buildingEditMode;}
     if(context->passability&&context->passability->fullMovementMasks&&context->activeSide){const auto networks=originalFigureRoadNetworks(*context);
         if(!networks)return out;context->roadNetworks=*networks;}
     if(context->services&&context->services->population&&context->buildings&&
