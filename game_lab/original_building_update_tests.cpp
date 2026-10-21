@@ -83,6 +83,8 @@ void authored(){
     w(2,5);w(18,194);bytes[4]=1;bytes[66]=253;bytes[67]=19;bytes[131]=9;bytes[132]=201;w(2+162,7);
     w(184,1);w(186,1);w(188,4321);w(314,1);w(316,1);w(322,1);bytes[184+99]=17;w(184+106,0x8021);
     auto parsed=originalBuildingUpdateInputs(bytes,p);need(parsed&&parsed->size()==1&&parsed->at(7).output==19&&parsed->at(7).identity==7,"common5 exact wire65/162 parsed independently");
+    bytes[2+49]=17;bytes[2+50]=18;bytes[2+89]=99;bytes[2+91]=19;w(2+41,123);w(2+43,124);w(2+47,125);
+    parsed=originalBuildingUpdateInputs(bytes,p);need(parsed&&parsed->at(7).spawnCounter==17&&parsed->at(7).spawnAux==18&&parsed->at(7).roadFailure==19&&parsed->at(7).primaryFigure==123&&parsed->at(7).word30==124&&parsed->at(7).word34==125,"hook common5 literal bytes avoid adjacent policy and road fields");
     need(originalBuildingCropProgress(parsed->at(7))==4321&&originalBuildingCropFlags(parsed->at(7))==0x8021&&parsed->at(7).industry->at(95)==17,"industrial1 byte mapping exact tail4/99/106");
     bytes.pop_back();need(!originalBuildingUpdateInputs(bytes,p),"late crop tail truncation refuses all update inputs");
     for(uint16_t type:{uint16_t(33),uint16_t(35),uint16_t(43)}){
@@ -327,6 +329,53 @@ void authored(){
     need(parentRoad&&parentRoad->distance==23&&!parentRoad->network,"Stall copies registered Market road fields and does not dispatch network setter");
     need(!originalBuildingMultipartRoadAccess(stall,multipart,marketRoad,6)&&!originalBuildingMultipartRoadAccess(stall,multipart,marketRoad),"Stall requires saved reciprocal parent to match framed Market child table");
     multipart.footprints[0].slot=9;need(!originalBuildingMultipartRoadAccess(stall,multipart,marketRoad,9),"Stall refuses parent after its own registered slot");
+    auto resource=context(OriginalBuildingUpdateScope::AdmittedTicks);resource.activeSide=4;resource.cropBase=112*229;
+    resource.terrain=std::vector<uint32_t>(51984);resource.figureServices.emplace();resource.buildings.emplace();resource.buildingInputs.emplace();
+    resource.resourceGrowth.emplace();auto& growth=*resource.resourceGrowth;growth.surface.image.assign(51984,999);
+    growth.surface.feature.resize(51984);growth.surface.randomByte.resize(51984);growth.surface.roadDistance.resize(51984);growth.owners.resize(51984);
+    growth.imageBases={{0x620,1000},{0x624,2000},{0x625,3000},{0x627,4000}};
+    const auto rows=originalBuildingResourceRows(4,112*229);
+    need(rows&&rows->at(0)==std::pair<uint32_t,uint32_t>{112*229+1,2}&&rows->at(1).second==4&&rows->at(2).second==4&&rows->at(3).second==2,"resource diamond preserves two full middle rows and top offset");
+    const size_t tree=rows->at(1).first,reed=tree+1,farm=tree+2,owned=tree+3;
+    resource.terrain->at(tree)=1;resource.terrain->at(reed)=0x40000;resource.terrain->at(farm)=0x80;resource.terrain->at(owned)=1;
+    growth.surface.roadDistance[tree]=253;growth.surface.roadDistance[reed]=230;growth.surface.roadDistance[farm]=250;
+    growth.surface.feature[tree]=2;growth.surface.randomByte[tree]=10;growth.owners[owned]=7;
+    auto seededResource=resource;seededResource.figureServices->randomFirst=1;seededResource.figureServices->randomSecond=2;
+    need(originalBuildingResourceGrowthStep(seededResource)==OriginalBuildingUpdateBlocker::None&&seededResource.figureServices->randomFirst==32769&&seededResource.figureServices->randomSecond==65538&&seededResource.resourceGrowth->surface.roadDistance[owned]==5,"resource positive engine RNG advances all four draws in scan order");
+    need(originalBuildingResourceGrowthStep(resource)==OriginalBuildingUpdateBlocker::None,"resource positive growth closes all three masks without process clocks");
+    need(growth.surface.roadDistance[tree]==255&&growth.surface.roadDistance[reed]==255&&growth.surface.roadDistance[farm]==255&&growth.surface.roadDistance[owned]==4,"resource unsigned byte overflow saturates at255 and grows owned cells");
+    auto sharedImage=resource;sharedImage.resourceGrowth->surface.roadDistance[tree]=253;sharedImage.irrigation.emplace();sharedImage.irrigation->image.assign(51984,777);
+    need(originalBuildingResourceGrowthStep(sharedImage)==OriginalBuildingUpdateBlocker::None&&sharedImage.resourceGrowth->surface.image[farm]==777&&sharedImage.irrigation->image[tree]==3001,"resource image writes preserve prior irrigation surface and publish shared grid");
+    need(growth.randomCalls==4&&growth.changed==4&&growth.imageWrites==2&&growth.surface.image[tree]==3001&&growth.surface.image[reed]==1000&&growth.surface.image[farm]==999&&growth.surface.image[owned]==999,"resource RNG precedes owner and farm image gates with explicit table offsets");
+    need(growth.flags==std::array<uint8_t,6>{0,1,0,1,0,1},"resource resets six presence and routing flags before ordered scan");
+    auto orderedResource=resource;orderedResource.phase=20;auto resourceState=field();resourceState.inputs.output=0;
+    orderedResource.buildingInputs->emplace(7,resourceState.inputs);orderedResource.buildings->emplace(7,resourceState.building);
+    const auto resourceTick=originalBuildingStateAfterUpdates(resourceState,orderedResource,1);
+    need(resourceTick.state&&resourceTick.context->resourceGrowth->calls==2&&resourceTick.context->phase==21,"phase20 invokes terrain growth after production through additive public API");
+    resource.terrain->at(owned)=0;need(originalBuildingResourceGrowthStep(resource)==OriginalBuildingUpdateBlocker::None&&growth.randomCalls==4&&growth.changed==0&&growth.matureTrees==std::vector<uint32_t>{uint32_t(tree)}&&growth.matureReeds==std::vector<uint32_t>{uint32_t(reed)},"mature resources collect ordered candidates without RNG or image writes");
+    auto hook=context(OriginalBuildingUpdateScope::AdmittedTicks);hook.phase=31;auto ordinary=house;ordinary.building.type=5;
+    auto houseHook=originalBuildingStateAfterUpdates(ordinary,hook,1);need(houseHook.state&&houseHook.virtual20Calls==1,"ordinary house hook exits518D90 before road or wall-clock inputs");
+    auto well=field();well.building.type=72;well.inputs.industry.reset();well.inputs.operational=100;well.inputs.workers=8;well.inputs.spawnCounter=1;
+    hook.figures=std::vector<OriginalFigure>(2000);hook.walkersDisabled=false;hook.poolRoadSelected=std::map<size_t,bool>{{7,true}};hook.employmentModel=OriginalBuildingEmployment{{72,8}};
+    auto wellHook=originalBuildingStateAfterUpdates(well,hook,1);need(!wellHook.state&&wellHook.blocker==OriginalBuildingUpdateBlocker::BuildingVirtual20,"Well strict counter greater than1 refuses positive allocation atomically");
+    well.inputs.spawnCounter=0;wellHook=originalBuildingStateAfterUpdates(well,hook,1);need(wellHook.state&&wellHook.state->inputs.spawnCounter==1,"Well exact counter boundary advances without premature allocation");
+    well.inputs.primaryFigure=13;hook.figures->at(13).alive=1;hook.figures->at(13).type=28;hook.figures->at(13).owner=7;hook.walkersDisabled.reset();hook.employmentModel.reset();
+    wellHook=originalBuildingStateAfterUpdates(well,hook,1);need(wellHook.state&&wellHook.state->inputs.spawnCounter==0&&wellHook.state->inputs.primaryFigure==13,"valid Well reciprocal worker bypasses disabled staffing and counter inputs");
+    hook.figures->at(13).owner=8;hook.walkersDisabled=true;wellHook=originalBuildingStateAfterUpdates(well,hook,1);need(wellHook.state&&wellHook.state->inputs.primaryFigure==0,"stale Well figure link clears before walkers-disabled early return");
+    std::vector<uint8_t> hookBytes(original_save19::buildingDisabled+269);const size_t hookAt=original_save19::criminalCount+20;
+    hookBytes[hookAt]=7;hookBytes[hookAt-4]=99;hookBytes[original_save19::buildingDisabled+172]=1;
+    auto restoredHook=context(OriginalBuildingUpdateScope::AdmittedTicks);
+    need(originalBuildingSavedHookContext(hookBytes,0,restoredHook)&&restoredHook.buildingHookCountdown==7&&restoredHook.walkersDisabled==true,"hook countdown SAV position follows four independent criminal-adjacent dwords");
+    auto preamble=hook;preamble.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,well.building}};preamble.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,well.inputs}};
+    preamble.buildingInputs->at(7).hookIndustry.emplace();preamble.buildingInputs->at(7).hookIndustry->at(0x5c-4)=255;
+    preamble.buildingHookCountdown=2;preamble.highestBuildingSlot=7;preamble.figures->at(13).type=57;preamble.figures->at(13).owner=7;
+    need(originalBuildingHookPreamble(preamble)==OriginalBuildingUpdateBlocker::None&&preamble.buildingHookCountdown==1&&preamble.buildingInputs->at(7).hookIndustry->at(0x5c-4)==0,"hook preamble decrements saved countdown and wraps serialized delivery count byte");
+    auto hunter=field();hunter.building.type=33;hunter.inputs.industry.reset();hunter.inputs.workers=8;hunter.inputs.operational=100;
+    auto hunting=context(OriginalBuildingUpdateScope::AdmittedTicks);hunting.phase=31;hunting.poolRoadSelected=std::map<size_t,bool>{{7,true}};hunting.employmentModel=OriginalBuildingEmployment{{33,8}};
+    const auto hunterCounter=originalBuildingStateAfterUpdates(hunter,hunting,1);
+    need(hunterCounter.state&&hunterCounter.state->inputs.spawnCounter==1,"Hunter hook counter1 closes before its strict greater-than1 allocation branch");
+    hunter.inputs.spawnCounter=1;const auto hunterAllocate=originalBuildingStateAfterUpdates(hunter,hunting,1);
+    need(!hunterAllocate.state&&hunterAllocate.blocker==OriginalBuildingUpdateBlocker::BuildingVirtual20,"Hunter positive allocation retains exact hook refusal");
 }
 void original(){
     const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!env||!*env){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return;}
@@ -342,11 +391,12 @@ void original(){
     std::vector<uint8_t> figureModelBytes;need(detail::readFile(root.resolve("Model/EmperorFigureModels.txt"),100000,figureModelBytes),"bounded figure model input");
     std::vector<uint8_t> speechBytes;need(detail::readFile(root.resolve("EmperorText.eng"),8u*1024u*1024u,speechBytes),"bounded original speech group metadata");
     const auto speechCounts=originalBuildingSpeechCounts(speechBytes);need(bool(speechCounts),"framed EmperorText group counts");
-    for(unsigned count:{1u,10u,48u,51u,100u}){
+    for(unsigned count:{1u,10u,20u,48u,51u,100u}){
         std::map<uint16_t,size_t> live,tickComputed,productionComputed,selectorInputs,changedImages,decodedImages;
         std::map<std::string,size_t> tickRefused,productionRefused;size_t saves=0,consistent=0,growthRecords=0,serviceRecords=0,serviceChanged=0,serviceBytes=0;
         size_t roadComputed=0,roadRefused=0,industryChanged=0,industryGated=0,phase21Computed=0,phase22Computed=0,accountingComputed=0;
-        std::map<uint16_t,size_t> tickSelectorInputs,tickImages,tickDecoded,industrialChanges;
+         std::map<uint16_t,size_t> tickSelectorInputs,tickImages,tickDecoded,industrialChanges;
+         std::map<std::pair<uint16_t,uint32_t>,size_t> typeRefused;
         std::map<uint32_t,size_t> refusedPhases;std::map<size_t,std::pair<uint32_t,uint32_t>> capacityTotals;
         for(const auto& source:catalog.sources)if(source.kind==OriginalMapSourceKind::SaveFile){++saves;
             auto snapshot=loadOriginalSave(root.resolve(source.relativePath));need(snapshot.status==OriginalSaveStatus::LoadedSnapshot&&snapshot.readStable,"stable original save");
@@ -410,7 +460,8 @@ void original(){
             for(const auto& b:buildings){const auto& i=parsed->at(b.slot);const auto resource=originalBuildingSavedUnavailable(container.payload,snapshot.sizeOffset,i.output);
                 need(bool(resource),"per-building output availability");cityContext.buildingUnavailable->emplace(b.slot,!i.enabled||*resource!=0);}
             need(originalBuildingSavedNoticeCountdown(container.payload,snapshot.terrainOffset,cityContext),"saved shortage notification countdown");
-            cityContext.highestEverBuildingSlot=0;cityContext.buildingRegistrySize=4000;
+             cityContext.highestEverBuildingSlot=0;cityContext.buildingRegistrySize=4000;cityContext.highestBuildingSlot=0;
+             for(const auto& b:buildings)*cityContext.highestBuildingSlot=std::max(*cityContext.highestBuildingSlot,uint32_t(b.slot));
             cityContext.cityEmployment->shortageNotice=false;cityContext.cityEmployment->unemploymentNotice=false;
             cityContext.labor->populationNotices=std::array<bool,10>{};
             for(unsigned n=0;n<10;++n)cityContext.labor->populationNotices->at(n)=container.payload.at(snapshot.terrainOffset+1363680+n)!=0;
@@ -420,13 +471,14 @@ void original(){
              //Animal region and shortage countdown are restored SAV values.
              cityContext.serviceCoverage=std::array<int32_t,11>{};cityContext.labor->spacing=0;cityContext.scenarioFigurePlacementCheck=false;
             cityContext.figureCellHeads=snapshot.layers.figures->cellHeads;
+            need(originalBuildingSavedHookContext(container.payload,snapshot.terrainOffset,cityContext),"hook countdown and walker-disabled byte restored by SAV readers");
             if(count==1)std::cout<<"{\"city_source\":"<<saves<<",\"buildings\":"<<buildings.size()<<",\"population\":"<<*cityContext.populationTotal<<",\"pending_statistics\":"<<cityContext.labor->statisticsPending<<",\"health\":"<<cityContext.labor->health<<",\"sentiment\":"<<cityContext.labor->sentiment<<",\"tax_rate\":"<<cityContext.accounting->taxRate<<"}\n";
             for(size_t n=1999;n>0;--n)if(!cityContext.figures->at(n).alive)cityContext.freeFigureSlots.push_back(n);
             if(roads){cityContext.cropBase=roads->cropBase;cityContext.terrain=roads->terrain;cityContext.movement=movement;cityContext.activeSide=originalFigureSpawnServices(container.payload,snapshot.sizeOffset)->side;
                 for(const auto& b:buildings){const auto access=b.type==59||b.type==62||b.type==66||b.type==67?
                      originalBuildingMultipartRoadAccess(b,snapshot.buildings,*roads,parsed->at(b.slot).parentSlot):originalBuildingIsHouse(b.type)?originalBuildingHouseRoadAccess(b,*roads):originalBuildingRoadAccess(b,*roads);
                      need(bool(access),"complete pool road output");cityContext.poolRoadAccess->emplace(b.slot,*access);cityContext.poolRoadReachable->emplace(b.slot,access->distance!=0);
-                     if(b.type==33||b.type==35||b.type==43||b.type==53){const auto adjacent=originalBuildingHouseRoadAccess(b,*roads,false);need(bool(adjacent),"complete pool virtual58 adjacent-road selection");cityContext.poolRoadSelected->emplace(b.slot,adjacent->selected);}
+                     if(b.type==33||b.type==35||b.type==43||b.type==53||b.type==72||b.type==124||b.type==127||b.type==207||b.type==211||b.type==214||b.type==71){const auto adjacent=originalBuildingHouseRoadAccess(b,*roads,false);if(adjacent)cityContext.poolRoadSelected->emplace(b.slot,adjacent->selected);else if(b.type==33||b.type==35||b.type==43||b.type==53)need(false,"complete pool virtual58 adjacent-road selection");}
                     if(b.type==53||b.type==54||b.type==58){const auto ranked=originalBuildingHouseRoadAccess(b,*roads,false);need(bool(ranked),"storage ranked road query closes");
                     uint8_t status=ranked->selected?1:0;
                     if(!status&&b.type==53){auto fallback=b;fallback.size=5;const auto wider=originalBuildingHouseRoadAccess(fallback,*roads,false);need(bool(wider),"Mill model width5 storage fallback");if(wider->selected)status=2;}
@@ -439,7 +491,10 @@ void original(){
                 need(archive.imageIndex[0x35]>=201,"irrigation435 archive table handle");irrigation.baseImage=(2u<<14)|uint32_t(archive.imageIndex[0x35]-201);
                 //524360 registration is the cIrrigation class only (vtable7B6844).
                 for(const auto& b:buildings)need(b.type!=57,"original irrigation registry is empty by complete type pool");}
-            for(const auto& f:buildings){++live[f.type];OriginalBuildingUpdateState state{f,parsed->at(f.slot),std::nullopt};
+             if(roads){cityContext.resourceGrowth.emplace();auto& gr=*cityContext.resourceGrowth;
+                 gr.surface=snapshot.layers.ground->state;gr.surface.image=cityContext.irrigation->image;gr.owners=snapshot.layers.ground->owner;
+                 for(uint16_t code:{uint16_t(0x620),uint16_t(0x624),uint16_t(0x625),uint16_t(0x627)}){size_t index=0;need(resolveGroundTileCode(ground,code,index),"resource image uses existing cited terrain table lookup");gr.imageBases.emplace(code,(3u<<14)|uint32_t(index));}}
+             for(const auto& f:buildings){++live[f.type];OriginalBuildingUpdateState state{f,parsed->at(f.slot),std::nullopt};
                 const auto ip=industry->find(f.slot);if(ip!=industry->end())state.production=ip->second;
                 const auto access=roads?(f.type==59||f.type==62||f.type==66||f.type==67?
                      originalBuildingMultipartRoadAccess(f,snapshot.buildings,*roads,parsed->at(f.slot).parentSlot):originalBuildingIsHouse(f.type)?originalBuildingHouseRoadAccess(f,*roads):originalBuildingRoadAccess(f,*roads)):std::nullopt;
@@ -461,6 +516,10 @@ void original(){
                     need(capacityTotals[saves]==totals[saves-1],"phase22 original city capacity and free totals lock all supported sources");}
                 if(state.inputs.industry){need(f.imageInputs&&f.imageInputs->cropWord4==originalBuildingCropProgress(state.inputs),"raw industrial progress equals independent existing selector input");++consistent;}
                  auto result=originalBuildingStateAfterUpdates(state,*ctx,count);
+                  if(count==1&&f.slot==buildings.front().slot){auto growth=*ctx;
+                      const auto resource=originalBuildingResourceGrowthStep(growth);
+                      need(resource==OriginalBuildingUpdateBlocker::None,"complete original terrain-resource phase closes with saved engine random");
+                      std::cout<<"{\"resource_source\":"<<saves<<",\"changed\":"<<growth.resourceGrowth->changed<<",\"image_writes\":"<<growth.resourceGrowth->imageWrites<<",\"random_draws\":"<<growth.resourceGrowth->randomCalls<<",\"mature_trees\":"<<growth.resourceGrowth->matureTrees.size()<<",\"mature_reeds\":"<<growth.resourceGrowth->matureReeds.size()<<"}\n";}
                   if(result.state){++tickComputed[f.type];tickSelectorInputs[f.type]+=result.changedSelectorInputs;
                       if(count==10&&f.slot==buildings.front().slot){const auto prefix=originalBuildingStateAfterUpdates(state,*ctx,4);
                           need(bool(prefix.state),"original split prefix closes");const auto suffix=originalBuildingStateAfterUpdates(*prefix.state,*prefix.context,6);
@@ -482,7 +541,8 @@ void original(){
                          need(bool(bound),"admitted changed selector binds existing archive");const auto image=decodeSG3Sprite(archive,bound->archiveIndex,root.resolve("DATA/China_General.555"));
                          need(image.status==SG3DecodeStatus::Decoded&&image.image.valid(),"admitted changed image decodes");++tickDecoded[f.type];}
                      if(count==1)need(result.changedSelectorInputs==0&&!result.selectorChanged,"N1 admitted tick keeps all existing image selectors");
-                }else {++tickRefused[originalBuildingUpdateBlockerName(result.blocker)];need(bool(result.refusedPhase),"admitted refusal names its exact phase");++refusedPhases[*result.refusedPhase];
+                 }else {++tickRefused[originalBuildingUpdateBlockerName(result.blocker)];need(bool(result.refusedPhase),"admitted refusal names its exact phase");++refusedPhases[*result.refusedPhase];
+                     ++typeRefused[{f.type,*result.refusedPhase}];
                     need(result.operations==(*result.refusedPhase+51-*ctx->phase)%51,"atomic refusal reports exact executed prefix without publishing state");}
                 ctx->scope=OriginalBuildingUpdateScope::ProductionPasses;result=originalBuildingStateAfterUpdates(state,*ctx,count);
                 if(!result.state){++productionRefused[originalBuildingUpdateBlockerName(result.blocker)];continue;}
@@ -503,15 +563,23 @@ void original(){
         std::cout<<"{\"diagnostic_N\":"<<count<<",\"admitted\":"<<ticks<<"}\n";
         for(const auto& e:tickRefused)std::cout<<"{\"diagnostic_blocker\":\""<<e.first<<"\",\"count\":"<<e.second<<"}\n";
         for(const auto& e:refusedPhases)std::cout<<"{\"diagnostic_phase\":"<<e.first<<",\"count\":"<<e.second<<"}\n";
-        need(ticks==(count==1||count==10?1065u:0u),"requested admitted horizon denominator locked separately from subpasses");
+         need(ticks==(count==1||count==10?1065u:count==20?1048u:0u),"requested admitted horizon denominator locked separately from subpasses");
         need(growthRecords==137&&inputs==137&&selectorInputs[194]==114&&selectorInputs[196]==23,"real growth and selector-input changes from saved flags, never fitted deltas");
         if(count==1||count==10||count==100)need(changed==(count==1?9u:count==10?82u:137u)&&changedImages[194]==(count==1?6u:count==10?63u:114u)&&
             changedImages[196]==(count==1?3u:count==10?19u:23u),"per-type image-stage transition denominator locks");
         need(serviceRecords==70,"all70 house service records close");
         need(serviceChanged==52&&serviceBytes==208,"52 of70 saved houses change208 service bytes without selector changes");
-        const std::map<std::string,size_t> refused=count==1||count==10?std::map<std::string,size_t>{}:std::map<std::string,size_t>{{"scheduled_phase_callee_not_closed",903},{"building_virtual20_416d20",162}};
+         const std::map<std::string,size_t> refused=count==1||count==10?std::map<std::string,size_t>{}:count==20?std::map<std::string,size_t>{{"building_virtual20_416d20",1},{"scheduled_phase_callee_not_closed",16}}:std::map<std::string,size_t>{{"scheduled_phase_callee_not_closed",1025},{"building_virtual20_416d20",40}};
         need(tickRefused==refused&&productionRefused.empty(),"exact admitted and isolated refusal partitions");
-        need(refusedPhases==(count==1||count==10?std::map<uint32_t,size_t>{}:std::map<uint32_t,size_t>{{31,162},{32,903}}),"exact reached scheduler phase partitions");
+         need(refusedPhases==(count==1||count==10?std::map<uint32_t,size_t>{}:count==20?std::map<uint32_t,size_t>{{31,1},{32,16}}:std::map<uint32_t,size_t>{{31,40},{32,1025}}),"exact reached scheduler phase partitions");
+         std::map<std::pair<uint16_t,uint32_t>,size_t> expectedTypeRefused;
+         if(count==20)expectedTypeRefused={{{2,32},10},{{3,32},4},{{33,32},2},{{53,31},1}};
+         else if(count>=48){for(const auto& e:expected)expectedTypeRefused[{e.first,32}]=e.second;
+             for(uint16_t type:{uint16_t(33),uint16_t(53),uint16_t(54),uint16_t(58),uint16_t(59),uint16_t(62),uint16_t(66),uint16_t(67),uint16_t(192),uint16_t(193)}){
+                 expectedTypeRefused.erase({type,32});expectedTypeRefused[{type,31}]=expected.at(type);}
+             expectedTypeRefused[{72,31}]=1;expectedTypeRefused[{72,32}]=1;expectedTypeRefused[{124,31}]=1;expectedTypeRefused[{124,32}]=5;}
+         if(count>=48){expectedTypeRefused[{33,31}]=2;expectedTypeRefused[{33,32}]=10;}
+         need(typeRefused==expectedTypeRefused,"every type exact refusal phase partition remains independently locked");
         need(industryChanged==20&&industryGated==12,"20 of32 industrial records mutate and12 remain gated or saturated");
         need(industrialChanges==std::map<uint16_t,size_t>{{33,4},{35,8},{43,8}},"industrial mutation counts partition exactly by Hunter Clay Kiln");
         need(accountingComputed==6,"accounting allocation service closes6 of6 original cities");
@@ -519,7 +587,8 @@ void original(){
         need(changed==decoded,"all changed image words decoded denominator");
         std::cout<<"{\"N\":"<<count<<",\"buildings\":1065,\"admitted_ticks_computed\":"<<ticks<<",\"production_passes_computed\":"<<production<<",\"crop_progress_records_changed\":"<<growthRecords<<",\"image_selector_inputs_changed\":"<<inputs<<",\"image_words_changed\":"<<changed<<",\"image_words_decoded\":"<<decoded<<",\"crop_raw_selector_consistency\":"<<consistent<<",\"house_service_records\":"<<serviceRecords<<",\"house_service_records_changed\":"<<serviceChanged<<",\"house_service_bytes_changed\":"<<serviceBytes<<"}\n";
         for(const auto& e:live)std::cout<<"{\"N\":"<<count<<",\"type\":"<<e.first<<",\"live\":"<<e.second<<",\"ticks_computed\":"<<tickComputed[e.first]<<",\"tick_selector_inputs_changed\":"<<tickSelectorInputs[e.first]<<",\"tick_images_changed\":"<<tickImages[e.first]<<",\"tick_images_decoded\":"<<tickDecoded[e.first]<<",\"production_computed\":"<<productionComputed[e.first]<<",\"industry_records_changed\":"<<industrialChanges[e.first]<<",\"selector_inputs_changed\":"<<selectorInputs[e.first]<<",\"images_changed\":"<<changedImages[e.first]<<",\"images_decoded\":"<<decodedImages[e.first]<<"}\n";
-        for(const auto& e:tickRefused)std::cout<<"{\"N\":"<<count<<",\"scope\":\"admitted_ticks\",\"blocker\":\""<<e.first<<"\",\"refused\":"<<e.second<<"}\n";
+         for(const auto& e:tickRefused)std::cout<<"{\"N\":"<<count<<",\"scope\":\"admitted_ticks\",\"blocker\":\""<<e.first<<"\",\"refused\":"<<e.second<<"}\n";
+         for(const auto& e:typeRefused)std::cout<<"{\"N\":"<<count<<",\"type\":"<<e.first.first<<",\"refused_phase\":"<<e.first.second<<",\"refused\":"<<e.second<<"}\n";
         for(const auto& e:productionRefused)std::cout<<"{\"N\":"<<count<<",\"scope\":\"production_passes\",\"blocker\":\""<<e.first<<"\",\"refused\":"<<e.second<<"}\n";
         std::cout<<"{\"N\":"<<count<<",\"industry_changed\":"<<industryChanged<<",\"industry_unchanged\":"<<industryGated<<",\"road_service_computed\":"<<roadComputed<<",\"road_service_refused\":"<<roadRefused<<"}\n";
         for(const auto& total:capacityTotals)std::cout<<"{\"phase22_source\":"<<total.first<<",\"city_130F994_capacity\":"<<total.second.first<<",\"city_130F998_free\":"<<total.second.second<<"}\n";

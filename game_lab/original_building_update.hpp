@@ -10,6 +10,8 @@
 namespace game_lab {
 inline int16_t originalBuildingSignedWord(uint16_t v);
 inline bool originalBuildingIsHouse(uint16_t type);
+inline uint16_t originalBuildingCropFlags(const OriginalBuildingUpdateInputs& i);
+inline void originalBuildingSetCropFlags(OriginalBuildingUpdateInputs& i,uint16_t flags);
 // All executable facts: SHA256 0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658.
 // docs/SAV.md#building-update-pass records call order, read-order and limits.
 enum class OriginalBuildingUpdateScope {AdmittedTicks,ProductionPasses,HouseServiceDecayPasses};
@@ -494,9 +496,176 @@ struct OriginalBuildingUpdateContext {
         unsigned calls=0;
     };
     std::optional<Religion> religion;
+    //4AC3C4->4BC440 is an opt-in additive city service. Older isolated
+    //per-record callers retain their scope unless they explicitly request it.
+    struct ResourceGrowth {
+        OriginalTerrainState surface;
+        std::vector<uint16_t> owners;
+        std::map<uint16_t,uint32_t> imageBases; //408170(code), explicit archive lookup
+        std::array<uint8_t,6> flags{}; //D62438..3D, reset on every call
+        std::vector<uint32_t> matureTrees,matureReeds;
+        unsigned calls=0;uint64_t randomCalls=0;size_t changed=0,imageWrites=0;
+    };
+    std::optional<ResourceGrowth> resourceGrowth;
+    std::optional<bool> walkersDisabled; //saved10BC7E0[172],53192B
+    std::optional<int32_t> buildingHookCountdown; //saved1032658,53166F
+    unsigned hookPreambleCalls=0;
     OriginalBuildingUpdateContext(OriginalBuildingUpdateScope operation,bool isolated)
         :scope(operation),isolateBuildingWrites(isolated){}
 };
+//4B05F0 rebuilds the active diamond's row spans from the saved side. The
+//two middle rows both have full width for an even side (4B0694..4B06DC).
+inline std::optional<std::vector<std::pair<uint32_t,uint32_t>>> originalBuildingResourceRows(uint32_t side,uint32_t crop){
+    if(!side||side>228||crop!=((228-side)/2)*229)return std::nullopt;
+    const uint32_t middle=(side-1)/2;std::vector<std::pair<uint32_t,uint32_t>> out;
+    for(uint32_t y=0;y<side;++y){const uint32_t inset=y<=middle?middle-y:y-middle-1;
+        const int64_t width=int64_t(2*middle)+2-2*inset;
+        if(width<0||width>228||uint64_t(crop)+228*y+inset+uint64_t(width)>51984)return std::nullopt;
+        out.emplace_back(crop+228*y+inset,uint32_t(width));}return out;
+}
+//4BC440 consumes one ENGINE random draw for every immature resource,
+//including masked/owned cells whose image helper subsequently returns early.
+//No CRT seed or wall clock is involved. Positive woodcutter routing5AE970
+//is refused until its complete caller-owned registry service is ported.
+inline OriginalBuildingUpdateBlocker originalBuildingResourceGrowthStep(OriginalBuildingUpdateContext& c){
+    if(!c.resourceGrowth||!c.terrain||!c.activeSide||!c.cropBase||!c.figureServices||!c.buildings||!c.buildingInputs)
+        return OriginalBuildingUpdateBlocker::MissingContext;
+    auto& g=*c.resourceGrowth;auto& s=g.surface;
+    if(c.irrigation)s.image=c.irrigation->image;
+    if(c.terrain->size()!=51984||s.feature.size()!=51984||s.randomByte.size()!=51984||s.roadDistance.size()!=51984||s.image.size()!=51984||g.owners.size()!=51984)
+        return OriginalBuildingUpdateBlocker::InvalidState;
+    if(c.figureServices->randomHistory&&c.figureServices->randomHistory->cursor>=100)return OriginalBuildingUpdateBlocker::InvalidState;
+    const auto rows=originalBuildingResourceRows(*c.activeSide,*c.cropBase);if(!rows)return OriginalBuildingUpdateBlocker::InvalidState;
+    for(const auto& b:*c.buildings)if(b.second.type==38){const auto i=c.buildingInputs->find(b.first);
+        if(i==c.buildingInputs->end())return OriginalBuildingUpdateBlocker::InvalidState;
+        if((i->second.alive==1||i->second.alive==3)&&i->second.workers)return OriginalBuildingUpdateBlocker::UnclosedPhase;}
+    s.terrain=*c.terrain;g.flags.fill(0);g.matureTrees.clear();g.matureReeds.clear();g.changed=g.imageWrites=0;
+    for(const auto& row:*rows)for(uint32_t n=0;n<row.second;++n){const size_t cell=row.first+n;const uint32_t flags=s.terrain[cell];
+        const unsigned kind=(flags&1)?0:(flags&0x40000)?1:(flags&0x80)?2:3;if(kind==3)continue;
+        g.flags[2*kind+1]=1;auto& value=s.roadDistance[cell];
+        if(value==255){if(kind==0)g.matureTrees.push_back(uint32_t(cell));else if(kind==1)g.matureReeds.push_back(uint32_t(cell));continue;}
+        const uint32_t random=originalFigureRandomNext(*c.figureServices);++g.randomCalls;
+        //4BDA70/80/90/A0 use first&1 plus2/4/35/15. Their this
+        //pointer D62420 is unused: saved words at that address are NOT rates.
+        const unsigned delta=(random&1)+(kind==0?((s.feature[cell]&1)?2u:4u):kind==1?35u:15u);
+        const uint8_t old=value,next=uint8_t(unsigned(value)+delta);value=next<old?255:next;++g.changed;
+        if(kind==1){if((flags&0xc064)||(flags&0x80000))continue;
+            const auto base=g.imageBases.find(0x620);if(base==g.imageBases.end())return OriginalBuildingUpdateBlocker::MissingContext;
+            s.image[cell]=base->second+s.randomByte[cell]%9;++g.imageWrites;continue;}
+        //4BC6A0 gates precede the owner/bit1 tests,including for farms.
+        if(flags&0xc064)continue;
+        if(flags&0x100){size_t count=0;for(int d:{-228,-227,1,229,228,227,-1,-229}){
+                const int64_t at=int64_t(cell)+d;if(at<0||at>=51984)return OriginalBuildingUpdateBlocker::InvalidState;
+                count+=(s.terrain[size_t(at)]&0x100)!=0;}if(count==8)continue;}
+        if(g.owners[cell]||!(flags&1)||(flags&0x80000))continue;
+        uint16_t code=0x627;unsigned variant=s.randomByte[cell]&7;
+        if(value==255){code=(s.feature[cell]&2)?0x625:0x624;bool ring=true;
+            const int x=int(cell%228)-int(*c.cropBase%228),y=int(cell/228)-int(*c.cropBase/228);
+            for(int dy=-1;dy<=1;++dy)for(int dx=-1;dx<=1;++dx){if(!dx&&!dy)continue;
+                //4BB390 accepts the rectangular margin -1..side inclusive.
+                const int yy=y+dy,xx=x+dx;if(yy< -1||yy>int(*c.activeSide)||xx< -1||xx>int(*c.activeSide))continue;
+                const int64_t at=int64_t(cell)+228*dy+dx;if(at<0||at>=51984)return OriginalBuildingUpdateBlocker::InvalidState;
+                if(!(s.terrain[size_t(at)]&3))ring=false;}
+            variant=unsigned(ring)*9+s.randomByte[cell]%9;}
+        const auto base=g.imageBases.find(code);if(base==g.imageBases.end())return OriginalBuildingUpdateBlocker::MissingContext;
+        s.image[cell]=base->second+variant;++g.imageWrites;
+    }
+    if(c.irrigation)c.irrigation->image=s.image;
+    ++g.calls;return OriginalBuildingUpdateBlocker::None;
+}
+//429700/429780/429800 clear stale reciprocal links before later gates.
+inline std::optional<bool> originalBuildingHookFigure(int16_t& id,unsigned type,size_t owner,const OriginalBuildingUpdateContext& c){
+    if(id<=0)return false;if(!c.figures||id>=int(c.figures->size()))return std::nullopt;
+    const auto& f=c.figures->at(size_t(id));if(!f.alive||(f.type!=type&&f.type!=0)||f.owner!=int(owner)){id=0;return false;}return true;
+}
+inline OriginalBuildingUpdateBlocker originalBuildingHookPreamble(OriginalBuildingUpdateContext& c){
+    if(!c.buildingInputs||!c.buildings||!c.figures||c.figures->size()!=2000||!c.buildingHookCountdown||!c.highestBuildingSlot)return OriginalBuildingUpdateBlocker::MissingContext;
+    if(*c.buildingHookCountdown>0)--*c.buildingHookCountdown;
+    for(const auto& b:*c.buildings)if(b.second.type==52)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+    for(size_t slot=1;slot<c.figures->size();++slot){const auto& f=c.figures->at(slot);if(!f.alive||f.type!=57||f.owner<=0||f.owner>int(*c.highestBuildingSlot))continue;
+        const auto i=c.buildingInputs->find(size_t(f.owner));if(i==c.buildingInputs->end()||!i->second.hookIndustry)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+        ++i->second.hookIndustry->at(0x5c-4);}
+    ++c.hookPreambleCalls;return OriginalBuildingUpdateBlocker::None;
+}
+//53166F reads1032658 after the four saved10AEE* dwords following
+//criminalCount;both gates are serialized,not additional process premises.
+inline bool originalBuildingSavedHookContext(const std::vector<uint8_t>& data,size_t terrain,OriginalBuildingUpdateContext& c){
+    constexpr size_t countdown=original_save19::criminalCount+20;
+    if(terrain>data.size()||original_save19::buildingDisabled+269>data.size()-terrain||countdown+4>data.size()-terrain)return false;
+    c.walkersDisabled=data[terrain+original_save19::buildingDisabled+172]!=0;
+    c.buildingHookCountdown=originalBuildingI32(detail::u32(data.data()+terrain+countdown));return true;
+}
+//Per-type+20 targets are individually cited in SAV.md. Successful guarded
+//branches include counter/link writes;allocation branches keep an atomic refusal.
+inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c){
+    auto& i=s.inputs;const auto type=s.building.type;
+    if(i.alive!=1&&i.alive!=3)return OriginalBuildingUpdateBlocker::None;
+    if(type==194||type==196){if(!i.industry)return OriginalBuildingUpdateBlocker::InvalidState;
+        if(*c.monthPart==0&&*c.month==(type==194?8u:10u))originalBuildingSetCropFlags(i,uint16_t(originalBuildingCropFlags(i)|0x8000));
+        return OriginalBuildingUpdateBlocker::None;}
+    if(type==126||type==231)return OriginalBuildingUpdateBlocker::None; //428F00
+    if(type>=2&&type<=10)return OriginalBuildingUpdateBlocker::None; //519D60->518D90 false BEFORE road query
+    unsigned figureType=0;
+    switch(type){case 72:figureType=28;break;case 124:figureType=39;break;case 127:figureType=29;break;
+    case 207:figureType=30;break;case 211:figureType=34;break;case 214:figureType=35;break;case 71:figureType=36;break;
+    default:break;}
+    if(type==71){ //48D950 with param36 bypasses its festival-only37 arm.
+        if(!i.parentSlot||!c.buildings||!c.buildings->count(*i.parentSlot)||c.buildings->at(*i.parentSlot).type!=59)
+            return OriginalBuildingUpdateBlocker::BuildingVirtual20; //48D9B0 grand-market three-link branch
+    }
+    if(figureType){ //51CF90 shared+234,exact lazy gate order
+        if(i.operational<=0)i.roadFailure=2;
+        auto present=originalBuildingHookFigure(i.primaryFigure,figureType,s.building.slot,c);if(!present)return OriginalBuildingUpdateBlocker::MissingContext;
+        bool full=*present;
+        const bool extra=(type==124||type==127)&& (i.model>0||i.upgrade!=0);
+        if((extra||type==71)&&full){if(!i.hookIndustry)return OriginalBuildingUpdateBlocker::MissingContext;
+            int16_t second=detail::i16(i.hookIndustry->data()+0x6a-4);auto next=originalBuildingHookFigure(second,figureType,s.building.slot,c);if(!next)return OriginalBuildingUpdateBlocker::MissingContext;
+            i.hookIndustry->at(0x6a-4)=uint8_t(second);i.hookIndustry->at(0x6b-4)=uint8_t(uint16_t(second)>>8);full=*next;}
+        if(full)return OriginalBuildingUpdateBlocker::None;
+        if(!c.walkersDisabled)return OriginalBuildingUpdateBlocker::MissingContext;if(*c.walkersDisabled)return OriginalBuildingUpdateBlocker::None;
+        if(!c.poolRoadSelected||!c.poolRoadSelected->count(s.building.slot))return OriginalBuildingUpdateBlocker::MissingContext;
+        if(!c.poolRoadSelected->at(s.building.slot))return OriginalBuildingUpdateBlocker::None;
+        if(type==71)return OriginalBuildingUpdateBlocker::BuildingVirtual20; //48B780 qualification needs descriptor service
+        if(!c.employmentModel||!c.employmentModel->count(type))return OriginalBuildingUpdateBlocker::MissingContext;
+        const int required=i.laborDisabled?0:c.employmentModel->at(type);
+        int percent=required>0?int(i.workers)*100/required:0;if(percent<1)return OriginalBuildingUpdateBlocker::None;
+        if(type==72&&(i.model>0||i.upgrade))percent*=2;
+        if(extra)percent=percent*120/100;
+        const int limit=type==211||type==214?(percent>=100?3:percent>=75?6:percent>=50?12:percent>=25?24:32):
+            percent>=100?1:percent>=75?3:percent>=50?5:percent>=25?10:15;
+        ++i.spawnCounter;if(i.spawnCounter>limit)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+        return OriginalBuildingUpdateBlocker::None;
+    }
+    if(type==35||type==43){ //5F1280,+29C=5F14A0
+        if(i.operational<=0)i.roadFailure=2;
+        if(!c.poolRoadSelected||!c.poolRoadSelected->count(s.building.slot))return OriginalBuildingUpdateBlocker::MissingContext;
+        if(!c.poolRoadSelected->at(s.building.slot))return OriginalBuildingUpdateBlocker::None;
+        const auto present=originalBuildingHookFigure(i.primaryFigure,19,s.building.slot,c);if(!present)return OriginalBuildingUpdateBlocker::MissingContext;
+        if(*present)return OriginalBuildingUpdateBlocker::None;
+        if(!s.production)return OriginalBuildingUpdateBlocker::MissingContext;
+        if(detail::i16(s.production->industry.data())<(type==43?320:160))return OriginalBuildingUpdateBlocker::None;
+        return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+    }
+    if(type==33){ //5F3730:counter gate precedes every cart/hunter allocation.
+        if(i.operational<=0)i.roadFailure=2;
+        if(!c.poolRoadSelected||!c.poolRoadSelected->count(s.building.slot))return OriginalBuildingUpdateBlocker::MissingContext;
+        if(!c.poolRoadSelected->at(s.building.slot))return OriginalBuildingUpdateBlocker::None;
+        if(!c.employmentModel||!c.employmentModel->count(type))return OriginalBuildingUpdateBlocker::MissingContext;
+        const int required=i.laborDisabled?0:c.employmentModel->at(type),percent=required>0?int(i.workers)*100/required:0;
+        if(percent<1)return OriginalBuildingUpdateBlocker::None;
+        const unsigned threshold=percent>=100?1:percent>=75?4:percent>=50?16:percent>=25?32:64;
+        ++i.spawnCounter;if(i.spawnCounter<=threshold)return OriginalBuildingUpdateBlocker::None;
+        return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+    }
+    if(type==53||type==54||type==58||type==59||type==62||type==66||type==67){
+        if(!c.walkersDisabled)return OriginalBuildingUpdateBlocker::MissingContext;
+        if(*c.walkersDisabled)return OriginalBuildingUpdateBlocker::None;
+        //Storage/market/stall dispatches have positive supplier/reservation
+        //effects;retain the named refusal until those complete services exist.
+        return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+    }
+    return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+}
 //52A983/52A995 read28-byte header then1000(offset,count) pairs.
 //Only the359 groups addressed by the saved counter array are retained.
 inline std::optional<std::array<uint32_t,359>> originalBuildingSpeechCounts(const std::vector<uint8_t>& data){
@@ -642,6 +811,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingIrrigationStep(OriginalBuil
                 const auto owner=s.owners[p];if(owner){if(owner>=4000)return OriginalBuildingUpdateBlocker::InvalidState;if(s.ownerTypes[owner]!=126)continue;}
                 else if(originalBuildingI32(s.image[p])>=base+18)s.image[p]-=18;
                 visited[p]=1;for(int d:{-1,228,1,-228})stack.push_back(cell+d);}}}
+    if(c.resourceGrowth)c.resourceGrowth->surface.image=s.image;
     ++c.irrigationCalls;return OriginalBuildingUpdateBlocker::None;
 }
 //4ACE30 resets C82F14, then5179B0 derives runtime+39/+43.
@@ -976,6 +1146,7 @@ inline bool originalBuildingSynchronizePool(OriginalBuildingUpdateContext& c){
         if(c.buildingLinks){const auto found=c.buildingLinks->find(e.first);if(found==c.buildingLinks->end())return false;auto& b=found->second;
             b.alive=i.alive;b.residents=i.residents;b.freeSlots=i.free;b.houseModel=i.model;b.worker=i.migrant;
             b.workers=i.workers;b.roadAccess=i.available;b.roadDistance=i.distance;b.roadX=i.roadX;b.roadY=i.roadY;
+            b.primaryFigure=i.primaryFigure;
             b.suppress=i.suppression;b.storageLaborDisabled=i.laborDisabled;b.category=i.employmentCategory;
             if(i.house){b.laborDisabled=i.house->at(55);b.religion=std::array<uint8_t,4>{i.house->at(9),i.house->at(10),i.house->at(11),i.house->at(12)};
                 b.entertainment=std::array<uint8_t,3>{i.house->at(38),i.house->at(39),i.house->at(41)};b.herbalist=i.house->at(40);
@@ -1262,14 +1433,13 @@ inline OriginalBuildingUpdateResult originalBuildingStateAfterUpdates(
             else if(phase==7)blocker=originalBuildingNetworkStep(c);
             else if(phase==8)blocker=originalBuildingGoodsPoolStep(c);
             else if(phase==44)blocker=OriginalBuildingUpdateBlocker::RiskAndFire;
-            else if(phase==31&&(s.inputs.alive==1||s.inputs.alive==3)){localWrites=true;
-                if(crop){ //4C1040 ->4C12E0, harvest flag on first month part
-                    if(*c.monthPart==0&&*c.month==(s.building.type==194?8u:10u))
-                        originalBuildingSetCropFlags(s.inputs,uint16_t(originalBuildingCropFlags(s.inputs)|0x8000));
-                    ++out.virtual20Calls;
-                }else if(s.building.type==231)++out.virtual20Calls; //428F00 false
-                else blocker=OriginalBuildingUpdateBlocker::BuildingVirtual20;
-            }else if(phase==20){localWrites=true;blocker=originalBuildingProductionStep(s,c);++out.productionCalls;}
+             else if(phase==31&&(s.inputs.alive==1||s.inputs.alive==3)){localWrites=true;
+                 if(c.buildingHookCountdown)blocker=originalBuildingHookPreamble(c);
+                 if(blocker==OriginalBuildingUpdateBlocker::None&&c.buildingHookCountdown&&c.buildingInputs)s.inputs=c.buildingInputs->at(s.building.slot);
+                 if(blocker==OriginalBuildingUpdateBlocker::None)blocker=originalBuildingHookStep(s,c);
+                 if(blocker==OriginalBuildingUpdateBlocker::None)++out.virtual20Calls;
+            }else if(phase==20){localWrites=true;blocker=originalBuildingProductionStep(s,c);++out.productionCalls;
+                if(blocker==OriginalBuildingUpdateBlocker::None&&c.resourceGrowth)blocker=originalBuildingResourceGrowthStep(c);}
             else if(phase==35&&house&&(s.inputs.alive==1||s.inputs.alive==3)){localWrites=true;originalBuildingDecayHouseServices(s.inputs);++out.serviceDecayCalls;}
             // Other phases may dispatch further virtuals. They remain named
             // blockers; a complete state never crosses them silently.

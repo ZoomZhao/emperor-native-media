@@ -511,6 +511,11 @@ struct OriginalBuildingUpdateInputs {
     int16_t operational=0,parent=0,suppression=0;
     uint8_t laborDisabled=0,enabled=0,employmentCategory=0;
     uint8_t houseWater=0,houseService=0; //common5 runtime+39/+43,wire52/61,427E41/427E8F.
+    //Additive hook inputs:427E1A/427E27/427FA0 restore runtime+36/
+    //+37/+65 from wire49/50/91;427DE6 restores+2E at wire41.
+    uint8_t spawnCounter=0,spawnAux=0,roadFailure=0;
+    int16_t primaryFigure=0,word30=0,word34=0;
+    std::optional<std::array<uint8_t,126>> hookIndustry;
 };
 inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuildingUpdateInputs(
     const std::vector<uint8_t>& data,const OriginalBuildingProfile& profile){
@@ -535,6 +540,8 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         v.available=p[66];v.random=p[75];v.network=p[20];v.laborCountdown=int32_t(int64_t(detail::u32(p+137))-(detail::u32(p+137)>INT32_MAX?4294967296LL:0));
         v.operational=detail::i16(p+23);v.parent=detail::i16(p+54);v.suppression=detail::i16(p+72);v.laborDisabled=p[98];v.enabled=p[129];v.employmentCategory=p[64];
         v.houseWater=p[52];v.houseService=p[61];
+        v.spawnCounter=p[49];v.spawnAux=p[50];v.roadFailure=p[91];
+        v.primaryFigure=detail::i16(p+41);v.word30=detail::i16(p+43);v.word34=detail::i16(p+47);
         const size_t tail=at+182;const uint16_t type=profile.slotTypes[e.first];
         if(type==0xc2||type==0xc4){
             if(data.size()-tail<140||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1||
@@ -545,11 +552,21 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
             if(data.size()-tail<65||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1)return std::nullopt;
             v.house.emplace();std::copy_n(data.begin()+tail+4,61,v.house->begin());
         }
+        //All these separately cited class serializers start with51CE00->
+        //51C3A0;the126-byte data payload is contiguous after outer/data1.
+        switch(type){case 33:case 35:case 43:case 53:case 54:case 58:case 59:
+        case 62:case 66:case 67:case 71:case 72:case 124:case 126:case 127:
+        case 192:case 193:case 207:case 211:case 214:
+            if(data.size()-tail<130||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1)return std::nullopt;
+            v.hookIndustry.emplace();std::copy_n(data.begin()+tail+4,126,v.hookIndustry->begin());break;default:break;}
         //Stall541DE0: industrial130,own4,word150 then parent154.
         if(type==62||type==66||type==67){
             if(data.size()-tail<140||detail::u16(data.data()+tail+130)!=4)return std::nullopt;
             v.parentSlot=detail::u32(data.data()+tail+136);
         }
+        //48CDB5 restores Entertainment5 parent+150 at tail348.
+        if(type==71){if(data.size()-tail<352||detail::u16(data.data()+tail+134)!=5)return std::nullopt;
+            v.parentSlot=detail::u32(data.data()+tail+348);}
         out.emplace(e.first,v);
     }
     return out;

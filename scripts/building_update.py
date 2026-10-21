@@ -14,7 +14,7 @@ def main():
     parser.add_argument('--mode', choices=['release', 'undefined'], default='release')
     parser.add_argument('--build-dir', type=Path)
     parser.add_argument('--bite', action='store_true')
-    parser.add_argument('--bite-kind', choices=['crop', 'industry', 'road', 'accounting', 'religion', 'migration', 'emigration', 'overflow', 'population', 'employment', 'market', 'stall', 'load'], default='crop')
+    parser.add_argument('--bite-kind', choices=['crop', 'industry', 'road', 'accounting', 'religion', 'migration', 'emigration', 'overflow', 'population', 'employment', 'market', 'stall', 'load', 'resource', 'hook', 'hunter'], default='crop')
     args = parser.parse_args()
     if args.build_dir and not args.build_dir.is_absolute():
         parser.error('absolute build directory required')
@@ -46,6 +46,9 @@ def main():
             'market': ('(rotation?3u:684u)', '(rotation?3u:685u)', 'Market orientation0 uses descriptor entrance at origin plus684'),
             'stall': ('if(out)out->network.reset()', 'if(out)out->network=0', 'Stall copies registered Market road fields and does not dispatch network setter'),
             'load': ('c.loadAccountingApplied=true;', 'c.loadAccountingApplied=false;', 'explicit UI load accounting transition is applied once before scheduled phase1'),
+            'resource': ('value=next<old?255:next', 'value=next<old?254:next', 'resource unsigned byte overflow saturates at255 and grows owned cells'),
+            'hook': ('if(i.spawnCounter>limit)', 'if(i.spawnCounter>=limit)', 'Well exact counter boundary advances without premature allocation'),
+            'hunter': ('if(i.spawnCounter<=threshold)', 'if(i.spawnCounter<threshold)', 'Hunter hook counter1 closes before its strict greater-than1 allocation branch'),
         }
         before, after, assertion = mutations[args.bite_kind]
         assert header.count(before) == 1
