@@ -192,3 +192,9 @@ city-clocks-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/city_clocks.py
 city-clocks-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/city_clocks.py --mode undefined
+
+.PHONY: post-figure-pass-test post-figure-pass-test-undefined
+post-figure-pass-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/post_figure_pass.py
+post-figure-pass-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/post_figure_pass.py --mode undefined
