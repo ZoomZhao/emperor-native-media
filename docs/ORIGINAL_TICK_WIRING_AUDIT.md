@@ -265,3 +265,26 @@ Stage82 的 blockers-verified.json 原有23项清单，其中 InitializeCritical
 15. 其余复位与遍历：`0x4AFD20`、`0x4AE8B0`、`0x4ACE60`、`0x5253A0`、`0x4ACD10`、`0x4ACC40`、`0x4AD3D0`、`0x4AE1A0` 与 `0x4F1560`（含已命名的会计 blocker）。
 
 以上只是静态优先级：第 1-5 项是“能开始按原顺序推进”的最小集合，不代表第 6 项之后无依赖；每项的完成标准仍是该阶段在原返回点正常返回且所需全局/对象状态有来源，而不是返回 0 或空 stub。
+
+### City modulo clocks
+
+`2026-10-21` re-verified this row directly against the same listing of the owned executable, SHA-256 `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`, image base `0x400000`, code VA = file offset + `0x400000`. The leaf `0x529990` runs to `0x529A75` and returns at `0x529A76`; `0x5371A0` calls it second (`0x5371A5`, after `0x4189B0` at `0x5371A0`). The ten globals are one contiguous dword array `0x10C71D4..0x10C71F8`, advanced in **descending** address order; every slot has the same shape (load u32 `0x529990` for slot 0, `inc`, store the incremented value, `cmp` against the period literal, and a final `store 0` only when the incremented value is `>=` the period). The reset is therefore taken at the third store, and a stored value equal to or above the period also collapses to 0.
+
+| Index | Counter global | Period | Load / cmp / store / reset store |
+|---:|---|---:|---|
+| 0 | `0x10C71F8` | 4 | `0x529990` / `0x529998` / `0x52999B` / `0x5299A2` |
+| 1 | `0x10C71F4` | 8 | `0x5299A8` / `0x5299AE` / `0x5299B1` / `0x5299B8` |
+| 2 | `0x10C71F0` | 16 | `0x5299BE` / `0x5299C4` / `0x5299C7` / `0x5299CE` |
+| 3 | `0x10C71EC` | 24 | `0x5299D4` / `0x5299DA` / `0x5299DD` / `0x5299E4` |
+| 4 | `0x10C71E8` | 32 | `0x5299EA` / `0x5299F0` / `0x5299F3` / `0x5299FA` |
+| 5 | `0x10C71E4` | 64 | `0x529A00` / `0x529A06` / `0x529A09` / `0x529A10` |
+| 6 | `0x10C71E0` | 128 | `0x529A16` / `0x529A1C` / `0x529A21` / `0x529A28` |
+| 7 | `0x10C71DC` | 256 | `0x529A2E` / `0x529A34` / `0x529A39` / `0x529A40` |
+| 8 | `0x10C71D8` | 384 | `0x529A46` / `0x529A4C` / `0x529A51` / `0x529A58` |
+| 9 | `0x10C71D4` | 768 | `0x529A5E` / `0x529A64` / `0x529A69` / `0x529A70` |
+
+Per slot the net effect is `next = previous + 1; value = next >= period ? 0 : next`, so a slot cycles `1,2,...,period-1,0` from zero. The ten globals are disjoint, so the descending order is unobservable; no slot reads another. Table A row A2's periods (4/8/16/24/32/64/128/256/384/768) are confirmed, with the global-to-period mapping above. The `0x529A81` reset recorded in [SAV_FIGURES.md](SAV_FIGURES.md):788 belongs to the separate leaf that starts at `0x529A80` (writes 100 to the ring cursor `0x10C6F8C`, then calls `0x4189B0` 100 times); the clocks' resets are the ten `0x5299A2..0x529A70` stores.
+
+**Serialization: not restored (no T-relative offset exists).** The SAV19 branch `0x5311DC..0x531873` contains 89 `push size; push address; mov ecx, esi; call 0x780533` read requests; none pushes any of `17592788/17592792/17592796/17592800/17592804/17592808/17592812/17592816/17592820/17592824`. The reads around the neighbouring RNG state are `0x10C714C` at call `0x531451`, `0x10C7148` at `0x53145F`, then `0x101D0AC` at `0x53146D` and `0x101D0B0` at `0x53147B`; a serialized clock array would have to appear between those, and it does not. Across the whole listing each of the ten addresses occurs exactly three times (load, increment store, reset store), all inside `0x529990`, so no other code path — including the versioned load at `0x5306BA` — references them either. A loaded save therefore cannot supply these values; a native city tick must give them explicit initial values (process start, or an authored re-entry point) and must not derive them from save bytes.
+
+Implementation: [original_city_clocks.hpp](../game_lab/original_city_clocks.hpp) holds the ten-slot aggregate, the address/period tables and `advanceOriginalCityClocks`; [original_city_clocks_tests.cpp](../game_lab/original_city_clocks_tests.cpp) checks every slot's exact wrap, order independence and a 1000-step table against an independent re-derivation; [scripts/city_clocks.py](../scripts/city_clocks.py) builds and runs it in release and `--mode undefined` (UBSan). Current result: `{"passed":true,"authored_checks":5008}` in all four combinations (with and without `EMPEROR_GAMEDATA_ROOT`), identical because this pass consumes no game data. This closes the row's behavioural question only; it moves no original-data metric and its clock values remain unobservable until a phase that reads them is ported.
