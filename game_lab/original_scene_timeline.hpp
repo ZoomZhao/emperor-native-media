@@ -143,6 +143,8 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
             if(!access)return false;c.poolRoadAccess->emplace(e.first,*access);c.poolRoadReachable->emplace(e.first,access->distance!=0);
             if(originalBuildingIsHouse(f.type)&&!originalBuildingHouseRoadAccess(f,*roads))c.roadRefreshOrdinaryExit=false;
             const auto adjacent=originalBuildingHouseRoadAccess(f,*roads,false);
+            if(originalBuildingIsHouse(f.type)&&adjacent)city.figures.workerRoadExits.emplace(e.first,
+                adjacent->selected?std::make_optional(std::make_pair(adjacent->x,adjacent->y)):std::nullopt);
             if(adjacent)c.poolRoadSelected->emplace(e.first,adjacent->selected);
             if(f.type==53||f.type==54||f.type==58){if(!adjacent)return false;uint8_t status=adjacent->selected?1:0;
                 if(!status&&f.type==53){auto wider=f;wider.size=5;const auto fallback=originalBuildingHouseRoadAccess(wider,*roads,false);if(!fallback)return false;if(fallback->selected)status=2;}
@@ -230,7 +232,13 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city){
         else return "negative_treasury_city_counters_required";break;
     case 5:case 29:result=originalBuildingFormationPhase(c,city.phase==5);break;
     case 6:result=originalBuildingLaborCountdown(c);break;
-    case 7:result=originalBuildingNetworkStep(c);break;
+    case 7:if(c.movement)result=originalBuildingNetworkStep(c);
+        else { //4AF350; a B0C projection suffices for the building-free river path.
+            const auto networks=originalFigureRoadNetworks(f);
+            const auto ranks=networks?originalBuildingRankedRoadNetworks(*networks):std::nullopt;
+            if(!networks||!ranks)result=OriginalBuildingUpdateBlocker::RoadRefresh;
+            else {c.roadNetworks=*networks;c.rankedNetworks=*ranks;++c.networkCalls;}}
+        break;
     case 8:result=originalBuildingGoodsPoolStep(c);break;
     case 10:if(!c.highestEverBuildingSlot||!c.goodsRecords||c.goodsRecords->empty())result=OriginalBuildingUpdateBlocker::CityPhase;
         else{uint32_t highest=0;for(const auto& e:*c.buildingInputs)if(e.second.alive)highest=uint32_t(e.first);
@@ -434,7 +442,7 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
         out.buildingPhases.emplace(p.footprint.slot,*p.footprint.animationInputs->phase);
     }
     auto context=initial;std::optional<OriginalCombinedState> city;
-    if(combined){city=*combined;city->figures=initial;
+    if(combined){city=*combined;context.workerRoadExits=combined->figures.workerRoadExits;city->figures=context;
         if(!city->process.cityClocks){out.refusal="city_clocks_529990_initial_values_required";return out;}}
     for(const auto& frame:frames){
         if(frame.buildingDraws.size()>40000||frame.figureDrawCells.size()>4*51984){out.refusal="draw_budget";return out;}

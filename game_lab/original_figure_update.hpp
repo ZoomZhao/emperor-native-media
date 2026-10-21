@@ -290,20 +290,48 @@ struct OriginalFigureUpdateContext {
     std::optional<std::array<OriginalFigureProfile::EmpireTraderSlots,22>> empireTraders;
     std::optional<bool> buildingEditMode; //D62408,4CA226:caller input,not a recovered SAV/reset value.
     std::vector<uint8_t> roadNetworks; //4AF350/4AF490 post-load EC5A10 component labels.
+    //4BA6F0 selections supplied through the committed building-road parser.
+    //Present/nullopt means a complete scan found no exit; absent key is unknown.
+    std::map<size_t,std::optional<std::pair<int16_t,int16_t>>> workerRoadExits;
 };
+//5AD440's B0C projection for an entirely building-free grid. The pointer
+//arm5AD79F..834 emits only10/1/2, all disjoint from B0C. River-object
+//rewrites41F584..58F clear60000/80000000 and set80, also disjoint from
+//the earlier road/bridge tests. This is never a full movement grid.
+inline std::optional<std::vector<uint16_t>> originalFigureEmptyBuildingNetworkMasks(const OriginalFigureUpdateContext& context){
+    if(context.terrain.size()!=51984||context.buildingOwners.size()!=51984||!context.buildings||
+        !context.cropBase||!context.activeSide||*context.activeSide>228||
+        std::any_of(context.buildingOwners.begin(),context.buildingOwners.end(),[](uint16_t owner){return owner!=0;})||
+        std::any_of(context.buildings->begin(),context.buildings->end(),[](const auto& e){return e.second.type!=0;}))return std::nullopt;
+    std::vector<uint16_t> masks(51984);
+    for(unsigned y=0;y<*context.activeSide;++y)for(unsigned x=0;x<*context.activeSide;++x){const size_t cell=*context.cropBase+y*228+x;
+        if(cell>=51984)return std::nullopt;const auto t=context.terrain[cell];
+        if(t&0x100)continue;
+        if(t&0x800){masks[cell]=t&0x40?4:0;continue;}
+        if((t&0x80000)||(t&0x10004)==0x10004)continue;
+        if((t&0x400)&&(t&0x40)&&!(t&0x800000))masks[cell]=0x100;
+        else if(t&0x40)masks[cell]=4;
+        else if(t&0x8008)return std::nullopt; //owner0 repair is effectful
+    }
+    return masks;
+}
 //534EBA rebuilds EC5A10:row-major road seeds,cardinal B0C traversal,
 //first new neighbour followed immediately,others queued in the original1000
 //entry ring. Bit8 needs terrain400;EB8F00 segment labels are not consumed.
 inline std::optional<std::vector<uint8_t>> originalFigureRoadNetworks(const OriginalFigureUpdateContext& context){
-    if(!context.passability||!context.passability->fullMovementMasks||context.passability->cells.size()!=51984||
-        context.terrain.size()!=51984||!context.cropBase||!context.activeSide)return std::nullopt;
+    if(context.terrain.size()!=51984||!context.cropBase||!context.activeSide||*context.activeSide>228)return std::nullopt;
+    const bool full=context.passability&&context.passability->fullMovementMasks&&context.passability->cells.size()==51984;
+    std::optional<std::vector<uint16_t>> projection;
     std::vector<uint8_t> networks(51984);unsigned label=0;constexpr int offsets[]={-228,1,228,-1};
     for(unsigned y=0;y<*context.activeSide;++y)for(unsigned x=0;x<*context.activeSide;++x){const size_t seed=*context.cropBase+y*228+x;
         if(seed>=51984)return std::nullopt;if(networks[seed]||(context.terrain[seed]&0x44)!=0x40)continue;
+        //4AF3C6..3E0 tests the terrain seed before4AF490 reads movement.
+        //An empty road seed set has no movement-grid dependency.
+        if(!full&&!projection){projection=originalFigureEmptyBuildingNetworkMasks(context);if(!projection)return std::nullopt;}
         if(++label>255)return std::nullopt;std::array<size_t,1000> queue{};size_t head=0,tail=0,cell=seed;
         for(size_t steps=0;;++steps){if(steps>51984)return std::nullopt;networks[cell]=uint8_t(label);std::optional<size_t> immediate;
             for(int delta:offsets){const int64_t next=int64_t(cell)+delta;
-                if(next<0||next>=51984)continue;const auto mask=context.passability->cells[size_t(next)];
+                if(next<0||next>=51984)continue;const auto mask=full?context.passability->cells[size_t(next)]:projection->at(size_t(next));
                 if(!networks[size_t(next)]&&(mask&0xb0c)&&(!(mask&8)||(context.terrain[size_t(next)]&0x400))){
                     networks[size_t(next)]=uint8_t(label);
                     if(!immediate)immediate=size_t(next);else {queue[tail]=size_t(next);tail=(tail+1)%1000;}}}
@@ -1405,13 +1433,26 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
 inline OriginalFigureFirstUpdate originalWorkerFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=0x4c9fd0;out.status=OriginalFigureUpdateStatus::WorkerOwnerMovement;
-    if(!context||!context->buildings||(saved.action!=7&&saved.action!=8)||!context->figures.count(saved.slot))return out;
+    if(!context||!context->buildings||!context->figures.count(saved.slot))return out;
     const auto home=context->buildings->find(size_t(saved.home));
-    if(home==context->buildings->end()||(home->second.alive!=1&&home->second.alive!=3)||home->second.worker!=int(saved.slot)||
-        home->second.type<2||home->second.type>=18||!home->second.accepting)return out;
+    if(home==context->buildings->end())return out;
+    //4CA023..05C rejects invalid live/reciprocal/accepting/house inputs
+    //through4CA330 before frame or movement.4C909E later clears owner+32.
+    const bool rejectedCommon=(home->second.alive!=1&&home->second.alive!=3)||home->second.worker!=int(saved.slot);
+    if(!rejectedCommon&&(home->second.type<2||home->second.type>=18))return out; //uncited virtual+B8
+    if(rejectedCommon||!home->second.accepting){
+        auto local=*context;auto f=saved;f.movementMode=3;f.secondaryImage=0;f.alive=2;
+        originalFigurePublishWrites(out,f,*context,local);return out;}
+    if(saved.action!=6&&saved.action!=7&&saved.action!=8)return out;
     const auto speed=context->modelSpeeds.find(11);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
     auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;f.hidden=0;f.frame=uint8_t(f.frame+1);if(f.frame>=12)f.frame=0;
-    if(f.action==8){f.freeMovement=1;const auto movement=originalFigureFreeStep(f,local);
+    if(f.action==6){ //4CA0AB..106:countdown,then4BA6F0;no movement this call.
+        f.counter=originalFigureWord(int(f.counter)-1);f.hidden=1;f.frame=0;
+        if(f.counter<=0){const auto road=local.workerRoadExits.find(size_t(f.home));
+            if(road==local.workerRoadExits.end())return out;
+            if(!road->second)f.alive=2;
+            else {f.action=7;f.destinationX=road->second->first;f.destinationY=road->second->second;f.roamSteps=0;}}
+    }else if(f.action==8){f.freeMovement=1;const auto movement=originalFigureFreeStep(f,local);
         if(!movement)return out;f=movement->first;
         if(movement->second){out.status=OriginalFigureUpdateStatus::WorkerEmployment;
             auto& house=local.buildings->at(size_t(f.home));
@@ -2262,7 +2303,7 @@ inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUp
         if(f.home)shooter->second.destinationCell&=0xffffu; //runtime+32 is high word of+30 destinationCell.
     }else if(f.owner)return false;
     //4C909E tests+64,then addresses the+62 owner (not the home index).
-    if(f.home&&f.type==76){ //4C909E:animal timer+64 is not a home index;owner+62 selects the building.
+    if(f.home&&(f.type==76||f.type==11)){ //4C909E:nonzero+64 gates owner+62, including workers rejected by4CA330.
         if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
         if(owner==context.buildings->end())return false;owner->second.worker=0;
     }else if(f.home&&f.type!=11&&f.type!=54)return false; //worker arrival already cleared its reciprocal home link.

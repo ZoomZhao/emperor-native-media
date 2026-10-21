@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--only', help='Run one named mutation')
     args = parser.parse_args()
-    work = Path(tempfile.mkdtemp(prefix='a3-figure-scene-bite-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))
+    work = Path(tempfile.mkdtemp(prefix='a4-figure-scene-bite-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))
     mutations = [
         ('index', 'original_building_scene.hpp', '(word&0x3fff)+1;', '(word&0x3fff)+201;'),
         ('position', 'original_building_scene.hpp', 'ox-s.animationOffsetX,oy-s.animationOffsetY', 'ox+s.animationOffsetX,oy-s.animationOffsetY'),
@@ -158,6 +158,11 @@ def main():
         ('combined_building', 'original_scene_timeline.hpp', 'originalBuildingStateAfterUpdates(b.state,local,1);', 'originalBuildingStateAfterUpdates(b.state,local,0);'),
         ('combined_accounting', 'original_scene_timeline.hpp', 'case 1:result=originalBuildingAccountingStep(c);break;', 'case 1:break;'),
         ('combined_post_provider', 'original_scene_timeline.hpp', 'originalPostFigurePassStatusName(city.postFigureResult->status);', '"wildlife_scan_564b50_not_closed";'),
+        ('combined_network', 'original_figure_update.hpp', 'else if(t&0x40)masks[cell]=4;', 'else if(t&0x40)masks[cell]=0;'),
+        ('combined_worker_delay', 'original_figure_update.hpp', '4CA0AB..106:countdown,then4BA6F0;no movement this call.\n        f.counter=originalFigureWord(int(f.counter)-1);', '4CA0AB..106:countdown,then4BA6F0;no movement this call.\n        f.counter=originalFigureWord(int(f.counter)+1);'),
+        ('combined_worker_exit', 'original_figure_update.hpp', 'f.action=7;f.destinationX=road->second->first;', 'f.action=8;f.destinationX=road->second->first;'),
+        ('combined_worker_cleanup', 'original_figure_update.hpp', 'if(f.home&&(f.type==76||f.type==11))', 'if(f.home&&f.type==76)'),
+        ('combined_worker_binding', 'original_scene_timeline.hpp', 'context.workerRoadExits=combined->figures.workerRoadExits;', 'context.workerRoadExits.clear();'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]
@@ -209,6 +214,11 @@ def main():
             'combined_building': 'combined phase48 calls the public building API once before the figure pass',
             'combined_accounting': 'combined accounting runs once for the whole pool through public building services',
             'combined_post_provider': 'combined post figure public API exposes first unported callee and stored counter',
+            'combined_network': 'combined network B0C projection retains water4 between road seeds',
+            'combined_worker_delay': 'combined allocated worker countdown holds position and selects frame0 before road lookup',
+            'combined_worker_exit': 'combined worker countdown expiry uses cited road exit without moving in the transition call',
+            'combined_worker_cleanup': 'combined rejected worker cleanup clears owner slot0 then unlinks and enqueues the figure',
+            'combined_worker_binding': 'combined phase48 calls the public building API once before the figure pass',
         }.get(name)
         if expected and expected not in result.stderr:
             raise RuntimeError('mutation failed outside intended assertion: ' + name)
