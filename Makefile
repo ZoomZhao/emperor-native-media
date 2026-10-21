@@ -164,3 +164,15 @@ final-dispatch-test:
 
 final-dispatch-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 python3 input_lab/final_dispatch_tests.py --mode undefined
+
+.PHONY: building-update-test building-update-test-undefined
+building-update-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/building_update.py
+building-update-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/building_update.py --mode undefined
+
+.PHONY: city-clocks-test city-clocks-test-undefined
+city-clocks-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/city_clocks.py
+city-clocks-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/city_clocks.py --mode undefined

@@ -492,6 +492,48 @@ inline OriginalBuildingProfile parseOriginalSavedBuildings(const std::vector<uin
     }catch(const std::bad_alloc&){return failure(OriginalBuildingStatus::BudgetExceeded);}
 }
 inline OriginalBuildingProfile parseOriginalMapBuildings(const std::vector<uint8_t>& data,const OriginalMapTerrain& terrain){return parseOriginalBuildingTable(data,1093607,data.size(),terrain,true);}
+// Additive, opt-in update inputs. No existing image/scene parsing is changed.
+// Common5 serializer0x427430: wire+2/+65/+76/+99/+162 =>
+// runtime+4/+47/+52/+6F/+B4. Industrial1 data0x51C3A0 is byte-for-byte
+// tail+4..129 after two version headers, including +4/+63/+6A.
+struct OriginalBuildingUpdateInputs {
+    uint8_t alive=0,output=0,byte52=0,upgrade=0;
+    uint32_t identity=0;
+    std::optional<std::array<uint8_t,126>> industry; // data+4..81 inclusive
+    std::optional<std::array<uint8_t,61>> house; // serialized tail+4..64,0x517410
+};
+inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuildingUpdateInputs(
+    const std::vector<uint8_t>& data,const OriginalBuildingProfile& profile){
+    if(data.size()>8u*1024u*1024u||profile.status!=OriginalBuildingStatus::Complete||profile.parsedRecords!=4000)return std::nullopt;
+    std::map<size_t,size_t> records;
+    for(const auto& f:profile.footprints)if(!records.emplace(f.slot,f.recordOffset).second)return std::nullopt;
+    for(const auto& f:profile.objectBuildings)if(!records.emplace(f.slot,f.recordOffset).second)return std::nullopt;
+    size_t live=0;for(const auto& e:profile.liveTypeCounts)live+=e.second;
+    if(records.size()!=live)return std::nullopt;
+    std::map<size_t,OriginalBuildingUpdateInputs> out;
+    for(const auto& e:records){size_t at=e.second;
+        if(e.first>=4000||at>data.size()||data.size()-at<2)return std::nullopt;
+        const auto tag=detail::u16(data.data()+at);at+=2;
+        if(tag==0xffff){if(data.size()-at<4)return std::nullopt;const size_t n=detail::u16(data.data()+at+2);
+            if(n>data.size()-at-4)return std::nullopt;at+=4+n;}
+        else if(tag<0x8000)return std::nullopt;
+        if(data.size()-at<182||detail::u16(data.data()+at)!=5||detail::u16(data.data()+at+16)!=profile.slotTypes[e.first])return std::nullopt;
+        const auto* p=data.data()+at;OriginalBuildingUpdateInputs v;
+        v.alive=p[2];v.output=p[65];v.byte52=p[76];v.upgrade=p[99];v.identity=detail::u32(p+162);
+        const size_t tail=at+182;const uint16_t type=profile.slotTypes[e.first];
+        if(type==0xc2||type==0xc4){
+            if(data.size()-tail<140||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1||
+                detail::u16(data.data()+tail+130)!=1||detail::u16(data.data()+tail+132)!=1||detail::u16(data.data()+tail+138)!=1)return std::nullopt;
+            v.industry.emplace();std::copy_n(data.begin()+tail+4,126,v.industry->begin());
+        }
+        if(type>=2&&type<=17){
+            if(data.size()-tail<65||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1)return std::nullopt;
+            v.house.emplace();std::copy_n(data.begin()+tail+4,61,v.house->begin());
+        }
+        out.emplace(e.first,v);
+    }
+    return out;
+}
 inline std::string describeOriginalBuildingProfile(const OriginalBuildingProfile& p){
     const bool prefix=p.status==OriginalBuildingStatus::UnsupportedTail;
     if(p.status!=OriginalBuildingStatus::Complete&&!prefix)return "建筑记录不兼容或锚点不唯一；没有占地可发布";
