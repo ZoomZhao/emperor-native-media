@@ -104,7 +104,7 @@ struct OriginalFigureGoodsServices {
     uint32_t savedPhase=0;
     // 1E4EE08 and10BC928 are persistent process caches, never SAV fields.
     std::optional<std::array<uint8_t,36>> storageSearch,industrySearch;
-    std::optional<uint32_t> godGate; //C5CDA0 process input;load5350A5 clears it.
+    std::optional<uint32_t> godGate; //Scenario6+2C0,C5CDA0;52D366..371 reads4.5350A5 is SAVE,not load.
 };
 inline std::optional<OriginalFigureGoodsServices> originalFigureSavedGoodsServices(
     const std::vector<uint8_t>& data,size_t figuresEnd,size_t sizeAnchor,size_t terrain){
@@ -126,6 +126,9 @@ inline std::optional<OriginalFigureGoodsServices> originalFigureSavedGoodsServic
         out.trade7[r]=detail::u32(data.data()+population+10578+4*r);
         out.trade5[r]=detail::u32(data.data()+population+10722+4*r);
         out.warehouse[r]=detail::u32(data.data()+population+10866+4*r);}
+    const size_t scenario=sizeAnchor-28;
+    if(data.size()-scenario<708||detail::u16(data.data()+scenario)!=6)return std::nullopt;
+    out.godGate=detail::u32(data.data()+scenario+704); //2-byte archive version+702 preceding requested bytes.
     out.savedPhase=detail::u32(data.data()+terrain+original_save19::c82ef8);return out;
 }
 // Same ten bounded goal lists as SAV19's existing prefix walker, followed
@@ -261,6 +264,7 @@ struct OriginalFigureBuildingLink {
     int16_t serviceCount=0;
     std::array<int16_t,8> cargoFigures{};
     std::array<int16_t,2> secondaryFigures{};
+    int16_t hunterReturnGoods=0; //common+72,wire101;4D3408 adds50 on action10 arrival.
     std::optional<int32_t> marketGoods;
     std::optional<std::vector<OriginalStorageCompartment>> marketStorage;
     std::optional<std::array<int16_t,7>> marketDemand;
@@ -320,6 +324,7 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         link.outputResource=data[at+65];link.roadAccess=data[at+66];link.roadDistance=detail::i16(data.data()+at+31);
         link.category=data[at+20];link.workers=detail::i16(data.data()+at+62);link.storageLaborDisabled=data[at+98];
         link.suppress=detail::i16(data.data()+at+72);
+        link.hunterReturnGoods=detail::i16(data.data()+at+101);
         link.incomingFigures=detail::i16(data.data()+at+156);link.incomingAmount=detail::i16(data.data()+at+158);
         const int policy=detail::i16(data.data()+at+88);if(policy>=0)link.storagePolicy=size_t(policy);
         link.roadX=detail::i16(data.data()+at+37);link.roadY=detail::i16(data.data()+at+39);link.roamDirection=data[at+51];
@@ -329,7 +334,7 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         link.residents=detail::i16(data.data()+at+27);link.freeSlots=detail::i16(data.data()+at+29);link.houseModel=detail::i16(data.data()+at+18);
         const auto risk=detail::u32(data.data()+at+125);link.watchRisk=int32_t(risk>INT32_MAX?int64_t(risk)-4294967296LL:risk);
         const size_t tail=at+182;
-        if(type==0xd3&&data.size()-tail>=130&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1)
+        if((type==0xd3||type==0x21)&&data.size()-tail>=130&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1)
             link.delegatedCount=data[tail+92];
         for(const auto& footprint:buildings.footprints)if(footprint.slot==b.first&&footprint.imageInputs&&footprint.imageInputs->compartments)
             link.storage=footprint.imageInputs->compartments;
@@ -355,7 +360,7 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         if(type==0x47&&data.size()-tail>=352&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1)
             {link.entertainment=std::array<uint8_t,3>{data[tail+93],data[tail+94],data[tail+95]};link.inspectorParent=detail::u32(data.data()+tail+348);
              link.entertainmentRoad=data[tail+105];}
-        if((type==0x3a||type==0x3b||type==0x7c)&&data.size()-at>=312&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
+        if((type==0x36||type==0x3a||type==0x3b||type==0x47||type==0x7c)&&data.size()-at>=312&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
             for(unsigned n=0;n<2;++n)link.secondaryFigures[n]=detail::i16(data.data()+tail+106+2*n);
             for(unsigned n=0;n<8;++n)link.cargoFigures[n]=detail::i16(data.data()+tail+112+2*n);
             if(type==0x3b&&data.size()-tail>=266&&detail::u16(data.data()+tail+130)==2&&detail::u16(data.data()+tail+216)==6){

@@ -467,8 +467,15 @@ inline std::optional<std::vector<uint8_t>> originalFigureEngineRoute(const Origi
     std::reverse(reverse.begin(),reverse.end());return reverse;
 }
 inline bool originalFigureGenerateRoute(OriginalFigure& f,OriginalFigureUpdateContext& context){
-    if((f.movementMode!=3&&f.movementMode!=5&&f.movementMode!=17)||f.effectDraw||!context.services||context.services->directions.size()!=500000||!context.passability)return false;
+    if((f.movementMode!=1&&f.movementMode!=3&&f.movementMode!=5&&f.movementMode!=7&&f.movementMode!=17)||f.effectDraw||!context.services||context.services->directions.size()!=500000||!context.passability)return false;
     auto route=originalFigureEngineRoute(*context.passability,f.x,f.y,f.destinationX,f.destinationY);if(!route)return false;
+    if(f.movementMode==1){ //4E8523/5B00D0(1)/5B0360:B0C flood,4 then8 backtrack.
+        bool reached=false;route=originalFigureEngineRoute(*context.passability,f.x,f.y,f.destinationX,f.destinationY,0xb0c,4,&reached);
+        if(reached&&route&&route->empty())route=originalFigureEngineRoute(*context.passability,f.x,f.y,f.destinationX,f.destinationY,0xb0c);
+    }
+    if(f.movementMode==7){ //5AFB00->5AFC00,then4E8940's4/8 backtrack.
+        bool reached=false;route=originalFigureEngineRoute(*context.passability,f.x,f.y,f.destinationX,f.destinationY,0x12c,4,&reached);
+        if(reached&&route&&route->empty())route=originalFigureEngineRoute(*context.passability,f.x,f.y,f.destinationX,f.destinationY,0x12c);}
     if(f.movementMode==3){
         const int64_t target=int64_t(context.passability->spawn.cropBase)+f.destinationX+228LL*f.destinationY;
         if(target<0||target>=51984)return false;
@@ -646,10 +653,10 @@ inline OriginalFigureMovement originalFigureFollowRouteInContext(const OriginalF
             if(!context)return {OriginalFigureUpdateStatus::RouteBoundary,{}};
             //0x4EACD0: table service category-1 means no service-grid write.
             // A present owner needs the cited zero-return virtual chain below.
-            if(f.type==39||f.type==28||f.type==23||f.type==36){if(!originalFigureEntertainmentSegment(f,*context))return {OriginalFigureUpdateStatus::SegmentService,{}};}
+            if(f.type==39||f.type==28||f.type==23||f.type==30||f.type==35||f.type==36){if(!originalFigureEntertainmentSegment(f,*context))return {OriginalFigureUpdateStatus::SegmentService,{}};}
             else if(f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=26&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=76)
                 return {OriginalFigureUpdateStatus::SegmentService,{}};
-            if(f.owner&&f.type!=39&&f.type!=28&&f.type!=23&&f.type!=36&&f.type!=26){if(!context->buildings)return {OriginalFigureUpdateStatus::SegmentService,{}};
+            if(f.owner&&f.type!=39&&f.type!=28&&f.type!=23&&f.type!=30&&f.type!=35&&f.type!=36&&f.type!=26){if(!context->buildings)return {OriginalFigureUpdateStatus::SegmentService,{}};
                 const auto owner=context->buildings->find(size_t(f.owner));
                 // Individually cited ordinary owner vtables:+28=429DF0,
                 // +2C=42A210 returns0;4EACD0 still caps signed+1C at300.
@@ -999,7 +1006,8 @@ inline void originalFigurePublishWrites(OriginalFigureFirstUpdate& out,const Ori
     for(const auto& entry:after.figures){const auto& prior=before.figures.at(entry.first);
         if(entry.first!=f.slot&&(entry.second.next!=prior.next||entry.second.secondaryImage!=prior.secondaryImage||entry.second.route!=prior.route||
             entry.second.alive!=prior.alive||entry.second.action!=prior.action||entry.second.direction!=prior.direction||entry.second.counter!=prior.counter||
-            entry.second.previousAction!=prior.previousAction))out.linkedWrites.emplace(entry);}
+            entry.second.previousAction!=prior.previousAction||entry.second.target!=prior.target||
+            entry.second.flags120!=prior.flags120||entry.second.linkedBuilding!=prior.linkedBuilding))out.linkedWrites.emplace(entry);}
     if(before.cellHeads!=after.cellHeads)out.cellHeads=after.cellHeads;
     out.watchMaximum=after.watchMaximum;
     out.inspectorMaximum=after.inspectorMaximum;
@@ -1027,6 +1035,32 @@ inline std::optional<unsigned> originalFigureStorageWithdraw(OriginalFigureBuild
         if(b.type==0x36)goods.warehouse[resource]-=take; //vtable7BE1BC+288=5D50A0.
         else {const auto mode=goods.policies[*b.storagePolicy].trade[resource];
             if(mode==7)goods.trade7[resource]-=take;else if(mode==5)goods.trade5[resource]-=take;}
+    }
+    return wanted;
+}
+// Warehouse7BE1BC+154=5D4E80: policy gate, then fullest compatible bay
+// (first tie) one unit at a time. +284=5D5080 credits each attempted unit;
+// 5D2790 assigns identity and clamps to capacity. Existing scene selector
+// rebinds changed compartments; no stock-based image formula is added here.
+inline std::optional<unsigned> originalFigureWarehouseDeliver(OriginalFigureBuildingLink& b,unsigned resource,
+    unsigned amount,OriginalFigureGoodsServices& goods){
+    if(b.type!=0x36||!b.storage||b.storage->size()!=8||!b.storagePolicy||*b.storagePolicy>=goods.policies.size()||resource>28||amount>32767)return std::nullopt;
+    for(const auto& c:*b.storage)if(c.capacity!=400||c.amount>400||c.resource>28||(!c.resource&&c.amount))return std::nullopt;
+    if((b.alive!=1&&b.alive!=3)||b.workers<=0||b.suppress)return 0;
+    const auto& policy=goods.policies[*b.storagePolicy];
+    const auto stock=[&](unsigned r){unsigned n=0;for(const auto& c:*b.storage)if(c.resource==r&&c.resource)n+=c.amount;return n;};
+    const auto rejects=[&](unsigned r,unsigned n){return (policy.accept[r]!=0&&policy.accept[r]!=2)||
+        (n?int64_t(stock(r))+n>policy.limit[r]:int64_t(stock(r))>=policy.limit[r]);};
+    if(rejects(resource,0))return 0;
+    unsigned withheld=0;
+    if(rejects(resource,amount)){const int64_t n=int64_t(stock(resource))+amount-policy.limit[resource];
+        if(n<0||n>amount)return std::nullopt;withheld=unsigned(n);}
+    const unsigned wanted=amount-withheld;if(!wanted)return 0;
+    for(unsigned n=0;n<wanted;++n){size_t selected=b.storage->size();int maximum=-1;
+        for(size_t k=0;k<b.storage->size();++k){const auto& c=b.storage->at(k);
+            if(((c.resource==0&&c.amount==0)||c.resource==resource)&&c.amount<c.capacity&&int(c.amount)>maximum){maximum=int(c.amount);selected=k;}}
+        if(selected==b.storage->size())return 0; //original retains partial bay/accounting writes but returns0.
+        auto& c=b.storage->at(selected);++goods.warehouse[resource];c.resource=resource;++c.amount;
     }
     return wanted;
 }
@@ -1104,10 +1138,13 @@ inline OriginalFigureFirstUpdate originalCartFirstUpdate(const OriginalFigure& s
     if(!context||!context->figures.count(saved.slot)||saved.leaderLink<=0)return out;
     auto local=*context;const auto immediate=local.figures.find(size_t(saved.leaderLink));if(immediate==local.figures.end())return out;
     const auto lead=immediate->second;auto goods=immediate;std::set<size_t> seen;
+    const auto missingGoods=[&](){auto f=saved;f.alive=2;originalFigurePublishWrites(out,f,*context,local);return out;};
     for(unsigned n=0;n<8;++n){if(!seen.insert(goods->first).second)return out;
         if(goods->second.type==19||goods->second.type==21||goods->second.type==22)break;
-        if(n==7||goods->second.leaderLink<=0)return out;goods=local.figures.find(size_t(goods->second.leaderLink));if(goods==local.figures.end())return out;}
-    if(goods->second.alive!=1||lead.alive!=1||lead.action==4||saved.action<6||saved.action>9)return out;
+        if(n==7||goods->second.leaderLink==0)return missingGoods();
+        if(goods->second.leaderLink<0)return out;goods=local.figures.find(size_t(goods->second.leaderLink));if(goods==local.figures.end())return out;}
+    if(goods->second.alive!=1)return missingGoods(); //4D4C9E..B4:missing root removes before movement/image selection.
+    if(lead.alive!=1||lead.action==4||saved.action<6||saved.action>9)return out;
     auto f=saved;f.image=f.secondaryImage=0;f.hidden=f.freeMovement=0;f.stationary=bool(goods->second.stationary);
     bool follow=false;unsigned distance=saved.action==9?13:18;
     if(f.action==6||f.action==7){if(f.progress!=f.priorProgress){f.frame=uint8_t(f.frame+1);if(f.frame>=12)f.frame=0;}
@@ -1176,7 +1213,18 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
             else f.stationary=1;f.counter=0;}
     }else if(f.type==19&&(f.action==10||f.action==11)){
         f.counter=originalFigureWord(int(f.counter)+1);f.frame=0;
-        if(f.counter>=(f.action==10?11:6)){out.status=OriginalFigureUpdateStatus::GoodsArrival;return out;}
+        if(f.counter>=(f.action==10?11:6)){out.status=OriginalFigureUpdateStatus::GoodsArrival;
+            if(f.action!=10||!local.buildings||!local.goods)return out;
+            auto destination=local.buildings->find(size_t(f.delivery));if(destination==local.buildings->end())return out;
+            const auto delivered=originalFigureWarehouseDeliver(destination->second,f.subtype,unsigned(uint16_t(f.amount)),*local.goods);if(!delivered)return out;
+            //4E2A20:Warehouse+C8(-8)=false,+D8=false,so no incoming
+            //counter write. A full delivery returns home without search.
+            if(*delivered!=unsigned(uint16_t(f.amount)))return out;
+            f.action=13;f.counter=0;f.destinationX=f.homeX;f.destinationY=f.homeY;f.amount=0;
+        }
+    }else if(f.type==19&&f.action==12){ //4CC493..515:zero cargo removes before image write.
+        if(f.amount)return out;f.alive=2;
+        originalFigurePublishWrites(out,f,*context,local);return out;
     }else if(f.type==21&&f.action==12){
         out.status=OriginalFigureUpdateStatus::GoodsArrival;
         if(!local.buildings)return out;auto destination=local.buildings->find(size_t(f.delivery));
@@ -1206,6 +1254,14 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
             // No withdrawal or accounting happens on this arrival call.
             if(destination->second.type==0x35)f.action=11;
             else if(destination->second.type==0x36)f.action=10;else return out;}
+        else if(f.type==19&&f.action==13&&f.direction==8)f.action=12; //4CC5D6.
+        else if(f.type==19&&f.action==13&&f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
+            if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+        else if(f.type==22&&f.action==9&&f.direction==8){ //4D1740:deliver remaining cargo to owner,then remove on full acceptance.
+            if(!local.buildings||!local.goods)return out;auto owner=local.buildings->find(size_t(f.owner));
+            if(owner==local.buildings->end())return out;
+            if(f.amount){const auto delivered=originalFigureWarehouseDeliver(owner->second,f.subtype,unsigned(uint16_t(f.amount)),*local.goods);
+                if(!delivered||*delivered!=unsigned(uint16_t(f.amount)))return out;f.amount=0;}f.alive=2;}
         else if(f.direction>=8){out.status=OriginalFigureUpdateStatus::GoodsArrival;return out;}
     }else return out;
     if(f.type==21){cargo=figureSecondaryImage(originalFigureImageInputs(f),archives,context->view);
@@ -1289,6 +1345,28 @@ inline OriginalFigureUpdateStatus originalFigureHunterProjectile(const OriginalF
         context.figures.at(tail).next=uint16_t(slot);}
     context.figures.at(slot)=p;context.allocatedSlots.insert(slot);context.highestLiveSlot=std::max(context.highestLiveSlot,slot);return OriginalFigureUpdateStatus::Computed;
 }
+//59CC00(1000,0,0): load-reconstructed animal vector is ascending; collect
+//at most30 qualifying prey,5AE970 floods B1D in N,E,S,W order and checks
+//candidate indices in reverse at each dequeued cell. Distance includes start1.
+inline std::optional<size_t> originalFigureHunterPrey(const OriginalFigure& hunter,const OriginalFigureUpdateContext& context){
+    if(!context.passability||!context.passability->fullMovementMasks||context.passability->cells.size()!=51984||!context.cropBase)return std::nullopt;
+    std::vector<const OriginalFigure*> candidates;
+    for(const auto& e:context.figures){const auto& p=e.second;
+        if(p.type<75||p.type>77||p.alive!=1||p.hidden||p.action==4||p.action==10||
+            (p.linkedBuilding&&p.linkedBuilding!=unsigned(hunter.owner)))continue;
+        if(p.type!=76)return std::nullopt; //Pheasant virtual+3C=416A50;other prey predicates withheld.
+        candidates.push_back(&p);if(candidates.size()==30)break;}
+    if(candidates.empty())return size_t(0);
+    if(hunter.cell>=51984)return std::nullopt;
+    std::vector<unsigned> distance(51984);std::vector<size_t> queue{hunter.cell};distance[hunter.cell]=1;
+    constexpr int offsets[]={-228,1,228,-1};
+    for(size_t at=0;at<queue.size();++at){const auto cell=queue[at];
+        for(auto p=candidates.rbegin();p!=candidates.rend();++p)if((*p)->cell==cell)return distance[cell]<=1000?(*p)->slot:size_t(0);
+        for(int delta:offsets){const int64_t next=int64_t(cell)+delta;if(next<0||next>=51984)continue;
+            if(!distance[size_t(next)]&&(context.passability->cells[size_t(next)]&0xb1d)){
+                distance[size_t(next)]=distance[cell]+1;queue.push_back(size_t(next));}}}
+    return size_t(0);
+}
 inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=0x4d2f10;out.status=OriginalFigureUpdateStatus::CombatRouteAndTarget;
@@ -1297,7 +1375,14 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
     if(owner==context->buildings->end()||(owner->second.alive!=1&&owner->second.alive!=3))return out;
     auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;f.freeMovement=f.hidden=0;
     uint32_t code=0;
-    if(f.action==13){const auto model=context->models.find(40);const auto group=originalFigureImageGroup(0x4ec0,archives);
+    if(f.action==6){f.counter=originalFigureWord(int(f.counter)-1);f.direction=f.previousDirection;
+        if(f.counter<=0){const auto prey=originalFigureHunterPrey(f,local);if(!prey)return out;
+            if(*prey){auto& p=local.figures.at(*prey);f.destinationX=p.x;f.destinationY=p.y;f.target=int16_t(*prey);p.flags120|=2;p.linkedBuilding=unsigned(f.owner);f.action=7;}
+            else {f.action=11;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;
+                if(f.x==f.destinationX&&f.y==f.destinationY){f.hidden=1;f.alive=2;}}
+            if(f.route>0){if(f.route>=1000||!local.services)return out;if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+        if(!originalFigureWriteWalkingImage(f,f.action==7?0x4ebf:0x4ebe,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+    }else if(f.action==13){const auto model=context->models.find(40);const auto group=originalFigureImageGroup(0x4ec0,archives);
         if(model==context->models.end()||model->second[7]==INT32_MIN||!group)return out;
         f.counter=originalFigureWord(int(f.counter)-1);
         if(f.counter<model->second[7]-group->second->animationSpriteCount-8)f.action=7;
@@ -1341,16 +1426,22 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
         const auto speed=context->modelSpeeds.find(40);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
         const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
-        if(f.direction==9&&f.action==7){const auto target=local.figures.find(size_t(f.target));if(target==local.figures.end()||!local.services)return out;
+        if((f.direction==9||f.direction==8)&&f.action==7){ //4D3249/4D3299:retarget a still-qualified prey after route end.
+            const auto target=local.figures.find(size_t(f.target));if(target==local.figures.end()||!local.services)return out;
             f.destinationX=target->second.x;f.destinationY=target->second.y;
             if(f.route>0){if(f.route>=1000)return out;if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+        else if(f.action==10&&f.direction==8){ //4D3408:common+72 receives50 before dispatcher removal.
+            auto& b=local.buildings->at(size_t(f.owner));if(b.type!=0x21)return out;
+            b.hunterReturnGoods=originalFigureWord(int(b.hunterReturnGoods)+50);f.alive=2;}
+        else if(f.direction==10)f.alive=2;
         else if(f.direction>=8)return out;
         if(!originalFigureWriteWalkingImage(f,code,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     }else return out;
     originalFigurePublishWrites(out,f,*context,local);return out;
 }
-//5E6200 type54 ordinary shooter branch. Until impact's combat/building
-//callbacks are ported,arrival is refused. In-flight building cells also refuse.
+//5E6200 type54 ordinary shooter branch. Empty-cell arrival retains the
+//projectile for its final ten lifetime calls and clears the shadow. Positive
+//combat/building impacts remain refused.
 inline OriginalFigureFirstUpdate originalProjectileFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context){
     OriginalFigureFirstUpdate out;out.updaterVA=0x5e6200;out.status=OriginalFigureUpdateStatus::Projectile;
@@ -1363,7 +1454,15 @@ inline OriginalFigureFirstUpdate originalProjectileFirstUpdate(const OriginalFig
     f.freeMovement=1;bool arrived=false;
     for(unsigned n=0;n<7;++n){const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;
         if(moved->second){arrived=true;break;}}
-    if(arrived||f.cell>=51984||local.buildingOwners[f.cell])return out;
+    if(f.cell>=51984||local.buildingOwners[f.cell])return out;
+    if(arrived){ //5E34D0 then5E3400: prove both queries have no candidate.
+        std::set<size_t> seen;
+        for(size_t slot=local.cellHeads[f.cell];slot;){const auto it=local.figures.find(slot);
+            if(it==local.figures.end()||!seen.insert(slot).second)return out;
+            const auto& other=it->second;
+            if(other.action!=4&&other.type!=0&&other.type!=1&&other.type!=2&&other.type!=4&&other.type!=5&&other.type!=9&&other.type!=52&&other.type!=54)return out;
+            slot=other.next;}
+        f.home=std::max<int16_t>(f.home,int16_t(10*(3*range/4)-10));}
     //5E670F default shooter40:32-direction code1C6D;secondary1C6C
     //uses a copy of the already advanced primary counter.
     const auto group=originalFigureImageGroup(0x1c6d,archives),secondary=originalFigureImageGroup(0x1c6c,archives);
@@ -1371,12 +1470,12 @@ inline OriginalFigureFirstUpdate originalProjectileFirstUpdate(const OriginalFig
     const auto phase=originalFigureAdvanceFrame(f.frame,group->second->animationSpriteCount,group->second->animationSpeedId,100,*context->animationFlags);
     if(!phase)return out;f.frame=phase->counter;
     const auto secondaryPhase=originalFigureAdvanceFrame(f.frame,secondary->second->animationSpriteCount,secondary->second->animationSpeedId,100,*context->animationFlags);
-    if(!secondaryPhase)return out;f.attackFrame=secondaryPhase->counter;
+    if(!secondaryPhase)return out;if(!arrived)f.attackFrame=secondaryPhase->counter;
     auto images=originalFigureUpdateImageState(local);auto input=originalFigureImageInputs(f);
     const auto primary=figureImage(input,archives,0,context->view,std::nullopt,&images);
     const auto cargo=figureSecondaryImage(input,archives,context->view,&images);
     if(primary.status!=OriginalFigureImageStatus::Selected||cargo.status!=OriginalFigureImageStatus::Selected)return out;
-    f.image=primary.image;f.secondaryImage=cargo.image;originalFigurePublishWrites(out,f,*context,local);return out;
+    f.image=primary.image;f.secondaryImage=arrived?0:cargo.image;originalFigurePublishWrites(out,f,*context,local);return out;
 }
 //4C0760 reads four half-open month intervals from7AE22C/7AE19C.
 //4C1060 maps C3..C7 to rows0..4;4C18C0 maps them to goods7/5/6/3/1.
@@ -1422,12 +1521,17 @@ inline OriginalFigureFirstUpdate originalSupplierFirstUpdate(const OriginalFigur
     if(f.action==7||f.action==9){const auto speed=context->modelSpeeds.find(26);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
         const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
-        if(f.action==9&&f.direction>=8){out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}
-        if(f.direction==8){if(owner->second.type!=0xc0&&owner->second.type!=0xc1){out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}
+        if(f.action==9&&f.direction>=8){
+            if(f.direction==8){f.hidden=1;f.alive=2;}
+            else if(f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
+                if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+            else if(f.direction==10)f.alive=2;else return out;
+        }
+        if(f.action==7&&f.direction==8){if(owner->second.type!=0xc0&&owner->second.type!=0xc1){out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}
             //4CC8AA: hold+ C8=4C2A90(-4) is false for typeC1, so
             //counter=0. The float-to-int helper7650FC is not reached.
             f.action=8;f.counter=0;
-        }else if(f.direction>=8)return out;
+        }else if(f.action==7&&f.direction>=8)return out;
     }else if(f.action==6){f.hidden=1;f.counter=originalFigureWord(int(f.counter)-1);
         if(f.counter<1){f.counter=0;
             if((owner->second.type!=0xc0&&owner->second.type!=0xc1)||!owner->second.cropSearchComplete||!owner->second.suppliers){out.status=OriginalFigureUpdateStatus::SupplierSearch;return out;}
@@ -1452,9 +1556,9 @@ inline OriginalFigureFirstUpdate originalSupplierFirstUpdate(const OriginalFigur
         out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     originalFigurePublishWrites(out,f,*context,local);return out;
 }
-//0x4D5D00 -> owner virtual+24. Only cited owner vtables and branches;
-// Bounded roam interiors, positive countdowns and in-cell return routes;
-// segment owner callbacks and expired countdowns remain refused.
+//0x4D5D00 -> owner virtual+24. Cited owner countdown,roam and return
+// branches carry their service callbacks;positive MusicSchool venue search
+// and other uncited virtual branches remain refused.
 inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=0x4d5d00;out.status=OriginalFigureUpdateStatus::BuildingVirtualUpdate;
@@ -1475,7 +1579,11 @@ inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigu
     }else if(f.action==7){f.freeMovement=f.hidden=1;if(type==0xd3)f.movementMode=1;
         const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;f.hidden=1;
         if(moved->second){if(!local.buildings)return out;
-            if(type!=0xd3){f.action=8;if(!originalFigureBeginRoam(f,local))return out;f.roamSteps=0;}
+            if(type!=0xd3){
+                if(type==0xcf||type==0xd6||type==0x47){if(local.buildingOwners.size()!=51984||f.cell>=51984)return out;
+                    if(local.buildingOwners[f.cell]==f.owner)f.alive=2;
+                    else {f.action=8;if(!originalFigureBeginRoam(f,local))return out;f.roamSteps=0;}}
+                else {f.action=8;if(!originalFigureBeginRoam(f,local))return out;f.roamSteps=0;}}
             else {
             //48A520: entertainment47+264 accepts34;road+78 precedes
             //employment and service score. A positive venue remains refused.
@@ -1486,10 +1594,19 @@ inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigu
                     //48A520 tries thresholds8,16;larger scores never qualify.
                     if(!b.entertainment||b.entertainment->at(1)<=16)return out;}}
             f.alive=2;}}
-    }else if(type!=0xd3&&f.action==8){if(f.roamSteps>=f.roamLimit)return out;
+    }else if(type!=0xd3&&f.action==8){if(f.roamSteps>=f.roamLimit){ //51D13C..19D still roams after choosing the return road.
+            if(type!=0xcf&&type!=0xd6&&type!=0x47)return out;
+            const auto road=originalFigureMusicRoad(owner->second,local);if(!road)return out;
+            if(!*road)f.alive=2;
+            else {if(!local.services||f.route<0||f.route>=1000)return out;
+                f.action=9;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;
+                if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}}
         const auto movement=originalFigureRoam(f,6,terrainFlags,local);if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
     }else if(type!=0xd3&&f.action==9){const auto movement=originalFigureFollowRoute(f,6,terrainFlags,&local);
-        if(!movement.state){out.status=movement.status;return out;}f=*movement.state;if(f.direction>=8)return out;
+        if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
+        if(f.direction==8&&(type==0xcf||type==0xd6||type==0x47)){ //+23C=66EFA0 false: return from road to occupied cell.
+            f.action=7;f.destinationX=owner->second.x;f.destinationY=owner->second.y;originalFigureFreeTarget(f);f.roamSteps=0;}
+        else if(f.direction>=8)return out;
     }else return out;
     if(f.frame>11)f.frame=0;
     if(!originalFigureWriteWalkingImage(f,code,archives,context->view)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
@@ -1527,8 +1644,9 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
         }else if(f.action==7){ //0x4E2E90 has no side effect for action7 at any count.
             f.freeMovement=f.hidden=1;const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;
             if(moved->second){ //4CD3E0..408: reaching the owner's occupied cell removes;otherwise begin ordinary roam.
-                if(local.buildingOwners.size()!=51984||f.cell>=51984||local.buildingOwners[f.cell]==f.owner)return out;
-                f.action=8;if(!originalFigureBeginRoam(f,local))return out;}
+                if(local.buildingOwners.size()!=51984||f.cell>=51984)return out;
+                if(local.buildingOwners[f.cell]==f.owner)f.alive=2;
+                else {f.action=8;if(!originalFigureBeginRoam(f,local))return out;}}
         }else return out;
         if(!originalFigureWriteWalkingImage(f,0x4c09,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
         originalFigurePublishWrites(out,f,*context,local);return out;
@@ -1541,7 +1659,8 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
             f.hidden=0;const auto movement=originalFigureRoam(f,unsigned(speed->second),terrainFlags,local);
             if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
         }else{const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
-            if(!movement.state){out.status=movement.status;return out;}f=*movement.state;if(f.direction>=8)return out;}
+            if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
+            if(f.direction>=8){if(f.type==28&&f.direction<=10)f.alive=2;else return out;}}
     }else {if(f.action!=8||f.roamSteps>=f.roamLimit)return out;
         f.hidden=0;const auto movement=originalFigureRoam(f,unsigned(speed->second),terrainFlags,local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
@@ -1858,11 +1977,34 @@ struct OriginalFigureOrderedPass {
 // releases the route, unlinks and clears target references, then+E8=4C72B0
 // resets represented fields. The inline17C state and priorProgress190 survive.
 inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUpdateContext& context){
-    if((f.type!=11&&f.type!=13&&f.type!=34)||f.alive!=2||f.runtimeClass!=OriginalFigureClass::Figure||f.updateOwner||f.linkedBuilding||
+    if((f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=22&&f.type!=26&&f.type!=28&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=39&&f.type!=40)||f.alive!=2||f.runtimeClass!=OriginalFigureClass::Figure||f.updateOwner||f.linkedBuilding||
         !context.services||context.cellHeads.size()!=51984||f.cell>=51984)return false;
-    if(f.type==34){if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
-        if(owner==context.buildings->end()||owner->second.type!=0xd3||!owner->second.delegatedCount)return false;
+    if(f.type==34||f.type==40){if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
+        if(owner==context.buildings->end()||owner->second.type!=(f.type==34?0xd3:0x21)||!owner->second.delegatedCount)return false;
         if(*owner->second.delegatedCount)--*owner->second.delegatedCount;
+        if(f.type==40){if(!context.hunterLinks||!context.hunterLinks->count(size_t(f.owner)))return false;
+            context.hunterLinks->at(size_t(f.owner)).enabled=*owner->second.delegatedCount;}
+    }else if(f.type==19||f.type==22){ //4C8D4C primary cleanup;zero cargo bypasses delivery counts.
+        if(f.amount||!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
+        if(owner==context.buildings->end()||
+            (f.type==22?owner->second.type!=0x36:(owner->second.type!=0x21&&owner->second.type!=0x23&&owner->second.type!=0x2b)))return false;
+        if(f.type==19&&owner->second.primaryFigure!=int(f.slot))return false; //uncited industrial secondary cleanup remains refused.
+        if(owner->second.primaryFigure==int(f.slot))owner->second.primaryFigure=0;
+        else if(f.type==22&&owner->second.secondaryFigures[1]==int(f.slot))owner->second.secondaryFigures[1]=0;
+    }else if(f.type==26){ //4CC9CF/4CCA07 then4C8BFA->4BFDC0.
+        if(!context.buildings)return false;
+        for(auto& e:*context.buildings)if(e.second.alive==1&&(e.second.type>=0xc2&&e.second.type<=0xc7)&&e.second.primaryFigure==int(f.slot))e.second.primaryFigure=0;
+    }else if(f.type==28||f.type==30||f.type==35||f.type==36){ //ordinary primary-first/embedded+6C cleanup.
+        if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
+        if(owner==context.buildings->end()||owner->second.type!=(f.type==28?0x48:f.type==30?0xcf:f.type==35?0xd6:0x47))return false;
+        if(f.type!=36&&owner->second.primaryFigure!=int(f.slot))return false;
+        if(owner->second.primaryFigure==int(f.slot))owner->second.primaryFigure=0;
+        else if(f.type==36&&owner->second.secondaryFigures[1]==int(f.slot))owner->second.secondaryFigures[1]=0;
+    }else if(f.type==39){ //4C8D4C..4C8E08: primary first, then embedded+6C.
+        if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
+        if(owner==context.buildings->end()||owner->second.type!=0x7c)return false;
+        if(owner->second.primaryFigure==int(f.slot))owner->second.primaryFigure=0;
+        else if(owner->second.secondaryFigures[1]==int(f.slot))owner->second.secondaryFigures[1]=0;
     }else if(f.owner)return false;
     //4C909E tests+64,then addresses the+62 owner (not the home index).
     if(f.home&&f.type!=11)return false; //worker arrival already cleared its reciprocal home link.

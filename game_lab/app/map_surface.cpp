@@ -110,7 +110,6 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     if(!context.goods)return false;
     context.goods->storageSearch=std::array<uint8_t,36>{}; //explicit fresh-process1E4EE08 premise.
     context.goods->industrySearch=std::array<uint8_t,36>{}; //explicit fresh-process10BC928 premise.
-    context.goods->godGate=0; //5350A5 post-load reset,C5CDA0.
     const auto buildingEmployment=parseOriginalBuildingEmployment(buildingText);if(!buildingEmployment)return false;
     context.buildingEmployment=*buildingEmployment;
     for(unsigned col=9;col<=13;++col){const auto values=originalFigureHouseModelColumn(buildingText,col);if(!values)return false;context.houseMarketModels[col]=*values;}
