@@ -47,6 +47,11 @@ struct OriginalFigure {
     int16_t roamOriginX=0,roamOriginY=0;
     int16_t freeTargetX=0,freeTargetY=0,freeRemainingX=0,freeRemainingY=0,freeError=0;
     uint8_t freeAxis=0,cellMovement=0;
+    uint8_t previousAction=0; //+18,Hunter4D31DE preserves prey action before18.
+    uint16_t allocationSerial=0; //+94,4C9187.
+    uint8_t allocationPhase=0,allocationPhaseCopy=0; //+8A/+8C,4C9204..212 RNG&3.
+    bool projectile=false; //+129,5EA5AE;only type54 consumes it.
+    int16_t projectileDistance=0,projectileStartHeight=0,projectileTargetHeight=0,projectileEndHeight=0; //+AC/+AE/+B0/+B2.
     std::array<int16_t,2> attackers{};
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
@@ -126,7 +131,9 @@ inline std::optional<OriginalFigureGoodsServices> originalFigureSavedGoodsServic
 // Same ten bounded goal lists as SAV19's existing prefix walker, followed
 // by Flood1 (4EDDA0) and Festival4 (48ED30). Active festival needs date
 // qualification48E020; an inactive byte proves48ED00 returns null.
-inline std::optional<int32_t> originalFigureSavedFestivalVenue(const std::vector<uint8_t>& data,size_t terrain,size_t sizeAnchor){
+inline std::optional<int32_t> originalFigureSavedFestivalVenue(const std::vector<uint8_t>& data,size_t terrain,size_t sizeAnchor,
+    std::optional<bool>* waterOverride=nullptr){
+    if(waterOverride)waterOverride->reset();
     if(data.size()<3355||data.size()>8u*1024u*1024u)return std::nullopt;
     size_t at=3355;std::vector<std::string> cache(1);
     const auto take=[&](size_t n){if(at>data.size()||n>data.size()-at)return false;at+=n;return true;};
@@ -151,7 +158,10 @@ inline std::optional<int32_t> originalFigureSavedFestivalVenue(const std::vector
     const size_t festival=at;
     if(!version(4)||!version(1)||!take(16+32+8+1))return std::nullopt;
     const bool active=data[at-1]!=0;if(!take(1+4))return std::nullopt;const auto venue=detail::u32(data.data()+at-4);
-    if(venue>3999||!take(1+4+4+4+4))return std::nullopt;if(!active)return 0;
+    if(venue>3999||!take(1+4+4+4+4))return std::nullopt;
+    //48ED30 restores+50/+54/+58 at wire66/67/71;48E110 tests enabled,3,4.
+    if(waterOverride)*waterOverride=data[festival+66]&&detail::u32(data.data()+festival+67)==3&&detail::u32(data.data()+festival+71)==4;
+    if(!active)return 0;
     if(terrain>data.size()||original_save19::c82ef0+4>data.size()-terrain||sizeAnchor<180+152||sizeAnchor>data.size())return std::nullopt;
     const auto i32=[&](size_t pos){const uint32_t v=detail::u32(data.data()+pos);return v>INT32_MAX?int64_t(v)-4294967296LL:int64_t(v);};
     // Following boundary gives the two date scalars after593140.
@@ -168,6 +178,7 @@ struct OriginalFigureSavedServices {
     uint32_t randomFirst=0,randomSecond=0;
     std::optional<int32_t> fireCount;
     std::optional<int32_t> criminalCount;
+    std::optional<uint32_t> allocationSerial; //10AEEE8,531580,T+fireCount+8.
     std::vector<uint32_t> serviceGrid;
     std::optional<OriginalFigurePopulation> population;
 };
@@ -188,6 +199,7 @@ inline std::optional<OriginalFigureSavedServices> originalFigureSavedServices(
         out.fireCount=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:int64_t(bits));}
     if(criminalCount+4<=data.size()-terrain){const auto bits=detail::u32(data.data()+terrain+criminalCount);
         out.criminalCount=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:int64_t(bits));}
+    if(fireCount+12<=data.size()-terrain)out.allocationSerial=detail::u32(data.data()+terrain+fireCount+8);
     if(serviceGrid+207936<=data.size()-terrain){out.serviceGrid.resize(51984);
         for(size_t n=0;n<51984;++n)out.serviceGrid[n]=detail::u32(data.data()+terrain+serviceGrid+4*n);}
     return out;
@@ -263,12 +275,14 @@ struct OriginalFigureBuildingLink {
     std::optional<uint8_t> laborDisabled;
     std::optional<std::array<uint8_t,3>> entertainment; //house+2B/+2C/+2E; owner+5D/+5E/+5F.
     std::optional<uint8_t> herbalist; //house embedded+2D,517410 wire tail+44.
+    std::optional<std::array<uint8_t,2>> waterService; //embedded+32/+34,517410 tail49/51.
+    uint8_t upgrade=0; //common+6F,427430 wire99;Well+224=5B3AD0.
     int32_t watchRisk=0; //common+8C,427430; mutable5B3ED0.
     int16_t fireRisk=0,damageRisk=0; //common+4A/+4C, wire68/70.
     std::optional<size_t> inspectorParent;int16_t parent=0; //common+3C,wire54;4B3930.
     struct CropDelivery {uint16_t flags=0;uint32_t pending=0;};
     std::optional<CropDelivery> cropDelivery; //embedded+6A and outer+150.
-    int16_t roadX=0,roadY=0;
+    int16_t roadX=0,roadY=0;uint8_t roamDirection=0; //common+38,427E2C wire51;4E6A70 writes.
     std::optional<int32_t> suppliers;
     std::optional<uint8_t> delegatedCount; //Music data+5C,51C520;removal4C8BD1.
     std::optional<uint8_t> entertainmentRoad; //Entertainment data+69,48B950.
@@ -302,13 +316,13 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         link.primaryFigure=detail::i16(data.data()+at+41);link.destinationEnabled=data[at+129];link.serviceCount=detail::i16(data.data()+at+23);
         link.x=detail::i16(data.data()+at+8);link.y=detail::i16(data.data()+at+10);
         link.cell=detail::u32(data.data()+at+12);
-        link.size=data[at+5];
+        link.size=data[at+5];link.upgrade=data[at+99];
         link.outputResource=data[at+65];link.roadAccess=data[at+66];link.roadDistance=detail::i16(data.data()+at+31);
         link.category=data[at+20];link.workers=detail::i16(data.data()+at+62);link.storageLaborDisabled=data[at+98];
         link.suppress=detail::i16(data.data()+at+72);
         link.incomingFigures=detail::i16(data.data()+at+156);link.incomingAmount=detail::i16(data.data()+at+158);
         const int policy=detail::i16(data.data()+at+88);if(policy>=0)link.storagePolicy=size_t(policy);
-        link.roadX=detail::i16(data.data()+at+37);link.roadY=detail::i16(data.data()+at+39);
+        link.roadX=detail::i16(data.data()+at+37);link.roadY=detail::i16(data.data()+at+39);link.roamDirection=data[at+51];
         link.inspectorSecondary=detail::i16(data.data()+at+18)>0||data[at+100]!=0;
         link.fireRisk=detail::i16(data.data()+at+68);link.damageRisk=detail::i16(data.data()+at+70);
         link.parent=detail::i16(data.data()+at+54);
@@ -333,7 +347,7 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         if(type>=2&&type<18&&data.size()-tail>=64&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1){
             link.laborDisabled=data[tail+59];link.entertainment=std::array<uint8_t,3>{data[tail+42],data[tail+43],data[tail+45]};link.herbalist=data[tail+44];
             link.houseGoods.emplace();for(unsigned n=0;n<12;++n)link.houseGoods->at(n)=detail::i16(data.data()+tail+17+2*n);
-            link.foodQuality=data[tail+53];}
+            link.foodQuality=data[tail+53];link.waterService=std::array<uint8_t,2>{data[tail+49],data[tail+51]};}
         if(type>=2&&type<18&&link.houseGoods)link.religion=std::array<uint8_t,4>{data[tail+13],data[tail+14],data[tail+15],data[tail+16]};
         if(type==0xd6&&data.size()-tail>=165&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&
             detail::u16(data.data()+tail+130)==1&&detail::u16(data.data()+tail+132)==1&&detail::u16(data.data()+tail+134)==1){
@@ -535,6 +549,10 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.attackers={detail::i16(r+154),detail::i16(r+156)};
         f.employmentAmount=r[110];f.watchCoverage=r[112];
         f.flags120=detail::u32(r+288);
+        f.previousAction=r[24];f.allocationSerial=detail::u16(r+148);f.projectile=r[297]!=0;
+        f.allocationPhase=r[138];f.allocationPhaseCopy=r[140];
+        f.projectileDistance=detail::i16(r+172);f.projectileStartHeight=detail::i16(r+174);
+        f.projectileTargetHeight=detail::i16(r+176);f.projectileEndHeight=detail::i16(r+178);
         objects.emplace(objectPID,f);out.slots.push_back(f);if(f.alive){out.live.push_back(f);++out.liveTypes[f.type];}++out.parsed;
     }
     out.end=at;out.status=OriginalFigureStatus::Complete;
@@ -561,7 +579,7 @@ inline std::optional<std::pair<int32_t,int32_t>> originalFigureSubcell(const Ori
     if(f.freeMovement){
         if(f.subX<0||f.subY<0)return std::nullopt;
         const int x=f.subX%20,y=f.subY%20;
-        if(f.type==54)return std::nullopt;
+        if(f.type==54)return std::make_pair(2*(x-y),x+y-int(f.raise)-int(f.height)); //46BBC1.
         //0x46BBCB..0x46BBE3: type1 adds +76/+78 and subtracts +86
         // AFTER the free-position table and +24 raise. Inline kind13's
         // updater supplies +52/+54/+24; drawing does not advance it.
@@ -578,6 +596,17 @@ inline std::optional<int> originalFigureDepthScore(const OriginalFigure& f){
     //0x469690 reads only the position table: no visual raise, extras or SG offsets.
     if(f.freeMovement){if(f.subX<0||f.subY<0)return std::nullopt;return f.subX%20+f.subY%20;}
     const auto sub=originalFigureSubcell(f);if(!sub)return std::nullopt;return sub->second+int(f.height);
+}
+//46C3FF..4FE, constants7ACA30/34/38/3C: projectile arc after
+//the free-position height subtraction.7650FC truncates toward zero.
+inline std::optional<int> originalFigureProjectileArc(const OriginalFigure& f){
+    if(f.type!=54||f.projectileDistance<0)return std::nullopt;
+    const int half=f.projectileDistance/2;if(!half)return 0;
+    const int remaining=std::max(std::abs(int(f.x)-f.destinationX),std::abs(int(f.y)-f.destinationY));
+    const long double ratio=f.projectileDistance?static_cast<long double>(remaining)/f.projectileDistance:0.5L;
+    const long double arc=remaining>half?(2.0L-static_cast<long double>(remaining)/half)*0.60000002384185791015625L+0.4000000059604644775390625L:
+        1.0L-static_cast<long double>(half-remaining)/half;
+    return int((1.0L-ratio)*f.projectileTargetHeight)-int(arc*f.projectileEndHeight)+int(ratio*f.projectileStartHeight);
 }
 inline uint64_t originalFigureDrawCell(const OriginalFigure& f){return uint64_t(f.cell)+(f.type==1?229u:0u);}
 } // namespace game_lab

@@ -1,5 +1,124 @@
 # SAV19 figures on the city overlay layer
 
+## CRT state correction,2026-10-21
+
+**Honest default at N85:49/192 computed outcomes,3/6 complete pools;explicit caller state1:82/193,4/6.** The largest shared complete horizon remains N19:192/192 outcomes,6/6 pools. The previous fresh-thread state1 premise is refuted. CRT state is **wall-clock seeded,not in SAV**. `OriginalFigureUpdateContext::crtRandom` is absent by default and required when a ported path consumes `rand()`. It represents holdrand at timeline entry,after any earlier seeding/consumption;it is not the startup `srand()` argument. Zero is a valid supplied state. Tests supply1 only as a reproducible counterfactual input. The App supplies none and says so on screen in its opt-in timeline details;Saved snapshot remains the default.
+
+The following table compares the same requested N with **none / explicit1**. Placements and decodes include only pools that complete that requested N;failed pools install no successful prefix. Outcome denominators include192 original outcomes plus successful-prefix allocations,even when a later pass refuses. A missing seed prevents the source4 allocation itself,so its denominator stays192.
+
+|N|Complete pools /6 none / explicit1|Computed outcomes none / explicit1|Allocations none / explicit1|Placed figures none / explicit1|Decoded components none / explicit1|Primary consistency none / explicit1|Building frames /53 none / explicit1|Installed re-selections none / explicit1|
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|1|6 / 6|192/192 / 192/192|0 / 0|185 / 185|201/201 / 201/201|191/191 / 191/191|53 / 53|0 / 0|
+|5|6 / 6|192/192 / 192/192|0 / 0|185 / 185|201/201 / 201/201|191/191 / 191/191|53 / 53|0 / 0|
+|10|6 / 6|192/192 / 192/192|0 / 0|185 / 185|201/201 / 201/201|191/191 / 191/191|53 / 53|0 / 0|
+|11|6 / 6|192/192 / 192/192|0 / 0|184 / 184|200/200 / 200/200|190/190 / 190/190|53 / 53|0 / 0|
+|13|6 / 6|192/192 / 192/192|0 / 0|185 / 185|201/201 / 201/201|189/189 / 189/189|53 / 53|0 / 0|
+|19|6 / 6|192/192 / 192/192|0 / 0|185 / 185|202/202 / 202/202|189/189 / 189/189|53 / 53|1 / 1|
+|20|5 / 5|127/192 / 127/192|0 / 0|125 / 125|130/130 / 130/130|126/126 / 126/126|28 / 28|1 / 1|
+|50|4 / 4|81/192 / 81/192|0 / 0|81 / 81|81/81 / 81/81|81/81 / 81/81|6 / 6|0 / 0|
+|85|3 / 4|49/192 / 82/193|0 / 1|49 / 82|49/49 / 83/83|49/49 / 82/82|3 / 6|0 / 0|
+|100|3 / 3|49/192 / 49/193|0 / 1|49 / 49|49/49 / 49/49|49/49 / 49/49|3 / 3|0 / 0|
+|200|3 / 3|49/192 / 49/193|0 / 1|49 / 49|49/49 / 49/49|49/49 / 49/49|3 / 3|0 / 0|
+
+Thus N1/5/10/11/13/19/20/50 do not change. N85 loses source4 without an input;N100/200 retain the same installed output count but change allocation/outcome denominators and refusal partitions. Boundary controls also cover N84 and N98:without a seed source4 completes32/32 outcomes through84 and refuses85/slot1981;with explicit1 it allocates1999 at85 and completes33/33 through98,then refuses99/slot1999. Source2 remains27/1641 and source3 remains20/309 in both modes. Completed-pool building advances at N85 are84 /168;atN100 they are99 /99,and atN200 they are198 /198. Successful-prefix re-selections withheld from failed pools are1 in both modes fromN50 onward.
+
+Exact disjoint refusal partitions (each count is an original/allocation outcome,not an update call):
+
+|N|No CRT seed supplied|Explicit caller state1|
+|---:|---|---|
+|1,5,10,11,13,19|0/192|0/192|
+|20|65/192=20 earlier-slot+42 successful-prefix+2 prior-removed+1 Inspector arrival|same65/192|
+|50|111/192=60 earlier-slot+46 successful-prefix+3 prior-removed+1 storage delivery+1 Inspector arrival|same111/192|
+|85|143/192=70 earlier-slot+67 successful-prefix+3 prior-removed+1 storage delivery+1 Inspector arrival+1 missing CRT state|111/193=60 earlier-slot+46 successful-prefix+3 prior-removed+1 storage delivery+1 Inspector arrival|
+|100,200|same143/192 as85|144/193=60 earlier-slot+78 successful-prefix+3 prior-removed+1 storage delivery+1 Inspector arrival+1 projectile arrival|
+
+The named status is `crt_rand_state_required_wall_clock_seeded_not_in_sav`. Other names are unchanged:`earlier_ordered_slot_uncomputed`,`later_ordered_slot_may_write_earlier_figure`,`prior_removed_outcome_withheld`,`goods_delivery_arrival_virtual_4cd8f0`,`type_action_route_target_combat_update`,`projectile_allocation_or_collision_5ea510_5e6200`. Refusal publishes no timeline context,allocation,CRT advance,saved RNG advance,cell-list write,or linked prey write.
+
+**Identity and thread provenance.** Rehashed owned EXE SHA-256:`0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`. All VAs below map to file offset VA−`0x400000`;private listings are outside Git. `0x76677F` is32-bit `time(time_t*)`:IAT`0x7A923C/40/44` resolves to `GetLocalTime/GetSystemTime/GetTimeZoneInformation`;`0x7700BA` converts Gregorian date/time through timezone/DST and the1970 epoch (`0x7C558180` calendar adjustment),returning signed seconds or−1,and`0x766857` writes the result through a non-null pointer. All three sites passNULL and forward EAX to `srand`. `0x7665F0` writes current-thread TLS+14;`0x7665FD` updates that same word by`state*214013+2531011` modulo32 and returns`(state>>16)&32767`. `0x76C863` obtains the TLS block through`TlsGetValue` (`0x7A9340`);`0x76C85B` initializes a newly created block to1 only.
+
+|srand call|When and calling thread|Reproducible call-chain facts|
+|---|---|---|
+|`0x4F2898`|Main startup thread before WinMain and before any SAV load;also the caller constructing/resetting/destructing an FSA object. Load can reseed again when it constructs a serialized FigureFSA.|CRT entry`0x7A8C24→0x7688BA→0x769F80` walks initializer table`0x814000..0x815788`. Entry`0x8146A0=0x510AE0` constructs12 global formation records at`0x10BFB30` via`0x765629`. Each calls`0x510D30→0x512230→0x514500→0x4D7490→0x4F2610→0x4F2830→time/srand`. Thus main-thread holdrand is wall-clock seeded before WinMain`0x4754F0`. FigureFSA factory`0x84D304=0x4D7260→0x4D7310→0x4F2610` has the same seeding path. Figure7's optional+198 FSA load at`0x4C8429/0x4C8ADC→0x4D72F0→0x77FD90` uses descriptor`0x84D2F8`;factory dispatch`0x77BB74` precedes serialization. FSA virtual+24 points to`0x4F2830` at`0x7B000C/0x7B3D28/0x7B5BEC`;the serializer call at`0x4F45EA` uses the different+28=`0x4F28B0` and is not itself a reseed. Destructor`0x4F277B` also calls the seeding initializer. New-game/reset construction shares it;this is not a SAV-stored seed.|
+|`0x62759A`|Calling main/UI thread during online/network initialization or selected-port change,only if the configured UDP bind fails. It is not a new-game/SAV deserialization step.|`0x4FB8CD→0x4FAFE0→0x4FB214→0x62E700→0x6EF970→0x627550` initializes the network UI. The alternative UI option path`0x6B1C36→0x627510` calls it only when a port setting changes. `0x627588→0x6101C0→0x608D50→0x608C50` performs `WSOCK32 bind`;nonzero failure at`0x62758D` triggers time/srand,then one rand at`0x6275A2` chooses a retry port10000..19999. The `srand` itself is synchronous on that caller,even though later socket work can be asynchronous.|
+|`0x746536`|Network operation's calling thread while first preparing/shuffling an address candidate list. Normal asynchronous operations run this on the Core worker;explicit synchronous task mode runs it on its caller. No intrinsic fixed thread ID and no SAV read/new-game seed.|`0x747F43→0x746420` is conditional on the operation's+F8 candidate source and+8 enabled/+9 unprepared flags. It collects40-byte candidates,then time/srand,then`0x74654D→0x749330` shuffles with rand. Entry points include socket-bind`0x72C490→0x72C5C0`,connection`0x735D20→0x735E1D`,and request variants`0x743FE0/0x7443C0→0x747F00`. Task runtime+30 determines scheduling:`0x5FBA00` mode1 queues via`0x5FB730`,while other modes invoke virtual+4 directly at`0x5FBAE2`. Async queue dispatch`0x5FBFC0→0x5FB9C0` invokes virtual+4 on the Core thread. Core setup`0x4FAD53→0x6122C0`,worker`0x612720→0x6124A0→0x5FBFC0`,thread start`0x604F42→0x769DF5→CreateThread` with entry`0x604E90`;TLS is distinct from the main thread.|
+
+The ported consumer uses the main thread:CRT WinMain`0x768995→0x4754F0`,its message/idle loop`0x475A4B→0x475B00→0x536FE0→0x536B20`,admitted update`0x536BC0→0x5371A0→0x4E27E0`,ascending figure virtual+28 at`0x4E2909`. Hunter40 dispatch`0x4D2F10` calls`0x5EA510→0x4EA120→0x7665FD` without a thread switch. A network worker's reseed cannot justify1 on the main thread;the unconditional startup FSA chain already disproves1 there.
+
+**Complete inventory of ported CRT consumption.** There is one ported path:Hunter's successful type54 projectile creation calls sound helper`0x5EA54E→0x4EA120→rand` at`0x4EA147`,once per successful allocation,including when sound is disabled. FIFO exhaustion returns before this call. Generic FIFO allocation and constructor`0x4C9160` use saved game RNG for phase&3;they do not themselves call CRT rand. In-flight type54 movement,arc,primary/secondary animation and selectors consume no CRT state. Shrine/Well/Market/Entertainment services,storage withdrawal/arrival countdowns,Inspector bounded updates,worker removals,supported Pheasant updates,cart/trader/follower movement,migrant/supplier updates,and inline effects use no CRT rand. Other original callers of`0x4EA120/0x4EA260`,combat/death/target effects,and frame-loop sound/UI calls are outside the currently ported paths;unported branches remain refused. The explicit input is therefore a premise for this bounded figure/admission/draw timeline,not a reconstruction of every intervening original city/UI/audio consumer. Original post-update/screen agreement remains unmeasured;no original game was executed.
+
+|Source|First ported CRT consumption N|Observed prefix and limit|
+|---:|---|---|
+|1|none through200|0 calls through200|
+|2|none through26|0 calls before storage refusal27;later consumption unmeasured|
+|3|none through19|0 calls before Inspector refusal20;later consumption unmeasured|
+|4|85,Hunter slot1981,allocated slot1999|0 calls through84;explicit state1 advances once to2745024 at85 and stays there through the refused99 pass;without an input,N85 refuses before that advance|
+|5|none through200|0 calls through200|
+|6|none through200|0 calls through200|
+
+Release and UBSan each pass574/574 authored and17,403/17,403 total figure-scene checks. The38 aggregate rows (19 horizons×2 caller-input modes) match exactly between modes,and38/38 computed/refused outcome denominators close;the required11 horizons are included,plus2/3/4/6/12/26/84/98 boundary controls. Compared with the preceding extension's572/10,350,extra checks cover the two input modes,CRT call counts,explicit zero,exhausted FIFO and exact no-seed refusals. These are implementation/consistency checks;original post-update agreement remains unmeasured. Unset/empty-root controls pass4/4 with574 authored checks each. The full `scene-timeline-bite` target rejects31/31 mutations,including all four new CRT mutations (invented seed,LCG step,named status,explicit zero);the four CRT bites also pass against the final production revision.
+
+Required Release/UBSan regressions pass in both modes:building-scene244 authored/7,663 total;building-image1,283/3,880;saved-ground110/1,928;SAV94/94;map-reference3,130/3,130. CITY19 Figure7 passes912/912 (456 per mode),following-component properties36/36. The fresh App compiles28 units,matches99/99 embedded source hashes and passes `codesign --verify --deep --strict` without launch. `git diff --check` passes. Private evidence uses `crt-figure-verified-{release,undefined}.log`,`crt-verified-*-test*.log`,`crt-review-{metrics,manifest,timeline,refusals,bites}.json`,and `crt-app-verified/EmperorApp.app` under the approved OpenCode temporary directory;no original assets or listings enter Git.
+
+The measurements supersede the seed premise and unconditional source4 counts in the historical extension section below. The working diff contains11 files,including the App's visible premise text in `game_lab/app/main.mm`;STATUS.md,AGENTS.md,GameData,ground implementation,CitySimulation and EMP1 remain untouched. STATUS.md and commits remain owned by the lead;no commit,push,stash or reset is performed.
+
+## Shrine, Well and Hunter timeline extension,2026-10-21
+
+**Largest complete horizon N10→N19 across6/6 pools.** Baseline HEAD`d0dbfd3` was reproduced at549/549 authored and8,255/8,255 total checks. A private HEAD copy added only the missing N13/N85 measurement horizons and passed549/549 authored,8,573/8,573 total. The shared timeline now carries ordinary Shrine arrival/roam,Well water service,route-segment Market/Entertainment services,and type19 storage arrival countdowns. The following historical table supplies explicit CRT state1;source4 allocates a real type54 projectile atN85 and completes throughN98 only under that input. Saved snapshot remains the App default. No original game or post-update oracle was used;no disassembly/decompilation was declined and no constants were fitted.
+
+|N|Complete pools /6 before→after|Computed outcomes before→after|Placed figures before→after|Figure components decoded before→after|Primary selector consistency before→after|Final building frames /53 before→after|Installed building re-selections before→after|
+|---:|---:|---:|---:|---:|---:|---:|---:|
+|1|6→6|192/192→192/192|185→185|201/201→201/201|191/191→191/191|53→53|0→0|
+|5|6→6|192/192→192/192|185→185|201/201→201/201|191/191→191/191|53→53|0→0|
+|10|6→6|192/192→192/192|185→185|201/201→201/201|191/191→191/191|53→53|0→0|
+|11|5→6|127/192→192/192|125→184|129/129→200/200|127/127→190/190|28→53|0→0|
+|13|4→6|81/192→192/192|81→185|81/81→201/201|81/81→189/189|6→53|0→0|
+|20|4→5|81/192→127/192|81→125|81/81→130/130|81/81→126/126|6→28|0→1|
+|50|4→4|81/192→81/192|81→81|81/81→81/81|81/81→81/81|6→6|0→0|
+|85|3→4|49/192→82/193|49→82|49/49→83/83|49/49→82/82|3→6|0→0|
+|100|3→3|49/192→49/193|49→49|49/49→49/49|49/49→49/49|3→3|0→0|
+|200|3→3|49/192→49/193|49→49|49/49→49/49|49/49→49/49|3→3|0→0|
+
+Only complete requested-N pools contribute installed output. Original outcomes retain removed figures. AtN85 onward the denominator is193=192 original outcomes+1 allocated projectile;the refusedN99 pass also accounts for that projectile. N19 completes192/192 outcomes,185 placements,202/202 components,189/189 primaries,53/53 building frames and1 re-selection. N26 completes5/6 pools,127/192 outcomes,125 placements,130/130 components and126/126 primaries. N98 completes4/6 pools,82/193 outcomes,82 placements and83/83 components. Successful-prefix re-selections in refused pools are diagnostic only:1 atN50/85/98/100/200,and0 installed from that prefix. AtN20 the re-selection belongs to a completed pool and is installed. Completed-pool building advances forN1,5,10,11,13,19,20,26,50,85,98,100,200 are0,53,159,159,212,318,168,224,96,168,192,99,198. Final changed phases are0,53,53,53,53,53,28,28,6,6,6,3,3.
+
+The exact refused-outcome partitions are:
+
+|N|Before|After|
+|---:|---|---|
+|1,5,10|0/192|0/192|
+|11|65/192=59 earlier-slot+4 successful-prefix+1 prior-removed+1 delegated arrival|0/192|
+|13|111/192=59 earlier-slot+48 successful-prefix+2 prior-removed+1 delegated arrival+1 segment service|0/192|
+|20|111/192,same baseline classes asN13|65/192=20 earlier-slot+42 successful-prefix+2 prior-removed+1 Inspector arrival|
+|50|111/192,same baseline classes asN13|111/192=60 earlier-slot+46 successful-prefix+3 prior-removed+1 storage delivery+1 Inspector arrival|
+|85|143/192=69 earlier-slot+69 successful-prefix+2 prior-removed+1 delegated arrival+1 segment service+1 Hunter attack|111/193,same current classes asN50|
+|100,200|143/192,same baseline classes asN85|144/193=60 earlier-slot+78 successful-prefix+3 prior-removed+1 storage delivery+1 Inspector arrival+1 projectile arrival|
+
+Current exact names are`earlier_ordered_slot_uncomputed`,`later_ordered_slot_may_write_earlier_figure`,`prior_removed_outcome_withheld`,`goods_delivery_arrival_virtual_4cd8f0`,`type_action_route_target_combat_update`,and`projectile_allocation_or_collision_5ea510_5e6200`. Successful-prefix states and all tentative allocator/RNG/building writes are withheld when a pass refuses. Diagnostics expose allocated slot identities without publishing their partial state.
+
+**Provenance and premises.** The owned executable was rehashed as SHA-256`0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`. Every VA in this section maps to file offset VA−`0x400000`;private listings remain outside Git. Input timing is unchanged:speed80,37k ms,previous clocks0,one admitted pool update and one full active-crop draw per frame. Watchtower/Inspector maxima and storage/industry caches retain the explicit premises documented below. The fresh-thread CRT state1 interpretation was refuted;the leading correction documents wall-clock seeding and both absent and explicit caller-state measurements. State1 here is an explicit counterfactual test input only. The Well override is restored saved Festival4 state,not a process-zero premise. The library reads no environment.
+
+**Ordinary arrival and roaming.** Shrine's delegated free-arrival path`0x51D0C0→0x4E6A70` sets progress20,roam state0,countdown255,turn+2 and origin=current coordinates. It calls`0x4E6690` up to4 times,retains the original cardinal road440 and checked owner+E8 gates,stores owner common+38,clips the owner's road target to the active crop,and enters roam state1. Common5 wire51 carries owner+38. Only individually checked ordinary+E8=`0x416A70` owners are admitted;Market's`0x544910` branch remains refused. Later`0x4E6D80/0x4E71D0` carries category-specific service scores,saved cell-random bytes,turn countdown and persisted RNG. Equal minimum scores use the original nonzero-remainder replacement rule,and then a separate turn-sign draw. The tie value is the7-bit`10C713C`,not the15-bit return used by animal destinations. Source3 Shrine slot236 crossesN11;the required subsequent route segment calls also use existing Market/Entertainment services.
+
+**Well.** `0x4EACD0→0x429DF0→0x51BC00` uses the existing radius/shadow traversal and qualified occupied-house gates. Well+224=`0x5B3AD0` selects embedded+34 when common model+16>0 or upgrade+6F is nonzero;otherwise`0x48E110` supplies the override. A basic Well writes embedded+32 unless that saved predicate is true. Both writes assign96 and mark service-grid category0. Common5 model and upgrade are wire18/99;house data1 service bytes are tail49/51. `0x53122D→0x48ED30` restores Festival4 wire66/67/71 as enabled and dwords3/4,which`0x48E110` tests independently of active festival venue qualification. Unknown basic-Well predicate refuses atomically. Source2 slot1779 crossesN13.
+
+**Storage and road state.** Type19 movement arrival`0x4CC03A` enters action11 for Mill35 (`0x418D60`) or10 for Warehouse36 (`0x5D36E0`). Subsequent calls increment the signed counter and keep frame0;the delivery callback is first reached at6/11 respectively. Source2 reaches a real pre-existing type21 withdrawal and warehouse image re-selection byN19,so original-data re-selection coverage is now1 call rather than0. Re-selection still uses the existing compartment selector. Type19's next source2 boundary calls warehouse+154=`0x5D4E80`,whose policy/capacity compartment allocation,accounting and`0x4E2A20` continuation are unported. `1032664` is tracked as optional live state:`0x4E7F6E` clears it after a completed route-follow call;`0x4E907C`'s known-zero branch bypasses roadblock owner logic. No initial zero is assumed. This closes source3'sN18 roadblock crossing. Inspector free arrival`0x4CD3E0..0x4CD408` either removes on its owner's occupied cell or begins ordinary roam;the removal/owner cleanup remains refused.
+
+**Hunter allocation and flight.** `0x4D315E..0x4D31DC` uses the current ordered target,turns the Hunter with`0x5B2910`,calls`0x5EA510`,enters action13/counter=model7,then writes prey previousAction/action18,direction and counter100. `0x4D3519` releases the Hunter route. The earlier prey image remains the image selected before those later writes;the context retains the non-image inputs at each image write to check that selection independently. Pheasant action18 dispatches through`0x59F7EC→0x59F445`,enters31 and retains its idle counter for that call when the already-qualified threat predicates are false.
+
+The allocator follows`0x4EA050→0x4E1420→0x4E23A0` FIFO order with up to5 stale attempts. Load reconstruction`0x4E9FE0` enqueues inactive slots descending,so the original source4 shot uses1999;the ascending update loop visits it later in the same pass. `0x4C9160` initializes coordinates/progress20,stores the low16 allocation serial and increments saved`10AEEE8` (`0x531580`,literalT+1,363,858),then advances saved RNG and retains its phase&3 in+8A/+8C. `0x4EA120→0x7665FD` advances the separate CRT LCG by`state*214013+2531011` even with sound disabled. `0x5EA510` supplies owner=Hunter slot,raise10,height=Hunter height+18,free target and doubled16-sector direction through`0x5B2710→0x5B2790`. Integer ratio boundaries are200/500;the attack8-sector helper uses400.
+
+Type54`0x5E6200` advances7 free steps for Hunter40,updates its home counter against10×the shooter range virtual,then calls`0x5CFE60(speed100)` with the shared current animation flags. Primary1C6D and secondary1C6C use32 directions and bias+4;the secondary starts from a copy of the already-advanced primary counter. Draw`0x46BBC1` subtracts raise and height from the free position. `0x46C39E..0x46C3C4` draws the secondary first at baseY+10;`0x46C3FF..0x46C4FE` adds the primary arc from signed+AC/+AE/+B0/+B2,with separate truncation of its weighted terms and constants at`0x7ACA30..3C`. Selected SG offsets remain authoritative. Arrival,combat/building impact and lifetime removal refuse until their callbacks and cleanup are ported.
+
+|Source|Complete boundary|Next refusal|
+|---:|---|---|
+|1|21/21 outcomes throughN200|none within measured horizon|
+|2|46/46 outcomes throughN26|N27,slot1641,type19/action10,counter10→11:warehouse+154 allocation/accounting and continuation|
+|3|65/65 outcomes throughN19|N20,slot309,type39/action7:Inspector free arrival and owner/removal cleanup|
+|4|33/33 outcomes throughN98,including1 allocation|N99,slot1999,type54:projectile arrival/impact path|
+|5|7/7 outcomes throughN200|none within measured horizon|
+|6|21/21 outcomes throughN200|none within measured horizon|
+
+Release and UBSan each pass572/572 authored and10,350/10,350 total figure checks,with18/18 identical aggregate timeline rows. Strict production assertions cover every listed horizon and boundary,includingN19/26/98. Unset/empty-root controls succeed4/4,each retaining572/572 authored checks. The authored projectile checks cover FIFO allocation,same-pass visitation,linked prey writes,separate RNG state,32-direction selectors,arc/SG anchors and shadow order. Eight new compiled mutations are rejected at their intended assertions:Well96,owner roam direction,FIFO pop,flight step count,projectile selector bias,arc result,Festival4 predicate and roadblock process gate. The relocated existing Watchtower-category mutation also rejects1/1 at its intended assertion. Required Release/UBSan regressions pass:building-scene244/7,663,building-image1,283/3,880,saved-ground110/1,928,SAV94,map-reference1,884/3,130;CITY19 Figure7 is912/912 and following-component properties36/36. The fresh App builds28 units,matches99/99 embedded production-source hashes,and passes strict signature verification without launch. No commit,push,stash or reset is performed. STATUS.md,AGENTS.md,GameData,ground implementation,CitySimulation and EMP1 are outside this diff;STATUS updates and commit/review remain with the lead.
+
 ## Goods services and the N10 boundary,2026-10-21
 
 **Largest complete horizon N=5→N=10 across6/6 pools. N6 improves127/192→192/192 computed outcomes;N10 improves81/192→192/192.** Baseline HEAD`01095de` was reproduced at517/517 authored and6,584/6,584 total checks. A private baseline copy extended only the measurement horizons to6,100,200;its original first refusals were source3/N6/slot384,source2/N10/slot1702,and source4/N85/slot1981. This section supersedes those boundaries below. The implementation remains an explicit figure-pool/admission/draw computation;it is not a complete city simulation or an original post-update oracle. Saved snapshot remains the App default. No original game was run,no decompilation/disassembly was declined,and no constants were fitted.

@@ -737,6 +737,71 @@ void authored(){
         need(!installOriginalSceneTimeline(unchanged,terrain,saved,refs,buildings,general,invalid)&&
             unchanged.surface.image==scene.surface.image&&unchanged.placed.front().components.at(1).binding.imageCode==0x454,
             "failed storage reselection leaves the entire original scene unchanged");
+        {OriginalFigureUpdateContext shot;shot.services.emplace();shot.services->directions.assign(500000,0);
+            shot.services->allocationSerial=17;shot.services->randomFirst=1;shot.services->randomSecond=16;shot.crtRandom=1;
+            shot.animationFlags=std::array<bool,51>{};shot.animationFlags->at(2)=true;shot.cropBase=0;
+            shot.terrain.assign(51984,0x80);shot.buildingOwners.assign(51984,0);shot.cellHeads.assign(51984,0);
+            for(size_t slot=0;slot<2000;++slot){OriginalFigure idle;idle.slot=slot;shot.figures.emplace(slot,idle);}
+            auto hunter=one;hunter.slot=2;hunter.type=40;hunter.action=7;hunter.counter=0;hunter.target=1;hunter.owner=9;
+            hunter.x=10;hunter.y=10;hunter.cell=2290;hunter.subX=hunter.subY=200;hunter.next=0;
+            auto prey=one;prey.slot=1;prey.type=76;prey.action=32;prey.x=5;prey.y=15;prey.cell=3425;prey.updateOwner=1;
+            shot.figures.at(1)=prey;shot.figures.at(2)=hunter;shot.cellHeads[2290]=2;shot.cellHeads[3425]=1;
+            shot.freeSlots={1999,1998};shot.highestLiveSlot=2;shot.buildings.emplace();shot.buildings->emplace(9,station);
+            shot.models[40].fill(0);shot.models[40][6]=5;shot.models[40][7]=30;
+            auto projectiles=group;projectiles.numImages=512;projectiles.sprites.resize(512);projectiles.imageIndex.fill(1);
+            projectiles.imageIndex[0x6d-1]=101;projectiles.imageIndex[0x6c-1]=201;
+            projectiles.sprites[100].animationSpriteCount=projectiles.sprites[200].animationSpriteCount=2;
+            projectiles.sprites[100].animationDirections=projectiles.sprites[200].animationDirections=32;
+            projectiles.sprites[100].animationSpeedId=projectiles.sprites[200].animationSpeedId=2;
+            const std::map<uint32_t,const SG3Archive*> shotRefs{{14,&projectiles},{39,&group}};
+            const auto pass=originalFigureOrderedNextPass(shot,shotRefs);
+            need(pass.complete&&pass.computed==3&&pass.context->allocatedSlots==std::set<size_t>{1999}&&
+                pass.context->freeSlots==std::vector<size_t>{1998}&&pass.context->highestLiveSlot==1999,
+                "Hunter uses FIFO1999 allocation and the same ascending ordered pass visits the new projectile");
+            const auto& p=pass.context->figures.at(1999);const auto& h=pass.context->figures.at(2);const auto& t=pass.context->figures.at(1);
+            need(p.age==1&&p.faction==0&&p.home==1&&p.subX==193&&p.subY==207&&p.raise==3&&p.direction==20&&p.frame==1&&p.attackFrame==0&&
+                p.allocationSerial==17&&pass.context->services->allocationSerial==18&&pass.context->crtRandom==2745024&&pass.context->crtRandomCalls==1&&
+                h.action==13&&h.counter==30&&h.frame==1&&t.action==18&&t.previousAction==32&&t.counter==100&&t.direction==1,
+                "shot carries allocation serial, CRT state, seven free steps, both frame flags and earlier-prey writes atomically");
+            const auto projectileImages=originalFigureUpdateImageState(*pass.context);
+            need(p.image==(14u<<14)+156&&p.secondaryImage==(14u<<14)+224&&
+                figureImage(originalFigureImageInputs(p),shotRefs,0,0,std::nullopt,&projectileImages).image==p.image&&originalFigureSubcell(p)==std::make_pair(12,-1),
+                "projectile forward primary and secondary use32 directions with the cited four-sector bias and raised free position");
+            need(pass.context->primaryImageInputs.at(1).action==32&&pass.context->primaryImageInputs.at(1).direction==prey.direction&&
+                pass.context->figures.at(1).action==18&&pass.context->figures.at(1).direction==1,
+                "later Hunter turn preserves earlier prey image-write inputs without selecting a replacement image");
+            auto arc=p;arc.projectileDistance=6;arc.projectileStartHeight=-8;arc.projectileTargetHeight=-2;arc.projectileEndHeight=18;
+            arc.x=10;arc.y=10;arc.destinationX=10;arc.destinationY=16;
+            need(originalFigureProjectileArc(arc)==-15,"projectile initial arc truncates separate weighted height terms");
+            arc.y=13;need(originalFigureProjectileArc(arc)==-23,"projectile half-distance arc includes both endpoint heights");
+            arc.y=16;need(originalFigureProjectileArc(arc)==-2,"projectile endpoint arc retains target height");
+            auto draw=p;draw.slot=4;draw.x=draw.y=0;draw.cell=72*229;draw.subX=13;draw.subY=7;
+            draw.image=14u<<14;draw.secondaryImage=(14u<<14)+1;draw.projectileDistance=6;draw.projectileEndHeight=18;
+            draw.destinationX=0;draw.destinationY=6;
+            auto drawProfile=figures;drawProfile.live={draw};drawProfile.cellHeads.assign(51984,0);drawProfile.cellHeads[draw.cell]=4;
+            OriginalMapTerrain drawTerrain;drawTerrain.activeSide=84;drawTerrain.flags.assign(51984,0x80000);
+            for(unsigned y=72;y<156;++y)for(unsigned x=72;x<156;++x)drawTerrain.flags[y*228+x]=0;
+            OriginalBuildingProfile drawBuildings;drawBuildings.status=OriginalBuildingStatus::Complete;
+            auto drawScene=composeOriginalBuildingScene(drawTerrain,drawBuildings,archive);
+            const std::map<uint32_t,const SG3Archive*> drawRefs{{14,&archive}};
+            installOriginalFigureOverlays(drawScene,drawTerrain,drawProfile,drawRefs);
+            need(drawScene.figurePlaced==1&&drawScene.overlays.size()==2&&drawScene.overlays[0].offsetX==43&&
+                drawScene.overlays[0].offsetY==-23&&drawScene.overlays[1].offsetX==43&&drawScene.overlays[1].offsetY==-6&&
+                drawScene.overlays[1].depth<drawScene.overlays[0].depth,
+                "projectile primary arc and secondary ground anchor retain selected SG offsets and shadow-before-primary order");
+            auto missingShot=shot;missingShot.crtRandom.reset();const auto refusedShot=originalFigureOrderedNextPass(missingShot,shotRefs);
+            need(!refusedShot.complete&&!refusedShot.context&&refusedShot.firstBlockedSlot==2&&
+                refusedShot.figures.at(2).status==OriginalFigureUpdateStatus::CrtRandomRequired&&
+                missingShot.figures.at(1).action==32&&missingShot.freeSlots.size()==2&&missingShot.crtRandomCalls==0,
+                "unknown CRT process state withholds projectile allocation and all linked prey writes");
+            auto zeroShot=shot;zeroShot.crtRandom=0;const auto zeroPass=originalFigureOrderedNextPass(zeroShot,shotRefs);
+            need(zeroPass.complete&&zeroPass.context->crtRandom==2531011&&zeroPass.context->crtRandomCalls==1&&
+                zeroPass.context->figures.at(1999).image==p.image,"explicit CRT state zero is valid and advances independently of image selection");
+            auto exhausted=missingShot;exhausted.freeSlots.clear();const auto noAllocation=originalFigureOrderedNextPass(exhausted,shotRefs);
+            need(noAllocation.complete&&!noAllocation.context->crtRandom&&noAllocation.context->crtRandomCalls==0&&
+                noAllocation.context->figures.at(2).action==13,"exhausted FIFO does not reach allocation sound rand and needs no CRT state");
+            need(originalFigureProjectileDirection(10,10,5,15)==20&&originalFigureProjectileDirection(10,10,11,15)==16&&
+                originalFigureAttackDirection(10,10,11,15)==4,"projectile32 and Hunter8 direction thresholds remain distinct");}
         carrier.destinationX=6;carrier.destinationY=7;carrier.subX=100;carrier.subY=120;originalFigureFreeTarget(carrier);
         need(carrier.freeRemainingX==20&&carrier.freeRemainingY==20&&carrier.freeError==0&&carrier.freeAxis==1,
             "free target equal axes use zero Bresenham error rather than the unequal-axis expression");
@@ -927,6 +992,13 @@ void authored(){
         routeContext.buildings->at(7).type=0xc1;
         need(originalFigureValidateNextDirection(routed,routeContext)&&routed.direction==9,
             "ordinary building with false pass-through rejects movement after its owner lookup");
+        routed.direction=2;routeContext.terrain[base+1]=0xc8;routeContext.movementMasks[base+1]=4;
+        routeContext.buildings->at(7).type=0x7e;routeContext.roadblockGate.reset();
+        need(!originalFigureValidateNextDirection(routed,routeContext),"roadblock cannot infer unknown1032664 process gate");
+        routeContext.roadblockGate=0;
+        need(originalFigureValidateNextDirection(routed,routeContext)&&routed.direction==2,"known zero1032664 bypasses roadblock owner predicate");
+        routeContext.roadblockGate=1;
+        need(!originalFigureValidateNextDirection(routed,routeContext),"positive roadblock process gate needs its separate owner branch");
         auto cropRouteContext=routeContext;cropRouteContext.passability->cells.assign(51984,0);
         for(unsigned x=0;x<3;++x)cropRouteContext.passability->cells[base+x]=0x10;
         cropRouteContext.terrain.assign(51984,0);cropRouteContext.terrain[base+1]=0x10000000;
@@ -955,7 +1027,11 @@ void authored(){
         auto choosing=bird;choosing.action=30;
         const auto repeatedDestination=originalFigureFirstUpdate(choosing,refs,&context);
         need(repeatedDestination.state&&repeatedDestination.state->action==32&&repeatedDestination.state->destinationX==11&&
-            repeatedDestination.services->randomFirst==0x800001,"action30 runs the same ordered destination predicate as initial19");
+             repeatedDestination.services->randomFirst==0x800001,"action30 runs the same ordered destination predicate as initial19");
+        choosing.action=18;choosing.counter=100;choosing.idleCounter=47;
+        const auto startled=originalFigureFirstUpdate(choosing,refs,&context);
+        need(startled.state&&startled.state->action==31&&startled.state->counter==100&&startled.state->idleCounter==47,
+            "Pheasant action18 returns to31 without incrementing its idle counter or moving in that call");
         auto distant=bird;distant.slot=9;distant.action=30;distant.x=distant.y=0;distant.herdTarget=0;
         auto remote=distant;remote.slot=10;remote.x=20;remote.route=0;
         auto herdContext=context;herdContext.cropBase=base;herdContext.figures={{1,OriginalFigure{}},{9,distant},{10,remote}};
@@ -1300,6 +1376,33 @@ void authored(){
         context.buildings->at(9).shrineElite=1;context.buildings->at(8).religion->at(2)=7;
         need(originalFigureRoam(priest,6,0x80,context).state&&context.buildings->at(8).religion->at(2)==7,
             "elite-only Shrine gate skips ordinary occupied houses");
+        {auto water=context;auto carrier=entertainer;carrier.type=28;
+            water.buildings->at(9).type=0x48;water.buildings->at(9).houseModel=0;water.buildings->at(9).upgrade=0;
+            water.buildings->at(8).waterService=std::array<uint8_t,2>{3,4};water.waterOverride=false;
+            const auto delivered=originalFigureRoam(carrier,6,0x80,water);
+            need(delivered.state&&water.buildings->at(8).waterService==std::array<uint8_t,2>{96,4}&&
+                (water.services->serviceGrid[10000]&7)==7,"Well basic callback writes embedded32 and category0 through repeated house visits");
+            water.waterOverride=true;need(originalFigureRoam(carrier,6,0x80,water).state&&water.buildings->at(8).waterService->at(1)==96,
+                "Well global override redirects water to embedded34");
+            water.waterOverride.reset();water.buildings->at(9).upgrade=1;
+            need(originalFigureRoam(carrier,6,0x80,water).state.has_value(),"upgraded Well short circuits absent global predicate");
+            water.buildings->at(9).upgrade=0;const auto before=water.services->serviceGrid;
+            need(!originalFigureRoam(carrier,6,0x80,water).state&&water.services->serviceGrid==before,
+                "basic Well without an explicit global predicate withholds the tentative callback atomically");}
+        {auto roam=context;roam.randomByte.assign(51984,0);auto arrival=priest;arrival.direction=2;arrival.previousDirection=2;
+            roam.buildings->at(9).roadX=-1;roam.buildings->at(9).roadY=100;roam.buildings->at(9).roamDirection=7;
+            need(originalFigureBeginRoam(arrival,roam)&&arrival.progress==20&&arrival.roamState==1&&arrival.roamCountdown==255&&arrival.roamTurn==2&&
+                arrival.roamOriginX==5&&arrival.roamOriginY==6&&arrival.direction==4&&arrival.destinationX==0&&arrival.destinationY==83&&
+                roam.buildings->at(9).roamDirection==4,"ordinary roam arrival chooses a nonreverse road and publishes owner turn and clipped home-road target");
+            roam.terrain[9999]=0x80;arrival=priest;arrival.previousDirection=0;
+            need(originalFigureBeginRoam(arrival,roam)&&arrival.direction==4&&roam.buildings->at(9).roamDirection==4,
+                "single initial roam road accepts the reverse direction without an RNG draw");
+            roam.terrain[9772]=roam.terrain[10001]=roam.terrain[9999]=0xc0;
+            roam.services->serviceGrid.assign(51984,7u<<15);roam.services->serviceGrid[10001]=0;
+            arrival=priest;arrival.destinationX=5;arrival.destinationY=6;auto random=*roam.services;originalFigureRandomNext(random);
+            need(originalFigureRoamTargetTurn(arrival,roam)&&arrival.direction==2&&arrival.roamCountdown==5&&
+                roam.services->randomFirst==random.randomFirst&&roam.services->randomSecond==random.randomSecond,
+                "roam turn target uses minimum category5 score and one persisted RNG draw when its minimum is unique");}
         context.terrain[9772]=0xc0;context.services->serviceGrid[9772]=7u<<6;
         context.services->serviceGrid[9999]=7u;context.services->serviceGrid[10228]=0;
         const auto watchRoads=originalFigureRoamRoads(watch,context),herbRoads=originalFigureRoamRoads(herbalist,context);
@@ -1339,6 +1442,12 @@ void authored(){
         put32(festival+52,1);festivalBytes[festival+60]=1;put32(festival+62,9);
         const size_t t=100000,dateSize=200000;put32(t+1299324+4,0);put32(t+1299332,1);put32(dateSize-180,100);put32(dateSize-176,1);
         need(originalFigureSavedFestivalVenue(festivalBytes,t,dateSize)==9,"festival date equality remains active at the duration boundary");
+        std::optional<bool> water;festivalBytes[festival+66]=1;put32(festival+67,3);put32(festival+71,4);
+        need(originalFigureSavedFestivalVenue(festivalBytes,t,dateSize,&water)==9&&water==true,
+            "Festival4 wire66/67/71 restores the enabled3/4 water override independently of venue qualification");
+        festivalBytes[festival+60]=0;put32(festival+71,3);
+        need(originalFigureSavedFestivalVenue(festivalBytes,t,dateSize,&water)==0&&water==false,
+            "inactive Festival4 still restores water predicate and rejects the wrong subtype");festivalBytes[festival+60]=1;
         put32(t+1299332,2);need(originalFigureSavedFestivalVenue(festivalBytes,t,dateSize)==0,"expired active flag cannot select festival entertainment branch");
         put16(festival,3);need(!originalFigureSavedFestivalVenue(festivalBytes,t,dateSize),"unknown festival layout withholds venue and service traversal");
     }
@@ -1384,9 +1493,9 @@ void corpus(){
     std::map<unsigned,size_t> orderedComputedTypes,orderedBlockedTypes;std::map<std::string,size_t> orderedBlockers;
     std::array<size_t,6> individualBySource{},orderedBySource{},prefixBySource{};
     size_t k1Placed=0,k1Decoded=0,k1Hidden=0,k1Unsupported=0,k1Removed=0,k1Overlays=0,k1Animation=0,k1Objects=0;
-    struct TimelineScore {size_t pools=0,computed=0,placed=0,decoded=0,consistent=0,primary=0,animation=0,animationCandidates=0,animationAdvanced=0,animationChanged=0,reselected=0;
+    struct TimelineScore {size_t pools=0,computed=0,outcomes=0,allocated=0,placed=0,decoded=0,consistent=0,primary=0,animation=0,animationCandidates=0,animationAdvanced=0,animationChanged=0,reselected=0,prefixReselected=0;
         std::map<std::string,size_t> refusals;};
-    std::map<unsigned,TimelineScore> timelineScores;
+    std::map<unsigned,TimelineScore> timelineScores,timelineUnseededScores;
     std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));need(save.readStable&&save.layers.figures.has_value(),"same-source stable figure profile");
@@ -1406,7 +1515,7 @@ void corpus(){
         const auto payload=decodeOriginalMapContainer(savedBytes).payload;
         auto services=originalFigureSavedServices(payload,save.terrainOffset);
         const auto population=originalFigureSavedPopulation(payload,save.sizeOffset);
-        const auto festival=originalFigureSavedFestivalVenue(payload,save.terrainOffset,save.sizeOffset);
+        std::optional<bool> waterOverride;const auto festival=originalFigureSavedFestivalVenue(payload,save.terrainOffset,save.sizeOffset,&waterOverride);
         need(population&&festival&&services&&services->serviceGrid.size()==51984,"six sources frame population7, Festival4 venue and the complete service grid");
         constexpr std::array<int32_t,6> totals{0,572,993,28,0,28},peaks{0,1070,997,28,0,28};
         need(population->total==totals[sources]&&population->peak==peaks[sources]&&
@@ -1423,6 +1532,10 @@ void corpus(){
             updateContext->houseMarketModels[col]=decoyUpdateContext->houseMarketModels[col]=*values;}
         updateContext->watchtowerReduction=decoyUpdateContext->watchtowerReduction=watchReduction;
         updateContext->elevation=decoyUpdateContext->elevation=save.layers.ground->state.gBEBF3A;
+        updateContext->randomByte=decoyUpdateContext->randomByte=save.layers.ground->state.randomByte;
+        updateContext->crtRandom=decoyUpdateContext->crtRandom=1; //Explicit reproducible test input;wall-clock seeded,not in SAV.
+        need(waterOverride.has_value(),"complete Festival4 carries the saved Well override predicate");
+        updateContext->waterOverride=decoyUpdateContext->waterOverride=waterOverride;
         updateContext->watchMaximum=decoyUpdateContext->watchMaximum=0; //declared fresh-process premise, not SAV state.
         updateContext->inspectorReduction=decoyUpdateContext->inspectorReduction=originalFigureWatchtowerReduction(buildingText,124);
         updateContext->inspectorMaximum=decoyUpdateContext->inspectorMaximum=std::array<int32_t,2>{0,0};
@@ -1448,6 +1561,8 @@ void corpus(){
             "same-source framed SAV19 restores C82F28 at the independently cited literal T+1363850");
         need(services->criminalCount&&uint32_t(*services->criminalCount)==detail::u32(payload.data()+save.terrainOffset+1391642),
             "all six saved criminal counts equal independent literal T+1391642 reads");
+        need(services->allocationSerial&&*services->allocationSerial==detail::u32(payload.data()+save.terrainOffset+1363858),
+            "all six saved allocation serials equal independent literal531580 T+1363858 reads");
         const size_t populationAt=save.sizeOffset-12287;
         need(goods->policies.size()==detail::u32(payload.data()+figures.end+2)&&
             goods->policies.at(0).accept[25]==payload.at(figures.end+6+12+25)&&
@@ -1520,7 +1635,7 @@ void corpus(){
         const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,timelinePassability,
             &*hunterLinks,&*buildingLinks,*models,spawn->cropBase,timelineMasks,&*updateContext);
         need(initial.complete&&initial.context.has_value(),"timeline initializes callbacks/population exactly once");
-        for(unsigned n:{1u,2u,3u,4u,5u,6u,10u,11u,12u,20u,50u,100u,200u}){
+        for(bool suppliedCrt:{false,true})for(unsigned n:{1u,2u,3u,4u,5u,6u,10u,11u,12u,13u,19u,20u,26u,50u,84u,85u,98u,100u,200u}){
             std::vector<OriginalSceneTimelineFrame> frames;
             for(unsigned k=1;k<=n;++k){OriginalSceneTimelineFrame frame;frame.animationClock=37*k;
                 frame.admission.now=37*k;frame.admission.speed=80;frame.continueAfterPass={false};
@@ -1533,24 +1648,33 @@ void corpus(){
             for(auto& frame:frames)for(unsigned diagonal=0;diagonal<2*save.terrain.activeSide-1;++diagonal)
                 for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
                     frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
-            const auto timeline=originalSceneTimeline(*initial.context,refs,timelineScene,general,&*employment,0,{},frames);
-            constexpr unsigned firstFailure[]={0,13,11,85,0,0};constexpr size_t firstSlot[]={0,1779,236,1981,0,0};
+            auto timelineInitial=*initial.context;if(suppliedCrt)timelineInitial.crtRandom=1;else timelineInitial.crtRandom.reset();
+            const auto timeline=originalSceneTimeline(timelineInitial,refs,timelineScene,general,&*employment,0,{},frames);
+            const unsigned firstFailure[]={0,27,20,suppliedCrt?99u:85u,0,0};const size_t firstSlot[]={0,1641,309,suppliedCrt?1999u:1981u,0,0};
             const unsigned expected=firstFailure[sources-1];
+            auto& total=(suppliedCrt?timelineScores:timelineUnseededScores)[n];total.animationCandidates+=timelineScene.animationEnabled;
+            need(timeline.buildingImageReselections==(sources==2&&n>=19?1u:0u),"warehouse withdrawal reselects once in its successful prefix; requested-N installation still requires every pass");
+            std::set<size_t> outcomeSlots;for(const auto& f:figures.live)outcomeSlots.insert(f.slot);
+            for(size_t slot:timeline.lastPass.allocatedSlots)outcomeSlots.insert(slot);
+            total.outcomes+=outcomeSlots.size();total.allocated+=timeline.lastPass.allocatedSlots.size();
+            std::cout<<"{\"timeline_source\":"<<sources<<",\"crt_seed\":\""<<(suppliedCrt?"explicit_1":"none")<<"\",\"requested_updates\":"<<n<<",\"complete\":"<<(timeline.complete?"true":"false")
+                <<",\"completed_updates\":"<<timeline.updates<<",\"first_refused_update\":"<<timeline.refusedUpdate
+                <<",\"first_refused_slot\":"<<timeline.lastPass.firstBlockedSlot<<",\"refusal\":\""<<timeline.refusal
+                <<"\",\"building_image_reselections_in_completed_prefix\":"<<timeline.buildingImageReselections
+                <<",\"outcome_total\":"<<outcomeSlots.size()<<",\"allocated_slots\":"<<timeline.lastPass.allocatedSlots.size()
+                <<",\"crt_rand_calls_in_prefix\":"<<timeline.lastPass.crtRandomCalls<<"}\n";
             need(timeline.complete==(!expected||n<expected)&&timeline.updates==(expected&&n>=expected?expected-1:n)&&
                 timeline.refusedUpdate==(expected&&n>=expected?expected:0)&&timeline.lastPass.firstBlockedSlot==(expected&&n>=expected?firstSlot[sources-1]:0),
                 "six original timelines retain independently recorded first refusal boundaries and stop there");
-            auto& total=timelineScores[n];total.animationCandidates+=timelineScene.animationEnabled;
-            need(timeline.buildingImageReselections==0,"completed original passes precede storage withdrawal; no changed selector inputs are skipped");
-            std::cout<<"{\"timeline_source\":"<<sources<<",\"requested_updates\":"<<n<<",\"complete\":"<<(timeline.complete?"true":"false")
-                <<",\"completed_updates\":"<<timeline.updates<<",\"first_refused_update\":"<<timeline.refusedUpdate
-                <<",\"first_refused_slot\":"<<timeline.lastPass.firstBlockedSlot<<",\"refusal\":\""<<timeline.refusal
-                <<"\",\"building_image_reselections\":"<<timeline.buildingImageReselections<<"}\n";
+            need(timeline.lastPass.crtRandomCalls==size_t(suppliedCrt&&sources==4&&n>=85),
+                "only source4 allocation at N85 consumes CRT rand in the ported reachable prefix");
             if(!timeline.complete){need(!timeline.context,"failed timeline publishes no context from an earlier completed update");
-                for(const auto& f:figures.live){const auto found=timeline.lastPass.figures.find(f.slot);
+                total.prefixReselected+=timeline.buildingImageReselections;
+                for(size_t slot:outcomeSlots){const auto found=timeline.lastPass.figures.find(slot);
                     ++total.refusals[found==timeline.lastPass.figures.end()?"prior_removed_outcome_withheld":originalFigureUpdateStatusName(found->second.status)];}
                 auto unchanged=timelineScene;need(!installOriginalSceneTimeline(unchanged,save.terrain,figures,refs,save.buildings,general,timeline),
                     "refused timeline cannot install earlier frame as requested N");continue;}
-            ++total.pools;total.computed+=figures.live.size();
+            ++total.pools;total.computed+=outcomeSlots.size();
             total.reselected+=timeline.buildingImageReselections;
             total.animationAdvanced+=timeline.buildingAdvances;
             for(const auto& p:timelineScene.placed){const auto found=timeline.buildingPhases.find(p.footprint.slot);
@@ -1559,7 +1683,7 @@ void corpus(){
             total.placed+=installed.figurePlaced;
             const auto finalImages=originalFigureUpdateImageState(*timeline.context);
             for(const auto& e:timeline.context->figures){const auto& u=e.second;if(!u.alive)continue;
-                const auto selected=figureImage(originalFigureImageInputs(u),refs,save.terrain.flags.at(u.cell),figures.savedView,
+                const auto selected=figureImage(timeline.context->primaryImageInputs.at(u.slot),refs,save.terrain.flags.at(u.cell),figures.savedView,
                     save.buildings.slotTypes.at(size_t(u.owner)),&finalImages);
                 need(selected.status==OriginalFigureImageStatus::Selected&&selected.image==u.image,"timeline surviving primary agrees with independent selector");
                 ++total.consistent;++total.primary;}
@@ -1765,27 +1889,35 @@ void corpus(){
     need(orderedBlockers.empty(),"ordered refusal names and counts partition exactly0/192 final states");
     need(k1Placed==185&&k1Decoded==201&&k1Hidden==6&&k1Removed==1&&k1Unsupported==0&&k1Overlays==274&&k1Animation==53&&k1Objects==20&&
         k1Placed+k1Hidden+k1Removed+k1Unsupported==192,"k1 scene partitions192 originals:185 placed,6 hidden,1 removed,0 special-placement refusals;274 overlays");
-    for(const auto& row:timelineScores){const auto& t=row.second;size_t refused=0;for(const auto& r:t.refusals)refused+=r.second;
-        const unsigned n=row.first;const size_t expectedPools=n<=10?6:n<=12?5:n<85?4:3,expectedComputed=n<=10?192:n<=12?127:n<85?81:49;
-        need(t.pools==expectedPools&&t.computed==expectedComputed&&t.placed==(n<=10?(n==4?184:185):n<=12?125:expectedComputed)&&
-            t.decoded==(n<=10?(n==4?200:201):n<=12?129:expectedComputed)&&t.animation==(n<=10?53:n<=12?28:n<85?6:3),
-         "perN timeline coverage locks complete-pool placements, decoded components and building frames");
-        need(t.computed+refused==192&&t.consistent==t.primary,"perN computed/refused outcomes partition192 and all surviving primaries are consistent");
-        need(t.primary==(n<=10?191u:n==11?127u:n==12?126u:n<85?81u:49u)&&t.reselected==0,
-            "perN surviving primary denominator and original-data building reselection count are locked");
+    for(bool suppliedCrt:{false,true})for(const auto& row:(suppliedCrt?timelineScores:timelineUnseededScores)){
+        const auto& t=row.second;size_t refused=0;for(const auto& r:t.refusals)refused+=r.second;
+        const unsigned n=row.first,projectileLimit=suppliedCrt?99:85;
+        const size_t expectedPools=n<20?6:n<27?5:n<projectileLimit?4:3;
+        const size_t expectedComputed=n<20?192:n<27?127:n<85?81:n<projectileLimit?82:49;
+        need(t.pools==expectedPools&&t.computed==expectedComputed&&t.placed==(n<20?(n==4||n==11?184:185):n<27?125:expectedComputed)&&
+            t.decoded==(n<20?(n==4||n==11?200:n==19?202:201):n<27?130:n>=85&&n<projectileLimit?83:expectedComputed)&&
+            t.animation==(n<20?53:n<27?28:n<projectileLimit?6:3),
+          "perN timeline coverage locks complete-pool placements, decoded components and building frames");
+        need(t.outcomes==192+(suppliedCrt&&n>=85)&&t.allocated==size_t(suppliedCrt&&n>=85)&&t.computed+refused==t.outcomes&&t.consistent==t.primary,
+            "perN computed/refused outcomes partition originals plus allocations and every surviving primary agrees at its write");
+        need(t.primary==(n<=10?191u:n==11?190u:n<20?189u:n<27?126u:n<85?81u:n<projectileLimit?82u:49u)&&
+            t.reselected==size_t(n>=19&&n<27)&&t.prefixReselected==size_t(n>=27),
+             "perN surviving primary denominator and original-data building reselection count are locked");
         std::map<std::string,size_t> expectedRefusals;
-        if(n>=11&&n<=12)expectedRefusals={{"building_virtual24_ordered_update",1},{"earlier_ordered_slot_uncomputed",59},
-            {"later_ordered_slot_may_write_earlier_figure",4},{"prior_removed_outcome_withheld",1}};
-        else if(n>12){expectedRefusals={{"building_virtual24_ordered_update",1},{"earlier_ordered_slot_uncomputed",n<85?59u:69u},
-            {"later_ordered_slot_may_write_earlier_figure",n<85?48u:69u},{"prior_removed_outcome_withheld",2},{"segment_owner_service_4eacd0",1}};
-            if(n>=85)expectedRefusals["type_action_route_target_combat_update"]=1;}
-        need(t.refusals==expectedRefusals,"perN refusal classes and multiplicities match exact disjoint original-outcome partition");
-        std::cout<<"{\"timeline_N\":"<<row.first<<",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"computed\":"<<t.computed
-            <<",\"live_total\":192,\"placed\":"<<t.placed<<",\"decoded_components\":"<<t.decoded<<",\"primary_consistent\":"<<t.consistent
+        if(n>=20&&n<27)expectedRefusals={{"type_action_route_target_combat_update",1},{"earlier_ordered_slot_uncomputed",20},
+            {"later_ordered_slot_may_write_earlier_figure",42},{"prior_removed_outcome_withheld",2}};
+        else if(n>=27){expectedRefusals={{"type_action_route_target_combat_update",1},{"earlier_ordered_slot_uncomputed",60},
+            {"later_ordered_slot_may_write_earlier_figure",n<projectileLimit?46u:suppliedCrt?78u:67u},{"prior_removed_outcome_withheld",3},{"goods_delivery_arrival_virtual_4cd8f0",1}};
+            if(n>=projectileLimit){if(suppliedCrt)expectedRefusals["projectile_allocation_or_collision_5ea510_5e6200"]=1;
+                else {expectedRefusals["crt_rand_state_required_wall_clock_seeded_not_in_sav"]=1;expectedRefusals["earlier_ordered_slot_uncomputed"]+=10;}}}
+        std::cout<<"{\"timeline_N\":"<<row.first<<",\"crt_seed\":\""<<(suppliedCrt?"explicit_1":"none")<<"\",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"computed\":"<<t.computed
+            <<",\"original_total\":192,\"outcome_total\":"<<t.outcomes<<",\"allocated_slots\":"<<t.allocated
+            <<",\"placed\":"<<t.placed<<",\"decoded_components\":"<<t.decoded<<",\"primary_consistent\":"<<t.consistent
             <<",\"primary_total\":"<<t.primary<<",\"building_frames_decoded\":"<<t.animation<<",\"building_candidates\":"<<t.animationCandidates
             <<",\"building_admitted_advances\":"<<t.animationAdvanced<<",\"building_changed_phases\":"<<t.animationChanged
-            <<",\"building_image_reselections\":"<<t.reselected<<",\"refusals\":{";
+            <<",\"building_image_reselections\":"<<t.reselected<<",\"withheld_prefix_reselections\":"<<t.prefixReselected<<",\"refusals\":{";
         bool comma=false;for(const auto& r:t.refusals){if(comma)std::cout<<',';comma=true;std::cout<<'"'<<r.first<<"\":"<<r.second;}std::cout<<"}}\n";
+        need(t.refusals==expectedRefusals,"perN refusal classes and multiplicities match exact disjoint original-outcome partition");
     }
     std::cout<<"{\"k1_scene\":true,\"placed\":"<<k1Placed<<",\"live_total\":192,\"decoded_components\":"<<k1Decoded<<",\"hidden\":"<<k1Hidden
         <<",\"removed\":"<<k1Removed<<",\"unsupported\":"<<k1Unsupported<<",\"overlays\":"<<k1Overlays<<",\"animation_overlays\":"<<k1Animation<<",\"object_overlays\":"<<k1Objects<<"}\n";

@@ -70,7 +70,7 @@ def main():
         ('delivery_flags', 'original_figure_update.hpp', 'cropDelivery->flags|=0x40;', 'cropDelivery->flags|=0x20;'),
         ('watch_risk', 'original_figure_update.hpp', 'uint32_t(h.watchRisk)-uint32_t(*context.watchtowerReduction)', 'uint32_t(h.watchRisk)+uint32_t(*context.watchtowerReduction)'),
         ('elevated_lookahead', 'original_figure_update.hpp', '((flags&0x800000)?2:1)', '((flags&0x800000)?1:1)'),
-        ('watch_category', 'original_figure_update.hpp', 'const unsigned shift=f.type==29?6:f.type==30?0:f.type==39?3:f.type==23?21:f.type==35?15:9;', 'const unsigned shift=f.type==29?9:f.type==30?0:f.type==39?3:f.type==23?21:f.type==35?15:9;'),
+        ('watch_category', 'original_figure_update.hpp', 'const unsigned shift=f.type==29?6:(f.type==28||f.type==30)?0:f.type==39?3:f.type==23?21:f.type==35?15:9; //84E78C', 'const unsigned shift=f.type==29?9:(f.type==28||f.type==30)?0:f.type==39?3:f.type==23?21:f.type==35?15:9; //84E78C'),
         ('service_shadow', 'original_figure_update.hpp', 'std::abs(dx)+std::abs(dy)>shadows[size_t(sector)]', 'std::abs(dx)+std::abs(dy)>100'),
         ('crop_season', 'original_figure_update.hpp', 'month<ends[type-0xc3]', 'month<=ends[type-0xc3]'),
         ('market_smallest', 'original_figure_update.hpp', 'storage[k].amount<minimum', 'storage[k].amount>minimum'),
@@ -83,6 +83,18 @@ def main():
         ('storage_reselection', 'original_scene_timeline.hpp', '++out.buildingImageReselections;', 'out.buildingImageReselections+=0;'),
         ('watch_criminal', 'original_figure_update.hpp', '*local.services->criminalCount>0', '*local.services->criminalCount>=0'),
         ('delegated_target', 'original_figure_update.hpp', 'f.freeRemainingX==f.freeRemainingY?0:', 'f.freeRemainingX==f.freeRemainingY?1:'),
+        ('well_water', 'original_figure_update.hpp', 'h.waterService->at(index)=96;', 'h.waterService->at(index)=95;'),
+        ('roam_owner', 'original_figure_update.hpp', 'b->second.roamDirection=*d>6?0:uint8_t(*d);', 'b->second.roamDirection=0;'),
+        ('projectile_fifo', 'original_figure_update.hpp', 'const size_t candidate=queue.front();queue.erase(queue.begin());', 'const size_t candidate=queue.back();queue.pop_back();'),
+        ('projectile_steps', 'original_figure_update.hpp', 'for(unsigned n=0;n<7;++n){const auto moved=', 'for(unsigned n=0;n<6;++n){const auto moved='),
+        ('projectile_selector', 'original_figure_image.hpp', 'direction=(direction+4-4*int(view)+32)%32;', 'direction=(direction+3-4*int(view)+32)%32;'),
+        ('projectile_arc', 'original_figure.hpp', 'int(ratio*f.projectileStartHeight);', 'int(ratio*f.projectileStartHeight)+1;'),
+        ('well_festival', 'original_figure.hpp', 'detail::u32(data.data()+festival+71)==4;', 'detail::u32(data.data()+festival+71)==3;'),
+        ('roadblock_gate', 'original_figure_update.hpp', 'if(!*context.roadblockGate)return true;', 'if(*context.roadblockGate)return true;'),
+        ('crt_seed_required', 'original_figure_update.hpp', 'if(!context.crtRandom)return OriginalFigureUpdateStatus::CrtRandomRequired;', 'if(!context.crtRandom)context.crtRandom=1;'),
+        ('crt_step', 'original_figure_update.hpp', '*context.crtRandom*214013u+2531011u', '*context.crtRandom*214013u+2531012u'),
+        ('crt_status', 'original_figure_update.hpp', 'if(!context.crtRandom)return OriginalFigureUpdateStatus::CrtRandomRequired;', 'if(!context.crtRandom)return OriginalFigureUpdateStatus::Projectile;'),
+        ('crt_zero', 'original_figure_update.hpp', 'if(!context.crtRandom)return std::nullopt;', 'if(!context.crtRandom||!*context.crtRandom)return std::nullopt;'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]

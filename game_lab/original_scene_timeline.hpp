@@ -79,6 +79,7 @@ inline OriginalSceneTimeline originalSceneTimeline(const OriginalFigureUpdateCon
         if(!count||*count>10000-out.updates){out.refusal="admitted_update_observations";return out;}
         out.admissionClock=admitted.last;
         for(unsigned step=0;step<*count;++step){
+            context.animationFlags=out.animationClock.flags;
             out.lastPass=originalFigureOrderedNextPass(context,archives);
             if(!out.lastPass.complete||!out.lastPass.context){out.refusedUpdate=out.updates+1;
                 out.refusal=out.lastPass.firstBlockedSlot?originalFigureUpdateStatusName(out.lastPass.figures.at(out.lastPass.firstBlockedSlot).status):"ordered_pool_inputs";
@@ -118,7 +119,8 @@ inline bool installOriginalSceneTimeline(OriginalBuildingScene& scene,const Orig
         timeline.context->terrain!=terrain.flags)return false;
     auto updated=saved;updated.live.clear();updated.slots.clear();updated.cellHeads=timeline.context->cellHeads;
     for(const auto& e:timeline.context->figures){updated.slots.push_back(e.second);if(e.second.alive)updated.live.push_back(e.second);}
-    if(updated.live.size()>saved.live.size())return false;
+    const size_t outcomes=saved.live.size()+timeline.context->allocatedSlots.size();
+    if(updated.live.size()>outcomes)return false;
     auto next=scene;
     for(auto& p:next.placed){const auto storage=timeline.buildingStorage.find(p.footprint.slot);if(storage==timeline.buildingStorage.end())continue;
         if(!p.footprint.imageInputs||!timeline.context->cropBase)return false;
@@ -139,7 +141,7 @@ inline bool installOriginalSceneTimeline(OriginalBuildingScene& scene,const Orig
             {p.drawX+p.drawY,p.drawX,2,p.footprint.slot},0,3,p.footprint.slot});++next.animationSelected;
     }
     installOriginalFigureOverlays(next,terrain,updated,archives,0,OriginalFigureRenderSource::Saved,&buildings);
-    next.figureRemoved=saved.live.size()-updated.live.size();next.figureLive=saved.live.size();
+    next.figureRemoved=outcomes-updated.live.size();next.figureLive=outcomes;
     next.figurePostLoadK1=timeline.updates==1;next.timelineUpdates=timeline.updates;next.timelineFrames=timeline.frames;
     scene=std::move(next);return true;
 }

@@ -14,11 +14,12 @@ struct OriginalFigureImageInputs {
     uint8_t alive=0,faction=0,height=0;
     uint8_t effectKind=0,effectVariant=0,effectFlags=0;
     uint32_t updateOwner=0;
+    int16_t owner=0;
 };
 inline OriginalFigureImageInputs originalFigureImageInputs(const OriginalFigure& f){
     return {f.type,f.action,f.direction,f.previousDirection,f.frame,f.subtype,f.attackDirection,
         f.attackFrame,f.state85,f.cartStyle,f.resource,f.stationary,f.counter,f.variant,f.amount,f.runtimeClass,
-        f.leaderLink,f.target,f.x,f.y,f.alive,f.faction,f.height,f.effectKind,f.effectVariant,f.effectFlags,f.updateOwner};
+        f.leaderLink,f.target,f.x,f.y,f.alive,f.faction,f.height,f.effectKind,f.effectVariant,f.effectFlags,f.updateOwner,f.owner};
 }
 // Cross-figure state contains only the same non-image inputs as the selector.
 struct OriginalFigureImageState {
@@ -233,6 +234,18 @@ inline OriginalFigureImageSelection figureImage(const OriginalFigureImageInputs&
         else if(f.action==12)frame=0;
         else if(f.action==4){frame=f.counter/2;direction=0;clamp=true;}
         else clamp=true;break;
+    case 54:{ //5E6200->5E670F/5CFE60/5CFDF0;32-direction projectile.
+        out.selectorVA=0x5e6200;code=0x1c6d;
+        const auto shooter=linked(f.owner);if(!shooter||shooter->type!=40)return refuse(OriginalFigureImageStatus::ExternalState);
+        if(direction>=32)return refuse(OriginalFigureImageStatus::InvalidInput);
+        direction=(direction+4-4*int(view)+32)%32;
+        const auto group=originalFigureImageGroup(code,archives);if(!group||group->second->animationSpriteCount<1||group->second->animationDirections!=32)
+            return refuse(OriginalFigureImageStatus::MissingGroup);
+        frame=std::min(frame,unsigned(group->second->animationSpriteCount)-1);
+        const uint64_t word=uint64_t(group->first)+32*frame+unsigned(direction);
+        if((word>>14)!=(group->first>>14)||(word&0x3fff)>=archives.at(14)->sprites.size())return refuse(OriginalFigureImageStatus::InvalidInput);
+        out.code=code;out.base=group->first;out.frames=group->second->animationSpriteCount;out.directions=32;out.frame=frame;out.direction=unsigned(direction);
+        out.image=uint32_t(word);out.status=OriginalFigureImageStatus::Selected;return out;}
     case 76:{
         if(f.runtimeClass!=OriginalFigureClass::Pheasant)return refuse(OriginalFigureImageStatus::ExternalState);
         out.selectorVA=0x59f310;if(direction>=8)direction=f.previousDirection;
@@ -326,6 +339,17 @@ inline OriginalFigureImageSelection figureSecondaryImage(const OriginalFigureIma
     const auto refuse=[&](OriginalFigureImageStatus status){out.status=status;return out;};
     const OriginalFigureImageInputs* goods=&f;
     if(f.runtimeClass!=OriginalFigureClass::Figure)return out;
+    if(f.type==54){ //5E6739 copies primary counter before a second5CFE60(speed100).
+        //The secondary advances are supplied by the update,not reconstructed
+        //from a saved image. Its phase is carried as attackFrame.
+        auto secondary=f;secondary.frame=f.attackFrame;
+        if(!state||!state->figures.count(size_t(f.owner))||state->figures.at(size_t(f.owner)).type!=40)return refuse(OriginalFigureImageStatus::ExternalState);
+        const auto group=originalFigureImageGroup(0x1c6c,archives);
+        if(!group||group->second->animationDirections!=32||!group->second->animationSpriteCount||f.direction>=32||view>6||(view&1))return refuse(OriginalFigureImageStatus::MissingGroup);
+        const unsigned direction=(unsigned(f.direction)+36-4*view)%32,frame=std::min(unsigned(secondary.frame),unsigned(group->second->animationSpriteCount)-1);
+        const uint64_t word=uint64_t(group->first)+frame*32+direction;
+        if((word>>14)!=(group->first>>14)||(word&0x3fff)>=archives.at(14)->sprites.size())return refuse(OriginalFigureImageStatus::InvalidInput);
+        out.code=0x1c6c;out.image=uint32_t(word);out.status=OriginalFigureImageStatus::Selected;return out;}
     if(f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22)return out;
     out.selectorVA=0x4cb6b0;
     if(f.action==4)return out;

@@ -160,7 +160,7 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
             ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
         }
         // Simple and the four cited two-image branches0x46C636..0x46C6AD.
-        if(source==OriginalFigureRenderSource::Saved&&f.secondaryImage&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22){
+        if(source==OriginalFigureRenderSource::Saved&&f.secondaryImage&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=54){
             ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
         }
         std::vector<OriginalSceneOverlay> selected;
@@ -192,7 +192,8 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
             else if(scene.surface.roadDistance[f.cell]==100)baseline=34;
         }
         const uint32_t primary=source==OriginalFigureRenderSource::Forward?reconstructed.image:f.image;
-        bool good=add(primary,41+sub->first,baseline+sub->second,sequence);
+        const auto arc=f.type==54?originalFigureProjectileArc(f):std::optional<int>(0);
+        bool good=arc&&add(primary,41+sub->first,baseline+sub->second+*arc,sequence+(f.type==54));
         const auto cargo=source==OriginalFigureRenderSource::Forward?
             figureSecondaryImage(originalFigureImageInputs(f),archives,figures.savedView,&imageState):OriginalFigureImageSelection{};
         const uint32_t secondary=source==OriginalFigureRenderSource::Forward?cargo.image:f.secondaryImage;
@@ -200,8 +201,8 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
         if(secondary){const bool type20=f.type==20;
             const int extraX=source==OriginalFigureRenderSource::Forward?0:f.extraX;
             const int extraY=source==OriginalFigureRenderSource::Forward?0:f.extraY;
-            good=good&&add(secondary,39+sub->first+(type20?2:3)+extraX,
-                baseline-10+sub->second+(type20?10:11)+extraY,sequence+1);
+            good=good&&add(secondary,39+sub->first+(type20||f.type==54?2:3)+extraX,
+                baseline-10+sub->second+(f.type==54?20:type20?10:11)+extraY,sequence+(f.type!=54));
         }
         if(!good){++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;}
         scene.overlays.insert(scene.overlays.end(),selected.begin(),selected.end());++scene.figurePlaced;++scene.figureBoundTypes[f.type];

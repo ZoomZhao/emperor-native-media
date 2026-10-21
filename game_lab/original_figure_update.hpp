@@ -70,7 +70,7 @@ enum class OriginalFigureUpdateStatus {Computed,DispatchGate,UnsupportedType,Eff
     PheasantContext,PheasantThreat,PheasantRoute,PheasantDestination,PheasantBuilding,OrderedPoolPass,
     MovementModel,RouteGeneration,RouteBoundary,MovementHeight,EarlierSlot,PoolRemoval,LaterSlotEffects,
     CellContext,CellCombat,SegmentService,NextDirection,InspectorFireContext,InspectorFireSearch,WorkerEmployment,SupplierArrival,SupplierSearch,
-    GoodsSearch,GoodsArrival};
+    GoodsSearch,GoodsArrival,Projectile,CrtRandomRequired};
 inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus status){
     switch(status){case OriginalFigureUpdateStatus::Computed:return "computed";
     case OriginalFigureUpdateStatus::DispatchGate:return "dispatch_gate";
@@ -97,6 +97,8 @@ inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus sta
     case OriginalFigureUpdateStatus::SupplierSearch:return "supplier_crop_search_4c2c70_4bff80_4c0760";
     case OriginalFigureUpdateStatus::GoodsSearch:return "goods_expired_supplier_search_4cbec0_4e2960";
     case OriginalFigureUpdateStatus::GoodsArrival:return "goods_delivery_arrival_virtual_4cd8f0";
+    case OriginalFigureUpdateStatus::Projectile:return "projectile_allocation_or_collision_5ea510_5e6200";
+    case OriginalFigureUpdateStatus::CrtRandomRequired:return "crt_rand_state_required_wall_clock_seeded_not_in_sav";
     case OriginalFigureUpdateStatus::PheasantContext:return "pheasant_complete_saved_context";
     case OriginalFigureUpdateStatus::PheasantThreat:return "pheasant_threat_qualification_4e5340";
     case OriginalFigureUpdateStatus::PheasantRoute:return "pheasant_route_4e47a0_and_arrival";
@@ -121,6 +123,12 @@ struct OriginalFigureFirstUpdate {
     std::optional<int32_t> watchMaximum;
     std::optional<std::array<int32_t,2>> inspectorMaximum;
     std::optional<OriginalFigureGoodsServices> goods;
+    std::optional<std::vector<size_t>> freeSlots;
+    std::optional<uint32_t> crtRandom;
+    uint64_t crtRandomCalls=0;
+    std::optional<int32_t> roadblockGate;
+    std::set<size_t> allocatedSlots;
+    size_t highestLiveSlot=0;
 };
 struct OriginalFigurePassability {
     OriginalFigureSpawnServices spawn;
@@ -261,13 +269,23 @@ struct OriginalFigureUpdateContext {
     std::vector<uint8_t> elevation;
     std::vector<uint16_t> buildingOwners;
     std::vector<uint8_t> feature;
+    std::vector<uint8_t> randomByte; //F1E780,saved public terrain input;4E6690/4E6D80.
     std::optional<unsigned> activeSide;
     std::optional<OriginalFigureGoodsServices> goods;
     std::map<uint16_t,int32_t> buildingEmployment;
     std::optional<int32_t> festivalVenue;
     std::optional<std::array<int16_t,3>> entertainmentAvailable;
+    std::optional<bool> waterOverride; //48E110(C701D8),restored Festival4 predicate;absent refuses Well basic service.
     std::vector<size_t> freeSlots; //postload4E9FE0 descending inactive slots; removal appends.
     size_t highestLiveSlot=0;
+    std::optional<uint32_t> crtRandom; //Required on consumption:wall-clock seeded,not in SAV;state at timeline entry,not startup srand argument.
+    uint64_t crtRandomCalls=0; //Cumulative successfully ported7665FD calls,including discarded sound variation.
+    std::optional<std::array<bool,51>> animationFlags; //current418AA0 flags,for5CFE60(speed100).
+    std::set<size_t> allocatedSlots;
+    // Inputs at each primary image write. A later Hunter can turn an earlier
+    // prey without selecting its image again (4D31DE..4D321C).
+    std::map<size_t,OriginalFigureImageInputs> primaryImageInputs;
+    std::optional<int32_t> roadblockGate; //1032664;4E7F6E clears after route following.
 };
 //42D790 clears the house vector/date through5178A0->444270 (year-10000),
 // then registers loaded live houses. SAV19 tail533E71->517CC0->517DE0
@@ -286,6 +304,13 @@ inline uint16_t originalFigureRandomNext(OriginalFigureSavedServices& state){
             return (value>>1)|((((value>>4)^value)&1u)<<30);};
         state.randomFirst=advance(state.randomFirst);state.randomSecond=advance(state.randomSecond);}
     return uint16_t(state.randomFirst&0x7fff);
+}
+//7665FD uses the calling thread's holdrand;7665F0 seeds it from time().
+//An absent input refuses at the call;zero is a valid explicitly supplied state.
+inline std::optional<uint16_t> originalFigureCrtRandomNext(OriginalFigureUpdateContext& context){
+    if(!context.crtRandom)return std::nullopt;
+    *context.crtRandom=*context.crtRandom*214013u+2531011u;++context.crtRandomCalls;
+    return uint16_t((*context.crtRandom>>16)&0x7fff);
 }
 struct OriginalFigureRouteDirection {OriginalFigure state;OriginalFigureSavedServices services;};
 //0x4E8B40, including0x4E8A30's reciprocal owner release. No route is generated.
@@ -394,6 +419,24 @@ inline uint8_t originalFigureDirectionTo(int x,int y,int targetX,int targetY){
     if(targetX>x)return targetY<y?1:targetY>y?3:2;
     return targetY<y?7:targetY>y?5:6;
 }
+//5B2910/408BA0: eight sectors with axis threshold400 percent.
+inline uint8_t originalFigureAttackDirection(int x,int y,int tx,int ty){
+    const int dx=std::abs(tx-x),dy=std::abs(ty-y);
+    if(!dx)return ty>y?4:0;if(!dy)return tx>x?2:6;
+    if(dx>=4*dy)return tx>x?2:6;if(dy>=4*dx)return ty>y?4:0;
+    return tx>x?(ty>y?3:1):(ty>y?5:7);
+}
+//5B2710 doubles5B2790's sixteen sectors; ratio uses408BA0 integer percent.
+inline uint8_t originalFigureProjectileDirection(int x,int y,int tx,int ty){
+    const int dx=std::abs(tx-x),dy=std::abs(ty-y);if(!dx)return ty>y?16:0;if(!dy)return tx>x?8:24;
+    const int ratio=dx==dy?100:dx>dy?100*dx/dy:-100*dy/dx;
+    unsigned sector=0;
+    if(tx>x&&ty<y)sector=ratio>=500?4:ratio>=200?3:ratio>-200?2:ratio>-500?1:0;
+    else if(tx>x)sector=ratio>=500?4:ratio>=200?5:ratio>-200?6:ratio>-500?7:8;
+    else if(ty>y)sector=ratio>=500?12:ratio>=200?11:ratio>-200?10:ratio>-500?9:8;
+    else sector=ratio>=500?12:ratio>=200?13:ratio>-200?14:ratio>-500?15:0;
+    return uint8_t(2*sector);
+}
 // 5AF1C0 distances stop when the destination is dequeued. 5B18B0 then
 // walks that field backwards, preferring the direction toward the source on
 // equal distance, excluding the just-used reverse, and reversing the output.
@@ -469,7 +512,12 @@ inline bool originalFigureValidateNextDirection(OriginalFigure& f,const Original
         (f.movementMode!=1&&f.movementMode!=3&&f.movementMode!=5&&f.movementMode!=7&&f.movementMode!=17&&f.movementMode!=18))return false;
     if(t&0x100){f.direction=9;return true;}
     if(mask&0x800)return true; //4E8D7F jumps to final terrain100 test
-    if(t&(0x40|0x400))return !(t&8); // ferry/roadblock branch also reads live1032664
+    if(t&(0x40|0x400)){
+        if(!(t&8))return true;
+        if(!context.roadblockGate)return false;
+        if(!*context.roadblockGate)return true; //4E907C,zero bypasses owner gates.
+        return false;
+    }
     if(t&0xc000){f.direction=9;return true;}
     if(t&8){
         if(t&0x10000000){f.direction=9;return true;}
@@ -598,10 +646,10 @@ inline OriginalFigureMovement originalFigureFollowRouteInContext(const OriginalF
             if(!context)return {OriginalFigureUpdateStatus::RouteBoundary,{}};
             //0x4EACD0: table service category-1 means no service-grid write.
             // A present owner needs the cited zero-return virtual chain below.
-            if(f.type==39){if(!originalFigureEntertainmentSegment(f,*context))return {OriginalFigureUpdateStatus::SegmentService,{}};}
+            if(f.type==39||f.type==28||f.type==23||f.type==36){if(!originalFigureEntertainmentSegment(f,*context))return {OriginalFigureUpdateStatus::SegmentService,{}};}
             else if(f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=26&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=76)
                 return {OriginalFigureUpdateStatus::SegmentService,{}};
-            if(f.owner&&f.type!=39&&f.type!=26){if(!context->buildings)return {OriginalFigureUpdateStatus::SegmentService,{}};
+            if(f.owner&&f.type!=39&&f.type!=28&&f.type!=23&&f.type!=36&&f.type!=26){if(!context->buildings)return {OriginalFigureUpdateStatus::SegmentService,{}};
                 const auto owner=context->buildings->find(size_t(f.owner));
                 // Individually cited ordinary owner vtables:+28=429DF0,
                 // +2C=42A210 returns0;4EACD0 still caps signed+1C at300.
@@ -639,7 +687,8 @@ inline OriginalFigureMovement originalFigureFollowRoute(const OriginalFigure& sa
     OriginalFigureUpdateContext* context=nullptr){
     if(!context)return originalFigureFollowRouteInContext(saved,speed,terrainFlags);
     auto local=*context;auto result=originalFigureFollowRouteInContext(saved,speed,terrainFlags,&local);
-    if(result.state)*context=std::move(local);return result;
+    if(result.state){if(saved.route>0||result.state->direction<8)local.roadblockGate=0;
+        *context=std::move(local);}return result;
 }
 //0x4EACD0 ->429DF0 ->429E10 ->48B7F0 or5B3ED0.
 //44E550's sixteen angular sectors, in44E770 first-match order. Inclusive
@@ -698,14 +747,14 @@ inline bool originalFigureMarketHouse(OriginalFigureBuildingLink& market,Origina
 // Full clipped radius1 box then radius2 box, preserving repeated callbacks,
 // wall shadow sectors and signed service cap (429E10/42A1A0).
 inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureUpdateContext& context){
-    const bool watch=f.type==29,herb=f.type==30,market=f.type==23,inspector=f.type==39,shrine=f.type==35;
-    if((f.type!=36&&!watch&&!herb&&!market&&!inspector&&!shrine)||!context.buildings||!context.services||context.services->serviceGrid.size()!=51984||
+    const bool watch=f.type==29,herb=f.type==30,market=f.type==23,inspector=f.type==39,shrine=f.type==35,well=f.type==28;
+    if((f.type!=36&&!watch&&!herb&&!market&&!inspector&&!shrine&&!well)||!context.buildings||!context.services||context.services->serviceGrid.size()!=51984||
         context.buildingOwners.size()!=51984||context.feature.size()!=51984||context.terrain.size()!=51984||
-        !context.cropBase||!context.activeSide||(!watch&&!herb&&!market&&!inspector&&!shrine&&!context.festivalVenue))return false;
+        !context.cropBase||!context.activeSide||(!watch&&!herb&&!market&&!inspector&&!shrine&&!well&&!context.festivalVenue))return false;
     auto owner=context.buildings->find(size_t(f.owner));if(owner==context.buildings->end()||
         (watch?(owner->second.type!=0x7f||!context.watchtowerReduction||!context.watchMaximum):herb?owner->second.type!=0xcf:market?owner->second.type!=0x3b:
             inspector?(owner->second.type!=0x7c||!context.inspectorReduction||!context.inspectorMaximum):
-            shrine?(owner->second.type!=0xd6||!owner->second.shrineReligion||!owner->second.shrineElite||*owner->second.shrineReligion>=4):
+             shrine?(owner->second.type!=0xd6||!owner->second.shrineReligion||!owner->second.shrineElite||*owner->second.shrineReligion>=4):well?owner->second.type!=0x48:
             (owner->second.type!=0x47||!owner->second.entertainment)))return false;
     int count=0;std::array<int,16> shadows{};
     for(int radius=1;radius<=2;++radius)for(int y=std::max(0,int(f.y)-radius);y<=std::min(int(*context.activeSide)-1,int(f.y)+radius);++y)
@@ -742,6 +791,9 @@ inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureU
                     (*owner->second.shrineElite&&h.type<11))continue;
                 if(!h.religion)return false;h.religion->at(*owner->second.shrineReligion)=40;++count;continue;}
             if((h.alive!=1&&h.alive!=3)||h.type<2||h.type>=18||!h.accepting||h.residents<1)continue;
+            if(well){if(!h.waterService)return false;unsigned index=1;
+                if(owner->second.houseModel<=0&&!owner->second.upgrade){if(!context.waterOverride)return false;index=*context.waterOverride?1:0;}
+                h.waterService->at(index)=96;++count;continue;}
             if(herb){if(!h.herbalist)return false;h.herbalist=96;++count;continue;}
             if(watch){const auto floor=context.houseWatchFloors.find(h.houseModel);if(floor==context.houseWatchFloors.end())return false;
                 context.watchMaximum=std::max(*context.watchMaximum,h.watchRisk);
@@ -762,7 +814,7 @@ inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureU
         if(maximum>f.watchCoverage)f.watchCoverage=uint8_t(maximum);else f.watchCoverage=f.watchCoverage>10?uint8_t(f.watchCoverage-10):0;}
     if(f.cell>=51984)return false;
     if(watch)context.services->serviceGrid[f.cell]|=7u<<6;
-    else if(herb)context.services->serviceGrid[f.cell]|=7u;
+    else if(herb||well)context.services->serviceGrid[f.cell]|=7u;
     else if(inspector)context.services->serviceGrid[f.cell]|=7u<<3;
     else if(market)context.services->serviceGrid[f.cell]|=7u<<21;
     else if(shrine)context.services->serviceGrid[f.cell]|=7u<<15;
@@ -774,7 +826,7 @@ inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureU
 inline std::optional<std::array<bool,8>> originalFigureRoamRoads(const OriginalFigure& f,const OriginalFigureUpdateContext& context){
     if(context.terrain.size()!=51984||!context.services||context.services->serviceGrid.size()!=51984)return std::nullopt;
     std::array<bool,8> roads{};constexpr int delta[]={-228,-227,1,229,228,227,-1,-229};unsigned count=0,min=7;
-    const unsigned shift=f.type==29?6:f.type==30?0:f.type==39?3:f.type==23?21:f.type==35?15:9; //84E78C:2,0,1,7,5,3.
+    const unsigned shift=f.type==29?6:(f.type==28||f.type==30)?0:f.type==39?3:f.type==23?21:f.type==35?15:9; //84E78C:2,0,1,7,5,3.
     for(unsigned d=0;d<8;d+=2){const int64_t cell=int64_t(f.cell)+delta[d];if(cell<0||cell>=51984)return std::nullopt;
         const uint32_t t=context.terrain[size_t(cell)];
         roads[d]=(t&0x40)!=0;
@@ -790,10 +842,63 @@ inline std::optional<std::array<bool,8>> originalFigureRoamRoads(const OriginalF
         const auto cell=size_t(int64_t(f.cell)+delta[d]);if(((context.services->serviceGrid[cell]>>shift)&7)>min)roads[d]=false;}
     return roads;
 }
+//4E71D0 service-category branch: raw cardinal road bits, minimum grid
+//score, original nonzero-remainder tie replacement, then one turn-sign draw.
+inline bool originalFigureRoamTargetTurn(OriginalFigure& f,OriginalFigureUpdateContext& context){
+    if(!context.services||context.services->serviceGrid.size()!=51984||context.terrain.size()!=51984)return false;
+    const unsigned shift=f.type==29?6:(f.type==28||f.type==30)?0:f.type==39?3:f.type==23?21:f.type==35?15:9;
+    if(f.type!=28&&f.type!=29&&f.type!=30&&f.type!=39&&f.type!=23&&f.type!=35&&f.type!=36)return false;
+    constexpr int delta[]={-228,1,228,-1};unsigned minimum=8,ties=1;f.direction=0;
+    for(unsigned k=0;k<4;++k){const int64_t cell=int64_t(f.cell)+delta[k];if(cell<0||cell>=51984)return false;
+        if(!(context.terrain[size_t(cell)]&0x40))continue;
+        const unsigned score=(context.services->serviceGrid[size_t(cell)]>>shift)&7;
+        if(score<minimum){minimum=score;ties=2;f.direction=uint8_t(2*k);}
+        else if(score==minimum){const unsigned random=originalFigureRandomNext(*context.services)&127; //010C713C,not the15-bit010C7138.
+            ++ties;
+            if(random%ties)f.direction=uint8_t(2*k);}}
+    f.roamTurn=originalFigureRandomNext(*context.services)&1?254:2;f.roamCountdown=5;return true;
+}
+//4E6690 uses terrain440 before the later4B9590 category filter. Only
+//individually checked +E8=416A70 owners are admitted;unknown gates refuse.
+inline std::optional<int> originalFigureInitialRoamDirection(OriginalFigure& f,OriginalFigureUpdateContext& context){
+    if(context.terrain.size()!=51984||!context.buildings||context.buildingOwners.size()!=51984)return std::nullopt;
+    std::array<bool,8> roads{};constexpr int delta[]={-228,1,228,-1};unsigned count=0;
+    for(unsigned k=0;k<4;++k){const int64_t cell=int64_t(f.cell)+delta[k];if(cell<0||cell>=51984)return std::nullopt;
+        const uint32_t terrain=context.terrain[size_t(cell)];bool open=(terrain&0x440)!=0;
+        if(terrain&8){const auto b=context.buildings->find(context.buildingOwners[size_t(cell)]);if(b==context.buildings->end())return std::nullopt;
+            if(!originalFigureBuildingPassThroughFalse(b->second.type)&&b->second.type!=0x3b)return std::nullopt;
+            if(b->second.type==0x7e)open=false;}
+        roads[2*k]=open;count+=open;}
+    if(count==1){for(unsigned d=0;d<8;d+=2)if(roads[d]){f.direction=uint8_t(d);return int(d);}}
+    int reverse=(f.previousDirection+4)&7;
+    if(count==2){for(unsigned attempt=0;attempt<5;++attempt){if(f.direction<8&&roads[f.direction]&&f.direction!=reverse)return int(f.direction);
+            const int d=int(int8_t(f.direction))+int(int8_t(f.roamTurn));f.direction=uint8_t(d>6?0:d<0?6:d);}
+        return -1;}
+    if(context.randomByte.size()!=51984||f.cell>=51984)return std::nullopt;
+    f.direction=uint8_t((context.randomByte[f.cell]+f.roamTurns)&6);
+    if(roads[f.direction]&&f.direction!=reverse)return int(f.direction);
+    f.roamCountdown=uint8_t(f.roamCountdown-1);
+    if(int8_t(f.roamCountdown)<=0){if(!originalFigureRoamTargetTurn(f,context))return std::nullopt;reverse=-1;}
+    for(unsigned attempt=0;attempt<5;++attempt){if(roads[f.direction]&&f.direction!=reverse)return int(f.direction);
+        const int d=int(f.direction)+int(int8_t(f.roamTurn));f.direction=uint8_t(d>6?0:d<0?6:d);}
+    return -1;
+}
+//4E6A70: four attempts, owner+38 mutation, clipped home-road target.
+//Market3B/3C uses544910 and remains outside this ordinary-owner branch.
+inline bool originalFigureBeginRoam(OriginalFigure& f,OriginalFigureUpdateContext& context){
+    if(!context.buildings||!context.activeSide||!*context.activeSide)return false;
+    auto b=context.buildings->find(size_t(f.owner));if(b==context.buildings->end()||b->second.type==0x3b||b->second.type==0x3c)return false;
+    f.progress=20;f.roamState=0;f.roamCountdown=255;f.roamTurn=2;f.roamOriginX=f.x;f.roamOriginY=f.y;
+    for(unsigned attempt=0;attempt<4;++attempt){const auto d=originalFigureInitialRoamDirection(f,context);if(!d)return false;
+        if(*d<0)continue;b->second.roamDirection=*d>6?0:uint8_t(*d);
+        f.destinationX=int16_t(std::clamp(int(b->second.roadX),0,int(*context.activeSide)-1));
+        f.destinationY=int16_t(std::clamp(int(b->second.roadY),0,int(*context.activeSide)-1));break;}
+    f.roamState=1;return true;
+}
 //0x4E6B70 ->0x4E6D80, including the bounded entertainment segment.
 inline OriginalFigureMovement originalFigureRoam(const OriginalFigure& saved,unsigned speed,uint32_t terrainFlags,
     OriginalFigureUpdateContext& context){
-    if(!saved.roamState||saved.direction>7||saved.progress>19)return {OriginalFigureUpdateStatus::RouteBoundary,{}};
+    if(!saved.roamState||saved.direction>7||saved.progress>20)return {OriginalFigureUpdateStatus::RouteBoundary,{}};
     auto local=context;auto f=saved;const auto schedule=originalFigureMovementSteps(speed,f.routePhase);
     f.roamSteps=originalFigureWord(int(f.roamSteps)+int(speed));
     for(unsigned n=0;n<schedule.first;++n){if(f.progress>=19){
@@ -803,12 +908,18 @@ inline OriginalFigureMovement originalFigureRoam(const OriginalFigure& saved,uns
             const unsigned count=unsigned(std::count(roads->begin(),roads->end(),true));
             if(!count){f.direction=9;f.roamSteps=f.roamLimit;f.routePhase=schedule.second;context=std::move(local);return {OriginalFigureUpdateStatus::Computed,f};}
             if(count==1){for(unsigned d=0;d<8;d+=2)if((*roads)[d])f.direction=uint8_t(d);}
-            else if(count==2&&f.roamCountdown!=255){if(!f.roamTurn)f.roamTurn=2;
-                const unsigned reverse=(f.previousDirection+4u)&7;unsigned attempt=0;
+            else if(count==2){int reverse=(f.previousDirection+4u)&7;
+                if(f.roamCountdown==255){if(!originalFigureRoamTargetTurn(f,local))return {OriginalFigureUpdateStatus::NextDirection,{}};reverse=-1;}
+                if(!f.roamTurn)f.roamTurn=2;unsigned attempt=0;
                 for(;attempt<4;++attempt){if((*roads)[f.direction]&&f.direction!=reverse)break;
                     int d=int(f.direction)+int(int8_t(f.roamTurn));if(d>6)d=0;if(d<0)d=6;f.direction=uint8_t(d);}
                 if(attempt==4)return {OriginalFigureUpdateStatus::NextDirection,{}};
-            }else return {OriginalFigureUpdateStatus::NextDirection,{}}; //4E71D0/RNG turn selection
+            }else {if(local.randomByte.size()!=51984)return {OriginalFigureUpdateStatus::NextDirection,{}};
+                int reverse=(f.previousDirection+4u)&7;f.direction=uint8_t((local.randomByte[f.cell]+f.roamTurns)&6);
+                if(!(*roads)[f.direction]||f.direction==reverse){f.roamCountdown=uint8_t(f.roamCountdown-1);
+                    if(int8_t(f.roamCountdown)<=0){if(!originalFigureRoamTargetTurn(f,local))return {OriginalFigureUpdateStatus::NextDirection,{}};reverse=-1;}
+                    for(unsigned attempt=0;attempt<4;++attempt){if((*roads)[f.direction]&&f.direction!=reverse)break;
+                        const int d=int(f.direction)+int(int8_t(f.roamTurn));f.direction=uint8_t(d>6?0:d<0?6:d);}}}
             f.routeCursor=originalFigureWord(int(f.routeCursor)+1);f.previousDirection=f.direction;f.progress=0;
         }else ++f.progress;
         //0x4E6D80 moves subcoordinates/height BEFORE the progress10 crossing.
@@ -886,11 +997,16 @@ inline void originalFigurePublishWrites(OriginalFigureFirstUpdate& out,const Ori
     const OriginalFigureUpdateContext& before,OriginalFigureUpdateContext& after){
     after.figures.at(f.slot)=f;
     for(const auto& entry:after.figures){const auto& prior=before.figures.at(entry.first);
-        if(entry.first!=f.slot&&(entry.second.next!=prior.next||entry.second.secondaryImage!=prior.secondaryImage||entry.second.route!=prior.route))out.linkedWrites.emplace(entry);}
+        if(entry.first!=f.slot&&(entry.second.next!=prior.next||entry.second.secondaryImage!=prior.secondaryImage||entry.second.route!=prior.route||
+            entry.second.alive!=prior.alive||entry.second.action!=prior.action||entry.second.direction!=prior.direction||entry.second.counter!=prior.counter||
+            entry.second.previousAction!=prior.previousAction))out.linkedWrites.emplace(entry);}
     if(before.cellHeads!=after.cellHeads)out.cellHeads=after.cellHeads;
     out.watchMaximum=after.watchMaximum;
     out.inspectorMaximum=after.inspectorMaximum;
     out.goods=after.goods;
+    out.freeSlots=after.freeSlots;out.crtRandom=after.crtRandom;out.crtRandomCalls=after.crtRandomCalls;
+    out.allocatedSlots=after.allocatedSlots;out.highestLiveSlot=after.highestLiveSlot;
+    out.roadblockGate=after.roadblockGate;
     out.services=after.services;out.buildings=after.buildings;out.state=f;out.status=OriginalFigureUpdateStatus::Computed;
 }
 inline bool originalFigureBulkGoods(const OriginalFigure& f){const unsigned r=f.subtype?f.subtype:f.resource;return r==10||r==18||r==20;}
@@ -1058,6 +1174,9 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
             const auto selected=originalFigureGoodsSupplier(f,local);if(!selected)return out;
             if(*selected){f.action=local.buildings->at(*selected).type==0x35?8:7;f.stationary=0;}
             else f.stationary=1;f.counter=0;}
+    }else if(f.type==19&&(f.action==10||f.action==11)){
+        f.counter=originalFigureWord(int(f.counter)+1);f.frame=0;
+        if(f.counter>=(f.action==10?11:6)){out.status=OriginalFigureUpdateStatus::GoodsArrival;return out;}
     }else if(f.type==21&&f.action==12){
         out.status=OriginalFigureUpdateStatus::GoodsArrival;
         if(!local.buildings)return out;auto destination=local.buildings->find(size_t(f.delivery));
@@ -1081,6 +1200,12 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
         const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
         if(f.type==21&&f.action==11&&f.direction==8)f.action=12; //4CDDF4: withdrawal is a later action12 call.
+        else if(f.type==19&&(f.action==7||f.action==8)&&f.direction==8){out.status=OriginalFigureUpdateStatus::GoodsArrival;
+            const auto destination=local.buildings->find(size_t(f.delivery));if(destination==local.buildings->end()||destination->second.alive!=1)return out;
+            //4CC03A->418D60: Mill35 enters11;5D36E0:Warehouse36 enters10.
+            // No withdrawal or accounting happens on this arrival call.
+            if(destination->second.type==0x35)f.action=11;
+            else if(destination->second.type==0x36)f.action=10;else return out;}
         else if(f.direction>=8){out.status=OriginalFigureUpdateStatus::GoodsArrival;return out;}
     }else return out;
     if(f.type==21){cargo=figureSecondaryImage(originalFigureImageInputs(f),archives,context->view);
@@ -1136,6 +1261,34 @@ inline OriginalFigureFirstUpdate originalWorkerFirstUpdate(const OriginalFigure&
     if(!originalFigureWriteWalkingImage(f,f.subtype?0x4c13:0x4c15,archives,context->view,false,false)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     originalFigurePublishWrites(out,f,*context,local);return out;
 }
+//5EA510->4EA050->4E1420->4E23A0 pops the oldest queued inactive slot,
+//not the numerically smallest slot.4C9160 advances saved game RNG once;
+//4EA120 advances the separate CRT RNG once even when sound is disabled.
+inline OriginalFigureUpdateStatus originalFigureHunterProjectile(const OriginalFigure& hunter,int x,int y,OriginalFigureUpdateContext& context){
+    if(!context.services||!context.services->allocationSerial||!context.cropBase||context.cellHeads.size()!=51984)return OriginalFigureUpdateStatus::Projectile;
+    auto& queue=context.freeSlots;size_t slot=0;
+    for(unsigned attempt=0;attempt<5&&!queue.empty();++attempt){const size_t candidate=queue.front();queue.erase(queue.begin());
+        const auto found=context.figures.find(candidate);if(candidate&&found!=context.figures.end()&&!found->second.alive){slot=candidate;break;}}
+    if(!slot)return OriginalFigureUpdateStatus::Computed; //allocation failure:caller still changes Hunter/prey;no CRT call.
+    if(!context.crtRandom)return OriginalFigureUpdateStatus::CrtRandomRequired;
+    auto p=OriginalFigure{};p.slot=slot;p.runtimeClass=OriginalFigureClass::Figure;p.type=54;p.alive=1;p.progress=20;
+    p.x=p.priorX=p.homeX=hunter.x;p.y=p.priorY=p.homeY=hunter.y;p.destinationX=int16_t(x);p.destinationY=int16_t(y);
+    p.cell=*context.cropBase+p.x+228*p.y;if(p.cell>=51984)return OriginalFigureUpdateStatus::Projectile;p.subX=originalFigureWord(20*p.x);p.subY=originalFigureWord(20*p.y);
+    p.allocationSerial=uint16_t((*context.services->allocationSerial)++);
+    p.allocationPhase=p.allocationPhaseCopy=uint8_t(originalFigureRandomNext(*context.services)&3);
+    if(!originalFigureCrtRandomNext(context))return OriginalFigureUpdateStatus::CrtRandomRequired;
+    p.raise=10;p.owner=int16_t(hunter.slot);p.freeMovement=1;p.height=uint8_t(hunter.height+18);p.projectile=true;
+    p.projectileDistance=int16_t(std::max(std::abs(x-int(hunter.x)),std::abs(y-int(hunter.y))));
+    p.projectileStartHeight=-int16_t(hunter.height);p.projectileEndHeight=hunter.variant; //virtual+14=4C9970,-height.
+    originalFigureFreeTarget(p);p.direction=originalFigureProjectileDirection(hunter.x,hunter.y,x,y);
+    p.next=0;size_t tail=context.cellHeads[p.cell];std::set<size_t> seen;
+    if(!tail)context.cellHeads[p.cell]=uint16_t(slot);
+    else {for(;;){const auto found=context.figures.find(tail);
+            if(found==context.figures.end()||!seen.insert(tail).second||found->second.cell!=p.cell)return OriginalFigureUpdateStatus::Projectile;
+            if(!found->second.next)break;tail=found->second.next;}
+        context.figures.at(tail).next=uint16_t(slot);}
+    context.figures.at(slot)=p;context.allocatedSlots.insert(slot);context.highestLiveSlot=std::max(context.highestLiveSlot,slot);return OriginalFigureUpdateStatus::Computed;
+}
 inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=0x4d2f10;out.status=OriginalFigureUpdateStatus::CombatRouteAndTarget;
@@ -1170,7 +1323,19 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
             const auto& t=target->second;
             if(t.alive!=1||t.action==4||t.action==10||t.type<75||t.type>77)return out;
             const int distance=std::max(std::abs(int(f.x)-t.x),std::abs(int(f.y)-t.y));
-            if(!t.hidden&&distance<=model->second[6]){f.counter=originalFigureWord(int(f.counter)-1);if(f.counter<=0)return out;}
+            if(!t.hidden&&distance<=model->second[6]){f.counter=originalFigureWord(int(f.counter)-1);if(f.counter<=0){
+                    out.status=OriginalFigureUpdateStatus::Projectile;
+                    if(model->second[7]==INT32_MIN)return out;
+                    const auto allocation=originalFigureHunterProjectile(f,t.x,t.y,local);
+                    if(allocation!=OriginalFigureUpdateStatus::Computed){out.status=allocation;return out;}
+                    f.direction=originalFigureAttackDirection(f.x,f.y,t.x,t.y);f.action=13;f.counter=originalFigureWord(model->second[7]);f.frame=0;
+                    auto& prey=local.figures.at(size_t(f.target));prey.previousAction=prey.action;prey.action=18;
+                    prey.direction=originalFigureAttackDirection(prey.x,prey.y,f.x,f.y);prey.counter=100;
+                    if(f.route>0){if(!local.services||f.route>=1000)return out;
+                        if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;} //4D31DC->4D3519.
+                    f.next=local.figures.at(f.slot).next;
+                    if(!originalFigureWriteWalkingImage(f,0x4ec0,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+                    originalFigurePublishWrites(out,f,*context,local);return out;}}
             if(distance<=2)return out;code=0x4ebf;
         }else code=0x4ec2;
         const auto speed=context->modelSpeeds.find(40);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
@@ -1183,6 +1348,35 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
         if(!originalFigureWriteWalkingImage(f,code,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     }else return out;
     originalFigurePublishWrites(out,f,*context,local);return out;
+}
+//5E6200 type54 ordinary shooter branch. Until impact's combat/building
+//callbacks are ported,arrival is refused. In-flight building cells also refuse.
+inline OriginalFigureFirstUpdate originalProjectileFirstUpdate(const OriginalFigure& saved,
+    const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context){
+    OriginalFigureFirstUpdate out;out.updaterVA=0x5e6200;out.status=OriginalFigureUpdateStatus::Projectile;
+    if(!context||!context->animationFlags||!context->models.count(40)||!context->figures.count(saved.slot)||saved.type!=54||saved.owner<=0||
+        !context->services||context->buildingOwners.size()!=51984)return out;
+    auto local=*context;auto f=saved;const auto shooter=local.figures.find(size_t(f.owner));
+    if(shooter==local.figures.end()||shooter->second.type!=40||shooter->second.alive==2||f.home<0)return out;
+    const int range=local.models.at(40)[6];if(range==INT32_MIN||range<1)return out;
+    f.home=originalFigureWord(int(f.home)+1);if(f.home>10*(3*range/4))return out;
+    f.freeMovement=1;bool arrived=false;
+    for(unsigned n=0;n<7;++n){const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;
+        if(moved->second){arrived=true;break;}}
+    if(arrived||f.cell>=51984||local.buildingOwners[f.cell])return out;
+    //5E670F default shooter40:32-direction code1C6D;secondary1C6C
+    //uses a copy of the already advanced primary counter.
+    const auto group=originalFigureImageGroup(0x1c6d,archives),secondary=originalFigureImageGroup(0x1c6c,archives);
+    if(!group||!secondary)return out;
+    const auto phase=originalFigureAdvanceFrame(f.frame,group->second->animationSpriteCount,group->second->animationSpeedId,100,*context->animationFlags);
+    if(!phase)return out;f.frame=phase->counter;
+    const auto secondaryPhase=originalFigureAdvanceFrame(f.frame,secondary->second->animationSpriteCount,secondary->second->animationSpeedId,100,*context->animationFlags);
+    if(!secondaryPhase)return out;f.attackFrame=secondaryPhase->counter;
+    auto images=originalFigureUpdateImageState(local);auto input=originalFigureImageInputs(f);
+    const auto primary=figureImage(input,archives,0,context->view,std::nullopt,&images);
+    const auto cargo=figureSecondaryImage(input,archives,context->view,&images);
+    if(primary.status!=OriginalFigureImageStatus::Selected||cargo.status!=OriginalFigureImageStatus::Selected)return out;
+    f.image=primary.image;f.secondaryImage=cargo.image;originalFigurePublishWrites(out,f,*context,local);return out;
 }
 //4C0760 reads four half-open month intervals from7AE22C/7AE19C.
 //4C1060 maps C3..C7 to rows0..4;4C18C0 maps them to goods7/5/6/3/1.
@@ -1280,7 +1474,9 @@ inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigu
             f.action=7;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;f.roamSteps=0;originalFigureFreeTarget(f);}
     }else if(f.action==7){f.freeMovement=f.hidden=1;if(type==0xd3)f.movementMode=1;
         const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;f.hidden=1;
-        if(moved->second){if(type!=0xd3||!local.buildings)return out;
+        if(moved->second){if(!local.buildings)return out;
+            if(type!=0xd3){f.action=8;if(!originalFigureBeginRoam(f,local))return out;f.roamSteps=0;}
+            else {
             //48A520: entertainment47+264 accepts34;road+78 precedes
             //employment and service score. A positive venue remains refused.
             for(const auto& e:*local.buildings){const auto& b=e.second;
@@ -1289,7 +1485,7 @@ inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigu
                     //47+1B4=4F1540 returns100;48A950(type34) reads+5E.
                     //48A520 tries thresholds8,16;larger scores never qualify.
                     if(!b.entertainment||b.entertainment->at(1)<=16)return out;}}
-            f.alive=2;}
+            f.alive=2;}}
     }else if(type!=0xd3&&f.action==8){if(f.roamSteps>=f.roamLimit)return out;
         const auto movement=originalFigureRoam(f,6,terrainFlags,local);if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
     }else if(type!=0xd3&&f.action==9){const auto movement=originalFigureFollowRoute(f,6,terrainFlags,&local);
@@ -1329,7 +1525,10 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
             const auto moved=originalFigureRoam(f,unsigned(speed->second),terrainFlags,local);
             if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
         }else if(f.action==7){ //0x4E2E90 has no side effect for action7 at any count.
-            f.freeMovement=f.hidden=1;const auto moved=originalFigureFreeStep(f,local);if(!moved||moved->second)return out;f=moved->first;
+            f.freeMovement=f.hidden=1;const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;
+            if(moved->second){ //4CD3E0..408: reaching the owner's occupied cell removes;otherwise begin ordinary roam.
+                if(local.buildingOwners.size()!=51984||f.cell>=51984||local.buildingOwners[f.cell]==f.owner)return out;
+                f.action=8;if(!originalFigureBeginRoam(f,local))return out;}
         }else return out;
         if(!originalFigureWriteWalkingImage(f,0x4c09,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
         originalFigurePublishWrites(out,f,*context,local);return out;
@@ -1443,7 +1642,7 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=0x59f310;out.status=OriginalFigureUpdateStatus::PheasantPredicates;
     if(saved.type!=76)return out;
-    if(saved.action!=19&&saved.action!=30&&saved.action!=31&&saved.action!=32)return out;
+    if(saved.action!=18&&saved.action!=19&&saved.action!=30&&saved.action!=31&&saved.action!=32)return out;
     if((saved.action==19||saved.action==30)&&(!context||!context->services||!context->passability)){
         out.status=OriginalFigureUpdateStatus::PheasantDestination;return out;}
     if(!context||context->view>6||(context->view&1)||!context->figures.count(saved.slot)){
@@ -1553,6 +1752,10 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
                 if(services.routeOwners[f.route]==int(f.slot))services.routeOwners[f.route]=0;f.route=0;}
             f.action=32;updatedServices=std::move(services);
         }
+    }else if(saved.action==18){
+        //59F7EC[action-4]=3 ->59F445: enter31, then the already
+        //qualified false threat and false+E0=59E550 leave it there.
+        f.action=31;
     }else if(saved.action==31){
         f.idleCounter+=1; //0x4C9750 increments modulo32 before signed >=200.
         const int64_t idle=f.idleCounter>INT32_MAX?int64_t(f.idleCounter)-4294967296LL:f.idleCounter;
@@ -1609,6 +1812,7 @@ inline OriginalFigureFirstUpdate originalFigureFirstUpdate(const OriginalFigure&
     case 19:case 21:case 22:return originalGoodsFirstUpdate(saved,archives,context,terrainFlags);
     case 11:return originalWorkerFirstUpdate(saved,archives,context,terrainFlags);
     case 40:return originalHunterFirstUpdate(saved,archives,context,terrainFlags);
+    case 54:return originalProjectileFirstUpdate(saved,archives,context);
     case 26:return originalSupplierFirstUpdate(saved,archives,context,terrainFlags);
     case 13:return originalMigratingFirstUpdate(saved,archives,context,terrainFlags);
     case 30:case 34:case 35:case 36:return originalDelegatedFirstUpdate(saved,archives,context,terrainFlags);
@@ -1645,6 +1849,8 @@ struct OriginalFigureOrderedPass {
     bool accepted=false,complete=false;
     size_t computed=0,blocked=0,prefixComputed=0,firstBlockedSlot=0;
     std::map<size_t,OriginalFigureFirstUpdate> figures;
+    std::set<size_t> allocatedSlots; //diagnostic denominator,including a refused pass;no state is published.
+    uint64_t crtRandomCalls=0;
     std::optional<OriginalFigureUpdateContext> context;
 };
 //4E291B..32 removes a newly state2 worker before advancing the pool cursor.
@@ -1720,11 +1926,15 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                         if(result.cellHeads)context->cellHeads=*result.cellHeads;
                         if(result.services)context->services=result.services;
                         if(result.buildings)context->buildings=result.buildings;
-                         if(result.watchMaximum)context->watchMaximum=*result.watchMaximum;
-                         if(result.inspectorMaximum)context->inspectorMaximum=*result.inspectorMaximum;
-                         if(result.goods)context->goods=result.goods;
+                        if(result.watchMaximum)context->watchMaximum=*result.watchMaximum;
+                        if(result.inspectorMaximum)context->inspectorMaximum=*result.inspectorMaximum;
+                        if(result.goods)context->goods=result.goods;
+                        if(result.roadblockGate)context->roadblockGate=result.roadblockGate;
+                        if(result.freeSlots){context->freeSlots=*result.freeSlots;context->crtRandom=result.crtRandom;context->crtRandomCalls=result.crtRandomCalls;
+                            context->allocatedSlots=result.allocatedSlots;context->highestLiveSlot=result.highestLiveSlot;}
                         if(result.state->alive==2){if(!originalFigureRemoveArrivedWorker(*result.state,*context)){
-                                result.state.reset();result.services.reset();result.buildings.reset();result.goods.reset();result.cellHeads.reset();result.linkedWrites.clear();
+                                 result.state.reset();result.services.reset();result.buildings.reset();result.goods.reset();result.cellHeads.reset();result.linkedWrites.clear();
+                                 result.freeSlots.reset();result.crtRandom.reset();result.roadblockGate.reset();result.allocatedSlots.clear();result.highestLiveSlot=0;
                                 result.status=OriginalFigureUpdateStatus::PoolRemoval;*context=std::move(before);}
                             else {result.services=context->services;result.buildings=context->buildings;result.cellHeads=context->cellHeads;}}
                     }
@@ -1732,14 +1942,17 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                 }
             }
         }
-        if(result.state){context->figures.at(slot)=*result.state;++out.computed;}
+        if(result.state){context->figures.at(slot)=*result.state;
+            context->primaryImageInputs[slot]=originalFigureImageInputs(*result.state);++out.computed;}
         else {++out.blocked;if(!priorBlocked)out.firstBlockedSlot=slot;priorBlocked=true;}
         out.figures.emplace(slot,std::move(result));
     }
+    out.allocatedSlots=context->allocatedSlots;out.crtRandomCalls=context->crtRandomCalls;
     out.prefixComputed=out.computed;out.complete=!out.blocked;
     for(auto& entry:out.figures)if(entry.second.state){
         if(out.complete)entry.second.state=context->figures.at(entry.first);
         else {entry.second.state.reset();entry.second.services.reset();entry.second.buildings.reset();entry.second.goods.reset();entry.second.cellHeads.reset();entry.second.linkedWrites.clear();
+            entry.second.freeSlots.reset();entry.second.crtRandom.reset();entry.second.roadblockGate.reset();entry.second.allocatedSlots.clear();entry.second.highestLiveSlot=0;
             entry.second.status=OriginalFigureUpdateStatus::LaterSlotEffects;}}
     if(out.complete)out.context=std::move(context);
     else {out.blocked+=out.computed;out.computed=0;}
@@ -1764,13 +1977,15 @@ inline OriginalFigureOrderedPass originalFigurePostLoadContext(const OriginalFig
     if(buildings)context->buildings=*buildings;context->models=models;context->terrain=terrainFlags;context->cropBase=cropBase;
     context->movementMasks=movementMasks;
     if(additional){context->houseCapacities=additional->houseCapacities;context->buildingOwners=additional->buildingOwners;
-        context->feature=additional->feature;context->activeSide=additional->activeSide;context->festivalVenue=additional->festivalVenue;
+        context->feature=additional->feature;context->randomByte=additional->randomByte;context->activeSide=additional->activeSide;context->festivalVenue=additional->festivalVenue;
         context->entertainmentAvailable=additional->entertainmentAvailable;context->elevation=additional->elevation;
+        context->waterOverride=additional->waterOverride;
          context->houseWatchFloors=additional->houseWatchFloors;context->watchtowerReduction=additional->watchtowerReduction;
          context->houseMarketModels=additional->houseMarketModels;
          context->inspectorReduction=additional->inspectorReduction;context->inspectorMaximum=additional->inspectorMaximum;
           context->watchMaximum=additional->watchMaximum;context->crops=additional->crops;
-          context->goods=additional->goods;context->buildingEmployment=additional->buildingEmployment;}
+           context->goods=additional->goods;context->buildingEmployment=additional->buildingEmployment;}
+    if(additional){context->crtRandom=additional->crtRandom;context->animationFlags=additional->animationFlags;}
     if(context->services&&context->services->population&&context->buildings&&
         !originalFigurePopulationAfterLoad(*context->services,*context->buildings))return out;
     for(const auto& entry:callbacks.figures){auto& f=context->figures.at(entry.first);

@@ -94,10 +94,14 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     const auto spawn=originalFigureSpawnServices(payload,save.sizeOffset);const auto contextSeed=originalFigureUpdateContext(figures);
     const auto buildings=originalFigureBuildingLinks(payload,save.buildings);const auto hunters=originalFigureHunterLinks(payload,save.buildings);
     const auto masks=originalFigureRoadMovementMasks(save.terrain,save.buildings);
-    const auto festival=originalFigureSavedFestivalVenue(payload,save.terrainOffset,save.sizeOffset);
+    std::optional<bool> waterOverride;const auto festival=originalFigureSavedFestivalVenue(payload,save.terrainOffset,save.sizeOffset,&waterOverride);
     if(!models||!modelSpeeds||!capacities||!watchFloors||!watchReduction||!services||!population||!spawn||!contextSeed||!buildings||!hunters||!festival)return false;
     services->population=population;auto context=*contextSeed;context.houseCapacities=*capacities;context.buildingOwners=ground.owner;
     context.houseWatchFloors=*watchFloors;context.watchtowerReduction=watchReduction;context.elevation=ground.state.gBEBF3A;
+    context.randomByte=ground.state.randomByte;
+    //CRT holdrand is wall-clock seeded and absent from SAV;the default preview
+    //supplies no state and refuses if a requested update reaches rand().
+    context.waterOverride=waterOverride;
     context.watchMaximum=0; //explicit preview premise: fresh process scratchD95080.
     context.inspectorReduction=originalFigureWatchtowerReduction(buildingText,124);
     context.inspectorMaximum=std::array<int32_t,2>{0,0}; //explicit fresh-processD95084/88.
