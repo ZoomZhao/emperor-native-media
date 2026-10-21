@@ -288,3 +288,195 @@ Per slot the net effect is `next = previous + 1; value = next >= period ? 0 : ne
 **Serialization: not restored (no T-relative offset exists).** The SAV19 branch `0x5311DC..0x531873` contains 89 `push size; push address; mov ecx, esi; call 0x780533` read requests; none pushes any of `17592788/17592792/17592796/17592800/17592804/17592808/17592812/17592816/17592820/17592824`. The reads around the neighbouring RNG state are `0x10C714C` at call `0x531451`, `0x10C7148` at `0x53145F`, then `0x101D0AC` at `0x53146D` and `0x101D0B0` at `0x53147B`; a serialized clock array would have to appear between those, and it does not. Across the whole listing each of the ten addresses occurs exactly three times (load, increment store, reset store), all inside `0x529990`, so no other code path — including the versioned load at `0x5306BA` — references them either. A loaded save therefore cannot supply these values; a native city tick must give them explicit initial values (process start, or an authored re-entry point) and must not derive them from save bytes.
 
 Implementation: [original_city_clocks.hpp](../game_lab/original_city_clocks.hpp) holds the ten-slot aggregate, the address/period tables and `advanceOriginalCityClocks`; [original_city_clocks_tests.cpp](../game_lab/original_city_clocks_tests.cpp) checks every slot's exact wrap, order independence and a 1000-step table against an independent re-derivation; [scripts/city_clocks.py](../scripts/city_clocks.py) builds and runs it in release and `--mode undefined` (UBSan). Current result: `{"passed":true,"authored_checks":5008}` in all four combinations (with and without `EMPEROR_GAMEDATA_ROOT`), identical because this pass consumes no game data. This closes the row's behavioural question only; it moves no original-data metric and its clock values remain unobservable until a phase that reads them is ported.
+
+## Phase 调度器复验：48 个 case 的接线、计数语义与两个 blocker（2026-10-21）
+
+本节把 Table B2 从“每个阶段叫什么”推进到“每个阶段在 `0x4AC4E8` 跳表里落到哪个 case、第一件事调谁、在绝对地址上写了什么”，并给出计数推进、三段 precheck、两个 named blocker 的输入序列化与推荐移植顺序。复验使用同一份 listing：SHA-256 `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`，image base `0x400000`，code VA = file offset + `0x400000`。
+
+**本节不新增测量。** 状态列仍只由 [SAV.md](SAV.md)、[SAV_FIGURES.md](SAV_FIGURES.md) 与本文件的地址检索决定；判定口径是该地址在三份文档里的措辞，不是本节的重新测量。凡是文档里查不到语义的阶段，描述一律写 `unclear`。
+
+### Table D — phase 1..48：case 目标、首个被调、写全局、状态
+
+“首个被调”按 case 块内的实际调用顺序列出；`→` 表示前一个调用的返回值被搬到 ECX 再调下一个。“写全局”是**同一深度的下界**：只统计 case 块内联写、以及每个直接被调者函数体首层的绝对操作数写（含 `[4*reg+imm]` 的数组基址），不含 `[reg+disp]` 的对象内写，也不含第二层以下被调者。
+
+| phase | case 目标 | 首个被调函数 | 一句话描述 | 写全局（绝对地址，深度 1） | 状态 |
+|---:|---|---|---|---|---|
+| 1 | `0x4AC2FA` | `0x4F1560` | 城市会计；8 个直接调用后尾跳 `0x4AFFA0→0x44BAB0` | 自身无；下游见 D3.1 | not ported（named blocker） |
+| 2 | `0x4AC4C8` | — | 空 case，直接进推进块 | — | empty |
+| 3 | `0x4AC42D` | —（内联写） | 未明语义的全局置 1 | `0x13F8E78` | not ported |
+| 4 | `0x4AC304` | `0x4819F0` | 城市统计：`0x591AA0(0)` 返回 ≥0 时清两个计数 | `0x131262C`、`0x1312630` | not ported |
+| 5 | `0x4AC30E` | `0x54C6F0`（push 0） | unclear：`0x54` 子系统模式 0 链 | 无 | not ported |
+| 6 | `0x4AC31D` | `0x5177B0` → `0x5185C0` | 住房倒计时 / 劳动字节 | `0x131289C` | not ported |
+| 7 | `0x4AC32E` | `0x4AF350` | 路线重建 / 清 road cache | `0xC81B70`、`0xC81B74`、`0xC81B78`、`0x101C560`、`0x1312588`、`0x131258C` | partial |
+| 8 | `0x4AC338` | `0x4AEEB0` | 建筑池消费 | `0xC82FFC`、`0xC830C8` | partial |
+| 9 | `0x4AC342` | `0x40FC20` | 空 handler，函数体只有 RET | 无 | not ported（no-op） |
+| 10 | `0x4AC34C` | `0x4AEB30` | registry 遍历 + 清计数 | `0xC82EE0`、`0xC82ED8`、`0xC82EDC` | not ported |
+| 11 | `0x4AC356` | `0x590A50` | 人口峰值 `max(0x130F988,0x131257C)` 存回 | `0x131257C` | ported |
+| 12 | `0x4AC360` | `0x4ACE60` | unclear：类型过滤的建筑遍历 | 无 | not ported |
+| 13 | `0x4AC36A` | 内联测 `0x1312564`，再 `0x591EC0`、`0x5925A0` | 城市统计重置 / 汇总 | `0x1312870`、`0x130F967`、`0xC82F68` | not ported |
+| 14 | `0x4AC4C8` | — | 空 case | — | empty |
+| 15 | `0x4AC4C8` | — | 空 case | — | empty |
+| 16 | `0x4AC398` | `0x5D3CB0` | unclear：清 `0x13123D0..0x1312444` 区块后遍历 | 无（基址为立即数） | not ported |
+| 17 | `0x4AC3A2` | `0x4AEDF0` | unclear：registry 遍历 + `0x591490`/`0x40E680` | `0x1312128`、`0x1312528` | not ported |
+| 18 | `0x4AC3AC` | `0x426A60` → `0x5A8170`（push 0） | unclear：owner 向量通行 | `0x85D720`、`0x1312F78` | not ported |
+| 19 | `0x4AC4C8` | — | 空 case | — | empty |
+| 20 | `0x4AC3BF` | `0x51E4A0` → `0x4BC440` | 生产/作物 + 地形资源生长 | `0xD62438`–`0xD6243D`、`0x101C560`、`0xD5A6FC`、`0xFE9880`、`0xE92DD0` | partial |
+| 21 | `0x4AC3CE` | `0x4ACFC0` | 道路刷新 | `0x1192A2C`、`0xD62400`；另有对象内 `+0x2A`/`+0x2C` | partial（named blocker） |
+| 22 | `0x4AC3D8` | `0x4AD3D0` | 住房自由空间 / 模型容量 | `0x130F994`、`0x130F998` | not ported |
+| 23 | `0x4AC3E2` | `0x4AD4A0` | 劳动/产业分配 | `0xD62418`、`0x1192A2C`、`0x1192B04`–`0x1192B0D`、`0x1311F7C`、`0x1311F80`、`0x1311F84`、`0x1311F88`、`0x1311FB0`、`0x1311FB4`、`0x1311FB8` | not ported |
+| 24 | `0x4AC3EC` | `0x4AE1A0` | 住房迁出 | 无 | not ported |
+| 25 | `0x4AC3F6` | `0x4AE220` → `0x4AE7F0` → `0x4F19A0` | 就业派发 | `0x1312138`、`0x1312140`、`0x131220C`、`0x1192A84`、`0x1192A2C` | not ported |
+| 26 | `0x4AC4C8` | — | 空 case | — | empty |
+| 27 | `0x4AC40A` | `0x5253A0` | unclear：每槽 4 次 `0x525470` | `0x101C504` | not ported |
+| 28 | `0x4AC414` | `0x4ACE30` | 水/服务状态派生 | `0xC82F14` | not ported |
+| 29 | `0x4AC41E` | `0x54C6F0`（push 1） | 同 phase 5 的模式 1 链 | 无 | not ported |
+| 30 | `0x4AC42D` | —（内联写） | 同 phase 3 | `0x13F8E78` | not ported |
+| 31 | `0x4AC43C` | `0x416D20` | 建筑钩子：profiling + 作物 bit80 | `0x1032658`；IAT `0x88F720` | partial |
+| 32 | `0x4AC446` | `0x5DBCC0` → `0x4B02A0` | unclear：清四字后遍历 | `0x13124B2`、`0x13124B4`、`0x13124B6`、`0x13124B8`、`0x1192A2C` | not ported |
+| 33 | `0x4AC452` | `0x4AF230` → `0x4AF2D0` | 每类型标志复位 | `0x131249C`、`0x13124A0`、`0x13124A4`、`0x13124A8`、`0x13124AC`、`0x13124BE` | not ported |
+| 34 | `0x4AC4C8` | — | 空 case | — | empty |
+| 35 | `0x4AC45E` | `0x5177B0` → `0x517B40` | 住房服务衰减（12 字节饱和到 0） | 无 | ported |
+| 36 | `0x4AC46C` | `0x5177B0` → `0x517AD0` | 服务聚合 `+218` | 无 | not ported |
+| 37 | `0x4AC47A` | `0x53C870` → `0x44F1D0` | unclear：容器/异常路径 | 无 | not ported |
+| 38 | `0x4AC488` | `0x4ACD10` | unclear：registry 遍历 + `0x44F180` | 无 | not ported |
+| 39 | `0x4AC48F` | `0x519120` | 住房演化 | `0xC82CF4` | not ported |
+| 40 | `0x4AC496` | `0x4ACC40` | unclear：registry 遍历 | `0x101D0FC` | not ported |
+| 41 | `0x4AC4C8` | — | 空 case | — | empty |
+| 42 | `0x4AC4C8` | — | 空 case | — | empty |
+| 43 | `0x4AC49D` | `0x4AF9B0` | 火灾/蔓延 | `0xC82F20`、`0xC82F24`、`0xC82F28`、`0xC834B6` | not ported |
+| 44 | `0x4AC4A4` | `0x4AF5D0` | 风险/火灾；ECX=`0x8C7630`，尾跳 `0x42D9A0` | 无（深度 1） | not ported |
+| 45 | `0x4AC4AB` | `0x5F02C0`（ECX=`0x1E535F8`）→ `0x4B94A0` | 纪念物 / 城市对象 | `0x101D12C` | not ported |
+| 46 | `0x4AC4C8` | — | 空 case | — | empty |
+| 47 | `0x4AC4BC` | `0x4AFD20` | 计数复位 | `0xC82D30`、`0xC82D34`、`0xC82D44`、`0xC82D48` | not ported |
+| 48 | `0x4AC4C3` | `0x4AE8B0` | 建筑倒计时 | 无；函数返回后落进 `0x4AC4C8` | not ported |
+
+关于本表的读法：
+
+- 48 个跳表项一一对应 phase 1..48，顺序由 `0x4AC2F3` 的 `jmp dword ptr [4*eax + 0x4AC4E8]` 决定；跳表本身在文件偏移 `0xAC4E8`，192 字节。9 个空 case（phase 2、14、15、19、26、34、41、42、46）的表项都指向 `0x4AC4C8`，所以“空”不是解析失败。
+- 只有 phase 1、3/30、13 没有“先调用再返回”的形状：phase 1 是单调用加尾跳；phase 3/30 是纯内联写 `0x13F8E78`；phase 13 先内联读 `0x1312564` 再决定是否调 `0x591EC0`，`0x5925A0` 恒调。
+- “写全局”与 Table B2 的“直接全局（SAV19）”列口径不同：B2 只列 SAV19 相关项，本表列出该深度上所有绝对写。因此本表多出 `0x1312588/0x131258C`（phase 7）、`0xD5A6FC`/`0xFE9880`/`0xE92DD0`（phase 20）、`0xC834B6`（phase 43）、`0x101D12C`（phase 45）等项。B2 里出现过而本表未复现的少数项（phase 8 的 `0xC82F6C`、phase 43 的 `0xC82F2C`、phase 45 的 `0x875C88`）位于第二层以下被调者，不在本列深度内，两者不矛盾。
+- 落在代码段（`0x401000..0x560000`）的索引基址是跳表而不是全局，已从“写全局”列剔除；读侧同理。
+- phase 48 的 case 块没有自己的 `jmp 0x4AC4C8`，它在 `0x4AC4C3` 调用 `0x4AE8B0` 后**顺序落入** `0x4AC4C8`。这是 48 个 case 里唯一的 fall-through；其余 38 个非空 case 都在自己的最后一条指令跳回 `0x4AC4C8`。
+
+### D1. 计数如何推进，一次 admitted update 跑几个 phase
+
+计数只有一个 dword：`0xC82EF8`（listing 里打印为十进制 `13119224`）。整个推进链是：
+
+| 指令 | 语义 |
+|---|---|
+| `0x4AC2E4` | 读 `[0xC82EF8]` |
+| `0x4AC2E9` | 自减 1 |
+| `0x4AC2EA` | 与 47 比较（无符号） |
+| `0x4AC2ED` | 大于 47 时跳到 `0x4AC4C8`，本次不跑任何 phase |
+| `0x4AC2F3` | `jmp [4*eax + 0x4AC4E8]`，用“计数−1”索引跳表 |
+
+所以 **counter 值 1..48 分派 phase 1..48，counter 49、50 以及 0 都是空转**（`0−1` 会回绕成 `0xFFFFFFFF`，无符号比较同样大于 47）。推进块在 case 之后：
+
+| 指令 | 语义 |
+|---|---|
+| `0x4AC4C8` | 读 `[0xC82EF8]` |
+| `0x4AC4CD` | 加 1 |
+| `0x4AC4CE` | 与 51 比较 |
+| `0x4AC4D1` | 先写回 `[0xC82EF8]` |
+| `0x4AC4D6` | 小于 51 就 `ret`（`0x4AC4E7`） |
+| `0x4AC4D8` | 否则写 0 |
+| `0x4AC4E2` | 跳 `0x4AC650`（周期尾） |
+
+结论：
+
+1. **一次 admitted update 只跑一个 phase，或者一个都不跑，绝不跑两个。** 39 个非空 case 里有 38 个以 `jmp 0x4AC4C8` 结束，phase 48 以 fall-through 进入 `0x4AC4C8`；case 内部没有任何回跳 `0x4AC2F3` 的路径，所以不存在“一次调用连跑多阶段”。
+2. **周期长度 = 51 次 admitted update。** counter 从 0 出发时：第 1 次空转（0 写 1），第 2..49 次依次跑 phase 1..48，第 50 次空转（49→50），第 51 次把 50→51 并立刻回写 0、进入 `0x4AC650`。51 次之后 counter 回到 0、48 个 phase 各跑一次、周期尾跑一次，状态与起点同构。以后每 51 次 admitted update 重复一次。
+3. **被拒绝的 update 不推进计数。** 拒绝路径是 `0x4AC2DE` 直接跳到 `0x4AC4E7` 的 `ret`，既不读也不写 `0xC82EF8`，因此拒绝可以无限重复而不会“跳过一个 phase”。这一点对 native 端很关键：只要某个 phase 还拒，counter 就永远停在同一格，重试不会掩盖问题。
+4. phase 进度与“世界时间”是两套计数：`0x4AC650` 在 `0x4AC66E` 自增 `0xC82EF4`、在 `0x4AC674` 自增 `0xC82EF0`；后者在 `0x4AC6B8` 读回、`0x4AC6BD` 与 15 比较，`0x4AC6C4` 在 ≤15 时跳过整段月度/季度分支，否则在 `0x4AC716` 把 `0xC82EF0` 钉回 15。`0xC82EEC` 只在 >15 的分支里推进（`0x4AC6CA` 读、`0x4AC7A3` 写）。也就是说“51 次 admitted update 的 phase 周期”和“15 个周期尾的月周期”是两个不同长度，不能互相换算成一次。
+
+### D2. 三段 precheck 做什么
+
+三段都在分派之前、都在 `0x4AC2B0..0x4AC2DE` 内，短路求值，任意一段“放行”就跳去分派：
+
+| 段 | 取对象 | 判据 | 放行条件 | 指令 |
+|---|---|---|---|---|
+| P1 | `0x408AC0` 返回 `0x10BC348`，作为 ECX 传给 `0x4FAE50` | `0x4FAE50` 返回 `[ecx+16] != 0`（`setne`） | 返回 0 | `0x4AC2B0`、`0x4AC2B7`、`0x4AC2BC`、`0x4AC2BE je` |
+| P2 | `0x55BCB0` 返回 `0x12A4BA8`，作为 ECX 传给 `0x55B540` | `0x55B540` 返回 al 布尔；内部经 `0x480740`/`0x481F10`/`0x443FC0` 并检查 `[ecx+2124]` | 返回 0（al=0） | `0x4AC2C0`、`0x4AC2C7`、`0x4AC2CC`、`0x4AC2CE je` |
+| P3 | `0x55CE80` 返回 `0x12A3D70`，作为 ECX 传给 `0x55CEE0` | `0x55CEE0` 返回非 0 即“要拦住” | 返回 0 | `0x4AC2D0`、`0x4AC2D7`、`0x4AC2DC`、`0x4AC2DE jne` |
+
+三条的短路方向不对称：P1、P2 是 `je 0x4AC2E4`（判据为假 → 放行），P3 是 `jne 0x4AC4E7`（判据为真 → **拒绝**）。因此只有“P1 非 0 且 P2 非 0 且 P3 非 0”同时成立时整次 update 才被拒绝；任何一段为假都直接分派。
+
+**拒绝也有副作用。** `0x55CEE0` 自身在 `0x55CEE0..0x55D1B5` 内写 `0x10DE043`、`0x10DE044`、`0x10DE3F4`、`0x1192A2C`、`0x12A53F4`、`0x13125E0`、`0x13125E4`、`0x88EBDC`，并读 `0x10DE043/44`、`0x12A4BB0`、`0x12A53F4`、`0x12A544C`、`0x13124F8`、`0x13125DC`、`0x13125E8`。也就是说：**phase 一次都没跑，precheck 也已经把若干全局改掉**。native 端如果先实现 precheck 而不同时实现这些写，第一次拒绝之后的全局状态就会和原版不同。
+
+调用者侧：`0x5371B6` 读 `0x88EC38`，为 0 时在 `0x5371BF` 调 `0x4AC2B0`，随后 `0x5371C9` 调 `0x466E90`（ECX=`0xA98370`）、`0x5371CE` 调 `0x4E27E0`。`0x88EC38` 非 0 时 `0x5371BD` 直接跳到 `0x5371CE`，跳过调度器与 `0x466E90`，`0x5371D3` 再读同一个地址后 `0x5371DA jne` 直接 RET，连 `0x564B50` 也跳过——**但 `0x4E27E0` 仍然会跑**。这一点在 native 侧容易被简化成“整段跳过”。
+
+### D3. 两个 named blocker 的输入序列化
+
+两个 blocker 在 48 阶段序列里都只有一个入口阶段，所以“少一个就整条 tick 停住”是结构性的，不是保守估计。
+
+#### D3.1 `0x4F1560`（phase 1，case `0x4AC2FA`）
+
+- **谁到达它**：48 阶段序列里只有 phase 1——`0x4AC2FA` 调用 `0x4F1560`，`0x4AC2FF` 跳回推进块。另有一个序列外调用点 `0x406D91`：返回后写 `0x88EC40`、`0x10DE014`、`0x10DE045`，并把 `0x13F8DD0` 置 6、`0x115F720` 置 1 后 RET，是一条整体重同步路径。两者共享同一份会计状态，所以“只给 phase 1 接线”不足以覆盖所有写者。
+- **直接被调者（按顺序）**：`0x4F1590`（`0x4F1560`）、`0x4F1A70`（`0x4F1565`）、`0x4F1A80`（`0x4F156A`）、`0x4F1A90`（`0x4F156F`）、`0x5919D0`（`0x4F1574`）、`0x4AF2D0`（`0x4F1579`）、`0x4AEDF0`（`0x4F157E`）、`0x54CC60`（`0x4F1583`），随后 `0x4F1588` 尾跳 `0x4AFFA0`（该函数体只有 1 条指令，再尾跳 `0x44BAB0`）。
+- **自身直接读写**：`0x4F1560` 的 9 条指令内没有绝对操作数读，也没有绝对操作数写。所有状态都在被调者里。
+- **被调者写（绝对地址）**：
+  - `0x4F1590`：`0x1312200`、`0x1312204`、`0x1312208`、`0x1312210`、`0x8501FC`、`0x8501FD`
+  - `0x5919D0`：`0x1312484`
+  - `0x4AEDF0`：`0x1312128`、`0x1312528`
+  - `0x54CC60`：`0x1312002`、`0x1312004`、`0x1312568`、`0x131256B`、`0x131256C`、`0x131256D`、`0x131256F`、`0x1312798`、`0x131279C`、`0x13127A0`、`0x13127A4`、`0x13127CC`、`0x13127D0`、`0x13127D4`、`0x13127D8`、`0x10AEEC0`、`0x10AEEC4`、`0x10AEEC8`、`0x10AEECC`、`0x11A28D8`
+- **被调者读（绝对地址）**：`0x1312134`、`0x1312200`、`0x1312204`、`0x1312208`、`0x1312210`、`0x8501FC`、`0x8501FD`（`0x4F1590`）；`0x1312484`、`0x1312514`（`0x5919D0`）；`0x131205C`、`0x1312128`、`0x1312528`、`0xC5CDA0`（`0x4AEDF0`）；`0x10AEEC0`、`0x10AEEC4`、`0x10AEEC8`、`0x10AEECC`、`0x11A28D8`、`0x11A2B08`、`0x1312002`、`0x1312004`、`0x1312568`、`0x131256B`、`0x131256C`、`0x131256D`、`0x131256F`、`0x1312798`、`0x131279C`、`0x13127A0`、`0x13127A4`、`0x13127CC`、`0x13127D0`、`0x13127D4`、`0x13127D8`（`0x54CC60`）。
+- **SAV19 恢复情况**：写侧共 29 个不同地址，只有 `0x10AEEC0`、`0x10AEEC4`、`0x10AEEC8`、`0x10AEECC` 在窗口内（请求 `0x531653`、`0x531645`、`0x531637`、`0x531629`，各 4 字节），其余 25 个不在。读侧共 34 个不同地址，同样只有这 4 个在窗口内（其余 30 个不在）。**因此会计表的主体（`0x1312xxx`、`0x8501FC/FD`、`0x11A28D8`）必须由 native 侧显式给初值，不能从存档字节推出。**
+
+#### D3.2 `0x4ACFC0`（phase 21，case `0x4AC3CE`）
+
+- **谁到达它**：48 阶段序列里只有 phase 21——`0x4AC3CE` 调用 `0x4ACFC0`，`0x4AC3D3` 跳回推进块。另有一个序列外调用点 `0x534EBF`：该处按 `0x4AF350 → 0x4ACFC0 → 0x4AEEB0` 的顺序直接调三个 phase 体（前接 `0x4E8AC0`），是 phase 7/21/8 的手工重放路径。序列里和序列外的两条路径会写同一批道路缓存，任何一条漏接都会让道路状态分叉。按 listing 的函数边界（入口到 ≥2 个 `nop` 的填充前），`0x4ACFC0` 覆盖 `0x4ACFC0..0x4AD257`，其中 `0x4AD186`、`0x4AD1A6`、`0x4AD212` 是同一个函数内的共享出口块（`0x4AD20D` 等处跳进来），不是外部被调者。
+- **直接被调者（按顺序）**：`0x5AE140`、`0x413B40`、`0x554C00`、`0x426D10`、`0x554C00`、`0x547E60`×2、`0x46A1C0`、`0x425260`、`0x425250`、`0x5AE380`、`0x5AD8F0`、`0x5AE140`、`0x5AE380`、`0x5AD8F0`、`0x5AE140`、`0x4AD260`、`0x5AD960`、`0x5ADD40`、`0x4B67B0`、`0x5403C0`、`0x4138F0`、`0x546EA0`、`0x5EF190`、`0x408E20`、`0x4138F0`；另有一次**间接调用** `call dword ptr [edx+132]`（`0x4AD029`，vtable 槽 `+0x84`）。
+- **自身写**：`0x1192A2C`（`0x4AD1AA`、`0x4AD216` 两处置 1）、`0xD62400`（`0x4AD207` 置 0），以及每个 live 对象的 `word[+0x2A]`、`word[+0x2C]`（`0x4AD021`、`0x4AD025`，清零）。
+- **自身读**：`0xC5CDFC`、`0xC5CDFE`、`0xC5CE00`、`0xC5CE02`、`0xD62400`、`0x101D0C8`、`0x1192A2C`，以及 `0x1391FE0` 的 `[4*index + 0x1391FE0]` 三处（`0x4AD063`、`0x4AD10F`、`0x4AD16A`）。
+- **间接调用不是直接调用**：`0x4AD029` 的槽 `+0x84` 在 `.rdata` 的 71 张 vtable 里都指向 `0x51CE50`（出现处如 `0x7A99D8`、`0x7A9C54`）。`0x51CE50` 只有 8 条指令、唯一一次调用是 `0x51CE55` 调 `0x426DF0`；`0x426DF0` 再调 `0x4BAF40`。`0x426DF0` 在整份 listing 里只有 `0x51CE55` 这一个直接调用点。所以 `0x4ACFC0 → 0x426DF0` 是“虚表槽 + 一层转发”，把它当作 `0x4ACFC0` 的直接被调者会画错依赖图。
+- **间接链的状态**：`0x4BAF40` 写 `0x10C72A8`、`0x10C72AC`，读 `0x10C72A8`、`0x10C72AC`、`0x101D0C8`、`0x1391FE0`、`0x820038`、`0xEC5A10`、`0xF6A9E0`、`0xFC3750`（173 条指令）。`0x10C72A8/AC` 是 road distance 缓存；两者都不在 SAV19 窗口内。
+- **SAV19 恢复情况**：`0xC5CDFC`、`0xC5CDFE`、`0xC5CE00`、`0xC5CE02`、`0x101D0C8`、`0x1391FE0`、`0x1192A2C`、`0xD62400`、`0x10C72A8`、`0x10C72AC` **全部不在**窗口内。窗口里有 `0xC5D0D8`（请求 `0x5314C1`）和 `0x101D0AC`/`0x101D0B0`（`0x53146D`/`0x53147B`），都是相邻但不同的全局，不能替代。
+- **`0x1192A2C` 是跨阶段脏标志**：phase 21、23（`0x4AD5BA`）、25（经 `0x4AE7F0` 的 `0x4AE892`）、32（`0x4B02A0` 的 `0x4B03A3`）都写它，precheck `0x55CEE0` 也写它，而它不在 SAV19 窗口内。它决定了“劳动/道路是否重算”，因此是 phase 21/23/25/32 之间唯一的显式耦合点；native 端如果把它当常量，四个阶段会同时错。
+
+**拒绝分区的实测口径**（[SAV.md](SAV.md):827）：N10/N100 是原子拒绝，构成 `1,048 city_accounting_4f1560_4ac2fa + 15 road_refresh_4acfc0_426df0_1391fe0 + 2 production_virtuals_51e4a0_74_208 = 1,065/1,065`。即 10 次与 100 次 admitted update 各拒绝 1,065 次，其中 1,048 次来自 phase 1、15 次来自 phase 21、2 次来自 phase 20；phase 1 的拒绝发生在任何未移植的 phase 1 producer 之前，是保守拒绝而不是“存档缺字段”的证明。
+
+### D4. 对 Table C 的修正
+
+Table C 原来只列了 7 个全局，且漏掉了调度器在周期尾恢复的 `0xC82EF0`、`0xC82EF4`、`0xC82EEC` 与另外几项。按同一窗口重扫（91 个请求、89 个不同地址；另有 2 个请求压的是寄存器而不是立即数，不计入）：
+
+| 全局 | 写入者 | restored? | 请求点 |
+|---|---|---|---|
+| `0xC82EF8` | `0x4AC2B0`/`0x4AC4C8`（phase 计数） | 是 | `0x531427`（size 4） |
+| `0xC82EF0` | `0x4AC650`（周期尾，月计数） | 是 | `0x531435`（size 4） |
+| `0xC82EF4` | `0x4AC650`（周期尾，总周期计数） | 是 | `0x531443`（size 4） |
+| `0xC82EEC` | `0x4AC650`（仅 >15 分支） | 是 | `0x5312AF`（size 4） |
+| `0xC82DB0` | phase 33（B2 记为 `0x4AF230` 链清 30 dword） | 是 | `0x5314E3`（size 144） |
+| `0xC82E40` | phase 33（同上） | 是 | `0x5314D2`（size 144） |
+| `0xD623FC` | `0x4AC650` | 是 | `0x5312A1`（size 4） |
+
+即：**`0xC82EF0` 与 `0xC82EF4` 也在窗口内**，`0xC82EEC` 同样在；B2 记为 phase 33 清零的两个 30 dword 数组以 144 字节整块恢复（覆盖 36 dword，比 B2 记录的 30 dword 更宽）。Table C 的行应以此表为准。
+
+先前“phase 33 的 `0xC82DB0/0xC82E40` 未 restored”的说法不成立，应改为“`0xC82DB0`/`0xC82E40` restored（各 144 字节），只有 `0x131249C..AC` 与 `0x13124BE` 未 restored”。
+
+### D5. 状态计数与推荐移植顺序
+
+| 状态 | 行数 | phase |
+|---|---:|---|
+| ported | 2 | 11、35 |
+| partial | 5 | 7、8、20、21、31 |
+| not ported | 32 | 1、3、4、5、6、9、10、12、13、16、17、18、22、23、24、25、27、28、29、30、32、33、36、37、38、39、40、43、44、45、47、48 |
+| empty | 9 | 2、14、15、19、26、34、41、42、46 |
+| 合计 | 48 | — |
+
+48 行里 `ported` 2 行（4.2%）、`partial` 5 行（10.4%）、`not ported` 32 行（66.7%）、`empty` 9 行（18.8%）。`ported` 的两行分别有 [SAV.md](SAV.md):804 与 [SAV_FIGURES.md](SAV_FIGURES.md):1007 的断言支撑；`empty` 的 9 行不需要实现；其余 37 个非空阶段都还没有在原返回点正常返回过。
+
+要让 **10 次** admitted update 连续不拒绝（counter 从 0 起算，即覆盖 phase 1..10），最小集合是：调度器计数链 + 三段 precheck + phase 1..10。phase 9 只需一个立即 RET 的空 handler。
+
+要让 **100 次** admitted update 连续不拒绝，必须把 48 个 phase 与周期尾全部具备：100 次里 counter 走完近两整圈（第 51 次触发 `0x4AC650`），任何一格还拒，计数就停在那格，后面的 phase 根本不会被执行。建议顺序：
+
+1. **调度器核心**：`0x4AC2B0..0x4AC2DE` 三段 precheck、`0x4AC2E4..0x4AC2F3` 计数与跳表、`0x4AC4C8..0x4AC4E7` 推进与拒绝、`0x4AC4E8` 的 48 项表。判据是 counter 轨迹 `0,1,2,…,48,49,50,0` 与“拒绝不动 counter”。
+2. **phase 1（`0x4F1560`，blocker）**。它是第一个阶段，也是 1,048/1,065 次拒绝的来源；不给它显式初值，10 次都到不了。
+3. **phase 2..10**，其中 phase 9 是空 handler、phase 3/30 是内联写。到这里 **10 次 admitted update** 成立。
+4. **phase 11..20**。phase 20 的 production virtuals（`0x51E4A0` 的 `+74`/`+208`）是 2/1,065 次拒绝的来源，必须在进入 20 之前定好。
+5. **phase 21（`0x4ACFC0`，blocker）**。先按虚表槽 `+0x84 → 0x51CE50 → 0x426DF0 → 0x4BAF40` 建对依赖图，再给 `0xC5CDFC..0xC5CE02`、`0x1391FE0`、`0x1192A2C`、`0xD62400`、`0x10C72A8/AC` 定初值所有权；这 15 次拒绝是 process-state，不是存档缺字段。
+6. **phase 22..48**，按 22→48 的自然顺序，前置是 `0x1192A2C` 的四写者（21/23/25/32）与 `0x1032658`（phase 31，已 restored）。
+7. **周期尾 `0x4AC650`** 与 `0xC82EF0`/`0xC82EF4`/`0xC82EEC` 的推进（含 `0x4AC716` 的 15 上限）。没有它，counter 到 50 就无处可去，100 次里第 51 次必然断。
+
+每一步的完成标准都是“该阶段在原返回点正常返回”，而不是“返回 0 或空 stub”。按这个顺序，第 3 步结束时 10 次可跑，第 7 步结束时 100 次可跑；中途任何一格拒绝都会让 counter 停住，这一点本身就是最好的回归信号。
+
+最后一条不属阶段序列但会影响验收：两个 blocker 都各有一个序列外调用点（phase 1 的 `0x406D91`、phase 21 的 `0x534EBF`）。native 侧如果只按跳表顺序接线，会漏掉这两条重同步路径；它们与阶段序列共享同一批全局，验收时至少要在“序列内”和“序列外”两种入口下得到一致的会计/道路状态。
