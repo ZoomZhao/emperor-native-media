@@ -6,6 +6,22 @@ figure-scene-test:
 figure-scene-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --mode undefined
 .PHONY: scene-timeline-test scene-timeline-test-undefined scene-timeline-bite
+.PHONY: scene-combined-test scene-combined-test-undefined scene-combined-bite
+scene-combined-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0
+scene-combined-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --mode undefined --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0
+scene-combined-bite:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_phase
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_clock
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_event
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_growth
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_tail
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_rng
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_slots
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_atomic
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_bridge
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_building
 scene-timeline-test: figure-scene-test
 scene-timeline-test-undefined: figure-scene-test-undefined
 scene-timeline-bite:

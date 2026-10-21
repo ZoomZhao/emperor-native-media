@@ -323,9 +323,14 @@ inline bool originalFigurePopulationAfterLoad(OriginalFigureSavedServices& servi
 //0x4189B0 advances both persisted registers31 times;destination0x59EDE0
 // consumes first&0x7FFF after each call. No process-start seed is substituted.
 inline uint16_t originalFigureRandomNext(OriginalFigureSavedServices& state){
+    // 4189B0..4189CD stores the OLD 10C713C before advancing either
+    // register. Combined callers validate the explicit cursor before entry.
+    if(state.randomHistory){auto& h=*state.randomHistory;
+        h.ring.at(h.cursor)=h.previous7;h.cursor=h.cursor==99?0:h.cursor+1;}
     for(unsigned n=0;n<31;++n){const auto advance=[](uint32_t value){
             return (value>>1)|((((value>>4)^value)&1u)<<30);};
         state.randomFirst=advance(state.randomFirst);state.randomSecond=advance(state.randomSecond);}
+    if(state.randomHistory)state.randomHistory->previous7=state.randomFirst&127;
     return uint16_t(state.randomFirst&0x7fff);
 }
 //7665FD uses the calling thread's holdrand;7665F0 seeds it from time().

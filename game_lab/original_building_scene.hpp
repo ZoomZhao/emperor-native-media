@@ -74,6 +74,7 @@ struct OriginalBuildingScene {
     bool figurePostLoadK1=false;
     std::optional<unsigned> timelineUpdates;
     size_t timelineFrames=0;
+    bool timelineCombined=false;
     size_t figureRemoved=0;
     // Explicit first-tick diagnostics, never overlay commands or saved oracles.
     std::map<size_t,OriginalFigureImageSelection> figureFirstTickImages;
@@ -115,7 +116,7 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
     scene.figureForwardMatched=scene.figureForwardCompared=scene.figureForwardSelected=0;scene.figureForwardMismatch.clear();
     scene.figureZeroResolved=scene.figureZeroBlocked=0;scene.figureFirstTickImages.clear();
     scene.figurePostLoadK1=false;
-    scene.timelineUpdates.reset();scene.timelineFrames=0;
+    scene.timelineUpdates.reset();scene.timelineFrames=0;scene.timelineCombined=false;
     scene.figureRemoved=0;
     scene.figureLive=figures.live.size();const size_t origin=(228-terrain.activeSide)/2;
     const auto imageState=originalFigureImageState(figures);
@@ -393,6 +394,7 @@ struct OriginalBuildingSceneView {
     bool figurePostLoadK1=false;
     std::optional<unsigned> timelineUpdates;
     size_t timelineFrames=0;
+    bool timelineCombined=false;
     size_t figureRemoved=0;
     std::map<size_t,OriginalFigureImageSelection> figureFirstTickImages;
 };
@@ -476,7 +478,7 @@ inline OriginalBuildingSceneView renderOriginalBuildingScene(const OriginalMapTe
     out.figureForwardSelected=scene.figureForwardSelected;out.figureForwardMismatch=scene.figureForwardMismatch;
     out.figureZeroResolved=scene.figureZeroResolved;out.figureZeroBlocked=scene.figureZeroBlocked;
     out.figurePostLoadK1=scene.figurePostLoadK1;
-    out.timelineUpdates=scene.timelineUpdates;out.timelineFrames=scene.timelineFrames;
+    out.timelineUpdates=scene.timelineUpdates;out.timelineFrames=scene.timelineFrames;out.timelineCombined=scene.timelineCombined;
     out.figureRemoved=scene.figureRemoved;
     out.figureFirstTickImages=scene.figureFirstTickImages;
     out.figureZeroImage=scene.figureZeroImage;out.figureUnsupported=scene.figureUnsupported;

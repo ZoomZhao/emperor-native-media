@@ -175,6 +175,158 @@ void authored(){
     need(originalBuildingSavedProductionBoost(festival,35)==true&&originalBuildingSavedProductionBoost(festival,43)==true&&originalBuildingSavedProductionBoost(festival,33)==false,"festival production deity2 accepts clay and kiln but never Hunter");
     festival[festivalAt+71]=4;need(originalBuildingSavedProductionBoost(festival,35)==false,"Well water override deity4 cannot be substituted for production deity2");
     festival.resize(festivalAt+70);need(!originalBuildingSavedProductionBoost(festival,35),"truncated Festival4 does not invent false boost");
+    //Source6 version6 omits8A..8B and96..97; poison wire148/149.
+    std::vector<uint8_t> formationBytes(original_save19::recordsEnd+8);for(unsigned n=0;n<100;++n)formationBytes[original_save19::records+175*n]=6;
+    const size_t group=original_save19::records+175*35;formationBytes[group+148]=0xa5;formationBytes[group+149]=0x5a;
+    formationBytes[group+150]=0x78;formationBytes[group+151]=0x56;formationBytes[group+152]=0x34;formationBytes[group+153]=0x12;
+    const auto groups=originalBuildingSavedFormations(formationBytes,0);
+    need(groups&&groups->at(35).lifecycleOwner==0x12345678,"formation lifecycle owner uses wire150 after both omitted padding pairs");
+    OriginalBuildingUpdateContext ic=context(OriginalBuildingUpdateScope::AdmittedTicks);ic.phase=27;ic.cropBase=2290;ic.activeSide=3;
+    ic.terrain=std::vector<uint32_t>(51984);ic.irrigation.emplace();auto& ir=*ic.irrigation;ir.image.assign(51984,100);ir.subTile.resize(51984);ir.owners.resize(51984);ir.baseImage=100;
+    for(size_t at:{2290u,2291u,2518u,2519u,2746u,2747u})ic.terrain->at(at)=0x800;
+    ir.subTile[2291]=0x80;ir.owners[2518]=7;ir.ownerTypes[7]=126;ic.terrain->at(2519)|=4;ir.image[2746]=118;ir.image[2747]=117;
+    auto irrigation=originalBuildingStateAfterUpdates(field(),ic,1);
+    need(irrigation.state&&irrigation.context->irrigationCalls==1&&irrigation.context->irrigation->image[2290]==118&&irrigation.context->irrigation->image[2747]==135,"irrigation dry pass adds18 below base18 threshold");
+    need(irrigation.context->irrigation->image[2291]==100&&irrigation.context->irrigation->image[2518]==100&&irrigation.context->irrigation->image[2519]==100&&irrigation.context->irrigation->image[2746]==118,"irrigation dry pass honors subtile80 owner and blocked gates");
+    ic.terrain->assign(51984,0);ir.image.assign(51984,118);ir.owners.assign(51984,0);ir.subTile.assign(51984,0);
+    ic.terrain->at(2746)=ic.terrain->at(2747)=ic.terrain->at(2748)=0x800;ir.owners[2747]=7;
+    ir.sources.push_back({2290,1,0});irrigation=originalBuildingStateAfterUpdates(field(),ic,1);
+    need(irrigation.state&&irrigation.context->irrigation->image[2746]==100&&irrigation.context->irrigation->image[2747]==118&&irrigation.context->irrigation->image[2748]==100,"staffed irrigation flood traverses Roadblock without rewriting its image");
+    ir.ownerTypes[7]=231;irrigation=originalBuildingStateAfterUpdates(field(),ic,1);
+    need(irrigation.state&&irrigation.context->irrigation->image[2748]==118,"irrigation rejects nonRoadblock owner before continuing flood");
+    auto wc=context(OriginalBuildingUpdateScope::AdmittedTicks);wc.phase=28;wc.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,house.inputs}};
+    wc.buildingInputs->at(7).house->fill(0);wc.buildingInputs->at(7).house->at(45)=1;wc.buildingInputs->at(7).house->at(47)=1;
+    house.inputs=wc.buildingInputs->at(7);auto water=originalBuildingStateAfterUpdates(house,wc,1);
+    need(water.state&&water.state->inputs.houseWater==2&&water.state->inputs.houseService==0,"water phase carries common field writes into returned record");
+    auto formContext=context(OriginalBuildingUpdateScope::AdmittedTicks);formContext.figures=std::vector<OriginalFigure>(2000);for(unsigned n=0;n<2000;++n)formContext.figures->at(n).slot=n;
+    formContext.formations.emplace();formContext.formations->at(35).alive=1;formContext.formations->at(35).skipLifecycle=3;formContext.formations->at(35).kind=76;
+    auto& animal=formContext.figures->at(9);animal.alive=1;animal.type=76;animal.formation=35;animal.damage=3;
+    formContext.figureModels=std::map<unsigned,std::array<int32_t,18>>{};formContext.figureModels->operator[](76)[1]=17;formContext.figureStationary=std::map<size_t,uint8_t>{{9,1}};
+    const auto gathered=originalBuildingFormationStep(*formContext.formations,*formContext.figures,*formContext.figureModels,*formContext.figureStationary);
+    need(gathered&&gathered->formations[35].count==1&&gathered->formations[35].members[0]==9&&gathered->formations[35].damage==3&&gathered->formations[35].strength==17&&gathered->figureOrdinals.at(9)==0,"formation gather uses actual figure stationary byte and model column1");
+    formContext.formations->at(35).skipLifecycle=0;need(!originalBuildingFormationStep(*formContext.formations,*formContext.figures,*formContext.figureModels,*formContext.figureStationary),"positive formation lifecycle refuses despite nonempty supplied pool");
+    auto military=formContext;military.phase=5;military.formations->at(35).skipLifecycle=3;military.figures->at(8).alive=1;military.figures->at(8).type=64;military.figures->at(8).damage=2;
+    auto militaryResult=originalBuildingStateAfterUpdates(field(),military,1);
+    need(!militaryResult.state&&militaryResult.refusedPhase==5,"formation phase refuses independent military damage writes outside animal domain");
+    auto religionContext=context(OriginalBuildingUpdateScope::AdmittedTicks);religionContext.phase=18;religionContext.populationTotal=500;
+    religionContext.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,field().inputs}};
+    religionContext.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,field().building}};religionContext.labor.emplace();religionContext.labor->difficulty=2;
+    religionContext.statistics.emplace();religionContext.statistics->religionBonusEnabled=false;religionContext.religion.emplace();
+    auto& religion=*religionContext.religion;religion.previousRating=73;religion.selected=3;religion.worship[1].enabled=true;religion.scenarioEnabled[3]=religion.scenarioEnabled[4]=1;
+    religion.worship[1].entries={{{0,150,2,3,50},{0,150,1,4,20},{0,150,2,5,3}}};
+    auto worship=originalBuildingStateAfterUpdates(field(),religionContext,1);
+    need(worship.state&&worship.context->religion->worship[1].entries[0].value==44&&worship.context->religion->worship[1].entries[1].value==19&&worship.context->religion->worship[1].entries[2].value==0,"religion difficulty decrement precedes aggregate and disabled status reset");
+    need(worship.context->religion->worship[1].minimum==0&&worship.context->religion->worship[1].maximum==44&&worship.context->religion->worship[1].average==31,"religion min max includes disabled entry while average excludes it");
+    need(worship.context->religion->previousRating==73&&worship.context->religion->selected==3,"ordinary religion mode preserves both process scratch inputs");
+    religionContext.labor->difficulty=-1;worship=originalBuildingStateAfterUpdates(field(),religionContext,1);
+    need(!worship.state&&!worship.context&&worship.blocker==OriginalBuildingUpdateBlocker::MissingContext,"active deity needs explicit difficulty and refuses without prefix state");
+    std::vector<uint8_t> religionBytes(56000);std::copy(festival.begin(),festival.end(),religionBytes.begin());
+    //Rebuild the complete Festival4 followed by Religion1/child3/entry2.
+    religionBytes[festivalAt+71]=2;size_t religionAt=festivalAt+83;religionBytes[religionAt++]=1;++religionAt;
+    const auto write32=[&](size_t at,uint32_t value){for(unsigned k=0;k<4;++k)religionBytes.at(at+k)=uint8_t(value>>(8*k));};
+    for(unsigned n=0;n<4;++n){religionBytes[religionAt]=3;religionAt+=2;for(unsigned k=0;k<3;++k){religionBytes[religionAt]=2;religionAt+=2;
+        write32(religionAt,0);write32(religionAt+4,150);write32(religionAt+8,2);write32(religionAt+12,3*n+k);write32(religionAt+16,99);religionAt+=20;}}
+    const size_t religionSide=55000;religionBytes[religionSide-28]=6;religionBytes[religionSide-28+6]=1;religionBytes[religionSide-28+10]=1;
+    const auto savedReligion=originalBuildingSavedReligion(religionBytes,religionSide);
+    need(savedReligion&&savedReligion->worship[0].entries[0].status==2&&savedReligion->worship[0].entries[0].value==99&&savedReligion->worship[0].entries[1].status==0&&savedReligion->worship[0].entries[1].value==0&&savedReligion->worship[1].entries[0].status==0&&savedReligion->worship[1].entries[0].value==0,"religion load preserves status2 only for enabled worship and figure type");
+    auto ac=context(OriginalBuildingUpdateScope::AdmittedTicks);ac.phase=1;ac.month=7;ac.formations.emplace();ac.figures=std::vector<OriginalFigure>(2000);
+    for(unsigned n=0;n<2000;++n)ac.figures->at(n).slot=n;
+    ac.figureModels.emplace();ac.figureStationary.emplace();ac.cityEmployment.emplace();ac.cityEmployment->available=10;
+    ac.cityEmployment->rows[0]={6,0,0,0,3};ac.cityEmployment->shortageNotice=false;ac.cityEmployment->unemploymentNotice=false;
+    auto taxHouse=house;taxHouse.inputs.house->fill(0);taxHouse.inputs.residents=10;taxHouse.inputs.byte52=1;taxHouse.inputs.model=2;
+    taxHouse.inputs.house->at(38)=1;taxHouse.inputs.house->at(14)=50;taxHouse.building.imageInputs->word20=10;
+    ac.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,taxHouse.inputs}};ac.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,taxHouse.building}};
+    ac.houseTaxModel=std::map<int,int>{{2,4}};ac.scenarioFoodOverride=0;ac.populationTotal=10;ac.serviceCoverage=std::array<int32_t,11>{};
+    ac.serviceCoverage->at(4)=73;ac.goods.emplace();ac.goodsRecords=std::vector<OriginalBuildingGoodsRecord>(1);ac.buildingLinks=std::map<size_t,OriginalFigureBuildingLink>{{7,{}}};
+    ac.storageRoadStatus.emplace();ac.poolRoadSelected.emplace();ac.accounting.emplace();auto& ledger=*ac.accounting;
+    ledger.taxRate=25;ledger.taxReceived=5;ledger.taxOther=7;ledger.wages=120;ledger.wagesPaid=20;ledger.incomeOther=30;ledger.expensesOther=9;ledger.treasuryStart=100;ledger.festivalCount=13;
+    ledger.incomeReceived=99;ledger.expensesPaid=55;
+    auto accounted=originalBuildingStateAfterUpdates(taxHouse,ac,1);
+    need(accounted.state&&accounted.context->accountingCalls==1&&accounted.context->formationCalls==1,"accounting phase executes complete supplied service chain once");
+    const auto& ledgerAfter=*accounted.context->accounting;
+    need(ledgerAfter.taxableOrdinary==40&&ledgerAfter.taxableElite==0&&ledgerAfter.taxForecast==72&&ledgerAfter.wageForecast==56,"accounting independent tax and wage forecasts use month7 remaining6");
+    need(ledgerAfter.income==42&&ledgerAfter.expenses==29&&ledgerAfter.profit==13&&ledgerAfter.actualProfit==44&&ledgerAfter.treasuryForecast==113&&ledgerAfter.festivalCapacity==9,"accounting income expense profit and festival cap preserve separate saved inputs");
+    need(accounted.context->cityDerived->food==50&&accounted.context->cityDerived->foodConsumption==2&&accounted.context->cityDerived->foodMonths==25&&accounted.context->serviceCoverage->at(1)==100&&accounted.context->serviceCoverage->at(4)==73,"accounting food uses house tail18 and preserves untouched coverage columns");
+    auto load=ac;load.phase=0;load.loadAccountingTransition=true;load.applyLoadRoadRefresh=false;
+    auto loaded=originalBuildingStateAfterUpdates(taxHouse,load,1);auto continued=originalBuildingStateAfterUpdates(*loaded.state,*loaded.context,1);
+    need(loaded.state&&loaded.context->loadAccountingApplied&&loaded.context->accountingCalls==1&&continued.state&&continued.context->accountingCalls==2,"explicit UI load accounting transition is applied once before scheduled phase1");
+    auto noLoad=load;noLoad.loadAccountingTransition=false;auto unloaded=originalBuildingStateAfterUpdates(taxHouse,noLoad,1);
+    need(unloaded.state&&unloaded.context->accountingCalls==0&&!unloaded.context->loadAccountingApplied,"false UI transition does not invent load accounting reachability");
+    auto incomplete=load;incomplete.figureStationary.reset();auto rejected=originalBuildingStateAfterUpdates(taxHouse,incomplete,1);
+    need(!rejected.state&&!rejected.context&&rejected.operations==0,"load accounting missing dependency refuses atomically");
+    auto ec=ac;ec.phase=25;ec.employmentModel=OriginalBuildingEmployment{{194,3},{196,4}};ec.buildingUnavailable=std::map<size_t,bool>{{7,false},{8,false},{9,false}};
+    ec.unemploymentTrend=0;ec.shortageNoticeCountdown=0;ec.elapsedYears=0;ec.scenarioStartYears=0;ec.cityEmployment->available=5;
+    auto first=field(194);first.inputs.operational=100;first.inputs.enabled=1;
+    auto second=field(196);second.building.slot=8;second.inputs.identity=8;second.inputs.operational=100;second.inputs.enabled=1;
+    auto suppressed=second;suppressed.building.slot=9;suppressed.inputs.identity=9;suppressed.inputs.suppression=1;suppressed.inputs.workers=99;
+    ec.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,first.inputs},{8,second.inputs},{9,suppressed.inputs}};
+    ec.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,first.building},{8,second.building},{9,suppressed.building}};
+    ec.buildingLinks=std::map<size_t,OriginalFigureBuildingLink>{{7,{}},{8,{}},{9,{}}};
+    auto employed=originalBuildingStateAfterUpdates(first,ec,1);
+    need(employed.state&&employed.state->inputs.workers==3&&employed.context->buildingInputs->at(8).workers==2&&employed.context->buildingInputs->at(9).workers==0,"employment distributes ordered integer remainder after proportional first pass");
+    need(employed.context->cityEmployment->rows[0].demand==7&&employed.context->cityEmployment->shortage==2&&employed.context->buildingLinks->at(8).workers==2,"employment eligibility excludes suppression and synchronizes whole pool workers");
+    auto lc=ac;lc.phase=23;lc.labor.emplace();lc.labor->sentiment=100;lc.labor->health=50;lc.labor->difficulty=0;lc.labor->wageBand=3;lc.labor->populationNotices=std::array<bool,10>{};
+    lc.buildingInputs->at(7).distance=1;lc.buildingInputs->at(7).free=12;lc.buildingInputs->at(7).random=129;lc.populationTotal=10;lc.populationPeak=10;
+    lc.roadEndpoints=std::array<int16_t,4>{3,4,5,6};lc.cropBase=229;lc.terrain=std::vector<uint32_t>(51984);lc.terrain->at(1144)=0x40;
+    lc.figureCellHeads=std::vector<uint16_t>(51984);lc.figureServices.emplace();lc.figureServices->allocationSerial=37;lc.figureServices->randomFirst=1;lc.figureServices->randomSecond=2;
+    lc.figureSpeechCounters=std::array<int32_t,359>{};lc.figureSpeechCounters->at(265)=7;lc.figureSpeechCounts=std::array<uint32_t,359>{};lc.figureSpeechCounts->at(265)=3;
+    lc.freeFigureSlots={19,3};lc.crtRandom=123;lc.scenarioFigurePlacementCheck=false;lc.houseModelCapacity=std::map<int,int>{{2,22}};
+    auto migrantHouse=taxHouse;migrantHouse.inputs=lc.buildingInputs->at(7);auto migrated=originalBuildingStateAfterUpdates(migrantHouse,lc,1);
+    need(migrated.state&&migrated.context->allocatedFigures==std::vector<size_t>{19}&&migrated.context->freeFigureSlots==std::vector<size_t>{3}&&migrated.state->inputs.migrant==19,"migration uses supplied free queue and publishes reciprocal house link");
+    const auto& immigrant=migrated.context->figures->at(19);
+    need(immigrant.type==11&&immigrant.action==6&&immigrant.home==7&&immigrant.employmentAmount==6&&immigrant.counter==1&&immigrant.subtype==1&&immigrant.water==1&&immigrant.speed==0&&immigrant.allocationSerial==37,"immigrant constructor and caller writes preserve independent literal fields");
+    need(migrated.context->labor->arrivals==6&&migrated.context->labor->unplaced==0&&migrated.context->labor->spacing==50&&migrated.state->inputs.residents==10&&migrated.context->figureCellHeads->at(1144)==19,"migration accounts attempted6 without changing residents before arrival");
+    need(migrated.context->figureSpeechChoices.at(19)==1&&migrated.context->figureSpeechCounters->at(265)==8&&migrated.context->crtRandom==123&&migrated.context->crtRandomCalls==0,"migrant speech rotation advances saved counter without separate CRT sound call");
+    auto chain=lc;chain.figures->at(5).alive=1;chain.figures->at(5).type=11;chain.figures->at(5).cell=1144;chain.figureCellHeads->at(1144)=5;
+    auto chained=originalBuildingStateAfterUpdates(migrantHouse,chain,1);
+    need(chained.state&&chained.context->figureCellHeads->at(1144)==5&&chained.context->figures->at(5).next==19&&chained.context->figures->at(19).next==0,"migrant registration appends to existing same-cell list");
+    auto leaving=lc;leaving.labor->sentiment=25;leaving.labor->outRemainder=3;leaving.populationTotal=200;leaving.populationPeak=200;
+    auto leftHouse=originalBuildingStateAfterUpdates(migrantHouse,leaving,1);
+    need(leftHouse.state&&leftHouse.state->inputs.residents==4&&leftHouse.context->populationTotal==194&&leftHouse.context->labor->lastPopulationDelta==-6&&leftHouse.context->labor->departures==6&&
+        leftHouse.context->figures->at(19).type==12&&leftHouse.context->figures->at(19).employmentAmount==6,"emigration stores signed last arrival and population before allocating type12");
+    auto excess=lc;excess.phase=24;excess.buildingInputs->at(7).free=-3;excess.labor->excessDepartureTotal=7;excess.figureSpeechCounts->at(254)=4;excess.figureSpeechCounters->at(254)=6;
+    auto excessHouse=migrantHouse;excessHouse.inputs=excess.buildingInputs->at(7);auto overflow=originalBuildingStateAfterUpdates(excessHouse,excess,1);
+    need(overflow.state&&overflow.state->inputs.residents==7&&overflow.context->populationTotal==7&&overflow.context->labor->excessDepartureTotal==10&&
+        overflow.context->figures->at(19).type==13&&overflow.context->figures->at(19).employmentAmount==3&&overflow.context->figureSpeechChoices.at(19)==2,"overflow departure increments separate accounting total only after type13 allocation");
+    excess.freeFigureSlots.clear();overflow=originalBuildingStateAfterUpdates(excessHouse,excess,1);
+    need(overflow.state&&overflow.state->inputs.residents==7&&overflow.context->populationTotal==10&&overflow.context->labor->excessDepartureTotal==7,"overflow allocation exhaustion still trims house but preserves global population and departure total");
+    auto exhausted=lc;exhausted.freeFigureSlots.clear();exhausted.figureSpeechCounters.reset();auto attempted=originalBuildingStateAfterUpdates(migrantHouse,exhausted,1);
+    need(attempted.state&&attempted.context->allocatedFigures.empty()&&attempted.context->labor->arrivals==12&&attempted.state->inputs.migrant==0&&attempted.context->figureServices->allocationSerial==37,"allocation exhaustion counts attempted migrants without consuming constructor inputs");
+    auto splitLabor=originalBuildingStateAfterUpdates(*migrated.state,*migrated.context,1);auto wholeLabor=originalBuildingStateAfterUpdates(migrantHouse,lc,2);
+    need(splitLabor.state&&wholeLabor.state&&splitLabor.state->inputs.workers==wholeLabor.state->inputs.workers&&splitLabor.context->freeFigureSlots==wholeLabor.context->freeFigureSlots&&splitLabor.context->labor->arrivals==wholeLabor.context->labor->arrivals,"migration split horizon retains global allocation and employment state");
+    auto growing=lc;growing.labor->inDelay=1;growing.labor->statisticsPending=1;growing.labor->health=62;growing.labor->populationSum=15;growing.labor->sampleCount=1;growing.populationTotal=100;
+    auto grown=originalBuildingStateAfterUpdates(migrantHouse,growing,1);
+    need(grown.state&&grown.state->inputs.residents==12&&grown.state->inputs.free==10&&grown.context->populationTotal==102&&grown.context->labor->statisticsPending==0&&grown.context->labor->averagePopulation==58,"pending population statistics grows ordered ordinary house before sample average");
+    auto broken=lc;broken.figureSpeechCounters.reset();auto absent=originalBuildingStateAfterUpdates(migrantHouse,broken,1);
+    need(!absent.state&&!absent.context&&lc.freeFigureSlots==std::vector<size_t>({19,3})&&lc.figureServices->allocationSerial==37,"missing speech provenance refuses migration without consuming caller queue or RNG");
+    auto storage=ac;storage.goodsRecords=std::vector<OriginalBuildingGoodsRecord>(2);storage.goodsRecords->at(1).alive=1;storage.goodsRecords->at(1).owner=8;
+    OriginalFigureBuildingLink mill;mill.type=53;mill.alive=1;mill.storage=std::vector<OriginalStorageCompartment>{{1,300,1000},{2,200,1000},{30,90,1000}};mill.storagePolicy=0;
+    storage.buildingLinks->emplace(8,mill);storage.buildingInputs->emplace(8,OriginalBuildingUpdateInputs{});storage.goods->policies.resize(1);storage.storageRoadStatus->emplace(8,2);storage.poolRoadSelected->emplace(8,true);
+    storage.goods->warehouse[1]=999;storage.goods->warehouse[35]=77;
+    need(originalBuildingStorageStep(storage)==OriginalBuildingUpdateBlocker::None&&storage.goods->warehouse[1]==300&&storage.goods->warehouse[2]==200&&storage.goods->warehouse[30]==90&&storage.goods->warehouse[35]==77&&storage.buildingInputs->at(8).available==2,"storage resets29 counters and preserves high resources while using availability status2");
+    need(originalBuildingFoodStep(storage)==OriginalBuildingUpdateBlocker::None&&storage.cityDerived->food==550&&storage.buildingInputs->at(8).available==1&&storage.foodCalls==1,"food rescan overwrites Mill availability with adjacent-road bool and adds house plus nine foods");
+    auto savedInputs=population;savedInputs.resize(14000);const auto saved32=[&](size_t at,uint32_t v){for(unsigned k=0;k<4;++k)savedInputs.at(at+k)=uint8_t(v>>(8*k));};
+    saved32(anchor-180,1234);saved32(9770,71);saved32(9774,0xfffffffd);savedInputs[anchor-28+2]=0x34;savedInputs[anchor-28+3]=0x12;savedInputs[anchor-28+632]=2;savedInputs[anchor+1433]=1;saved32(anchor+1452,2);
+    auto restoredCity=context(OriginalBuildingUpdateScope::AdmittedTicks);
+    need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.elapsedYears==1234&&restoredCity.scenarioStartYears==0x1234&&restoredCity.engineRegion==2,"saved city years and animal region use literal outer and Scenario6 wire offsets");
+    need(restoredCity.labor->excessDepartureTotal==71&&restoredCity.labor->lastPopulationDelta==-3,"saved departure total and signed last arrival retain distinct adjacent Population7 words");
+    auto availability=ec;availability.empireProduction=std::array<bool,36>{};availability.unavailableResources=std::array<int16_t,36>{};
+    availability.buildings->at(7).type=192;availability.buildings->at(8).type=193;availability.buildings->at(9).type=194;
+    availability.empireProduction->at(3)=true;
+    need(originalBuildingUnavailableStep(availability)==OriginalBuildingUpdateBlocker::None&&availability.buildingUnavailable->at(7)&&!availability.buildingUnavailable->at(8)&&!availability.buildingUnavailable->at(9),"CropHold employment checks Empire production while CropField bypasses unavailable resource table");
+    availability.unavailableResources->at(3)=1;availability.empireProduction->at(19)=true;
+    need(originalBuildingUnavailableStep(availability)==OriginalBuildingUpdateBlocker::None&&!availability.buildingUnavailable->at(7)&&availability.buildingUnavailable->at(8),"single and multiple CropHold production predicates use independent19 and food lists");
+    auto market=field().building;market.type=59;market.x=20;market.y=20;market.imageInputs->gridIndex=4580;market.imageInputs->marketOrientation=0;
+    OriginalBuildingRoadInputs marketRoad;marketRoad.distance.resize(51984);marketRoad.networks.resize(51984);marketRoad.distance[5264]=17;marketRoad.networks[5264]=4;
+    auto entrance=originalBuildingMarketRoadAccess(market,marketRoad);
+    need(entrance&&entrance->distance==17&&entrance->x==20&&entrance->y==23&&entrance->network==4,"Market orientation0 uses descriptor entrance at origin plus684");
+    market.imageInputs->marketOrientation=1;marketRoad.distance[4583]=23;marketRoad.networks[4583]=6;entrance=originalBuildingMarketRoadAccess(market,marketRoad);
+    need(entrance&&entrance->distance==23&&entrance->x==23&&entrance->y==20,"Market orientation1 uses descriptor entrance at origin plus3");
+    OriginalBuildingProfile multipart;market.imageInputs->marketStalls[0]=8;multipart.footprints.push_back(market);auto stall=field().building;stall.type=62;stall.slot=8;
+    auto parentRoad=originalBuildingMultipartRoadAccess(stall,multipart,marketRoad,7);
+    need(parentRoad&&parentRoad->distance==23&&!parentRoad->network,"Stall copies registered Market road fields and does not dispatch network setter");
+    need(!originalBuildingMultipartRoadAccess(stall,multipart,marketRoad,6)&&!originalBuildingMultipartRoadAccess(stall,multipart,marketRoad),"Stall requires saved reciprocal parent to match framed Market child table");
+    multipart.footprints[0].slot=9;need(!originalBuildingMultipartRoadAccess(stall,multipart,marketRoad,9),"Stall refuses parent after its own registered slot");
 }
 void original(){
     const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!env||!*env){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return;}
@@ -186,6 +338,10 @@ void original(){
     std::vector<uint8_t> modelBytes;need(detail::readFile(root.resolve("Model/EmperorBuildingModels.txt"),1048576,modelBytes),"bounded production employment model");
     const auto employment=parseOriginalBuildingEmployment(std::string(modelBytes.begin(),modelBytes.end()));need(bool(employment),"difficulty-invariant production employment parsed");
     const auto houseModels=originalFigureHouseCapacities(std::string(modelBytes.begin(),modelBytes.end()));need(bool(houseModels),"existing cited house capacity model column");
+    const auto houseTaxes=originalFigureHouseModelColumn(std::string(modelBytes.begin(),modelBytes.end()),18);need(bool(houseTaxes),"house tax model column18 is difficulty invariant");
+    std::vector<uint8_t> figureModelBytes;need(detail::readFile(root.resolve("Model/EmperorFigureModels.txt"),100000,figureModelBytes),"bounded figure model input");
+    std::vector<uint8_t> speechBytes;need(detail::readFile(root.resolve("EmperorText.eng"),8u*1024u*1024u,speechBytes),"bounded original speech group metadata");
+    const auto speechCounts=originalBuildingSpeechCounts(speechBytes);need(bool(speechCounts),"framed EmperorText group counts");
     for(unsigned count:{1u,10u,48u,51u,100u}){
         std::map<uint16_t,size_t> live,tickComputed,productionComputed,selectorInputs,changedImages,decodedImages;
         std::map<std::string,size_t> tickRefused,productionRefused;size_t saves=0,consistent=0,growthRecords=0,serviceRecords=0,serviceChanged=0,serviceBytes=0;
@@ -205,7 +361,7 @@ void original(){
             need(saves<=6&&accounting->available==available[saves-1]&&account->state.employed==available[saves-1]&&
                 account->state.shortage==shortage[saves-1]&&account->state.unemployed==0,"original employment totals derived from nested serialized table");
             if(count==1)std::cout<<"{\"accounting_source\":"<<saves<<",\"available\":"<<accounting->available<<",\"employed_after\":"<<account->state.employed<<",\"unemployed_after\":"<<account->state.unemployed<<",\"shortage_after\":"<<account->state.shortage<<"}\n";
-            std::optional<OriginalBuildingRoadInputs> roads;bool ordinaryRoadExit=false;
+            std::optional<OriginalBuildingRoadInputs> roads;std::optional<OriginalFigurePassability> movement;bool ordinaryRoadExit=false;
             {
                 const auto endpoints=originalBuildingSavedRoadEndpoints(container.payload,snapshot.sizeOffset);
                 const auto spawn=originalFigureSpawnServices(container.payload,snapshot.sizeOffset);
@@ -213,7 +369,7 @@ void original(){
                 const auto scene=composeOriginalSavedGroundScene(snapshot.terrain,snapshot.buildings,*snapshot.layers.ground,archive,ground,elevation);
                 auto surface=scene.surface;surface.terrain=scene.rebuiltMovementTerrain;
                 auto masks=originalFigureMovementPassability(surface,snapshot.buildings,snapshot.layers.ground->owner,*spawn);
-                if(masks){const int entry=int(spawn->cropBase)+endpoints->at(0)+228*endpoints->at(1);
+                if(masks){movement=*masks;const int entry=int(spawn->cropBase)+endpoints->at(0)+228*endpoints->at(1);
                     need(entry>=0&&entry<51984,"saved road entry has valid backing coordinate");
                     auto distances=originalBuildingRoadDistances(masks->cells,uint32_t(entry));need(bool(distances),"original movement grid satisfies road flood memory bounds");
                     OriginalFigureUpdateContext networkContext;networkContext.terrain=surface.terrain;networkContext.passability=masks;networkContext.cropBase=spawn->cropBase;networkContext.activeSide=spawn->side;
@@ -230,16 +386,71 @@ void original(){
             }
             auto buildings=snapshot.buildings.footprints;
             for(const auto& object:snapshot.buildings.objectBuildings){OriginalBuildingFootprint f;f.type=object.type;f.slot=object.slot;f.size=object.size;f.x=object.x;f.y=object.y;f.recordOffset=object.recordOffset;f.imageInputs=OriginalBuildingImageInputs{};f.imageInputs->gridIndex=object.gridIndex;buildings.push_back(f);}
+            OriginalBuildingUpdateContext cityContext(OriginalBuildingUpdateScope::AdmittedTicks,true);
+            need(originalBuildingSavedCityContext(container.payload,snapshot.sizeOffset,cityContext),"complete nested city context");
+            need(bool(snapshot.layers.figures),"complete original figure pool");cityContext.figures=snapshot.layers.figures->slots;
+            cityContext.formations=originalBuildingSavedFormations(container.payload,snapshot.terrainOffset);
+            cityContext.figureStationary=originalBuildingSavedFigureStationary(container.payload,*snapshot.layers.figures);
+            cityContext.figureModels=originalFigureModels(std::string(figureModelBytes.begin(),figureModelBytes.end()),originalFigureSavedDifficulty(container.payload,snapshot.sizeOffset));
+             cityContext.figureServices=originalFigureSavedServices(container.payload,snapshot.terrainOffset);
+             cityContext.figureSpeechCounters=originalBuildingSavedSpeechCounters(container.payload,snapshot.terrainOffset);cityContext.figureSpeechCounts=speechCounts;
+             need(bool(cityContext.figureSpeechCounters),"saved speech rotation counters restored without process defaults");
+            cityContext.buildingLinks=originalFigureBuildingLinks(container.payload,snapshot.buildings);
+            cityContext.goods=originalFigureSavedGoodsServices(container.payload,snapshot.layers.figures->end,snapshot.sizeOffset,snapshot.terrainOffset);
+            cityContext.goodsRecords=originalBuildingSavedGoodsRecords(container.payload,snapshot.layers.figures->end);
+            cityContext.religion=originalBuildingSavedReligion(container.payload,snapshot.sizeOffset);need(bool(cityContext.religion),"framed saved religion entries and scenario enabled bytes");
+            cityContext.religion->previousRating=0;cityContext.religion->selected=-1; //explicit scratch inputs1312F78/85D720.
+            const auto empireStates=originalBuildingSavedEmpireStates(container.payload,snapshot.layers.figures->end,&cityContext);
+            need(bool(empireStates),"complete framed Empire3 states for phase13");cityContext.statistics->empireState=*empireStates;
+            cityContext.statistics->religionBonusEnabled=false; //explicit10BFB50 process premise.
+            need(cityContext.formations&&cityContext.figureStationary&&cityContext.figureModels&&cityContext.figureServices&&cityContext.buildingLinks&&cityContext.goods,"all independent formation model storage services supplied");
+            cityContext.buildingInputs=*parsed;cityContext.buildings.emplace();for(const auto& b:buildings)cityContext.buildings->emplace(b.slot,b);
+            cityContext.houseTaxModel=*houseTaxes;cityContext.poolRoadAccess.emplace();cityContext.poolRoadReachable.emplace();cityContext.storageRoadStatus.emplace();cityContext.poolRoadSelected.emplace();cityContext.productionInputs=*industry;
+            cityContext.employmentModel=*employment;cityContext.buildingUnavailable.emplace();
+            for(const auto& b:buildings){const auto& i=parsed->at(b.slot);const auto resource=originalBuildingSavedUnavailable(container.payload,snapshot.sizeOffset,i.output);
+                need(bool(resource),"per-building output availability");cityContext.buildingUnavailable->emplace(b.slot,!i.enabled||*resource!=0);}
+            need(originalBuildingSavedNoticeCountdown(container.payload,snapshot.terrainOffset,cityContext),"saved shortage notification countdown");
+            cityContext.highestEverBuildingSlot=0;cityContext.buildingRegistrySize=4000;
+            cityContext.cityEmployment->shortageNotice=false;cityContext.cityEmployment->unemploymentNotice=false;
+            cityContext.labor->populationNotices=std::array<bool,10>{};
+            for(unsigned n=0;n<10;++n)cityContext.labor->populationNotices->at(n)=container.payload.at(snapshot.terrainOffset+1363680+n)!=0;
+             //Explicit isolated process inputs: notification flags false,coverage
+             //scratch0,migrant spacing0,placement check false. CRT/wall clock remain absent;
+             //migrant allocation does not consume either input.
+             //Animal region and shortage countdown are restored SAV values.
+             cityContext.serviceCoverage=std::array<int32_t,11>{};cityContext.labor->spacing=0;cityContext.scenarioFigurePlacementCheck=false;
+            cityContext.figureCellHeads=snapshot.layers.figures->cellHeads;
+            if(count==1)std::cout<<"{\"city_source\":"<<saves<<",\"buildings\":"<<buildings.size()<<",\"population\":"<<*cityContext.populationTotal<<",\"pending_statistics\":"<<cityContext.labor->statisticsPending<<",\"health\":"<<cityContext.labor->health<<",\"sentiment\":"<<cityContext.labor->sentiment<<",\"tax_rate\":"<<cityContext.accounting->taxRate<<"}\n";
+            for(size_t n=1999;n>0;--n)if(!cityContext.figures->at(n).alive)cityContext.freeFigureSlots.push_back(n);
+            if(roads){cityContext.cropBase=roads->cropBase;cityContext.terrain=roads->terrain;cityContext.movement=movement;cityContext.activeSide=originalFigureSpawnServices(container.payload,snapshot.sizeOffset)->side;
+                for(const auto& b:buildings){const auto access=b.type==59||b.type==62||b.type==66||b.type==67?
+                     originalBuildingMultipartRoadAccess(b,snapshot.buildings,*roads,parsed->at(b.slot).parentSlot):originalBuildingIsHouse(b.type)?originalBuildingHouseRoadAccess(b,*roads):originalBuildingRoadAccess(b,*roads);
+                     need(bool(access),"complete pool road output");cityContext.poolRoadAccess->emplace(b.slot,*access);cityContext.poolRoadReachable->emplace(b.slot,access->distance!=0);
+                     if(b.type==33||b.type==35||b.type==43||b.type==53){const auto adjacent=originalBuildingHouseRoadAccess(b,*roads,false);need(bool(adjacent),"complete pool virtual58 adjacent-road selection");cityContext.poolRoadSelected->emplace(b.slot,adjacent->selected);}
+                    if(b.type==53||b.type==54||b.type==58){const auto ranked=originalBuildingHouseRoadAccess(b,*roads,false);need(bool(ranked),"storage ranked road query closes");
+                    uint8_t status=ranked->selected?1:0;
+                    if(!status&&b.type==53){auto fallback=b;fallback.size=5;const auto wider=originalBuildingHouseRoadAccess(fallback,*roads,false);need(bool(wider),"Mill model width5 storage fallback");if(wider->selected)status=2;}
+                    cityContext.storageRoadStatus->emplace(b.slot,status);}
+                    }
+                cityContext.applyLoadRoadRefresh=true;
+                cityContext.irrigation.emplace();auto& irrigation=*cityContext.irrigation;
+                const auto scene=composeOriginalSavedGroundScene(snapshot.terrain,snapshot.buildings,*snapshot.layers.ground,archive,ground,elevation);
+                irrigation.image=scene.surface.image;irrigation.subTile=scene.surface.subTile;irrigation.owners=roads->owners;irrigation.ownerTypes=snapshot.buildings.slotTypes;
+                need(archive.imageIndex[0x35]>=201,"irrigation435 archive table handle");irrigation.baseImage=(2u<<14)|uint32_t(archive.imageIndex[0x35]-201);
+                //524360 registration is the cIrrigation class only (vtable7B6844).
+                for(const auto& b:buildings)need(b.type!=57,"original irrigation registry is empty by complete type pool");}
             for(const auto& f:buildings){++live[f.type];OriginalBuildingUpdateState state{f,parsed->at(f.slot),std::nullopt};
                 const auto ip=industry->find(f.slot);if(ip!=industry->end())state.production=ip->second;
-                if(count==1){if(roads&&f.type!=59&&f.type!=62&&f.type!=66&&f.type!=67&&
-                    (originalBuildingIsHouse(f.type)?originalBuildingHouseRoadAccess(f,*roads):originalBuildingRoadAccess(f,*roads)))++roadComputed;else ++roadRefused;}
+                const auto access=roads?(f.type==59||f.type==62||f.type==66||f.type==67?
+                     originalBuildingMultipartRoadAccess(f,snapshot.buildings,*roads,parsed->at(f.slot).parentSlot):originalBuildingIsHouse(f.type)?originalBuildingHouseRoadAccess(f,*roads):originalBuildingRoadAccess(f,*roads)):std::nullopt;
+                if(count==1){if(access)++roadComputed;else ++roadRefused;}
                 need(state.inputs.identity==f.slot,"saved building identity equals table slot");
                 auto ctx=originalBuildingSavedUpdateContext(container.payload,snapshot.terrainOffset,snapshot.sizeOffset,f,OriginalBuildingUpdateScope::AdmittedTicks,true);need(bool(ctx),"explicit saved city phase and terrain context");
+                const auto local=*ctx;*ctx=cityContext;ctx->phase=local.phase;ctx->monthPart=local.monthPart;ctx->cycle=local.cycle;ctx->month=local.month;ctx->terrainFlags=local.terrainFlags;ctx->typeDisabled=local.typeDisabled;
                 ctx->unavailable=originalBuildingSavedUnavailable(container.payload,snapshot.sizeOffset,state.inputs.output);
                 const auto required=employment->find(f.type);if(required!=employment->end())ctx->requiredWorkers=required->second;
                 if(state.production){ctx->festivalProductionBoost=originalBuildingSavedProductionBoost(container.payload,f.type);need(bool(ctx->festivalProductionBoost),"Festival4 production predicate supplied");}
-                if(roads){ctx->roadAccess=originalBuildingIsHouse(f.type)?originalBuildingHouseRoadAccess(f,*roads):originalBuildingRoadAccess(f,*roads);ctx->roadRefreshOrdinaryExit=ordinaryRoadExit;}
+                if(roads){ctx->roadAccess=access;ctx->roadRefreshOrdinaryExit=ordinaryRoadExit;}
                 ctx->houses=*houses;ctx->houseModelCapacity=*houseModels;
                 if(count==1&&roads&&ordinaryRoadExit){auto passContext=*ctx;passContext.phase=21;
                     auto pass=originalBuildingStateAfterUpdates(state,passContext,1);if(pass.state){++phase21Computed;
@@ -249,11 +460,30 @@ void original(){
                     const std::array<std::pair<uint32_t,uint32_t>,6> totals{{{0,0},{572,0},{1066,69},{98,70},{0,0},{28,0}}};
                     need(capacityTotals[saves]==totals[saves-1],"phase22 original city capacity and free totals lock all supported sources");}
                 if(state.inputs.industry){need(f.imageInputs&&f.imageInputs->cropWord4==originalBuildingCropProgress(state.inputs),"raw industrial progress equals independent existing selector input");++consistent;}
-                auto result=originalBuildingStateAfterUpdates(state,*ctx,count);
-                if(result.state){++tickComputed[f.type];tickSelectorInputs[f.type]+=result.changedSelectorInputs;
-                    need(result.changedSelectorInputs==0&&!result.selectorChanged,"N1 admitted tick keeps all existing image selectors");
+                 auto result=originalBuildingStateAfterUpdates(state,*ctx,count);
+                  if(result.state){++tickComputed[f.type];tickSelectorInputs[f.type]+=result.changedSelectorInputs;
+                      if(count==10&&f.slot==buildings.front().slot){const auto prefix=originalBuildingStateAfterUpdates(state,*ctx,4);
+                          need(bool(prefix.state),"original split prefix closes");const auto suffix=originalBuildingStateAfterUpdates(*prefix.state,*prefix.context,6);
+                          need(suffix.state&&suffix.context->phase==result.context->phase&&suffix.context->accountingCalls==result.context->accountingCalls&&
+                              suffix.context->networkCalls==result.context->networkCalls&&suffix.context->allocatedFigures==result.context->allocatedFigures&&
+                              suffix.context->freeFigureSlots==result.context->freeFigureSlots&&suffix.context->populationTotal==result.context->populationTotal,
+                              "original N10 split preserves load order city services and allocator state");}
+                      if(count==1&&f.slot==buildings.front().slot){auto serviceContext=*result.context;serviceContext.phase=1;serviceContext.applyLoadRoadRefresh=false;
+                          const auto accountState=originalBuildingStateAfterUpdates(*result.state,serviceContext,1);need(bool(accountState.state),"full accounting phase closes original source after road initialization");
+                          serviceContext.phase=23;const auto laborState=originalBuildingStateAfterUpdates(*result.state,serviceContext,1);need(bool(laborState.state),"labor and pending population statistics close original source");
+                           serviceContext=*laborState.context;serviceContext.phase=25;const auto jobs=originalBuildingStateAfterUpdates(*laborState.state,serviceContext,1);need(bool(jobs.state),"employment distribution closes original source");
+                           constexpr int32_t populations[]={0,572,1012,28,0,28},laborAvailable[]={0,234,406,11,0,11},employedTotals[]={0,234,399,11,0,11};
+                           need(laborState.context->populationTotal==populations[saves-1]&&jobs.context->cityEmployment->available==laborAvailable[saves-1]&&
+                               jobs.context->cityEmployment->employed==employedTotals[saves-1]&&laborState.context->allocatedFigures.empty(),"original labor population and employment totals use complete saved city inputs");
+                           need(!laborState.context->crtRandom&&!laborState.context->wallClock&&laborState.context->crtRandomCalls==0,"original reached labor needs no fabricated CRT seed or wall clock");
+                          const auto& a=*accountState.context->accounting;const auto& d=*accountState.context->cityDerived;
+                          std::cout<<"{\"city_services_source\":"<<saves<<",\"taxable_ordinary\":"<<a.taxableOrdinary<<",\"taxable_elite\":"<<a.taxableElite<<",\"food\":"<<d.food<<",\"labor_available\":"<<jobs.context->cityEmployment->available<<",\"employed\":"<<jobs.context->cityEmployment->employed<<",\"allocated_figures\":"<<laborState.context->allocatedFigures.size()<<",\"population_after\":"<<*laborState.context->populationTotal<<"}\n";}
+                     if(result.selectorChanged){++tickImages[f.type];const auto bound=bindOriginalBuildingBaseImage(result.state->building,"DATA/China_General.sg3",archive);
+                         need(bool(bound),"admitted changed selector binds existing archive");const auto image=decodeSG3Sprite(archive,bound->archiveIndex,root.resolve("DATA/China_General.555"));
+                         need(image.status==SG3DecodeStatus::Decoded&&image.image.valid(),"admitted changed image decodes");++tickDecoded[f.type];}
+                     if(count==1)need(result.changedSelectorInputs==0&&!result.selectorChanged,"N1 admitted tick keeps all existing image selectors");
                 }else {++tickRefused[originalBuildingUpdateBlockerName(result.blocker)];need(bool(result.refusedPhase),"admitted refusal names its exact phase");++refusedPhases[*result.refusedPhase];
-                    need(result.operations==(*ctx->phase==0?1u:4u),"atomic refusal reports exact executed prefix without publishing state");}
+                    need(result.operations==(*result.refusedPhase+51-*ctx->phase)%51,"atomic refusal reports exact executed prefix without publishing state");}
                 ctx->scope=OriginalBuildingUpdateScope::ProductionPasses;result=originalBuildingStateAfterUpdates(state,*ctx,count);
                 if(!result.state){++productionRefused[originalBuildingUpdateBlockerName(result.blocker)];continue;}
                 ++productionComputed[f.type];selectorInputs[f.type]+=result.changedSelectorInputs;
@@ -270,19 +500,22 @@ void original(){
         size_t ticks=0,production=0,changed=0,decoded=0,inputs=0;for(const auto& e:tickComputed)ticks+=e.second;for(const auto& e:productionComputed)production+=e.second;
         for(const auto& e:changedImages)changed+=e.second;for(const auto& e:decodedImages)decoded+=e.second;for(const auto& e:selectorInputs)inputs+=e.second;
          need(production==1065&&productionComputed==expected&&productionComputed[194]==287&&productionComputed[196]==490&&productionComputed[59]==2,"production closes all27 types including32 industrial records");
-        need(ticks==(count==1?1065u:0u),"requested admitted horizon denominator locked separately from subpasses");
+        std::cout<<"{\"diagnostic_N\":"<<count<<",\"admitted\":"<<ticks<<"}\n";
+        for(const auto& e:tickRefused)std::cout<<"{\"diagnostic_blocker\":\""<<e.first<<"\",\"count\":"<<e.second<<"}\n";
+        for(const auto& e:refusedPhases)std::cout<<"{\"diagnostic_phase\":"<<e.first<<",\"count\":"<<e.second<<"}\n";
+        need(ticks==(count==1||count==10?1065u:0u),"requested admitted horizon denominator locked separately from subpasses");
         need(growthRecords==137&&inputs==137&&selectorInputs[194]==114&&selectorInputs[196]==23,"real growth and selector-input changes from saved flags, never fitted deltas");
         if(count==1||count==10||count==100)need(changed==(count==1?9u:count==10?82u:137u)&&changedImages[194]==(count==1?6u:count==10?63u:114u)&&
             changedImages[196]==(count==1?3u:count==10?19u:23u),"per-type image-stage transition denominator locks");
         need(serviceRecords==70,"all70 house service records close");
         need(serviceChanged==52&&serviceBytes==208,"52 of70 saved houses change208 service bytes without selector changes");
-        const std::map<std::string,size_t> refused=count==1?std::map<std::string,size_t>{}:std::map<std::string,size_t>{{"city_labor_4ad4a0_4ada10_4adc90",17},{"city_accounting_4f1560_4ac2fa",1048}};
+        const std::map<std::string,size_t> refused=count==1||count==10?std::map<std::string,size_t>{}:std::map<std::string,size_t>{{"scheduled_phase_callee_not_closed",903},{"building_virtual20_416d20",162}};
         need(tickRefused==refused&&productionRefused.empty(),"exact admitted and isolated refusal partitions");
-        need(refusedPhases==(count==1?std::map<uint32_t,size_t>{}:std::map<uint32_t,size_t>{{1,1048},{23,17}}),"new phase23 blocker replaces phase20 and21 refusals");
+        need(refusedPhases==(count==1||count==10?std::map<uint32_t,size_t>{}:std::map<uint32_t,size_t>{{31,162},{32,903}}),"exact reached scheduler phase partitions");
         need(industryChanged==20&&industryGated==12,"20 of32 industrial records mutate and12 remain gated or saturated");
         need(industrialChanges==std::map<uint16_t,size_t>{{33,4},{35,8},{43,8}},"industrial mutation counts partition exactly by Hunter Clay Kiln");
         need(accountingComputed==6,"accounting allocation service closes6 of6 original cities");
-        if(count==1)need(roadComputed==1055&&roadRefused==10&&phase21Computed==1055&&phase22Computed==1065,"road helper and ordinary phase21 exclude10 multipart overrides;phase22 covers1065");
+        if(count==1)need(roadComputed==1065&&roadRefused==0&&phase21Computed==1065&&phase22Computed==1065,"road helper and ordinary phase21 close all10 multipart overrides;phase22 covers1065");
         need(changed==decoded,"all changed image words decoded denominator");
         std::cout<<"{\"N\":"<<count<<",\"buildings\":1065,\"admitted_ticks_computed\":"<<ticks<<",\"production_passes_computed\":"<<production<<",\"crop_progress_records_changed\":"<<growthRecords<<",\"image_selector_inputs_changed\":"<<inputs<<",\"image_words_changed\":"<<changed<<",\"image_words_decoded\":"<<decoded<<",\"crop_raw_selector_consistency\":"<<consistent<<",\"house_service_records\":"<<serviceRecords<<",\"house_service_records_changed\":"<<serviceChanged<<",\"house_service_bytes_changed\":"<<serviceBytes<<"}\n";
         for(const auto& e:live)std::cout<<"{\"N\":"<<count<<",\"type\":"<<e.first<<",\"live\":"<<e.second<<",\"ticks_computed\":"<<tickComputed[e.first]<<",\"tick_selector_inputs_changed\":"<<tickSelectorInputs[e.first]<<",\"tick_images_changed\":"<<tickImages[e.first]<<",\"tick_images_decoded\":"<<tickDecoded[e.first]<<",\"production_computed\":"<<productionComputed[e.first]<<",\"industry_records_changed\":"<<industrialChanges[e.first]<<",\"selector_inputs_changed\":"<<selectorInputs[e.first]<<",\"images_changed\":"<<changedImages[e.first]<<",\"images_decoded\":"<<decodedImages[e.first]<<"}\n";

@@ -188,12 +188,19 @@ inline std::optional<int32_t> originalFigureSavedFestivalVenue(const std::vector
         (nowTick<i32(festival+4))+16*(nowMonth-startMonth);
     return elapsed>i32(festival+52)?0:int32_t(venue);
 }
+// Process-only 4189B0 history; absent in the retained figure-only experiment.
+// The caller supplies all entries, cursor and previous 10C713C explicitly.
+struct OriginalFigureRandomHistory {
+    std::array<uint32_t,100> ring;
+    uint32_t cursor,previous7;
+};
 struct OriginalFigureSavedServices {
     struct FormationImpact {int16_t alert=0,source=0;}; //runtime+5E/+60,5E63A2/A8.
     std::array<FormationImpact,100> formationImpacts{};
     std::array<int16_t,1000> routeOwners{};
     std::vector<uint8_t> directions;
     uint32_t randomFirst=0,randomSecond=0;
+    std::optional<OriginalFigureRandomHistory> randomHistory;
     std::optional<int32_t> fireCount;
     std::optional<int32_t> criminalCount;
     std::optional<uint32_t> allocationSerial; //10AEEE8,531580,T+fireCount+8.

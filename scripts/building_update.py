@@ -14,7 +14,7 @@ def main():
     parser.add_argument('--mode', choices=['release', 'undefined'], default='release')
     parser.add_argument('--build-dir', type=Path)
     parser.add_argument('--bite', action='store_true')
-    parser.add_argument('--bite-kind', choices=['crop', 'industry', 'road', 'accounting'], default='crop')
+    parser.add_argument('--bite-kind', choices=['crop', 'industry', 'road', 'accounting', 'religion', 'migration', 'emigration', 'overflow', 'population', 'employment', 'market', 'stall', 'load'], default='crop')
     args = parser.parse_args()
     if args.build_dir and not args.build_dir.is_absolute():
         parser.error('absolute build directory required')
@@ -37,6 +37,15 @@ def main():
             'industry': ('?5:10)', '?5:9)', 'industry workforce100 percent produces10 with ordinary divisor10'),
             'road': ('if(r<bestRank)', 'if(r<=bestRank)', 'equal network rank preserves clockwise first candidate'),
             'accounting': ('if(r.priority>5)r.priority=3', 'if(r.priority>5)r.priority=4', 'out-of-range positive priority normalizes to3 before demand test'),
+            'religion': ('activeDelta[]={-4,-5,-6,-7,-8}', 'activeDelta[]={-4,-5,-5,-7,-8}', 'religion difficulty decrement precedes aggregate and disabled status reset'),
+            'migration': ('const int amount=std::min(left,pass<2?6:int(h.free))', 'const int amount=std::min(left,pass<2?5:int(h.free))', 'immigrant constructor and caller writes preserve independent literal fields'),
+            'emigration': ('c.labor->lastPopulationDelta=originalBuildingSub32(0,count)', 'c.labor->lastPopulationDelta=count', 'emigration stores signed last arrival and population before allocating type12'),
+            'overflow': ('originalBuildingSub32(c.labor->excessDepartureTotal,int(i.free))', 'originalBuildingAdd32(c.labor->excessDepartureTotal,int(i.free))', 'overflow departure increments separate accounting total only after type13 allocation'),
+            'population': ('l.health>=61?2:1', 'l.health>=61?3:1', 'pending population statistics grows ordered ordinary house before sample average'),
+            'employment': ('const int amount=std::min(candidate.required-int(i.workers),left)', 'const int amount=std::min(candidate.required-int(i.workers),0)', 'employment distributes ordered integer remainder after proportional first pass'),
+            'market': ('(rotation?3u:684u)', '(rotation?3u:685u)', 'Market orientation0 uses descriptor entrance at origin plus684'),
+            'stall': ('if(out)out->network.reset()', 'if(out)out->network=0', 'Stall copies registered Market road fields and does not dispatch network setter'),
+            'load': ('c.loadAccountingApplied=true;', 'c.loadAccountingApplied=false;', 'explicit UI load accounting transition is applied once before scheduled phase1'),
         }
         before, after, assertion = mutations[args.bite_kind]
         assert header.count(before) == 1

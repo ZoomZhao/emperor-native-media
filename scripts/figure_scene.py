@@ -14,7 +14,13 @@ def main():
     p.add_argument('--build-dir', type=Path)
     p.add_argument('--timeline-horizons', help='Comma-separated positive horizons, at most 10000 (default: regression corpus)')
     p.add_argument('--timeline-audio', choices=['off', 'on', 'both'], default='both')
+    p.add_argument('--timeline-mode', choices=['figure', 'combined'], default='figure')
+    p.add_argument('--city-clocks', help='Required combined initial values: ten unsigned dwords in executable order')
     a = p.parse_args()
+    if a.timeline_mode == 'combined' and not a.city_clocks:
+        p.error('--timeline-mode combined requires --city-clocks')
+    if a.timeline_mode == 'combined' and a.timeline_horizons:
+        p.error('combined mode measures the fixed 1,2,5,10,20,51 matrix')
     horizons = None
     if a.timeline_horizons:
         try:
@@ -25,7 +31,7 @@ def main():
             p.error('timeline horizons must be in 1..10000')
     if a.build_dir and not a.build_dir.is_absolute():
         p.error('absolute build directory required')
-    build = (a.build_dir or Path(tempfile.mkdtemp(prefix='emperor-figure-scene-'))).resolve()
+    build = (a.build_dir or Path(tempfile.mkdtemp(prefix='a2-figure-scene-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))).resolve()
     configured = os.environ.get('EMPEROR_GAMEDATA_ROOT')
     if configured and (build == Path(configured).resolve() or Path(configured).resolve() in build.parents):
         p.error('build directory must stay outside GameData')
@@ -39,6 +45,9 @@ def main():
                     *[str(ROOT / 'game_lab' / s) for s in sources], '-framework', 'CoreGraphics',
                     '-framework', 'CoreFoundation', '-lz', '-o', str(binary)], check=True)
     command = [str(binary), '--timeline-audio', a.timeline_audio]
+    command += ['--timeline-mode', a.timeline_mode]
+    if a.city_clocks:
+        command += ['--city-clocks', a.city_clocks]
     if horizons:
         command += ['--timeline-horizons', ','.join(map(str, horizons))]
     return subprocess.run(command, check=False).returncode

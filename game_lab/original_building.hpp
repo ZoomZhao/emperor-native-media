@@ -501,6 +501,16 @@ struct OriginalBuildingUpdateInputs {
     uint32_t identity=0;
     std::optional<std::array<uint8_t,126>> industry; // data+4..81 inclusive
     std::optional<std::array<uint8_t,61>> house; // serialized tail+4..64,0x517410
+    // Common5:427DA5/DB2/DF3/E00/8072 restore road fields,
+    // reciprocal migrant link,availability and countdown. Additive only.
+    int16_t model=0,residents=0,free=0,distance=0,roadX=0,roadY=0,migrant=0,workers=0;
+    uint8_t available=0,random=0,network=0;
+    int32_t laborCountdown=0;
+    std::optional<uint32_t> parentSlot;
+    //427D71/427E41/427EC3/427FC7/428065: runtime+1C/+3C/+48/+6E/+90.
+    int16_t operational=0,parent=0,suppression=0;
+    uint8_t laborDisabled=0,enabled=0,employmentCategory=0;
+    uint8_t houseWater=0,houseService=0; //common5 runtime+39/+43,wire52/61,427E41/427E8F.
 };
 inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuildingUpdateInputs(
     const std::vector<uint8_t>& data,const OriginalBuildingProfile& profile){
@@ -520,6 +530,11 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         if(data.size()-at<182||detail::u16(data.data()+at)!=5||detail::u16(data.data()+at+16)!=profile.slotTypes[e.first])return std::nullopt;
         const auto* p=data.data()+at;OriginalBuildingUpdateInputs v;
         v.alive=p[2];v.output=p[65];v.byte52=p[76];v.upgrade=p[99];v.identity=detail::u32(p+162);
+        v.model=detail::i16(p+18);v.residents=detail::i16(p+27);v.free=detail::i16(p+29);v.distance=detail::i16(p+31);
+        v.roadX=detail::i16(p+37);v.roadY=detail::i16(p+39);v.migrant=detail::i16(p+45);v.workers=detail::i16(p+62);
+        v.available=p[66];v.random=p[75];v.network=p[20];v.laborCountdown=int32_t(int64_t(detail::u32(p+137))-(detail::u32(p+137)>INT32_MAX?4294967296LL:0));
+        v.operational=detail::i16(p+23);v.parent=detail::i16(p+54);v.suppression=detail::i16(p+72);v.laborDisabled=p[98];v.enabled=p[129];v.employmentCategory=p[64];
+        v.houseWater=p[52];v.houseService=p[61];
         const size_t tail=at+182;const uint16_t type=profile.slotTypes[e.first];
         if(type==0xc2||type==0xc4){
             if(data.size()-tail<140||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1||
@@ -529,6 +544,11 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         if(type>=2&&type<=17){
             if(data.size()-tail<65||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1)return std::nullopt;
             v.house.emplace();std::copy_n(data.begin()+tail+4,61,v.house->begin());
+        }
+        //Stall541DE0: industrial130,own4,word150 then parent154.
+        if(type==62||type==66||type==67){
+            if(data.size()-tail<140||detail::u16(data.data()+tail+130)!=4)return std::nullopt;
+            v.parentSlot=detail::u32(data.data()+tail+136);
         }
         out.emplace(e.first,v);
     }

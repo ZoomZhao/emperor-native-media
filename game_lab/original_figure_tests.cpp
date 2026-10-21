@@ -16,7 +16,89 @@ namespace {
 size_t checks=0;
 std::vector<unsigned> timelineHorizons{1,83,84,100,150,178,192,200,300,500,1000};
 std::vector<bool> timelineAudio{false,true};
+bool combinedMode=false;
+std::optional<OriginalCityClocks> combinedClocks;
+const std::vector<unsigned> combinedHorizons{1,2,5,10,20,51};
 void need(bool ok,const char* message){++checks;if(!ok)throw std::runtime_error(message);}
+OriginalCombinedProcessInputs combinedTestProcess(){
+    OriginalCombinedProcessInputs p;p.cityClocks=combinedClocks;
+    p.randomHistory=OriginalFigureRandomHistory{{},0,0};p.eventGate17=0;
+    p.cityMode=0;p.schedulerGate16=0;p.eventSlots=std::array<uint32_t,8>{};p.eventProgress=0;
+    p.managerGate8=0;p.wildlifeCounter=0;p.wildlifePeriod=30;return p;
+}
+void combinedAuthored(){
+    OriginalCombinedState city;city.process=combinedTestProcess();city.figures.services.emplace();
+    city.figures.services->randomFirst=1;city.figures.services->randomSecond=2;
+    city.figures.goods.emplace();city.phase=0;
+    std::vector<uint32_t> order;auto next=city;
+    need(originalCombinedBeforeFigures(next,order).empty()&&next.phase==1&&next.figures.goods->savedPhase==1&&
+        next.process.cityClocks->value[0]==(combinedClocks->value[0]+1u>=4?0:combinedClocks->value[0]+1u)&&
+        next.process.randomHistory->cursor==1&&next.process.randomHistory->ring[0]==0,
+        "combined prelude advances engine RNG,clocks and exactly one shared phase");
+    need(order==std::vector<uint32_t>{0x4189b0,0x529990,0x5ef190,0x5eff20,0x4ac2b0,0x466e90},
+        "combined prelude preserves executable call order");
+    auto unknown=city;unknown.process.cityClocks.reset();
+    need(originalCombinedBeforeFigures(unknown,order)=="city_clocks_529990_initial_values_required","combined city clock input has no fallback");
+    unknown=city;unknown.process.eventGate17=1;unknown.process.eventGate16=1;
+    need(originalCombinedBeforeFigures(unknown,order)=="event_ui_5eff20_not_closed"&&unknown.phase==0,
+        "positive event UI gate refuses before scheduler");
+    unknown=city;unknown.process.eventSlots->at(3)=1;
+    need(originalCombinedBeforeFigures(unknown,order)=="scenario_slot_467680_not_closed","nonempty scenario slot refuses before figures");
+    unknown=city;unknown.process.managerGate8=1;unknown.process.eventRecordModes=std::vector<uint8_t>{5};
+    need(originalCombinedBeforeFigures(unknown,order)=="scenario_manager_492430_4ed3b0","positive scenario manager mode5 refuses");
+    unknown=city;unknown.phase=19;
+    need(originalCombinedBeforeFigures(unknown,order).empty()&&unknown.phase==20&&
+        originalCombinedBeforeFigures(unknown,order)=="terrain_resource_growth_4bc440_after_51e4a0",
+        "combined phase20 never treats standalone production as the whole phase");
+    unknown=city;unknown.phase=50;
+    need(originalCombinedBeforeFigures(unknown,order)=="monthly_city_4ac650"&&unknown.phase==50,
+        "phase wrap refuses its unported monthly tail");
+    unknown=next;unknown.figures.services->randomHistory=unknown.process.randomHistory;
+    unknown.process.wildlifeCounter=29;
+    need(originalCombinedAfterFigures(unknown,order).empty()&&*unknown.process.wildlifeCounter==30,
+        "wildlife tail retains increment on inclusive period boundary");
+    need(originalCombinedAfterFigures(unknown,order)=="wildlife_scan_564b50_not_closed"&&*unknown.process.wildlifeCounter==31,
+        "wildlife tail refuses first scan beyond period");
+    auto rng=*city.figures.services;rng.randomHistory=OriginalFigureRandomHistory{{},99,17};
+    originalFigureRandomNext(rng);
+    need(rng.randomHistory->ring[99]==17&&rng.randomHistory->cursor==0&&rng.randomHistory->previous7==(rng.randomFirst&127),
+        "engine RNG history stores old7bit value and wraps cursor99");
+    need(originalCombinedPhaseBlocker(3)=="unported_city_phase_3_4ac2b0"&&
+        originalCombinedPhaseBlocker(35)=="shared_house_service_bridge_517b40_required",
+        "unported phases and missing shared bridges remain named blockers");
+    auto initial=city;initial.figures.terrain.assign(51984,0);initial.figures.cellHeads.assign(51984,0);
+    for(size_t n=0;n<2000;++n){OriginalFigure f;f.slot=n;initial.figures.figures.emplace(n,f);}
+    OriginalBuildingScene scene;scene.accepted=true;scene.surface.terrain=initial.figures.terrain;SG3Archive archive;
+    OriginalSceneTimelineFrame frame;frame.animationClock=37;frame.admission.now=37;frame.admission.speed=80;frame.continueAfterPass={false};
+    const auto one=originalSceneTimeline(initial.figures,{},scene,archive,nullptr,0,{}, {frame},&initial);
+    need(one.complete&&one.combinedState&&one.updates==1&&one.context->services->randomHistory->cursor==1&&
+        one.lastUpdateOrder.back()==0x564b50,"combined timeline executes the full admitted order");
+    frame.animationClock=74;frame.admission.now=74;auto first=frame;first.animationClock=37;first.admission.now=37;
+    const auto two=originalSceneTimeline(initial.figures,{},scene,archive,nullptr,0,{}, {first,frame},&initial);
+    need(!two.complete&&two.updates==1&&two.refusedUpdate==2&&!two.context&&!two.combinedState&&!two.lastPass.context&&
+        two.refusal=="city_accounting_4f1560_4ac2fa","combined refusal cannot publish a completed prefix as requestedN");
+    OriginalBuildingFootprint house;house.slot=8;house.type=3;OriginalBuildingUpdateInputs input;input.identity=8;input.house.emplace();
+    OriginalBuildingUpdateContext bc(OriginalBuildingUpdateScope::AdmittedTicks,true);
+    initial.buildings.emplace(8,OriginalCombinedBuilding{{house,input,std::nullopt},bc});
+    initial.figures.buildings.emplace();OriginalFigureBuildingLink link;link.type=3;link.alive=1;link.residents=7;link.freeSlots=4;
+    link.houseModel=2;link.religion=std::array<uint8_t,4>{1,2,3,4};link.entertainment=std::array<uint8_t,3>{5,6,7};
+    link.herbalist=8;link.waterService=std::array<uint8_t,2>{9,10};link.houseGoods=std::array<int16_t,12>{-1,200};link.foodQuality=11;
+    initial.figures.buildings->emplace(8,link);
+    need(originalCombinedSyncBuildings(initial).empty(),"figure-written house services bridge to next building state");
+    const auto& synced=initial.buildings.at(8).state;const auto& h=*synced.inputs.house;
+    need(synced.inputs.residents==7&&synced.inputs.free==4&&synced.inputs.model==2&&h.at(9)==1&&h.at(12)==4&&
+        h.at(13)==255&&h.at(14)==255&&h.at(15)==200&&h.at(38)==5&&h.at(39)==6&&h.at(41)==7&&
+        h.at(40)==8&&h.at(45)==9&&h.at(47)==10&&h.at(49)==11,
+        "shared bridge preserves signed goods and exact independent house wire offsets");
+    auto countdown=city;countdown.figures=initial.figures;countdown.figures.buildings->clear();countdown.phase=48;
+    OriginalBuildingFootprint wall;wall.slot=8;wall.type=231;OriginalBuildingUpdateInputs wi;wi.identity=8;wi.alive=1;wi.byte52=2;
+    bc.phase=48;bc.monthPart=1;bc.cycle=1;bc.month=1;countdown.buildings.emplace(8,OriginalCombinedBuilding{{wall,wi,std::nullopt},bc});
+    OriginalFigureBuildingLink wl;wl.type=231;wl.alive=1;countdown.figures.buildings->emplace(8,wl);
+    const auto counted=originalSceneTimeline(countdown.figures,{},scene,archive,nullptr,0,{}, {first},&countdown);
+    need(counted.complete&&counted.buildingOutcomes==1&&counted.combinedState->phase==49&&
+        counted.combinedState->buildings.at(8).state.inputs.byte52==1,
+        "combined phase48 calls the public building API once before the figure pass");
+}
 void authored(){
     // Explicit independent frame-major truth tables: 0x5CFDF0 uses metadata
     // count at+20 as direction stride, not frames-per-direction.
@@ -1966,6 +2048,10 @@ void corpus(){
     struct TimelineScore {size_t pools=0,computed=0,outcomes=0,allocated=0,placed=0,decoded=0,consistent=0,primary=0,animation=0,animationCandidates=0,animationAdvanced=0,animationChanged=0,reselected=0,prefixReselected=0;
         std::map<std::string,size_t> refusals;};
     std::map<std::pair<bool,bool>,std::map<unsigned,TimelineScore>> timelineScores;
+    struct CombinedScore {size_t pools=0,figures=0,buildings=0,placed=0,components=0,consistent=0,frames=0,reselected=0;
+        size_t buildingTotal=0,figureTotal=0;
+        std::map<std::string,size_t> figureRefusals,buildingRefusals,poolRefusals;};
+    std::map<unsigned,CombinedScore> combinedScores;
     std::map<std::pair<unsigned,unsigned>,Score> byAction,hiddenAction;std::set<unsigned> selectors;
     for(const auto& source:catalog.sources){if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));need(save.readStable&&save.layers.figures.has_value(),"same-source stable figure profile");
@@ -2111,6 +2197,77 @@ void corpus(){
         const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,timelinePassability,
             &*hunterLinks,&*buildingLinks,*sourceModels,spawn->cropBase,timelineMasks,&*updateContext);
         need(initial.complete&&initial.context.has_value(),"timeline initializes callbacks/population exactly once");
+        if(combinedMode){
+            auto seed=*initial.context;seed.soundEffectsEnabled=false;seed.buildingEditMode=false;seed.crtRandom.reset();
+            const auto city=originalCombinedSavedState(seed,save.buildings,payload,save.terrainOffset,save.sizeOffset,combinedTestProcess());
+            need(city&&city->buildings.size()==save.buildings.footprints.size()+save.buildings.objectBuildings.size(),
+                "combined same-source building pool includes every footprint and static object");
+            for(unsigned n:combinedHorizons){
+                std::vector<OriginalSceneTimelineFrame> frames;
+                for(unsigned k=1;k<=n;++k){OriginalSceneTimelineFrame frame;frame.animationClock=37*k;
+                    frame.admission.now=37*k;frame.admission.speed=80;frame.continueAfterPass={false};
+                    for(const auto& p:timelineScene.placed)if(p.components.size()==1&&general.sprites[p.binding.physicalId-1].animationSpriteCount&&
+                        originalBuildingAnimationEnabled(p.footprint,&*employment)==true)frame.buildingDraws.push_back(p.footprint.slot);
+                    const unsigned origin=(228-save.terrain.activeSide)/2;
+                    for(unsigned diagonal=0;diagonal<2*save.terrain.activeSide-1;++diagonal)
+                        for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
+                            frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
+                    frames.push_back(std::move(frame));}
+                const auto result=originalSceneTimeline(seed,refs,timelineScene,general,&*employment,0,{},frames,&*city);
+                if(n==1){auto appFrames=frames;appFrames.front().combinedProcess=combinedTestProcess();
+                    need(app.selectPostLoadTimeline(save,payload,appFrames,0,{}),"App explicitly selects combined saved building and figure timeline");
+                    const auto combinedView=app.renderSavedBuildings(camera);
+                    need(combinedView.timelineCombined&&combinedView.timelineUpdates==1&&combinedView.figureDecoded>0&&
+                        combinedView.overlayDecodeFailures==0&&combinedView.overlayInvalid==0,
+                        "App combined view decodes its complete requested update");
+                    appFrames.front().combinedProcess->cityClocks.reset();
+                    need(!app.selectPostLoadTimeline(save,payload,appFrames,0,{})&&
+                        app.error().find("city_clocks_529990_initial_values_required")!=std::string::npos,
+                        "App refuses combined timeline without caller city clocks");}
+                auto& total=combinedScores[n];total.figureTotal+=figures.live.size();total.buildingTotal+=city->buildings.size();
+                const auto expected=city->phase==0?"city_accounting_4f1560_4ac2fa":"terrain_resource_growth_4bc440_after_51e4a0";
+                need((city->phase==0||city->phase==19)&&result.complete==(n==1)&&result.updates==1&&
+                    result.refusedUpdate==(n==1?0u:2u)&&result.refusal==(n==1?"":expected),
+                    "combined original pools complete one update and stop exactly at next whole-city blocker");
+                if(!result.complete){
+                    need(!result.context&&!result.combinedState&&!result.lastPass.context,
+                        "combined refusal withholds figure,building,clock and RNG prefix state");
+                    ++total.poolRefusals[result.refusal];total.figureRefusals[result.refusal]+=figures.live.size();
+                    total.buildingRefusals[result.refusal]+=city->buildings.size();
+                    auto unchanged=timelineScene;
+                    need(!installOriginalSceneTimeline(unchanged,save.terrain,figures,refs,save.buildings,general,result),
+                        "combined refused requested horizon cannot install a successful prefix");
+                }else{
+                    need(result.lastUpdateOrder==std::vector<uint32_t>{0x4189b0,0x529990,0x5ef190,0x5eff20,0x4ac2b0,0x466e90,0x4e27e0,0x564b50}&&
+                        result.combinedState&&result.combinedState->phase==city->phase+1&&result.buildingOutcomes==city->buildings.size()&&
+                        result.context->goods->savedPhase==city->phase+1&&*result.combinedState->process.wildlifeCounter==1,
+                        "combined completed order and shared post-scheduler phase match executable");
+                    for(const auto& e:result.combinedState->buildings){const auto& b=e.second.state;const auto& link=result.context->buildings->at(e.first);
+                        need(b.inputs.alive==link.alive&&b.building.type==link.type&&
+                            (!originalBuildingIsHouse(link.type)||(b.inputs.residents==link.residents&&b.inputs.free==link.freeSlots)),
+                            "combined retained building fields include same-update figure writes");}
+                    ++total.pools;total.figures+=figures.live.size();total.buildings+=result.buildingOutcomes;total.reselected+=result.buildingImageReselections;
+                    auto installed=timelineScene;
+                    need(installOriginalSceneTimeline(installed,save.terrain,figures,refs,save.buildings,general,result)&&installed.timelineCombined,
+                        "combined completed scene installs atomically with explicit mode");
+                    total.placed+=installed.figurePlaced;
+                    const auto imageState=originalFigureUpdateImageState(*result.context);
+                    for(const auto& e:result.context->figures){const auto& f=e.second;if(!f.alive)continue;
+                        const auto selected=figureImage(result.context->primaryImageInputs.at(f.slot),refs,save.terrain.flags.at(f.cell),figures.savedView,
+                            save.buildings.slotTypes.at(size_t(f.owner)),&imageState);
+                        need(selected.status==OriginalFigureImageStatus::Selected&&selected.image==f.image,
+                            "combined surviving primary agrees with independent selector");++total.consistent;}
+                    for(const auto& overlay:installed.overlays){if(overlay.mode==4){
+                            need(decodeWord((overlay.tileset<<14)+overlay.physicalId-1),"combined installed primary and cargo components decode");++total.components;}
+                        if(overlay.mode==3){need(decodeSG3Sprite(general,overlay.physicalId-1,root.resolve("DATA/China_General.555")).image.valid(),
+                            "combined installed building frame decodes");++total.frames;}}
+                }
+                std::cout<<"{\"combined_source\":"<<sources<<",\"N\":"<<n<<",\"complete\":"<<(result.complete?"true":"false")
+                    <<",\"completed_updates\":"<<result.updates<<",\"refused_update\":"<<result.refusedUpdate<<",\"initial_phase\":"<<city->phase
+                    <<",\"refusal\":\""<<result.refusal<<"\",\"building_total\":"<<city->buildings.size()<<",\"figure_total\":"<<figures.live.size()<<"}\n";
+            }
+            continue;
+        }
         std::map<std::pair<bool,bool>,OriginalSceneTimeline> checkpoints;
         std::map<std::pair<bool,bool>,double> checkpointRuntime;
         for(bool suppliedCrt:{false,true})for(unsigned n:timelineHorizons)for(bool audio:timelineAudio){
@@ -2403,6 +2560,32 @@ void corpus(){
         std::cout<<"{\"figure_source\":"<<sources<<",\"saved_view\":"<<figures.savedView<<",\"slots\":"<<figures.declared<<",\"live\":"<<figures.live.size()<<",\"placed\":"<<view.figurePlaced<<",\"hidden\":"<<view.figureHidden<<",\"zero_image\":"<<view.figureZeroImage<<",\"unsupported\":"<<view.figureUnsupported<<",\"decoded_images\":"<<view.figureDecoded
             <<",\"forward_matched\":"<<view.figureForwardMatched<<",\"forward_compared\":"<<view.figureForwardCompared<<"}\n";
     }
+    if(combinedMode){
+        for(const auto& row:combinedScores){const auto& t=row.second;
+            size_t figureRefused=0,buildingRefused=0,poolRefused=0;
+            for(const auto& e:t.figureRefusals)figureRefused+=e.second;
+            for(const auto& e:t.buildingRefusals)buildingRefused+=e.second;
+            for(const auto& e:t.poolRefusals)poolRefused+=e.second;
+            need(sources==6&&t.figureTotal==192&&t.buildingTotal==1065&&t.figures+figureRefused==192&&
+                t.buildings+buildingRefused==1065&&t.pools+poolRefused==6,"combined exact outcome and refusal denominators close");
+            if(row.first==1)need(t.pools==6&&t.figures==192&&t.buildings==1065&&t.placed==185&&t.components==201&&
+                t.consistent==191&&t.frames==53&&t.reselected==0,"combined N1 locks installed original outcomes and selectors");
+            else need(t.pools==0&&t.figures==0&&t.buildings==0&&t.placed==0&&t.components==0&&t.consistent==0&&t.frames==0&&t.reselected==0&&
+                t.buildingRefusals==std::map<std::string,size_t>{{"city_accounting_4f1560_4ac2fa",1048},{"terrain_resource_growth_4bc440_after_51e4a0",17}},
+                "combined later horizons have exact disjoint whole-city refusal partition");
+            if(row.first>1)need(t.figureRefusals==std::map<std::string,size_t>{{"city_accounting_4f1560_4ac2fa",160},{"terrain_resource_growth_4bc440_after_51e4a0",32}}&&
+                t.poolRefusals==std::map<std::string,size_t>{{"city_accounting_4f1560_4ac2fa",5},{"terrain_resource_growth_4bc440_after_51e4a0",1}},
+                "combined figure and pool refusal counts are independently locked");
+            std::cout<<"{\"combined_N\":"<<row.first<<",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"figure_outcomes\":"<<t.figures
+                <<",\"figure_total\":"<<t.figureTotal<<",\"building_outcomes\":"<<t.buildings<<",\"building_total\":"<<t.buildingTotal
+                <<",\"placed_and_decoded\":"<<t.placed<<",\"components_decoded\":"<<t.components<<",\"primaries_consistent\":"<<t.consistent
+                <<",\"building_frames\":"<<t.frames<<",\"building_frame_candidates\":53,\"reselection_count\":"<<t.reselected;
+            const auto print=[&](const char* name,const std::map<std::string,size_t>& values){std::cout<<",\""<<name<<"\":{";bool comma=false;
+                for(const auto& e:values){if(comma)std::cout<<',';comma=true;std::cout<<'"'<<e.first<<"\":"<<e.second;}std::cout<<'}';};
+            print("pool_refusals",t.poolRefusals);print("figure_refusals",t.figureRefusals);print("building_refusals",t.buildingRefusals);std::cout<<"}\n";
+        }
+        return;
+    }
     need(sources==6&&slots==12000&&live==192&&types.size()==20&&boundTypes.size()==18&&placed==158&&hidden==6&&zero==28&&unsupported==0&&decoded==174&&failures==0&&focused==158&&placedDecoded==158,"six-source original denominator");
     need(postLoadComputed==192&&postLoadBlocked==0&&postLoadChanged+postLoadOracleMatched==192&&
         postLoadSecondaryChanged==16&&postLoadBlockedTypes.empty()&&postLoadSelected==17&&postLoadDecoded==17,
@@ -2520,10 +2703,15 @@ int main(int argc,char** argv){std::cout.setf(std::ios::unitbuf);try{
         const std::string value=argv[i];
         if(option=="--timeline-audio"){if(value=="off")timelineAudio={false};else if(value=="on")timelineAudio={true};
             else if(value=="both")timelineAudio={false,true};else throw std::runtime_error("invalid timeline audio");}
+        else if(option=="--timeline-mode"){if(value=="combined")combinedMode=true;else if(value!="figure")throw std::runtime_error("invalid timeline mode");}
+        else if(option=="--city-clocks"){OriginalCityClocks clocks;std::istringstream input(value);std::string item;size_t count=0;
+            while(std::getline(input,item,',')){size_t end=0;const auto n=std::stoull(item,&end);if(end!=item.size()||n>UINT32_MAX||count>=10)throw std::runtime_error("invalid city clocks");clocks.value[count++]=uint32_t(n);}
+            if(count!=10)throw std::runtime_error("ten city clocks required");combinedClocks=clocks;}
         else if(option=="--timeline-horizons"){timelineHorizons.clear();std::istringstream input(value);std::string item;
             while(std::getline(input,item,',')){size_t end=0;const auto n=std::stoul(item,&end);if(end!=item.size()||n<1||n>10000)throw std::runtime_error("invalid timeline horizon");timelineHorizons.push_back(unsigned(n));}
             if(timelineHorizons.empty())throw std::runtime_error("empty timeline horizons");
             std::sort(timelineHorizons.begin(),timelineHorizons.end());timelineHorizons.erase(std::unique(timelineHorizons.begin(),timelineHorizons.end()),timelineHorizons.end());}
         else throw std::runtime_error("unknown figure test option");}
-    authored();const size_t synthetic=checks;corpus();std::cout<<"{\"passed\":true,\"authored_checks\":"<<synthetic<<",\"all_checks\":"<<checks<<"}\n";return 0;
+    if(combinedMode&&!combinedClocks)throw std::runtime_error("combined city clocks required");
+    authored();if(combinedMode)combinedAuthored();const size_t synthetic=checks;corpus();std::cout<<"{\"passed\":true,\"authored_checks\":"<<synthetic<<",\"all_checks\":"<<checks<<"}\n";return 0;
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--only', help='Run one named mutation')
     args = parser.parse_args()
-    work = Path(tempfile.mkdtemp(prefix='figure-scene-bite-'))
+    work = Path(tempfile.mkdtemp(prefix='a2-figure-scene-bite-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))
     mutations = [
         ('index', 'original_building_scene.hpp', '(word&0x3fff)+1;', '(word&0x3fff)+201;'),
         ('position', 'original_building_scene.hpp', 'ox-s.animationOffsetX,oy-s.animationOffsetY', 'ox+s.animationOffsetX,oy-s.animationOffsetY'),
@@ -146,6 +146,16 @@ def main():
         ('house_surface', 'original_scene_timeline.hpp', 'next.surface.image[cell]=(p.binding.tileset<<14)|(p.binding.physicalId-201);', 'next.surface.image[cell]=(p.binding.tileset<<14)|(p.binding.physicalId-200);'),
         ('projectile_building', 'original_figure_update.hpp', 'if(!local.buildingOwners[f.cell])f.home=std::max<int16_t>', 'if(true)f.home=std::max<int16_t>'),
         ('hunter_prey_cell', 'original_figure_update.hpp', 'model->second[0]>=0&&model->second[0]<=2&&otherModel->second[0]==6', 'model->second[0]>=0&&model->second[0]<2&&otherModel->second[0]==6'),
+        ('combined_phase', 'original_scene_timeline.hpp', '++city.phase; //50', 'city.phase+=2; //50'),
+        ('combined_clock', 'original_scene_timeline.hpp', 'order.push_back(0x529990);advanceOriginalCityClocks(*p.cityClocks);', 'order.push_back(0x529990);'),
+        ('combined_event', 'original_scene_timeline.hpp', 'if(!p.eventGate17||(*p.eventGate17&&(!p.eventGate16||*p.eventGate16)))', 'if(false)'),
+        ('combined_growth', 'original_scene_timeline.hpp', 'case 20:return "terrain_resource_growth_4bc440_after_51e4a0";', 'case 20:return {};'),
+        ('combined_tail', 'original_scene_timeline.hpp', 'originalBuildingI32(next)>originalBuildingI32(*p.wildlifePeriod)', 'originalBuildingI32(next)>=originalBuildingI32(*p.wildlifePeriod)'),
+        ('combined_rng', 'original_figure_update.hpp', 'h.ring.at(h.cursor)=h.previous7;', 'h.ring.at(h.cursor)=0;'),
+        ('combined_slots', 'original_scene_timeline.hpp', 'return slot!=0;', 'return slot==UINT32_MAX;'),
+        ('combined_atomic', 'original_scene_timeline.hpp', 'if(combined&&!out.complete){out.context.reset();out.combinedState.reset();out.lastPass={};', 'if(combined&&!out.complete){out.context=initial;out.combinedState.reset();out.lastPass={};'),
+        ('combined_bridge', 'original_scene_timeline.hpp', 'h.at(44-4)=*link.herbalist;', 'h.at(44-4)=0;'),
+        ('combined_building', 'original_scene_timeline.hpp', 'originalBuildingStateAfterUpdates(b.state,b.context,1);', 'originalBuildingStateAfterUpdates(b.state,b.context,0);'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]
@@ -178,10 +188,27 @@ def main():
         subprocess.run(['/usr/bin/clang++', '-std=c++17', '-O2', '-Wall', '-Wextra', '-Werror',
                         *[str(lab / s) for s in units], '-framework', 'CoreGraphics',
                         '-framework', 'CoreFoundation', '-lz', '-o', str(binary)], check=True)
-        result = subprocess.run([str(binary)], env=env, capture_output=True, text=True)
+        command = [str(binary)]
+        if name.startswith('combined_'):
+            command += ['--timeline-mode', 'combined', '--city-clocks', '0,0,0,0,0,0,0,0,0,0']
+        result = subprocess.run(command, env=env, capture_output=True, text=True)
         print(name, 'exit', result.returncode, result.stderr.strip(), flush=True)
         if result.returncode != 1:
             raise RuntimeError('mutation survived: ' + name)
+        expected = {
+            'combined_phase': 'combined prelude advances engine RNG,clocks and exactly one shared phase',
+            'combined_clock': 'combined prelude advances engine RNG,clocks and exactly one shared phase',
+            'combined_event': 'positive event UI gate refuses before scheduler',
+            'combined_growth': 'combined phase20 never treats standalone production as the whole phase',
+            'combined_tail': 'wildlife tail retains increment on inclusive period boundary',
+            'combined_rng': 'engine RNG history stores old7bit value and wraps cursor99',
+            'combined_slots': 'nonempty scenario slot refuses before figures',
+            'combined_atomic': 'combined refusal cannot publish a completed prefix as requestedN',
+            'combined_bridge': 'shared bridge preserves signed goods and exact independent house wire offsets',
+            'combined_building': 'combined phase48 calls the public building API once before the figure pass',
+        }.get(name)
+        if expected and expected not in result.stderr:
+            raise RuntimeError('mutation failed outside intended assertion: ' + name)
     print(f'{len(mutations)}/{len(mutations)} private figure mutations rejected; production source unchanged')
 
 

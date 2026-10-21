@@ -128,7 +128,12 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     if(!initial.context)return false;
     const auto employment=parseOriginalBuildingEmployment(std::string(bytes.begin(),bytes.end()));
     if(!employment){clear();return false;}
-    const auto timeline=originalSceneTimeline(*initial.context,refs,*savedBuildings_,archives_.at(2).index,&*employment,previousAdmission,clocks,suppliedFrames);
+    std::optional<OriginalCombinedState> combined;
+    for(size_t n=0;n<suppliedFrames.size();++n)if(suppliedFrames[n].combinedProcess){
+        if(n){clear();error_="combined process inputs belong to the first frame";return false;}
+        combined=originalCombinedSavedState(*initial.context,save.buildings,payload,save.terrainOffset,save.sizeOffset,*suppliedFrames[n].combinedProcess);
+        if(!combined){clear();error_="combined saved building inputs";return false;}}
+    const auto timeline=originalSceneTimeline(*initial.context,refs,*savedBuildings_,archives_.at(2).index,&*employment,previousAdmission,clocks,suppliedFrames,combined?&*combined:nullptr);
     if(!timeline.complete||!installOriginalSceneTimeline(*savedBuildings_,save.terrain,figures,refs,save.buildings,archives_.at(2).index,timeline)){
         clear();error_="post-load timeline: "+timeline.refusal+" (update "+std::to_string(timeline.refusedUpdate)+")";return false;}
     return true;
