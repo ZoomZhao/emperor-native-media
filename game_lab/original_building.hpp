@@ -519,6 +519,24 @@ struct OriginalBuildingUpdateInputs {
     int16_t stock=0; //common5 runtime+40,wire58,427E75.
     uint8_t faction=0,direction=0,houseInUse=0; //+5/+38/+9,427CD5/427E34/427D09.
     int8_t desirability=0;uint8_t desirabilityBonus=0; //+5E/+60,427F6C/427F86;wire84/86.
+    //Common5 requests427EDD/EEA/EF7 and42806F. +92 IS serialized
+    //at wire130;427430 clears it before reading the selected version.
+    int16_t fireRisk=0,damageRisk=0,burning=0,word92=0;
+    uint8_t fireproof=0,fireDirection=0,fireSuppressed=0;
+    int32_t watchRisk=0;
+    //Exact additional fields;legacy upgrade/desirability names keep their
+    //existing wire contract for existing callers.427F5F/427FE1 restore
+    //runtime+5E/+6F at wire85/100 (wire84 is+5D,wire99 is+70).
+    std::optional<int8_t> modelDesirability;
+    std::optional<uint8_t> modelUpgrade;
+    std::optional<uint8_t> modelDesirabilityBonus; //+60,wire87,427F79;legacy bonus keeps wire86.
+    //CropHold1/MultipleCropHold1:4C3130 restores these
+    //outer+150/+154 counters after the nested industrial payload.
+    std::optional<std::array<int32_t,2>> cropWorkers;
+    //4C4E40 own1,then five4C43E0 wrappers:5D26C0 own1,
+    //resource/amount/capacity dwords,and the wrapper's trailing own1.
+    std::optional<std::array<OriginalStorageCompartment,5>> cropBays;
+    std::optional<int32_t> stallResourceIndex; //541E46 restores+150 at tail132.
 };
 inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuildingUpdateInputs(
     const std::vector<uint8_t>& data,const OriginalBuildingProfile& profile){
@@ -547,6 +565,11 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         v.primaryFigure=detail::i16(p+41);v.word30=detail::i16(p+43);v.word34=detail::i16(p+47);
         v.stock=detail::i16(p+58);v.faction=p[3];v.direction=p[51];v.houseInUse=p[7];
         v.desirability=int8_t(p[84]);v.desirabilityBonus=p[86];
+        v.fireRisk=detail::i16(p+68);v.damageRisk=detail::i16(p+70);v.burning=detail::i16(p+72);
+        v.word92=detail::i16(p+130);v.fireproof=p[74];v.fireDirection=p[75];v.fireSuppressed=p[84];
+        const auto watch=detail::u32(p+125);v.watchRisk=int32_t(watch>INT32_MAX?int64_t(watch)-4294967296LL:watch);
+        v.modelDesirability=int8_t(p[85]);v.modelUpgrade=p[100];
+        v.modelDesirabilityBonus=p[87];
         const size_t tail=at+182;const uint16_t type=profile.slotTypes[e.first];
         if(type==0xc2||type==0xc4){
             if(data.size()-tail<140||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1||
@@ -567,11 +590,18 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         //Stall541DE0: industrial130,own4,word150 then parent154.
         if(type==62||type==66||type==67){
             if(data.size()-tail<140||detail::u16(data.data()+tail+130)!=4)return std::nullopt;
+            const auto index=detail::u32(data.data()+tail+132);v.stallResourceIndex=int32_t(index>INT32_MAX?int64_t(index)-4294967296LL:index);
             v.parentSlot=detail::u32(data.data()+tail+136);
         }
         //48CDB5 restores Entertainment5 parent+150 at tail348.
         if(type==71){if(data.size()-tail<352||detail::u16(data.data()+tail+134)!=5)return std::nullopt;
             v.parentSlot=detail::u32(data.data()+tail+348);}
+        if(type==192||type==193){if(data.size()-tail<142||detail::u16(data.data()+tail+130)!=1||detail::u16(data.data()+tail+140)!=1)return std::nullopt;
+            std::array<int32_t,2> workers{};for(unsigned n=0;n<2;++n){const auto bits=detail::u32(data.data()+tail+132+4*n);workers[n]=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:bits);}v.cropWorkers=workers;}
+        if(type==193){if(data.size()-tail<222)return std::nullopt;v.cropBays.emplace();
+            for(unsigned n=0;n<5;++n){const auto* bay=data.data()+tail+142+16*n;
+                if(detail::u16(bay)!=1||detail::u16(bay+14)!=1)return std::nullopt;
+                v.cropBays->at(n)={detail::u32(bay+2),detail::u32(bay+6),detail::u32(bay+10)};}}
         out.emplace(e.first,v);
     }
     return out;

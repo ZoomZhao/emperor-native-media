@@ -14,7 +14,7 @@ def main():
     parser.add_argument('--mode', choices=['release', 'undefined'], default='release')
     parser.add_argument('--build-dir', type=Path)
     parser.add_argument('--bite', action='store_true')
-    parser.add_argument('--bite-kind', choices=['crop', 'industry', 'road', 'accounting', 'religion', 'migration', 'emigration', 'overflow', 'population', 'employment', 'market', 'stall', 'load', 'resource', 'hook', 'hunter', 'trade', 'totals', 'aggregate', 'model', 'rectangle', 'service'], default='crop')
+    parser.add_argument('--bite-kind', choices=['crop', 'industry', 'road', 'accounting', 'religion', 'migration', 'emigration', 'overflow', 'population', 'employment', 'market', 'stall', 'load', 'resource', 'hook', 'hunter', 'trade', 'totals', 'aggregate', 'model', 'rectangle', 'service', 'farmer', 'crop-order', 'bay', 'evolution', 'lifecycle', 'fire', 'risk', 'effect', 'counter', 'tail', 'timer', 'timer-faction', 'saved-tail', 'saved-crop-festival', 'stall-capacity', 'storage-export', 'station', 'house-model'], default='crop')
     args = parser.parse_args()
     if args.build_dir and not args.build_dir.is_absolute():
         parser.error('absolute build directory required')
@@ -55,6 +55,24 @@ def main():
             'model': ('originalBuildingPercent(row[k],modifier[k])', 'originalBuildingPercent(row[k],100)', 'building model difficulty multiplies thirteen independent columns with signed truncation'),
             'rectangle': ('if(++counter>=m[2])', 'if(counter++>=m[2])', 'Market rectangle uses inclusive descriptor bounds and initial counter1 delta schedule'),
             'service': ('f.action=6;f.counter=30;', 'f.action=6;f.counter=29;', 'Well positive allocation publishes reciprocal identity action and delay after strict counter gate'),
+            'farmer': ('if(skip){--skip;target.primaryFigure=0;', 'if(skip){--skip;target.primaryFigure=19;', 'farmer grouping clears skipped candidates rather than assigning the new farmer'),
+            'crop-order': ('return a.first<b.first;', 'return a.first!=b.first?a.first<b.first:a.second>b.second;', 'farmer grouping clears skipped candidates rather than assigning the new farmer'),
+            'bay': ('if(bay.resource&&bay.amount>=100)', 'if(bay.resource&&bay.amount>100)', 'fifth crop bay at100 reaches named positive cart boundary'),
+            'evolution': ('direction==-1&&delay<9', 'direction==-1&&delay<8', 'house failed requirement waits through old delay8 before conversion'),
+            'lifecycle': ('int(*i.modelDesirability)>=threshold&&!upgraded', 'int(*i.modelDesirability)>threshold&&!upgraded', 'phase40 inclusive desirability threshold upgrades model and existing Well selector'),
+            'fire': ('if(i.burning<0)i.burning=0;', 'if(i.burning<0)i.burning=1;', 'fire pass normalizes negative burning before zero-fire exit'),
+            'risk': ('uint16_t(i.damageRisk)+3', 'uint16_t(i.damageRisk)+2', 'risk phase0 and region0 add model fire3 and damage2 plus fixed3'),
+            'effect': ('((value-1)<<bit)', '((value)<<bit)', 'eighth monument pass decays packed3-bit lanes and preserves upper five bits'),
+            'counter': ('c.phase47Counters.fill(0)', 'c.phase47Counters.fill(1)', 'phase47 clears four literal counters and advances to48'),
+            'tail': ('++*c.cycle;++*c.monthPart;', '++*c.cycle;', 'ordinary phase50 increments both clocks smooths health59 to60 and resets phase'),
+            'timer': ('child[1][n],1),0,48', 'child[1][n],1),0,49', 'part2 current faction21 decrements last timer and releases reserves before capacity increment'),
+            'timer-faction': ('partner.relationTimers[size_t(faction)]', 'partner.relationTimers[21]', 'part2 current faction0 selects first child and preserves last child'),
+            'saved-tail': ('currentHealthRating=value(12099)', 'currentHealthRating=value(11392)', 'cycle tail saved health rating uses final59501B wire12099 rather than11392 decoy'),
+            'saved-crop-festival': ('detail::u32(data.data()+festival+71)==4;', 'detail::u32(data.data()+festival+71)==2;', 'crop festival restores saved enabled mode3 deity4 rather than production deity2'),
+            'stall-capacity': ('resource==28?400u:200u', 'resource==28?399u:200u', 'Stall saved bay399 reaches supplier boundary below resource28 capacity400'),
+            'storage-export': ('if(percent<50)return -1;', 'if(percent<51)return -1;', 'storage export accepts earliest mode3 bay only from staffing50'),
+            'station': ('if(type==58)i.available=1;', 'if(type==58)i.suppression=1;', 'TradingStation hook writes runtime48 availability while preserving legacy suppression contract'),
+            'house-model': ('originalBuildingAdd32(row[k],modifier[k])', 'originalBuildingSub32(row[k],modifier[k])', 'HOUSE MODS adds selected row then clamps all24 independent model columns'),
         }
         before, after, assertion = mutations[args.bite_kind]
         assert header.count(before) == 1
