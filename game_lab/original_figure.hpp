@@ -53,6 +53,9 @@ struct OriginalFigure {
     bool projectile=false; //+129,5EA5AE;only type54 consumes it.
     int16_t projectileDistance=0,projectileStartHeight=0,projectileTargetHeight=0,projectileEndHeight=0; //+AC/+AE/+B0/+B2.
     std::array<int16_t,2> attackers{};
+    uint32_t damage=0; //+A8,Figure7 request4C88BD;4E5A60 adds modulo32.
+    uint8_t projectileHits=0; //+A0,5E63C6 increments modulo8.
+    int16_t formation=0; //+6A,Figure7 request4C86BB;combat formation modifiers.
     OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
 };
 namespace original_save19 {
@@ -105,7 +108,15 @@ struct OriginalFigureGoodsServices {
     // 1E4EE08 and10BC928 are persistent process caches, never SAV fields.
     std::optional<std::array<uint8_t,36>> storageSearch,industrySearch;
     std::optional<uint32_t> godGate; //Scenario6+2C0,C5CDA0;52D366..371 reads4.5350A5 is SAVE,not load.
+    std::array<int32_t,10> industryPriority{}; //Population7 runtime1312148,ten20-byte category rows,first dword.
 };
+//5312CB Scenario6 starts at S-28:2 version bytes+1459 requested body,
+//embedded52C480 own1+16 bytes,then5312D9 byte and5312E7 difficulty.
+inline std::optional<unsigned> originalFigureSavedDifficulty(const std::vector<uint8_t>& data,size_t sizeAnchor){
+    if(sizeAnchor<28||sizeAnchor>data.size()||data.size()-sizeAnchor<1456||detail::u16(data.data()+sizeAnchor-28)!=6||
+        detail::u16(data.data()+sizeAnchor+1433)!=1)return std::nullopt;
+    const auto value=detail::u32(data.data()+sizeAnchor+1452);if(value>4)return std::nullopt;return unsigned(value);
+}
 inline std::optional<OriginalFigureGoodsServices> originalFigureSavedGoodsServices(
     const std::vector<uint8_t>& data,size_t figuresEnd,size_t sizeAnchor,size_t terrain){
     size_t bytes=2;for(const auto& f:emperor::file_io::research::later7_requests)bytes+=f.bytes;
@@ -126,6 +137,8 @@ inline std::optional<OriginalFigureGoodsServices> originalFigureSavedGoodsServic
         out.trade7[r]=detail::u32(data.data()+population+10578+4*r);
         out.trade5[r]=detail::u32(data.data()+population+10722+4*r);
         out.warehouse[r]=detail::u32(data.data()+population+10866+4*r);}
+    for(unsigned n=0;n<10;++n){const auto bits=detail::u32(data.data()+population+10194+20*n);
+        out.industryPriority[n]=bits>INT32_MAX?int32_t(int64_t(bits)-4294967296LL):int32_t(bits);}
     const size_t scenario=sizeAnchor-28;
     if(data.size()-scenario<708||detail::u16(data.data()+scenario)!=6)return std::nullopt;
     out.godGate=detail::u32(data.data()+scenario+704); //2-byte archive version+702 preceding requested bytes.
@@ -176,6 +189,8 @@ inline std::optional<int32_t> originalFigureSavedFestivalVenue(const std::vector
     return elapsed>i32(festival+52)?0:int32_t(venue);
 }
 struct OriginalFigureSavedServices {
+    struct FormationImpact {int16_t alert=0,source=0;}; //runtime+5E/+60,5E63A2/A8.
+    std::array<FormationImpact,100> formationImpacts{};
     std::array<int16_t,1000> routeOwners{};
     std::vector<uint8_t> directions;
     uint32_t randomFirst=0,randomSecond=0;
@@ -195,6 +210,9 @@ inline std::optional<OriginalFigureSavedServices> originalFigureSavedServices(
     if(data.size()>8u*1024u*1024u||terrain>data.size()||randomSecond+4>data.size()-terrain)return std::nullopt;
     for(size_t n=0;n<recordCount;++n)if(detail::u16(data.data()+terrain+records+recordBytes*n)!=6)return std::nullopt;
     OriginalFigureSavedServices out;
+    //550C54/550C61:the version6 request prefix is contiguous through+88.
+    for(size_t n=0;n<recordCount;++n){const auto* r=data.data()+terrain+records+recordBytes*n;
+        out.formationImpacts[n]={detail::i16(r+96),detail::i16(r+98)};}
     for(size_t n=0;n<1000;++n)out.routeOwners[n]=detail::i16(data.data()+terrain+routeOwners+2*n);
     out.directions.assign(data.begin()+terrain+routeDirections,data.begin()+terrain+routeDirections+500000);
     out.randomFirst=detail::u32(data.data()+terrain+randomFirst);out.randomSecond=detail::u32(data.data()+terrain+randomSecond);
@@ -297,6 +315,7 @@ struct OriginalFigureBuildingLink {
     int16_t workers=0;
     int16_t roadDistance=0,suppress=0;
     int16_t incomingFigures=0,incomingAmount=0;
+    int16_t industryInput=0; //common runtime+40,wire58;Kiln main input stock.
 };
 // Common5:0x427430 reads live+4,type+14,worker+32,accepting+9 individually;
 // wire+2/+16/+45/+7 include the version. Read only framed public records.
@@ -326,6 +345,7 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         link.suppress=detail::i16(data.data()+at+72);
         link.hunterReturnGoods=detail::i16(data.data()+at+101);
         link.incomingFigures=detail::i16(data.data()+at+156);link.incomingAmount=detail::i16(data.data()+at+158);
+        link.industryInput=detail::i16(data.data()+at+58);
         const int policy=detail::i16(data.data()+at+88);if(policy>=0)link.storagePolicy=size_t(policy);
         link.roadX=detail::i16(data.data()+at+37);link.roadY=detail::i16(data.data()+at+39);link.roamDirection=data[at+51];
         link.inspectorSecondary=detail::i16(data.data()+at+18)>0||data[at+100]!=0;
@@ -552,6 +572,8 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.freeTargetX=detail::i16(r+86);f.freeTargetY=detail::i16(r+88);f.freeRemainingX=detail::i16(r+90);
         f.freeRemainingY=detail::i16(r+92);f.freeError=detail::i16(r+94);f.freeAxis=r[96];f.cellMovement=r[72];
         f.attackers={detail::i16(r+154),detail::i16(r+156)};
+        f.damage=detail::u32(r+168);f.projectileHits=r[160];
+        f.formation=detail::i16(r+106);
         f.employmentAmount=r[110];f.watchCoverage=r[112];
         f.flags120=detail::u32(r+288);
         f.previousAction=r[24];f.allocationSerial=detail::u16(r+148);f.projectile=r[297]!=0;

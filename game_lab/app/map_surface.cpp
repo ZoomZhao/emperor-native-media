@@ -84,7 +84,8 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     const auto& figures=*save.layers.figures;const auto& ground=*save.layers.ground;
     std::vector<uint8_t> bytes;
     if(!detail::readFile(root_.resolve("Model/EmperorFigureModels.txt"),100000,bytes))return false;
-    const auto modelText=std::string(bytes.begin(),bytes.end());const auto models=originalFigureModels(modelText);
+    const auto difficulty=originalFigureSavedDifficulty(payload,save.sizeOffset);if(!difficulty)return false;
+    const auto modelText=std::string(bytes.begin(),bytes.end());const auto models=originalFigureModels(modelText,difficulty);
     const auto modelSpeeds=originalFigureModelSpeeds(modelText);
     if(!detail::readFile(root_.resolve("Model/EmperorBuildingModels.txt"),1048576,bytes))return false;
     const auto buildingText=std::string(bytes.begin(),bytes.end());

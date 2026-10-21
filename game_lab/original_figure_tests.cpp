@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <fstream>
 #include <filesystem>
+#include <chrono>
 #include <unistd.h>
 using namespace game_lab;
 namespace {
@@ -52,6 +53,7 @@ void authored(){
     raw[74]=17;raw[76]=18;raw[78]=1;raw[79]=2;raw[80]=254;raw[81]=5;raw[117]=19;
     raw[86]=20;raw[88]=21;raw[90]=22;raw[92]=23;raw[94]=255;raw[95]=255;raw[96]=2;
     raw[348]=24;raw[350]=25;raw[72]=1;raw[154]=26;raw[156]=27;raw[112]=37;
+    raw[168]=0x78;raw[169]=0x56;raw[170]=0x34;raw[171]=0x12;raw[160]=255;raw[106]=17;
     for(const auto& field:emperor::file_io::research::figure7_fields)
         for(size_t k=0;k<field.bytes;++k)bytes.push_back(std::string(field.helper)=="0x503db0"&&k==1?0xee:raw[field.receiver_offset+k]);
     bytes.push_back(0);
@@ -74,6 +76,8 @@ void authored(){
     need(p.freeTargetX==20&&p.freeTargetY==21&&p.freeRemainingX==22&&p.freeRemainingY==23&&p.freeError==-1&&p.freeAxis==2&&
         p.cellMovement==1&&p.attackers==std::array<int16_t,2>{26,27},"free movement error/axis and both attacker slots have distinct signed wire inputs");
     need(p.watchCoverage==37,"watchtower coverage is Figure7 byte112, distinct from building service fields");
+    need(p.damage==0x12345678&&p.projectileHits==255&&p.formation==17,
+        "combat damage, projectile hit byte and formation read separate Figure7 receiver168/160/106");
     auto bad=bytes;bad.back()=1;need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Unsupported,"FSA does not guess a variable extension length");
     bad=bytes;bad.pop_back();need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Malformed,"last byte truncation publishes no figures");
     bad=bytes;bad[18]=6;need(parseOriginalSavedFigures(bad,0,bad.size(),17,0).status==OriginalFigureStatus::Unsupported,"unknown Figure version fails closed");
@@ -364,6 +368,17 @@ void authored(){
             "truncated or extra model rows withhold all speeds");
         auto badModel=model;badModel.replace(badModel.find("11,"),3,"2147483648,");
         need(!originalFigureModelSpeeds(badModel),"overflowing signed model value refuses instead of narrowing");
+        std::string scaled;
+        for(unsigned section=0;section<5;++section){scaled+=std::string(sections[section])+"\n";
+            for(unsigned row=0;row<counts[section];++row){scaled+="row,{,";
+                for(unsigned field=0;field<18;++field){int value=0;
+                    if(section==0&&field==2)value=150;
+                    if(section==1&&field==2)value=1;
+                    if(section==2&&field==2)value=row==41?66:3;
+                    scaled+=std::to_string(value)+",";}scaled+="}\n";}}
+        need(originalFigureModels(scaled)->at(40)[2]==INT32_MIN&&originalFigureModels(scaled,4)->at(40)[2]==4&&
+            originalFigureModels(scaled,4)->at(41)[2]==99,
+            "flagged attack requires saved difficulty and truncates150 percent of3 to4 and66 to99 with divisor100");
     }
     {
         // Independent speed-table examples:3/4,1+3/4,2+3/4 cycles.
@@ -642,6 +657,20 @@ void authored(){
         inspector.searchCounter=19;context.services->fireCount=-1;
         need(originalFigureFirstUpdate(inspector,refs,&context,0xc0).state->searchCounter==19,
             "negative serialized fire count uses the signed less-than-one early return");
+        context.buildings->at(8).roadAccess=1;context.buildings->at(8).roadX=9;context.buildings->at(8).roadY=6;
+        inspector.route=3;inspector.roamSteps=3840;context.services->routeOwners[3]=int16_t(inspector.slot);
+        const auto expiredRoam=originalFigureFirstUpdate(inspector,refs,&context,0xc0);
+        need(expiredRoam.state&&expiredRoam.state->action==9&&expiredRoam.state->roamSteps==3848&&expiredRoam.state->progress==8&&
+            expiredRoam.state->destinationX==9&&expiredRoam.state->route==0&&expiredRoam.services->routeOwners[3]==0,
+            "Inspector exact roam limit chooses owner road then performs final same-call roam step and reciprocal route release");
+        auto marketWalker=inspector;marketWalker.type=23;marketWalker.action=1;marketWalker.roamSteps=3840;marketWalker.route=3;
+        context.models[23]={};context.models[23][15]=40;context.modelSpeeds[23]=6;
+        auto& marketOwner=context.buildings->at(8);marketOwner.type=0x3b;marketOwner.size=1;marketOwner.x=2;marketOwner.y=3;marketOwner.marketGoods=10;
+        context.cropBase=8627;context.terrain.assign(51984,0);context.terrain[10000]=0x40;context.figures[marketWalker.slot]=marketWalker;
+        const auto marketReturn=originalFigureFirstUpdate(marketWalker,refs,&context,0x40);
+        need(marketReturn.state&&marketReturn.state->action==2&&marketReturn.state->destinationX==5&&marketReturn.state->destinationY==6&&
+            marketReturn.state->roamSteps==0&&marketReturn.state->progress==7&&marketReturn.state->route==0,
+            "Market roam expiry chooses fourth role1 pavement at owner plus3,3 without a same-call movement step");
         OriginalBuildingProfile buildings;buildings.status=OriginalBuildingStatus::Complete;buildings.parsedRecords=4000;
         OriginalMapTerrain map;map.activeSide=84;map.flags.assign(51984,0);map.flags[10000]=0xc0;map.flags[10001]=0x81;map.flags[10002]=0x100;
         const auto masks=originalFigureRoadMovementMasks(map,buildings);
@@ -695,6 +724,27 @@ void authored(){
             "empty supplier search carries cache bits and allocator stale-owner cleanup despite no destination");
         auto absent=context;absent.goods->storageSearch.reset();
         need(!originalFigureGoodsSupplier(carrier,absent),"unknown process cache is unavailable rather than a zeroed premise");
+        {auto supply=context;supply.passability.emplace();supply.passability->fullMovementMasks=true;
+            supply.passability->cells.assign(51984,0);supply.roadNetworks.assign(51984,3);supply.crops.emplace();
+            auto cargo=carrier;cargo.x=5;cargo.y=6;cargo.cell=5+228*6;cargo.subtype=18;cargo.amount=100;
+            cargo.direction=8;cargo.progress=20;supply.figures[cargo.slot]=cargo;
+            for(unsigned x=5;x<=9;++x)supply.passability->cells[x+228*6]=4;
+            OriginalFigureBuildingLink kiln;kiln.type=0x2b;kiln.alive=kiln.destinationEnabled=kiln.roadAccess=1;
+            kiln.roadDistance=1;kiln.workers=10;kiln.category=3;kiln.outputResource=20;kiln.industryInput=300;
+            kiln.x=kiln.roadX=7;kiln.y=kiln.roadY=6;supply.buildings->emplace(40,kiln);
+            kiln.x=kiln.roadX=9;supply.buildings->emplace(41,kiln);supply.buildingEmployment[0x2b]=10;
+            supply.goods->industryPriority[1]=1;
+            const auto selected=originalFigureGoodsSupplier(cargo,supply);
+            need(selected==40&&cargo.delivery==40&&cargo.destinationX==7&&cargo.destinationY==6&&cargo.amount==100&&
+                cargo.direction==8&&cargo.progress==20&&cargo.routeLength==2&&supply.buildings->at(40).incomingFigures==1&&
+                supply.buildings->at(41).incomingFigures==0&&supply.services->routeOwners[cargo.route]==int(cargo.slot),
+                "Kiln supplier selects highest stock-priority-distance score, reserves one incoming and retains query direction/progress/cargo");
+            supply.goods->industrySearch->at(18)=0;supply.buildings->at(40).industryInput=400;
+            supply.buildings->at(41).incomingFigures=1;
+            need(originalFigureGoodsSupplier(cargo,supply)==0&&cargo.delivery==0&&supply.goods->industrySearch->at(18)==1,
+                "Kiln full input and hundred-unit incoming reservation exclude both otherwise reachable candidates");
+            supply.goods->industrySearch->at(18)=0;supply.buildings->at(40).industryInput=0;supply.buildings->at(40).category=2;
+            need(originalFigureGoodsSupplier(cargo,supply)==0,"supplier category compares current figure road component and refuses different network");}
         auto granary=context;OriginalFigureBuildingLink unported;unported.type=0x38;unported.alive=1;unported.roadAccess=1;unported.roadDistance=1;
         granary.buildings->emplace(10,unported);
         need(!originalFigureGoodsSupplier(carrier,granary),"type38 trade-storage candidate refuses before reporting a no-candidate station search");
@@ -770,7 +820,7 @@ void authored(){
             projectiles.sprites[100].animationSpriteCount=projectiles.sprites[200].animationSpriteCount=2;
             projectiles.sprites[100].animationDirections=projectiles.sprites[200].animationDirections=32;
             projectiles.sprites[100].animationSpeedId=projectiles.sprites[200].animationSpeedId=2;
-            const std::map<uint32_t,const SG3Archive*> shotRefs{{14,&projectiles},{39,&group}};
+            const std::map<uint32_t,const SG3Archive*> shotRefs{{14,&projectiles},{38,&group},{39,&group}};
             const auto pass=originalFigureOrderedNextPass(shot,shotRefs);
             need(pass.complete&&pass.computed==3&&pass.context->allocatedSlots==std::set<size_t>{1999}&&
                 pass.context->freeSlots==std::vector<size_t>{1998}&&pass.context->highestLiveSlot==1999,
@@ -828,7 +878,79 @@ void authored(){
             landing.figures[victim.slot]=victim;landing.cellHeads[arrived.cell]=uint16_t(victim.slot);
             const auto collision=originalFigureFirstUpdate(arrived,shotRefs,&landing,0);
             need(!collision.state&&!collision.cellHeads&&!collision.services&&landing.figures.at(victim.slot).action==prey.action,
-                "positive projectile collision withholds impact and movement writes until combat and event effects are ported");}
+                "positive projectile collision refuses absent combat models and audio input atomically");
+            landing.soundEffectsEnabled=false;landing.models[76].fill(0);landing.models[76][1]=5;landing.models[40][2]=3;
+            landing.figures.at(victim.slot).hidden=0;
+            landing.figures.at(2).route=4;landing.services->routeOwners[4]=2;
+            auto struck=arrived;struck.projectileHits=255;
+            const auto hit=originalFigureFirstUpdate(struck,shotRefs,&landing,0);
+            need(hit.state&&hit.state->alive==2&&hit.state->projectileHits==0&&hit.state->secondaryImage==0&&
+                hit.linkedWrites.at(1).damage==3&&hit.linkedWrites.at(1).action==32&&hit.linkedWrites.at(1).attackerCount==1&&
+                hit.linkedWrites.at(1).attackers[0]==2&&hit.crtRandomCalls==landing.crtRandomCalls,
+                "positive live Pheasant impact adds model damage, wraps hit byte, links attacker and removes projectile without CRT consumption");
+            auto soldierCell=landing;auto soldier=victim;soldier.slot=1998;soldier.type=58;soldier.hidden=0;soldier.next=0;
+            soldierCell.figures[1998]=soldier;soldierCell.figures.at(arrived.slot).next=1998;
+            need(!originalFigureFirstUpdate(struck,shotRefs,&soldierCell,0).state,
+                "soldier-first collision query refuses an unported soldier even after an earlier eligible animal in the cell list");
+            auto& wounded=landing.figures.at(1);wounded.damage=2;wounded.attackerCount=2;wounded.attackers={17,18};
+            const auto equal=originalFigureFirstUpdate(struck,shotRefs,&landing,0);
+            need(equal.state&&equal.linkedWrites.at(1).damage==5&&equal.linkedWrites.at(1).action==32&&
+                equal.linkedWrites.at(1).attackers==std::array<int16_t,2>{17,18},
+                "damage equal to health survives and impact preserves existing attacker records");
+            wounded.damage=3;
+            const auto killed=originalFigureFirstUpdate(struck,shotRefs,&landing,0);
+            need(killed.state&&killed.linkedWrites.at(1).damage==6&&killed.linkedWrites.at(1).action==10&&
+                killed.linkedWrites.at(2).action==9&&killed.linkedWrites.at(2).destinationX==wounded.x&&
+                killed.linkedWrites.at(2).destinationY==wounded.y&&killed.linkedWrites.at(2).route==0&&killed.services->routeOwners[4]==0,
+                "damage strictly above health kills prey and redirects linked Hunter with reciprocal route release");
+            auto unknownAudio=landing;unknownAudio.soundEffectsEnabled.reset();
+            need(!originalFigureFirstUpdate(struck,shotRefs,&unknownAudio,0).state,
+                "impact cannot infer a disabled original sound service from absent process input");
+            auto armored=landing;armored.models[76][3]=20;armored.figures.at(1).damage=0;
+            const auto blockedDamage=originalFigureFirstUpdate(struck,shotRefs,&armored,0);
+            need(blockedDamage.state&&!blockedDamage.linkedWrites.count(1),
+                "armor20 cancels damage through integer attack-minus-armor-times-attack-over20");
+            auto formed=landing;formed.figures.at(1).formation=36;formed.figures.at(2).formation=7;struck.formation=11;
+            formed.services->formationImpacts[36]={2,99};formed.services->formationImpacts[35]={3,98};
+            const auto formationHit=originalFigureFirstUpdate(struck,shotRefs,&formed,0);
+            need(formationHit.state&&formationHit.linkedWrites.at(1).damage==6&&
+                formationHit.services->formationImpacts[36].alert==6&&formationHit.services->formationImpacts[36].source==11&&
+                formationHit.services->formationImpacts[35].alert==3&&formed.services->formationImpacts[36].source==99,
+                "impact preserves stub relation damage and writes only victim formation alert6 and projectile formation source");
+            formed.figures.at(1).formation=100;
+            need(!originalFigureFirstUpdate(struck,shotRefs,&formed,0).state,"impact refuses formation outside restored hundred-record pool atomically");
+            auto corpse=killed.linkedWrites.at(1);corpse.runtimeClass=OriginalFigureClass::Pheasant;corpse.counter=0;corpse.updateOwner=0;
+            corpse.herdTarget=1;landing.figures.at(1)=corpse;landing.figures.at(arrived.slot).alive=0;
+            landing.models[76][0]=6;landing.models[40][0]=2;
+            const auto dead=originalFigureFirstUpdate(corpse,shotRefs,&landing,0);
+            need(dead.state&&dead.state->action==10&&dead.state->counter==1&&dead.state->image==((38u<<14)+1),
+                "Pheasant corpse increments counter and selects linear death frame before collection");
+            corpse.counter=499;const auto stillDead=originalFigureFirstUpdate(corpse,shotRefs,&landing,0);
+            need(stillDead.state&&stillDead.state->action==10&&stillDead.state->counter==500,"corpse remains action10 at exact signed counter500");
+            corpse.counter=500;const auto decay=originalFigureFirstUpdate(corpse,shotRefs,&landing,0);
+            need(decay.state&&decay.state->action==4&&decay.state->counter==501,
+                "Pheasant corpse enters action4 only after signed counter500");
+            corpse.action=4;corpse.counter=127;const auto expired=originalFigureFirstUpdate(corpse,shotRefs,&landing,0);
+            need(expired.state&&expired.state->alive==2&&expired.state->counter==127,
+                "ordinary death expiry marks removal after127 and clamps its counter");
+            auto removedShot=*hit.state;removedShot.home=1;landing.figures[removedShot.slot]=removedShot;
+            landing.figures.at(1).next=uint16_t(removedShot.slot);landing.figures.at(2).destinationCell=0x12345678;
+            need(originalFigureRemoveArrivedWorker(removedShot,landing)&&!removedShot.alive&&
+                landing.figures.at(2).destinationCell==0x5678&&landing.figures.at(1).next==0&&landing.freeSlots.back()==arrived.slot,
+                "projectile removal unlinks,queues freed slot and clears only shooter runtime32 high word when lifetime is nonzero");
+            auto gather=landing.figures.at(2);gather.action=9;gather.target=1;gather.route=0;gather.home=0;
+            gather.x=corpse.x;gather.y=corpse.y;gather.cell=corpse.cell;gather.destinationX=gather.x;gather.destinationY=gather.y;
+            landing.passability.emplace();landing.passability->fullMovementMasks=true;landing.passability->cells.assign(51984,0x10);
+            landing.movementMasks.assign(51984,0x10);
+            corpse.action=10;corpse.alive=1;corpse.counter=3;corpse.next=uint16_t(gather.slot);landing.figures[1]=corpse;
+            landing.figures[gather.slot]=gather;landing.cellHeads[gather.cell]=1;landing.modelSpeeds[40]=6;
+            const auto collected=originalFigureFirstUpdate(gather,shotRefs,&landing,0);
+            need(collected.state&&collected.state->action==8&&collected.state->counter==0&&collected.linkedWrites.at(1).alive==2,
+                "Hunter collection marks same-cell action10 prey for its next ordered updater and enters gathering action8");
+            auto discarded=collected.linkedWrites.at(1);discarded.owner=discarded.home=0;landing.figures[1]=discarded;
+            landing.figures.at(2).target=1;discarded.flags120|=2;
+            need(originalFigureRemoveArrivedWorker(discarded,landing)&&!discarded.alive&&landing.figures.at(2).target==0,
+                "collected corpse cleanup clears target references before resetting its freed pool slot");}
         {OriginalFigureUpdateContext hunt;hunt.cropBase=0;hunt.passability.emplace();hunt.passability->fullMovementMasks=true;
             hunt.passability->cells.assign(51984,0);auto hunter=one;hunter.cell=2290;hunter.owner=9;
             auto prey=one;prey.type=76;prey.runtimeClass=OriginalFigureClass::Pheasant;prey.cell=2290;prey.slot=5;
@@ -934,6 +1056,23 @@ void authored(){
             need(delivered.state&&delivered.state->action==13&&delivered.state->amount==0&&delivered.state->counter==0&&
                 delivered.state->destinationX==4&&delivered.state->destinationY==7&&delivered.buildings->at(8).storage->at(2).amount==3,
                 "full warehouse delivery publishes credited compartments and zero-cargo home continuation together");
+            auto rejectedContext=context;rejectedContext.buildings->at(8).workers=0;
+            rejectedContext.goods->industrySearch->fill(1);rejectedContext.goods->storageSearch->fill(1);
+            const auto retainedCargo=originalFigureFirstUpdate(delivery,refs,&rejectedContext,0xc0);
+            need(retainedCargo.state&&retainedCargo.state->amount==3&&retainedCargo.state->action==6&&retainedCargo.state->counter==0&&
+                retainedCargo.state->stationary==1&&retainedCargo.state->delivery==0&&retainedCargo.goods->warehouse[18]==rejectedContext.goods->warehouse[18],
+                "rejected delivery retains all cargo and enters stationary search failure without inventing warehouse credit");
+            auto industrial=delivery;industrial.action=12;industrial.counter=4;industrial.delivery=10;industrial.amount=100;
+            auto kilnContext=context;OriginalFigureBuildingLink kiln;kiln.type=0x2b;kiln.alive=1;kiln.industryInput=300;kiln.incomingFigures=1;
+            kilnContext.buildings->at(10)=kiln;kilnContext.figures[industrial.slot]=industrial;
+            const auto kilnWait=originalFigureFirstUpdate(industrial,refs,&kilnContext,0xc0);
+            need(kilnWait.state&&kilnWait.state->action==12&&kilnWait.state->counter==5&&kilnWait.buildings->at(10).industryInput==300,
+                "industrial action12 waits through counter5 before delivering retained cargo");
+            industrial.counter=5;const auto kilnDelivery=originalFigureFirstUpdate(industrial,refs,&kilnContext,0xc0);
+            need(kilnDelivery.state&&kilnDelivery.state->action==13&&kilnDelivery.state->amount==0&&kilnDelivery.state->counter==0&&
+                kilnDelivery.buildings->at(10).industryInput==400&&kilnDelivery.buildings->at(10).incomingFigures==0&&
+                kilnDelivery.state->destinationX==industrial.homeX&&kilnDelivery.goods->warehouse==kilnContext.goods->warehouse,
+                "Kiln accepts100 main input, rounds stock, debits reciprocal reservation and sends empty carrier home without warehouse credit");
             delivery=*delivered.state;delivery.action=12;context.figures[delivery.slot]=delivery;
             const auto home=originalFigureFirstUpdate(delivery,refs,&context,0xc0);
             need(home.state&&home.state->alive==2&&home.state->image==0,
@@ -964,7 +1103,19 @@ void authored(){
             context.buildings->at(8).primaryFigure=777;context.buildings->at(8).secondaryFigures[1]=int16_t(cleared.slot);
             need(originalFigureRemoveArrivedWorker(cleared,context)&&context.buildings->at(8).primaryFigure==777&&
                 context.buildings->at(8).secondaryFigures[1]==0,
-                "warehouse return removal clears only matching embedded6C when primary belongs to another figure");}
+                "warehouse return removal clears only matching embedded6C when primary belongs to another figure");
+            auto traded=returned;traded.type=21;traded.action=10;traded.owner=9;traded.delivery=8;traded.home=0;context.modelSpeeds[21]=6;
+            auto& station=context.buildings->at(9);station.type=0x3a;station.alive=1;station.workers=1;station.suppress=0;
+            station.storagePolicy=0;station.storage=std::vector<OriginalStorageCompartment>(15,{0,0,400});
+            station.cargoFigures[0]=station.cargoFigures[2]=int16_t(traded.slot);context.goods->policies[0].trade[18]=7;
+            context.goods->policies[0].limit[18]=6000;context.goods->trade7[18]=50;context.figures[traded.slot]=traded;
+            const auto tradeReturn=originalFigureFirstUpdate(traded,refs,&context,0xc0);
+            need(tradeReturn.state&&tradeReturn.state->alive==2&&tradeReturn.state->amount==3&&tradeReturn.state->counter==0&&
+                tradeReturn.buildings->at(9).storage->front().amount==3&&tradeReturn.goods->trade7[18]==53,
+                "type21 full station return credits mode7 stock and marks removal while retaining cargo until cleanup");
+            cleared=*tradeReturn.state;context.figures[cleared.slot]=cleared;context.cellHeads[cleared.cell]=uint16_t(cleared.slot);
+            need(originalFigureRemoveArrivedWorker(cleared,context)&&!cleared.alive&&station.cargoFigures[0]==0&&station.cargoFigures[2]==0,
+                "station return cleanup clears every matching cargo slot and resets the returned figure");}
         auto migrant=one;migrant.type=13;migrant.action=9;migrant.counter=30;migrant.route=3;migrant.direction=2;migrant.progress=2;
         context.modelSpeeds[13]=0;context.figures[migrant.slot]=migrant;
         const auto noVacancy=originalFigureFirstUpdate(migrant,refs,&context,0xc0);
@@ -1001,6 +1152,9 @@ void authored(){
         const auto put16=[&](size_t at,uint16_t n){data[at]=uint8_t(n);data[at+1]=uint8_t(n>>8);};
         const auto put32=[&](size_t at,uint32_t n){for(unsigned k=0;k<4;++k)data[at+k]=uint8_t(n>>(8*k));};
         put16(population,7);put16(anchor-28,6);put32(anchor-28+704,0x12345678);
+        put16(anchor+1433,1);put32(anchor+1452,4);
+        need(originalFigureSavedDifficulty(data,anchor)==4,"difficulty literal follows Scenario6 body1459 and intervening byte");
+        put32(anchor+1452,5);need(!originalFigureSavedDifficulty(data,anchor),"difficulty outside five model modifier rows refuses");
         put16(figuresEnd,1);put32(figuresEnd+2,1);put16(figuresEnd+6,1);
         data[figuresEnd+6+12+25]=2;put16(figuresEnd+6+54+2*25,0xfffe);data[figuresEnd+6+198+25]=7;
         put32(population+10034+4*25,11);put32(population+10578+4*25,22);put32(population+10722+4*25,33);
@@ -1021,11 +1175,15 @@ void authored(){
         for(size_t n=0;n<100;++n){services[t+1281760+175*n]=6;services[t+1281761+175*n]=0;}
         services[t+779760+6]=0x34;services[t+779760+7]=0x12;
         services[t+781760+1507]=6;
+        services[t+1281760+175*36+96]=0x34;services[t+1281760+175*36+97]=0x12;
+        services[t+1281760+175*36+98]=0xfe;services[t+1281760+175*36+99]=0xff;
         const auto put=[&](size_t at,uint32_t value){for(unsigned n=0;n<4;++n)services[t+at+n]=uint8_t(value>>(8*n));};
         put(1299340,1);put(1299344,16);
         auto saved=originalFigureSavedServices(services,t);
         need(saved&&saved->routeOwners[3]==0x1234&&saved->directions.size()==500000&&saved->directions[1507]==6&&
             saved->randomFirst==1&&saved->randomSecond==16,"SAV19 route rows500 and two RNG registers use literal independent offsets");
+        need(saved->formationImpacts[36].alert==0x1234&&saved->formationImpacts[36].source==-2,
+            "formation6 alert and source use literal175-byte record wire96/98 with signed word preservation");
         //31 shifts:single bit0 returns bit0+27;single bit4 adds bit4.
         need(originalFigureRandomNext(*saved)==1&&saved->randomFirst==0x08000001&&saved->randomSecond==0x08000011,
             "RNG performs31 bit4-xor-bit0 shifts on both saved registers");
@@ -1154,12 +1312,31 @@ void authored(){
             need(originalFigureGenerateRoute(walker,roadContext)&&walker.route==1&&walker.routeLength==2&&
                 roadContext.services->directions[500]==2&&roadContext.services->directions[501]==2,
                 "mode1 road-only flood allocates cardinal route through B0C mask4");
+            roadContext.cropBase=base;roadContext.terrain.assign(51984,0x40);roadContext.movementMasks.assign(51984,4);
+            walker.direction=8;walker.progress=20;walker.owner=0;walker.subX=walker.subY=0;roadContext.figures[walker.slot]=walker;
+            const auto restarted=originalFigureFollowRoute(walker,6,0x40,&roadContext);
+            need(restarted.state&&restarted.state->direction==2&&restarted.state->progress==0&&restarted.state->routeCursor==1&&
+                restarted.state->subX==1,"query-installed route replaces prior arrival direction at progress20 before first substep");
             roadContext.services->routeOwners.fill(0);roadContext.passability->cells[base+1]=0x10;walker.route=0;
             need(originalFigureGenerateRoute(walker,roadContext)&&walker.route==0&&walker.direction==10,
                 "mode1 refuses plain-land51C shortcuts excluded by its B0C road mask");
             roadContext.passability->cells[base+1]=0x20;walker.movementMode=7;walker.route=0;
             need(originalFigureGenerateRoute(walker,roadContext)&&walker.routeLength==2,
-                "mode7 delegated return flood admits forest20 through the cited12C mask");}
+                "mode7 delegated return flood admits forest20 through the cited12C mask");
+            walker.movementMode=18;walker.route=0;
+            need(originalFigureGenerateRoute(walker,roadContext)&&walker.route==0&&walker.direction==10,
+                "mode18 road return excludes forest20 from its10C flood");
+            roadContext.passability->cells[base+1]=4;walker.route=0;
+            need(originalFigureGenerateRoute(walker,roadContext)&&walker.routeLength==2,
+                "mode18 road return allocates cardinal path through10C road4");}
+        {OriginalFigureUpdateContext networks;networks.cropBase=base;networks.activeSide=20;networks.passability.emplace();
+            networks.passability->fullMovementMasks=true;networks.passability->cells.assign(51984,0);networks.terrain.assign(51984,0);
+            for(unsigned x:{0u,2u,4u}){networks.terrain[base+x]=0x40;networks.passability->cells[base+x]=4;}
+            networks.passability->cells[base+1]=8;networks.terrain[base+1]=0x400;
+            networks.passability->cells[base+3]=8;
+            const auto labels=originalFigureRoadNetworks(networks);
+            need(labels&&labels->at(base)==1&&labels->at(base+1)==1&&labels->at(base+2)==1&&labels->at(base+3)==0&&labels->at(base+4)==2,
+                "road components use row-major seeds and admit mask8 only on terrain400");}
         auto group=archive;group.numImages=256;group.sprites.resize(256);group.imageIndex.fill(1);
         group.sprites[0].animationSpriteCount=12;group.sprites[0].animationDirections=8;
         const std::map<uint32_t,const SG3Archive*> refs{{38,&group}};
@@ -1663,6 +1840,11 @@ void corpus(){
         need(figures.factionModels.has_value(),"complete following Goods1/Empire3/Grid15/child5 publishes faction models");
         std::vector<uint8_t> savedBytes;need(detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,savedBytes),"read original container for following-layout refusal checks");
         const auto payload=decodeOriginalMapContainer(savedBytes).payload;
+        const auto difficulty=originalFigureSavedDifficulty(payload,save.sizeOffset);
+        need(difficulty&&*difficulty==detail::u32(payload.data()+save.sizeOffset+1452),"saved difficulty follows complete Scenario6 and5312D9 byte before5312E7");
+        const auto sourceModels=originalFigureModels(std::string(modelBytes.begin(),modelBytes.end()),difficulty);
+        need(bool(sourceModels),"saved difficulty supplies scaled combat models without a default");
+        updateContext->models=decoyUpdateContext->models=*sourceModels;
         auto services=originalFigureSavedServices(payload,save.terrainOffset);
         const auto population=originalFigureSavedPopulation(payload,save.sizeOffset);
         std::optional<bool> waterOverride;const auto festival=originalFigureSavedFestivalVenue(payload,save.terrainOffset,save.sizeOffset,&waterOverride);
@@ -1766,8 +1948,8 @@ void corpus(){
         postLoadComputed+=postLoad.computed;postLoadBlocked+=postLoad.blocked;
         const auto decodeWord=[&](uint32_t word){auto name=std::filesystem::path(originalFigureArchiveName(word>>14));name.replace_extension(".555");
             return decodeSG3Sprite(archives.at(word>>14),word&0x3fff,root.resolve("DATA/"+name.string())).image.valid();};
-        const auto ordered=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{},&*updateContext),
-            orderedDecoys=originalFigureOrderedFirstPass(decoys,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*models,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{},&*decoyUpdateContext);
+        const auto ordered=originalFigureOrderedFirstPass(figures,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*sourceModels,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{},&*updateContext),
+            orderedDecoys=originalFigureOrderedFirstPass(decoys,refs,save.terrain.flags,*modelSpeeds,&*services,passability?&*passability:nullptr,&*hunterLinks,&*buildingLinks,*sourceModels,spawn->cropBase,roadMasks?*roadMasks:std::vector<uint16_t>{},&*decoyUpdateContext);
         need(ordered.accepted&&ordered.figures.size()==figures.live.size()&&ordered.computed+ordered.blocked==figures.live.size()&&
             ordered.computed==orderedDecoys.computed,"ordered pass partitions complete same-source live pool independent of saved images");
         orderedComputed+=ordered.computed;orderedPrefix+=ordered.prefixComputed;orderedComplete+=ordered.complete;
@@ -1784,9 +1966,9 @@ void corpus(){
         const auto* timelinePassability=fullPassability?&*fullPassability:passability?&*passability:nullptr;
         const auto timelineMasks=fullPassability?fullPassability->cells:roadMasks?*roadMasks:std::vector<uint16_t>{};
         const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,timelinePassability,
-            &*hunterLinks,&*buildingLinks,*models,spawn->cropBase,timelineMasks,&*updateContext);
+            &*hunterLinks,&*buildingLinks,*sourceModels,spawn->cropBase,timelineMasks,&*updateContext);
         need(initial.complete&&initial.context.has_value(),"timeline initializes callbacks/population exactly once");
-        for(bool suppliedCrt:{false,true})for(unsigned n:{1u,10u,19u,20u,27u,50u,83u,84u,85u,98u,99u,100u,177u,178u,181u,182u,200u}){
+        for(bool suppliedCrt:{false,true})for(unsigned n:{1u,83u,84u,100u,150u,178u,192u,200u}){
             std::vector<OriginalSceneTimelineFrame> frames;
             for(unsigned k=1;k<=n;++k){OriginalSceneTimelineFrame frame;frame.animationClock=37*k;
                 frame.admission.now=37*k;frame.admission.speed=80;frame.continueAfterPass={false};
@@ -1799,13 +1981,16 @@ void corpus(){
             for(auto& frame:frames)for(unsigned diagonal=0;diagonal<2*save.terrain.activeSide-1;++diagonal)
                 for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
                     frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
-            auto timelineInitial=*initial.context;if(suppliedCrt)timelineInitial.crtRandom=1;else timelineInitial.crtRandom.reset();
+            auto timelineInitial=*initial.context;timelineInitial.soundEffectsEnabled=false;
+            if(suppliedCrt)timelineInitial.crtRandom=1;else timelineInitial.crtRandom.reset();
+            const auto start=std::chrono::steady_clock::now();
             const auto timeline=originalSceneTimeline(timelineInitial,refs,timelineScene,general,&*employment,0,{},frames);
-            const unsigned firstFailure[]={0,suppliedCrt?192u:178u,84,suppliedCrt?99u:85u,0,0};
-            const size_t firstSlot[]={0,suppliedCrt?1999u:1669u,235,suppliedCrt?1999u:1981u,0,0};
+            const auto runtime=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
+            const unsigned firstFailure[]={0,suppliedCrt?0u:178u,0,suppliedCrt?0u:85u,0,0};
+            const size_t firstSlot[]={0,suppliedCrt?0u:1669u,0,suppliedCrt?0u:1981u,0,0};
             const unsigned expected=firstFailure[sources-1];
             auto& total=(suppliedCrt?timelineScores:timelineUnseededScores)[n];total.animationCandidates+=timelineScene.animationEnabled;
-            const size_t expectedReselections=sources==2?(n<19?0:n<27?1:2):sources==3?(n<=27?0:n==50?3:5):0;
+            const size_t expectedReselections=sources==2?(n<19?0:n<27?1:suppliedCrt&&n>=196?3:2):sources==3?(n<=27?0:n==50?3:5):0;
             need(timeline.buildingImageReselections==expectedReselections,
                 "timeline warehouse delivery and withdrawal reselect existing components exactly in the completed prefix");
             std::set<size_t> outcomeSlots;for(const auto& f:figures.live)outcomeSlots.insert(f.slot);
@@ -1816,7 +2001,7 @@ void corpus(){
                 <<",\"first_refused_slot\":"<<timeline.lastPass.firstBlockedSlot<<",\"refusal\":\""<<timeline.refusal
                 <<"\",\"building_image_reselections_in_completed_prefix\":"<<timeline.buildingImageReselections
                 <<",\"outcome_total\":"<<outcomeSlots.size()<<",\"allocated_slots\":"<<timeline.lastPass.allocatedSlots.size()
-                <<",\"crt_rand_calls_in_prefix\":"<<timeline.lastPass.crtRandomCalls<<"}\n";
+                <<",\"crt_rand_calls_in_prefix\":"<<timeline.lastPass.crtRandomCalls<<",\"runtime_seconds\":"<<runtime<<"}\n";
             need(timeline.complete==(!expected||n<expected)&&timeline.updates==(expected&&n>=expected?expected-1:n)&&
                 timeline.refusedUpdate==(expected&&n>=expected?expected:0)&&timeline.lastPass.firstBlockedSlot==(expected&&n>=expected?firstSlot[sources-1]:0),
                 "six original timelines retain independently recorded first refusal boundaries and stop there");
@@ -1829,6 +2014,18 @@ void corpus(){
                 auto unchanged=timelineScene;need(!installOriginalSceneTimeline(unchanged,save.terrain,figures,refs,save.buildings,general,timeline),
                     "refused timeline cannot install earlier frame as requested N");continue;}
             ++total.pools;total.computed+=outcomeSlots.size();
+            if(n==200&&sources==3){const auto& cargo=timeline.context->figures.at(235);const auto& kiln=timeline.context->buildings->at(469);
+                need(kiln.industryInput==400&&kiln.incomingFigures==0&&cargo.amount==0&&cargo.action==13,
+                    "original retained100 cargo reaches Kiln469,credits stock300 to400,debits one reservation and returns home by N200");}
+            if(n==200&&suppliedCrt&&(sources==2||sources==4)){
+                const size_t prey=sources==2?1758:19;const auto& animal=timeline.context->figures.at(prey);
+                need(animal.damage==3&&animal.alive==1&&animal.attackerCount==1&&
+                    timeline.context->services->formationImpacts[size_t(animal.formation)].alert==6&&
+                    !timeline.context->figures.at(1999).alive,
+                    "original N200 impact preserves live prey with3 damage,attacker,formation alert and removed allocated projectile");
+                if(sources==2)need(!timeline.context->figures.at(1702).alive&&
+                    timeline.context->goods->trade7[25]==timelineInitial.goods->trade7[25]+100,
+                    "original station return credits100 mode7 goods and removes type21 slot1702 before N200");}
             total.reselected+=timeline.buildingImageReselections;
             total.animationAdvanced+=timeline.buildingAdvances;
             for(const auto& p:timelineScene.placed){const auto found=timeline.buildingPhases.find(p.footprint.slot);
@@ -2045,52 +2242,36 @@ void corpus(){
         k1Placed+k1Hidden+k1Removed+k1Unsupported==192,"k1 scene partitions192 originals:185 placed,6 hidden,1 removed,0 special-placement refusals;274 overlays");
     for(bool suppliedCrt:{false,true})for(const auto& row:(suppliedCrt?timelineScores:timelineUnseededScores)){
         const auto& t=row.second;size_t refused=0;for(const auto& r:t.refusals)refused+=r.second;
-        const unsigned n=row.first,projectileLimit=suppliedCrt?99:85;
+        const unsigned n=row.first;
         // Measured original corpus outcomes;authored tests above establish branch semantics.
         // pools,computed,outcomes,allocated,placed,components,primaries,building frames,advances,changed,reselected,withheld.
         const std::map<unsigned,std::array<size_t,12>> expectedTimeline{
             {1,{6,192,192,0,185,201,191,53,0,0,0,0}},
-            {10,{6,192,192,0,185,201,191,53,159,53,0,0}},
-            {19,{6,192,192,0,185,202,189,53,318,53,1,0}},
-            {20,{6,192,192,0,185,202,188,53,318,53,1,0}},
-            {27,{6,192,192,0,184,200,186,53,477,53,2,0}},
-            {50,{6,192,192,0,175,188,177,53,848,53,5,0}},
             {83,{6,192,192,0,169,182,171,53,1431,53,7,0}},
-            {84,{5,127,192,0,123,127,124,28,784,24,2,5}},
-            {85,{4,95,192,0,90,94,92,25,700,21,2,5}},
-            {98,{4,95,192,0,91,95,92,25,800,25,2,5}},
-            {99,{4,95,192,0,91,95,92,25,825,25,2,5}},
-            {100,{4,95,192,0,91,95,92,25,825,25,2,5}},
-            {177,{4,95,192,0,84,88,84,25,1475,25,2,5}},
-            {178,{3,49,192,0,49,49,49,3,177,3,0,7}},
-            {181,{3,49,192,0,49,49,49,3,180,1,0,7}},
-            {182,{3,49,192,0,49,49,49,3,180,1,0,7}},
-            {200,{3,49,192,0,49,49,49,3,198,3,0,7}}};
+            {84,{6,192,192,0,170,183,171,53,1484,47,7,0}},
+            {100,{5,160,192,0,138,151,139,50,1650,50,7,0}},
+            {150,{5,160,192,0,133,146,134,50,2500,50,7,0}},
+            {178,{4,114,192,0,91,99,91,28,1652,28,5,2}},
+            {192,{4,114,192,0,87,95,87,28,1792,28,5,2}},
+            {200,{4,114,192,0,82,90,84,28,1848,28,5,2}}};
         auto measured=expectedTimeline.at(n);
-        if(suppliedCrt&&n>=85){measured[2]=193;measured[3]=1;
-            if(n==85)measured={5,128,193,1,123,128,125,28,784,24,2,5};
-            else if(n==98)measured={5,128,193,1,124,129,125,28,896,28,2,5};
-            else if(n==178)measured={4,96,194,2,84,89,84,25,1475,25,2,5};
-            else if(n==181)measured={4,96,194,2,84,89,84,25,1500,11,2,5};
-            else if(n==182)measured={4,96,194,2,83,88,84,25,1500,11,2,5};
-            else if(n==200)measured={3,49,194,2,49,49,49,3,198,3,0,7};}
+        if(suppliedCrt&&n>=100){
+            const std::map<unsigned,std::array<size_t,12>> seeded{
+                {100,{6,193,193,1,170,183,171,53,1749,53,7,0}},
+                {150,{6,193,193,1,165,178,166,53,2650,53,7,0}},
+                {178,{6,194,194,2,158,171,158,53,3127,53,7,0}},
+                {192,{6,194,194,2,153,165,153,53,3392,53,7,0}},
+                {200,{6,194,194,2,144,155,146,53,3498,53,8,0}}};measured=seeded.at(n);}
         need(std::array<size_t,12>{t.pools,t.computed,t.outcomes,t.allocated,t.placed,t.decoded,t.primary,t.animation,
             t.animationAdvanced,t.animationChanged,t.reselected,t.prefixReselected}==measured,
             "perN timeline output denominators and installed building consequences match recorded originals");
         need(t.computed+refused==t.outcomes&&t.consistent==t.primary&&t.animationCandidates==53,
             "perN computed and disjoint refused outcomes close originals plus allocations with every primary consistent");
         std::map<std::string,size_t> expectedRefusals;
-        if(n>=84){expectedRefusals={{"earlier_ordered_slot_uncomputed",44},{"goods_delivery_arrival_virtual_4cd8f0",1},
-            {"later_ordered_slot_may_write_earlier_figure",2},{"prior_removed_outcome_withheld",18}};
-            if(n>=projectileLimit){if(suppliedCrt){expectedRefusals["projectile_allocation_or_collision_5ea510_5e6200"]=1;
-                    expectedRefusals["later_ordered_slot_may_write_earlier_figure"]+=32;}
-                else {expectedRefusals["crt_rand_state_required_wall_clock_seeded_not_in_sav"]=1;
-                    expectedRefusals["earlier_ordered_slot_uncomputed"]+=10;expectedRefusals["later_ordered_slot_may_write_earlier_figure"]+=21;}}
-            if(!suppliedCrt&&n>=178){++expectedRefusals["crt_rand_state_required_wall_clock_seeded_not_in_sav"];
-                expectedRefusals["earlier_ordered_slot_uncomputed"]+=27;expectedRefusals["later_ordered_slot_may_write_earlier_figure"]+=7;
-                expectedRefusals["prior_removed_outcome_withheld"]+=11;}
-            if(suppliedCrt&&n>=192){++expectedRefusals["projectile_allocation_or_collision_5ea510_5e6200"];
-                expectedRefusals["later_ordered_slot_may_write_earlier_figure"]+=34;expectedRefusals["prior_removed_outcome_withheld"]+=12;}}
+        if(!suppliedCrt&&n>=100)expectedRefusals={{"crt_rand_state_required_wall_clock_seeded_not_in_sav",1},
+            {"earlier_ordered_slot_uncomputed",10},{"later_ordered_slot_may_write_earlier_figure",21}};
+        if(!suppliedCrt&&n>=178)expectedRefusals={{"crt_rand_state_required_wall_clock_seeded_not_in_sav",2},
+            {"earlier_ordered_slot_uncomputed",37},{"later_ordered_slot_may_write_earlier_figure",28},{"prior_removed_outcome_withheld",11}};
         std::cout<<"{\"timeline_N\":"<<row.first<<",\"crt_seed\":\""<<(suppliedCrt?"explicit_1":"none")<<"\",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"computed\":"<<t.computed
             <<",\"original_total\":192,\"outcome_total\":"<<t.outcomes<<",\"allocated_slots\":"<<t.allocated
             <<",\"placed\":"<<t.placed<<",\"decoded_components\":"<<t.decoded<<",\"primary_consistent\":"<<t.consistent

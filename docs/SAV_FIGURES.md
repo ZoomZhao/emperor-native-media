@@ -1,6 +1,99 @@
 # SAV19 figures on the city overlay layer
 
+## Retained cargo and live impact,2026-10-21
+
+**Largest measured shared horizon N83→N200 with explicit CRT state1:6/6 pools,194/194 outcomes.** N200 installs144/194 placed figures,155/155 decoded figure components,146/146 consistent surviving primaries,53/53 building frames and8 building image re-selections. Without CRT input,N200 improves3/6→4/6 complete pools and49/192→114/192 computed outcomes. The shared no-CRT horizon advances83→84;source4 still requires caller CRT state at85 and source2 at178. The named retained-cargo and positive-impact blockers are removed within the measured200;STATUS.md remains owned by the lead.
+
+Baseline HEAD`dc36ea9` was reproduced at604/604 authored and14,734/14,734 total checks. All results here use the same six supplied SAVs,12,000 slots and192 original live outcomes. Removed outcomes remain in the denominator;successful-prefix allocated identities add one at85 and another at178 with explicit state1. Complete requested-N pools alone contribute installed figures/building frames;failed pools expose no prefix scene. These are native computations and independent selector consistency. Original post-update/screen agreement remains **unmeasured**. No original game was run;no disassembly/decompilation was declined and no constants were fitted.
+
+The new measured timeline premise is **explicit`soundEffectsEnabled=false`**,the live`10DE0D3` audio gate. It is absent by default,and the App supplies neither this override nor CRT state. State1 remains an explicit counterfactual holdrand at timeline entry,not a recovered SAV seed. Saved snapshot remains the default. The library reads no environment;real-data tests use only process-local`EMPEROR_GAMEDATA_ROOT`.
+
+|N|CRT input|Complete pools /6 before→after|Computed outcomes before→after|Placed figures/outcomes before→after|Decoded components before→after|Primary consistency before→after|Building frames /53 before→after|Installed re-selections before→after|
+|---:|---|---:|---:|---:|---:|---:|---:|---:|
+|1|both|6→6|192/192→192/192|185/192→185/192|201/201→201/201|191/191→191/191|53→53|0→0|
+|83|both|6→6|192/192→192/192|169/192→169/192|182/182→182/182|171/171→171/171|53→53|7→7|
+|84|both|5→6|127/192→192/192|123/192→170/192|127/127→183/183|124/124→171/171|28→53|2→7|
+|100|none|4→5|95/192→160/192|91/192→138/192|95/95→151/151|92/92→139/139|25→50|2→7|
+|100|explicit1|4→6|95/193→193/193|91/193→170/193|95/95→183/183|92/92→171/171|25→53|2→7|
+|150|none|4→5|95/192→160/192|87/192→133/192|91/91→146/146|88/88→134/134|25→50|2→7|
+|150|explicit1|4→6|95/193→193/193|87/193→165/193|91/91→178/178|88/88→166/166|25→53|2→7|
+|178|none|3→4|49/192→114/192|49/192→91/192|49/49→99/99|49/49→91/91|3→28|0→5|
+|178|explicit1|4→6|96/194→194/194|84/194→158/194|89/89→171/171|84/84→158/158|25→53|2→7|
+|192|none|3→4|49/192→114/192|49/192→87/192|49/49→95/95|49/49→87/87|3→28|0→5|
+|192|explicit1|3→6|49/194→194/194|49/194→153/194|49/49→165/165|49/49→153/153|3→53|0→7|
+|200|none|3→4|49/192→114/192|49/192→82/192|49/49→90/90|49/49→84/84|3→28|0→5|
+|200|explicit1|3→6|49/194→194/194|49/194→144/194|49/49→155/155|49/49→146/146|3→53|0→8|
+
+ForN1/83/84/100/150/178/192/200,installed building advances are **0/1431/1484/1650/2500/1652/1792/1848** without CRT input and **0/1431/1484/1749/2650/3127/3392/3498** with explicit1. Changed final phases are0/53/47/50/50/28/28/28 and0/53/47/53/53/53/53/53. Withheld prefix re-selections fall5→0 at84/100/150,7→2 at178/192/200 without input,and5→0 at178 plus7→0 at192/200 with explicit1. Allocations remain0 in the absent column;explicit1 totals0/0/0/1/1/2/2/2.
+
+Exact refusal partitions use E=`earlier_ordered_slot_uncomputed`,P=`later_ordered_slot_may_write_earlier_figure`,R=`prior_removed_outcome_withheld`,D=`goods_delivery_arrival_virtual_4cd8f0`,C=`crt_rand_state_required_wall_clock_seeded_not_in_sav`,J=`projectile_allocation_or_collision_5ea510_5e6200`. Counts are outcomes,not update calls.
+
+|N|CRT input|Before refusal partition|After refusal partition|
+|---:|---|---|---|
+|1,83|both|0/192|0/192|
+|84|both|65/192=44E+2P+18R+1D|0/192|
+|100,150|none|97/192=54E+23P+18R+1D+1C|32/192=10E+21P+1C|
+|100,150|explicit1|98/193=44E+34P+18R+1D+1J|0/193|
+|178|none|143/192=81E+30P+29R+1D+2C|78/192=37E+28P+11R+2C|
+|178|explicit1|98/194=44E+34P+18R+1D+1J|0/194|
+|192,200|none|143/192=81E+30P+29R+1D+2C|78/192=37E+28P+11R+2C|
+|192,200|explicit1|145/194=44E+68P+30R+1D+2J|0/194|
+
+**Supplier/accounting provenance.** Owned EXE SHA-256`0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658` was rehashed. Every code/data VA here maps to file offset VA−`0x400000` where file-backed;private listings stay outside Git. `4E2A20` subtracts only the accepted warehouse amount,then calls`4E2960` for retained cargo and chooses action8/7/9 or stationary6. `506CD0` considers load-registered ascending industrial candidates,requires employment/availability/road/access/input capacity,sets the cache,compares current-cell`EC5A10` against candidate category,and retains the first strict-greater score. Kiln vtable`7BFC2C`:main input`+264=5F5130` resource18,secondary`+268=4FA3F0` zero,`+D8=5F1510`,`+DC=5F1540`,`+E0=4F1520` capacity400,`+158=5F2060` reserves100 per incoming figure,`+154=5F2140` accepts available input,`+160=508190` rounds main stock to hundreds. Common5 wire58 restores main stock;wire156 restores reservations. Table`8235A8+43*24` gives priority category1;Population7 wire10194+20*n restores its ten signed priority dwords. Score arithmetic preserves low32 x86 products.
+
+`534EBA→4AF350/4AF490` reconstructs EC5A10 using row-major road seeds`(terrain&44)==40`,B0C traversal,immediate first neighbour and1000-entry pending ring;mask8 requires terrain400. The unrelated EB8F00 segment labels are not used by supplier scoring. `4E7FD0(mode1)→5B04A0(1)` allocates/clears a route before cardinal candidate search and four/eight backtracking;it retains direction/progress. `4E7EEA` therefore admits old arrival direction8 at progress19/20 and selects the new direction before moving. Source3 N84 keeps100/100 units after Warehouse459 accepts0,skips full Kilns467/468 and selects469 at300 stock. It arrives atN160,waits through counter5,then delivers100→stock400 and reservation1→0;atN200 carrier235 has zero cargo and action13. Warehouse accounting receives no industrial credit.
+
+**Impact/death provenance.** Figure7 requests`4C88BD/4C8893/4C86BB` restore damage+A8,hit byte+A0 and formation+6A (receiver offsets168/160/106). Saved formation6 records startT+1281760,175 bytes each;`550C54/550C61` restore alert/source at wire96/98 to runtime+5E/+60. `4E5A60` computes model attack2 minus signed-low32 armor3×attack/20,clamps negative damage to0,adds modulo32,and uses unsigned **strict greater-than** health1 for Hunter/prey death. `54B930` is a verified stub returning−1,so its formation relation modifiers never apply. Pheasant death enters10 and Hunter9 with prey coordinates and reciprocal route release. `5E635F..63A8` preserves existing attackers or sets count1/attacker0,then writes victim formation alert6/source=projectile formation. `40E630(18)` is a verified return0 stub. Hit byte increments modulo256;projectile becomes2 and cleanup unlinks/resets/enqueues it,clearing only the shooter's runtime+32 high word when lifetime+64 is nonzero (`4C909E`).
+
+`4EA090/4EA1D0→5C4D00` use categories6/5 without CRT consumption;explicit`10DE0D3=false` bypasses UI/audio reads. Unknown/enabled audio remains refused. Allocation's separate`4EA120→7665FD` still consumes CRT rand once even with audio disabled. The impact first proves the complete soldier query`5E34D0` empty before ordinary`5E3400` selection,including soldiers later in the cell list. Source4 impactN99 and source2 impactN192 each leave a live Pheasant with3 damage,attacker and formation alert6;both allocated projectiles are removed byN200. Health equality,death,armor cancellation,hit-byte wrap,attacker preservation,formation writes,projectile cleanup,Hunter9 collection and Pheasant10/4 decay are authored semantic coverage;**original-data prey deaths/collections are0 throughN200**. Corpse paths retain the common predicate/cooldown prelude;action10 transitions after counter500,action4 removes after127. Linked state2 prey still runs its ordered updater before dispatcher cleanup.
+
+**Additional reached continuations.** Inspector`4CD41A..48D` reaches its roam limit,targets the owner road,releases its route and still roams in the same call;action9 arrival initializes owner-cell free movement. Market`4D0270→4E3A80` returns on roam expiry or the cited depleted-stock conditions. `544910` selects fourth role1 descriptor `(3,3)` in both common-Market orientations at`8574A8`;the bounded size1 road cell passes radius0`4BA580→4BA370`. Mode18 routing uses`5B00D0(0)→5B0220` mask10C with four/eight backtracking. Return arrival removes via primary-first/embedded+6C cleanup. Source2 type21 slot1702 returns100 resource25 atN196:station vtable`7BE7A4+154=5D4E80`,15 compartments,trade5/7 policy`5DE310`,credit`5DEEC0`,then`4E34E0` marks removal and`4C8D7E..DB0` clears matching cargo slots. Existing storage selectors produce the eighth re-selection;no stock-derived image formula is added.
+
+**Premise audit additions.** Scenario6 plus embedded own1 and the following byte frame difficulty at`S+1452` (`5312E7`),with own1 at`S+1433`;values0..4 select supplied model modifiers. `5D22E3..230B` uses low32 product then unsigned division100 for flagged fields;absent difficulty leaves those fields unknown. App/test now use same-source saved difficulty. Alert/source,industry priority and input stock are serialized fields;road components are load-rebuilt state. The new audio override is explicitly supplied process state,not a serialized/reset zero. Existing Watchtower/Inspector maxima,caches,scheduler/draw/clock premises and absent-by-default CRT state retain the audit below. No broader city/building/audio loop is claimed. Remaining limits include unknown/enabled audio,missing CRT input,and unported industrial/storage/combat variants outside the measured paths. BeyondN200 is unmeasured.
+
+|Source|Complete horizon before→after,CRT absent|Complete horizon before→after,explicit1|Next limit|
+|---:|---|---|---|
+|1|200→200,21/21 outcomes|200→200,21/21|beyond200 unmeasured|
+|2|177→177,46/46|191→200,47/47 including1 allocation|absent CRT refuses178/slot1669;audio input required at192|
+|3|83→200,65/65|83→200,65/65|beyond200 unmeasured|
+|4|84→84,32/32|98→200,33/33 including1 allocation|absent CRT refuses85/slot1981;audio input required at99|
+|5|200→200,7/7|200→200,7/7|beyond200 unmeasured|
+|6|200→200,21/21|200→200,21/21|beyond200 unmeasured|
+
+**Validation.** Final strict Release and UBSan each pass638/638 authored and10,029/10,029 total figure-scene checks. Aggregate rows agree16/16 and per-source outcome rows agree96/96,including exact refusal partitions and N200 cargo/impact/station state. Unset/empty-root controls pass4/4 across both binaries,each638/638 authored checks with original-data SKIP. Required Release/UBSan regressions pass:building-scene244/244 authored and7,663/7,663 total;building-image1,283/1,283 and3,880/3,880;saved-ground110/110 and1,928/1,928;SAV94/94;map-reference3,130/3,130. CITY19 Figure7 passes912/912 across456 cases per mode;Pheasant properties pass46/46. The timeline target's66/66 private mutations are rejected by assertions,including the strengthened reservation-boundary/difficulty-divisor rechecks and soldier-priority/supplier-score checks. These authored checks are semantic coverage,not additional original-data progress.
+
+The authored figure suite grows604→638 checks. The total14,734→10,029 reflects replacing17 legacy horizon samples per CRT mode with the eight requested horizons,so these totals are not a like-for-like coverage metric;the per-N tables above compare the same requested horizons against the reproduced baseline.
+
+Final per-source requested-N200 runtimes follow,in seconds. They were sampled while other validation jobs were running,so they are observations rather than isolated benchmarks. Absent-CRT sources2/4 include computation to refusal and install no prefix scene. Explicit1 completes200/200 updates in all6/6 sources.
+
+|Source|Release CRT absent|Release explicit1|UBSan CRT absent|UBSan explicit1|Explicit1 outcomes|Absent-CRT completed updates|
+|---:|---:|---:|---:|---:|---:|---:|
+|1|5.528|5.481|20.225|18.546|21/21|200/200|
+|2|12.525|13.966|31.560|30.146|47/47|177/200|
+|3|11.518|11.637|32.175|31.663|65/65|200/200|
+|4|2.602|6.061|8.360|19.433|33/33|84/200|
+|5|0.493|0.487|1.474|1.491|7/7|200/200|
+|6|3.895|3.951|12.405|12.415|21/21|200/200|
+
+Fresh private App`timeline-impact-verified-app/EmperorApp.app` compiles28 translation units,has99/99 embedded source hashes matching current production,and passes`codesign --verify --deep --strict`;it was not launched. Original input integrity passes77/77,and the expanded final SAV/map/model check passes239/239 against the retained private manifest. Private evidence lives under`/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode`:final logs`timeline-impact-delivery-{release,undefined}.log`,review artifacts`timeline-impact-review-final.{json,md}`,mutation logs`timeline-impact-bite-*.log`,and expanded integrity`timeline-impact-input-integrity-expanded.json`. Review JSON retains source hashes,full per-N before/after/refusal records,per-source timings and validation references;listings and original data stay outside Git.
+
+To reproduce from the repository root,set`task_evidence` to a fresh absolute private build directory outside GameData. The supplied local GameData directory is injected for each test process only:
+
+```sh
+EMPEROR_GAMEDATA_ROOT="$PWD/GameData" python3 scripts/figure_scene.py --mode release --build-dir "$task_evidence/release"
+EMPEROR_GAMEDATA_ROOT="$PWD/GameData" python3 scripts/figure_scene.py --mode undefined --build-dir "$task_evidence/undefined"
+EMPEROR_GAMEDATA_ROOT="$PWD/GameData" make building-scene-test building-scene-test-undefined building-image-test building-image-test-undefined saved-ground-test saved-ground-test-undefined save-native-test save-native-test-undefined map-reference-test map-reference-test-undefined
+TMPDIR="$task_evidence" make scene-timeline-bite
+python3 file_io/tests/city19_after_mainpool_tests.py --source-root "$PWD" --output "$task_evidence/figure7"
+python3 file_io/tests/run_pheasant_properties.py --source-root "$PWD" --output "$task_evidence/pheasant"
+EMPEROR_BUILD_DIR="$task_evidence/app" /bin/sh game_lab/app/build.sh
+```
+
+All edits remain uncommitted on main at`dc36ea9`;no commit,push,stash or reset is performed. STATUS.md,AGENTS.md,GameData,ground implementation,CitySimulation and EMP1 are untouched.
+
 ## Arrival, delivery and premise audit,2026-10-21
+
+Historical boundaries below describe the preceding extension;the retained-cargo/live-impact section above supersedes them.
 
 This extension starts at HEAD `62896653cd0399d4d19d998b9e283063a65d2d9e`:574/574 authored and17,403/17,403 total figure checks,with a shared complete horizon N19 across6/6 pools. The measurements below supersede earlier boundary counts. Saved snapshot remains the default. The library reads no environment;real-data test wrappers use only process-local `EMPEROR_GAMEDATA_ROOT`. No original post-update oracle,game execution or fitted constant is used. No disassembly/decompilation was declined. Original screen agreement remains unmeasured.
 

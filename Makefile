@@ -54,6 +54,27 @@ scene-timeline-bite:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only warehouse_return
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only hunter_return_goods
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only hunter_retarget
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only impact_health
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only impact_damage
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only impact_attacker
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only impact_audio
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only corpse_limit
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only retained_cargo
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only impact_formation
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only query_route_restart
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only supplier_reservation
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only supplier_network
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only road_network_gate
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only difficulty_scale
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only station_credit
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only inspector_expiry
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only projectile_cleanup
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only hunter_collection
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only kiln_delay
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only kiln_reservation_debit
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only market_return_target
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only impact_soldier_priority
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only supplier_score
 game-app:
 	/bin/sh game_lab/app/build.sh
 run-game: game-app
