@@ -8,6 +8,7 @@
 
 namespace game_lab {
 void AppMapSurface::clear() {
+    playback_.reset();
     state_.reset(); savedBuildings_.reset(); terrain_ = {}; error_.clear();
 }
 bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const OriginalBuildingProfile& profile,const OriginalSavedGround* ground,uint64_t tickMs,const OriginalFigureProfile* figures,OriginalFigureRenderSource figureSource,const OriginalFigureOrderedPass* ordered){
@@ -77,9 +78,9 @@ bool AppMapSurface::selectPostLoadK1(const OriginalSaveResult& save,const std::v
             frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
     return selectPostLoadTimeline(save,payload,{frame},0,{});
 }
-bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const std::vector<uint8_t>& payload,
-    const std::vector<OriginalSceneTimelineFrame>& suppliedFrames,uint32_t previousAdmission,OriginalAnimationClock clocks){
-    clear();
+bool AppMapSurface::preparePostLoadInputs(const OriginalSaveResult& save,const std::vector<uint8_t>& payload,
+    std::map<uint32_t,SG3Archive>& owned,std::map<uint32_t,const SG3Archive*>& refs,
+    OriginalFigureUpdateContext& initial,OriginalBuildingEmployment& employment,std::string& buildingText){
     if(save.status!=OriginalSaveStatus::LoadedSnapshot||!save.layers.figures||!save.layers.ground||!save.layers.ground->valid())return false;
     const auto& figures=*save.layers.figures;const auto& ground=*save.layers.ground;
     std::vector<uint8_t> bytes;
@@ -88,7 +89,7 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     const auto modelText=std::string(bytes.begin(),bytes.end());const auto models=originalFigureModels(modelText,difficulty);
     const auto modelSpeeds=originalFigureModelSpeeds(modelText);
     if(!detail::readFile(root_.resolve("Model/EmperorBuildingModels.txt"),1048576,bytes))return false;
-    const auto buildingText=std::string(bytes.begin(),bytes.end());
+    buildingText=std::string(bytes.begin(),bytes.end());
     const auto capacities=originalFigureHouseCapacities(buildingText),watchFloors=originalFigureHouseModelColumn(buildingText,15);
     const auto watchReduction=originalFigureWatchtowerReduction(buildingText);
     auto services=originalFigureSavedServices(payload,save.terrainOffset);const auto population=originalFigureSavedPopulation(payload,save.sizeOffset);
@@ -100,10 +101,9 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     services->population=population;auto context=*contextSeed;context.houseCapacities=*capacities;context.buildingOwners=ground.owner;
     context.houseWatchFloors=*watchFloors;context.watchtowerReduction=watchReduction;context.elevation=ground.state.gBEBF3A;
     context.randomByte=ground.state.randomByte;
-    //CRT holdrand is wall-clock seeded and absent from SAV;the default preview
-    //supplies no state and refuses if a requested update reaches rand().
+    //CRT holdrand is wall-clock seeded and absent from SAV;the caller supplies it.
     context.waterOverride=waterOverride;
-    context.watchMaximum=0; //explicit preview premise: fresh process scratchD95080.
+    context.watchMaximum=0; //explicit fresh-process scratchD95080.
     context.inspectorReduction=originalFigureWatchtowerReduction(buildingText,124);
     context.inspectorMaximum=std::array<int32_t,2>{0,0}; //explicit fresh-processD95084/88.
     context.crops=originalFigureSavedCropServices(payload,save.terrainOffset,save.sizeOffset);
@@ -118,31 +118,187 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     for(size_t n=0;n<context.feature.size();++n)context.feature[n]=uint8_t(ground.state.feature[n]);
     context.activeSide=save.terrain.activeSide;context.festivalVenue=festival;context.entertainmentAvailable=spawn->entertainmentAvailable;
     const auto passability=originalFigurePheasantPassability(save.terrain,save.layers.mapperStone,save.buildings,*spawn);
-    std::map<uint32_t,SG3Archive> owned;std::map<uint32_t,const SG3Archive*> refs;
     for(unsigned slot:{14u,17u,38u,39u,40u}){owned.emplace(slot,loadSG3(root_.resolve(std::string("DATA/")+originalFigureArchiveName(slot))));refs[slot]=&owned.at(slot);}
     if(!selectSavedBuildings(save.terrain,save.buildings,&ground,0,&figures))return false;
     const auto fullPassability=originalSceneMovementPassability(*savedBuildings_,save.buildings,ground,*spawn);
     const auto* timelinePassability=fullPassability?&*fullPassability:passability?&*passability:nullptr;
-    const auto initial=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,timelinePassability,
+    const auto loaded=originalFigurePostLoadContext(figures,refs,save.terrain.flags,*modelSpeeds,&*services,timelinePassability,
         &*hunters,&*buildings,*models,spawn->cropBase,fullPassability?fullPassability->cells:masks?*masks:std::vector<uint16_t>{},&context);
-    if(!initial.context)return false;
-    const auto employment=parseOriginalBuildingEmployment(std::string(bytes.begin(),bytes.end()));
-    if(!employment){clear();return false;}
+    if(!loaded.context)return false;
+    employment=*buildingEmployment;initial=*loaded.context;
+    return true;
+}
+bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const std::vector<uint8_t>& payload,
+    const std::vector<OriginalSceneTimelineFrame>& suppliedFrames,uint32_t previousAdmission,OriginalAnimationClock clocks){
+    clear();
+    std::map<uint32_t,SG3Archive> owned;std::map<uint32_t,const SG3Archive*> refs;
+    OriginalFigureUpdateContext initial;OriginalBuildingEmployment employment;std::string buildingText;
+    if(!preparePostLoadInputs(save,payload,owned,refs,initial,employment,buildingText))return false;
+    const auto& figures=*save.layers.figures;const auto& ground=*save.layers.ground;
     std::optional<OriginalCombinedState> combined;
     for(size_t n=0;n<suppliedFrames.size();++n)if(suppliedFrames[n].combinedProcess){
         if(n){clear();error_="combined process inputs belong to the first frame";return false;}
-        combined=originalCombinedSavedState(*initial.context,save.buildings,payload,save.terrainOffset,save.sizeOffset,*suppliedFrames[n].combinedProcess);
+        combined=originalCombinedSavedState(initial,save.buildings,payload,save.terrainOffset,save.sizeOffset,*suppliedFrames[n].combinedProcess);
         if(!combined){clear();error_="combined saved building inputs";return false;}
         std::vector<uint8_t> speechBytes;
         if(!detail::readFile(root_.resolve("EmperorText.eng"),8u*1024u*1024u,speechBytes)){clear();error_="combined speech groups";return false;}
         if(!originalCombinedBindBuildingServices(*combined,save.buildings,figures,payload,save.terrainOffset,save.sizeOffset,
             ground,*savedBuildings_,archives_.at(2).index,archives_.at(3).index,buildingText,originalBuildingSpeechCounts(speechBytes))){
             clear();error_="combined saved city services";return false;}}
-    const auto timeline=originalSceneTimeline(*initial.context,refs,*savedBuildings_,archives_.at(2).index,&*employment,previousAdmission,clocks,suppliedFrames,combined?&*combined:nullptr);
+    const auto timeline=originalSceneTimeline(initial,refs,*savedBuildings_,archives_.at(2).index,&employment,previousAdmission,clocks,suppliedFrames,combined?&*combined:nullptr);
     if(!timeline.complete||!installOriginalSceneTimeline(*savedBuildings_,save.terrain,figures,refs,save.buildings,archives_.at(2).index,timeline,&archives_.at(3).index)){
         clear();error_="post-load timeline: "+timeline.refusal+" (update "+std::to_string(timeline.refusedUpdate)+")";return false;}
     terrain_.flags=timeline.context->terrain;
     return true;
+}
+// One explicitly premised combined timeline replayed from the saved snapshot.
+// The snapshot scene is never mutated: each step installs into a copy, so a
+// refused frame keeps the saved or last admitted picture on screen.
+struct AppMapSurface::Playback {
+    OriginalSaveResult save;
+    OriginalFigureProfile figures;
+    OriginalBuildingProfile buildings;
+    OriginalBuildingScene seed;
+    OriginalFigureUpdateContext initial;
+    OriginalCombinedState combined;
+    std::map<uint32_t,SG3Archive> archives;
+    std::map<uint32_t,const SG3Archive*> refs;
+    OriginalBuildingEmployment employment;
+    SG3Archive general,terrainArchive;
+    std::vector<size_t> buildingDraws;
+    std::vector<uint32_t> figureDrawCells;
+    std::vector<OriginalSceneTimelineFrame> frames;
+    OriginalCombinedProcessInputs process;
+    // Chained continuation: each admitted frame resumes the complete state of
+    // the previous admitted prefix (figures, buildings, process scratch). The
+    // snapshot replay above is the fallback for the first frame.
+    bool chained=false;
+    OriginalFigureUpdateContext chainInitial;
+    OriginalCombinedState chainCombined;
+    // Previous admitted building image selection per seed slot. The library's
+    // reselection compares against its own previous selection, so a chained
+    // step needs the same footprint/binding/components the installed scene had.
+    std::map<size_t,OriginalBuildingPlacement> chainSelections;
+    // Animation phases advanced by the draws of the previous admitted prefix.
+    // installOriginalSceneTimeline captures buildingSelections before the draw
+    // loop, so the installed placement phase lags the timeline by one draw and
+    // cannot be used to resume a chained step.
+    std::map<size_t,uint8_t> chainPhases;
+    uint32_t chainAdmission=0;
+    OriginalAnimationClock chainClocks;
+    unsigned updates=0;
+    size_t frames_=0,draws_=0,advances_=0,reselections_=0,preyDeaths_=0,preyCollections_=0;
+};
+AppMapSurface::AppMapSurface(ResourceRoot root):root_(std::move(root)){}
+AppMapSurface::~AppMapSurface()=default;
+bool AppMapSurface::prepareCityPlayback(const OriginalSaveResult& save,const std::vector<uint8_t>& payload,
+    const OriginalCombinedProcessInputs& process){
+    clear();
+    auto playback=std::make_unique<Playback>();
+    std::string buildingText;
+    if(!preparePostLoadInputs(save,payload,playback->archives,playback->refs,playback->initial,playback->employment,buildingText)){
+        error_="SAV 城市时序输入不完整；播放未准备";return false;}
+    if(!savedBuildings_||save.status!=OriginalSaveStatus::LoadedSnapshot){error_="SAV 快照场景不可用";return false;}
+    const auto& figures=*save.layers.figures;const auto& ground=*save.layers.ground;
+    auto combined=originalCombinedSavedState(playback->initial,save.buildings,payload,save.terrainOffset,save.sizeOffset,process);
+    if(!combined){error_="combined saved building inputs";return false;}
+    std::vector<uint8_t> speechBytes;
+    if(!detail::readFile(root_.resolve("EmperorText.eng"),8u*1024u*1024u,speechBytes)){error_="combined speech groups";return false;}
+    if(!originalCombinedBindBuildingServices(*combined,save.buildings,figures,payload,save.terrainOffset,save.sizeOffset,
+        ground,*savedBuildings_,archives_.at(2).index,archives_.at(3).index,buildingText,originalBuildingSpeechCounts(speechBytes))){
+        error_="combined saved city services";return false;}
+    playback->process=process;playback->save=save;playback->figures=figures;playback->buildings=save.buildings;
+    playback->seed=*savedBuildings_;playback->combined=std::move(*combined);
+    playback->general=archives_.at(2).index;playback->terrainArchive=archives_.at(3).index;
+    for(const auto& p:playback->seed.placed)if(p.components.size()==1&&p.binding.physicalId<=playback->general.sprites.size()&&
+        playback->general.sprites[p.binding.physicalId-1].animationSpriteCount&&
+        originalBuildingAnimationEnabled(p.footprint,&playback->employment)==true)playback->buildingDraws.push_back(p.footprint.slot);
+    const unsigned origin=(228-save.terrain.activeSide)/2;
+    for(unsigned diagonal=0;diagonal<2*save.terrain.activeSide-1;++diagonal)
+        for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
+            playback->figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
+    playback_=std::move(playback);
+    return true;
+}
+AppCityTimelineStep AppMapSurface::advanceCityPlayback(const OriginalSceneTimelineFrame& supplied){
+    AppCityTimelineStep out;
+    if(!playback_){out.refusal="city_playback_not_prepared";return out;}
+    auto& p=*playback_;
+    auto frame=supplied;frame.buildingDraws=p.buildingDraws;frame.figureDrawCells=p.figureDrawCells;
+    frame.combinedProcess.reset(); //the snapshot seed already carries the initial process state
+    const bool chain=p.chained;
+    // The batch path always replays from the saved snapshot scene, so a chained
+    // step must present the same snapshot placement set (disaster ruins are
+    // rebuilt by install from the carried combined state, never re-seeded here)
+    // with the previous selection and carried draw phases applied to it.
+    auto input=p.seed;
+    if(chain){
+        input.surface.terrain=p.chainInitial.terrain;
+        for(auto& q:input.placed){
+            const auto selected=p.chainSelections.find(q.footprint.slot);
+            if(selected!=p.chainSelections.end()){q.footprint=selected->second.footprint;
+                q.binding=selected->second.binding;q.drawX=selected->second.drawX;q.drawY=selected->second.drawY;
+                q.components=selected->second.components;}
+            const auto phase=p.chainPhases.find(q.footprint.slot);
+            if(phase!=p.chainPhases.end()&&q.footprint.animationInputs)q.footprint.animationInputs->phase=phase->second;
+        }
+    }
+    p.frames.push_back(frame);
+    OriginalSceneTimeline result;
+    if(chain)result=originalSceneTimeline(p.chainInitial,p.refs,input,p.general,&p.employment,
+        p.chainAdmission,p.chainClocks,{frame},&p.chainCombined);
+    else result=originalSceneTimeline(p.initial,p.refs,input,p.general,&p.employment,0,{},p.frames,&p.combined);
+    if(!result.complete||!result.context||!result.combinedState){
+        p.frames.pop_back();out.updates=p.updates;out.refusedUpdate=p.updates+1;
+        out.refusal=result.refusal.empty()?"timeline_unknown_refusal":result.refusal;return out;
+    }
+    auto merged=std::move(result);
+    if(chain){merged.updates+=p.updates;merged.frames+=p.frames_;merged.buildingDraws+=p.draws_;
+        merged.buildingAdvances+=p.advances_;merged.buildingImageReselections+=p.reselections_;
+        merged.preyDeaths+=p.preyDeaths_;merged.preyCollections+=p.preyCollections_;}
+    auto shown=input;
+    if(!installOriginalSceneTimeline(shown,p.save.terrain,p.figures,p.refs,p.buildings,p.general,merged,&p.terrainArchive)){
+        p.frames.pop_back();out.updates=p.updates;out.refusedUpdate=p.updates+1;out.refusal="timeline_install_refused";return out;
+    }
+    p.chainInitial=*merged.context;p.chainCombined=*merged.combinedState;
+    p.chainSelections.clear();
+    for(const auto& q:shown.placed)p.chainSelections.emplace(q.footprint.slot,q);
+    p.chainPhases=merged.buildingPhases;
+    p.chainAdmission=merged.admissionClock;p.chainClocks=merged.animationClock;p.chained=true;
+    p.updates=merged.updates;p.frames_=merged.frames;p.draws_=merged.buildingDraws;p.advances_=merged.buildingAdvances;
+    p.reselections_=merged.buildingImageReselections;p.preyDeaths_=merged.preyDeaths;p.preyCollections_=merged.preyCollections;
+    terrain_.flags=merged.context->terrain;savedBuildings_=std::move(shown);
+    out.complete=true;out.updates=p.updates;return out;
+}
+uint64_t AppMapSurface::installedSceneDigest()const{
+    uint64_t h=1469598103934665603ull;
+    const auto mix=[&](uint64_t v){for(int i=0;i<8;++i){h^=uint8_t(v>>(8*i));h*=1099511628211ull;}};
+    // Placement animationInputs->phase is left out: in an installed timeline
+    // scene it is a lagging copy that nothing draws; the drawn frame is the
+    // mode-3 overlay built from the timeline's own phases, hashed below.
+    for(const uint32_t f:terrain_.flags)mix(f);
+    if(!savedBuildings_)return h;
+    for(const auto& q:savedBuildings_->placed){
+        mix(q.footprint.slot);mix(q.footprint.type);mix(q.binding.physicalId);mix(q.binding.variant);mix(q.drawX);mix(q.drawY);
+        mix(q.components.size());for(const auto& c:q.components){mix(c.binding.physicalId);mix(c.x);mix(c.y);mix(c.side);}
+    }
+    mix(savedBuildings_->overlays.size());
+    for(const auto& o:savedBuildings_->overlays){mix(o.physicalId);mix(o.anchorX);mix(o.anchorY);mix(uint32_t(o.offsetX));mix(uint32_t(o.offsetY));
+        mix(o.role);mix(o.mode);mix(o.sourceSlot);}
+    return h;
+}
+unsigned AppMapSurface::cityPlaybackUpdates()const{return playback_?playback_->updates:0;}
+// Preparation failures leave playback_ empty, so the reason must still be
+// reported from error_ rather than hidden behind the prepared check.
+const std::string& AppMapSurface::cityPlaybackError()const{return error_;}
+void AppMapSurface::clearCityPlayback(){playback_.reset();}
+// The admitted frames so far, with the initial process inputs on the first
+// frame, so a caller can replay the same prefix through selectPostLoadTimeline.
+std::vector<OriginalSceneTimelineFrame> AppMapSurface::cityPlaybackReplayFrames()const{
+    if(!playback_)return {};
+    auto frames=playback_->frames;
+    if(!frames.empty())frames.front().combinedProcess=playback_->process;
+    return frames;
 }
 OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapCamera& camera,int bit)const{
     if(!savedBuildings_||!archives_.count(2))return {};

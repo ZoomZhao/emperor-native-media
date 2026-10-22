@@ -23,10 +23,13 @@
 #include "city_warehouse_routes.hpp"
 #include "map_surface.hpp"
 #include "movie_quit_menu.hpp"
+#include "city_playback.hpp"
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
+#include <chrono>
 #include <vector>
 #include <string>
 #include <memory>
@@ -76,6 +79,12 @@ static bool readMapCameraNumber(NSTextField* field,double& value) {
     NSString* text=[field.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
     const char* raw=text.UTF8String;char* end=nullptr;if(!raw||!*raw)return false;
     value=std::strtod(raw,&end);return end&&end!=raw&&*end=='\0'&&std::isfinite(value);
+}
+// Monotonic host clock for the admission cadence and the farmer 766DA0
+// observation. The App subtracts its own start epoch; nothing is typed.
+static uint64_t appMonotonicMs() {
+    return uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
 }
 static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                           const std::vector<uint32_t>& pixels) {
@@ -197,6 +206,17 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     std::optional<game_lab::OriginalBuildingProfile> _originalSaveBuildings;
     game_lab::OriginalMapResult _originalMapResult;
     std::unique_ptr<game_lab::AppMapSurface> _originalMapSurface;
+    // Original-SAV combined timeline playback (host-clock driven).
+    std::unique_ptr<game_lab::AppCityPlayback> _cityPlayback;
+    NSTimer* _cityPlaybackTimer;
+    NSButton* _cityPlayButton;
+    NSButton* _cityPauseButton;
+    NSButton* _cityStepButton;
+    NSTextField* _cityPlaybackStatus;
+    game_lab::ResourceRoot _resourceRoot;
+    uint32_t _cityPlaybackCrtSeed;
+    uint64_t _cityPlaybackEpochMs;
+    std::string _cityPlaybackMessage;
     NSView* _candidateView;
     NSTextView* _candidateReport;
     NSButton* _candidateRetry;
@@ -320,6 +340,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     if (self) {
         _selfAuthoredLaunch = selfAuthored;
         _candidateDirectory = [NSURL fileURLWithPath:[NSString stringWithUTF8String:root.configuredDirectory().c_str()]];
+        _resourceRoot = root;
+        // Unix seconds at App start; the original seeds CRT rand the same way.
+        _cityPlaybackCrtSeed = uint32_t(std::time(nullptr));
+        _cityPlaybackEpochMs = appMonotonicMs();
         _media = std::make_unique<game_lab::AppMedia>(root, _audioFactory);
         _originalMapSurface = std::make_unique<game_lab::AppMapSurface>(root);
         __weak EmperorAppDelegate* weakSelf = self;
@@ -401,6 +425,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)applicationWillTerminate:(NSNotification*)notification {
     [self stopSpriteSequence];
+    [self stopCityPlaybackTimer];
     (void)notification;
     if (_simTimer) {
         [_simTimer invalidate];
@@ -413,11 +438,38 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _media->stopAll();
 }
 
+// Menu entries mirror the on-screen buttons; both call the same actions.
+- (void)setupPlaybackMenu {
+    // Extend the shared application menu (Cmd+Q lives there) instead of
+    // replacing it; both the buttons and these items call the same actions.
+    NSMenu* mainMenu=NSApp.mainMenu;
+    if(!mainMenu){game_lab::installApplicationMainMenu(@"皇帝：龙之崛起");mainMenu=NSApp.mainMenu;}
+    NSMenuItem* playbackItem=[[NSMenuItem alloc] init];
+    [mainMenu addItem:playbackItem];
+    NSMenu* playback=[[NSMenu alloc] initWithTitle:@"城市时序"];
+    NSMenuItem* play=[[NSMenuItem alloc] initWithTitle:@"播放（+100 次更新）" action:@selector(onCityPlay:) keyEquivalent:@"p"];
+    play.target=self;[playback addItem:play];
+    NSMenuItem* pause=[[NSMenuItem alloc] initWithTitle:@"暂停" action:@selector(onCityPause:) keyEquivalent:@"P"];
+    pause.target=self;[playback addItem:pause];
+    NSMenuItem* step=[[NSMenuItem alloc] initWithTitle:@"单步（+1 次更新）" action:@selector(onCityStep:) keyEquivalent:@"\uF703"];
+    step.keyEquivalentModifierMask=NSEventModifierFlagCommand;step.target=self;[playback addItem:step];
+    playbackItem.submenu=playback;
+}
+- (BOOL)validateMenuItem:(NSMenuItem*)item {
+    if(item.action==@selector(onCityPlay:)||item.action==@selector(onCityPause:)||item.action==@selector(onCityStep:)){
+        if(_navBar.selectedSegment!=7||![self cityPlaybackSourceSelected])return NO;
+        if(item.action==@selector(onCityPlay:))return YES;
+        if(item.action==@selector(onCityPause:))return _cityPlayback&&_cityPlayback->status().state==game_lab::AppCityPlaybackState::Playing;
+        return YES;
+    }
+    return YES;
+}
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     _citySim.reset(game_lab::CityRuleset::StaffedServices);
     _citySim.setSpeed(0);
     (void)notification;
     [self setupWindow];
+    [self setupPlaybackMenu];
     [self setupAudio];
     [self setupMainMenuView];
     [self setupMapView];
@@ -1638,7 +1690,17 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapUnknowns.accessibilityIdentifier=@"original-map-unknown-cells";
     _originalMapUnknowns.accessibilityLabel=@"地表未覆盖格或SAV查格原值";
     unknownScroll.documentView=_originalMapUnknowns;[_originalMapView addSubview:unknownScroll];
-    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 464)];
+    _cityPlayButton=[NSButton buttonWithTitle:@"▶ 播放（+100 更新）" target:self action:@selector(onCityPlay:)];
+    _cityPauseButton=[NSButton buttonWithTitle:@"⏸ 暂停" target:self action:@selector(onCityPause:)];
+    _cityStepButton=[NSButton buttonWithTitle:@"⏭ 单步 +1" target:self action:@selector(onCityStep:)];
+    _cityPlayButton.frame=NSMakeRect(20,height-454,160,26);_cityPauseButton.frame=NSMakeRect(188,height-454,90,26);_cityStepButton.frame=NSMakeRect(286,height-454,110,26);
+    for(NSButton* b in @[_cityPlayButton,_cityPauseButton,_cityStepButton]){b.autoresizingMask=NSViewMinYMargin;[_originalMapView addSubview:b];}
+    _cityPlayButton.accessibilityIdentifier=@"original-city-play";_cityPauseButton.accessibilityIdentifier=@"original-city-pause";_cityStepButton.accessibilityIdentifier=@"original-city-step";
+    _cityPlaybackStatus=[NSTextField wrappingLabelWithString:@"城市时序：Saved snapshot 为默认画面；点“▶ 播放”或 ⌘P 才开始。"];
+    _cityPlaybackStatus.frame=NSMakeRect(20,height-498,980,40);_cityPlaybackStatus.maximumNumberOfLines=3;
+    _cityPlaybackStatus.font=[NSFont systemFontOfSize:11];_cityPlaybackStatus.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
+    _cityPlaybackStatus.accessibilityIdentifier=@"original-city-status";[_originalMapView addSubview:_cityPlaybackStatus];
+    _originalMapImage = [[NSImageView alloc] initWithFrame:NSMakeRect(20, 20, 980, height - 520)];
     _originalMapImage.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     _originalMapImage.imageScaling = NSImageScaleProportionallyUpOrDown;
     _originalMapImage.accessibilityIdentifier = @"original-map-grid"; [_originalMapView addSubview:_originalMapImage];
@@ -1654,7 +1716,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_originalMapPicker selectItemAtIndex:selected];[self onOriginalMapChanged:nil];
 }
 - (void)onOriginalMapChanged:(id)sender {
-    (void)sender;const bool priorSurface=_originalMapSurface&&_originalMapSurface->available(); _originalMapResult = {}; _originalMapImage.image = nil;
+    (void)sender;[self resetCityPlayback];const bool priorSurface=_originalMapSurface&&_originalMapSurface->available(); _originalMapResult = {}; _originalMapImage.image = nil;
     _originalMapUnknowns.string=@"地图来源已切换；等待新地表结果，不沿用旧坐标。";
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const NSInteger index = _originalMapPicker.indexOfSelectedItem;
@@ -1711,6 +1773,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)onOriginalFigureSourceChanged:(id)sender {
     (void)sender;
     if(!_originalSaveBuildings||!_originalSaveLayers||!_originalSaveLayers->figures)return;
+    [self resetCityPlayback];
     bool selected=false;
     if(_originalFigureSource.indexOfSelectedItem==1){
         const auto save=game_lab::loadOriginalSave(_media->resourcePath(_originalSourceRelative));
@@ -1833,6 +1896,128 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const bool inspect=_originalSaveLayers&&_originalSaveLayers->valid()&&result.terrain.valid()&&!buildingOverlay;
     _originalSaveCellX.enabled=inspect;_originalSaveCellY.enabled=inspect;_originalSaveCellApply.enabled=inspect;
     if(inspect)[self onOriginalSaveCellChanged:nil];
+    // A prepared timeline owns the picture: re-render the last admitted frame
+    // instead of falling back to the saved snapshot.
+    if(_cityPlayback&&_cityPlayback->status().updates>0)[self renderCityPlaybackFrame];
+}
+// ----------------------------------------------------
+// Original-SAV city timeline playback (host-clock driven)
+// ----------------------------------------------------
+- (uint64_t)cityPlaybackNowMs {
+    const uint64_t now=appMonotonicMs();
+    return now>_cityPlaybackEpochMs?now-_cityPlaybackEpochMs:0;
+}
+- (BOOL)cityPlaybackSourceSelected {
+    const NSInteger index=_originalMapPicker.indexOfSelectedItem;
+    if(index<0||size_t(index)>=_originalMapVisibleSources.size())return NO;
+    const auto source=_originalMapVisibleSources[size_t(index)];
+    return source<_originalMapSources.size()&&_originalMapSources[source].kind==game_lab::OriginalMapSourceKind::SaveFile&&
+        _originalSaveBuildings&&_originalSaveLayers&&_originalSaveLayers->valid();
+}
+- (void)stopCityPlaybackTimer {
+    if(!_cityPlaybackTimer)return;
+    [_cityPlaybackTimer invalidate];_cityPlaybackTimer=nil;
+}
+- (void)startCityPlaybackTimer {
+    [self stopCityPlaybackTimer];
+    // ~60 Hz host sampling; the controller admits only at the speed cadence.
+    _cityPlaybackTimer=[NSTimer timerWithTimeInterval:1.0/60.0 target:self selector:@selector(onCityPlaybackTimer:) userInfo:nil repeats:YES];
+    [[NSRunLoop mainRunLoop] addTimer:_cityPlaybackTimer forMode:NSRunLoopCommonModes];
+}
+- (void)resetCityPlayback {
+    [self stopCityPlaybackTimer];
+    _cityPlayback.reset();
+    _cityPlaybackMessage.clear();
+    [self updateCityPlaybackStatusText];
+}
+- (BOOL)prepareCityPlayback {
+    if(_cityPlayback)return _cityPlayback->prepared();
+    if(![self cityPlaybackSourceSelected]){_cityPlaybackMessage="当前来源不是可播放的 SAV19 城市存档";return NO;}
+    const auto save=game_lab::loadOriginalSave(_media->resourcePath(_originalSourceRelative));
+    std::vector<uint8_t> raw;
+    if(!save.readStable||save.snapshotRevision!=_originalSaveRevision||
+       !game_lab::detail::readFile(_media->resourcePath(_originalSourceRelative),4194304,raw)){
+        _cityPlaybackMessage="播放未准备：存档已变化或无法读取";return NO;}
+    const auto decoded=game_lab::decodeOriginalMapContainer(raw);
+    if(!decoded.complete){_cityPlaybackMessage="播放未准备：容器解码不完整";return NO;}
+    game_lab::AppCityPlaybackPreferences preferences;std::string error;
+    if(!game_lab::readAppCityPlaybackPreferences(_resourceRoot,preferences,error)){
+        _cityPlaybackMessage="播放未准备："+error;return NO;}
+    // The App never supplies Unresolved inputs; the timeline names what it lacks.
+    _cityPlayback=std::make_unique<game_lab::AppCityPlayback>(*_originalMapSurface,save,decoded.payload,preferences,
+        _cityPlaybackCrtSeed,uint32_t([self cityPlaybackNowMs]),false);
+    _cityPlaybackMessage="已准备；Saved snapshot 仍是默认画面，播放/单步才安装新帧";
+    return _cityPlayback->prepared();
+}
+- (void)onCityPlay:(id)sender {
+    (void)sender;
+    if(![self prepareCityPlayback]){[self updateCityPlaybackStatusText];return;}
+    _cityPlayback->play(100);
+    [self startCityPlaybackTimer];
+    [self updateCityPlaybackStatusText];
+}
+- (void)onCityPause:(id)sender {
+    (void)sender;
+    if(_cityPlayback)_cityPlayback->pause();
+    [self stopCityPlaybackTimer];
+    [self updateCityPlaybackStatusText];
+}
+- (void)onCityStep:(id)sender {
+    (void)sender;
+    if(![self prepareCityPlayback]){[self updateCityPlaybackStatusText];return;}
+    [self stopCityPlaybackTimer];
+    _cityPlayback->step([self cityPlaybackNowMs]);
+    [self renderCityPlaybackFrame];
+}
+- (void)onCityPlaybackTimer:(NSTimer*)timer {
+    (void)timer;
+    if(!_cityPlayback){[self stopCityPlaybackTimer];return;}
+    if(_cityPlayback->tick([self cityPlaybackNowMs]))[self renderCityPlaybackFrame];
+    else [self updateCityPlaybackStatusText];
+    if(_cityPlayback->status().state!=game_lab::AppCityPlaybackState::Playing)[self stopCityPlaybackTimer];
+}
+- (void)renderCityPlaybackFrame {
+    if(!_cityPlayback||!_originalSaveBuildings){[self updateCityPlaybackStatusText];return;}
+    game_lab::OriginalMapCamera camera;camera.outlines=_originalMapOutlines.state==NSControlStateValueOn;
+    camera=game_lab::originalBuildingFocusCamera(_originalSaveBuildings->footprints,camera);
+    if(!readMapCameraNumber(_originalMapCameraX,camera.centerX)||!readMapCameraNumber(_originalMapCameraY,camera.centerY)){
+        [self updateCityPlaybackStatusText];return;}
+    const int bit=static_cast<int>(_originalMapBitPicker.indexOfSelectedItem)-1;
+    auto view=_cityPlayback->render(camera,bit);
+    if(view.image.valid()){
+        presentPixels(_originalMapImage,view.image.width,view.image.height,view.image.pixelsBGRA);
+        const auto& s=_cityPlayback->status();
+        _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，城市时序 N=%u，绘制帧 %llu，%@",_originalMapPicker.titleOfSelectedItem,
+            s.updates,s.frames,s.refusal.empty()?@"已安装最新获准帧":@"拒绝后保留上次获准帧"];
+        std::string detail="城市时序画面：已放置建筑 "+std::to_string(view.placedRecords)+"/"+std::to_string(view.liveRecords)+
+            "，对象层解码 "+std::to_string(view.overlayDecoded)+"/"+std::to_string(view.overlayObjects)+
+            "，失败 "+std::to_string(view.overlayDecodeFailures+view.overlayInvalid)+
+            "，人物放置 "+std::to_string(view.figurePlaced)+"/"+std::to_string(view.figureLive)+
+            "；建筑动画帧 "+std::to_string(view.animationDecoded)+"/"+std::to_string(view.animationSelected)+"。\n";
+        _originalMapUnknowns.string=[NSString stringWithUTF8String:detail.c_str()];
+    }
+    [self updateCityPlaybackStatusText];
+}
+- (void)updateCityPlaybackStatusText {
+    if(!_cityPlaybackStatus)return;
+    NSString* text=nil;
+    if(!_cityPlayback){
+        NSString* mode=@"未解析输入不供给：时序需要时显示具名拒绝。";
+        NSString* message=_cityPlaybackMessage.empty()?@"":[NSString stringWithFormat:@"\n%@",[NSString stringWithUTF8String:_cityPlaybackMessage.c_str()]];
+        text=[NSString stringWithFormat:@"城市时序：Saved snapshot 为默认画面；点“▶ 播放”或 ⌘P 才开始。%@%@",mode,message];
+    }else{
+        const auto& s=_cityPlayback->status();
+        NSString* state=@"已准备";
+        if(s.state==game_lab::AppCityPlaybackState::Playing)state=@"播放中";
+        else if(s.state==game_lab::AppCityPlaybackState::Paused)state=@"已暂停";
+        else if(s.state==game_lab::AppCityPlaybackState::Refused)state=@"已拒绝";
+        NSString* refusal=s.refusal.empty()?@"":[NSString stringWithFormat:@"\n拒绝：%@（第 %u 次更新）",[NSString stringWithUTF8String:s.refusal.c_str()],s.refusedUpdate];
+        NSString* error=s.error.empty()?@"":[NSString stringWithFormat:@"\n未准备：%@",[NSString stringWithUTF8String:s.error.c_str()]];
+        text=[NSString stringWithFormat:@"城市时序：%@ · N=%u / 目标 %u · 绘制帧 %llu · 间隔 %u ms · %@%@%@\n%@",
+            state,s.updates,s.target,s.frames,s.intervalMs,@"严格前提",refusal,error,
+            [NSString stringWithUTF8String:s.premise.c_str()]];
+    }
+    _cityPlaybackStatus.stringValue=text;
 }
 - (void)onOriginalBuildingLocate:(id)sender {
     (void)sender;

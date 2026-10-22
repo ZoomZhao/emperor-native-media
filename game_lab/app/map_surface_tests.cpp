@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 #include "map_surface.hpp"
+#include "city_playback.hpp"
 #include "../original_pak.hpp"
+#include "../asset_bytes.hpp"
 #include "../cg_image_conversion.hpp"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
+#include <ctime>
 #include <algorithm>
 #include <iomanip>
 #include <map>
@@ -233,6 +236,129 @@ void authored(const std::filesystem::path& root){
     std::filesystem::rename(root/"assets-absent",root/"DATA");pakChecks(root);
     std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"original_data\":false}\n";
 }
+// App-path playback: every source save is driven through AppCityPlayback, the
+// same controller the window uses. Strict premises must refuse by name at N=0;
+// the labelled experiment premises must complete 100 admitted updates, keep
+// pause/resume/step exact and redraw every admitted frame without decode
+// failures. Host-clock values come from this process, never from the user.
+void playback(const std::string& path){
+    using namespace game_lab;
+    const auto root=ResourceRoot::fromAbsolute(path);
+    if(!root.configured())throw std::runtime_error("explicit existing data root required");
+    AppCityPlaybackPreferences preferences;
+    std::string error;
+    need(readAppCityPlaybackPreferences(root,preferences,error),"Emperor.inf preference block");
+    need(preferences.speed==80&&preferences.personalSpeed==80,"Emperor.inf speed 80");
+    unsigned interval=0;
+    need(AppCityPlayback::admissionIntervalMs(preferences.personalSpeed,interval)&&interval==37,"speed 80 cadence 37 ms");
+    const uint32_t crtSeed=uint32_t(std::time(nullptr));
+    const uint32_t farmerMs=0;
+    const auto catalog=enumerateOriginalMapSources(root);
+    size_t sessions=0,reached=0,strictRefusals=0,decodeFailures=0,replayChecks=0;
+    unsigned maxN=0;
+    std::vector<std::string> rows;
+    for(const auto& source:catalog.sources){
+        if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
+        ++sessions;
+        const auto save=loadOriginalSave(root.resolve(source.relativePath));
+        std::vector<uint8_t> raw;
+        need(detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,raw),"source bytes");
+        const auto payload=decodeOriginalMapContainer(raw).payload;
+        OriginalMapCamera camera;camera.width=256;camera.height=192;camera.outlines=false;
+        camera.centerX=camera.centerY=double(save.terrain.activeSide)/2;
+        // Strict default: only documented categories, so the first update must
+        // report the exact named missing input instead of inventing a value.
+        AppMapSurface strictSurface(root);
+        AppCityPlayback strict(strictSurface,save,payload,preferences,crtSeed,farmerMs,false);
+        need(strict.prepared(),"strict playback prepared");
+        need(!strict.status().experiment,"strict default is not the experiment");
+        strict.play(100);
+        need(!strict.tick(interval),"strict premise refuses the first update");
+        need(strict.status().state==AppCityPlaybackState::Refused,"strict state refused");
+        need(strict.status().refusal=="event_ui_5eff20_not_closed","strict named refusal");
+        need(strict.status().updates==0,"strict installs no update");
+        ++strictRefusals;
+        // Labelled experiment: the same App code path plays the city.
+        AppMapSurface surface(root);
+        AppCityPlayback playback(surface,save,payload,preferences,crtSeed,farmerMs,true);
+        need(playback.prepared(),"experiment playback prepared");
+        need(playback.status().experiment,"experiment premise labelled");
+        need(playback.status().premise.find("实验前提")!=std::string::npos,"experiment premise shown");
+        // One explicit step admits exactly one update.
+        need(playback.step(0),"first step admitted");
+        need(playback.status().updates==1&&playback.status().state==AppCityPlaybackState::Paused,"step is one update");
+        auto view=playback.render(camera);
+        need(view.image.valid(),"first admitted frame renders");
+        need(view.timelineUpdates&&*view.timelineUpdates==1,"first frame shows N=1");
+        decodeFailures+=playback.status().decodeFailures;
+        // Pause keeps the picture and the timeline; ticks lose nothing.
+        playback.play(19);
+        uint64_t clock=interval;unsigned pausedAt=0;
+        while(playback.status().state==AppCityPlaybackState::Playing&&playback.status().updates<20){
+            clock+=interval;if(!playback.tick(clock))continue;
+            view=playback.render(camera);need(view.image.valid(),"admitted frame renders");
+        }
+        playback.pause();
+        pausedAt=playback.status().updates;
+        need(pausedAt>=2,"playback advanced before pause");
+        const auto pausedView=playback.render(camera);
+        need(pausedView.image.valid(),"paused frame renders");
+        for(unsigned extra=0;extra<5;++extra){clock+=interval;need(!playback.tick(clock),"paused tick admits nothing");}
+        const auto stillView=playback.render(camera);
+        need(playback.status().updates==pausedAt,"pause keeps N");
+        need(stillView.image.width==pausedView.image.width&&stillView.image.height==pausedView.image.height&&
+            stillView.image.pixelsBGRA==pausedView.image.pixelsBGRA,"pause keeps the picture");
+        // Resume continues from the paused prefix, never from zero.
+        need(playback.status().updates>=pausedAt,"resume keeps the prefix");
+        playback.play(100-pausedAt);
+        // Chained App playback must equal a full replay of the same admitted
+        // frames through the existing selectPostLoadTimeline path.
+        const auto checkReplay=[&](){
+            const auto frames=playback.replayFrames();
+            need(frames.size()==playback.status().updates,"one recorded frame per admitted update");
+            AppMapSurface batch(root);
+            need(batch.selectPostLoadTimeline(save,payload,frames,0,{}),"batch replay of the App frames");
+            const auto chained=playback.render(camera);const auto replayed=batch.renderSavedBuildings(camera);
+            need(chained.image.valid()&&replayed.image.valid()&&chained.image.width==replayed.image.width&&
+                chained.image.height==replayed.image.height&&chained.image.pixelsBGRA==replayed.image.pixelsBGRA,
+                "chained App frame equals batch replay pixels");
+            need(surface.installedSceneDigest()==batch.installedSceneDigest(),"chained App scene equals batch replay scene");
+            ++replayChecks;
+        };
+        checkReplay();
+        while(playback.status().state==AppCityPlaybackState::Playing){
+            clock+=interval;
+            if(!playback.tick(clock))continue;
+            view=playback.render(camera);need(view.image.valid(),"resumed frame renders");
+            const unsigned n=playback.status().updates;
+            if(n==22||n==51||n==100)checkReplay();
+        }
+        const auto finalStatus=playback.status();
+        need(finalStatus.state==AppCityPlaybackState::Paused||finalStatus.state==AppCityPlaybackState::Refused,"playback stopped");
+        need(finalStatus.updates==100||!finalStatus.refusal.empty(),"playback reaches 100 or names its refusal");
+        need(finalStatus.frames==finalStatus.updates,"one drawn frame per admitted update");
+        need(playback.render(camera).image.valid(),"final frame renders");
+        decodeFailures+=finalStatus.decodeFailures;
+        need(finalStatus.decodeFailures==0,"no decode failures on the App path");
+        maxN=std::max(maxN,finalStatus.updates);
+        if(finalStatus.updates>=100&&finalStatus.refusal.empty())++reached;
+        rows.push_back(std::string("{\"source\":")+std::string("\"")+source.relativePath+"\""+
+            ",\"N\":"+std::to_string(finalStatus.updates)+",\"state\":\""+
+            (finalStatus.state==AppCityPlaybackState::Paused?"paused":finalStatus.state==AppCityPlaybackState::Refused?"refused":"playing")+
+            "\",\"refusal\":\""+finalStatus.refusal+"\",\"frames\":"+std::to_string(finalStatus.frames)+
+            ",\"decode_failures\":"+std::to_string(finalStatus.decodeFailures)+"}");
+    }
+    need(sessions>0,"no SAV sources");
+    need(reached==sessions,"every source save completes through the App path");
+    need(strictRefusals==sessions,"every strict playback refuses by name");
+    std::cout<<"{\"passed\":true,\"App_playback_sources\":"<<sessions
+        <<",\"App_playback_reached_100\":"<<reached<<",\"App_playback_strict_refusals\":"<<strictRefusals
+        <<",\"App_playback_max_N\":"<<maxN<<",\"App_playback_decode_failures\":"<<decodeFailures
+        <<",\"App_playback_replay_equal\":"<<replayChecks<<",\"App_playback_cadence_ms\":"<<interval
+        <<",\"App_playback_rows\":[";
+    for(size_t i=0;i<rows.size();++i){if(i)std::cout<<',';std::cout<<rows[i];}
+    std::cout<<"]}\n";
+}
 void metrics(const std::string& path){
     using namespace game_lab;namespace fs=std::filesystem;const auto root=ResourceRoot::fromAbsolute(path);if(!root.configured())throw std::runtime_error("explicit existing data root required");
     AppMapSurface app(root);size_t cities=0,complete=0,images=0,nonzero=0,decoded=0,residue=0,excluded=0;
@@ -395,5 +521,6 @@ void metrics(const std::string& path){
 }
 }
 int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--metrics"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true}\n";return 0;}metrics(root);}
+    else if(argc==2&&std::string(argv[1])=="--playback"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return 0;}playback(root);}
     else if(argc==2)authored(std::filesystem::absolute(argv[1]));else throw std::runtime_error("fixture directory or --metrics required");return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

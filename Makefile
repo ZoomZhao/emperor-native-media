@@ -173,6 +173,15 @@ building-scene-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/building_scene.py --mode release
 building-scene-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/building_scene.py --mode undefined
+.PHONY: app-surface-test app-surface-test-undefined app-playback-test app-playback-test-undefined
+app-surface-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py test
+app-surface-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py test --mode undefined
+app-playback-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py playback
+app-playback-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py playback --mode undefined
 .PHONY: saved-ground-test saved-ground-test-undefined
 saved-ground-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/saved_ground.py
