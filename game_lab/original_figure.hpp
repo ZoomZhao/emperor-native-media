@@ -28,6 +28,8 @@ struct OriginalFigure {
     int8_t effectX=0,effectY=0,effectVelocityX=0,effectVelocityY=0;
     int16_t effectHeight=0,effectVelocityZ=0;
     uint8_t effectDraw=0; //+84, Figure7 request0x4C877F.
+    std::optional<int32_t> effectAnimation; //runtime+16C,42AA5B/4E2D4A;not serialized ambient+17C
+    uint8_t effectFrame=0; //flame animation+41,distinct from ambient+5
     uint32_t updateOwner=0; //+13C read0x4C8995;nonzero skips virtual+28 at0x4E2899.
     // Pheasant virtual predicates/cooldowns, Figure7's cited dword requests.
     uint32_t threat=0,threatDistance=0,herdTarget=0,herdDistance=0,idleCounter=0;
@@ -314,6 +316,7 @@ struct OriginalFigureBuildingLink {
     std::optional<CropDelivery> cropDelivery; //embedded+6A and outer+150.
     int16_t roadX=0,roadY=0;uint8_t roamDirection=0; //common+38,427E2C wire51;4E6A70 writes.
     std::optional<int32_t> suppliers;
+    std::optional<int32_t> harvestFarmers; //CropHold+150
     std::optional<uint8_t> delegatedCount; //Music data+5C,51C520;removal4C8BD1.
     std::optional<uint8_t> entertainmentRoad; //Entertainment data+69,48B950.
     bool cropSearchComplete=false;
@@ -570,7 +573,7 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         }
         const auto* r=receiver.data();OriginalFigure f;f.slot=slot;f.recordOffset=begin;f.runtimeClass=kind;
         f.image=detail::u32(r+8);f.secondaryImage=detail::u32(r+404);f.next=detail::u16(r+16);
-        f.type=r[18];f.frame=r[5];f.action=r[64];f.progress=r[65];f.alive=r[22];
+        f.type=r[18];f.frame=r[5];f.action=r[64];f.progress=r[65];f.effectFrame=r[65];f.alive=r[22];
         f.direction=r[25];f.previousDirection=r[26];f.x=detail::i16(r+28);f.y=detail::i16(r+30);f.cell=detail::u32(r+40);
         f.subX=detail::i16(r+82);f.subY=detail::i16(r+84);f.extraX=detail::i16(r+118);f.extraY=detail::i16(r+120);
         f.freeMovement=r[20];f.raise=r[36];f.drawClass=r[37]!=0;f.hidden=r[111];f.state85=r[133];f.height=r[134];
@@ -615,8 +618,8 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
     out.factionModels=originalFigureFactionModels(data,at,limit,&out.empireTraders);return out;
 }
 inline const char* originalFigureArchiveName(uint32_t slot){
-    // Startup0x475CA3 (14),0x475D44/4F/5A (38/39/40).
-    switch(slot){case 14:return "SprAmbient.sg3";case 38:return "SprMain.sg3";
+    // Startup0x475CA3 (14),Destruction slot17,0x475D44/4F/5A (38/39/40).
+    switch(slot){case 14:return "SprAmbient.sg3";case 17:return "Destruction.sg3";case 38:return "SprMain.sg3";
         case 39:return "SprMain2.sg3";case 40:return "SprMain3.sg3";default:return nullptr;}
 }
 // 0x5CFDF0: groups contain frame-major, interleaved direction records.
@@ -630,7 +633,8 @@ inline std::optional<uint32_t> originalFigureFrameIndex(uint32_t base,unsigned f
 //0x81EFC0/F068 are represented algebraically, not copied table listings.
 inline std::optional<std::pair<int32_t,int32_t>> originalFigureSubcell(const OriginalFigure& f){
     if(f.direction>127||f.previousDirection>127||f.type==9)return std::nullopt;
-    if(f.type==1&&(f.effectKind!=13||f.effectVariant||f.effectFlags!=0x24||f.secondaryImage))return std::nullopt;
+    if(f.type==1&&((f.effectKind!=13&&f.effectKind!=0)||f.effectVariant||
+        (f.effectKind==13?f.effectFlags!=0x24:f.effectFlags!=2)||f.secondaryImage))return std::nullopt;
     unsigned direction=f.direction;if(direction>7)direction=f.previousDirection>7?0:f.previousDirection;
     if(f.freeMovement){
         if(f.subX<0||f.subY<0)return std::nullopt;
@@ -664,5 +668,5 @@ inline std::optional<int> originalFigureProjectileArc(const OriginalFigure& f){
         1.0L-static_cast<long double>(half-remaining)/half;
     return int((1.0L-ratio)*f.projectileTargetHeight)-int(arc*f.projectileEndHeight)+int(ratio*f.projectileStartHeight);
 }
-inline uint64_t originalFigureDrawCell(const OriginalFigure& f){return uint64_t(f.cell)+(f.type==1?229u:0u);}
+inline uint64_t originalFigureDrawCell(const OriginalFigure& f){return uint64_t(f.cell)+(f.type==1&&f.effectKind!=4&&f.effectKind!=18?229u:0u);}
 } // namespace game_lab

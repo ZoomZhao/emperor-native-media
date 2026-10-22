@@ -1,47 +1,81 @@
 # SAV19 figures on the city overlay layer
 
-## Shared building cycle and combined timeline, 2026-10-22
+## Combined N100 and explicit process inputs, 2026-10-22
 
-**Shared complete combined horizon N20→N22:6/6 pools,192/192 original figure outcomes and1,065/1,065 building outcomes. N51 improves0/6→5/6 pools; N100 improves0/6→3/6.** The full6/6 N51/N100 goal remains incomplete with the building API pinned to `509b673`. Results below supersede the earlier combined section. Only complete requested-N pools publish output; refused prefixes remain atomic and withheld. Saved snapshot remains the default. Original future-state/screen agreement remains unmeasured.
+**N51:5/6→6/6 pools;N100:3/6→6/6 pools with explicit farmer time1000 and CRT state1.** All six original saves complete the full51-update scheduler cycle and100 updates. The baseline is HEAD `ebebef79365d7447e71726b93c091f183d210b3c`,reproduced before changes;its N77/N83 rows were added in a private diagnostic copy. Baseline supplied-time measurements pass time1000 into the existing public process field and CRT1 into the initial figure context;they reach an unported new Inspector39 at update32. These are caller premises,not recovered timestamps or original runtime observations. Saved snapshot remains the default. Original future-state/screen agreement is unmeasured.
 
-|N|Complete pools /6 before→after|Original figures /192 before→after|Installed allocations before→after|Buildings /1,065 before→after|Placed and decoded figures before→after|Decoded components before→after|Consistent primaries before→after|Building frames /53 before→after|Re-selections before→after|
+With farmer time1000 and CRT1;each cell is before→after. Figure outcomes include retained removals and allocation events. The original figure denominator is192;buildings use1,065 original records. Component and consistency numbers abbreviate equal numerator/denominator pairs.
+
+|N|Pools /6|Original figures /192|Installed allocation events|Buildings /1,065|Placed and decoded|Components decoded|Primaries consistent|Frames /53|Re-selections|
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-|1|6→6|192→192|0→0|1,065→1,065|185→185|201/201→201/201|191/191→191/191|53→53|0→0|
-|20|6→6|192→192|0→0|1,065→1,065|185→185|202/202→202/202|188/188→188/188|53→53|1→1|
-|22|4→6|153→192|0→0|1,048→1,065|144→183|161/161→200/200|148/148→187/187|50→53|12→12|
-|40|1→5|21→146|0→6|0→497|21→137|21/21→149/149|21/21→142/142|0→31|0→0|
-|51|0→5|0→146|0→6|0→497|0→134|0/0→143/143|0/0→139/139|0→31|0→3|
-|100|0→3|0→49|0→0|0→7|0→49|0/0→49/49|0/0→49/49|0→3|0→0|
+|22|6→6|192→192|0→0|1,065→1,065|183→183|200→200|187→187|53→53|12→12|
+|40|5→6|146→192|6→9|497→1,065|137→182|149→198|142→189|31→53|0→13|
+|51|5→6|146→192|6→9|497→1,065|134→178|143→191|139→186|31→53|3→16|
+|77|4→6|114→192|8→119|480→1,065|98→255|107→268|101→260|28→52|5→29|
+|83|3→6|49→192|0→125|7→1,065|49→257|49→270|49→264|3→52|0→30|
+|100|3→6|49→192|0→126|7→1,065|49→209|49→222|49→215|3→52|0→31|
 
-Figure outcomes retain removed originals. The six installed allocation identities atN40/N51 belong to source3, yielding152 completed outcomes from198 potential original-plus-installed identities;46 original outcomes are withheld by source2's whole-pool refusal. Allocations reached only inside a later-refused prefix do not contribute installed output. All emitted components decode and all surviving primary selections agree with the independent existing selector. Re-selections are physical component-binding changes, not guesses from model values.
+With farmer time absent and explicit CRT1,the baseline's installed columns are identical but its source2 refusal is the missing-time boundary. No timestamp is synthesized.
 
-The final disjoint refusal partition atN1/20/22 is empty. AtN40/N51 it is exactly `farmer_wall_clock_766da0_required`=1 pool/46 original figures/568 buildings. AtN100 it is exactly that row plus `building_virtual20_416d20`=1/65/473 and `risk_fire_4af5d0_42a220`=1/32/17. Counts close6 pools,192 original figures and1,065 buildings at every horizon. BeforeN22:house evolution1/32/17 plus road refresh1/7/0. BeforeN40:building hook2/111/1,041,house evolution2/53/24,road refresh1/7/0. BeforeN51/N100 additionally refuse phase40 at1/21/0. No earlier/later-slot category overlaps these whole-pool partitions.
+|N|Pools /6|Original figures /192|Installed allocation events|Buildings /1,065|Placed and decoded|Components decoded|Primaries consistent|Frames /53|Re-selections|
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|22|6→6|192→192|0→0|1,065→1,065|183→183|200→200|187→187|53→53|12→12|
+|40|5→5|146→146|6→6|497→497|137→137|149→149|142→142|31→31|0→0|
+|51|5→5|146→146|6→6|497→497|134→134|143→143|139→139|31→31|3→3|
+|77|4→5|114→146|8→116|480→497|98→211|107→220|101→214|28→30|5→5|
+|83|3→5|49→146|0→122|7→497|49→213|49→222|49→218|3→30|0→6|
+|100|3→5|49→146|0→123|7→497|49→164|49→173|49→169|3→30|0→7|
 
-|Source|Baseline first refusal update|Final first refusal update through100|Remaining boundary with committed building API|
-|---:|---:|---:|---|
-|1|41|none through100|100/100 complete;0 buildings|
-|2|32|32|Successful farmer allocation reaches `766DA0`; caller wall time remains absent. Full continuation also needs Farmer26 updates.|
-|3|32|83|Warehouse54 slot459's positive phase31 hook remains `building_virtual20_416d20`; further building-hook work belongs to implementerB.|
-|4|21|77|Second phase44 reaches the committed positive-disaster refusal; destruction/occupancy/figure-link work belongs to implementerB.|
-|5|22|none through100|100/100 complete;0 buildings;the city exit is provably reachable before repair.|
-|6|40|none through100|100/100 complete;7 buildings|
+Final supplied outcome totals at22/40/51/77/83/100 are192/201/201/311/317/318,all complete. Missing farmer time yields192/192,152/199,152/199,262/309,268/315,269/316 installed outcomes. The47 withheld source2 outcomes comprise46 originals plus one constructor reached before `766DA0` refuses. Diagnostic allocations inside refused prefixes never count as installed. Allocation events remain distinct from original saved identities because the original FIFO can reuse their slots;unique newly allocated slot counts are also emitted and equal0/9/9/119/125/126 in this supplied matrix. AtN83 two live followers have zero images because allocation occurs after their ascending pool cursor;they select images on their next visit. AtN100 all209 visible nonzero figures place,all222 components decode,6 figures hide and103 outcomes are removed;unsupported and zero-image counts are0.
 
-Executable SHA-256 was rechecked as `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`. File-backed VA maps to file offsetVA−`400000`. No disassembly was declined; private listings stay outside Git. No executable/original game was run as an oracle and no constant was fitted.
+AtN77/N83/N100 the public disaster service creates25 single-cell type161 ruins and destroys1 original building. All25/25 new footprints decode through existing terrain612 selections and have reciprocal owner,image,draw and movement4000 stamps.52/53 original animation candidates remain after the destroyed Mill is removed. Building-created figure events with supplied inputs are0/9/9/119/123/123;the remaining2 N83/N100 events are supplier followers and the final N100 event is a Hunter projectile. Missing farmer time withholds its own constructor and installs0/6/6/116/120/120 building-created figures.
 
-- Phase31 uses the committed `originalBuildingHookPreamble` once, then `originalBuildingHookStep` in ascending slot order. The binder now supplies `poolHookRoadAccess`,difficulty-adjusted HOUSE tables,crop service/Festival inputs,crop quality and explicit crop-dispatch process tables through the committed API. Phase39 `519120→518EF0` and40 `4ACC40→428C40` use the shared city context, preserving model,house goods,position and existing selector inputs. Phase43/44/45/47 use `originalBuildingFireStep`, `originalBuildingRiskStep`, `originalBuildingMonumentStep` and the four-counter reset in executable order. Phase50 `4AC650` calls `originalBuildingCycleTailStep` once before `4AC4C8..4E2` wraps phase0; Goods' phase cache receives the wrapped value. Unsupported tails/disasters retain their public named refusal.
-- Source5's phase21 premise was corrected after inspecting `4AD041..4AD070`: `5AE140/5AE240` floods **B7C**,which admits plain mask10;road-network B0C excludes it. A conservative building-free B7C projection consumes the ground rebuild's movement terrain (not snapshot-restored flags) and proves the scenario exit reachable using known cells alone. `534E5B→41F400→41F820→41F350→41F25F` creates byte18=1 river objects,which `5AD7AF` skips;own river cells remain withheld in the proof. Therefore source5 takes `4AD070→4AD19E` before `425250`,repair `5AE380/5AE480`,notification `546EA0`,or route/terrain refresh. A lower-bound flood may prove reachability; failure never proves unreachability and retains the original road-refresh refusal. No partial mask is advertised as full movement. The requested positive repair/notification port is consequently not claimed:it is unreached in this source under the explicit supplied state.
-- New Well28 allocation reaches action6. `4D3ADD→4E3BE3` sends ordinary initial actions outside1/2/4/5 to1, increments/wraps frame12, and neither decrements constructor counter30 nor moves in that call. The existing `4C55` selector supplies its image. Emigrant13 action6 `4CAA4D..4CAA7F` resets frame0 and increments a signed16 wait through inclusive51;expiry still refuses `migrant_nearest_house_4add60_after_wait51`. This crosses source3's allocated emigrant at update76 without inventing its future target.
-- Figure/building bridges preserve same-update fire/damage/watch risk,house goods/food,nonhouse model and Inspector secondary eligibility. Phase43 publishes fire-total index2 to `C82F28` (`4AF9CE`) before Inspector `4E2E90` consumes it. The exact selector upgrade byte survives independently of the legacy wire99 accessor. Model/house/crop writes reselect only through `bindOriginalBuildingComponents`;all footprint cells are stamped atomically,and changed animated bases use the newly selected sprite metadata. Positive building removal refuses `combined_building_removal_4b7660_not_closed` before stale occupancy or reciprocal figure links can be published.
+AtN100 sources1..6 contribute original-plus-allocated outcomes21+0,46+3,65+14,32+109,7+0,21+0. Their original building denominators are0/568/473/17/0/7;only source4 adds25 ruins and destroys1 original. Source3's14 events include12 building-created figures and2 followers;source4's109 include108 building-created effects/services and1 projectile.
 
-Additional process premises are force evolution=false,alternate UI mode=false,effect-decay counter0 and the executable crop model/radii already used by the committed building tests. They are explicit test inputs;the library invents none. Wall time and CRT state remain absent. The library reads no environment. Tests inject the verified read-only GameData directory into each process using only `EMPEROR_GAMEDATA_ROOT`.
+The exact final disjoint refusal partitions are:
 
-The fixed combined matrix is1/20/22/40/51/100. Tests assert per-source first refusals,all aggregate columns,allocation counts,exact disjoint partitions,shared lifecycle/risk/tail calls and no partial installation. Validation uses a private `git archive 509b673` with only owned figure/timeline changes overlaid,excluding concurrent building edits. Private evidence uses prefix`a5-a-` under the approved OpenCode temporary directory. No commit,push,stash or reset is performed;STATUS.md and publication remain owned by the lead.
+|Inputs|N|Named refusal|Pools|Figure outcomes|Original buildings|
+|---|---:|---|---:|---:|---:|
+|Farmer1000,CRT1|22/40/51/77/83/100|none|0/6|0/192,201,201,311,317,318|0/1,065|
+|Farmer absent,CRT1|40/51/77/83/100|`farmer_wall_clock_766da0_required`|1/6|47/199,199,309,315,316|568/1,065|
+|Farmer1000,CRT absent|100|`crt_rand_state_required_wall_clock_seeded_not_in_sav_slot_1981_type_40_action_7`|1/6|140/317|17/1,065|
+|Both absent|100|farmer row plus CRT row,disjoint|2/6|187/315|585/1,065|
 
-Reproduce with `EMPEROR_GAMEDATA_ROOT="$PWD/GameData" python3 scripts/figure_scene.py --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0 --build-dir "$task_evidence/release"`,and add `--mode undefined` with a separate fresh absolute build directory. `make scene-combined-bite` checks the authored failure boundaries without original-data input. The App's existing first-frame `combinedProcess` opt-in receives the same additional process inputs;absent inputs retain named refusals at consumption.
+Without CRT,N100 installs5/6 pools,177/317 outcomes,1,048/1,065 buildings,147 placed figures,160/160 components,153/153 consistent primaries and50/53 frames. With both inputs absent it installs4/6 pools,128/315 outcomes,480/1,065 buildings,102 placed figures,111/111 components,107/107 consistent primaries and28/53 frames. Earlier CRT-absent rows equal their CRT1 counterparts. Whole-pool refusals publish no figure,building,terrain,clock or RNG prefix.
 
-Required dependent Release/UBSan checks retain building-update332/44,848,building-scene244/7,663,building-image1,283/3,880,saved-ground110/1,928,SAV94,post-figure-pass656,city-clocks5,008 and map-reference1,884 authored/3,130 total. The private sealed App compiles28 translation units,has99/99 matching embedded source hashes and passes `codesign --verify --deep --strict`;it was not launched.
+|Source|Baseline first refusal,farmer absent / supplied|Final first refusal,farmer absent / supplied with CRT1|CRT absent|
+|---:|---|---|---|
+|1|none / none through100|none / none through100|none through100|
+|2|32 missing time /32 new Inspector39|32 missing time /none through100|same farmer boundary|
+|3|83 Warehouse54 slot459 /same|none /none through100|none through100|
+|4|77 positive disaster /same|none /none through100|85,Hunter40 slot1981 action7|
+|5|none /none through100|none /none through100|none through100|
+|6|none /none through100|none /none through100|none through100|
 
-Combined Release/UBSan pass705 authored/11,676 total checks;all55 JSON rows agree. Four unset/empty-root controls pass705/705 with original-data SKIP. Figure-only Release/UBSan retain662/251,301 exactly;all380 JSON rows agree after excluding runtime samples. The25 compiled mutations (24 combined and retained timeline-repeat) all fail at their intended assertions,including Well start,emigrant inclusive wait,city B7C reachability,shared lifecycle/risk/fire bridge and phase50 wrap. These authored checks do not count as original-data progress.
+Executable evidence uses SHA-256 `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`;file-backed offset=VA−`400000`. The owned `Emperor[CH].exe` hash was rechecked and1,411/1,411 cited instruction rows matched their file bytes,including82 speech-constructor rows. Three speech table entries atVA84EA90/84EAB8/84EB08 were independently read as254/−1/254 for types19/20/22. Private listings remain outside Git. No original executable/game was run as an oracle,no constants were fitted,and no building-update,ground/map implementation or GameData file was edited.
+
+- `4CD2F1..302` hides new Inspector39 action6 and decrements its signed countdown before the existing road selector. Farmer26 `4CCA1F→4C2B20→4C0060` scans reciprocal enabled harvest fields in order,`4CCB70..BD9` enters12 on dry-field arrival,and`4CCC10→4C2FD0` decrements the wait before retrying10. The public building constructor consumes `766DA0` only after successful allocation;the supplied value is explicit,zero remains valid,and per-frame `farmerWallClock` may replace the initial process value.
+- Warehouse54 `5D63C0→5D5DB0` checks industry staffing,enabled state,stock availability and`5F2060`'s100-unit incoming reservations before comparing actual common+18 networks at`5D5EE6`;`416B00` reads that byte. Positive `5D6461..6540` allocates22,stores embedded+6A,sets owner/subtype/amount≤400 and withdraws with the public storage helper. The timeline adapter uses the public19 common constructor because19/22 share speech254 and the same constructor metadata,then supplies22 before caller writes. Export demand still retains the public named refusal.
+- `4D1467..15B2→4CBC70/4CBA70` allocates two20 followers from the shared FIFO with actions6/8 or7/9 and reciprocal leader chain. Type20 metadata`84E798+40*20` is−1,so`4C92F6..FE` skips speech;19/22 metadata is254. A lower reused slot waits until its next ascending pool visit. `4D15DF..E3` enters delivery8;`4D1615..1704` waits through4,credits the existing Kiln input and decrements its incoming reservation before returning9 or retrying6. `4C8DB4..DF8` clears primary/embedded6C only;embedded6A remains for`5D63FA/5D6401`'s next hook validation. Cell chains,allocation serial,RNG and speech counters carry through each bridge.
+- Debris type1 `4CD210→417550`,free step`4175E6→4E9620`,selector`417CC0`:animation0→220A,1..4→2201..2204,counter+5 divided by speed+61,lifetime9×speed. Runtime+16C comes from`4E2D4A`;it is optional metadata distinct from serialized ambient+17C. `4EA3B0→418450` shifts the view0 draw cell by229 except kinds4/18;flags2 do not suppress that shift. Removal decrements explicit process visual-effect count and releases the shifted chain.
+- Flame type2 `4CE000` uses groups2205..2209 and byte+41 via`5CFE60(speed100)`,independent of ambient+5. Runtime animation comes from`42AA5B`;owner delivery+68,type+13 and common burning+4E gate removal. Slot17 `Destruction.sg3` is loaded explicitly:startup`475CBB` points to the name atVA82B078,file42B078. Public `42AAA0/4B7660` results alone authorize replacement by terrain612/random&7 ruins. Unexplained tombstones retain `combined_building_removal_4b7660_not_closed`.
+- Shared phases use the existing public building services,including disasters,stall suppliers,monthly services,additional walkers and industry carts. Figure-written crop counts,stock,speech state and terrain return to those services. Re-selections use the existing component selectors and current sprite metadata;all footprint cells install atomically. The App receives updated terrain flags and the terrain archive for created ruin decoding.
+
+The experiment additionally supplies effect-placement culled=false,visual-effect count0 and previous health rating0. Combined process inputs explicitly carry soundEffectsEnabled=false and buildingEditMode=false into both the library and App;absence preserves the consumer's refusal. Earlier explicit city-clock/event/UI/RNG-history/crop premises remain as described below. The library reads no environment. Only tests read `EMPEROR_GAMEDATA_ROOT`,injected for one process against the verified read-only directory.
+
+Remaining unconsumed branches keep named refusals,including positive event/UI/scenario work,warehouse export demand,uncited industry kinds,wet-field harvest work and unexplained building tombstones. No original post-update oracle or screen comparison was taken. The supplied-input completion claim is bounded to these six saves,the declared process/draw premises andN≤100. This removes the prior combined-horizon blocker without changing the lead-owned STATUS.md metric file.
+
+The fixed combined matrix is1/20/22/40/51/77/83/100. Reproduce with a fresh absolute build directory outside GameData:
+
+```sh
+EMPEROR_GAMEDATA_ROOT=/absolute/GameData python3 -B scripts/figure_scene.py --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0 --farmer-wall-clock 1000 --crt-random-state 1 --build-dir "$task_evidence/release"
+```
+
+Add`--mode undefined` for UBSan;omit farmer time and/or CRT flags for their independent refusal matrices. `make scene-combined-supplied-test` and its`-undefined` counterpart supply1000/1;the original combined targets leave both absent. `make scene-combined-bite` and the retained timeline-repeat mutation use authored input only. All changes remain uncommitted;no commit,push,stash or reset is performed. STATUS.md remains owned by the lead. Earlier combined reports below describe historical checkpoints and do not override this section.
+
+Validation:figure-only Release/UBSan each retain662/662 authored and251,301/251,301 total checks;all380/380 JSON rows agree after excluding runtime and match the baseline. All16/16 required dependent Release/UBSan suites pass:building-update359/67,283,building-scene244/7,663,building-image1,283/3,880,saved-ground110/1,928,SAV94,post-figure-pass656,city-clocks5,008,map-reference3,130 total. All36/36 compiled combined/timeline mutations fail at their intended assertions;the farmer fixture correction and final FIFO/cell-chain changes were rerun,and an explicit wrong speech-counter mutation is rejected. Four figure-only unset/empty-root controls pass662/662 with original-data SKIP. The final App compiles28 translation units,has99/99 matching embedded source hashes,and passes`codesign --verify --deep --strict`;the bundle was not launched. Private evidence uses prefix`a6-` under the approved OpenCode temporary directory.
+
+Combined Release/UBSan each pass725 authored checks in every input mode,total22,503 supplied,16,234 missing farmer time,22,265 missing CRT and15,996 with both absent. All276/276 JSON rows agree across the four modes. Four combined unset/empty-root controls pass725/725 with original-data SKIP. Each matrix emits69 JSON rows and locks all eight horizons,the per-source first refusal,the exact allocation-inclusive partitions,and App N100 installation when complete.
 
 ## Earlier combined city, building and figure clock, 2026-10-22
 

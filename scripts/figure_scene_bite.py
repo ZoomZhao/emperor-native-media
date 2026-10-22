@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--only', help='Run one named mutation')
     args = parser.parse_args()
-    work = Path(tempfile.mkdtemp(prefix='a5-figure-scene-bite-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))
+    work = Path(tempfile.mkdtemp(prefix='a6-figure-scene-bite-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))
     mutations = [
         ('index', 'original_building_scene.hpp', '(word&0x3fff)+1;', '(word&0x3fff)+201;'),
         ('position', 'original_building_scene.hpp', 'ox-s.animationOffsetX,oy-s.animationOffsetY', 'ox+s.animationOffsetX,oy-s.animationOffsetY'),
@@ -60,7 +60,7 @@ def main():
         ('worker_removal', 'original_figure_update.hpp', 'reset.priorProgress=f.priorProgress;', 'reset.priorProgress=0;'),
         ('load_population', 'original_figure_update.hpp', 'services.population->total=int32_t(total);', 'services.population->total+=int32_t(total);'),
         ('zero_gate', 'original_building_scene.hpp', 'if(!f.image){', 'if(!f.image&&source==OriginalFigureRenderSource::Saved){'),
-        ('effect_draw_cell', 'original_figure.hpp', '(f.type==1?229u:0u)', '(f.type==1?228u:0u)'),
+        ('effect_draw_cell', 'original_figure.hpp', '(f.type==1&&f.effectKind!=4&&f.effectKind!=18?229u:0u)', '(f.type==1&&f.effectKind!=4&&f.effectKind!=18?228u:0u)'),
         ('effect_extra_height', 'original_figure.hpp', 'x+y-int(f.raise)+f.extraY-int(f.height)', 'x+y-int(f.raise)+f.extraY'),
         ('animation_clock', 'original_building_animation.hpp', 'uint32_t(20*k)', 'uint32_t(19*k)'),
         ('timeline_repeat', 'original_scene_timeline.hpp', 'context=*out.lastPass.context;++out.updates;', 'context=initial;++out.updates;'),
@@ -170,6 +170,17 @@ def main():
         ('combined_road_plain', 'original_scene_timeline.hpp', 'const auto distances=originalBuildingRoadDistances(masks,uint32_t(entry));', 'for(auto& mask:masks)mask&=0xb0c;const auto distances=originalBuildingRoadDistances(masks,uint32_t(entry));'),
         ('combined_emigrant_wait', 'original_figure_update.hpp', 'if(f.counter>51){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;', 'if(f.counter>=51){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;'),
         ('combined_fire_bridge', 'original_scene_timeline.hpp', 'if(city.phase==43)f.services->fireCount=c.fireTotals[2];', 'if(city.phase==43)f.services->fireCount=9;'),
+        ('combined_debris_lifetime', 'original_figure_update.hpp', '>=9u*f.speed', '>9u*f.speed'),
+        ('combined_effect_count', 'original_figure_update.hpp', '--*context.visualEffectCount;', '++*context.visualEffectCount;'),
+        ('combined_flame_frame', 'original_figure_update.hpp', 'originalFigureAdvanceFrame(f.effectFrame,group->second->animationSpriteCount,', 'originalFigureAdvanceFrame(f.frame,group->second->animationSpriteCount,'),
+        ('combined_supplier_reservation', 'original_scene_timeline.hpp', '400-link.incomingFigures*100-target.stock<=0', '400-link.incomingFigures*100-target.stock<0'),
+        ('combined_inspector_delay', 'original_figure_update.hpp', 'f.hidden=1;f.frame=0;f.counter=originalFigureWord(int(f.counter)-1);', 'f.hidden=1;f.frame=0;f.counter=originalFigureWord(int(f.counter)+1);'),
+        ('combined_supplier_fifo', 'original_figure_update.hpp', 'const auto candidate=local.freeSlots.front();local.freeSlots.erase(local.freeSlots.begin());', 'const auto candidate=local.freeSlots.back();local.freeSlots.pop_back();'),
+        ('combined_supplier_withdraw', 'original_scene_timeline.hpp', 'originalFigureStorageWithdraw(b,18,unsigned(figure.amount),true,*c.goods)', 'originalFigureStorageWithdraw(b,18,0,true,*c.goods)'),
+        ('combined_supplier_delay', 'original_figure_update.hpp', 'if(f.counter>4){auto& b=destination->second;', 'if(f.counter>=4){auto& b=destination->second;'),
+        ('combined_supplier_chain', 'original_figure_update.hpp', 'if(tail==f.slot)f.next=uint16_t(slot);', 'if(tail==f.slot)f.next=0;'),
+        ('combined_supplier_speech', 'original_figure_update.hpp', 'local.figures.at(slot)=cart;', '++local.speechCounters->at(254);local.figures.at(slot)=cart;'),
+        ('combined_farmer_retry', 'original_figure_update.hpp', 'out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}f.action=10;', 'out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}f.action=6;'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]
@@ -233,6 +244,17 @@ def main():
             'combined_road_plain': 'combined city road flood admits plain terrain between road endpoints using B7C',
             'combined_emigrant_wait': 'combined allocated emigrant waits through inclusive51 with no movement',
             'combined_fire_bridge': 'combined fire pass publishes C82F28 reset before same-update Inspector consumer',
+            'combined_debris_lifetime': 'combined debris expires at nine times explicit speed',
+            'combined_effect_count': 'combined debris removal decrements process count and releases shifted cell chain',
+            'combined_flame_frame': 'combined flame advances41 independently from ambient counter5',
+            'combined_supplier_reservation': 'combined warehouse supplier excludes fully reserved kiln before network comparison',
+            'combined_inspector_delay': 'combined inspector constructor countdown hides before movement and decrements once',
+            'combined_supplier_fifo': 'combined warehouse bulk supplier creates two FIFO followers before wait30',
+            'combined_supplier_withdraw': 'combined warehouse positive supplier allocates22 withdraws exact stock and publishes embedded6A',
+            'combined_supplier_delay': 'combined supplier action8 waits through counter4 before delivery',
+            'combined_supplier_chain': 'combined warehouse bulk supplier creates two FIFO followers before wait30',
+            'combined_supplier_speech': 'combined warehouse bulk supplier creates two FIFO followers before wait30',
+            'combined_farmer_retry': 'combined dry harvest action12 decrements signed wait then retries action10',
         }.get(name)
         if expected and expected not in result.stderr:
             raise RuntimeError('mutation failed outside intended assertion: ' + name)

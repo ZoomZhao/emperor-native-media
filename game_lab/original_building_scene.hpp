@@ -155,7 +155,8 @@ inline void installOriginalFigureOverlays(OriginalBuildingScene& scene,const Ori
             ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;
         }
         const auto sub=originalFigureSubcell(f);
-        const int anchorX=int(f.x)+(f.type==1),anchorY=int(f.y)+(f.type==1);
+        const bool shifted=f.type==1&&f.effectKind!=4&&f.effectKind!=18;
+        const int anchorX=int(f.x)+shifted,anchorY=int(f.y)+shifted;
         if(tickMs||figures.savedView||!sub||f.x<0||f.y<0||anchorX>=int(terrain.activeSide)||anchorY>=int(terrain.activeSide)||
            f.cell!=(origin+f.y)*228+origin+f.x||(terrain.flags[f.cell]&0x80000u)||!linked(f)||f.drawClass||f.state85==101){
             ++scene.figureUnsupported;++scene.figureBlockedTypes[f.type];continue;

@@ -42,7 +42,7 @@ bool AppMapSurface::selectSavedBuildings(const OriginalMapTerrain& terrain,const
         std::map<uint32_t,const SG3Archive*> figureArchives;
         // Startup slots, independent of saved image words. Forward selection
         // must have the same supplied archive domain when the oracle changes.
-        for(const uint32_t slot:{14u,38u,39u,40u}){
+        for(const uint32_t slot:{14u,17u,38u,39u,40u}){
             const char* name=originalFigureArchiveName(slot);
             if(!archives_.count(slot)){
                 const std::string relative=std::string("DATA/")+name;auto index=loadSG3(root_.resolve(relative));
@@ -119,7 +119,7 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
     context.activeSide=save.terrain.activeSide;context.festivalVenue=festival;context.entertainmentAvailable=spawn->entertainmentAvailable;
     const auto passability=originalFigurePheasantPassability(save.terrain,save.layers.mapperStone,save.buildings,*spawn);
     std::map<uint32_t,SG3Archive> owned;std::map<uint32_t,const SG3Archive*> refs;
-    for(unsigned slot:{14u,38u,39u,40u}){owned.emplace(slot,loadSG3(root_.resolve(std::string("DATA/")+originalFigureArchiveName(slot))));refs[slot]=&owned.at(slot);}
+    for(unsigned slot:{14u,17u,38u,39u,40u}){owned.emplace(slot,loadSG3(root_.resolve(std::string("DATA/")+originalFigureArchiveName(slot))));refs[slot]=&owned.at(slot);}
     if(!selectSavedBuildings(save.terrain,save.buildings,&ground,0,&figures))return false;
     const auto fullPassability=originalSceneMovementPassability(*savedBuildings_,save.buildings,ground,*spawn);
     const auto* timelinePassability=fullPassability?&*fullPassability:passability?&*passability:nullptr;
@@ -139,8 +139,9 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
             ground,*savedBuildings_,archives_.at(2).index,archives_.at(3).index,buildingText,originalBuildingSpeechCounts(speechBytes))){
             clear();error_="combined saved city services";return false;}}
     const auto timeline=originalSceneTimeline(*initial.context,refs,*savedBuildings_,archives_.at(2).index,&*employment,previousAdmission,clocks,suppliedFrames,combined?&*combined:nullptr);
-    if(!timeline.complete||!installOriginalSceneTimeline(*savedBuildings_,save.terrain,figures,refs,save.buildings,archives_.at(2).index,timeline)){
+    if(!timeline.complete||!installOriginalSceneTimeline(*savedBuildings_,save.terrain,figures,refs,save.buildings,archives_.at(2).index,timeline,&archives_.at(3).index)){
         clear();error_="post-load timeline: "+timeline.refusal+" (update "+std::to_string(timeline.refusedUpdate)+")";return false;}
+    terrain_.flags=timeline.context->terrain;
     return true;
 }
 OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapCamera& camera,int bit)const{
@@ -150,7 +151,7 @@ OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapC
     if(savedBuildings_->groundRebuilt)for(uint32_t slot:{3u,16u})if(archives_.count(slot)) {
         const auto& a=archives_.at(slot);groundTilesets.push_back({slot,&a.index,a.companion,201});
     }
-    for(uint32_t slot:{14u,38u,39u,40u})if(archives_.count(slot)){
+    for(uint32_t slot:{14u,17u,38u,39u,40u})if(archives_.count(slot)){
         const auto& a=archives_.at(slot);groundTilesets.push_back({slot,&a.index,a.companion,201});
     }
     return renderOriginalBuildingScene(terrain_,*savedBuildings_,archive.index,archive.companion,camera,bit,groundTilesets);

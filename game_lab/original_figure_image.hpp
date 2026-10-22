@@ -15,11 +15,14 @@ struct OriginalFigureImageInputs {
     uint8_t effectKind=0,effectVariant=0,effectFlags=0;
     uint32_t updateOwner=0;
     int16_t owner=0;
+    std::optional<int32_t> effectAnimation;
+    uint8_t speed=0;
+    uint8_t effectFrame=0;
 };
 inline OriginalFigureImageInputs originalFigureImageInputs(const OriginalFigure& f){
     return {f.type,f.action,f.direction,f.previousDirection,f.frame,f.subtype,f.attackDirection,
         f.attackFrame,f.state85,f.cartStyle,f.resource,f.stationary,f.counter,f.variant,f.amount,f.runtimeClass,
-        f.leaderLink,f.target,f.x,f.y,f.alive,f.faction,f.height,f.effectKind,f.effectVariant,f.effectFlags,f.updateOwner,f.owner};
+        f.leaderLink,f.target,f.x,f.y,f.alive,f.faction,f.height,f.effectKind,f.effectVariant,f.effectFlags,f.updateOwner,f.owner,f.effectAnimation,f.speed,f.effectFrame};
 }
 // Cross-figure state contains only the same non-image inputs as the selector.
 struct OriginalFigureImageState {
@@ -147,8 +150,16 @@ inline OriginalFigureImageSelection figureImage(const OriginalFigureImageInputs&
     }else switch(f.type){
     case 1: //0x4CD222 supplies inline+17C to0x417550; kind13 store0x418383.
         out.selectorVA=0x417c50;
+        if(f.effectKind==0&&f.effectFlags==2&&f.speed&&f.effectAnimation&&*f.effectAnimation>=0&&*f.effectAnimation<5){
+            out.selectorVA=0x417cc0;
+            code=*f.effectAnimation?0x2200+uint32_t(*f.effectAnimation):0x220a;
+            frame=f.frame/f.speed;linear=true;clamp=true;direction=0;break;}
         if(f.effectKind!=13||f.effectVariant!=0)return refuse(OriginalFigureImageStatus::ExternalState);
         code=0x1c0f;frame=f.frame/3;linear=true;clamp=true;direction=0;break;
+    case 2: //4CE023..A6:five flame groups,animation byte+41 and flags5CFE60.
+        out.selectorVA=0x4ce000;
+        if(!f.effectAnimation||*f.effectAnimation<0||*f.effectAnimation>4)return refuse(OriginalFigureImageStatus::ExternalState);
+        code=0x2205+uint32_t(*f.effectAnimation);frame=f.effectFrame;linear=true;clamp=true;direction=0;break;
     case 11: //0x4CA28B..32A, subtype+13 selects two walking groups.
         out.selectorVA=0x4c9fd0;code=f.subtype?0x4c13:0x4c15;
         if(f.action==4){++code;frame=f.counter;linear=true;clamp=true;}break;

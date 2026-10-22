@@ -16,11 +16,17 @@ def main():
     p.add_argument('--timeline-audio', choices=['off', 'on', 'both'], default='both')
     p.add_argument('--timeline-mode', choices=['figure', 'combined'], default='figure')
     p.add_argument('--city-clocks', help='Required combined initial values: ten unsigned dwords in executable order')
+    p.add_argument('--farmer-wall-clock', type=int, help='Explicit 766DA0 value at farmer creation; absent refuses when consumed')
+    p.add_argument('--crt-random-state', type=int, help='Explicit CRT rand state, independent of farmer wall time')
     a = p.parse_args()
     if a.timeline_mode == 'combined' and not a.city_clocks:
         p.error('--timeline-mode combined requires --city-clocks')
     if a.timeline_mode == 'combined' and a.timeline_horizons:
-        p.error('combined mode measures the fixed 1,20,22,40,51,100 matrix')
+        p.error('combined mode measures the fixed 1,20,22,40,51,77,83,100 matrix')
+    if a.farmer_wall_clock is not None and not 0 <= a.farmer_wall_clock <= 0xffffffff:
+        p.error('farmer wall clock must be an unsigned dword')
+    if a.crt_random_state is not None and not 0 <= a.crt_random_state <= 0xffffffff:
+        p.error('CRT random state must be an unsigned dword')
     horizons = None
     if a.timeline_horizons:
         try:
@@ -31,7 +37,7 @@ def main():
             p.error('timeline horizons must be in 1..10000')
     if a.build_dir and not a.build_dir.is_absolute():
         p.error('absolute build directory required')
-    build = (a.build_dir or Path(tempfile.mkdtemp(prefix='a5-figure-scene-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))).resolve()
+    build = (a.build_dir or Path(tempfile.mkdtemp(prefix='a6-figure-scene-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))).resolve()
     configured = os.environ.get('EMPEROR_GAMEDATA_ROOT')
     if configured and (build == Path(configured).resolve() or Path(configured).resolve() in build.parents):
         p.error('build directory must stay outside GameData')
@@ -48,6 +54,10 @@ def main():
     command += ['--timeline-mode', a.timeline_mode]
     if a.city_clocks:
         command += ['--city-clocks', a.city_clocks]
+    if a.farmer_wall_clock is not None:
+        command += ['--farmer-wall-clock', str(a.farmer_wall_clock)]
+    if a.crt_random_state is not None:
+        command += ['--crt-random-state', str(a.crt_random_state)]
     if horizons:
         command += ['--timeline-horizons', ','.join(map(str, horizons))]
     return subprocess.run(command, check=False).returncode

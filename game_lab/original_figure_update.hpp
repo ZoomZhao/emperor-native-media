@@ -129,6 +129,8 @@ struct OriginalFigureFirstUpdate {
     uint64_t crtRandomCalls=0;
     std::optional<int32_t> roadblockGate;
     std::set<size_t> allocatedSlots;
+    size_t allocationCount=0,buildingAllocationCount=0;
+    std::optional<std::array<int32_t,359>> speechCounters;
     size_t highestLiveSlot=0;
 };
 struct OriginalFigurePassability {
@@ -283,6 +285,7 @@ struct OriginalFigureUpdateContext {
     uint64_t crtRandomCalls=0; //Cumulative successfully ported7665FD calls,including discarded sound variation.
     std::optional<std::array<bool,51>> animationFlags; //current418AA0 flags,for5CFE60(speed100).
     std::set<size_t> allocatedSlots;
+    size_t allocationCount=0,buildingAllocationCount=0;
     // Inputs at each primary image write. A later Hunter can turn an earlier
     // prey without selecting its image again (4D31DE..4D321C).
     std::map<size_t,OriginalFigureImageInputs> primaryImageInputs;
@@ -290,6 +293,11 @@ struct OriginalFigureUpdateContext {
     std::optional<bool> soundEffectsEnabled; //10DE0D3,5C4D29:explicit caller gate;both branches are simulation-neutral (5C4DFE reads RNG without advancing it).
     std::optional<std::array<OriginalFigureProfile::EmpireTraderSlots,22>> empireTraders;
     std::optional<bool> buildingEditMode; //D62408,4CA226:caller input,not a recovered SAV/reset value.
+    std::optional<unsigned> visualEffectCount; //8900E8,417370 decrements on ambient removal
+    std::map<size_t,int16_t> buildingBurning; //4CE06F requires common+4E
+    std::map<size_t,uint8_t> farmerTasks; //figure+89,1 grow/2 harvest
+    std::optional<std::array<int32_t,359>> speechCounters;
+    std::optional<std::array<uint32_t,359>> speechCounts;
     std::vector<uint8_t> roadNetworks; //4AF350/4AF490 post-load EC5A10 component labels.
     //4BA6F0 selections supplied through the committed building-road parser.
     //Present/nullopt means a complete scan found no exit; absent key is unknown.
@@ -617,15 +625,18 @@ inline bool originalFigureRelink(OriginalFigure& f,uint32_t cell,OriginalFigureU
     const auto list=[&](uint32_t at)->std::optional<std::vector<size_t>>{
         std::vector<size_t> out;std::set<size_t> seen;
         for(size_t slot=context.cellHeads[at];slot;){const auto it=context.figures.find(slot);
-            if(slot>=2000||it==context.figures.end()||!seen.insert(slot).second||it->second.cell!=at||it->second.type==1)return std::nullopt;
+            if(slot>=2000||it==context.figures.end()||!seen.insert(slot).second||originalFigureDrawCell(it->second)!=at)return std::nullopt;
             out.push_back(slot);slot=it->second.next;}
         return out;};
-    auto old=list(f.cell),next=list(cell);if(!old||!next||std::count(old->begin(),old->end(),f.slot)!=1)return false;
+    if(originalFigureDrawCell(f)>=51984)return false;
+    const uint32_t oldCell=uint32_t(originalFigureDrawCell(f));auto newFigure=f;newFigure.cell=cell;
+    const uint64_t newDraw=originalFigureDrawCell(newFigure);if(newDraw>=51984)return false;const auto newCell=uint32_t(newDraw);
+    auto old=list(oldCell),next=list(newCell);if(!old||!next||std::count(old->begin(),old->end(),f.slot)!=1)return false;
     old->erase(std::find(old->begin(),old->end(),f.slot));
     const auto write=[&](uint32_t at,const std::vector<size_t>& slots){context.cellHeads[at]=slots.empty()?0:uint16_t(slots.front());
         for(size_t n=0;n<slots.size();++n)context.figures.at(slots[n]).next=n+1<slots.size()?uint16_t(slots[n+1]):0;};
-    write(f.cell,*old);if(cell==f.cell)next=old;
-    next->push_back(f.slot);f.cell=cell;f.next=0;context.figures.at(f.slot)=f;write(cell,*next);return true;
+    write(oldCell,*old);if(newCell==oldCell)next=old;
+    next->push_back(f.slot);f.cell=cell;f.next=0;context.figures.at(f.slot)=f;write(newCell,*next);return true;
 }
 //4E77C0: signed elevation comparisons and lookahead use the current route
 //cursor (already advanced at the segment boundary), never the saved image.
@@ -684,6 +695,7 @@ inline OriginalFigureUpdateStatus originalFigureCrossCell(OriginalFigure& f,Orig
     if(!next.hidden&&next.action!=4&&next.action!=5&&(model==context.models.end()||model->second[0]!=0)){
         for(size_t slot=context.cellHeads[size_t(cell)];slot;slot=context.figures.at(slot).next)
             if(slot!=f.slot){const auto& other=context.figures.at(slot);
+                if(other.type==1||other.type==2||other.type==3||other.type==9)continue; //4E58AC->4E58C6 skips effect neighbours
                 //4E5340: both Pheasants have virtual+80=false; the other's
                 // model attack columns5/2 zero return before relation lookup.
                 if(next.type==76&&other.type==76&&model!=context.models.end()&&model->second[2]==0&&model->second[5]==0)continue;
@@ -1071,7 +1083,7 @@ inline void originalFigurePublishWrites(OriginalFigureFirstUpdate& out,const Ori
     const OriginalFigureUpdateContext& before,OriginalFigureUpdateContext& after){
     after.figures.at(f.slot)=f;
     for(const auto& entry:after.figures){const auto& prior=before.figures.at(entry.first);
-        if(entry.first!=f.slot&&(entry.second.next!=prior.next||entry.second.secondaryImage!=prior.secondaryImage||entry.second.route!=prior.route||
+        if(entry.first!=f.slot&&(entry.second.type!=prior.type||entry.second.next!=prior.next||entry.second.secondaryImage!=prior.secondaryImage||entry.second.route!=prior.route||
             entry.second.alive!=prior.alive||entry.second.action!=prior.action||entry.second.direction!=prior.direction||entry.second.counter!=prior.counter||
             entry.second.previousAction!=prior.previousAction||entry.second.target!=prior.target||
             entry.second.flags120!=prior.flags120||entry.second.linkedBuilding!=prior.linkedBuilding||entry.second.damage!=prior.damage||
@@ -1084,6 +1096,8 @@ inline void originalFigurePublishWrites(OriginalFigureFirstUpdate& out,const Ori
     out.goods=after.goods;
     out.freeSlots=after.freeSlots;out.crtRandom=after.crtRandom;out.crtRandomCalls=after.crtRandomCalls;
     out.allocatedSlots=after.allocatedSlots;out.highestLiveSlot=after.highestLiveSlot;
+    out.allocationCount=after.allocationCount;out.buildingAllocationCount=after.buildingAllocationCount;
+    out.speechCounters=after.speechCounters;
     out.roadblockGate=after.roadblockGate;
     out.services=after.services;out.buildings=after.buildings;out.state=f;out.status=OriginalFigureUpdateStatus::Computed;
 }
@@ -1314,6 +1328,29 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=saved.type==19?0x4cbec0:saved.type==21?0x4cd8f0:0x4d13c0;out.status=OriginalFigureUpdateStatus::GoodsRouteAndOwner;
     if(!context||!context->figures.count(saved.slot))return out;auto local=*context;auto f=saved;f.image=f.secondaryImage=0;
+    const bool initializedSupplier=f.type==22&&(f.action==10||f.action==11);
+    if(initializedSupplier){ //4D1467..15B2->4CBC70/4CBA70.
+        if(!local.buildings)return out;const auto owner=local.buildings->find(size_t(f.owner));
+        if(owner==local.buildings->end()||owner->second.alive!=1||owner->second.type!=54||owner->second.secondaryFigures[0]!=int(f.slot)||f.counter>1)return out;
+        if(!local.services||!local.services->allocationSerial)return out;
+        const auto allocate=[&](uint8_t action,int16_t leader,uint8_t subtype)->std::optional<size_t>{
+            size_t slot=0;for(unsigned attempt=0;attempt<6&&!local.freeSlots.empty();++attempt){const auto candidate=local.freeSlots.front();local.freeSlots.erase(local.freeSlots.begin());
+                if(attempt==5)break;if(candidate&&candidate<2000&&!local.figures.at(candidate).alive){slot=candidate;break;}}
+            if(!slot)return size_t(0);auto cart=OriginalFigure{};cart.slot=slot;cart.type=20;cart.alive=1;cart.progress=20;cart.action=action;cart.leaderLink=leader;cart.subtype=subtype;
+            cart.x=cart.priorX=cart.homeX=cart.destinationX=f.x;cart.y=cart.priorY=cart.homeY=cart.destinationY=f.y;cart.cell=f.cell;
+            cart.subX=originalFigureWord(20*f.x);cart.subY=originalFigureWord(20*f.y);cart.direction=f.direction;
+            cart.allocationSerial=uint16_t((*local.services->allocationSerial)++);cart.allocationPhase=cart.allocationPhaseCopy=uint8_t(originalFigureRandomNext(*local.services)&3);
+            //84E798+40*20=-1;4C92F6..FE skips the speech callback.
+            local.figures.at(slot)=cart;
+            local.primaryImageInputs.erase(slot);
+            size_t tail=local.cellHeads.at(cart.cell);if(!tail)local.cellHeads.at(cart.cell)=uint16_t(slot);else{std::set<size_t> seen;
+                while(local.figures.at(tail).next){if(!seen.insert(tail).second)return std::nullopt;tail=local.figures.at(tail).next;}
+                local.figures.at(tail).next=uint16_t(slot);if(tail==f.slot)f.next=uint16_t(slot);}
+            local.allocatedSlots.insert(slot);++local.allocationCount;local.highestLiveSlot=std::max(local.highestLiveSlot,slot);return slot;};
+        const bool bulk=f.action==10;const auto first=allocate(uint8_t(bulk?6:7),int16_t(f.slot),0);if(!first)return out;
+        if(!*first)f.alive=2;else {const auto second=allocate(uint8_t(bulk?8:9),int16_t(*first),f.resource);if(!second)return out;if(!*second)f.alive=2;}
+        f.action=6;f.counter=30;f.frame=0;
+    }
     f.movementMode=1;f.frame=uint8_t(f.frame+1);if(f.frame>=12)f.frame=0;
     if(f.type==21){if(!context->buildings)return out;const auto owner=context->buildings->find(size_t(f.owner));
         if(owner==context->buildings->end()||owner->second.type!=0x3a||owner->second.alive!=1||
@@ -1323,7 +1360,29 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
     OriginalFigureImageSelection cargo;
     if(f.type!=21){cargo=figureSecondaryImage(originalFigureImageInputs(f),archives,context->view);
         if(cargo.status!=OriginalFigureImageStatus::Selected){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}}
-    if(f.type==19&&f.action==6){if(!context->buildings)return out;const auto owner=context->buildings->find(size_t(f.owner));
+    if(initializedSupplier){f.frame=0;}
+    else if(f.type==22&&f.action==6){ //4D1467..1571 supplier cart initial wait3 and506CD0 industry query.
+        if(!local.buildings)return out;const auto owner=local.buildings->find(size_t(f.owner));
+        if(owner==local.buildings->end()||owner->second.alive!=1||owner->second.type!=54||owner->second.secondaryFigures[0]!=int(f.slot))return out;
+        f.frame=0;f.counter=originalFigureWord(int(f.counter)+1);
+        if(f.counter>2){const auto selected=originalFigureGoodsSupplier(f,local);if(!selected)return out;
+            if(*selected){if(local.buildings->at(*selected).type!=43)return out;f.action=7;f.stationary=0;}
+            else{f.action=9;f.delivery=f.owner;f.destinationX=f.homeX;f.destinationY=f.homeY;f.stationary=f.x==f.homeX&&f.y==f.homeY;}
+            f.counter=0;}
+    }else if(f.type==22&&f.action==8){ //4D1615..1704: wait5, virtual154 delivery, then debit the reservation.
+        out.status=OriginalFigureUpdateStatus::GoodsArrival;if(!local.buildings)return out;
+        const auto destination=local.buildings->find(size_t(f.delivery));
+        if(destination==local.buildings->end()||destination->second.type!=43)return out;
+        f.counter=originalFigureWord(int(f.counter)+1);f.frame=0;
+        if(f.counter>4){auto& b=destination->second;
+            if(f.subtype!=18||f.amount<0||b.industryInput<0||b.industryInput>400)return out;
+            const int accepted=(b.alive==1||b.alive==3)?std::min<int>(f.amount,400-b.industryInput):0;
+            if(accepted)b.industryInput=originalFigureWord((int(b.industryInput)+accepted)/100*100);
+            b.incomingFigures=originalFigureWord(int(b.incomingFigures)-1);
+            f.amount=originalFigureWord(int(f.amount)-accepted);f.counter=0;
+            if(!f.amount){f.action=9;f.destinationX=f.homeX;f.destinationY=f.homeY;}
+            else {f.action=6;f.routePhase=3;}}
+    }else if(f.type==19&&f.action==6){if(!context->buildings)return out;const auto owner=context->buildings->find(size_t(f.owner));
         if(owner==context->buildings->end()||owner->second.alive!=1||!(terrainFlags&0x40)||
             (terrainFlags&(0x100|0x800|0x80000|0x10004)))return out;
         f.frame=0;f.counter=originalFigureWord(int(f.counter)+1);if(f.counter>30){out.status=OriginalFigureUpdateStatus::GoodsSearch;
@@ -1412,6 +1471,7 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
         else if(f.type==19&&f.action==13&&f.direction==8)f.action=12; //4CC5D6.
         else if(f.type==19&&f.action==13&&f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
             if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+        else if(f.type==22&&f.action==7&&f.direction==8)f.action=8; //4D15DF..15E3; delivery waits for a later call.
         else if(f.type==22&&f.action==9&&f.direction==8){ //4D1740:deliver remaining cargo to owner,then remove on full acceptance.
             if(!local.buildings||!local.goods)return out;auto owner=local.buildings->find(size_t(f.owner));
             if(owner==local.buildings->end())return out;
@@ -1513,7 +1573,7 @@ inline OriginalFigureUpdateStatus originalFigureHunterProjectile(const OriginalF
             if(found==context.figures.end()||!seen.insert(tail).second||found->second.cell!=p.cell)return OriginalFigureUpdateStatus::Projectile;
             if(!found->second.next)break;tail=found->second.next;}
         context.figures.at(tail).next=uint16_t(slot);}
-    context.figures.at(slot)=p;context.allocatedSlots.insert(slot);context.highestLiveSlot=std::max(context.highestLiveSlot,slot);return OriginalFigureUpdateStatus::Computed;
+    context.figures.at(slot)=p;context.allocatedSlots.insert(slot);++context.allocationCount;context.highestLiveSlot=std::max(context.highestLiveSlot,slot);return OriginalFigureUpdateStatus::Computed;
 }
 //59CC00(1000,0,0): load-reconstructed animal vector is ascending; collect
 //at most30 qualifying prey,5AE970 floods B1D in N,E,S,W order and checks
@@ -1732,7 +1792,7 @@ inline OriginalFigureFirstUpdate originalSupplierFirstUpdate(const OriginalFigur
     const auto owner=context->buildings->find(size_t(saved.owner));
     if(owner==context->buildings->end()||owner->second.alive!=1)return out;
     auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=17;f.freeMovement=f.hidden=0;
-    if(f.action==7||f.action==9){const auto speed=context->modelSpeeds.find(26);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
+    if(f.action==7||f.action==9||f.action==11){const auto speed=context->modelSpeeds.find(26);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
         const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
         if(f.action==9&&f.direction>=8){
@@ -1746,9 +1806,28 @@ inline OriginalFigureFirstUpdate originalSupplierFirstUpdate(const OriginalFigur
             //counter=0. The float-to-int helper7650FC is not reached.
             f.action=8;f.counter=0;
         }else if(f.action==7&&f.direction>=8)return out;
-    }else if(f.action==6){f.hidden=1;f.counter=originalFigureWord(int(f.counter)-1);
+        if(f.action==11&&f.direction==8){ //4CCB70..BD9:dry CropField194/196 +C8(-4) false.
+            const auto field=local.buildings->find(size_t(f.delivery));if(field==local.buildings->end()||
+                (field->second.type!=194&&field->second.type!=196)){out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}
+            f.action=12;f.counter=0;}
+        else if(f.action==11&&f.direction>=8)return out;
+    }else if(f.action==6||f.action==10){f.hidden=1;f.counter=originalFigureWord(int(f.counter)-1);
         if(f.counter<1){f.counter=0;
             if((owner->second.type!=0xc0&&owner->second.type!=0xc1)||!owner->second.cropSearchComplete||!owner->second.suppliers){out.status=OriginalFigureUpdateStatus::SupplierSearch;return out;}
+            if(f.route>0){if(f.route>=1000||!local.services)return out;
+                if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}
+            if(f.action==10){ //4CCA1F->4C2B20->4C0060 ordered reciprocal harvest-field scan.
+                if(!local.crops)return out;size_t selected=0;
+                for(const auto& e:*local.buildings){const auto& b=e.second;
+                    const bool compatible=owner->second.type==0xc0?b.type==0xc2:b.type>=0xc3&&b.type<=0xc7;
+                    if(!compatible||b.alive!=1||b.primaryFigure!=int(f.slot)||!b.destinationEnabled)continue;
+                    const unsigned resource=b.type==0xc2?19:std::array<unsigned,5>{7,5,6,3,1}[b.type-0xc3];
+                    if(local.crops->unavailable[resource]||local.crops->disabled[b.type])continue;selected=e.first;break;}
+                if(selected){const auto& b=local.buildings->at(selected);f.action=11;f.delivery=int16_t(selected);f.destinationX=b.x;f.destinationY=b.y;}
+                else {if(f.resource){out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}
+                    f.action=9;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;
+                    auto& count=local.buildings->at(size_t(f.owner)).harvestFarmers;if(!count)return out;*count=std::max(0,*count-1);}
+            }else{
             const auto crop=originalFigureSupplierCrop(f,local);if(!crop){out.status=OriginalFigureUpdateStatus::SupplierSearch;return out;}
             if(f.route>0){if(f.route>=1000||!local.services)return out;
                 if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}
@@ -1756,8 +1835,11 @@ inline OriginalFigureFirstUpdate originalSupplierFirstUpdate(const OriginalFigur
                 f.action=7;f.delivery=int16_t(*crop);}
             else {f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;f.action=9;
                 auto& count=*local.buildings->at(size_t(f.owner)).suppliers;
-                const uint32_t bits=uint32_t(count)-1;count=bits>INT32_MAX?0:int32_t(bits);}
+                const uint32_t bits=uint32_t(count)-1;count=bits>INT32_MAX?0:int32_t(bits);}}
         }
+    }else if(f.action==12){ //4CCC10->4C2FD0;194/196 +C8(-4) false,then retry harvest10.
+        f.counter=originalFigureWord(int(f.counter)-1);if(f.counter<1){const auto field=local.buildings->find(size_t(f.delivery));
+            if(field==local.buildings->end()||(field->second.type!=194&&field->second.type!=196)){out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}f.action=10;}
     }else if(f.action==8){f.counter=originalFigureWord(int(f.counter)-1);
         if(f.counter<1){auto delivery=local.buildings->find(size_t(f.delivery));
             if(delivery==local.buildings->end()||(delivery->second.type!=0xc2&&delivery->second.type!=0xc4)||!delivery->second.cropDelivery){
@@ -1766,7 +1848,7 @@ inline OriginalFigureFirstUpdate originalSupplierFirstUpdate(const OriginalFigur
     else return out;
     unsigned base=0x4e65+4*std::min(unsigned(f.variant),3u);
     if(owner->second.type==0xee)base=0x4e7d;else if(owner->second.type==0xef)base=0x4e75;else if(owner->second.type==0xed)base=0x4e79;
-    if(!originalFigureWriteWalkingImage(f,base+unsigned(f.action==8),archives,context->view,true,true,true)){
+    if(!originalFigureWriteWalkingImage(f,base+(f.action==8?1:f.action==12||f.action==15?2:0),archives,context->view,true,true,true)){
         out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     originalFigurePublishWrites(out,f,*context,local);return out;
 }
@@ -1854,7 +1936,12 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
         if(!originalFigureWriteWalkingImage(f,0x4c55,archives,context->view)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
         originalFigurePublishWrites(out,f,*context,local);return out;
     }
-    if(f.type==39){if(f.action==8){
+    if(f.type==39){if(f.action==6){ //4CD2F1..302:constructor countdown hides before4BA580 lookup.
+            f.hidden=1;f.frame=0;f.counter=originalFigureWord(int(f.counter)-1);
+            if(f.counter<=0){const auto road=originalFigureMusicRoad(owner->second,local);if(!road)return out;
+                if(!*road)f.alive=2;else {f.action=7;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;
+                    originalFigureFreeTarget(f);f.roamSteps=0;}}
+        }else if(f.action==8){
             if(!context->services||!context->services->fireCount){out.status=OriginalFigureUpdateStatus::InspectorFireContext;return out;}
             //0x4E2E90 reads the SAV19-restored signed count first. Positive
             // counts increment+75 modulo256; search starts at the new20.
@@ -2213,6 +2300,28 @@ inline OriginalFigureFirstUpdate originalFigureFirstUpdate(const OriginalFigure&
     if(!saved.slot||saved.slot>=2000||(saved.alive!=1&&!(saved.alive==2&&saved.type==76))||saved.updateOwner){out.status=OriginalFigureUpdateStatus::DispatchGate;return out;}
     if(saved.runtimeClass==OriginalFigureClass::Pheasant)return originalPheasantFirstUpdate(saved,archives,context,terrainFlags);
     if(saved.runtimeClass!=OriginalFigureClass::Figure)return out;
+    if(saved.type==2){out.updaterVA=0x4ce000;out.status=OriginalFigureUpdateStatus::EffectState;
+        if(!context||!context->buildings||!saved.effectAnimation||!context->animationFlags)return out;
+        auto f=saved;const auto owner=context->buildings->find(size_t(f.delivery));
+        const auto burning=context->buildingBurning.find(size_t(f.delivery));
+        if(owner==context->buildings->end()||burning==context->buildingBurning.end())return out;
+        if(!burning->second||owner->second.type!=f.subtype||owner->second.alive==4||!owner->second.alive)f.alive=2;
+        const auto group=originalFigureImageGroup(0x2205+uint32_t(*saved.effectAnimation),archives);
+        if(!group)return out;const auto frame=originalFigureAdvanceFrame(f.effectFrame,group->second->animationSpriteCount,
+            group->second->animationSpeedId,100,*context->animationFlags);if(!frame)return out;
+        f.effectFrame=frame->counter;f.freeMovement=1;f.image=group->first+f.effectFrame;f.secondaryImage=0;
+        out.state=f;out.status=OriginalFigureUpdateStatus::Computed;return out;}
+    if(saved.type==1&&saved.effectKind==0){out.updaterVA=0x417550;out.status=OriginalFigureUpdateStatus::EffectState;
+        if(!context||!saved.effectAnimation||*saved.effectAnimation<0||*saved.effectAnimation>4||
+            saved.effectFlags!=2||!saved.speed||!context->visualEffectCount)return out;
+        auto local=*context;auto f=saved;const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;
+        f=moved->first;if(moved->second)f.alive=2;
+        const uint32_t code=*f.effectAnimation?0x2200+uint32_t(*f.effectAnimation):0x220a;
+        const auto group=originalFigureImageGroup(code,archives);if(!group)return out;
+        f.frame=uint8_t(f.frame+1);f.hidden=0;f.effectDraw=1;f.raise=30;
+        if(unsigned(f.frame)>=9u*f.speed)f.alive=2;
+        if(f.alive==1)f.image=group->first+f.frame/f.speed;
+        f.secondaryImage=0;originalFigurePublishWrites(out,f,*context,local);return out;}
     switch(saved.type){
     case 1:break;
     case 20:return originalCartFirstUpdate(saved,archives,context,terrainFlags);
@@ -2257,6 +2366,7 @@ struct OriginalFigureOrderedPass {
     size_t computed=0,blocked=0,prefixComputed=0,firstBlockedSlot=0;
     std::map<size_t,OriginalFigureFirstUpdate> figures;
     std::set<size_t> allocatedSlots; //diagnostic denominator,including a refused pass;no state is published.
+    size_t allocationCount=0,buildingAllocationCount=0;
     uint64_t crtRandomCalls=0;
     std::optional<OriginalFigureUpdateContext> context;
 };
@@ -2265,7 +2375,7 @@ struct OriginalFigureOrderedPass {
 // releases the route, unlinks and clears target references, then+E8=4C72B0
 // resets represented fields. The inline17C state and priorProgress190 survive.
 inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUpdateContext& context){
-    if((f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=23&&f.type!=26&&f.type!=28&&f.type!=29&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=39&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=54&&f.type!=76)||f.alive!=2||
+    if((f.type!=1&&f.type!=2&&f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=23&&f.type!=26&&f.type!=28&&f.type!=29&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=39&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=54&&f.type!=76)||f.alive!=2||
         (f.runtimeClass!=OriginalFigureClass::Figure&&!(f.type==76&&f.runtimeClass==OriginalFigureClass::Pheasant))||f.updateOwner||(f.linkedBuilding&&f.type!=76)||
         !context.services||context.cellHeads.size()!=51984||f.cell>=51984)return false;
     if(f.type==34||f.type==40){if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
@@ -2286,6 +2396,8 @@ inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUp
         if(f.type==19&&owner->second.primaryFigure!=int(f.slot))return false; //uncited industrial secondary cleanup remains refused.
         if(owner->second.primaryFigure==int(f.slot))owner->second.primaryFigure=0;
         else if(f.type==22&&owner->second.secondaryFigures[1]==int(f.slot))owner->second.secondaryFigures[1]=0;
+        //4C8DB4..DF8 does not clear embedded6A.5D63FA/5D6401 validates
+        //that supplier link on the next phase31 hook before allocating again.
     }else if(f.type==26){ //4CC9CF/4CCA07 then4C8BFA->4BFDC0.
         if(!context.buildings)return false;
         for(auto& e:*context.buildings)if(e.second.alive==1&&(e.second.type>=0xc2&&e.second.type<=0xc7)&&e.second.primaryFigure==int(f.slot))e.second.primaryFigure=0;
@@ -2323,11 +2435,13 @@ inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUp
         if(owner==context.buildings->end())return false;owner->second.worker=0;
     }else if(f.home&&f.type!=11&&f.type!=54)return false; //worker arrival already cleared its reciprocal home link.
     if(f.route>0){if(f.route>=1000)return false;if(context.services->routeOwners[f.route]==int(f.slot))context.services->routeOwners[f.route]=0;}
-    size_t previous=0,slot=context.cellHeads[f.cell];std::set<size_t> seen;bool found=false;
-    while(slot){const auto it=context.figures.find(slot);if(it==context.figures.end()||!seen.insert(slot).second||it->second.cell!=f.cell)return false;
-        if(slot==f.slot){if(previous)context.figures.at(previous).next=f.next;else context.cellHeads[f.cell]=f.next;found=true;break;}
+    const auto drawCell=originalFigureDrawCell(f);if(drawCell>=51984)return false;
+    size_t previous=0,slot=context.cellHeads[size_t(drawCell)];std::set<size_t> seen;bool found=false;
+    while(slot){const auto it=context.figures.find(slot);if(it==context.figures.end()||!seen.insert(slot).second||originalFigureDrawCell(it->second)!=drawCell)return false;
+        if(slot==f.slot){if(previous)context.figures.at(previous).next=f.next;else context.cellHeads[size_t(drawCell)]=f.next;found=true;break;}
         previous=slot;slot=it->second.next;}
     if(!found)return false;
+    if(f.type==1){if(!context.visualEffectCount||!*context.visualEffectCount)return false;--*context.visualEffectCount;}
     if(f.flags120&2)for(auto& entry:context.figures)if(entry.second.target==int(f.slot))entry.second.target=0;
     auto reset=OriginalFigure{};reset.slot=f.slot;reset.recordOffset=f.recordOffset;reset.runtimeClass=f.runtimeClass;reset.priorProgress=f.priorProgress;
     reset.effectKind=f.effectKind;reset.effectVariant=f.effectVariant;reset.effectFlags=f.effectFlags;reset.effectX=f.effectX;reset.effectY=f.effectY;
@@ -2378,7 +2492,9 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                         if(f.leaderLink==int(slot))f.follower=int16_t(slot);}
                     result=originalFigureFirstUpdate(f,archives,&*context,terrainFlags[f.cell]);
                     if(result.state){result.state->priorProgress=result.state->progress;context->figures.at(slot)=*result.state;
-                        for(const auto& write:result.linkedWrites)context->figures.at(write.first)=write.second;
+                        for(const auto& write:result.linkedWrites){
+                            if(!context->figures.at(write.first).alive&&write.second.alive)context->primaryImageInputs.erase(write.first);
+                            context->figures.at(write.first)=write.second;}
                         if(result.cellHeads)context->cellHeads=*result.cellHeads;
                         if(result.services)context->services=result.services;
                         if(result.buildings)context->buildings=result.buildings;
@@ -2387,7 +2503,9 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                         if(result.goods)context->goods=result.goods;
                         if(result.roadblockGate)context->roadblockGate=result.roadblockGate;
                         if(result.freeSlots){context->freeSlots=*result.freeSlots;context->crtRandom=result.crtRandom;context->crtRandomCalls=result.crtRandomCalls;
-                            context->allocatedSlots=result.allocatedSlots;context->highestLiveSlot=result.highestLiveSlot;}
+                            context->allocatedSlots=result.allocatedSlots;context->highestLiveSlot=result.highestLiveSlot;
+                            context->allocationCount=result.allocationCount;context->buildingAllocationCount=result.buildingAllocationCount;}
+                        if(result.speechCounters)context->speechCounters=result.speechCounters;
                         if(result.state->alive==2){if(!originalFigureRemoveArrivedWorker(*result.state,*context)){
                                  result.state.reset();result.services.reset();result.buildings.reset();result.goods.reset();result.cellHeads.reset();result.linkedWrites.clear();
                                  result.freeSlots.reset();result.crtRandom.reset();result.roadblockGate.reset();result.allocatedSlots.clear();result.highestLiveSlot=0;
@@ -2404,6 +2522,7 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
         out.figures.emplace(slot,std::move(result));
     }
     out.allocatedSlots=context->allocatedSlots;out.crtRandomCalls=context->crtRandomCalls;
+    out.allocationCount=context->allocationCount;out.buildingAllocationCount=context->buildingAllocationCount;
     out.prefixComputed=out.computed;out.complete=!out.blocked;
     for(auto& entry:out.figures)if(entry.second.state){
         if(out.complete)entry.second.state=context->figures.at(entry.first);

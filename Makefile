@@ -6,12 +6,27 @@ figure-scene-test:
 figure-scene-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --mode undefined
 .PHONY: scene-timeline-test scene-timeline-test-undefined scene-timeline-bite
-.PHONY: scene-combined-test scene-combined-test-undefined scene-combined-bite
+.PHONY: scene-combined-test scene-combined-test-undefined scene-combined-supplied-test scene-combined-supplied-test-undefined scene-combined-bite
 scene-combined-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0
 scene-combined-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --mode undefined --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0
+scene-combined-supplied-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0 --farmer-wall-clock 1000 --crt-random-state 1
+scene-combined-supplied-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --mode undefined --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0 --farmer-wall-clock 1000 --crt-random-state 1
 scene-combined-bite:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_supplier_speech
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_supplier_chain
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_farmer_retry
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_supplier_fifo
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_supplier_withdraw
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_supplier_delay
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_debris_lifetime
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_effect_count
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_flame_frame
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_supplier_reservation
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_inspector_delay
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_phase
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_clock
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_event
