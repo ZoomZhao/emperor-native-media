@@ -1,6 +1,49 @@
 # SAV19 figures on the city overlay layer
 
-## Combined city, building and figure clock, 2026-10-22
+## Shared building cycle and combined timeline, 2026-10-22
+
+**Shared complete combined horizon N20→N22:6/6 pools,192/192 original figure outcomes and1,065/1,065 building outcomes. N51 improves0/6→5/6 pools; N100 improves0/6→3/6.** The full6/6 N51/N100 goal remains incomplete with the building API pinned to `509b673`. Results below supersede the earlier combined section. Only complete requested-N pools publish output; refused prefixes remain atomic and withheld. Saved snapshot remains the default. Original future-state/screen agreement remains unmeasured.
+
+|N|Complete pools /6 before→after|Original figures /192 before→after|Installed allocations before→after|Buildings /1,065 before→after|Placed and decoded figures before→after|Decoded components before→after|Consistent primaries before→after|Building frames /53 before→after|Re-selections before→after|
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|1|6→6|192→192|0→0|1,065→1,065|185→185|201/201→201/201|191/191→191/191|53→53|0→0|
+|20|6→6|192→192|0→0|1,065→1,065|185→185|202/202→202/202|188/188→188/188|53→53|1→1|
+|22|4→6|153→192|0→0|1,048→1,065|144→183|161/161→200/200|148/148→187/187|50→53|12→12|
+|40|1→5|21→146|0→6|0→497|21→137|21/21→149/149|21/21→142/142|0→31|0→0|
+|51|0→5|0→146|0→6|0→497|0→134|0/0→143/143|0/0→139/139|0→31|0→3|
+|100|0→3|0→49|0→0|0→7|0→49|0/0→49/49|0/0→49/49|0→3|0→0|
+
+Figure outcomes retain removed originals. The six installed allocation identities atN40/N51 belong to source3, yielding152 completed outcomes from198 potential original-plus-installed identities;46 original outcomes are withheld by source2's whole-pool refusal. Allocations reached only inside a later-refused prefix do not contribute installed output. All emitted components decode and all surviving primary selections agree with the independent existing selector. Re-selections are physical component-binding changes, not guesses from model values.
+
+The final disjoint refusal partition atN1/20/22 is empty. AtN40/N51 it is exactly `farmer_wall_clock_766da0_required`=1 pool/46 original figures/568 buildings. AtN100 it is exactly that row plus `building_virtual20_416d20`=1/65/473 and `risk_fire_4af5d0_42a220`=1/32/17. Counts close6 pools,192 original figures and1,065 buildings at every horizon. BeforeN22:house evolution1/32/17 plus road refresh1/7/0. BeforeN40:building hook2/111/1,041,house evolution2/53/24,road refresh1/7/0. BeforeN51/N100 additionally refuse phase40 at1/21/0. No earlier/later-slot category overlaps these whole-pool partitions.
+
+|Source|Baseline first refusal update|Final first refusal update through100|Remaining boundary with committed building API|
+|---:|---:|---:|---|
+|1|41|none through100|100/100 complete;0 buildings|
+|2|32|32|Successful farmer allocation reaches `766DA0`; caller wall time remains absent. Full continuation also needs Farmer26 updates.|
+|3|32|83|Warehouse54 slot459's positive phase31 hook remains `building_virtual20_416d20`; further building-hook work belongs to implementerB.|
+|4|21|77|Second phase44 reaches the committed positive-disaster refusal; destruction/occupancy/figure-link work belongs to implementerB.|
+|5|22|none through100|100/100 complete;0 buildings;the city exit is provably reachable before repair.|
+|6|40|none through100|100/100 complete;7 buildings|
+
+Executable SHA-256 was rechecked as `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`. File-backed VA maps to file offsetVA−`400000`. No disassembly was declined; private listings stay outside Git. No executable/original game was run as an oracle and no constant was fitted.
+
+- Phase31 uses the committed `originalBuildingHookPreamble` once, then `originalBuildingHookStep` in ascending slot order. The binder now supplies `poolHookRoadAccess`,difficulty-adjusted HOUSE tables,crop service/Festival inputs,crop quality and explicit crop-dispatch process tables through the committed API. Phase39 `519120→518EF0` and40 `4ACC40→428C40` use the shared city context, preserving model,house goods,position and existing selector inputs. Phase43/44/45/47 use `originalBuildingFireStep`, `originalBuildingRiskStep`, `originalBuildingMonumentStep` and the four-counter reset in executable order. Phase50 `4AC650` calls `originalBuildingCycleTailStep` once before `4AC4C8..4E2` wraps phase0; Goods' phase cache receives the wrapped value. Unsupported tails/disasters retain their public named refusal.
+- Source5's phase21 premise was corrected after inspecting `4AD041..4AD070`: `5AE140/5AE240` floods **B7C**,which admits plain mask10;road-network B0C excludes it. A conservative building-free B7C projection consumes the ground rebuild's movement terrain (not snapshot-restored flags) and proves the scenario exit reachable using known cells alone. `534E5B→41F400→41F820→41F350→41F25F` creates byte18=1 river objects,which `5AD7AF` skips;own river cells remain withheld in the proof. Therefore source5 takes `4AD070→4AD19E` before `425250`,repair `5AE380/5AE480`,notification `546EA0`,or route/terrain refresh. A lower-bound flood may prove reachability; failure never proves unreachability and retains the original road-refresh refusal. No partial mask is advertised as full movement. The requested positive repair/notification port is consequently not claimed:it is unreached in this source under the explicit supplied state.
+- New Well28 allocation reaches action6. `4D3ADD→4E3BE3` sends ordinary initial actions outside1/2/4/5 to1, increments/wraps frame12, and neither decrements constructor counter30 nor moves in that call. The existing `4C55` selector supplies its image. Emigrant13 action6 `4CAA4D..4CAA7F` resets frame0 and increments a signed16 wait through inclusive51;expiry still refuses `migrant_nearest_house_4add60_after_wait51`. This crosses source3's allocated emigrant at update76 without inventing its future target.
+- Figure/building bridges preserve same-update fire/damage/watch risk,house goods/food,nonhouse model and Inspector secondary eligibility. Phase43 publishes fire-total index2 to `C82F28` (`4AF9CE`) before Inspector `4E2E90` consumes it. The exact selector upgrade byte survives independently of the legacy wire99 accessor. Model/house/crop writes reselect only through `bindOriginalBuildingComponents`;all footprint cells are stamped atomically,and changed animated bases use the newly selected sprite metadata. Positive building removal refuses `combined_building_removal_4b7660_not_closed` before stale occupancy or reciprocal figure links can be published.
+
+Additional process premises are force evolution=false,alternate UI mode=false,effect-decay counter0 and the executable crop model/radii already used by the committed building tests. They are explicit test inputs;the library invents none. Wall time and CRT state remain absent. The library reads no environment. Tests inject the verified read-only GameData directory into each process using only `EMPEROR_GAMEDATA_ROOT`.
+
+The fixed combined matrix is1/20/22/40/51/100. Tests assert per-source first refusals,all aggregate columns,allocation counts,exact disjoint partitions,shared lifecycle/risk/tail calls and no partial installation. Validation uses a private `git archive 509b673` with only owned figure/timeline changes overlaid,excluding concurrent building edits. Private evidence uses prefix`a5-a-` under the approved OpenCode temporary directory. No commit,push,stash or reset is performed;STATUS.md and publication remain owned by the lead.
+
+Reproduce with `EMPEROR_GAMEDATA_ROOT="$PWD/GameData" python3 scripts/figure_scene.py --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0 --build-dir "$task_evidence/release"`,and add `--mode undefined` with a separate fresh absolute build directory. `make scene-combined-bite` checks the authored failure boundaries without original-data input. The App's existing first-frame `combinedProcess` opt-in receives the same additional process inputs;absent inputs retain named refusals at consumption.
+
+Required dependent Release/UBSan checks retain building-update332/44,848,building-scene244/7,663,building-image1,283/3,880,saved-ground110/1,928,SAV94,post-figure-pass656,city-clocks5,008 and map-reference1,884 authored/3,130 total. The private sealed App compiles28 translation units,has99/99 matching embedded source hashes and passes `codesign --verify --deep --strict`;it was not launched.
+
+Combined Release/UBSan pass705 authored/11,676 total checks;all55 JSON rows agree. Four unset/empty-root controls pass705/705 with original-data SKIP. Figure-only Release/UBSan retain662/251,301 exactly;all380 JSON rows agree after excluding runtime samples. The25 compiled mutations (24 combined and retained timeline-repeat) all fail at their intended assertions,including Well start,emigrant inclusive wait,city B7C reachability,shared lifecycle/risk/fire bridge and phase50 wrap. These authored checks do not count as original-data progress.
+
+## Earlier combined city, building and figure clock, 2026-10-22
 
 **Largest shared complete measured combined horizon N5→N20: 6/6 pools, 192/192 figure outcomes and 1,065/1,065 building outcomes.** Baseline HEAD `e6db738` reproduces686/686 authored and14,038/14,038 total combined checks. This extension removes source5's phase7 network refusal and source3's allocated-worker action6 refusal using only that committed building API. The table compares the same original corpus; N8 was measured separately against HEAD. Figure-only mode remains662/662 authored and251,301/251,301 total checks. Saved snapshot remains the default.
 

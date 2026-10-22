@@ -70,7 +70,7 @@ enum class OriginalFigureUpdateStatus {Computed,DispatchGate,UnsupportedType,Eff
     PheasantContext,PheasantThreat,PheasantRoute,PheasantDestination,PheasantBuilding,OrderedPoolPass,
     MovementModel,RouteGeneration,RouteBoundary,MovementHeight,EarlierSlot,PoolRemoval,LaterSlotEffects,
     CellContext,CellCombat,SegmentService,NextDirection,InspectorFireContext,InspectorFireSearch,WorkerEmployment,SupplierArrival,SupplierSearch,
-    GoodsSearch,GoodsArrival,Projectile,CrtRandomRequired};
+    GoodsSearch,GoodsArrival,Projectile,CrtRandomRequired,MigrantHouseSearch};
 inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus status){
     switch(status){case OriginalFigureUpdateStatus::Computed:return "computed";
     case OriginalFigureUpdateStatus::DispatchGate:return "dispatch_gate";
@@ -99,6 +99,7 @@ inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus sta
     case OriginalFigureUpdateStatus::GoodsArrival:return "goods_delivery_arrival_virtual_4cd8f0";
     case OriginalFigureUpdateStatus::Projectile:return "projectile_allocation_or_collision_5ea510_5e6200";
     case OriginalFigureUpdateStatus::CrtRandomRequired:return "crt_rand_state_required_wall_clock_seeded_not_in_sav";
+    case OriginalFigureUpdateStatus::MigrantHouseSearch:return "migrant_nearest_house_4add60_after_wait51";
     case OriginalFigureUpdateStatus::PheasantContext:return "pheasant_complete_saved_context";
     case OriginalFigureUpdateStatus::PheasantThreat:return "pheasant_threat_qualification_4e5340";
     case OriginalFigureUpdateStatus::PheasantRoute:return "pheasant_route_4e47a0_and_arrival";
@@ -1845,6 +1846,14 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
     const auto speed=context->modelSpeeds.find(saved.type);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
     auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=18;f.freeMovement=0;
     f.roamLimit=originalFigureWord(int((int64_t(model->second[15])*96)%65536));
+    //4D3ADD->4E3BE3: Well's common service handler sends every ordinary
+    //initial action outside1/2/4/5 to1. The transition does not move or
+    //decrement the constructor's counter30; it still increments the frame.
+    if(f.type==28&&f.action!=1&&f.action!=2&&f.action!=4&&f.action!=5){
+        f.frame=uint8_t(f.frame+1);if(f.frame>=12)f.frame=0;f.action=1;
+        if(!originalFigureWriteWalkingImage(f,0x4c55,archives,context->view)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+        originalFigurePublishWrites(out,f,*context,local);return out;
+    }
     if(f.type==39){if(f.action==8){
             if(!context->services||!context->services->fireCount){out.status=OriginalFigureUpdateStatus::InspectorFireContext;return out;}
             //0x4E2E90 reads the SAV19-restored signed count first. Positive
@@ -1926,10 +1935,16 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
 inline OriginalFigureFirstUpdate originalMigratingFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=0x4ca960;out.status=OriginalFigureUpdateStatus::CombatRouteAndTarget;
-    if(!context||!context->figures.count(saved.slot)||saved.action!=9)return out;
+    if(!context||!context->figures.count(saved.slot)||(saved.action!=6&&saved.action!=9))return out;
     const auto speed=context->modelSpeeds.find(13);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
     auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;
     f.frame=uint8_t(f.frame+1);if(f.frame>11)f.frame=0;
+    if(f.action==6){ //4CAA4D..4CAA7F:initial wait is inclusive51,not constructor countdown.
+        f.frame=0;f.counter=originalFigureWord(int(f.counter)+1);
+        if(f.counter>51){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;return out;} //4CAAB3
+        if(!originalFigureWriteWalkingImage(f,0x4c0f,archives,context->view,false,false)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+        originalFigurePublishWrites(out,f,*context,local);return out;
+    }
     const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
     if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
     if(f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;

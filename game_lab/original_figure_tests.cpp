@@ -18,7 +18,7 @@ std::vector<unsigned> timelineHorizons{1,83,84,100,150,178,192,200,300,500,1000}
 std::vector<bool> timelineAudio{false,true};
 bool combinedMode=false;
 std::optional<OriginalCityClocks> combinedClocks;
-const std::vector<unsigned> combinedHorizons{1,2,5,8,10,20,51};
+const std::vector<unsigned> combinedHorizons{1,20,22,40,51,100};
 void need(bool ok,const char* message){++checks;if(!ok)throw std::runtime_error(message);}
 OriginalCombinedProcessInputs combinedTestProcess(){
     OriginalCombinedProcessInputs p;p.cityClocks=combinedClocks;
@@ -27,7 +27,9 @@ OriginalCombinedProcessInputs combinedTestProcess(){
     p.managerGate8=0;p.wildlifeCounter=0;p.wildlifePeriod=30;p.wildlifePause=0;p.wildlifeMode=1;
     p.shortageNotice=false;p.unemploymentNotice=false;p.serviceCoverage=std::array<int32_t,11>{};
     p.religionBonusEnabled=false;p.religionPreviousRating=0;p.religionSelected=-1;p.highestEverBuildingSlot=0;
-    p.migrantSpacing=0;p.scenarioFigurePlacementCheck=false;p.producerTail=std::array<int32_t,6>{};p.staffedProducerTail=std::array<int32_t,6>{};return p;
+    p.migrantSpacing=0;p.scenarioFigurePlacementCheck=false;p.producerTail=std::array<int32_t,6>{};p.staffedProducerTail=std::array<int32_t,6>{};
+    p.forceHouseEvolution=false;p.alternateMode=false;p.effectDecayCounter=0;
+    p.cropDispatchModel=std::array<int32_t,14>{5,3,4,2,3,2,10,6,8,4,3,4,50,8};p.cropDispatchRadius=std::array<int32_t,2>{3,3};return p;
 }
 void combinedAuthored(){
     OriginalCombinedState city;city.process=combinedTestProcess();city.figures.services.emplace();
@@ -54,8 +56,8 @@ void combinedAuthored(){
         originalCombinedBeforeFigures(unknown,order)=="combined_shared_building_context_required",
         "combined phase20 requires shared terrain resource context");
     unknown=city;unknown.phase=50;
-    need(originalCombinedBeforeFigures(unknown,order)=="monthly_city_4ac650"&&unknown.phase==50,
-        "phase wrap refuses its unported monthly tail");
+    need(originalCombinedBeforeFigures(unknown,order)=="combined_shared_building_context_required"&&unknown.phase==50,
+        "phase wrap requires its public monthly tail context");
     unknown=next;unknown.figures.services->randomHistory=unknown.process.randomHistory;
     unknown.process.wildlifeCounter=29;
     need(originalCombinedAfterFigures(unknown,order).empty()&&*unknown.process.wildlifeCounter==30,
@@ -66,8 +68,9 @@ void combinedAuthored(){
     originalFigureRandomNext(rng);
     need(rng.randomHistory->ring[99]==17&&rng.randomHistory->cursor==0&&rng.randomHistory->previous7==(rng.randomFirst&127),
         "engine RNG history stores old7bit value and wraps cursor99");
-    need(originalCombinedPhaseBlocker(40)=="unported_city_phase_40_4ac2b0"&&originalCombinedPhaseBlocker(35).empty(),
-        "unported phases refuse while public house decay is delegated");
+    need(originalCombinedPhaseBlocker(40).empty()&&originalCombinedPhaseBlocker(35).empty()&&
+        originalCombinedPhaseBlocker(51)=="unported_city_phase_51_4ac2b0",
+        "committed lifecycle phase is delegated and unknown phases refuse by name");
     auto initial=city;initial.figures.terrain.assign(51984,0);initial.figures.cellHeads.assign(51984,0);
     for(size_t n=0;n<2000;++n){OriginalFigure f;f.slot=n;initial.figures.figures.emplace(n,f);}
     OriginalBuildingScene scene;scene.accepted=true;scene.surface.terrain=initial.figures.terrain;SG3Archive archive;
@@ -196,6 +199,58 @@ void combinedAuthored(){
     need(originalFigureRemoveArrivedWorker(removed,waiting)&&!removed.alive&&waiting.cellHeads[10000]==0&&
         waiting.buildings->at(0).worker==0&&waiting.freeSlots==std::vector<size_t>{2},
         "combined rejected worker cleanup clears owner slot0 then unlinks and enqueues the figure");
+    auto wellContext=waiting;wellContext.models[28]={};wellContext.models[28][15]=4;wellContext.modelSpeeds[28]=6;
+    OriginalFigure well;migrantHouse={};migrantHouse.type=72;migrantHouse.alive=1;migrantHouse.primaryFigure=2;
+    well.slot=2;well.type=28;well.alive=1;well.owner=8;well.action=6;well.counter=30;well.frame=0;well.direction=2;well.cell=10000;
+    wellContext.buildings->at(8)=migrantHouse;wellContext.figures[2]=well;
+    const auto begun=originalFigureFirstUpdate(well,walkingRefs,&wellContext);
+    need(begun.state&&begun.state->action==1&&begun.state->counter==30&&begun.state->frame==1&&
+        begun.state->cell==well.cell&&begun.state->progress==well.progress,
+        "combined allocated Well service enters action1 without countdown or movement");
+    auto emigrantContext=wellContext;emigrantContext.modelSpeeds[13]=6;auto emigrant=well;emigrant.type=13;emigrant.counter=50;emigrant.frame=9;
+    emigrantContext.figures[2]=emigrant;const auto waitingEmigrant=originalFigureFirstUpdate(emigrant,walkingRefs,&emigrantContext);
+    need(waitingEmigrant.state&&waitingEmigrant.state->counter==51&&waitingEmigrant.state->frame==0&&waitingEmigrant.state->action==6&&
+        waitingEmigrant.state->cell==emigrant.cell,"combined allocated emigrant waits through inclusive51 with no movement");
+    emigrant.counter=51;
+    const auto expiredEmigrant=originalFigureFirstUpdate(emigrant,walkingRefs,&emigrantContext);
+    need(!expiredEmigrant.state&&expiredEmigrant.status==OriginalFigureUpdateStatus::MigrantHouseSearch,
+        "combined emigrant wait expiry refuses its unported nearest-house search");
+    auto proof=countdown;proof.buildings.clear();proof.figures=projected;proof.buildingContext->roadEndpoints=std::array<int16_t,4>{0,0,2,0};
+    proof.figures.terrain[projectedBase+1]=0;proof.rebuiltMovementTerrain=proof.figures.terrain;const auto clearExit=originalCombinedEmptyCityRoadExit(proof);
+    need(clearExit==true,"combined city road flood admits plain terrain between road endpoints using B7C");
+    proof.figures.terrain[projectedBase+1]=0x80000;
+    proof.figures.terrain[projectedBase+228]=0x80000;proof.figures.terrain[projectedBase-228]=0x80000;proof.figures.terrain[projectedBase-1]=0x80000;
+    proof.rebuiltMovementTerrain=proof.figures.terrain;
+    need(originalCombinedEmptyCityRoadExit(proof)==false,"combined city road flood preserves blocked terrain and cannot invent an exit");
+    auto lifecycle=countdown;lifecycle.phase=40;lifecycle.buildingContext->buildingModels=std::map<uint16_t,std::array<int32_t,13>>{{72,{}}};
+    lifecycle.buildingContext->buildingModels->at(72)[10]=10;
+    auto& evolvingWell=lifecycle.buildings.at(8).state;evolvingWell.building.type=72;evolvingWell.building.wellImageInputs.emplace();
+    evolvingWell.inputs.modelDesirability=10;evolvingWell.inputs.modelUpgrade=0;evolvingWell.inputs.model=0;
+    lifecycle.figures.buildings->at(8).type=72;lifecycle.figures.buildings->at(8).traderFaction=0;
+    need(originalCombinedBeforeFigures(lifecycle,order).empty()&&lifecycle.buildingContext->lifecycleCalls==1&&
+        lifecycle.buildings.at(8).state.inputs.model==1&&lifecycle.figures.buildings->at(8).traderFaction==1&&
+        lifecycle.buildings.at(8).state.building.wellImageInputs->word16==1,
+        "combined lifecycle uses shared model threshold and publishes selector and figure model together");
+    auto risk=countdown;risk.phase=44;risk.figures.buildingEditMode=false;risk.buildingContext->evolutionDisabled=false;
+    risk.buildingContext->buildingModels=std::map<uint16_t,std::array<int32_t,13>>{{231,{}}};
+    risk.buildingContext->terrainRandom=std::vector<uint8_t>(51984);risk.buildingContext->engineRegion=0;
+    risk.buildings.at(8).state.building.imageInputs.emplace();risk.buildings.at(8).state.building.imageInputs->gridIndex=10000;
+    risk.figures.buildings->at(8).fireRisk=23;
+    need(originalCombinedBeforeFigures(risk,order).empty()&&risk.buildingContext->riskCalls==1&&
+        risk.buildings.at(8).state.inputs.fireRisk==23&&risk.figures.buildings->at(8).fireRisk==23,
+        "combined risk phase runs once and retains figure-written risk through both bridges");
+    auto fire=countdown;fire.phase=43;fire.figures.services->fireCount=9;
+    need(originalCombinedBeforeFigures(fire,order).empty()&&fire.buildingContext->fireCalls==1&&fire.figures.services->fireCount==0,
+        "combined fire pass publishes C82F28 reset before same-update Inspector consumer");
+    auto tail=countdown;tail.phase=50;auto& tc=*tail.buildingContext;tc.cycleTail.emplace();tc.cycleTail->alternateMode=false;
+    tc.labor.emplace();tc.populationTotal=0;tc.populationPeak=0;tc.buildingTotals.emplace();tc.goodsRecords.emplace();
+    tc.monthPart=0;tc.cycle=4;tail.figures.goods.emplace();tail.buildings.at(8).state.inputs.modelUpgrade=0;
+    need(originalCombinedBeforeFigures(tail,order).empty()&&tail.phase==0&&tail.figures.goods->savedPhase==0&&
+        tc.cycle==5&&tc.monthPart==1&&tc.cycleTail->calls==1,
+        "combined phase50 completes monthly service before wrapping scheduler phase and Goods cache");
+    auto tombstone=countdown;tombstone.phase=49;tombstone.figures.buildings->at(8).alive=4;
+    need(originalCombinedBeforeFigures(tombstone,order)=="combined_building_removal_4b7660_not_closed"&&tombstone.phase==49,
+        "combined building tombstone refuses before stale footprint and reciprocal links can publish");
 }
 void authored(){
     // Explicit independent frame-major truth tables: 0x5CFDF0 uses metadata
@@ -2151,7 +2206,7 @@ void corpus(){
     struct TimelineScore {size_t pools=0,computed=0,outcomes=0,allocated=0,placed=0,decoded=0,consistent=0,primary=0,animation=0,animationCandidates=0,animationAdvanced=0,animationChanged=0,reselected=0,prefixReselected=0;
         std::map<std::string,size_t> refusals;};
     std::map<std::pair<bool,bool>,std::map<unsigned,TimelineScore>> timelineScores;
-    struct CombinedScore {size_t pools=0,figures=0,buildings=0,placed=0,components=0,consistent=0,frames=0,reselected=0;
+    struct CombinedScore {size_t pools=0,figures=0,allocated=0,buildings=0,placed=0,components=0,consistent=0,frames=0,reselected=0;
         size_t buildingTotal=0,figureTotal=0;
         std::map<std::string,size_t> figureRefusals,buildingRefusals,poolRefusals;};
     std::map<unsigned,CombinedScore> combinedScores;
@@ -2336,10 +2391,8 @@ void corpus(){
                 auto& total=combinedScores[n];total.figureTotal+=figures.live.size();total.buildingTotal+=city->buildings.size();
                 need(result.complete?result.updates==n:result.refusedUpdate==result.updates+1,
                     "combined requested horizon or exact refused update closes");
-                constexpr unsigned completeThrough[]={40,31,31,20,21,39};
-                const char* refused[]={"unported_city_phase_40_4ac2b0","building_virtual20_416d20",
-                    "building_virtual20_416d20","house_evolution_519120_518ef0",
-                    "road_refresh_4acfc0_426df0_1391fe0","house_evolution_519120_518ef0"};
+                constexpr unsigned completeThrough[]={100,31,82,76,100,100};
+                const char* refused[]={"","farmer_wall_clock_766da0_required","building_virtual20_416d20","risk_fire_4af5d0_42a220","",""};
                 if(result.updates!=std::min(n,completeThrough[sources-1])||result.refusal!=(result.complete?"":refused[sources-1]))
                     std::cerr<<"combined boundary source="<<sources<<" N="<<n<<" completed="<<result.updates<<" refusal="<<result.refusal<<'\n';
                 need(sources<=6&&result.updates==std::min(n,completeThrough[sources-1])&&
@@ -2355,14 +2408,15 @@ void corpus(){
                         "combined refused requested horizon cannot install a successful prefix");
                 }else{
                     need(result.lastUpdateOrder==std::vector<uint32_t>{0x4189b0,0x529990,0x5ef190,0x5eff20,0x4ac2b0,0x466e90,0x4e27e0,0x564b50}&&
-                        result.combinedState&&result.combinedState->phase==city->phase+n&&result.buildingOutcomes==city->buildings.size()&&
-                        result.context->goods->savedPhase==city->phase+n&&*result.combinedState->process.wildlifeCounter==n,
+                        result.combinedState&&result.combinedState->phase==(city->phase+n)%51&&result.buildingOutcomes==city->buildings.size()&&
+                        result.context->goods->savedPhase==(city->phase+n)%51,
                         "combined completed order and shared post-scheduler phase match executable");
                     for(const auto& e:result.combinedState->buildings){const auto& b=e.second.state;const auto& link=result.context->buildings->at(e.first);
                         need(b.inputs.alive==link.alive&&b.building.type==link.type&&
                             (!originalBuildingIsHouse(link.type)||(b.inputs.residents==link.residents&&b.inputs.free==link.freeSlots)),
                             "combined retained building fields include same-update figure writes");}
-                    ++total.pools;total.figures+=figures.live.size();total.buildings+=result.buildingOutcomes;total.reselected+=result.buildingImageReselections;
+                    ++total.pools;total.figures+=figures.live.size();total.allocated+=result.context->allocatedSlots.size();
+                    total.buildings+=result.buildingOutcomes;total.reselected+=result.buildingImageReselections;
                     auto installed=timelineScene;
                     need(installOriginalSceneTimeline(installed,save.terrain,figures,refs,save.buildings,general,result)&&installed.timelineCombined,
                         "combined completed scene installs atomically with explicit mode");
@@ -2387,7 +2441,8 @@ void corpus(){
                 }
                 std::cout<<"{\"combined_source\":"<<sources<<",\"N\":"<<n<<",\"complete\":"<<(result.complete?"true":"false")
                     <<",\"completed_updates\":"<<result.updates<<",\"refused_update\":"<<result.refusedUpdate<<",\"initial_phase\":"<<city->phase
-                    <<",\"refusal\":\""<<result.refusal<<"\",\"building_total\":"<<city->buildings.size()<<",\"figure_total\":"<<figures.live.size()<<"}\n";
+                    <<",\"refusal\":\""<<result.refusal<<"\",\"building_total\":"<<city->buildings.size()<<",\"figure_total\":"<<figures.live.size()
+                    <<",\"installed_allocations\":"<<(result.complete?result.context->allocatedSlots.size():0)<<"}\n";
             }
             continue;
         }
@@ -2694,19 +2749,20 @@ void corpus(){
             if(row.first==1)need(t.pools==6&&t.figures==192&&t.buildings==1065&&t.placed==185&&t.components==201&&
                 t.consistent==191&&t.frames==53&&t.reselected==0,"combined N1 locks installed original outcomes and selectors");
             const std::map<unsigned,std::array<size_t,8>> expected{{1,{6,192,1065,185,201,191,53,0}},
-                {2,{6,192,1065,185,201,191,53,0}},{5,{6,192,1065,185,201,191,53,0}},
-                {8,{6,192,1065,185,201,191,53,0}},{10,{6,192,1065,185,201,191,53,0}},
-                {20,{6,192,1065,185,202,188,53,1}},{51,{0,0,0,0,0,0,0,0}}};
+                {20,{6,192,1065,185,202,188,53,1}},{22,{6,192,1065,183,200,187,53,12}},
+                {40,{5,146,497,137,149,142,31,0}},{51,{5,146,497,134,143,139,31,3}},{100,{3,49,7,49,49,49,3,0}}};
             need(std::array<size_t,8>{t.pools,t.figures,t.buildings,t.placed,t.components,t.consistent,t.frames,t.reselected}==expected.at(row.first),
                 "combined every requested horizon locks installed outcomes components consistency and reselections");
+            need(t.allocated==((row.first==40||row.first==51)?6u:0u),"combined installed allocation identities close separately from192 original outcomes");
             std::map<std::string,size_t> pools,figures,buildings;
             const auto refusal=[&](const char* name,size_t p,size_t f,size_t b){pools[name]=p;figures[name]=f;buildings[name]=b;};
-            if(row.first==51){refusal("unported_city_phase_40_4ac2b0",1,21,0);refusal("house_evolution_519120_518ef0",2,53,24);
-                refusal("building_virtual20_416d20",2,111,1041);refusal("road_refresh_4acfc0_426df0_1391fe0",1,7,0);}
+            if(row.first>=40)refusal("farmer_wall_clock_766da0_required",1,46,568);
+            if(row.first==100){refusal("building_virtual20_416d20",1,65,473);refusal("risk_fire_4af5d0_42a220",1,32,17);}
             need(t.poolRefusals==pools&&t.figureRefusals==figures&&t.buildingRefusals==buildings,
                 "combined exact disjoint pool figure and building refusal partitions are locked");
             std::cout<<"{\"combined_N\":"<<row.first<<",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"figure_outcomes\":"<<t.figures
                 <<",\"figure_total\":"<<t.figureTotal<<",\"building_outcomes\":"<<t.buildings<<",\"building_total\":"<<t.buildingTotal
+                <<",\"installed_allocations\":"<<t.allocated<<",\"outcomes_with_allocations\":"<<t.figures+t.allocated
                 <<",\"placed_and_decoded\":"<<t.placed<<",\"components_decoded\":"<<t.components<<",\"primaries_consistent\":"<<t.consistent
                 <<",\"building_frames\":"<<t.frames<<",\"building_frame_candidates\":53,\"reselection_count\":"<<t.reselected;
             const auto print=[&](const char* name,const std::map<std::string,size_t>& values){std::cout<<",\""<<name<<"\":{";bool comma=false;

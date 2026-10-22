@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--only', help='Run one named mutation')
     args = parser.parse_args()
-    work = Path(tempfile.mkdtemp(prefix='a4-figure-scene-bite-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))
+    work = Path(tempfile.mkdtemp(prefix='a5-figure-scene-bite-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))
     mutations = [
         ('index', 'original_building_scene.hpp', '(word&0x3fff)+1;', '(word&0x3fff)+201;'),
         ('position', 'original_building_scene.hpp', 'ox-s.animationOffsetX,oy-s.animationOffsetY', 'ox+s.animationOffsetX,oy-s.animationOffsetY'),
@@ -146,7 +146,7 @@ def main():
         ('house_surface', 'original_scene_timeline.hpp', 'next.surface.image[cell]=(p.binding.tileset<<14)|(p.binding.physicalId-201);', 'next.surface.image[cell]=(p.binding.tileset<<14)|(p.binding.physicalId-200);'),
         ('projectile_building', 'original_figure_update.hpp', 'if(!local.buildingOwners[f.cell])f.home=std::max<int16_t>', 'if(true)f.home=std::max<int16_t>'),
         ('hunter_prey_cell', 'original_figure_update.hpp', 'model->second[0]>=0&&model->second[0]<=2&&otherModel->second[0]==6', 'model->second[0]>=0&&model->second[0]<2&&otherModel->second[0]==6'),
-        ('combined_phase', 'original_scene_timeline.hpp', '++city.phase; //50', 'city.phase+=2; //50'),
+        ('combined_phase', 'original_scene_timeline.hpp', 'city.phase=city.phase==50?0:city.phase+1;', 'city.phase=city.phase==50?0:city.phase+2;'),
         ('combined_clock', 'original_scene_timeline.hpp', 'order.push_back(0x529990);advanceOriginalCityClocks(*p.cityClocks);', 'order.push_back(0x529990);'),
         ('combined_event', 'original_scene_timeline.hpp', 'if(!p.eventGate17||(*p.eventGate17&&(!p.eventGate16||*p.eventGate16)))', 'if(false)'),
         ('combined_growth', 'original_scene_timeline.hpp', 'if(city.phase==20){result=originalBuildingResourceGrowthStep(c);', 'if(false){result=originalBuildingResourceGrowthStep(c);'),
@@ -163,6 +163,13 @@ def main():
         ('combined_worker_exit', 'original_figure_update.hpp', 'f.action=7;f.destinationX=road->second->first;', 'f.action=8;f.destinationX=road->second->first;'),
         ('combined_worker_cleanup', 'original_figure_update.hpp', 'if(f.home&&(f.type==76||f.type==11))', 'if(f.home&&f.type==76)'),
         ('combined_worker_binding', 'original_scene_timeline.hpp', 'context.workerRoadExits=combined->figures.workerRoadExits;', 'context.workerRoadExits.clear();'),
+        ('combined_well_start', 'original_figure_update.hpp', 'if(f.frame>=12)f.frame=0;f.action=1;', 'if(f.frame>=12)f.frame=0;f.action=2;'),
+        ('combined_lifecycle', 'original_scene_timeline.hpp', 'else if(city.phase==40)result=originalBuildingLifecycleStep(b.state,c);', 'else if(city.phase==40)result=OriginalBuildingUpdateBlocker::None;'),
+        ('combined_risk', 'original_scene_timeline.hpp', 'case 44:result=originalBuildingRiskStep(c);break;', 'case 44:break;'),
+        ('combined_cycle_tail', 'original_scene_timeline.hpp', 'case 50:result=originalBuildingCycleTailStep(c);break;', 'case 50:break;'),
+        ('combined_road_plain', 'original_scene_timeline.hpp', 'const auto distances=originalBuildingRoadDistances(masks,uint32_t(entry));', 'for(auto& mask:masks)mask&=0xb0c;const auto distances=originalBuildingRoadDistances(masks,uint32_t(entry));'),
+        ('combined_emigrant_wait', 'original_figure_update.hpp', 'if(f.counter>51){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;', 'if(f.counter>=51){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;'),
+        ('combined_fire_bridge', 'original_scene_timeline.hpp', 'if(city.phase==43)f.services->fireCount=c.fireTotals[2];', 'if(city.phase==43)f.services->fireCount=9;'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]
@@ -219,6 +226,13 @@ def main():
             'combined_worker_exit': 'combined worker countdown expiry uses cited road exit without moving in the transition call',
             'combined_worker_cleanup': 'combined rejected worker cleanup clears owner slot0 then unlinks and enqueues the figure',
             'combined_worker_binding': 'combined phase48 calls the public building API once before the figure pass',
+            'combined_well_start': 'combined allocated Well service enters action1 without countdown or movement',
+            'combined_lifecycle': 'combined lifecycle uses shared model threshold and publishes selector and figure model together',
+            'combined_risk': 'combined risk phase runs once and retains figure-written risk through both bridges',
+            'combined_cycle_tail': 'combined phase50 completes monthly service before wrapping scheduler phase and Goods cache',
+            'combined_road_plain': 'combined city road flood admits plain terrain between road endpoints using B7C',
+            'combined_emigrant_wait': 'combined allocated emigrant waits through inclusive51 with no movement',
+            'combined_fire_bridge': 'combined fire pass publishes C82F28 reset before same-update Inspector consumer',
         }.get(name)
         if expected and expected not in result.stderr:
             raise RuntimeError('mutation failed outside intended assertion: ' + name)
