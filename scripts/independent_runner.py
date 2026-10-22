@@ -41,7 +41,13 @@ APP = [
     'LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md', 'game_lab/city_simulation.hpp', 'game_lab/city_state_io.hpp',
     'game_lab/city_game_state.hpp', 'game_lab/app/city_scenario.hpp', 'game_lab/app/city_scenario_checkpoint.hpp',
     'game_lab/app/city_warehouse_training.hpp', 'game_lab/app/city_warehouse_transfer.hpp', 'game_lab/app/city_warehouse_routes.hpp',
-    'game_lab/app/main.mm', 'game_lab/app/city_goal_feedback.hpp', 'game_lab/app/city_goal_feedback_adapter.hpp',
+    'game_lab/original_building_update.hpp', 'game_lab/original_city_clocks.hpp',
+    'game_lab/original_post_figure_pass.hpp', 'game_lab/original_figure_update.hpp',
+    'game_lab/original_candidate_input.hpp', 'game_lab/original_scene_timeline.hpp',
+    'file_io/include/city19_goods1_layout.hpp', 'file_io/include/city19_later7_layout.hpp',
+    'file_io/include/city19_empire2_layout.hpp', 'file_io/include/city19_empire_grid15_layout.hpp',
+    'file_io/include/city19_religion_archive.hpp', 'file_io/include/city19_postgoals_archive.hpp',
+    'game_lab/app/main.mm', 'game_lab/app/movie_quit_menu.hpp', 'game_lab/app/city_goal_feedback.hpp', 'game_lab/app/city_goal_feedback_adapter.hpp',
     'game_lab/app/build.sh', 'game_lab/app/build_provenance.py',
     'game_lab/app/Info.plist', 'game_lab/app/av_audio_backend.hpp', 'game_lab/app/av_audio_backend.mm',
     'game_lab/app_media.hpp', 'game_lab/app_media.cpp',
@@ -100,7 +106,8 @@ SUITES = {'candidate-import': CANDIDATE_IMPORT, 'text-feedback': TEXT_FEEDBACK, 
           'city': CITY, 'service': SERVICE, 'scenario-state': SCENARIO_STATE, 'warehouse': WAREHOUSE,
           'warehouse-routes': WAREHOUSE_ROUTES, 'warehouse-transfer': WAREHOUSE_TRANSFER, 'warehouse-training-state': WAREHOUSE_TRAINING_STATE, 'data': DATA, 'media': MEDIA, 'integration': APP, 'app': APP,
           'movie-async': APP + ['game_lab/movie_session_async_tests.mm'],
-          'movie-termination': APP + ['game_lab/movie_termination_tests.mm']}
+          'movie-termination': APP + ['game_lab/movie_termination_tests.mm'],
+          'movie-quit': APP + ['game_lab/movie_quit_tests.mm']}
 
 
 def sha(path):
@@ -276,7 +283,7 @@ def run(suite, mode, output):
             command('data-test', [report / 'data-tests'])
             command('tlv-test', ['/usr/bin/python3', '-I', '-B', snapshot / 'runtime_core/tests/state_codec_tests.py'])
             results = {'data': read(report / 'data-test.stdout'), 'tlv': read(report / 'tlv-test.stdout')}
-        elif suite in ('media', 'integration', 'text-feedback', 'movie-async', 'movie-termination'):
+        elif suite in ('media', 'integration', 'text-feedback', 'movie-async', 'movie-termination', 'movie-quit'):
             compiled = ['game_lab/original_map.cpp', 'game_lab/sg3.cpp', 'game_lab/emperor_assets.mm', 'game_lab/wav_pcm.cpp', 'game_lab/asset_pixels.cpp',
                         'game_lab/resource_root.cpp', 'surface_lab/surface.cpp']
             extra_frameworks = []
@@ -287,6 +294,7 @@ def run(suite, mode, output):
                     ('game_lab/text_load_feedback_tests.mm' if suite == 'text-feedback' else
                      'game_lab/movie_session_async_tests.mm' if suite == 'movie-async' else
                      'game_lab/movie_termination_tests.mm' if suite == 'movie-termination' else
+                     'game_lab/movie_quit_tests.mm' if suite == 'movie-quit' else
                      'game_lab/app_media_integration_tests.mm'), 'game_lab/app_media.cpp',
                     'game_lab/movie_session.mm',
                     'stream_lab/movie_io.mm', 'stream_lab/presenter.cpp',
@@ -303,10 +311,11 @@ def run(suite, mode, output):
                                      '-Wall', '-Wextra', '-Werror', '-I', snapshot, '-I', snapshot / 'media_demo',
                                      *flags, *[snapshot / name for name in compiled],
                                      '-framework', 'Foundation', *extra_frameworks,
+                                     *(['-framework', 'AppKit'] if suite == 'movie-quit' else []),
                                      '-framework', 'ImageIO', '-framework', 'CoreGraphics',
                                      '-lz', '-o', report / 'self-tests'])
             binaries = {'self-tests': sha(report / 'self-tests')}
-            command('self-test', [report / 'self-tests', report / 'async-fixtures'] if suite in ('movie-async', 'movie-termination')
+            command('self-test', [report / 'self-tests', report / 'async-fixtures'] if suite in ('movie-async', 'movie-termination', 'movie-quit')
                     else [report / 'self-tests'])
             results = {suite: read(report / 'self-test.stdout')}
         else:

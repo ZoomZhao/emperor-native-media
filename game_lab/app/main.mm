@@ -22,6 +22,7 @@
 #include "city_warehouse_transfer.hpp"
 #include "city_warehouse_routes.hpp"
 #include "map_surface.hpp"
+#include "movie_quit_menu.hpp"
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
@@ -299,8 +300,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     std::unique_ptr<game_lab::MovieSession> _movieSession;
     std::unique_ptr<ViewImagePresenter> _moviePresenter;
     BOOL _movieTerminating;
+    BOOL _movieExitForced;
+    BOOL _movieQuitRejected;
+    CFAbsoluteTime _movieTerminationDeadline;
 }
 - (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root selfAuthored:(BOOL)selfAuthored;
+- (NSApplicationTerminateReply)forceExitAfterMovieStall:(const char*)reason;
 - (void)refreshAudioStatus;
 - (void)updateMovieControls;
 - (void)updateMovieTimer;
@@ -334,12 +339,33 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     return _media->resourcePath(relativePath.UTF8String);
 }
 
+- (NSApplicationTerminateReply)forceExitAfterMovieStall:(const char*)reason {
+    // Cmd+Q was pressed again after a failed or unreported movie close. The
+    // failure has already been reported; honour the user's repeated request so
+    // the app cannot stay open silently. Process exit drops any remaining
+    // worker-owned media resources; the normal path below never reaches here.
+    _movieExitForced = YES;
+    _movieTerminating = NO;
+    _moviePending = 0;
+    std::fprintf(stderr, "退出：%s；按用户重复请求直接结束应用\n", reason);
+    _movieStatusLabel.stringValue = [NSString stringWithFormat:@"退出：%s（直接结束）", reason];
+    return NSTerminateNow;
+}
+
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
     [self stopSpriteSequence];
-    if (_movieTerminating) return NSTerminateLater;
+    if (_movieExitForced) return NSTerminateNow;
+    if (_movieTerminating) {
+        // A repeat press before the negotiated deadline waits for the same
+        // reply. After it, a lost/late reply must not trap the user.
+        if (CFAbsoluteTimeGetCurrent() < _movieTerminationDeadline) return NSTerminateLater;
+        return [self forceExitAfterMovieStall:"影片关闭未按期限回复"];
+    }
     [self invalidateMovieTimer];
     if (!_movieSession) return NSTerminateNow;
+    if (_movieQuitRejected) return [self forceExitAfterMovieStall:"上次影片关闭未完成"];
     _movieTerminating = YES;
+    _movieTerminationDeadline = CFAbsoluteTimeGetCurrent() + 6.0; // 5 s contract + reply grace
     _moviePending = 1;
     __weak EmperorAppDelegate* weakSelf = self;
     // The shared contract owns one deadline, reuses the existing worker, and
@@ -347,20 +373,26 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     const auto status = _movieSession->requestTermination(5000, [weakSelf, sender](const game_lab::TerminationResult& result) {
         EmperorAppDelegate* owner = weakSelf;
         if (!owner) { [sender replyToApplicationShouldTerminate:NO]; return; }
+        if (owner->_movieExitForced) return;
         owner->_moviePending = 0;
         owner->_movieTerminating = NO;
         if (!result.permitsExit()) {
-            owner->_movieStatusLabel.stringValue = [NSString stringWithUTF8String:game_lab::formatTerminationResult(result).c_str()];
+            const auto reason = game_lab::formatTerminationResult(result);
+            owner->_movieQuitRejected = YES;
+            owner->_movieStatusLabel.stringValue = [NSString stringWithUTF8String:reason.c_str()];
             [owner updateMovieControls];
+            std::fprintf(stderr, "退出被拒绝：%s（再次按 Cmd+Q 直接退出）\n", reason.c_str());
             [sender replyToApplicationShouldTerminate:NO];
             return;
         }
+        owner->_movieQuitRejected = NO;
         owner->_movieSession.reset();
         [sender replyToApplicationShouldTerminate:YES];
     });
     if (status == game_lab::TerminationStatus::Completed) {
         _moviePending = 0;
         _movieTerminating = NO;
+        _movieQuitRejected = NO;
         _movieSession.reset();
         return NSTerminateNow;
     }
@@ -2100,6 +2132,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     if (_movieTerminating) return;
     const BOOL tick = (action == media_demo::Action::Tick);
     if (!tick) {
+        // A completed user command means media is responsive again: a later
+        // quit must negotiate instead of inheriting an old refusal.
+        _movieQuitRejected = NO;
         _moviePending = 1;
         _movieTickQueued = NO;
         [self invalidateMovieTimer];
@@ -2116,6 +2151,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)onMoviePlay:(id)sender {
     if (_movieTerminating) return;
+    _movieQuitRejected = NO;
     (void)sender;
     NSString* pathStr = [_moviePathField stringValue];
     const std::string rel = pathStr.UTF8String ? pathStr.UTF8String : "";
@@ -2160,6 +2196,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)onLoadMoviePoster:(id)sender {
     if (_movieTerminating) return;
+    _movieQuitRejected = NO;
     (void)sender;
     [self invalidateMovieTimer];
     if (!_movieSession) _movieSession = _media->createMovieSession();
@@ -2177,6 +2214,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 - (void)onClearMoviePoster:(id)sender {
     if (_movieTerminating) return;
+    _movieQuitRejected = NO;
     (void)sender;
     [self invalidateMovieTimer];
     _movieTickQueued = NO;
@@ -2301,6 +2339,10 @@ int main(int argc, const char* argv[]) {
         if (plan.action == game_lab::LaunchAction::Cancelled) return 0;
         NSApplication* app = [NSApplication sharedApplication];
         [app setActivationPolicy:NSApplicationActivationPolicyRegular];
+        // Cmd+Q is delivered through this main-menu key equivalent. Neither the
+        // window nor the movie view can supply it, and without it the delegate
+        // is never asked to terminate.
+        game_lab::installApplicationMainMenu(@"皇帝：龙之崛起");
         EmperorAppDelegate* delegate = [[EmperorAppDelegate alloc] initWithResourceRoot:plan.root selfAuthored:plan.bundledSelfAuthored];
         app.delegate = delegate;
         [app run];
