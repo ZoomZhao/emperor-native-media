@@ -21,6 +21,64 @@ OriginalBuildingUpdateContext context(OriginalBuildingUpdateScope scope){
     OriginalBuildingUpdateContext c(scope,true);c.phase=0;c.monthPart=1;c.cycle=4;c.month=7;c.terrainFlags=8;c.typeDisabled=false;return c;
 }
 void authored(){
+    {
+        OriginalBuildingUpdateContext annual(OriginalBuildingUpdateScope::AdmittedTicks,true);
+        annual.trade.emplace();annual.statistics.emplace();annual.statistics->currentFaction=3;annual.monthlyServices=true;
+        auto& own=annual.trade->partners[3];own.alive=1;own.faction=3;
+        auto& ally=annual.trade->partners[5];ally.alive=1;ally.faction=5;ally.kind=2;ally.enabled=1;
+        ally.relations[3].state=2;own.relations[5].state=2;
+        need(originalBuildingAnnualDiplomacyStep(annual)==OriginalBuildingUpdateBlocker::None&&ally.relations[3].annualFlag==1,
+            "annual alliance state70 with war78 zero sets the first offer flag5D");
+        need(originalBuildingAnnualDiplomacyStep(annual)==OriginalBuildingUpdateBlocker::MonthlyCity&&ally.relations[3].annualFlag==1,
+            "annual repeated positive offer refuses its scenario service without changing the flag");
+        ally.blocked=4;need(originalBuildingAnnualDiplomacyStep(annual)==OriginalBuildingUpdateBlocker::None&&ally.relations[3].annualFlag==0,
+            "annual blocked partner clears offer flag before any war branch");
+        ally.blocked=0;ally.relations[3].state=0;own.relations[5].state=0;ally.relations[3].annualFlag=1;
+        need(originalBuildingAnnualDiplomacyStep(annual)==OriginalBuildingUpdateBlocker::None&&ally.relations[3].annualFlag==0,
+            "annual no alliance clears stale flag with complete forward and reverse relations");
+        own.relations[5].state=2;need(originalBuildingAnnualDiplomacyStep(annual)==OriginalBuildingUpdateBlocker::None&&ally.relations[3].annualFlag==1,
+            "annual reverse alliance also qualifies through444160");
+        annual.monthlyServices.reset();need(originalBuildingAnnualDiplomacyStep(annual)==OriginalBuildingUpdateBlocker::MonthlyCity,
+            "annual service requires explicit opt in");
+        annual.monthlyServices=true;annual.month=1;annual.elapsedYears= -2050;annual.scenarioStartYears= -2050;
+        OriginalBuildingScenarioMessages messages;messages.records[0][113]=0xa5;messages.records[0][260]=0x6c;
+        const OriginalBuildingAnnualOffer demand{100,29};
+        need(originalBuildingAnnualMessage(annual,messages,demand,5,std::nullopt)==OriginalBuildingUpdateBlocker::MonthlyCity&&messages.count==0,
+            "annual positive demand requires the caller response mode before allocating or publishing notification");
+        need(originalBuildingAnnualMessage(annual,messages,demand,5,2)==OriginalBuildingUpdateBlocker::None&&messages.count==1&&
+            messages.records[0][2]==29&&messages.records[0][3]==1&&detail::i16(messages.records[0].data()+4)==29&&
+            detail::i16(messages.records[0].data()+12)==100&&detail::i16(messages.records[0].data()+28)==5&&
+            detail::u32(messages.records[0].data()+40)==0x100&&messages.records[0][50]==1&&messages.notificationPending&&
+            detail::i16(messages.records[0].data()+48)==14&&messages.notices.size()==1&&messages.notices[0].title==558&&
+            messages.notices[0].dialogFlags==5&&annual.notificationEffects==std::vector<unsigned>{225},
+            "annual demand constructs resource amount faction and pending notification with response14 and no automatic callback");
+        need(messages.records[0][113]==0xa5&&messages.records[0][260]==0x6c,
+            "annual message reset retains unrequested padding and untouched record extension");
+        messages.count=140;need(originalBuildingAnnualMessage(annual,messages,demand,5,2)==OriginalBuildingUpdateBlocker::None&&messages.count==140,
+            "annual allocator capacity140 exits without manufacturing another message");
+        messages.count=1;messages.records[0][50]=0;messages.records[0][40]=0x10;
+        need(originalBuildingAnnualMessage(annual,messages,demand,5,2)==OriginalBuildingUpdateBlocker::MonthlyCity&&messages.count==1,
+            "annual recyclable record refuses at the unclosed age and UI predicates");
+        std::vector<uint8_t> wire(2000);const size_t side=100;
+        const auto word=[&](size_t at,unsigned value){wire[at]=uint8_t(value);wire[at+1]=uint8_t(value>>8);};
+        word(side-28,6);word(side+1433,1);word(side+1456,3);word(side+1458,2);
+        size_t at=side+1460;
+        for(unsigned n=0;n<150;++n){wire.resize(at+263+4);word(at,9);at+=2;
+            wire[at]=uint8_t(n);wire[at+113]=0x55;wire[at+113+8+10+56]=0x66;at+=261;}
+        wire[at]=2;
+        const auto parsed=originalBuildingSavedScenarioMessages(wire,side);
+        need(parsed&&parsed->count==2&&parsed->records[149][0]==149&&parsed->records[0][113]==0&&
+            parsed->records[0][114]==0x55&&parsed->records[0][214]==0x66,
+            "scenario messages parse all150 record9 requests excluding padding and preserving faction array order");
+        wire.pop_back();need(!originalBuildingSavedScenarioMessages(wire,side),"scenario messages reject truncated trailing count");
+        auto orderedAnnual=annual;orderedAnnual.monthPart=1;orderedAnnual.cycle=7;orderedAnnual.populationTotal=0;orderedAnnual.labor.emplace();
+        orderedAnnual.cycleTail.emplace();orderedAnnual.cycleTail->alternateMode=false;orderedAnnual.cycleTail->healthTarget=61;orderedAnnual.cycleTail->smoothedHealth=60;
+        orderedAnnual.buildingInputs.emplace();orderedAnnual.buildings.emplace();orderedAnnual.trade->partners[5].relations[3].annualFlag=0;
+        need(originalBuildingCycleTailWithAnnualStep(orderedAnnual)==OriginalBuildingUpdateBlocker::MonthlyCity&&
+            orderedAnnual.cycleTail->smoothedHealth==61&&orderedAnnual.monthPart==2&&orderedAnnual.cycle==8&&
+            orderedAnnual.trade->partners[5].relations[3].annualFlag==0,
+            "annual tail reaches health and clock writes then refuses missing forecast before diplomatic flags");
+    }
     auto c=context(OriginalBuildingUpdateScope::ProductionPasses);
     for(uint16_t type:{uint16_t(194),uint16_t(196)})for(uint16_t flags:{uint16_t(0),uint16_t(1),uint16_t(32),uint16_t(33),uint16_t(0x4000),uint16_t(0x8021)}){
         const int delta=(flags&255)>32?(type==194?125:157):(flags&255)?(type==194?63:79):0;
@@ -454,6 +512,19 @@ void authored(){
     harvesting.buildings->at(7)=allocatingHunter.building;harvesting.buildingInputs->at(7)=allocatingHunter.inputs;
     created=originalBuildingStateAfterUpdates(allocatingHunter,harvesting,1);
     need(created.state&&created.state->inputs.hookIndustry->at(0x5c-4)==3&&created.context->allocatedFigures==std::vector<size_t>({19,18,17})&&created.context->figures->at(17).type==40&&created.context->figures->at(17).action==12&&created.context->figures->at(17).counter>=20&&created.context->figures->at(17).counter<=51,"Hunter staffing100 creates three hunters below executable400 capacity with independent engine delays");
+    auto dispatch=harvesting;dispatch.industryCarts=true;auto stockedHunter=allocatingHunter;stockedHunter.production->secondaryStock=100;
+    stockedHunter.inputs.output=4;stockedHunter.inputs.upgrade=1;stockedHunter.inputs.hookIndustry->at(0x5c-4)=3;
+    dispatch.freeFigureSlots={19};
+    need(originalBuildingHunterDispatchStep(stockedHunter,dispatch)==OriginalBuildingUpdateBlocker::None&&
+        stockedHunter.production->secondaryStock==0&&stockedHunter.inputs.primaryFigure==19&&stockedHunter.inputs.upgrade==0&&
+        dispatch.figures->at(19).type==19&&dispatch.figures->at(19).amount==400&&dispatch.figures->at(19).subtype==4&&
+        dispatch.figures->at(19).action==6&&dispatch.dispatchedProduction[4]==100,
+        "Hunter positive cart preserves upgraded400 cargo while debiting and accounting literal100 only");
+    dispatch=harvesting;dispatch.industryCarts=true;dispatch.freeFigureSlots.clear();stockedHunter=allocatingHunter;stockedHunter.production->secondaryStock=100;
+    stockedHunter.inputs.output=4;stockedHunter.inputs.hookIndustry->at(0x5c-4)=3;
+    need(originalBuildingHunterDispatchStep(stockedHunter,dispatch)==OriginalBuildingUpdateBlocker::None&&
+        stockedHunter.production->secondaryStock==100&&stockedHunter.inputs.primaryFigure==0,
+        "Hunter allocator exhaustion retains stock and leaves reciprocal cart link zero");
     saved32(22,69);saved32(26,68);saved32(11408,3);saved32(11412,901);saved32(11420,2);saved32(11424,603);
     saved32(12099,151);saved32(11392,999);saved32(anchor-28+1449,48);
     need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.cycleTail->healthTarget==69&&restoredCity.cycleTail->smoothedHealth==68&&restoredCity.cycleTail->currentHealthRating==151&&restoredCity.scenarioMonths==48,"cycle tail saved health rating uses final59501B wire12099 rather than11392 decoy");

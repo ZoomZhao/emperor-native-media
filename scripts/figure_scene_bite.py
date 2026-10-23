@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--only', help='Run one named mutation')
     args = parser.parse_args()
-    work = Path(tempfile.mkdtemp(prefix='a6-figure-scene-bite-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))
+    work = Path(tempfile.mkdtemp(prefix='a7-figure-scene-bite-', dir='/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode'))
     mutations = [
         ('index', 'original_building_scene.hpp', '(word&0x3fff)+1;', '(word&0x3fff)+201;'),
         ('position', 'original_building_scene.hpp', 'ox-s.animationOffsetX,oy-s.animationOffsetY', 'ox+s.animationOffsetX,oy-s.animationOffsetY'),
@@ -161,14 +161,14 @@ def main():
         ('combined_network', 'original_figure_update.hpp', 'else if(t&0x40)masks[cell]=4;', 'else if(t&0x40)masks[cell]=0;'),
         ('combined_worker_delay', 'original_figure_update.hpp', '4CA0AB..106:countdown,then4BA6F0;no movement this call.\n        f.counter=originalFigureWord(int(f.counter)-1);', '4CA0AB..106:countdown,then4BA6F0;no movement this call.\n        f.counter=originalFigureWord(int(f.counter)+1);'),
         ('combined_worker_exit', 'original_figure_update.hpp', 'f.action=7;f.destinationX=road->second->first;', 'f.action=8;f.destinationX=road->second->first;'),
-        ('combined_worker_cleanup', 'original_figure_update.hpp', 'if(f.home&&(f.type==76||f.type==11))', 'if(f.home&&f.type==76)'),
+        ('combined_worker_cleanup', 'original_figure_update.hpp', 'if(f.home&&(f.type==76||f.type==11||f.type==13))', 'if(f.home&&(f.type==76||f.type==13))'),
         ('combined_worker_binding', 'original_scene_timeline.hpp', 'context.workerRoadExits=combined->figures.workerRoadExits;', 'context.workerRoadExits.clear();'),
         ('combined_well_start', 'original_figure_update.hpp', 'if(f.frame>=12)f.frame=0;f.action=1;', 'if(f.frame>=12)f.frame=0;f.action=2;'),
         ('combined_lifecycle', 'original_scene_timeline.hpp', 'else if(city.phase==40)result=originalBuildingLifecycleStep(b.state,c);', 'else if(city.phase==40)result=OriginalBuildingUpdateBlocker::None;'),
         ('combined_risk', 'original_scene_timeline.hpp', 'case 44:result=originalBuildingRiskStep(c);break;', 'case 44:break;'),
-        ('combined_cycle_tail', 'original_scene_timeline.hpp', 'case 50:result=originalBuildingCycleTailStep(c);break;', 'case 50:break;'),
+        ('combined_cycle_tail', 'original_scene_timeline.hpp', 'case 50:result=originalBuildingCycleTailWithAnnualStep(c,city.annualOffers,city.scenarioMessages?&*city.scenarioMessages:nullptr,\n        city.process.annualDemandResponseMode);break;', 'case 50:break;'),
         ('combined_road_plain', 'original_scene_timeline.hpp', 'const auto distances=originalBuildingRoadDistances(masks,uint32_t(entry));', 'for(auto& mask:masks)mask&=0xb0c;const auto distances=originalBuildingRoadDistances(masks,uint32_t(entry));'),
-        ('combined_emigrant_wait', 'original_figure_update.hpp', 'if(f.counter>51){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;', 'if(f.counter>=51){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;'),
+        ('combined_emigrant_wait', 'original_figure_update.hpp', 'if(f.counter>51){const auto house=originalFigureNearestHouse(f,local);', 'if(f.counter>=51){const auto house=originalFigureNearestHouse(f,local);'),
         ('combined_fire_bridge', 'original_scene_timeline.hpp', 'if(city.phase==43)f.services->fireCount=c.fireTotals[2];', 'if(city.phase==43)f.services->fireCount=9;'),
         ('combined_debris_lifetime', 'original_figure_update.hpp', '>=9u*f.speed', '>9u*f.speed'),
         ('combined_effect_count', 'original_figure_update.hpp', '--*context.visualEffectCount;', '++*context.visualEffectCount;'),
@@ -181,6 +181,12 @@ def main():
         ('combined_supplier_chain', 'original_figure_update.hpp', 'if(tail==f.slot)f.next=uint16_t(slot);', 'if(tail==f.slot)f.next=0;'),
         ('combined_supplier_speech', 'original_figure_update.hpp', 'local.figures.at(slot)=cart;', '++local.speechCounters->at(254);local.figures.at(slot)=cart;'),
         ('combined_farmer_retry', 'original_figure_update.hpp', 'out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}f.action=10;', 'out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}f.action=6;'),
+        ('combined_migrant_tie', 'original_figure_update.hpp', 'if(distance<best){best=distance;selected=e.first;}', 'if(distance<=best){best=distance;selected=e.first;}'),
+        ('combined_mill_incoming', 'original_figure_update.hpp', 'int(b.incomingAmount)+f.amount', 'int(b.incomingAmount)+1'),
+        ('combined_music_tier', 'original_figure_update.hpp', 'for(int threshold:{8,16})', 'for(int threshold:{16,8})'),
+        ('combined_industry_only', 'original_figure_update.hpp', 'if(f.type==22)return size_t(0);', 'if(f.type==23)return size_t(0);'),
+        ('combined_annual_notice', 'original_building_update.hpp', 'r[50]=1;messages.notificationPending=true;', 'r[50]=0;messages.notificationPending=true;'),
+        ('combined_annual_premise', 'original_building_update.hpp', 'offer.requestedResource!=29||!responseMode||*responseMode!=2', 'offer.requestedResource!=29||(responseMode&&*responseMode!=2)'),
     ]
     if args.only:
         mutations = [mutation for mutation in mutations if mutation[0] == args.only]
@@ -255,6 +261,12 @@ def main():
             'combined_supplier_chain': 'combined warehouse bulk supplier creates two FIFO followers before wait30',
             'combined_supplier_speech': 'combined warehouse bulk supplier creates two FIFO followers before wait30',
             'combined_farmer_retry': 'combined dry harvest action12 decrements signed wait then retries action10',
+            'combined_migrant_tie': 'combined nearest house uses Chebyshev distance and first strict tie',
+            'combined_mill_incoming': 'combined Mill search chooses first reachable road cell and reserves exact original cargo before returning',
+            'combined_music_tier': 'combined music venue first nonempty score8 tier wins before closer second tier and publishes B0C route',
+            'combined_industry_only': 'combined type22 empty industry query returns home before ordinary storage fallbacks',
+            'combined_annual_notice': 'combined annual demand retains constructor fields and publishes pending notice225',
+            'combined_annual_premise': 'combined annual positive demand refuses absent response preference before allocating',
         }.get(name)
         if expected and expected not in result.stderr:
             raise RuntimeError('mutation failed outside intended assertion: ' + name)

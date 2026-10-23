@@ -16,6 +16,12 @@ scene-combined-supplied-test:
 scene-combined-supplied-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene.py --mode undefined --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0 --farmer-wall-clock 1000 --crt-random-state 1
 scene-combined-bite:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_annual_notice
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_annual_premise
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_migrant_tie
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_mill_incoming
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_music_tier
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_industry_only
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_supplier_speech
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_supplier_chain
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/figure_scene_bite.py --only combined_farmer_retry

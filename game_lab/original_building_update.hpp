@@ -1130,6 +1130,35 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
     }
     return OriginalBuildingUpdateBlocker::BuildingVirtual20;
 }
+//5F3730 additive Hunter Lodge dispatch. The existing hook keeps its old
+//positive-cart refusal;this entry closes5F37F0..38FA before that same hunter
+//allocation continuation. Successful cart allocation alone debits stock100.
+inline OriginalBuildingUpdateBlocker originalBuildingHunterDispatchStep(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c){
+    if(s.building.type!=33)return OriginalBuildingUpdateBlocker::InvalidState;
+    auto& i=s.inputs;if(i.alive!=1&&i.alive!=3)return OriginalBuildingUpdateBlocker::None;
+    if(i.operational<=0)i.roadFailure=2;
+    if(!c.poolRoadSelected||!c.poolRoadSelected->count(s.building.slot)||!c.employmentModel||!c.employmentModel->count(33))return OriginalBuildingUpdateBlocker::MissingContext;
+    if(!c.poolRoadSelected->at(s.building.slot))return OriginalBuildingUpdateBlocker::None;
+    const int required=i.laborDisabled?0:c.employmentModel->at(33),percent=required>0?int(i.workers)*100/required:0;
+    if(percent<1)return OriginalBuildingUpdateBlocker::None;
+    const unsigned threshold=percent>=100?1:percent>=75?4:percent>=50?16:percent>=25?32:64;
+    ++i.spawnCounter;if(threshold>=i.spawnCounter)return OriginalBuildingUpdateBlocker::None;i.spawnCounter=0;
+    const auto present=originalBuildingHookFigure(i.primaryFigure,19,s.building.slot,c);if(!present)return OriginalBuildingUpdateBlocker::MissingContext;
+    if(!s.production||!i.hookIndustry||!c.figures||!c.poolHookRoadAccess||!c.poolHookRoadAccess->count(s.building.slot))return OriginalBuildingUpdateBlocker::MissingContext;
+    const auto& road=c.poolHookRoadAccess->at(s.building.slot);
+    if(!*present&&s.production->secondaryStock>=100){const int amount=i.upgrade!=0?400:100;i.upgrade=0;
+        const auto slot=originalBuildingAllocateService(c,19,i.faction,road.x,road.y,4);if(!slot)return OriginalBuildingUpdateBlocker::MissingContext;
+        if(*slot){auto& f=c.figures->at(*slot);f.action=6;f.counter=30;f.subtype=i.output;f.owner=int16_t(s.building.slot);f.amount=int16_t(amount);i.primaryFigure=int16_t(*slot);
+            s.production->secondaryStock=originalBuildingSignedWord(uint16_t(uint16_t(s.production->secondaryStock)-100u));
+            c.dispatchedProduction[i.output]=originalBuildingAdd32(c.dispatchedProduction[i.output],100);
+            if(i.output==10||i.output==18||i.output==20)f.action=17;
+            else if(i.output==11||(i.output>=14&&i.output<=17)||i.output==21||i.output==23||(i.output>=25&&i.output<=27))f.action=21;}}
+    int hunters=percent>=100?3:percent>=75?2:percent>=25?1:0;hunters=std::min(hunters,(400-int(s.production->secondaryStock))/100);
+    auto& active=i.hookIndustry->at(0x5c-4);if(active>5){active=0;for(const auto& f:*c.figures)if(f.alive==1&&f.type==40&&f.owner==int(s.building.slot))++active;}
+    while(int(active)<hunters){const auto slot=originalBuildingAllocateService(c,40,i.faction,road.x,road.y,0);if(!slot)return OriginalBuildingUpdateBlocker::MissingContext;if(!*slot)break;
+        auto& f=c.figures->at(*slot);f.owner=int16_t(s.building.slot);f.action=12;f.counter=int16_t((originalFigureRandomNext(*c.figureServices)&31)+20);++active;}
+    return OriginalBuildingUpdateBlocker::None;
+}
 //52A983/52A995 read28-byte header then1000(offset,count) pairs.
 //Only the359 groups addressed by the saved counter array are retained.
 inline std::optional<std::array<uint32_t,359>> originalBuildingSpeechCounts(const std::vector<uint8_t>& data){
@@ -1898,6 +1927,163 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStep(OriginalBuild
         if(current>=147&&current<=150)c.notificationEffects.push_back(unsigned(current-147+0xd6));
         else if(current==151||current==152){if(!tail.previousHealthRating)return OriginalBuildingUpdateBlocker::MonthlyCity;
             if(current!=*tail.previousHealthRating)c.notificationEffects.push_back(unsigned(current-151+0xda));}}
+    for(auto& e:*c.buildingInputs)if(e.second.alive==1&&e.second.industry)originalBuildingDecayCropFlags(e.second);
+    c.phase=0;++tail.calls;return OriginalBuildingUpdateBlocker::None;
+}
+//4A5840->441DF0/441EE0. Additive ordinary annual service: the old
+//cycle-tail API retains its conservative alliance refusal. 444130 tests
+//child+70,444160 additionally rejects child+78==2;441D80 writes+5D.
+//Positive war/notification construction is deliberately a separate boundary.
+struct OriginalBuildingAnnualOffer {int32_t requestedAmount=0;int16_t requestedResource=0;}; //Grid15+3ABC/+3AC0,493476/484
+struct OriginalBuildingScenarioMessages {
+    struct Notice {unsigned id=225;int16_t slot=0;uint8_t faction=0;int16_t resource=0,amount=0,title=558;uint32_t dialogFlags=5;};
+    std::array<std::array<uint8_t,268>,150> records{};
+    std::vector<Notice> notices;
+    uint32_t count=0;
+    bool notificationPending=false; //1192A2C,4A3A6D
+};
+//5312F4->493F00->491960,record9 requests4AA043..3ED. Padding is
+//not wire data;the two faction arrays are serialized in a different order.
+inline std::optional<OriginalBuildingScenarioMessages> originalBuildingSavedScenarioMessages(const std::vector<uint8_t>& data,size_t side){
+    if(!originalFigureSavedDifficulty(data,side)||side>data.size()||data.size()-side<1460)return std::nullopt;
+    size_t at=side+1456;if(detail::u16(data.data()+at)!=3||detail::u16(data.data()+at+2)!=2)return std::nullopt;at+=4;
+    OriginalBuildingScenarioMessages out;
+    for(auto& record:out.records){if(at>data.size()||data.size()-at<2||detail::u16(data.data()+at)!=9)return std::nullopt;at+=2;
+        for(const auto& span:std::array<std::pair<size_t,size_t>,8>{{{0,113},{114,8},{124,10},{136,56},{214,44},{192,22},{260,4},{264,4}}}){
+            if(span.second>data.size()-at)return std::nullopt;std::copy_n(data.begin()+at,span.second,record.begin()+span.first);at+=span.second;}}
+    if(at>data.size()||data.size()-at<4)return std::nullopt;out.count=detail::u32(data.data()+at);if(out.count>150)return std::nullopt;
+    return out;
+}
+inline std::optional<std::array<OriginalBuildingAnnualOffer,22>> originalBuildingSavedAnnualOffers(const std::vector<uint8_t>& data,size_t at){
+    using namespace emperor::file_io::research;if(at>data.size())return std::nullopt;
+    const auto take=[&](size_t bytes){if(bytes>data.size()-at)return false;at+=bytes;return true;};
+    const auto version=[&](uint16_t v){return take(2)&&detail::u16(data.data()+at-2)==v;};
+    if(!version(1)||!take(4))return std::nullopt;const auto goods=detail::u32(data.data()+at-4);if(goods>8192)return std::nullopt;
+    for(unsigned n=0;n<goods;++n){if(!version(1))return std::nullopt;for(const auto& field:goods1_fields)if(!take(field.bytes))return std::nullopt;}
+    if(!version(3)||!take(4))return std::nullopt;const auto places=detail::u32(data.data()+at-4);if(places>8192)return std::nullopt;
+    for(unsigned n=0;n<places;++n){if(!version(2))return std::nullopt;for(const auto& field:empire2_fields)if(!take(field.bytes))return std::nullopt;}
+    std::array<OriginalBuildingAnnualOffer,22> out{};
+    for(auto& offer:out){if(!version(15))return std::nullopt;for(const auto& field:empire_grid15_pre)if(!take(field.bytes))return std::nullopt;
+        for(unsigned k=0;k<22;++k){if(!version(5))return std::nullopt;for(const auto& field:empire_grid_child5_fields)if(!take(field.bytes))return std::nullopt;}
+        for(const auto& field:empire_grid15_post){if(!take(field.bytes))return std::nullopt;
+            if(field.receiver_offset==15036)offer.requestedAmount=originalBuildingI32(detail::u32(data.data()+at-field.bytes));
+            if(field.receiver_offset==15040)offer.requestedResource=detail::i16(data.data()+at-field.bytes);}}
+    return out;
+}
+inline OriginalBuildingUpdateBlocker originalBuildingAnnualDiplomacyStep(OriginalBuildingUpdateContext& c,
+    const std::optional<std::array<OriginalBuildingAnnualOffer,22>>& offers=std::nullopt){
+    if(!c.trade||!c.statistics||!c.monthlyServices||!*c.monthlyServices)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    const int current=c.statistics->currentFaction;if(current<0||current>=22)return OriginalBuildingUpdateBlocker::InvalidState;
+    auto& own=c.trade->partners[size_t(current)];bool ally=false;
+    for(const auto& p:c.trade->partners)if(p.alive&&p.faction<22&&p.faction!=current&&
+        (p.relations[size_t(current)].state==2||own.relations[p.faction].state==2))ally=true; //444060->444200
+    //Preflight all effectful branches before publishing any annual flag.
+    for(const auto& p:c.trade->partners){if(!p.alive)continue;if(p.faction>=22)return OriginalBuildingUpdateBlocker::InvalidState;
+        const auto& r = p.relations[size_t(current)];const auto& reverse=own.relations[p.faction];
+        const bool eligible=p.faction!=current&&!(p.kind==0&&p.faction==current)&&p.enabled&&!(p.blocked&4)&&p.kind!=6;
+        const bool alliance=(r.state==2||reverse.state==2)&&r.war!=2;
+        if(eligible&&alliance&&r.war==1){
+            if(p.blocked&1)for(const auto& other:c.trade->partners)if(other.alive&&other.faction<22&&other.faction!=p.faction&&
+                (other.relations[p.faction].state==2||p.relations[other.faction].state==2))return OriginalBuildingUpdateBlocker::MonthlyCity;
+            if(!offers)return OriginalBuildingUpdateBlocker::MonthlyCity;const auto& offer=offers->at(size_t(&p-c.trade->partners.data()));
+            if(offer.requestedResource>0&&offer.requestedAmount>0)return OriginalBuildingUpdateBlocker::MonthlyCity;}
+        if(eligible&&alliance&&r.war==0&&r.annualFlag)return OriginalBuildingUpdateBlocker::MonthlyCity;
+        if(eligible&&ally&&!(own.blocked&1)&&r.war==2)return OriginalBuildingUpdateBlocker::MonthlyCity; //441EE0->493530
+    }
+    for(auto& p:c.trade->partners){if(!p.alive)continue;auto& r = p.relations[size_t(current)];
+        const bool eligible=p.faction!=current&&p.enabled&&!(p.blocked&4)&&p.kind!=6;
+        const bool alliance=(r.state==2||own.relations[p.faction].state==2)&&r.war!=2;
+        if(!eligible||!alliance)r.annualFlag=0;
+        else if(r.war==0)r.annualFlag=1; //441E50..66 and441ECC..D9
+        else if(r.war==1)r.annualFlag=0; //441EB8,including493470 no-demand early return
+    }
+    return OriginalBuildingUpdateBlocker::None;
+}
+//491E70/493470 positive type29 demand. Only resource29's proved dialog
+//branch is admitted;response mode2 is an explicit caller observation of the
+//unserialized C7EDD0/10DE164 preference,not an implicit auto-reply choice.
+inline OriginalBuildingUpdateBlocker originalBuildingAnnualMessage(OriginalBuildingUpdateContext& c,
+    OriginalBuildingScenarioMessages& messages,const OriginalBuildingAnnualOffer& offer,uint8_t faction,
+    std::optional<uint8_t> responseMode){
+    if(offer.requestedResource<=0||offer.requestedAmount<=0)return OriginalBuildingUpdateBlocker::None;
+    if(!c.month||!c.elapsedYears||!c.scenarioStartYears||messages.count>150)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    for(unsigned n=0;n<messages.count;++n){const auto& r=messages.records[n];
+        if((detail::u32(r.data()+40)&0x110)==0x110&&!r[50])return OriginalBuildingUpdateBlocker::MonthlyCity;}
+    if(messages.count>139)return OriginalBuildingUpdateBlocker::None;
+    if(offer.requestedResource!=29||!responseMode||*responseMode!=2)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    auto& r=messages.records[messages.count];const unsigned slot=messages.count++;
+    const auto word=[&](size_t at,int value){const auto bits=uint16_t(value);r[at]=uint8_t(bits);r[at+1]=uint8_t(bits>>8);};
+    const auto dword=[&](size_t at,uint32_t value){for(unsigned k=0;k<4;++k)r[at+k]=uint8_t(value>>(8*k));};
+    const auto range=[&](size_t at,int value){word(at,value);word(at+2,value);word(at+4,-1);word(at+6,-1);};
+    //499040 resets named fields while retaining padding and untouched fields.
+    word(0,int(slot));r[2]=29;r[3]=uint8_t(*c.month);range(4,offer.requestedResource);range(12,offer.requestedAmount);
+    range(20,originalBuildingSub32(*c.elapsedYears,*c.scenarioStartYears));range(28,faction);word(36,-1);word(38,-1);dword(40,0x100);
+    word(44,2);word(46,0);word(48,0);r[50]=r[51]=0;word(52,-1);r[54]=0;word(56,-1);
+    for(unsigned at:{58u,60u,62u,64u,66u,68u,70u,74u,76u})word(at,0);
+    word(78,5);word(80,-1);word(82,-1);word(84,-1);range(88,0);r[96]=0;word(114,-1);r[116]=0;r[120]=255;r[121]=0;
+    dword(124,0);dword(128,UINT32_MAX);r[132]=r[133]=0;dword(136,UINT32_MAX);dword(140,UINT32_MAX);dword(144,0);
+    std::fill(r.begin()+148,r.begin()+258,0);
+    //4A9C50/4A0BE0: freshly constructed demand is due in its current month.
+    //4A2D50(resource29,type29) supplies dialog flags5;mode2 skips the
+    //automatic callback,then4A3AD1..DB marks the fresh message response14.
+    r[50]=1;messages.notificationPending=true;c.notificationEffects.push_back(225);
+    word(48,14);
+    const auto amount=originalBuildingSignedWord(uint16_t(offer.requestedAmount));
+    messages.notices.push_back({225,int16_t(slot),faction,offer.requestedResource,amount,int16_t(amount>=1?558:560),amount>=1?5u:3u});
+    return OriginalBuildingUpdateBlocker::None;
+}
+inline OriginalBuildingUpdateBlocker originalBuildingAnnualDiplomacyWithMessagesStep(OriginalBuildingUpdateContext& c,
+    const std::array<OriginalBuildingAnnualOffer,22>& offers,OriginalBuildingScenarioMessages& messages,
+    std::optional<uint8_t> responseMode){
+    if(!c.trade||!c.statistics||!c.monthlyServices||!*c.monthlyServices)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    const int current=c.statistics->currentFaction;if(current<0||current>=22)return OriginalBuildingUpdateBlocker::InvalidState;
+    auto& own=c.trade->partners[size_t(current)];
+    const auto hasAlly=[&](const auto& grid){for(const auto& other:c.trade->partners)if(other.alive&&other.faction<22&&other.faction!=grid.faction&&
+        (other.relations[grid.faction].state==2||grid.relations[other.faction].state==2))return true;return false;};
+    for(unsigned n=0;n<22;++n){auto& p=c.trade->partners[n];if(!p.alive)continue;
+        if(p.faction>=22)return OriginalBuildingUpdateBlocker::InvalidState;auto& r = p.relations[size_t(current)];
+        const bool eligible=p.faction!=current&&p.enabled&&!(p.blocked&4)&&p.kind!=6;
+        const bool alliance=(r.state==2||own.relations[p.faction].state==2)&&r.war!=2;
+        if(!eligible||!alliance)r.annualFlag=0;
+        else if(r.war==0){if(r.annualFlag)return OriginalBuildingUpdateBlocker::MonthlyCity;r.annualFlag=1;}
+        else if(r.war==1){if((p.blocked&1)&&hasAlly(p))return OriginalBuildingUpdateBlocker::MonthlyCity;
+            r.annualFlag=0;const auto b=originalBuildingAnnualMessage(c,messages,offers[n],p.faction,responseMode);if(b!=OriginalBuildingUpdateBlocker::None)return b;}
+        if(eligible&&hasAlly(own)&&!(own.blocked&1)&&r.war==2)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    }
+    return OriginalBuildingUpdateBlocker::None;
+}
+//Additive tail retains the legacy entry point unchanged. The prefix below is
+//4AC650..4ACAB0:health,expiry,forecast before the annual part2 service.
+inline OriginalBuildingUpdateBlocker originalBuildingCycleTailWithAnnualStep(OriginalBuildingUpdateContext& c,
+    const std::optional<std::array<OriginalBuildingAnnualOffer,22>>& offers=std::nullopt,
+    OriginalBuildingScenarioMessages* messages=nullptr,std::optional<uint8_t> responseMode=std::nullopt){
+    if(!c.monthPart||*c.monthPart!=1||!c.month||*c.month!=1)return originalBuildingCycleTailStep(c);
+    if(!c.cycleTail||!c.cycleTail->alternateMode||*c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.cycle)
+        return OriginalBuildingUpdateBlocker::MonthlyCity;
+    auto& tail=*c.cycleTail;const int old=tail.smoothedHealth;
+    if(old<tail.healthTarget)tail.smoothedHealth=originalBuildingAdd32(old,1);else if(old>tail.healthTarget)tail.smoothedHealth=originalBuildingSub32(old,1);
+    const int value=tail.smoothedHealth;
+    if(old!=value){if(old<value){if(old/10!=value/10&&*c.populationTotal>=301&&value>=10)c.notificationEffects.push_back(0xca+(value-1)/10);}
+        else if(!((old/10==value/10||*c.populationTotal<301)&&value>19))c.notificationEffects.push_back(value?0xc0+(value-1)/10:0xc0);}
+    tail.smoothedHealth=std::clamp(value,0,100);c.labor->health=tail.smoothedHealth;++(*c.cycle);++(*c.monthPart);
+    for(auto& e:*c.buildingInputs){auto& i=e.second;if(i.alive!=1&&i.alive!=3)continue;i.word92=0;
+        if(!i.modelUpgrade)return OriginalBuildingUpdateBlocker::MonthlyCity;if(*i.modelUpgrade){if(!--*i.modelUpgrade)c.buildingRedraws.insert(e.first);
+            if(c.buildings->at(e.first).wellImageInputs)c.buildings->at(e.first).wellImageInputs->byte6f=*i.modelUpgrade;}}
+    auto blocker=originalBuildingFoodForecastStep(c);if(blocker!=OriginalBuildingUpdateBlocker::None)return blocker;
+    blocker=offers&&messages?originalBuildingAnnualDiplomacyWithMessagesStep(c,*offers,*messages,responseMode):originalBuildingAnnualDiplomacyStep(c,offers);
+    if(blocker!=OriginalBuildingUpdateBlocker::None)return blocker;
+    if(!c.trade||!c.scenarioMonths||c.labor->difficulty<0||c.labor->difficulty>4||!c.statistics)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    const int faction=c.statistics->currentFaction;if(faction<0||faction>=22)return OriginalBuildingUpdateBlocker::InvalidState;
+    constexpr double factors[]={3.,4.,4.5,5.,6.};
+    for(auto& p:c.trade->partners){if(!p.alive)continue;
+        if(p.enabled&&!(p.blocked&4)&&p.kind!=6){if(p.relationTimers.size()!=22)return OriginalBuildingUpdateBlocker::MonthlyCity;
+            auto& child=p.relationTimers[size_t(faction)];for(unsigned n=0;n<33;++n){child[0][n]=std::max(0,originalBuildingSub32(child[0][n],1));child[1][n]=std::clamp(originalBuildingSub32(child[1][n], 1),0,48);}
+            if(p.reserveCountdown&&!--p.reserveCountdown){p.reserves[2]=originalBuildingSub32(p.reserves[2],p.reserveAmount);p.reserves[0]=originalBuildingAdd32(p.reserves[0],p.reserveAmount);p.reserveAmount=0;}}
+        if(*c.scenarioMonths<0)return OriginalBuildingUpdateBlocker::InvalidState;
+        const long double scale=std::sqrt(std::min(30.L,static_cast<long double>(*c.scenarioMonths)*static_cast<long double>(1./12.)+.5L));
+        const long double target=scale*factors[c.labor->difficulty]*p.reserves[4];if(target<INT32_MIN||target>INT32_MAX)return OriginalBuildingUpdateBlocker::InvalidState;
+        const int32_t used=originalBuildingAdd32(originalBuildingAdd32(p.reserves[1],p.reserves[2]),p.reserves[3]);
+        if(p.reserves[0]<originalBuildingSub32(int32_t(target),used))p.reserves[0]=originalBuildingAdd32(p.reserves[0],1);}
     for(auto& e:*c.buildingInputs)if(e.second.alive==1&&e.second.industry)originalBuildingDecayCropFlags(e.second);
     c.phase=0;++tail.calls;return OriginalBuildingUpdateBlocker::None;
 }

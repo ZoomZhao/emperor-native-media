@@ -1,5 +1,102 @@
 # SAV19 figures on the city overlay layer
 
+## Combined N200 and annual messages, 2026-10-22
+
+**The supplied-input combined horizon extends N100→N200:6/6 pools,335/335 installed figure outcomes and1,065/1,065 original building outcomes.** The reproduced baseline at `2c14cbda67b9ec5e3b22597179764fc11567403d` completes6/6,5/6,4/6,3/6,3/6 pools at N100/120/153/180/200. This continuation removes its annual diplomacy at update102,emigrant house search at127 and MusicSchool venue search at164. Explicit farmer time1000,CRT state1 and the process/draw premises below bound the result. Native completion and decode coverage do not measure agreement with an original future state or screen. Saved snapshot playback remains the default.
+
+Each table cell is before→after against the same six original saves. Installed outcomes retain removed originals and add successful allocation events,including FIFO slot reuse;the denominator also includes allocations reached inside refused pools. There are192 original figures and1,065 original buildings. Components and primaries abbreviate exact decoded/consistent numerator=denominator pairs;placed figures are a subset of the installed outcome numerator. No refused pool installs an earlier prefix.
+
+Farmer time1000 and CRT state1:
+
+|N|Pools /6|Installed outcomes|Allocations|Buildings /1,065|Placed|Components|Primaries|Frames /53|Reselections|
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|100|6→6|318/318→318/318|126→126|1,065→1,065|209→209|222→222|215→215|52→52|31→31|
+|120|5→6|312/319→319/319|127→127|1,065→1,065|172→179|185→192|176→183|52→52|31→31|
+|153|4→6|234/320→325/325|114→133|592→1,065|115→177|119→191|117→184|27→52|38→45|
+|180|3→6|184/320→326/326|110→134|24→1,065|75→168|75→183|75→169|5→52|0→54|
+|200|3→6|184/320→335/335|110→143|24→1,065|75→161|75→176|75→166|5→52|0→55|
+
+Farmer time absent,CRT state1:
+
+|N|Pools /6|Installed outcomes|Allocations|Buildings /1,065|Placed|Components|Primaries|Frames /53|Reselections|
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|100|5→5|269/316→269/316|123→123|497→497|164→164|173→173|169→169|30→30|7→7|
+|120|4→5|263/317→270/317|124→124|497→497|129→136|138→145|132→139|30→30|7→7|
+|153|3→5|184/317→275/322|110→129|24→497|75→137|75→147|75→142|5→30|0→7|
+|180|3→5|184/317→275/322|110→129|24→497|75→131|75→141|75→132|5→30|0→7|
+|200|3→5|184/317→284/331|110→138|24→497|75→129|75→141|75→134|5→30|0→7|
+
+Farmer time1000,CRT state absent:
+
+|N|Pools /6|Installed outcomes|Allocations|Buildings /1,065|Placed|Components|Primaries|Frames /53|Reselections|
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|100|5→5|177/317→177/317|17→17|1,048→1,048|147→147|160→160|153→153|50→50|31→31|
+|120|4→5|170/317→177/317|17→17|1,048→1,048|140→147|153→160|143→150|50→50|31→31|
+|153|3→5|92/318→183/323|4→23|575→1,048|82→144|86→158|84→151|25→50|38→45|
+|180|2→4|42/318→133/323|0→19|7→480|42→98|42→108|42→99|3→28|0→7|
+|200|2→4|42/318→142/332|0→28|7→480|42→96|42→108|42→101|3→28|0→7|
+
+Both inputs absent:
+
+|N|Pools /6|Installed outcomes|Allocations|Buildings /1,065|Placed|Components|Primaries|Frames /53|Reselections|
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|100|4→4|128/315→128/315|14→14|480→480|102→102|111→111|107→107|28→28|7→7|
+|120|3→4|121/315→128/315|14→14|480→480|97→104|106→113|99→106|28→28|7→7|
+|153|2→4|42/315→133/320|0→19|7→480|42→104|42→114|42→109|3→28|0→7|
+|180|2→4|42/315→133/320|0→19|7→480|42→98|42→108|42→99|3→28|0→7|
+|200|2→4|42/315→142/329|0→28|7→480|42→96|42→108|42→101|3→28|0→7|
+
+At supplied N200 the source allocation counts are0/5/28/110/0/0;building-created figures are0/4/22/109/0/0. The143 events include135 building constructors,six supplier followers andtwo Hunter projectiles. Unique allocated slots also total143. The335 installed outcomes partition into161 placed,5 hidden and169 removed;unsupported and zero-image outcomes are0. All176/176 primary/cargo components decode and166/166 surviving nonzero primaries agree with the independent selector. Source3 alone installs28 allocations,47 placed figures,59 components,52 primaries,25 building frames and7 reselections atN200 through the App consumer. The existing source4 N100 disaster/App installation check is retained. Supplied N100/120/153/180/200 building-created figure totals are123/124/130/130/135;all five horizons retain25 created ruins,one destroyed original and52/53 original animation candidates.
+
+Final refusals are disjoint by source. `F`=`farmer_wall_clock_766da0_required`,source2/update32;`C4`=`crt_rand_state_required_wall_clock_seeded_not_in_sav_slot_1981_type_40_action_7`,source4/update85;`C2`=`crt_rand_state_required_wall_clock_seeded_not_in_sav_slot_1669_type_40_action_7`,source2/update178. F withholds47 outcomes/568 original buildings,C4 withholds140/17,andC2 withholds50/568. F precedes C2 when farmer time is absent. No supplied-input first refusal remains through200.
+
+|Source|Baseline first refusal with1000/1|Final with1000/1|Final missing-input boundary|
+|---:|---|---|---|
+|1|none through200|none through200|none through200|
+|2|164,MusicSchool34/action7/slot1996|none through200|32,F if time absent;178,C2 if only CRT absent|
+|3|127,emigrant13/action6/slot1992|none through200|none through200|
+|4|none through200|none through200|85,C4 if CRT absent|
+|5|102,annual `monthly_city_4ac650`|none through200|none through200|
+|6|none through200|none through200|none through200|
+
+|Inputs|N|Refusal partition|Refused pools /6|Refused outcomes /all reached outcomes|Refused buildings /1,065|
+|---|---|---|---:|---|---:|
+|1000/1|100/120/153/180/200|none|0|0/318,319,325,326,335|0|
+|absent/1|100/120/153/180/200|F|1|47/316,317,322,322,331|568|
+|1000/absent|100/120/153|C4|1|140/317,317,323|17|
+|1000/absent|180/200|C4+C2|2|190/323,332|585|
+|absent/absent|100/120/153/180/200|F+C4|2|187/315,315,320,320,329|585|
+
+Executable facts use SHA-256 `0ca8fc07199ea319bc7e83b9f603a2f7b1225fcfd9b609e4e73c1a86cdc3c658`;file-backed offset=VA−`0x400000`. The executable hash and2,544/2,544 cited instruction rows were checked;the final review additionally checked687/687 migration rows spanning4CA960..4CB2FF and629/629 annual allocator/constructor/notifier rows. These are overlapping evidence sets,not a combined count. Listings and binaries stay outside Git. No original executable was run and no oracle or fitted constants were used.
+
+- Emigrant `4CA960`, wait `4CAA4D..7F`, search `4CAAB3→4ADD60`: ascending houses, live1/3, accepting, positive road distance, vacancy and no worker reservation. Chebyshev `408BC0` and strict improvement retain the first tie. No-house exit uses serialized Scenario6 coordinates C5CE00/02. Positive road selection `4BA6F0` reserves house+32 and stores its identity in figure+64 (`home`), distinct from+68 (`delivery`). Action7 reaches free target `4E98A0`; action8 uses `4E9620`, clamps incoming residents to model17 capacity minus current residents, and accounts through `591930`. Cleanup `4C909E..B6` tests nonzero+64 but clears owner+62's worker field. Empty-house virtual230 conversion remains refused; an invalid live-state action8 returns to6 without moving (`4CB204..217`). The arrival test also guards against retaining a building reference across a movement call that replaces its context.
+- MusicSchool `48A9A0→48A520`: first nonempty score≤8 then≤16 tier; Entertainment virtual264 accepts34, virtual78 uses data+69, and virtual1B4 returns100. `4E7FD0→5B0620` allocates before a cardinal B0C weighted flood with path cost+twice service score. The start has distance0; following queue cells use distance+1. Equal-score duplicate target cells retain a refusal because the old qsort tie order is unmeasured. Action8 reaches the venue virtual260 through `48AB89..BB`; house callback `48AD20` writes house+2C=96 while segment category−1 adds no service-grid bit. Both directions of the building bridge retain these bytes.
+- Positive Mill `5D2C70`, ordinary Warehouse `5D2F60` mode2 then0, and station `5D31A0` mode7 preserve model labor, capacity, policy, network and ascending vector order before `4E7FD0/5B04A0` routing. Mill reservations increment incoming figure count and the exact signed cargo amount. Warehouse retains its distinct reservation behavior. Type22 calls `506CD0` alone (`4D14CF`) and returns home before ordinary storage fallback. Unknown industry/trading-station branches retain refusals.
+- Type19 action17/21 enters `4CBA70/4CBC70`: query before allocating two20 followers, carry FIFO/RNG/cell-chain writes, then restore action6 and wait30 at `4CBC41..64/4CBE92..AF`. The subsequent ordinary query releases a reciprocal route through `4E8A30` when the owner's output resource is available. Hunter Lodge `5F3730`, dispatch `5F37F0..38FA`, allocates19 before debiting literal100 from stock/accounting; upgrade may set cargo400 without increasing that debit. The new Hunter helper is additive and the existing hook retains its prior behavior.
+- Annual `4AC650→4A5840→441DF0/441EE0`: the additive tail keeps health→upgrade expiry→food forecast→annual diplomacy/messages→relation timers/reserves→crop decay order. Saved Grid15 offer amount+3ABC/resource+3AC0 comes from `493476/484`. Scenario message storage follows `5312F4→493F00→491960`: outer3/vector2, all150 record9 rows, 261 requested field bytes+2 version bytes each, and trailing count4. Explicit nonserialized padding omissions and the two faction-array spans retain their wire order.
+- Positive demand `493470→491E70`, constructor `499040`, notifier `4A9C50/4A0BE0`: resource29/amount100 constructs type29 with named field resets,140 allocation capacity,pending notice225,and retained notice fields including title558/dialog flags5. Mode2 skips the automatic callback and then marks response14 (`4A3AD1..DB`). Unsupported recycle,war/UI/response branches refuse. New optional `annualDemandResponseMode=2` explicitly supplies the unserialized C7EDD0→10DE164 caller preference at `4A3A9A..AC`; absent/non2 refuses a consumed positive demand. Existing city-clock,farmer,CRT,event/UI,RNG history,crop,effect/audio/edit and full active-crop draw premises remain explicit as documented in the historical N100 section.
+
+Reproduce the fixed1/20/22/40/51/77/83/100/120/153/180/200 matrix with a fresh absolute build directory outside GameData:
+
+```sh
+EMPEROR_GAMEDATA_ROOT=/absolute/GameData python3 -B scripts/figure_scene.py --timeline-mode combined --city-clocks 0,0,0,0,0,0,0,0,0,0 --farmer-wall-clock 1000 --crt-random-state 1 --build-dir "$task_evidence/release"
+```
+
+Add `--mode undefined` for UBSan; omit farmer/CRT flags independently for the other three modes. Library inputs remain optional with no environment fallback. The tests alone read process-local `EMPEROR_GAMEDATA_ROOT`; unset/empty succeeds with original-data SKIP. GameData is read-only. `STATUS.md` and the post-figure audit remain with their owners; all own changes remain uncommitted.
+
+Final-source combined Release/UBSan pass all8/8 runs over four input modes and twelve horizons. Each mode passes744/744 authored checks; all388/388 JSON rows agree between Release and UBSan after excluding runtime. The72/72 supplied per-source/horizon rows also agree with the independent diagnostic snapshot. Every aggregate is checked against its six source rows, allocation-inclusive denominator, render partition and disjoint refusals. App installation is exercised for all six N1 scenes, source4's N100 disaster scene and source3's N200 supplier scene whenever those requested horizons complete.
+
+|Farmer/CRT inputs|Release total checks|UBSan total checks|Matching JSON rows|Release timeline seconds|UBSan timeline seconds|
+|---|---:|---:|---:|---:|---:|
+|1000/1|33,144/33,144|33,144/33,144|97/97|622.73|1,167.51|
+|absent/1|21,916/21,916|21,916/21,916|97/97|536.28|997.49|
+|1000/absent|29,731/29,731|29,731/29,731|97/97|382.15|725.39|
+|absent/absent|20,967/20,967|20,967/20,967|97/97|296.80|572.38|
+
+The seconds above sum the72 measured timeline calls per mode, including refused calls; they exclude compilation, decode validation and separate App calls. Tests ran concurrently, so these are recorded run samples rather than isolated performance benchmarks. Supplied N100/120/153/180/200 sums across all six sources are61.74/72.32/90.14/103.17/105.15 seconds in Release and116.78/137.17/168.88/192.28/209.33 in UBSan.
+
+Figure-only Release/UBSan each retain662/662 authored and251,301/251,301 total checks; all380/380 JSON rows per mode match the reproduced baseline after excluding runtime. Building-update Release/UBSan each pass375/375 authored and67,299/67,299 total checks; all303/303 JSON rows agree. The six dependent suites pass12/12 Release/UBSan runs: building-scene244/7,663, building-image1,283/3,880, saved-ground110/1,928, SAV94, city-clocks5,008 and map-reference3,130 total. The current concurrent post-figure implementation separately passes919/919 in each mode. All41/41 combined mutations,1/1 retained timeline-repeat mutation and5/5 building compatibility mutations(hunter,tail,timer,cart-cargo,annual-child) reject at their intended assertions. The music-tier fixture places a score9 second-tier venue closer than the score8 first-tier venue so reversing the tiers changes the result. All2,575/2,575 pre-existing building-update source lines remain unchanged and in order. Eight final-source unset/empty-root controls pass: combined744/744 and figure662/662 per mode with original-data SKIP. A fresh private `a7-final2-app/EmperorApp.app` compiles28 units, matches102/102 embedded source hashes and passes`codesign --verify --deep --strict`; the bundle was not launched. All evidence remains under the approved temporary directory with prefix `a7-`.
+
 ## Combined N100 and explicit process inputs, 2026-10-22
 
 **N51:5/6→6/6 pools;N100:3/6→6/6 pools with explicit farmer time1000 and CRT state1.** All six original saves complete the full51-update scheduler cycle and100 updates. The baseline is HEAD `ebebef79365d7447e71726b93c091f183d210b3c`,reproduced before changes;its N77/N83 rows were added in a private diagnostic copy. Baseline supplied-time measurements pass time1000 into the existing public process field and CRT1 into the initial figure context;they reach an unported new Inspector39 at update32. These are caller premises,not recovered timestamps or original runtime observations. Saved snapshot remains the default. Original future-state/screen agreement is unmeasured.

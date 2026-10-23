@@ -302,6 +302,7 @@ struct OriginalFigureUpdateContext {
     //4BA6F0 selections supplied through the committed building-road parser.
     //Present/nullopt means a complete scan found no exit; absent key is unknown.
     std::map<size_t,std::optional<std::pair<int16_t,int16_t>>> workerRoadExits;
+    std::optional<std::array<int16_t,4>> migrationRoadEndpoints; //C5CDFC..CE02,serialized Scenario6
 };
 //5AD440's B0C projection for an entirely building-free grid. The pointer
 //arm5AD79F..834 emits only10/1/2, all disjoint from B0C. River-object
@@ -732,10 +733,10 @@ inline OriginalFigureMovement originalFigureFollowRouteInContext(const OriginalF
             if(!context)return {OriginalFigureUpdateStatus::RouteBoundary,{}};
             //0x4EACD0: table service category-1 means no service-grid write.
             // A present owner needs the cited zero-return virtual chain below.
-            if(f.type==39||f.type==29||f.type==28||f.type==23||f.type==30||f.type==35||f.type==36){if(!originalFigureEntertainmentSegment(f,*context))return {OriginalFigureUpdateStatus::SegmentService,{}};}
+            if(f.type==39||f.type==29||f.type==28||f.type==23||f.type==30||f.type==34||f.type==35||f.type==36){if(!originalFigureEntertainmentSegment(f,*context))return {OriginalFigureUpdateStatus::SegmentService,{}};}
             else if(f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=26&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=76)
                 return {OriginalFigureUpdateStatus::SegmentService,{}};
-            if(f.owner&&f.type!=39&&f.type!=29&&f.type!=28&&f.type!=23&&f.type!=30&&f.type!=35&&f.type!=36&&f.type!=26){if(!context->buildings)return {OriginalFigureUpdateStatus::SegmentService,{}};
+            if(f.owner&&f.type!=39&&f.type!=29&&f.type!=28&&f.type!=23&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=26){if(!context->buildings)return {OriginalFigureUpdateStatus::SegmentService,{}};
                 const auto owner=context->buildings->find(size_t(f.owner));
                 // Individually cited ordinary owner vtables:+28=429DF0,
                 // +2C=42A210 returns0;4EACD0 still caps signed+1C at300.
@@ -833,15 +834,15 @@ inline bool originalFigureMarketHouse(OriginalFigureBuildingLink& market,Origina
 // Full clipped radius1 box then radius2 box, preserving repeated callbacks,
 // wall shadow sectors and signed service cap (429E10/42A1A0).
 inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureUpdateContext& context){
-    const bool watch=f.type==29,herb=f.type==30,market=f.type==23,inspector=f.type==39,shrine=f.type==35,well=f.type==28;
-    if((f.type!=36&&!watch&&!herb&&!market&&!inspector&&!shrine&&!well)||!context.buildings||!context.services||context.services->serviceGrid.size()!=51984||
+    const bool watch=f.type==29,herb=f.type==30,market=f.type==23,inspector=f.type==39,shrine=f.type==35,well=f.type==28,school=f.type==34;
+    if((f.type!=36&&!watch&&!herb&&!market&&!inspector&&!shrine&&!well&&!school)||!context.buildings||!context.services||context.services->serviceGrid.size()!=51984||
         context.buildingOwners.size()!=51984||context.feature.size()!=51984||context.terrain.size()!=51984||
-        !context.cropBase||!context.activeSide||(!watch&&!herb&&!market&&!inspector&&!shrine&&!well&&!context.festivalVenue))return false;
+        !context.cropBase||!context.activeSide||(!watch&&!herb&&!market&&!inspector&&!shrine&&!well&&!school&&!context.festivalVenue))return false;
     auto owner=context.buildings->find(size_t(f.owner));if(owner==context.buildings->end()||
         (watch?(owner->second.type!=0x7f||!context.watchtowerReduction||!context.watchMaximum):herb?owner->second.type!=0xcf:market?owner->second.type!=0x3b:
             inspector?(owner->second.type!=0x7c||!context.inspectorReduction||!context.inspectorMaximum):
              shrine?(owner->second.type!=0xd6||!owner->second.shrineReligion||!owner->second.shrineElite||*owner->second.shrineReligion>=4):well?owner->second.type!=0x48:
-            (owner->second.type!=0x47||!owner->second.entertainment)))return false;
+             school?owner->second.type!=211:(owner->second.type!=0x47||!owner->second.entertainment)))return false;
     int count=0;std::array<int,16> shadows{};
     for(int radius=1;radius<=2;++radius)for(int y=std::max(0,int(f.y)-radius);y<=std::min(int(*context.activeSide)-1,int(f.y)+radius);++y)
         for(int x=std::max(0,int(f.x)-radius);x<=std::min(int(*context.activeSide)-1,int(f.x)+radius);++x){
@@ -881,6 +882,7 @@ inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureU
                 if(owner->second.houseModel<=0&&!owner->second.upgrade){if(!context.waterOverride)return false;index=*context.waterOverride?1:0;}
                 h.waterService->at(index)=96;++count;continue;}
             if(herb){if(!h.herbalist)return false;h.herbalist=96;++count;continue;}
+            if(school){if(!h.entertainment)return false;h.entertainment->at(1)=96;++count;continue;} //48AD20,type34
             if(watch){const auto floor=context.houseWatchFloors.find(h.houseModel);if(floor==context.houseWatchFloors.end())return false;
                 context.watchMaximum=std::max(*context.watchMaximum,h.watchRisk);
                 const uint32_t bits=uint32_t(h.watchRisk)-uint32_t(*context.watchtowerReduction);
@@ -904,7 +906,7 @@ inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureU
     else if(inspector)context.services->serviceGrid[f.cell]|=7u<<3;
     else if(market)context.services->serviceGrid[f.cell]|=7u<<21;
     else if(shrine)context.services->serviceGrid[f.cell]|=7u<<15;
-    else context.services->serviceGrid[f.cell]|=7u<<9; //category3,4B9460.
+    else if(!school)context.services->serviceGrid[f.cell]|=7u<<9; //School metadata category-1;venue category3.
     return true;
 }
 //4B9590 cardinal road exits. Preserve the original grid-category minimum
@@ -1197,7 +1199,11 @@ inline std::optional<size_t> originalFigureGoodsSupplier(OriginalFigure& f,Origi
     if(!context.goods||!context.goods->storageSearch||!context.buildings||!context.goods->godGate||!context.cropBase)return std::nullopt;
     auto& goods=*context.goods;const unsigned resource=f.subtype;if(resource>28)return std::nullopt;
     auto& cache=goods.storageSearch->at(resource);unsigned noLabor=0;
-    if(resource>0&&resource<10&&!*goods.godGate&&!goods.unavailable[resource]&&cache!=1){
+    //5D2C70: the Mill vector follows ascending registry insertion order.
+    //416B00 returns common+18 network;555FA0 supplies the selected road cell.
+    const auto mill=[&](bool force)->std::optional<size_t>{
+        if(!resource||resource>=10||*goods.godGate||(!force&&goods.unavailable[resource])||cache==1)return size_t(0);
+        std::vector<size_t> candidates;
         if(!cache||(cache&0x1c))cache=uint8_t((cache&0x1c)|4);
         for(auto& entry:*context.buildings){auto& b=entry.second;if(b.type!=0x35||(b.alive!=1&&b.alive!=3)||!b.roadAccess||b.roadDistance<=0)continue;
             const auto required=context.buildingEmployment.find(b.type);if(required==context.buildingEmployment.end()||!b.storage||!b.storagePolicy||*b.storagePolicy>=goods.policies.size())return std::nullopt;
@@ -1208,10 +1214,15 @@ inline std::optional<size_t> originalFigureGoodsSupplier(OriginalFigure& f,Origi
             if((amount%400==0&&occupied==int(b.storage->size()))||amount>=policy.limit[resource])continue;
             cache=2;if(policy.accept[resource]!=0&&policy.accept[resource]!=2)continue;
             if(b.incomingFigures>0&&int(b.incomingAmount)+policy.limit[resource]-amount<=0)continue;
-            // Positive Mill selection also depends on the original road
-            // component ranks and vector order, which are not carried here.
-            return std::nullopt;}
-    }
+            if(context.roadNetworks.size()!=51984||f.cell>=51984)return std::nullopt;
+            if(b.category==context.roadNetworks[f.cell])candidates.push_back(entry.first);}
+        if(candidates.empty())return size_t(0); //5D2E9B skips4E7FD0 when count0.
+        const auto selected=originalFigureGoodsRoute(f,context,candidates);if(!selected)return std::nullopt;
+        if(*selected){auto& b=context.buildings->at(*selected);b.incomingFigures=originalFigureWord(int(b.incomingFigures)+1);
+            b.incomingAmount=originalFigureWord(int(b.incomingAmount)+f.amount);f.delivery=int16_t(*selected);}
+        return selected;
+    };
+    if(f.type!=22){const auto firstMill=mill(false);if(!firstMill)return std::nullopt;if(*firstMill)return firstMill;}
     //506CD0: the supplied industrial vector's Hunter/Clay have both input
     //predicates0;Kiln5F5130 main resource18,secondary4FA3F0=0. Rejecting
     //a different resource happens before capacity/scoring/route side effects.
@@ -1241,10 +1252,14 @@ inline std::optional<size_t> originalFigureGoodsSupplier(OriginalFigure& f,Origi
                     f.delivery=int16_t(*selected);return *selected;}}
             //506F2E invokes4E7FD0 even for an empty candidate vector.
             else if(!originalFigureEmptyGoodsRoute(f,context))return std::nullopt;}}
+    //4D14CF calls506CD0 alone;its no-target branch returns to the owner.
+    //Only ordinary goods19 continue into the storage fallback4E2990.
+    if(f.type==22)return size_t(0);
     //5D2F60 first asks accepting mode2,then0.5D31A0 asks trade mode7.
     //Positive candidates require further route/accounting predicates;none
     //of those are elided by accepting a no-candidate result.
     for(unsigned query=0;query<3;++query){if(cache==1)break;
+        std::vector<size_t> candidates;
         const uint8_t bit=query<2?8:16;if(!cache||(cache&0x1c))cache=uint8_t((cache&0x1c)|bit);
         for(const auto& e:*context.buildings){const auto& b=e.second;
             if(query==2&&b.type==0x38&&b.alive==1&&b.roadAccess&&b.roadDistance>0)return std::nullopt; //5DDAF0 admits38 too.
@@ -1256,16 +1271,14 @@ inline std::optional<size_t> originalFigureGoodsSupplier(OriginalFigure& f,Origi
             const auto& policy=goods.policies[*b.storagePolicy];
             if((amount%400==0&&occupied==int(b.storage->size()))||amount>=policy.limit[resource])continue;
             cache=2;const auto mode=query<2?policy.accept[resource]:policy.trade[resource];
-            if(mode==(query==0?2:query==1?0:7))return std::nullopt;
-        }}
+            if(mode!=(query==0?2:query==1?0:7))continue;
+            if(context.roadNetworks.size()!=51984||f.cell>=51984||b.roadAccess!=1)return std::nullopt;
+            if(b.category==context.roadNetworks[f.cell])candidates.push_back(e.first);
+        }
+        if(!candidates.empty()){const auto selected=originalFigureGoodsRoute(f,context,candidates);if(!selected)return std::nullopt;
+            if(*selected){f.delivery=int16_t(*selected);return selected;}}}
     //4E29E6 retries Mill in mode1 even when unavailable[resource]!=0.
-    // The bounded unavailable branch refuses rather than inventing candidates.
-    if(resource>0&&resource<10&&!*goods.godGate&&cache!=1){
-        if(goods.unavailable[resource])return std::nullopt;
-        for(const auto& e:*context.buildings){const auto& b=e.second;
-            if(b.type==0x35&&(b.alive==1||b.alive==3)&&b.roadAccess&&b.roadDistance>0){
-                const auto required=context.buildingEmployment.find(b.type);if(required==context.buildingEmployment.end())return std::nullopt;
-                if(b.storageLaborDisabled||required->second<=0||int64_t(b.workers)*100/required->second<=0)++noLabor;}}}
+    const auto retryMill=mill(true);if(!retryMill)return std::nullopt;if(*retryMill)return retryMill;
     if(cache==28)cache=1;f.delivery=0;f.watchCoverage=noLabor?2:1;return size_t(0);
 }
 inline OriginalFigureFirstUpdate originalCartFirstUpdate(const OriginalFigure& saved,
@@ -1328,10 +1341,13 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=saved.type==19?0x4cbec0:saved.type==21?0x4cd8f0:0x4d13c0;out.status=OriginalFigureUpdateStatus::GoodsRouteAndOwner;
     if(!context||!context->figures.count(saved.slot))return out;auto local=*context;auto f=saved;f.image=f.secondaryImage=0;
-    const bool initializedSupplier=f.type==22&&(f.action==10||f.action==11);
+    const bool initializedCarrier=f.type==19&&(f.action==17||f.action==21);
+    const bool initializedSupplier=(f.type==22&&(f.action==10||f.action==11))||initializedCarrier;
     if(initializedSupplier){ //4D1467..15B2->4CBC70/4CBA70.
         if(!local.buildings)return out;const auto owner=local.buildings->find(size_t(f.owner));
-        if(owner==local.buildings->end()||owner->second.alive!=1||owner->second.type!=54||owner->second.secondaryFigures[0]!=int(f.slot)||f.counter>1)return out;
+        if(owner==local.buildings->end()||owner->second.alive!=1||f.counter>30)return out;
+        if(initializedCarrier){if(owner->second.primaryFigure!=int(f.slot)||f.counter!=30)return out;}
+        else if(owner->second.type!=54||owner->second.secondaryFigures[0]!=int(f.slot)||f.counter>1)return out;
         if(!local.services||!local.services->allocationSerial)return out;
         const auto allocate=[&](uint8_t action,int16_t leader,uint8_t subtype)->std::optional<size_t>{
             size_t slot=0;for(unsigned attempt=0;attempt<6&&!local.freeSlots.empty();++attempt){const auto candidate=local.freeSlots.front();local.freeSlots.erase(local.freeSlots.begin());
@@ -1347,9 +1363,14 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
                 while(local.figures.at(tail).next){if(!seen.insert(tail).second)return std::nullopt;tail=local.figures.at(tail).next;}
                 local.figures.at(tail).next=uint16_t(slot);if(tail==f.slot)f.next=uint16_t(slot);}
             local.allocatedSlots.insert(slot);++local.allocationCount;local.highestLiveSlot=std::max(local.highestLiveSlot,slot);return slot;};
-        const bool bulk=f.action==10;const auto first=allocate(uint8_t(bulk?6:7),int16_t(f.slot),0);if(!first)return out;
+        const bool bulk=f.action==10||f.action==17;
+        if(initializedCarrier){f.counter=originalFigureWord(int(f.counter)+1);f.movementMode=1;
+            const auto selected=originalFigureGoodsSupplier(f,local);if(!selected)return out;
+            if(*selected){f.action=local.buildings->at(*selected).type==0x35?8:local.buildings->at(*selected).type==0x36?7:9;f.stationary=0;}
+            else {f.action=6;f.stationary=1;}}
+        const auto first=allocate(uint8_t(bulk?6:7),int16_t(f.slot),0);if(!first)return out;
         if(!*first)f.alive=2;else {const auto second=allocate(uint8_t(bulk?8:9),int16_t(*first),f.resource);if(!second)return out;if(!*second)f.alive=2;}
-        f.action=6;f.counter=30;f.frame=0;
+        f.action=6;f.counter=30;f.frame=0; //4CBC41..64/4CBE92..AF overwrite the query action.
     }
     f.movementMode=1;f.frame=uint8_t(f.frame+1);if(f.frame>=12)f.frame=0;
     if(f.type==21){if(!context->buildings)return out;const auto owner=context->buildings->find(size_t(f.owner));
@@ -1386,9 +1407,12 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
         if(owner==context->buildings->end()||owner->second.alive!=1||!(terrainFlags&0x40)||
             (terrainFlags&(0x100|0x800|0x80000|0x10004)))return out;
         f.frame=0;f.counter=originalFigureWord(int(f.counter)+1);if(f.counter>30){out.status=OriginalFigureUpdateStatus::GoodsSearch;
-            //4CBFFC may release a prior route before search;this branch is
-            //bounded to route0 until its output-resource predicate is supplied.
-            if(f.route)return out;
+            //4CBFFC: unavailable output retains its old route;otherwise
+            //4E8A30 releases only a reciprocal owner before the next query.
+            if(!local.goods||owner->second.outputResource>=36)return out;
+            if(!local.goods->unavailable[owner->second.outputResource]&&f.route>0){
+                if(!local.services||f.route>=1000)return out;
+                if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}
             const auto selected=originalFigureGoodsSupplier(f,local);if(!selected)return out;
             if(*selected){f.action=local.buildings->at(*selected).type==0x35?8:local.buildings->at(*selected).type==0x36?7:9;f.stationary=0;}
             else f.stationary=1;f.counter=0;}
@@ -1852,9 +1876,49 @@ inline OriginalFigureFirstUpdate originalSupplierFirstUpdate(const OriginalFigur
         out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     originalFigurePublishWrites(out,f,*context,local);return out;
 }
+//48A520->4E7FD0(mode1)->5B0620: first nonempty score<=8/16
+//candidate tier,then cardinalB0C flood minimizing path length+twice score.
+//The route allocator runs even when all candidates are unreachable.
+inline std::optional<size_t> originalFigureMusicVenue(OriginalFigure& f,OriginalFigureUpdateContext& c){
+    if(!c.buildings)return std::nullopt;
+    std::vector<std::pair<size_t,int>> candidates;
+    for(int threshold:{8,16}){for(const auto& e:*c.buildings){const auto& b=e.second;
+            if(b.type!=71||(b.alive!=1&&b.alive!=3))continue;
+            if(!b.entertainmentRoad||!b.entertainment)return std::nullopt;
+            if(*b.entertainmentRoad&&b.entertainment->at(1)<=threshold)candidates.emplace_back(e.first,2*b.entertainment->at(1));}
+        if(!candidates.empty())break;}
+    if(candidates.empty())return size_t(0);
+    if(!c.cropBase||!c.passability||!c.passability->fullMovementMasks||c.passability->cells.size()!=51984||
+        !c.services||c.services->directions.size()!=500000||f.effectDraw)return std::nullopt;
+    f.route=f.routeCursor=f.routeLength=0;size_t allocated=0;
+    for(size_t n=1;n<1000;++n){const auto owner=c.services->routeOwners[n];const auto it=c.figures.find(size_t(owner));
+        if(!owner||it==c.figures.end()||it->second.route!=int(n)||it->second.alive!=1){
+            if(it!=c.figures.end()&&it->second.route==int(n)&&it->second.alive!=1)it->second.route=0;
+            c.services->routeOwners[n]=0;allocated=n;break;}}
+    if(!allocated)return size_t(0);
+    std::stable_sort(candidates.begin(),candidates.end(),[](const auto& a,const auto& b){return a.second<b.second;});
+    std::vector<size_t> cells;for(const auto& e:candidates){const auto& b=c.buildings->at(e.first);
+        const int64_t cell=int64_t(*c.cropBase)+b.roadX+228LL*b.roadY;if(cell<0||cell>=51984)return std::nullopt;cells.push_back(size_t(cell));}
+    //The old qsort's equal-key order matters only for duplicate target cells;
+    //do not invent that otherwise unobserved tie in this bounded service.
+    for(size_t a=0;a<cells.size();++a)for(size_t b=0;b<a;++b)if(cells[a]==cells[b]&&candidates[a].second==candidates[b].second)return std::nullopt;
+    if(f.cell>=51984)return std::nullopt;std::vector<int> distance(51984,-1);std::vector<size_t> queue{f.cell};distance[f.cell]=0;
+    int best=100000;size_t selected=0;constexpr int offsets[]={-228,1,228,-1};
+    for(size_t at=0;at<queue.size();++at){const auto cell=queue[at];
+        for(size_t n=candidates.size();n>0;--n)if(cells[n-1]==cell){const int score=distance[cell]+(distance[cell]?1:0)+candidates[n-1].second;
+            if(score<best){best=score;selected=candidates[n-1].first;}}
+        if(distance[cell]+2+candidates.front().second>best)break;
+        for(int delta:offsets){const int64_t next=int64_t(cell)+delta;if(next<0||next>=51984)continue;
+            if(distance[size_t(next)]<0&&(c.passability->cells[size_t(next)]&0xb0c)){distance[size_t(next)]=distance[cell]+1;queue.push_back(size_t(next));}}}
+    if(!selected)return size_t(0);const auto& b=c.buildings->at(selected);f.destinationX=b.roadX;f.destinationY=b.roadY;
+    auto route=originalFigureEngineRoute(*c.passability,f.x,f.y,b.roadX,b.roadY,0xb0c,4);
+    if(route&&route->empty())route=originalFigureEngineRoute(*c.passability,f.x,f.y,b.roadX,b.roadY,0xb0c);
+    if(!route)return std::nullopt;if(!route->empty()){std::copy(route->begin(),route->end(),c.services->directions.begin()+allocated*500);
+        c.services->routeOwners[allocated]=int16_t(f.slot);f.route=int16_t(allocated);f.routeLength=int16_t(route->size());}
+    return selected;
+}
 //0x4D5D00 -> owner virtual+24. Cited owner countdown,roam and return
-// branches carry their service callbacks;positive MusicSchool venue search
-// and other uncited virtual branches remain refused.
+//branches carry their service callbacks,including MusicSchool venue delivery.
 inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=0x4d5d00;out.status=OriginalFigureUpdateStatus::BuildingVirtualUpdate;
@@ -1881,15 +1945,15 @@ inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigu
                     else {f.action=8;if(!originalFigureBeginRoam(f,local))return out;f.roamSteps=0;}}
                 else {f.action=8;if(!originalFigureBeginRoam(f,local))return out;f.roamSteps=0;}}
             else {
-            //48A520: entertainment47+264 accepts34;road+78 precedes
-            //employment and service score. A positive venue remains refused.
-            for(const auto& e:*local.buildings){const auto& b=e.second;
-                if(b.type==0x47&&(b.alive==1||b.alive==3)){
-                    if(!b.entertainmentRoad)return out;if(!*b.entertainmentRoad)continue;
-                    //47+1B4=4F1540 returns100;48A950(type34) reads+5E.
-                    //48A520 tries thresholds8,16;larger scores never qualify.
-                    if(!b.entertainment||b.entertainment->at(1)<=16)return out;}}
-            f.alive=2;}}
+            const auto venue=originalFigureMusicVenue(f,local);if(!venue)return out;
+            if(!*venue)f.alive=2;else {f.action=8;f.delivery=int16_t(*venue);f.roamSteps=0;}}}
+    }else if(type==0xd3&&f.action==8){f.movementMode=1;f.hidden=0;f.roamSteps=originalFigureWord(int(f.roamSteps)+1);
+        if(f.roamSteps>=3200)f.alive=2;
+        const auto movement=originalFigureFollowRoute(f,6,terrainFlags,&local);if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
+        if(f.direction==8){const auto venue=local.buildings->find(size_t(f.delivery));if(venue==local.buildings->end()||venue->second.type!=71||!venue->second.entertainment)return out;
+            venue->second.entertainment->at(1)=96;f.alive=2;}
+        else if(f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+        else if(f.direction==10)f.alive=2;
     }else if(type!=0xd3&&f.action==8){if(f.roamSteps>=f.roamLimit){ //51D13C..19D still roams after choosing the return road.
             if(type!=0xcf&&type!=0xd6&&type!=0x47)return out;
             const auto road=originalFigureMusicRoad(owner->second,local);if(!road)return out;
@@ -2018,33 +2082,71 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
     if(!originalFigureWriteWalkingImage(f,code,archives,context->view,false,f.type==29)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     originalFigurePublishWrites(out,f,*context,local);return out;
 }
-//0x4CA960/action9, below the post-movement house-search threshold30.
+//4ADD60 scans ascending live houses with vacancy,positive road distance and
+//no reserved worker.408BC0 is Chebyshev distance;strict improvement retains
+//the first tie. No routing or RNG participates in this selection.
+inline std::optional<size_t> originalFigureNearestHouse(const OriginalFigure& f,const OriginalFigureUpdateContext& c){
+    if(!c.buildings)return std::nullopt;size_t selected=0;int best=1000;
+    for(const auto& e:*c.buildings){const auto& b=e.second;if(!e.first||b.type<2||b.type>=18||
+        (b.alive!=1&&b.alive!=3)||!b.accepting||b.roadDistance<=0||b.freeSlots<=0||b.worker)continue;
+        const int distance=std::max(std::abs(int(f.x)-b.x),std::abs(int(f.y)-b.y));
+        if(distance<best){best=distance;selected=e.first;}}
+    return selected;
+}
+//4CA960 waiting/road/free arrival,with4ADD60/4BA6F0 selection. The saved
+//road endpoint is required on the no-house branch;it is never a process default.
 inline OriginalFigureFirstUpdate originalMigratingFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=0x4ca960;out.status=OriginalFigureUpdateStatus::CombatRouteAndTarget;
-    if(!context||!context->figures.count(saved.slot)||(saved.action!=6&&saved.action!=9))return out;
+    if(!context||!context->figures.count(saved.slot)||(saved.action!=6&&saved.action!=7&&saved.action!=8&&saved.action!=9))return out;
     const auto speed=context->modelSpeeds.find(13);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
     auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;
     f.frame=uint8_t(f.frame+1);if(f.frame>11)f.frame=0;
     if(f.action==6){ //4CAA4D..4CAA7F:initial wait is inclusive51,not constructor countdown.
         f.frame=0;f.counter=originalFigureWord(int(f.counter)+1);
-        if(f.counter>51){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;return out;} //4CAAB3
+        if(f.counter>51){const auto house=originalFigureNearestHouse(f,local);
+            if(!house){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;return out;}
+            if(!*house){if(!local.migrationRoadEndpoints){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;return out;}
+                f.action=9;f.destinationX=local.migrationRoadEndpoints->at(2);f.destinationY=local.migrationRoadEndpoints->at(3);f.roamSteps=f.counter=0;}
+            else {const auto road=local.workerRoadExits.find(*house);if(road==local.workerRoadExits.end()){out.status=OriginalFigureUpdateStatus::MigrantHouseSearch;return out;}
+                if(!road->second)f.alive=2;else {local.buildings->at(*house).worker=int16_t(f.slot);f.home=int16_t(*house);f.action=7;
+                    f.destinationX=road->second->first;f.destinationY=road->second->second;f.roamSteps=0;}}}
         if(!originalFigureWriteWalkingImage(f,0x4c0f,archives,context->view,false,false)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
         originalFigurePublishWrites(out,f,*context,local);return out;
     }
+    if(f.action==8){if(!local.buildings||!local.buildings->count(size_t(f.home)))return out;
+        const auto alive=local.buildings->at(size_t(f.home)).alive;
+        if(alive!=1&&alive!=3)f.action=6; //4CB097->4CB204..217.
+        else {const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;f.freeMovement=f.hidden=1;
+        if(moved->second){f.alive=2;auto& house=local.buildings->at(size_t(f.home));
+            if(house.type>=2&&house.type<18){if(!house.laborDisabled)return out;if(!*house.laborDisabled){
+                const auto capacity=local.houseCapacities.find(house.type==11?11:house.houseModel);if(capacity==local.houseCapacities.end()||!local.services||!local.services->population)return out;
+                f.employmentAmount=uint8_t(std::min<int>(f.employmentAmount,std::max(0,capacity->second-house.residents)));
+                if(!house.residents)return out; //4CB18A->5188F0->virtual230 empty-house conversion is not closed.
+                house.residents=originalFigureWord(int(house.residents)+f.employmentAmount);house.freeSlots=originalFigureWord(capacity->second-house.residents);
+                auto& population=*local.services->population;population.lastArrival=f.employmentAmount;
+                const uint32_t total=uint32_t(population.total)+f.employmentAmount;population.total=total>INT32_MAX?0:int32_t(total);population.peak=std::max(population.peak,population.total);house.worker=0;}}}}
+        if(!originalFigureWriteWalkingImage(f,0x4c0f,archives,context->view,false,false)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+        originalFigurePublishWrites(out,f,*context,local);return out;}
     const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
     if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
+    if(f.action==7){if(!local.buildings||!local.buildings->count(size_t(f.home)))return out;auto& house=local.buildings->at(size_t(f.home));
+        f.hidden=0;
+        if(f.direction==9||f.direction==10){house.worker=0;f.alive=2;}
+        else if(f.direction==8){f.action=8;f.destinationX=house.x;f.destinationY=house.y;originalFigureFreeTarget(f);f.roamSteps=0;}
+        if(!originalFigureWriteWalkingImage(f,0x4c0f,archives,context->view,false,false)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+        originalFigurePublishWrites(out,f,*context,local);return out;}
     if(f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
         if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
     else if(f.direction==8)f.alive=2;
-    else if(f.direction>=10)return out;
+    else if(f.direction==10)f.alive=2;
     f.counter=originalFigureWord(int(f.counter)+1);if(f.counter>30){
         if(!local.buildings)return out;
-        //4ADD60 scans the complete house pool;positive vacancy candidates
-        //need original nearest-house and road selection,never a no-target fit.
-        for(const auto& e:*local.buildings){const auto& b=e.second;
-            if(b.type>=2&&b.type<18&&(b.alive==1||b.alive==3)&&b.accepting&&b.roadDistance>0&&b.freeSlots>0&&!b.worker)return out;}
-        f.counter=0;
+        f.counter=0;const auto house=originalFigureNearestHouse(f,local);if(!house)return out;
+        if(*house){const auto road=local.workerRoadExits.find(*house);if(road==local.workerRoadExits.end())return out;
+            if(road->second){local.buildings->at(*house).worker=int16_t(f.slot);f.home=int16_t(*house);f.action=7;
+                f.destinationX=road->second->first;f.destinationY=road->second->second;f.roamSteps=0;
+                if(f.route>0){if(f.route>=1000||!local.services)return out;if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}}
     }
     if(!originalFigureWriteWalkingImage(f,0x4c0f,archives,context->view,false,false)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     originalFigurePublishWrites(out,f,*context,local);return out;
@@ -2428,9 +2530,9 @@ inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUp
     }else if(f.type==54){ //4C8B70 skips projectile owner cleanup;4C909E clears shooter+32 when lifetime+64!=0.
         const auto shooter=context.figures.find(size_t(f.owner));if(shooter==context.figures.end()||shooter->second.type!=40)return false;
         if(f.home)shooter->second.destinationCell&=0xffffu; //runtime+32 is high word of+30 destinationCell.
-    }else if(f.owner)return false;
+    }else if(f.owner&&f.type!=13)return false;
     //4C909E tests+64,then addresses the+62 owner (not the home index).
-    if(f.home&&(f.type==76||f.type==11)){ //4C909E:nonzero+64 gates owner+62, including workers rejected by4CA330.
+    if(f.home&&(f.type==76||f.type==11||f.type==13)){ //4C909E:nonzero+64 gates owner+62, including rejected workers.
         if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
         if(owner==context.buildings->end())return false;owner->second.worker=0;
     }else if(f.home&&f.type!=11&&f.type!=54)return false; //worker arrival already cleared its reciprocal home link.

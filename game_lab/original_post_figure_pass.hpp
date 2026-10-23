@@ -13,10 +13,14 @@ namespace game_lab {
 // section "剩余两步的深度映射：0x466E90 与 0x564B50", subsections 2.2-2.5.
 //
 // Scope: the 0x00564B50 skeleton (counter + 30/50 period + ordered pool scan +
-// type-based skip advance) and the 0x00562F70 type whitelist. Every callee that is
-// still unported is a caller-supplied provider; when a provider is absent the pass
-// stops with a named refusal instead of guessing the callee's behaviour. No
-// environment, file or clock is read here.
+// type-based skip advance), the 0x00562F70 type whitelist, and the callees ported
+// in this header: the 0x005653C0 record lookup, the 0x00567610 skip advance (both
+// over the 0x012A5DD0 array), the 0x00564EA0 types-76/77 step, and the exact
+// prefixes of 0x0056C880 (the two record profiles plus the relative-index leave)
+// and 0x0056D170 (the same entry leave). Every callee that is still unported is a
+// caller-supplied provider; when a provider is absent the pass stops with a named
+// refusal instead of guessing the callee's behaviour. No environment, file or
+// clock is read here.
 //
 // ---------------------------------------------------------------------------
 // 0x00562F70 whitelist (type predicate)
@@ -76,6 +80,149 @@ inline bool originalPostFigureWhitelisted(uint32_t type) {
     // Two-entry dispatch: a zero byte selects the accepting answer of 0x00562F8D.
     if (kOriginalPostFigureWhitelistIndex[index] == 0) return true;
     return false;
+}
+
+// The fields the exe reads at [obj+20], [obj+22] and [obj+4] through 0x0047F1B0 and
+// 0x00426D10, named by offset. Nothing else about the object is consumed here.
+struct OriginalPostFigureRegistryObject {
+    int16_t type0x14 = 0;      // word[obj+20], signed, read at 0x00564B93
+    int16_t word0x16 = 0;      // word[obj+22], must be zero at 0x00564BA4
+    uint8_t live0x04 = 0;      // byte[obj+4], 0x00426D10 accepts 1 and 3
+};
+
+// ---------------------------------------------------------------------------
+// 0x0056C880 and 0x0056D170: the exact part, and what stays refused
+// ---------------------------------------------------------------------------
+// VERIFIED from the executable:
+//  * 0x0056C880 opens with 0x0056A910 on the record (0x0056C88B), asks
+//    0x00564E80 (0x0056C890) and, when that answers true, calls 0x0056A940 on the
+//    record (0x0056C89B). Both are pure writers of seven dwords at +16..+40 and
+//    nothing else in them is conditional.
+//  * It then reads registry[index] (0x0056C8AA) and forms index - word[object+22]
+//    (0x0056C8B1); a value of at most zero leaves at once (0x0056C8BD). The body
+//    below that point walks the record's containers at +44, +48, +64, +96 and +128
+//    through 0x004F8210 / 0x004F8200, calls vtable slots +492, +36 and +4, and
+//    calls 0x0056BB40, 0x00563550, 0x00563FD0, 0x0056E600, 0x0056B8C0..0x0056B910,
+//    0x0056D0F0 and 0x0056D690. None of those structures is in the save and the
+//    audit keeps the semantics unclear, so the walk stays a named refusal.
+//  * 0x0056D170 has the same entry: registry[index] at 0x0056D19E, index minus
+//    word[object+22] at 0x0056D1A5, and an early leave at 0x0056D1B3 that stores
+//    the zero answer flag and writes nothing (0x0056D4AB). Its answer once the
+//    body ran is (count(+80) > 0) || (count(+48) > 0) (0x0056D48D..0x0056D4A7,
+//    counters from 0x0056B8E0 and 0x0056B8C0), but the body rewrites those
+//    containers, so the answer cannot be stated without it.
+//  * The two profiles are exactly doubled by the gate: 2,3,8,7,5,3,3 against
+//    4,6,16,14,10,6,6 at +16,+20,+24,+28,+32,+36,+40.
+inline constexpr int32_t kOriginalPostFigureRecordProfile0x56A910[7] = {2, 3, 8, 7, 5, 3, 3};
+inline constexpr int32_t kOriginalPostFigureRecordProfile0x56A940[7] = {4, 6, 16, 14, 10, 6, 6};
+inline constexpr size_t kOriginalPostFigureRecordProfileFirstOffset = 16;
+inline constexpr size_t kOriginalPostFigureRecordProfileStride = 4;
+
+// The record dwords the two profiles write, named by offset.
+struct OriginalPostFigureRecordScalars {
+    int32_t field0x10 = 0;  // dword+16
+    int32_t field0x14 = 0;  // dword+20
+    int32_t field0x18 = 0;  // dword+24
+    int32_t field0x1C = 0;  // dword+28
+    int32_t field0x20 = 0;  // dword+32
+    int32_t field0x24 = 0;  // dword+36
+    int32_t field0x28 = 0;  // dword+40
+};
+
+// 0x0056A910: the unconditional opening profile.
+inline void originalPostFigureRecordProfile0x56A910(OriginalPostFigureRecordScalars& scalars) {
+    scalars.field0x10 = kOriginalPostFigureRecordProfile0x56A910[0];
+    scalars.field0x14 = kOriginalPostFigureRecordProfile0x56A910[1];
+    scalars.field0x18 = kOriginalPostFigureRecordProfile0x56A910[2];
+    scalars.field0x1C = kOriginalPostFigureRecordProfile0x56A910[3];
+    scalars.field0x20 = kOriginalPostFigureRecordProfile0x56A910[4];
+    scalars.field0x24 = kOriginalPostFigureRecordProfile0x56A910[5];
+    scalars.field0x28 = kOriginalPostFigureRecordProfile0x56A910[6];
+}
+
+// 0x0056A940: the opening profile when 0x00564E80 answers true.
+inline void originalPostFigureRecordProfile0x56A940(OriginalPostFigureRecordScalars& scalars) {
+    scalars.field0x10 = kOriginalPostFigureRecordProfile0x56A940[0];
+    scalars.field0x14 = kOriginalPostFigureRecordProfile0x56A940[1];
+    scalars.field0x18 = kOriginalPostFigureRecordProfile0x56A940[2];
+    scalars.field0x1C = kOriginalPostFigureRecordProfile0x56A940[3];
+    scalars.field0x20 = kOriginalPostFigureRecordProfile0x56A940[4];
+    scalars.field0x24 = kOriginalPostFigureRecordProfile0x56A940[5];
+    scalars.field0x28 = kOriginalPostFigureRecordProfile0x56A940[6];
+}
+
+enum class OriginalPostFigure56C880Status {
+    Ok,                      // the profile ran and the relative index left at 0x0056C8BD
+    RefusedMissingInput,     // the gate or the scalar target was not supplied
+    RefusedIndexOutsidePool, // registry[index] would be read out of range
+    RefusedNullObject,       // registry[index] held no object
+    RefusedContainers,       // the container walk below 0x0056C8C3 is not ported
+};
+
+inline const char* originalPostFigure56C880StatusName(OriginalPostFigure56C880Status status) {
+    switch (status) {
+        case OriginalPostFigure56C880Status::Ok: return "ok";
+        case OriginalPostFigure56C880Status::RefusedMissingInput: return "refused_missing_input";
+        case OriginalPostFigure56C880Status::RefusedIndexOutsidePool: return "refused_index_outside_pool";
+        case OriginalPostFigure56C880Status::RefusedNullObject: return "refused_null_object";
+        case OriginalPostFigure56C880Status::RefusedContainers: return "refused_containers";
+    }
+    return "unknown";
+}
+
+struct OriginalPostFigure56C880Inputs {
+    // 0x00564E80 at 0x0056C890: true selects the doubled profile.
+    std::optional<std::function<bool()>> gate0x564E80;
+    // The record whose +16..+40 dwords the profiles write. No default.
+    std::optional<std::function<OriginalPostFigureRecordScalars*()>> scalarsForRecord;
+};
+
+// The exact prefix of 0x0056C880: both profiles behind the gate, then the
+// relative-index leave. A non-positive relative index ends the callee, so Ok is
+// the complete answer for it; anything else is the named container refusal.
+inline OriginalPostFigure56C880Status originalPostFigureUpdateRecord0x56C880(
+    uint32_t index, const std::vector<const OriginalPostFigureRegistryObject*>& registry,
+    const OriginalPostFigure56C880Inputs& inputs) {
+    using Status = OriginalPostFigure56C880Status;
+    if (!inputs.gate0x564E80 || !inputs.scalarsForRecord) return Status::RefusedMissingInput;
+    OriginalPostFigureRecordScalars* scalars = (*inputs.scalarsForRecord)();
+    if (!scalars) return Status::RefusedMissingInput;
+    originalPostFigureRecordProfile0x56A910(*scalars);           // 0x0056C88B
+    if ((*inputs.gate0x564E80)()) originalPostFigureRecordProfile0x56A940(*scalars);  // 0x0056C89B
+    if (size_t(index) >= registry.size()) return Status::RefusedIndexOutsidePool;
+    const OriginalPostFigureRegistryObject* slot = registry[index];
+    if (!slot) return Status::RefusedNullObject;                 // 0x0056C8AF dereference
+    if (int32_t(index) - int32_t(slot->word0x16) <= 0) return Status::Ok;  // 0x0056C8BD
+    return Status::RefusedContainers;                            // 0x0056C8C3 onward
+}
+
+enum class OriginalPostFigure56D170Status {
+    OkFalse,                 // 0x0056D1B3: the early leave answers false
+    RefusedIndexOutsidePool, // registry[index] would be read out of range
+    RefusedNullObject,       // registry[index] held no object
+    RefusedContainers,       // the body below 0x0056D1B9 is not ported
+};
+
+inline const char* originalPostFigure56D170StatusName(OriginalPostFigure56D170Status status) {
+    switch (status) {
+        case OriginalPostFigure56D170Status::OkFalse: return "ok_false";
+        case OriginalPostFigure56D170Status::RefusedIndexOutsidePool: return "refused_index_outside_pool";
+        case OriginalPostFigure56D170Status::RefusedNullObject: return "refused_null_object";
+        case OriginalPostFigure56D170Status::RefusedContainers: return "refused_containers";
+    }
+    return "unknown";
+}
+
+// The exact prefix of 0x0056D170: the relative-index leave, whose answer is false
+// and whose only write is that answer. Every other path needs the containers.
+inline OriginalPostFigure56D170Status originalPostFigureStepRecord0x56D170(
+    uint32_t index, const std::vector<const OriginalPostFigureRegistryObject*>& registry) {
+    using Status = OriginalPostFigure56D170Status;
+    if (size_t(index) >= registry.size()) return Status::RefusedIndexOutsidePool;
+    const OriginalPostFigureRegistryObject* slot = registry[index];
+    if (!slot) return Status::RefusedNullObject;                 // 0x0056D1A3 dereference
+    if (int32_t(index) - int32_t(slot->word0x16) <= 0) return Status::OkFalse;  // 0x0056D1B3
+    return Status::RefusedContainers;                            // 0x0056D1B9 onward
 }
 
 // ---------------------------------------------------------------------------
@@ -153,8 +300,15 @@ enum class OriginalPostFigurePassStatus {
     RefusedUnported56C880,       // 0x00564BDB
     RefusedUnported56D170,       // 0x00564BE3
     RefusedUnported564EA0,       // 0x00564C01
+    Refused564EA0Contract,       // 0x00564EA0 input precondition (index/null)
     RefusedUnported567610,       // 0x00564C0B
     Refused567610ZeroAdvance,    // 0x00567610 answered 0: the index would not advance
+    // Narrow 0x0056C880 / 0x0056D170 ports: the exact profile and entry prefix
+    // ran, and the container walk below it stays refused by name.
+    Refused56C880Containers,     // 0x0056C8C3 onward
+    Refused56C880Contract,       // registry[index] unusable at the 0x0056C8AA read
+    Refused56D170Containers,     // 0x0056D1B9 onward
+    Refused56D170Contract,       // registry[index] unusable at the 0x0056D19E read
 };
 
 inline const char* originalPostFigurePassStatusName(OriginalPostFigurePassStatus status) {
@@ -167,8 +321,13 @@ inline const char* originalPostFigurePassStatusName(OriginalPostFigurePassStatus
         case OriginalPostFigurePassStatus::RefusedUnported56C880: return "refused_unported_56c880";
         case OriginalPostFigurePassStatus::RefusedUnported56D170: return "refused_unported_56d170";
         case OriginalPostFigurePassStatus::RefusedUnported564EA0: return "refused_unported_564ea0";
+        case OriginalPostFigurePassStatus::Refused564EA0Contract: return "refused_564ea0_contract";
         case OriginalPostFigurePassStatus::RefusedUnported567610: return "refused_unported_567610";
         case OriginalPostFigurePassStatus::Refused567610ZeroAdvance: return "refused_567610_zero_advance";
+        case OriginalPostFigurePassStatus::Refused56C880Containers: return "refused_56c880_containers";
+        case OriginalPostFigurePassStatus::Refused56C880Contract: return "refused_56c880_contract";
+        case OriginalPostFigurePassStatus::Refused56D170Containers: return "refused_56d170_containers";
+        case OriginalPostFigurePassStatus::Refused56D170Contract: return "refused_56d170_contract";
     }
     return "unknown";
 }
@@ -180,18 +339,369 @@ struct OriginalPostFigurePassState {
     uint32_t period = 0;   // 0x00859DA0
 };
 
-// The fields the exe reads at [obj+20], [obj+22] and [obj+4] through 0x0047F1B0 and
-// 0x00426D10, named by offset. Nothing else about the object is consumed here.
-struct OriginalPostFigureRegistryObject {
-    int16_t type0x14 = 0;      // word[obj+20], signed, read at 0x00564B93
-    int16_t word0x16 = 0;      // word[obj+22], must be zero at 0x00564BA4
-    uint8_t live0x04 = 0;      // byte[obj+4], 0x00426D10 accepts 1 and 3
+// ---------------------------------------------------------------------------
+// 0x012A5DD0 record table, 0x005653C0 and 0x00567610
+// ---------------------------------------------------------------------------
+// Both lookups walk one array: 144-byte records starting at 0x012A5DD0, entry
+// count at 0x012A6E7C. VERIFIED from the executable:
+//  * The count is read with a signed check (0x005653DE, 0x00567619); a count of at
+//    most zero leaves at once with a null / zero answer (0x00565401, 0x00567635).
+//  * The key is dword[record+4]. 0x005653EB reads word[object+20] with a
+//    sign-extending load and 0x005653EF compares it with dword[record+4];
+//    0x00567626 compares the same dword with the caller's argument.
+//  * 0x005653C0 resolves its own argument through 0x0047F1B0 (0x005653C8), reads
+//    word[slot+20] and answers the first record whose key matches: the scan
+//    leaves as soon as a match is stored (0x005653E7), and it answers null when
+//    the whole array is exhausted (0x00565401, null answer).
+//  * 0x00567610 answers dword[record+12] (the hit index is scaled by 9 then by
+//    16 at 0x00567639/0x0056763C and offset by 0x012A5DDC = base+12) and zero
+//    when no record matches (0x00567635).
+//  * Capacity and construction: 0x00567650 reuses a record whose key already
+//    exists (0x00567666), refuses once the count has reached 27 (0x00567675) and
+//    initialises the fresh record through 0x0056B270. 0x0056488B zeroes the
+//    count and the following registrations supply the keys from code, so the
+//    array is built at run time.
+//
+// Not serialized: the SAV19 read window 0x005311DC..0x00531873 holds 91 read
+// requests (the shared read entry point 0x00780533) and none of them names
+// 0x012A5DD0, 0x012A5DD4, 0x012A5DDC or 0x012A6E7C. Together with the
+// registration path above, a loaded save cannot supply this array: the caller
+// must state the records and their order. Only the two fields the lookups read
+// are modelled; the other 132 bytes belong to other consumers.
+inline constexpr uint32_t kOriginalPostFigureRecordTableVa = 0x012A5DD0u;
+inline constexpr uint32_t kOriginalPostFigureRecordKeyVa = 0x012A5DD4u;
+inline constexpr uint32_t kOriginalPostFigureRecordAdvanceVa = 0x012A5DDCu;
+inline constexpr uint32_t kOriginalPostFigureRecordCountVa = 0x012A6E7Cu;
+inline constexpr size_t kOriginalPostFigureRecordSize = 144;
+inline constexpr size_t kOriginalPostFigureRecordCapacity = 27;
+inline constexpr size_t kOriginalPostFigureRecordKeyOffset = 4;
+inline constexpr size_t kOriginalPostFigureRecordAdvanceOffset = 12;
+
+// One table record, named by offset: key0x04 is the type both lookups compare,
+// advance0x0C is the skip count 0x00567610 answers.
+struct OriginalPostFigureRecord {
+    int32_t key0x04 = 0;
+    int32_t advance0x0C = 0;
 };
+
+// The whole array in slot order. records.size() is the 0x012A6E7C count, so an
+// empty table is the exe's "count of at most zero" case.
+struct OriginalPostFigureRecordTable {
+    std::vector<OriginalPostFigureRecord> records;
+};
+
+// One 0x00567610 invocation: the skip count for the type, zero when the type has
+// no record. The answer is signed in the exe and used as a signed count by the
+// caller at 0x00564C13.
+inline int32_t originalPostFigureSkipAdvance0x567610(const OriginalPostFigureRecordTable& table,
+                                                     int32_t type) {
+    for (const OriginalPostFigureRecord& record : table.records) {
+        if (record.key0x04 == type) return record.advance0x0C;  // 0x00567639 answer
+    }
+    return 0;  // 0x00567635: the array was exhausted
+}
+
+// One 0x005653C0 invocation: the first record whose key equals the object's type
+// word, or null. The exe re-resolves 0x008C7634[index] at 0x005653C8 only to read
+// that word; the caller already holds the same slot, so the object is handed over
+// directly instead of an index.
+inline const OriginalPostFigureRecord* originalPostFigureFindRecord0x5653C0(
+    const OriginalPostFigureRecordTable& table, const OriginalPostFigureRegistryObject& object) {
+    const int32_t type = object.type0x14;  // word[object+20], sign extended at 0x005653EB
+    for (const OriginalPostFigureRecord& record : table.records) {
+        if (record.key0x04 == type) return &record;  // 0x005653F4 stores the hit
+    }
+    return nullptr;  // 0x00565401
+}
+
+// ---------------------------------------------------------------------------
+// 0x00564EA0: the types-76/77 step
+// ---------------------------------------------------------------------------
+// VERIFIED from the executable (body 0x00564EA0..0x00565380, single exit path
+// through 0x00565371/0x00565379, discarding its one stack argument):
+//  * Entry: an index of at most zero leaves at once (0x00564EDB). Otherwise the
+//    linked index is index - word[object+22] (0x00564EF0/0x00564EF4), the linked
+//    object's state pointer comes from vtable slot +0x1EC (0x00564F0B), and the
+//    step leaves when that state's byte +96 is non-zero (0x00564F1A), when
+//    0x00564E90 answers false (0x00564F27), when the linked object's type is
+//    neither 76 nor 77 (0x00564F39/0x00564F3F), or when the state's dword +20 is
+//    not 4 (0x00564F4D). None of those leaves writes anything.
+//  * The candidate count is 0x00567610(linked type) at 0x00564F57. A count of at
+//    most zero skips the scan and jumps straight to the commit decision with no
+//    candidate recorded (0x00564F61), so only the marker at +96 is written.
+//  * The scan walks candidates at index+0 .. index+count-1 (0x00564F71 is the
+//    first candidate, 0x0056521E/0x00565230 stop after `count` visits). For each
+//    candidate it takes the state pointer from vtable slot +0x1EC, asks
+//    0x005635A0 for a neighbour record, and reads that record's dword +4 and +8.
+//    The five accepted (dword+4, dword+8) shapes and their resources:
+//      (-1,-2) resource 42 when the 0x004812E0 flag is set, else 44; type 23/22
+//      (-1, 1) resource 226, only when the argument object's type is 77; type 21
+//      ( 1,-2) resource 46, only when that type is 77; type 26
+//      ( 2,-2) resource 47; type 24
+//      ( 2, 1) resource 43; type 25
+//    The (+4 == -1) branch is the only one that also reaches the (+8 == 1) case.
+//    Each accepted shape converts one state dword to a value:
+//      0x00564FB6 dword+64 with 700.0 for type 76 and 1100.0 otherwise,
+//      0x00565072 dword+76 with 700.0, 0x005650EC dword+80 with 400.0,
+//      0x00565158 dword+68 with 400.0 for type 76 and 1000.0 otherwise,
+//      0x005651C2 dword+72 with 600.0 for type 76 and 900.0 otherwise.
+//    "type 76" here is always the argument object's own type word: 0x00564FB2,
+//    0x00565154 and 0x005651BE read the object saved at 0x00564EA9, not the
+//    linked or candidate object. The linked type only gates entry (76 or 77) and
+//    supplies the candidate count.
+//    Constant bytes read back from the file: 0x007B8A98 = 700.0,
+//    0x007B8A90 = 1100.0, 0x007ACA28 = 400.0, 0x007AE110 = 1000.0,
+//    0x007B8A88 = 600.0, 0x007B8A80 = 900.0.
+//    The subtraction is `constant - dword` (the x87 reverse subtract at each
+//    site) and 0x007650FC converts it to a signed 32-bit integer by truncation.
+//  * 0x00402A50(resource) decides the accumulator: non-zero compares the value
+//    with the best available score (0x00564FEB etc.) and records the state plus
+//    a type code; zero counts the candidate (0x00564FFF etc.) and compares with
+//    the best unavailable score. Both comparisons are strict and signed, so the
+//    first candidate wins a tie.
+//  * Commit (0x00565236): when at least one candidate was unavailable the best
+//    unavailable one is charged, otherwise the best available one. The type code
+//    21..26 selects the state dword: 21 -> +76, 22 and 23 -> +64, 24 -> +68,
+//    25 -> +72, 26 -> +80 (dispatch tables at 0x00565384 for the unavailable
+//    branch and 0x0056539C for the available branch; both list those targets in
+//    that order). A code outside 21..26 charges nothing (0x00565371). Every
+//    commit path then writes byte +96 = 1 on the linked object's state.
+//
+// Not serialized: this callee owns no global. Its inputs are the registry, the
+// 0x012A5DD0 array and the state/neighbour objects, all run-time structures; the
+// SAV19 window names none of them. The vtable slot at +0x1EC, the 0x005635A0
+// neighbour record and the five probes are therefore explicit inputs below, with
+// no default: an absent one refuses instead of being replaced by a guess.
+inline constexpr double kOriginalPostFigureType7677Anchor76 = 700.0;    // 0x007B8A98
+inline constexpr double kOriginalPostFigureType7677AnchorOther = 1100.0; // 0x007B8A90
+inline constexpr double kOriginalPostFigureType7677Resource76 = 400.0;   // 0x007ACA28
+inline constexpr double kOriginalPostFigureType7677Resource1000 = 1000.0; // 0x007AE110
+inline constexpr double kOriginalPostFigureType7677Resource600 = 600.0;  // 0x007B8A88
+inline constexpr double kOriginalPostFigureType7677Resource900 = 900.0;  // 0x007B8A80
+inline constexpr uint32_t kOriginalPostFigureType7677CommitTableVa = 0x00565384u;
+inline constexpr uint32_t kOriginalPostFigureType7677CommitTableAvailableVa = 0x0056539Cu;
+
+// The state object reached through vtable slot +0x1EC, named by offset. The step
+// reads dword +20 and byte +96 from the linked object's state and charges one of
+// the five dwords on the winning candidate's state.
+struct OriginalPostFigureType7677State {
+    int32_t field0x14 = 0;  // dword+20, must equal 4 on the linked object's state
+    int32_t field0x40 = 0;  // dword+64
+    int32_t field0x44 = 0;  // dword+68
+    int32_t field0x48 = 0;  // dword+72
+    int32_t field0x4C = 0;  // dword+76
+    int32_t field0x50 = 0;  // dword+80
+    uint8_t byte0x60 = 0;   // byte+96, set to 1 when the step commits
+};
+
+// The neighbour record 0x005635A0 answers for a candidate index: only these two
+// dwords are read. 0x005635A0 itself walks the 0x012A5DD0 record's +8 pointer and
+// calls 0x00563530; neither is ported, so the record is an input.
+struct OriginalPostFigureType7677Neighbour {
+    int32_t field0x04 = 0;
+    int32_t field0x08 = 0;
+};
+
+// Every external question the step asks. All five are required; a missing one is
+// a refusal, never a default.
+struct OriginalPostFigureType7677Inputs {
+    // vtable slot +0x1EC of registry[index]: the per-object state. Called at
+    // 0x00564F0B for the linked index and once per candidate at 0x00564F82.
+    std::optional<std::function<OriginalPostFigureType7677State*(uint32_t)>> stateForIndex;
+    // 0x005635A0(index, out) at 0x00564F90: the candidate's neighbour record.
+    std::optional<std::function<const OriginalPostFigureType7677Neighbour*(uint32_t)>> neighbourForIndex;
+    // 0x004812E0(0x00480740(23)) at 0x00564EC7/0x00564ECE: the branch flag that
+    // picks resource 42 over 44 and type code 23 over 22.
+    std::optional<std::function<bool()>> flag0x4812E0;
+    // 0x00564E90 at 0x00564F20: a session gate that suppresses the whole step.
+    std::optional<std::function<bool()>> probe0x564E90;
+    // 0x00402A50(resource) at 0x00564FDF, 0x0056501A, 0x00565087, 0x005650FE,
+    // 0x00565179 and 0x005651E3: true selects the available accumulator.
+    std::optional<std::function<bool(uint32_t)>> probe0x402A50;
+};
+
+inline bool originalPostFigureType7677InputsComplete(const OriginalPostFigureType7677Inputs& inputs) {
+    return inputs.stateForIndex.has_value() && inputs.neighbourForIndex.has_value() &&
+           inputs.flag0x4812E0.has_value() && inputs.probe0x564E90.has_value() &&
+           inputs.probe0x402A50.has_value();
+}
+
+// 0x007650FC: the x87-to-integer helper truncates toward zero and answers the
+// indefinite value 0x80000000 when the operand does not fit a signed 32-bit
+// integer. Both operands here are integers, so the double arithmetic is exact.
+inline int32_t originalPostFigureType7677Truncate(double value) {
+    if (!(value < 2147483648.0) || !(value >= -2147483648.0)) return int32_t(0x80000000u);
+    return static_cast<int32_t>(value);
+}
+
+enum class OriginalPostFigureType7677Status {
+    Ok,                      // left through 0x00565371 or a commit path
+    RefusedMissingInput,     // one of the five inputs was not supplied
+    RefusedIndexOutsidePool, // the linked or candidate index left the registry
+    RefusedNullObject,       // a registry slot held no object
+    RefusedNullState,        // vtable slot +0x1EC answered null
+    RefusedNullNeighbour,    // 0x005635A0 answered null (the exe dereferences it)
+};
+
+inline const char* originalPostFigureType7677StatusName(OriginalPostFigureType7677Status status) {
+    switch (status) {
+        case OriginalPostFigureType7677Status::Ok: return "ok";
+        case OriginalPostFigureType7677Status::RefusedMissingInput: return "refused_missing_input";
+        case OriginalPostFigureType7677Status::RefusedIndexOutsidePool: return "refused_index_outside_pool";
+        case OriginalPostFigureType7677Status::RefusedNullObject: return "refused_null_object";
+        case OriginalPostFigureType7677Status::RefusedNullState: return "refused_null_state";
+        case OriginalPostFigureType7677Status::RefusedNullNeighbour: return "refused_null_neighbour";
+    }
+    return "unknown";
+}
+
+// One 0x00564EA0 invocation. `object` is the registry[index] object the caller
+// resolved at 0x00564B8C; `registry` is the 0x008C7634 pool; `records` is the
+// 0x012A5DD0 array for the nested 0x00567610. Every leave that writes nothing is
+// reported as Ok because the exe treats it as "nothing to do".
+inline OriginalPostFigureType7677Status originalPostFigureHandleTypes7677(
+    const OriginalPostFigureRegistryObject& object, uint32_t index,
+    const std::vector<const OriginalPostFigureRegistryObject*>& registry,
+    const OriginalPostFigureRecordTable& records, const OriginalPostFigureType7677Inputs& inputs) {
+    using Status = OriginalPostFigureType7677Status;
+    if (!originalPostFigureType7677InputsComplete(inputs)) return Status::RefusedMissingInput;
+
+    const bool flag = (*inputs.flag0x4812E0)();  // 0x00564EC7/0x00564ECE
+    if (int32_t(index) <= 0) return Status::Ok;  // 0x00564EDB signed
+    if (size_t(index) >= registry.size()) return Status::RefusedIndexOutsidePool;
+    const OriginalPostFigureRegistryObject* slot = registry[index];
+    if (!slot) return Status::RefusedNullObject;
+
+    // 0x00564EF0..0x00564EF4: the linked index is relative to the object's +22 word.
+    const int32_t linkedIndex = int32_t(index) - int32_t(slot->word0x16);
+    if (linkedIndex < 0 || size_t(linkedIndex) >= registry.size()) {
+        return Status::RefusedIndexOutsidePool;
+    }
+    const OriginalPostFigureRegistryObject* linked = registry[size_t(linkedIndex)];
+    if (!linked) return Status::RefusedNullObject;
+
+    OriginalPostFigureType7677State* linkedState = (*inputs.stateForIndex)(uint32_t(linkedIndex));
+    if (!linkedState) return Status::RefusedNullState;              // 0x00564F0B
+    if (linkedState->byte0x60 != 0) return Status::Ok;              // 0x00564F1A
+    if (!(*inputs.probe0x564E90)()) return Status::Ok;              // 0x00564F27
+    if (linked->type0x14 != 76 && linked->type0x14 != 77) return Status::Ok;  // 0x00564F31
+    if (linkedState->field0x14 != 4) return Status::Ok;             // 0x00564F4D
+
+    const int32_t remaining = originalPostFigureSkipAdvance0x567610(records, linked->type0x14);
+    int32_t bestAvailable = 0;    // the exe keeps this in one register
+    int32_t bestUnavailable = 0;  // and this in another; both start at zero
+    int32_t unavailableCount = 0;
+    OriginalPostFigureType7677State* availableState = nullptr;
+    int32_t availableCode = 0;
+    OriginalPostFigureType7677State* unavailableState = nullptr;
+    int32_t unavailableCode = 0;
+    const int16_t callerType = object.type0x14;
+
+    auto charge = [&](uint32_t resource, int32_t value, int32_t code,
+                      OriginalPostFigureType7677State* candidate) {
+        if ((*inputs.probe0x402A50)(resource)) {
+            if (value > bestAvailable) {  // strict and signed
+                bestAvailable = value;
+                availableCode = code;
+                availableState = candidate;
+            }
+        } else {
+            ++unavailableCount;
+            if (value > bestUnavailable) {
+                bestUnavailable = value;
+                unavailableCode = code;
+                unavailableState = candidate;
+            }
+        }
+    };
+
+    int32_t cursor = linkedIndex;
+    int32_t left = remaining;
+    while (left > 0) {  // 0x00564F71 .. 0x00565230
+        const uint32_t current = uint32_t(cursor);
+        if (size_t(current) >= registry.size()) return Status::RefusedIndexOutsidePool;
+        const OriginalPostFigureRegistryObject* candidateObject = registry[current];
+        if (!candidateObject) return Status::RefusedNullObject;
+        OriginalPostFigureType7677State* candidate = (*inputs.stateForIndex)(current);
+        if (!candidate) return Status::RefusedNullState;  // 0x00564F82
+        const OriginalPostFigureType7677Neighbour* neighbour = (*inputs.neighbourForIndex)(current);
+        if (!neighbour) return Status::RefusedNullNeighbour;  // 0x00564F90
+
+        if (neighbour->field0x04 == -1) {  // 0x00564FA2
+            if (neighbour->field0x08 == -2) {  // 0x00564FA8
+                const double base = callerType == 76 ? kOriginalPostFigureType7677Anchor76
+                                                     : kOriginalPostFigureType7677AnchorOther;
+                const int32_t value = originalPostFigureType7677Truncate(
+                    base - double(candidate->field0x40));  // 0x00564FB6
+                charge(flag ? 42u : 44u, value, flag ? 23 : 22, candidate);
+            }
+            if (neighbour->field0x08 == 1 && callerType == 77) {  // 0x00565059/0x00565067
+                const int32_t value = originalPostFigureType7677Truncate(
+                    kOriginalPostFigureType7677Anchor76 - double(candidate->field0x4C));
+                charge(226u, value, 21, candidate);  // 0x00565072
+            }
+        } else if (neighbour->field0x04 == 1) {  // 0x005650CE
+            if (neighbour->field0x08 == -2 && callerType == 77) {  // 0x005650D3/0x005650DD
+                const int32_t value = originalPostFigureType7677Truncate(
+                    kOriginalPostFigureType7677Resource76 - double(candidate->field0x50));
+                charge(46u, value, 26, candidate);  // 0x005650EC
+            }
+        } else if (neighbour->field0x04 == 2) {  // 0x00565145
+            if (neighbour->field0x08 == -2) {  // 0x0056514E
+                const double base = callerType == 76 ? kOriginalPostFigureType7677Resource76
+                                                     : kOriginalPostFigureType7677Resource1000;
+                const int32_t value = originalPostFigureType7677Truncate(
+                    base - double(candidate->field0x44));
+                charge(47u, value, 24, candidate);  // 0x00565158
+            }
+            if (neighbour->field0x08 == 1) {  // 0x005651B4
+                const double base = callerType == 76 ? kOriginalPostFigureType7677Resource600
+                                                     : kOriginalPostFigureType7677Resource900;
+                const int32_t value = originalPostFigureType7677Truncate(
+                    base - double(candidate->field0x48));
+                charge(43u, value, 25, candidate);  // 0x005651C2
+            }
+        }
+        ++cursor;  // 0x00565226
+        --left;    // 0x00565227
+    }
+
+    // 0x00565236: an unavailable candidate takes precedence, otherwise the best
+    // available one is charged. Code 21..26 selects the dword; anything else
+    // charges nothing but still marks the state.
+    if (unavailableCount > 0) {
+        if (unavailableState) {
+            switch (unavailableCode) {
+                case 21: unavailableState->field0x4C += bestUnavailable; break;
+                case 22:
+                case 23: unavailableState->field0x40 += bestUnavailable; break;
+                case 24: unavailableState->field0x44 += bestUnavailable; break;
+                case 25: unavailableState->field0x48 += bestUnavailable; break;
+                case 26: unavailableState->field0x50 += bestUnavailable; break;
+                default: break;  // 0x00565371
+            }
+        }
+    } else if (availableState) {
+        switch (availableCode) {
+            case 21: availableState->field0x4C += bestAvailable; break;
+            case 22:
+            case 23: availableState->field0x40 += bestAvailable; break;
+            case 24: availableState->field0x44 += bestAvailable; break;
+            case 25: availableState->field0x48 += bestAvailable; break;
+            case 26: availableState->field0x50 += bestAvailable; break;
+            default: break;
+        }
+    }
+    linkedState->byte0x60 = 1;  // 0x0056526D / 0x00565315 / 0x00565371
+    return Status::Ok;
+}
 
 // Session inputs. Every field is std::optional and has no default value: an absent
 // field refuses, it is never replaced by 0 or by a save byte. The first five are the
 // process/session state the SAV19 window does not carry; the five providers are the
-// callees this skeleton does not implement. `registry` is the 0x008C7634 pool as the
+// callees this skeleton does not implement, and each provider has a ported
+// counterpart field below that may stand in when the provider is absent. `registry`
+// is the 0x008C7634 pool as the
 // caller sees it: index i holds *[0x0047F1B0(0x008C7634, i)] and its size is
 // 0x00554C00's answer. The skeleton never mutates it, so re-reading the count each
 // iteration (0x00564C1D) sees the same value.
@@ -213,6 +723,27 @@ struct OriginalPostFigurePassInputs {
     std::optional<std::function<void(const OriginalPostFigureRegistryObject&, uint32_t)>> handleTypes76_77_0x564EA0;
     // 0x00567610(type): the [rec+12] skip count for the type.
     std::optional<std::function<uint32_t(int32_t)>> skipAdvance0x567610;
+
+    // 0x00564EA0's ported implementation, used for types 76 and 77 when the
+    // provider above is absent. It also needs recordTable0x12A5DD0 for the nested
+    // 0x00567610 lookup.
+    std::optional<OriginalPostFigureType7677Inputs> types7677_0x564EA0;
+
+    // The 0x012A5DD0 array, for the two lookups that are ported in this header.
+    // When the matching provider above is present it wins; when it is absent and
+    // this array is supplied, the ported lookup runs instead of refusing. An
+    // absent array with an absent provider keeps the named refusal.
+    std::optional<OriginalPostFigureRecordTable> recordTable0x12A5DD0;
+
+    // The exact prefix of 0x0056C880, run for a found record when the provider
+    // above is absent. Its two fields (the 0x00564E80 gate and the record's
+    // +16..+40 scalar target) are not in the save, so the caller must supply
+    // them. Absent with the provider absent keeps refused_unported_56c880.
+    std::optional<OriginalPostFigure56C880Inputs> updateProfile0x56C880;
+    // Selects the exact prefix of 0x0056D170 when stepRecord0x56D170 is absent.
+    // The prefix reads only the registry, so this is a wiring switch rather than
+    // save state. A supplied provider still wins over it.
+    bool stepPrefix0x56D170 = false;
 };
 
 struct OriginalPostFigurePassResult {
@@ -290,37 +821,86 @@ inline OriginalPostFigurePassResult advanceOriginalPostFigurePass(
                 if (!originalPostFigureWhitelisted(uint32_t(int64_t(type)))) break;  // 0x00564B98
                 if (object->word0x16 != 0) break;                                    // 0x00564BA4
                 if (object->live0x04 != 1 && object->live0x04 != 3) break;           // 0x00564BAF
-                if (!inputs.indexRecord0x5653C0) {
+                if (!inputs.indexRecord0x5653C0 && !inputs.recordTable0x12A5DD0) {
                     result.status = OriginalPostFigurePassStatus::RefusedUnported5653C0;
                     return result;
                 }
-                const void* record = (*inputs.indexRecord0x5653C0)(*object, cursor);
+                const void* record = nullptr;
+                if (inputs.indexRecord0x5653C0) {
+                    record = (*inputs.indexRecord0x5653C0)(*object, cursor);
+                } else {
+                    record = originalPostFigureFindRecord0x5653C0(*inputs.recordTable0x12A5DD0, *object);
+                }
                 if (record) {  // 0x00564BC2 leaves for 0x00564BEE when the record is null
                     if (*inputs.pause0x10DE0D0 == 0 && *inputs.mode0x10DE045 != 86) {
-                        if (!inputs.updateRecord0x56C880) {
+                        if (inputs.updateRecord0x56C880) {
+                            (*inputs.updateRecord0x56C880)(record, cursor);
+                        } else if (inputs.updateProfile0x56C880) {
+                            const auto update = originalPostFigureUpdateRecord0x56C880(
+                                cursor, inputs.registry, *inputs.updateProfile0x56C880);
+                            if (update != OriginalPostFigure56C880Status::Ok) {
+                                switch (update) {
+                                    case OriginalPostFigure56C880Status::RefusedContainers:
+                                        result.status = OriginalPostFigurePassStatus::Refused56C880Containers;
+                                        break;
+                                    case OriginalPostFigure56C880Status::RefusedIndexOutsidePool:
+                                    case OriginalPostFigure56C880Status::RefusedNullObject:
+                                        result.status = OriginalPostFigurePassStatus::Refused56C880Contract;
+                                        break;
+                                    case OriginalPostFigure56C880Status::RefusedMissingInput:
+                                    case OriginalPostFigure56C880Status::Ok:
+                                        result.status = OriginalPostFigurePassStatus::RefusedUnported56C880;
+                                        break;
+                                }
+                                return result;
+                            }
+                        } else {
                             result.status = OriginalPostFigurePassStatus::RefusedUnported56C880;
                             return result;
                         }
-                        (*inputs.updateRecord0x56C880)(record, cursor);
-                        if (!inputs.stepRecord0x56D170) {
+                        if (inputs.stepRecord0x56D170) {
+                            if ((*inputs.stepRecord0x56D170)(record, cursor)) result.progress = true;
+                        } else if (inputs.stepPrefix0x56D170) {
+                            const auto step = originalPostFigureStepRecord0x56D170(cursor, inputs.registry);
+                            if (step != OriginalPostFigure56D170Status::OkFalse) {
+                                result.status = step == OriginalPostFigure56D170Status::RefusedContainers
+                                                    ? OriginalPostFigurePassStatus::Refused56D170Containers
+                                                    : OriginalPostFigurePassStatus::Refused56D170Contract;
+                                return result;
+                            }
+                        } else {
                             result.status = OriginalPostFigurePassStatus::RefusedUnported56D170;
                             return result;
                         }
-                        if ((*inputs.stepRecord0x56D170)(record, cursor)) result.progress = true;
                     }
                 }
                 if (type == 76 || type == 77) {  // 0x00564BF2/0x00564BFC reach 0x00564C01
-                    if (!inputs.handleTypes76_77_0x564EA0) {
+                    if (inputs.handleTypes76_77_0x564EA0) {
+                        (*inputs.handleTypes76_77_0x564EA0)(*object, cursor);
+                    } else if (inputs.types7677_0x564EA0 && inputs.recordTable0x12A5DD0) {
+                        const auto step = originalPostFigureHandleTypes7677(
+                            *object, cursor, inputs.registry, *inputs.recordTable0x12A5DD0,
+                            *inputs.types7677_0x564EA0);
+                        if (step != OriginalPostFigureType7677Status::Ok) {
+                            result.status =
+                                step == OriginalPostFigureType7677Status::RefusedMissingInput
+                                    ? OriginalPostFigurePassStatus::RefusedUnported564EA0
+                                    : OriginalPostFigurePassStatus::Refused564EA0Contract;
+                            return result;
+                        }
+                    } else {
                         result.status = OriginalPostFigurePassStatus::RefusedUnported564EA0;
                         return result;
                     }
-                    (*inputs.handleTypes76_77_0x564EA0)(*object, cursor);
                 }
-                if (!inputs.skipAdvance0x567610) {
+                if (!inputs.skipAdvance0x567610 && !inputs.recordTable0x12A5DD0) {
                     result.status = OriginalPostFigurePassStatus::RefusedUnported567610;
                     return result;
                 }
-                const uint32_t advance = (*inputs.skipAdvance0x567610)(type);
+                const int32_t advance = inputs.skipAdvance0x567610
+                                            ? int32_t((*inputs.skipAdvance0x567610)(type))
+                                            : originalPostFigureSkipAdvance0x567610(
+                                                  *inputs.recordTable0x12A5DD0, type);
                 if (advance == 0) {
                     // 0x00564C13 subtracts one from the answer and 0x00564C1C adds one
                     // back: a zero count leaves the scan index where it was, so the exe
@@ -329,7 +909,9 @@ inline OriginalPostFigurePassResult advanceOriginalPostFigurePass(
                     result.status = OriginalPostFigurePassStatus::Refused567610ZeroAdvance;
                     return result;
                 }
-                cursor += advance;  // net of the -1 and the shared increment at 0x00564C1C
+                // Net of the -1 at 0x00564C13 and the shared increment at 0x00564C1C is
+                // exactly the signed answer; a negative answer walks the index back.
+                cursor = uint32_t(int32_t(cursor) + advance);
                 advanced = true;
                 break;
             }

@@ -20,7 +20,7 @@ bool combinedMode=false;
 std::optional<OriginalCityClocks> combinedClocks;
 std::optional<uint32_t> farmerWallClock;
 std::optional<uint32_t> combinedCrt;
-const std::vector<unsigned> combinedHorizons{1,20,22,40,51,77,83,100};
+const std::vector<unsigned> combinedHorizons{1,20,22,40,51,77,83,100,120,153,180,200};
 void need(bool ok,const char* message){++checks;if(!ok)throw std::runtime_error(message);}
 OriginalCombinedProcessInputs combinedTestProcess(){
     OriginalCombinedProcessInputs p;p.cityClocks=combinedClocks;
@@ -33,7 +33,7 @@ OriginalCombinedProcessInputs combinedTestProcess(){
     p.forceHouseEvolution=false;p.alternateMode=false;p.effectDecayCounter=0;
     p.wallClock=farmerWallClock;p.effectPlacementCulled=false;p.visualEffectCount=0;p.previousHealthRating=0;
     p.crtRandom=combinedCrt;
-    p.soundEffectsEnabled=false;p.buildingEditMode=false;
+    p.soundEffectsEnabled=false;p.buildingEditMode=false;p.annualDemandResponseMode=2;
     p.cropDispatchModel=std::array<int32_t,14>{5,3,4,2,3,2,10,6,8,4,3,4,50,8};p.cropDispatchRadius=std::array<int32_t,2>{3,3};return p;
 }
 void combinedAuthored(){
@@ -219,7 +219,93 @@ void combinedAuthored(){
     emigrant.counter=51;
     const auto expiredEmigrant=originalFigureFirstUpdate(emigrant,walkingRefs,&emigrantContext);
     need(!expiredEmigrant.state&&expiredEmigrant.status==OriginalFigureUpdateStatus::MigrantHouseSearch,
-        "combined emigrant wait expiry refuses its unported nearest-house search");
+         "combined emigrant wait expiry requires serialized exit coordinates when no house qualifies");
+    emigrantContext.migrationRoadEndpoints=std::array<int16_t,4>{2,3,8,9};
+    const auto departingEmigrant=originalFigureFirstUpdate(emigrant,walkingRefs,&emigrantContext);
+    need(departingEmigrant.state&&departingEmigrant.state->action==9&&departingEmigrant.state->counter==0&&
+        departingEmigrant.state->destinationX==8&&departingEmigrant.state->destinationY==9&&departingEmigrant.state->cell==emigrant.cell,
+        "combined emigrant no-house branch targets serialized exit without moving or fitting a timestamp");
+    auto nearestContext=emigrantContext;OriginalFigureBuildingLink vacant;vacant.type=3;vacant.alive=1;vacant.accepting=1;
+    vacant.roadDistance=1;vacant.freeSlots=2;vacant.x=emigrant.x+2;vacant.y=emigrant.y+2;
+    nearestContext.buildings->emplace(10,vacant);vacant.x=emigrant.x+3;vacant.y=emigrant.y;
+    nearestContext.buildings->emplace(11,vacant);vacant.x=emigrant.x+2;vacant.y=emigrant.y;
+    nearestContext.buildings->emplace(12,vacant);
+    need(originalFigureNearestHouse(emigrant,nearestContext)==10,"combined nearest house uses Chebyshev distance and first strict tie");
+    nearestContext.buildings->at(10).worker=4;
+    need(originalFigureNearestHouse(emigrant,nearestContext)==12,"combined nearest house excludes an existing worker reservation");
+    nearestContext.workerRoadExits[12]=std::make_pair(int16_t(7),int16_t(6));
+    const auto reservedEmigrant=originalFigureFirstUpdate(emigrant,walkingRefs,&nearestContext);
+    need(reservedEmigrant.state&&reservedEmigrant.state->action==7&&reservedEmigrant.state->home==12&&
+        reservedEmigrant.buildings->at(12).worker==2&&reservedEmigrant.state->destinationX==7&&reservedEmigrant.state->destinationY==6,
+         "combined emigrant reserves selected house and uses the cited complete road query");
+    auto arrivingContext=nearestContext;arrivingContext.cropBase=0;arrivingContext.services->population.emplace();
+    arrivingContext.services->population->total=10;arrivingContext.services->population->peak=11;
+    auto arriving=emigrant;arriving.action=8;arriving.home=12;arriving.x=arriving.y=1;arriving.cell=229;
+    arriving.subX=arriving.subY=20;arriving.freeRemainingX=arriving.freeRemainingY=0;arriving.employmentAmount=5;
+    arrivingContext.figures[2]=arriving;arrivingContext.cellHeads.assign(51984,0);arrivingContext.cellHeads[229]=2;
+    auto& arrivalHouse=arrivingContext.buildings->at(12);arrivalHouse.worker=2;arrivalHouse.houseModel=0;arrivalHouse.residents=6;
+    arrivalHouse.laborDisabled=false;arrivingContext.houseCapacities[0]=8;
+    const auto arrived=originalFigureFirstUpdate(arriving,walkingRefs,&arrivingContext);
+    need(arrived.state&&arrived.state->alive==2&&arrived.state->employmentAmount==2&&arrived.state->home==12&&
+        arrived.buildings->at(12).residents==8&&arrived.buildings->at(12).freeSlots==0&&arrived.buildings->at(12).worker==0&&
+        arrived.services->population->total==12&&arrived.services->population->peak==12&&arrived.services->population->lastArrival==2,
+        "combined emigrant free arrival clamps vacancy and publishes exact house and population writes");
+    auto cleanupContext=arrivingContext;cleanupContext.buildings=arrived.buildings;
+    auto cleaned=*arrived.state;cleanupContext.figures[2]=cleaned;cleanupContext.buildings->at(8).worker=77;
+    need(originalFigureRemoveArrivedWorker(cleaned,cleanupContext)&&cleanupContext.buildings->at(12).worker==0&&
+        cleanupContext.buildings->at(8).worker==0&&cleanupContext.cellHeads[229]==0,
+        "combined emigrant cleanup retains arrival release and clears owner62 under nonzero home64");
+    arrivingContext.figures[2]=arriving;arrivingContext.cellHeads[229]=2;arrivalHouse.residents=0;
+    need(!originalFigureFirstUpdate(arriving,walkingRefs,&arrivingContext).state,
+        "combined emigrant empty house conversion refuses its unported virtual230 before publishing");
+    arrivalHouse.alive=0;const auto invalidArrival=originalFigureFirstUpdate(arriving,walkingRefs,&arrivingContext);
+    need(invalidArrival.state&&invalidArrival.state->action==6&&invalidArrival.state->alive==1&&
+        invalidArrival.state->cell==229,"combined emigrant invalid house returns to action6 without moving");
+    auto venues=nearestContext;venues.services.emplace();venues.services->directions.assign(500000,0);venues.cropBase=0;
+    venues.passability.emplace();venues.passability->fullMovementMasks=true;venues.passability->cells.assign(51984,0);
+    auto musician=emigrant;musician.type=34;musician.x=musician.y=1;musician.cell=229;musician.movementMode=1;
+    venues.figures[2]=musician;venues.buildings->clear();OriginalFigureBuildingLink stage;stage.type=71;stage.alive=1;
+    stage.entertainmentRoad=1;stage.entertainment=std::array<uint8_t,3>{0,9,0};stage.roadX=1;stage.roadY=1;
+    venues.buildings->emplace(10,stage);stage.entertainment->at(1)=8;stage.roadX=3;venues.buildings->emplace(11,stage);
+    venues.passability->cells[230]=venues.passability->cells[231]=4;
+    need(originalFigureMusicVenue(musician,venues)==11&&musician.destinationX==3&&musician.route>0,
+        "combined music venue first nonempty score8 tier wins before closer second tier and publishes B0C route");
+    venues.buildings->at(10).entertainment->at(1)=0;venues.passability->cells[230]=0;musician.route=0;
+    need(originalFigureMusicVenue(musician,venues)==10,"combined music venue weighted route admits a reachable current cell");
+    auto mills=venues;mills.buildings->clear();mills.goods.emplace();mills.goods->godGate=0;
+    mills.goods->storageSearch=std::array<uint8_t,36>{};mills.goods->industrySearch=std::array<uint8_t,36>{};
+    mills.goods->policies.resize(1);mills.goods->policies[0].limit[4]=400;mills.roadNetworks.assign(51984,3);mills.buildingEmployment[53]=10;
+    OriginalFigureBuildingLink mill;mill.type=53;mill.alive=mill.roadAccess=1;mill.roadDistance=1;mill.workers=10;mill.category=3;
+    mill.storagePolicy=0;mill.storage=std::vector<OriginalStorageCompartment>(8,{0,0,400});mill.roadX=3;mill.roadY=1;
+    mills.buildings->emplace(10,mill);mill.roadX=2;mills.buildings->emplace(11,mill);
+    auto cart=musician;cart.type=19;cart.subtype=4;cart.amount=100;cart.route=0;mills.figures[cart.slot]=cart;
+    mills.passability->cells[230]=mills.passability->cells[231]=4;
+    need(originalFigureGoodsSupplier(cart,mills)==11&&cart.delivery==11&&mills.buildings->at(11).incomingFigures==1&&
+        mills.buildings->at(11).incomingAmount==100&&mills.buildings->at(10).incomingFigures==0&&mills.goods->storageSearch->at(4)==2,
+        "combined Mill search chooses first reachable road cell and reserves exact original cargo before returning");
+    mills.goods->storageSearch->at(4)=0;mills.buildings->at(11).category=2;cart.route=0;
+    need(originalFigureGoodsSupplier(cart,mills)==10,"combined Mill search rejects a different road network before route selection");
+    mills.goods->storageSearch->at(4)=0;mills.buildings->at(10).incomingFigures=1;mills.buildings->at(10).incomingAmount= -400;
+    need(originalFigureGoodsSupplier(cart,mills)==0,"combined Mill signed incoming amount and limit gate rejects zero remaining reservation");
+    auto stores=mills;stores.buildings->clear();stores.buildingEmployment[54]=10;stores.goods->storageSearch->fill(0);
+    auto warehouseTarget=mill;warehouseTarget.type=54;warehouseTarget.roadX=3;stores.buildings->emplace(10,warehouseTarget);
+    warehouseTarget.roadX=2;warehouseTarget.storagePolicy=1;stores.buildings->emplace(11,warehouseTarget);
+    stores.goods->policies.resize(2);stores.goods->policies[0].accept[4]=2;stores.goods->policies[1].limit[4]=400;
+    cart.route=0;cart.delivery=0;
+    need(originalFigureGoodsSupplier(cart,stores)==10&&cart.delivery==10&&cart.destinationX==3&&
+        stores.buildings->at(10).incomingFigures==0&&stores.buildings->at(10).incomingAmount==0,
+        "combined ordinary Warehouse mode2 wins before closer mode0 without Mill incoming reservations");
+    stores.buildings->at(10).category=2;stores.goods->storageSearch->fill(0);cart.route=0;
+    need(originalFigureGoodsSupplier(cart,stores)==11&&cart.delivery==11&&cart.destinationX==2,
+        "combined ordinary Warehouse mode0 fallback follows complete mode2 network rejection");
+    OriginalBuildingUpdateContext annual(OriginalBuildingUpdateScope::AdmittedTicks,true);annual.month=1;annual.elapsedYears= -2050;annual.scenarioStartYears= -2050;
+    OriginalBuildingScenarioMessages messages;const OriginalBuildingAnnualOffer demand{100,29};
+    need(originalBuildingAnnualMessage(annual,messages,demand,5,std::nullopt)==OriginalBuildingUpdateBlocker::MonthlyCity&&messages.count==0,
+        "combined annual positive demand refuses absent response preference before allocating");
+    need(originalBuildingAnnualMessage(annual,messages,demand,5,2)==OriginalBuildingUpdateBlocker::None&&messages.count==1&&
+        messages.records[0][2]==29&&detail::i16(messages.records[0].data()+12)==100&&detail::i16(messages.records[0].data()+28)==5&&
+        messages.records[0][50]==1&&detail::i16(messages.records[0].data()+48)==14&&annual.notificationEffects==std::vector<unsigned>{225},
+        "combined annual demand retains constructor fields and publishes pending notice225");
     auto proof=countdown;proof.buildings.clear();proof.figures=projected;proof.buildingContext->roadEndpoints=std::array<int16_t,4>{0,0,2,0};
     proof.figures.terrain[projectedBase+1]=0;proof.rebuiltMovementTerrain=proof.figures.terrain;const auto clearExit=originalCombinedEmptyCityRoadExit(proof);
     need(clearExit==true,"combined city road flood admits plain terrain between road endpoints using B7C");
@@ -325,6 +411,26 @@ void combinedAuthored(){
         cartChain.linkedWrites.at(6).leaderLink==7&&cartChain.allocationCount==2&&cartChain.freeSlots->empty()&&
         cartChain.state->next==7&&cartChain.linkedWrites.at(7).next==6&&cartChain.speechCounters==carts.speechCounters,
         "combined warehouse bulk supplier creates two FIFO followers before wait30");
+    auto normal=carts;normal.buildings->at(8).type=43;normal.buildings->at(8).primaryFigure=2;
+    normal.services->directions.assign(500000,0);
+    normal.goods.emplace();normal.goods->godGate=0;normal.goods->storageSearch=std::array<uint8_t,36>{};normal.goods->industrySearch=std::array<uint8_t,36>{};
+    auto producer=supplier;producer.type=19;producer.action=21;producer.counter=30;producer.subtype=20;producer.resource=0;
+    normal.figures[2]=producer;
+    const std::map<uint32_t,const SG3Archive*> producerRefs{{38,&walking},{39,&walking}};
+    const auto producerChain=originalFigureFirstUpdate(producer,producerRefs,&normal);
+    need(producerChain.state&&producerChain.state->action==6&&producerChain.state->counter==30&&producerChain.state->stationary==1&&
+        producerChain.allocationCount==2&&producerChain.linkedWrites.at(7).action==7&&producerChain.linkedWrites.at(6).action==9,
+        "combined industrial carrier21 queries before two FIFO followers then restores action6 and wait30");
+    auto noIndustry=carts;noIndustry.services->directions.assign(500000,0);noIndustry.goods=normal.goods;noIndustry.crops.emplace();noIndustry.roadNetworks.assign(51984,1);
+    noIndustry.passability.emplace();noIndustry.passability->fullMovementMasks=true;noIndustry.passability->cells.assign(51984,4);
+    OriginalFigureBuildingLink storage;storage.type=54;storage.alive=storage.roadAccess=1;storage.roadDistance=1;storage.workers=1;
+    storage.storagePolicy=0;storage.storage=std::vector<OriginalStorageCompartment>(8,{0,0,400});storage.category=1;
+    noIndustry.buildings->emplace(10,storage);noIndustry.goods->policies.resize(1);noIndustry.goods->policies[0].limit[18]=400;
+    noIndustry.buildingEmployment[54]=1;
+    auto retry=supplier;retry.action=6;retry.counter=2;noIndustry.figures[2]=retry;
+    const auto homeward=originalFigureFirstUpdate(retry,walkingRefs,&noIndustry);
+    need(homeward.state&&homeward.state->action==9&&homeward.state->delivery==8&&homeward.state->counter==0&&
+        homeward.goods->storageSearch->at(18)==0,"combined type22 empty industry query returns home before ordinary storage fallbacks");
     auto delivering=supplier;delivering.action=8;delivering.counter=3;delivering.delivery=9;delivering.homeX=4;delivering.homeY=7;
     auto& target=carts.buildings->operator[](9);target.type=43;target.alive=1;target.industryInput=100;target.incomingFigures=1;
     carts.figures[2]=delivering;const auto supplierWait=originalFigureFirstUpdate(delivering,walkingRefs,&carts);
@@ -2480,7 +2586,10 @@ void corpus(){
                         for(unsigned x=0;x<save.terrain.activeSide;++x)if(diagonal>=x&&diagonal-x<save.terrain.activeSide)
                             frame.figureDrawCells.push_back((origin+diagonal-x)*228+origin+x);
                     frames.push_back(std::move(frame));}
+                const auto started=std::chrono::steady_clock::now();
                 const auto result=originalSceneTimeline(seed,refs,timelineScene,general,&*employment,0,{},frames,&*city);
+                const auto runtime=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();
+                size_t sourcePlaced=0,sourceComponents=0,sourceConsistent=0,sourceFrames=0,sourceHidden=0,sourceRemoved=0,sourceZero=0;
                 if(n==1){auto appFrames=frames;appFrames.front().combinedProcess=combinedTestProcess();
                     const bool selected=app.selectPostLoadTimeline(save,payload,appFrames,0,{});
                     if(!selected)std::cerr<<"combined App refusal "<<app.error()<<'\n';
@@ -2497,8 +2606,8 @@ void corpus(){
                 total.attemptedAllocations+=result.figureAllocations;total.buildingAllocations+=result.buildingFigureAllocations;
                 need(result.complete?result.updates==n:result.refusedUpdate==result.updates+1,
                     "combined requested horizon or exact refused update closes");
-                const unsigned completeThrough[]={100,farmerWallClock?100u:31u,100,combinedCrt?100u:84u,100,100};
-                const char* refused[]={"","farmer_wall_clock_766da0_required","",
+                const unsigned completeThrough[]={200,farmerWallClock?(combinedCrt?200u:177u):31u,200,combinedCrt?200u:84u,200,200};
+                const char* refused[]={"",farmerWallClock?"crt_rand_state_required_wall_clock_seeded_not_in_sav_slot_1669_type_40_action_7":"farmer_wall_clock_766da0_required","",
                     "crt_rand_state_required_wall_clock_seeded_not_in_sav_slot_1981_type_40_action_7","",""};
                 need(sources<=6&&result.updates==std::min(n,completeThrough[sources-1])&&
                     result.complete==(n<=completeThrough[sources-1])&&result.refusal==(result.complete?"":refused[sources-1]),
@@ -2527,13 +2636,13 @@ void corpus(){
                     auto installed=timelineScene;
                     need(installOriginalSceneTimeline(installed,save.terrain,figures,refs,save.buildings,general,result,&groundArchive)&&installed.timelineCombined,
                         "combined completed scene installs atomically with explicit mode");
-                    if(n==100&&sources==4){auto appFrames=frames;appFrames.front().combinedProcess=combinedTestProcess();
+                    if((n==100&&sources==4)||(n==200&&sources==3)){auto appFrames=frames;appFrames.front().combinedProcess=combinedTestProcess();
                         const bool selected=app.selectPostLoadTimeline(save,payload,appFrames,0,{});
-                        if(!selected)std::cerr<<"combined N100 App refusal "<<app.error()<<'\n';
-                        need(selected,"App installs combined disaster terrain and created figures at N100");
+                        if(!selected)std::cerr<<"combined N"<<n<<" App refusal "<<app.error()<<'\n';
+                        need(selected,"App installs combined disaster and supplier building selections at N100 and N200");
                         const auto rendered=app.renderSavedBuildings(camera);
-                        need(rendered.timelineCombined&&rendered.timelineUpdates==100&&rendered.figurePlaced==installed.figurePlaced&&
-                            rendered.overlayInvalid==0&&rendered.overlayDecodeFailures==0,"App N100 disaster scene decodes every selected component");}
+                        need(rendered.timelineCombined&&rendered.timelineUpdates==n&&rendered.figurePlaced==installed.figurePlaced&&
+                            rendered.overlayInvalid==0&&rendered.overlayDecodeFailures==0,"App extended combined scene decodes every selected component");}
                     for(const auto& p:installed.placed){const auto& state=result.combinedState->buildings.at(p.footprint.slot).state;
                         if(p.footprint.type==161){need(p.binding.tileset==3&&decodeSG3Sprite(groundArchive,p.binding.physicalId-1,root.resolve("DATA/China_Terrain.555")).image.valid(),
                             "combined created ruin footprint places and decodes through terrain612");continue;}
@@ -2544,6 +2653,7 @@ void corpus(){
                             stamped=stamped&&installed.surface.image.at(cell)==((component.binding.tileset<<14)|(component.binding.physicalId-201));}
                         need(stamped,"combined installed building selection stamps the complete cited component footprint");}
                     total.placed+=installed.figurePlaced;
+                    sourcePlaced=installed.figurePlaced;sourceHidden=installed.figureHidden;sourceRemoved=installed.figureRemoved;sourceZero=installed.figureZeroImage;
                     total.hidden+=installed.figureHidden;total.removed+=installed.figureRemoved;total.unsupported+=installed.figureUnsupported;total.zero+=installed.figureZeroImage;
                     need(installed.figureUnsupported==0,"combined every surviving nonzero visible figure places without refusal");
                     need(installed.figurePlaced+installed.figureHidden+installed.figureRemoved+installed.figureUnsupported+installed.figureZeroImage==figures.live.size()+result.figureAllocations,
@@ -2561,17 +2671,19 @@ void corpus(){
                         const auto selected=figureImage(result.context->primaryImageInputs.at(f.slot),refs,save.terrain.flags.at(f.cell),figures.savedView,
                             save.buildings.slotTypes.at(size_t(f.owner)),&imageState);
                         need(selected.status==OriginalFigureImageStatus::Selected&&selected.image==f.image,
-                            "combined surviving primary agrees with independent selector");++total.consistent;}
+                             "combined surviving primary agrees with independent selector");++total.consistent;++sourceConsistent;}
                     for(const auto& overlay:installed.overlays){if(overlay.mode==4){
-                            need(decodeWord((overlay.tileset<<14)+overlay.physicalId-1),"combined installed primary and cargo components decode");++total.components;}
+                            need(decodeWord((overlay.tileset<<14)+overlay.physicalId-1),"combined installed primary and cargo components decode");++total.components;++sourceComponents;}
                         if(overlay.mode==3){need(decodeSG3Sprite(general,overlay.physicalId-1,root.resolve("DATA/China_General.555")).image.valid(),
-                            "combined installed building frame decodes");++total.frames;}}
+                            "combined installed building frame decodes");++total.frames;++sourceFrames;}}
                 }
                 std::cout<<"{\"combined_source\":"<<sources<<",\"N\":"<<n<<",\"complete\":"<<(result.complete?"true":"false")
-                <<",\"completed_updates\":"<<result.updates<<",\"refused_update\":"<<result.refusedUpdate<<",\"initial_phase\":"<<city->phase
+                <<",\"runtime_seconds\":"<<runtime<<",\"completed_updates\":"<<result.updates<<",\"refused_update\":"<<result.refusedUpdate<<",\"initial_phase\":"<<city->phase
                     <<",\"refusal\":\""<<result.refusal<<"\",\"building_total\":"<<city->buildings.size()<<",\"figure_total\":"<<figures.live.size()
                     <<",\"installed_allocations\":"<<(result.complete?result.figureAllocations:0)<<",\"attempted_allocations\":"<<result.figureAllocations
-                    <<",\"building_created_figures\":"<<result.buildingFigureAllocations<<",\"created_buildings\":"<<result.createdBuildings<<",\"destroyed_buildings\":"<<result.destroyedBuildings<<"}\n";
+                    <<",\"building_created_figures\":"<<result.buildingFigureAllocations<<",\"created_buildings\":"<<result.createdBuildings<<",\"destroyed_buildings\":"<<result.destroyedBuildings
+                    <<",\"placed\":"<<sourcePlaced<<",\"components\":"<<sourceComponents<<",\"consistent\":"<<sourceConsistent<<",\"frames\":"<<sourceFrames
+                    <<",\"reselections\":"<<(result.complete?result.buildingImageReselections:0)<<",\"hidden\":"<<sourceHidden<<",\"removed\":"<<sourceRemoved<<",\"zero\":"<<sourceZero<<"}\n";
             }
             continue;
         }
@@ -2888,7 +3000,11 @@ void corpus(){
                 {51,{6,192,1065,178,191,186,53,16,9,8,15,0}},
                 {77,{6,192,1065,255,268,260,52,29,119,5,51,0}},
                 {83,{6,192,1065,257,270,264,52,30,125,7,51,2}},
-                {100,{6,192,1065,209,222,215,52,31,126,6,103,0}}};
+                {100,{6,192,1065,209,222,215,52,31,126,6,103,0}},
+                {120,{6,192,1065,179,192,183,52,31,127,4,136,0}},
+                {153,{6,192,1065,177,191,184,52,45,133,7,141,0}},
+                {180,{6,192,1065,168,183,169,52,54,134,1,157,0}},
+                {200,{6,192,1065,161,176,166,52,55,143,5,169,0}}};
             auto expected=supplied.at(n);
             if(!farmerWallClock&&n>=40){
                 const std::map<unsigned,std::array<size_t,12>> farmer{
@@ -2896,21 +3012,38 @@ void corpus(){
                     {51,{1,46,568,44,48,47,22,13,3,3,2,0}},
                     {77,{1,46,568,44,48,46,22,24,3,2,3,0}},
                     {83,{1,46,568,44,48,46,22,24,3,2,3,0}},
-                    {100,{1,46,568,45,49,46,22,24,3,1,3,0}}};
+                    {100,{1,46,568,45,49,46,22,24,3,1,3,0}},
+                    {120,{1,46,568,43,47,44,22,24,3,1,5,0}},
+                    {153,{1,46,568,40,44,42,22,38,4,2,8,0}},
+                    {180,{1,46,568,37,42,37,22,47,5,0,14,0}},
+                    {200,{1,46,568,32,35,32,22,48,5,0,19,0}}};
                 for(size_t k=0;k<expected.size();++k)expected[k]-=farmer.at(n)[k];}
-            if(!combinedCrt&&n==100){const std::array<size_t,12> disaster{1,32,17,62,62,62,2,0,109,0,79,0};
-                for(size_t k=0;k<expected.size();++k)expected[k]-=disaster[k];}
+            if(!combinedCrt&&n>=100){
+                const std::map<unsigned,std::array<size_t,12>> disaster{
+                    {100,{1,32,17,62,62,62,2,0,109,0,79,0}},
+                    {120,{1,32,17,32,32,33,2,0,110,1,109,0}},
+                    {153,{1,32,17,33,33,33,2,0,110,0,109,0}},
+                    {180,{1,32,17,33,33,33,2,0,110,0,109,0}},
+                    {200,{1,32,17,33,33,33,2,0,110,0,109,0}}};
+                for(size_t k=0;k<expected.size();++k)expected[k]-=disaster.at(n)[k];
+                if(farmerWallClock&&n>=180){const auto source2=std::map<unsigned,std::array<size_t,12>>{
+                    {180,{1,46,568,37,42,37,22,47,5,0,14,0}},
+                    {200,{1,46,568,32,35,32,22,48,5,0,19,0}}}.at(n);
+                    for(size_t k=0;k<expected.size();++k)expected[k]-=source2[k];}}
             need(std::array<size_t,12>{t.pools,t.figures,t.buildings,t.placed,t.components,t.consistent,t.frames,t.reselected,
                 t.allocated,t.hidden,t.removed,t.zero}==expected,
                 "combined every requested horizon locks installed outcomes components consistency and reselections");
-            need(t.unsupported==0&&t.attemptedAllocations==t.allocated+(!farmerWallClock&&n>=40?1:0)+(!combinedCrt&&n==100?108:0)&&
+            need(t.unsupported==0&&t.attemptedAllocations==t.allocated+(!farmerWallClock&&n>=40?1:0)+(!combinedCrt&&n>=100?108:0)+
+                    (farmerWallClock&&!combinedCrt&&n>=180?4:0)&&
                 t.created==(n>=77&&(combinedCrt||n<100)?25u:0u)&&t.destroyed==(t.created?1u:0u)&&
-                t.installedBuildingAllocations==t.allocated-(n>=83?2:0)-(combinedCrt&&n==100?1:0),
+                t.installedBuildingAllocations==t.allocated-(n>=200?6:n>=83?2:0)-(combinedCrt&&n>=100?1:0)-
+                    (farmerWallClock&&combinedCrt&&n>=180?1:0),
                 "combined allocation events building constructors and disaster footprints close independently");
             std::map<std::string,size_t> pools,figures,buildings;
             const auto refusal=[&](const char* name,size_t p,size_t f,size_t b){pools[name]=p;figures[name]=f;buildings[name]=b;};
             if(!farmerWallClock&&n>=40)refusal("farmer_wall_clock_766da0_required",1,47,568);
-            if(!combinedCrt&&n==100)refusal("crt_rand_state_required_wall_clock_seeded_not_in_sav_slot_1981_type_40_action_7",1,140,17);
+            if(!combinedCrt&&n>=100)refusal("crt_rand_state_required_wall_clock_seeded_not_in_sav_slot_1981_type_40_action_7",1,140,17);
+            if(farmerWallClock&&!combinedCrt&&n>=180)refusal("crt_rand_state_required_wall_clock_seeded_not_in_sav_slot_1669_type_40_action_7",1,50,568);
             need(t.poolRefusals==pools&&t.figureRefusals==figures&&t.buildingRefusals==buildings,
                 "combined exact disjoint pool figure and building refusal partitions are locked");
             std::cout<<"{\"combined_N\":"<<row.first<<",\"pools_complete\":"<<t.pools<<",\"pool_total\":6,\"figure_outcomes\":"<<t.figures

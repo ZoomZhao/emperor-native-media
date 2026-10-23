@@ -34,6 +34,7 @@ struct OriginalCombinedProcessInputs {
     std::optional<int32_t> previousHealthRating; //D6241C
     std::optional<uint32_t> crtRandom; //explicit7665FD state,independent of766DA0
     std::optional<bool> soundEffectsEnabled,buildingEditMode; //10DE0D3/D62408 caller inputs
+    std::optional<uint8_t> annualDemandResponseMode; //C7EDD0->10DE164,4A3A9A..AC caller preference
 };
 struct OriginalCombinedBuilding {
     OriginalBuildingUpdateState state;
@@ -47,6 +48,8 @@ struct OriginalCombinedState {
     std::vector<OriginalPostFigureRegistryObject> postFigureRegistry;
     std::optional<OriginalPostFigurePassResult> postFigureResult;
     std::optional<std::vector<uint32_t>> rebuiltMovementTerrain; //53D630 before41F400,never snapshot-restored flags
+    std::optional<std::array<OriginalBuildingAnnualOffer,22>> annualOffers;
+    std::optional<OriginalBuildingScenarioMessages> scenarioMessages;
     uint32_t phase=0;
 };
 //5AD440 B7C projection with no buildings after SAV load. 534E5B->41F400
@@ -141,6 +144,8 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
     c.cycle=detail::u32(payload.data()+terrain+original_save19::c82ef4);c.month=detail::u32(payload.data()+side-176);
     c.formations=originalBuildingSavedFormations(payload,terrain);c.figureModels=city.figures.models;
     c.goodsRecords=originalBuildingSavedGoodsRecords(payload,figures.end);
+    city.annualOffers=originalBuildingSavedAnnualOffers(payload,figures.end);if(!city.annualOffers)return false;
+    city.scenarioMessages=originalBuildingSavedScenarioMessages(payload,side);if(!city.scenarioMessages)return false;
     c.houseTaxModel=originalFigureHouseModelColumn(buildingModels,18);c.houseModelCapacity=originalFigureHouseCapacities(buildingModels);
     c.houses=originalBuildingHouseCapacityInputs(payload,profile);c.employmentModel=parseOriginalBuildingEmployment(buildingModels);
     c.religion=originalBuildingSavedReligion(payload,side);
@@ -224,6 +229,7 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
     //post-pass adapter below refuses a whitelisted slot absent from this pool.
     city.postFigureRegistry.resize(profile.parsedRecords);
     for(size_t n=0;n<profile.parsedRecords;++n){auto& o=city.postFigureRegistry[n];o.type0x14=int16_t(profile.slotTypes.at(n));}
+    city.figures.migrationRoadEndpoints=c.roadEndpoints;
     city.rebuiltMovementTerrain=scene.rebuiltMovementTerrain;city.buildingContext=std::move(c);return true;
 }
 // Figure links are canonical for the fields figures can write. Bridge their
@@ -255,6 +261,7 @@ inline std::string originalCombinedSyncBuildings(OriginalCombinedState& city){
             if(link.suppliers)s.inputs.cropWorkers->at(1)=*link.suppliers;}
         if(s.inputs.hookIndustry){auto& data=*s.inputs.hookIndustry;
             if(link.delegatedCount)data.at(0x5c-4)=*link.delegatedCount;
+            if(link.type==71&&link.entertainment)for(unsigned n=0;n<3;++n)data.at(0x5d-4+n)=link.entertainment->at(n);
             if(link.type==54||link.type==58||link.type==59||link.type==71||link.type==124)
                 for(unsigned n=0;n<2;++n){const uint16_t id=uint16_t(link.secondaryFigures[n]);data.at(0x6a-4+2*n)=uint8_t(id);data.at(0x6b-4+2*n)=uint8_t(id>>8);}}
         if(!s.inputs.house)continue;
@@ -372,7 +379,8 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city){
     case 44:result=originalBuildingRiskStep(c);break;
     case 45:result=originalBuildingMonumentStep(c);break;
     case 47:c.phase47Counters.fill(0);++c.counterCalls;break;
-    case 50:result=originalBuildingCycleTailStep(c);break;
+    case 50:result=originalBuildingCycleTailWithAnnualStep(c,city.annualOffers,city.scenarioMessages?&*city.scenarioMessages:nullptr,
+        city.process.annualDemandResponseMode);break;
     default:break;
     }
     if(result!=OriginalBuildingUpdateBlocker::None)return originalBuildingUpdateBlockerName(result);
@@ -384,7 +392,8 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city){
             c.festivalProductionBoost=b.context.festivalProductionBoost;c.terrainFlags=b.context.terrainFlags;c.typeDisabled=b.context.typeDisabled;
             result=originalBuildingProductionStep(b.state,c);}
         else if(city.phase==31){c.typeDisabled=b.context.typeDisabled;c.terrainFlags=b.context.terrainFlags;
-            if(b.state.inputs.alive==1||b.state.inputs.alive==3){result=originalBuildingHookStep(b.state,c);
+            if(b.state.inputs.alive==1||b.state.inputs.alive==3){result=b.state.building.type==33?
+                    originalBuildingHunterDispatchStep(b.state,c):originalBuildingHookStep(b.state,c);
                 if(result==OriginalBuildingUpdateBlocker::BuildingVirtual20&&b.state.building.type==54)
                     result=originalCombinedWarehouseHook(b.state,c);}}
         else if(city.phase==35){if(originalBuildingIsHouse(b.state.building.type)&&(b.state.inputs.alive==1||b.state.inputs.alive==3))originalBuildingDecayHouseServices(b.state.inputs);}
@@ -415,6 +424,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city){
     if(c.buildingLinks)for(const auto& e:*c.buildingInputs)c.buildingLinks->at(e.first).category=e.second.network;
     if(c.buildingLinks)for(const auto& e:*c.buildingInputs){auto& link=c.buildingLinks->at(e.first);
         const auto& i=e.second;link.serviceCount=i.operational;link.destinationEnabled=i.enabled;
+        if(c.productionInputs&&c.productionInputs->count(e.first))link.hunterReturnGoods=c.productionInputs->at(e.first).secondaryStock;
         if(i.cropWorkers){link.harvestFarmers=i.cropWorkers->at(0);link.suppliers=i.cropWorkers->at(1);}
         if(!originalBuildingIsHouse(link.type))link.traderFaction=i.model;
         if(link.type==124)link.inspectorSecondary=i.model>0||(i.modelUpgrade&&*i.modelUpgrade!=0);
@@ -428,6 +438,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city){
         if(i.industry&&link.cropDelivery)link.cropDelivery->flags=originalBuildingCropFlags(i);
         if(i.hookIndustry){const auto& data=*i.hookIndustry;
             if(link.delegatedCount)link.delegatedCount=data.at(0x5c-4);
+            if(link.type==71&&link.entertainment)for(unsigned n=0;n<3;++n)link.entertainment->at(n)=data.at(0x5d-4+n);
             if(link.type==54||link.type==58||link.type==59||link.type==71||link.type==124)
                 for(unsigned n=0;n<2;++n)link.secondaryFigures[n]=detail::i16(data.data()+0x6a-4+2*n);}}
     f.services=c.figureServices;f.buildings=c.buildingLinks;f.goods=c.goods;f.crtRandom=c.crtRandom;f.crtRandomCalls=c.crtRandomCalls;
@@ -511,6 +522,8 @@ inline std::string originalCombinedBeforeFigures(OriginalCombinedState& city,std
     if(p.eventRecordModes&&p.eventRecordModes->size()>150)return "scenario_manager_492430_records_required";
     //49244D skips every non-mode5 row;425250 false skips mode5 as well.
     if(p.eventRecordModes)for(uint8_t mode:*p.eventRecordModes)if(mode==5&&(!p.managerGate8||*p.managerGate8))return "scenario_manager_492430_4ed3b0";
+    if(city.scenarioMessages)for(unsigned n=0;n<city.scenarioMessages->count;++n)
+        if(city.scenarioMessages->records[n][2]==5&&(!p.managerGate8||*p.managerGate8))return "scenario_manager_492430_4ed3b0";
     if(!p.eventSlots||!p.eventProgress)return "scenario_events_466e90_slots_required";
     if(std::any_of(p.eventSlots->begin(),p.eventSlots->end(),[](uint32_t slot){return slot!=0;}))return "scenario_slot_467680_not_closed";
     *p.eventProgress=0; //466EA6; both8-slot loops do no calls for null slots.
@@ -616,6 +629,7 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
     }
     auto context=initial;std::optional<OriginalCombinedState> city;
     if(combined){city=*combined;context.workerRoadExits=combined->figures.workerRoadExits;
+        context.migrationRoadEndpoints=combined->figures.migrationRoadEndpoints;
         if(combined->process.crtRandom)context.crtRandom=combined->process.crtRandom;
         if(combined->process.soundEffectsEnabled)context.soundEffectsEnabled=combined->process.soundEffectsEnabled;
         if(combined->process.buildingEditMode)context.buildingEditMode=combined->process.buildingEditMode;city->figures=context;
