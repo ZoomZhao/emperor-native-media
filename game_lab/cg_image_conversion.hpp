@@ -7,10 +7,10 @@ namespace game_lab {
 // Tight rows of little-endian BGRA8 with premultiplied alpha.
 // Returns a caller-owned CGImage (+1), or nullptr on invalid input/factory failure.
 inline CGImageRef createCGImageFromPremultipliedBGRA(
-    uint32_t width, uint32_t height, const std::vector<uint32_t>& pixels) {
+    uint32_t width, uint32_t height, const std::vector<uint32_t>& pixels,CGColorSpaceRef explicitSpace=nullptr) {
     size_t count = 0;
     if (!game_lab::imagePixelCount(width, height, count) || pixels.size() != count) return nullptr;
-    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGColorSpaceRef space = explicitSpace?CGColorSpaceRetain(explicitSpace):CGColorSpaceCreateDeviceRGB();
     if (!space) return nullptr;
     CGContextRef context = CGBitmapContextCreate(const_cast<uint32_t*>(pixels.data()), width, height,
         8, static_cast<size_t>(width) * 4, space,

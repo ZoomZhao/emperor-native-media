@@ -56,6 +56,25 @@ void combinedAuthored(){
     need(originalCombinedBeforeFigures(unknown,order)=="scenario_slot_467680_not_closed","nonempty scenario slot refuses before figures");
     unknown=city;unknown.process.managerGate8=1;unknown.process.eventRecordModes=std::vector<uint8_t>{5};
     need(originalCombinedBeforeFigures(unknown,order)=="scenario_manager_492430_4ed3b0","positive scenario manager mode5 refuses");
+    auto events=city;events.process.managerGate8.reset();events.process.eventRecordModes.reset();
+    events.process.eventProgress.reset();events.scenarioMessages.emplace();
+    need(originalCombinedScenarioEvents(events).empty()&&events.process.eventProgress==0&&events.process.scenarioFigurePlacementCheck==false,
+        "loaded empty scenario registry and progress write need no invented input");
+    events.scenarioMessages->records[0][2]=5;
+    need(originalCombinedScenarioEvents(events).empty(),"scenario manager ignores slots beyond the live count");
+    events.scenarioMessages->count=1;
+    need(originalCombinedScenarioEvents(events)=="scenario_manager_492430_4ed3b0",
+        "new live mode5 record is read immediately and unknown manager still refuses");
+    events.process.eventRecordModes=std::vector<uint8_t>{};
+    need(originalCombinedScenarioEvents(events)=="scenario_manager_492430_4ed3b0","external empty modes cannot hide loaded mode5");
+    events.scenarioMessages->records[0][2]=4;events.process.eventProgress=1;
+    need(originalCombinedScenarioEvents(events).empty()&&events.process.eventProgress==0,"non-mode5 table overwrites old progress");
+    events.scenarioMessages->count=151;
+    need(originalCombinedScenarioEvents(events)=="scenario_manager_492430_records_required","invalid scenario count refuses before indexing");
+    events.scenarioMessages->count=0;events.process.eventSlots.reset();
+    need(originalCombinedScenarioEvents(events)=="scenario_events_466e90_slots_required","loaded records do not imply empty event slots");
+    events.process.eventSlots=std::array<uint32_t,8>{};events.process.eventSlots->at(0)=1;
+    need(originalCombinedScenarioEvents(events)=="scenario_slot_467680_not_closed","nonempty slot callback remains refused");
     unknown=city;unknown.phase=19;
     need(originalCombinedBeforeFigures(unknown,order).empty()&&unknown.phase==20&&
         originalCombinedBeforeFigures(unknown,order)=="combined_shared_building_context_required",
@@ -1353,6 +1372,23 @@ void authored(){
                 p.allocationSerial==17&&pass.context->services->allocationSerial==18&&pass.context->crtRandom==2745024&&pass.context->crtRandomCalls==1&&
                 h.action==13&&h.counter==30&&h.frame==1&&t.action==18&&t.previousAction==32&&t.counter==100&&t.direction==1,
                 "shot carries allocation serial, CRT state, seven free steps, both frame flags and earlier-prey writes atomically");
+            // A real CRT consumer (Hunter projectile allocation) must publish
+            // its state so splitting two frames into calls cannot reseed it.
+            OriginalCombinedState shooting;shooting.figures=shot;shooting.process=combinedTestProcess();
+            shooting.process.cityClocks=OriginalCityClocks{};shooting.process.crtRandom=1;shooting.phase=14;
+            OriginalBuildingScene shootingScene;shootingScene.accepted=true;shootingScene.surface.terrain=shot.terrain;
+            OriginalSceneTimelineFrame shotFrame;shotFrame.admission.now=74;shotFrame.admission.speed=80;
+            shotFrame.animationClock=74;shotFrame.continueAfterPass={false};
+            const auto shotOne=originalSceneTimeline(shot,shotRefs,shootingScene,group,nullptr,0,{}, {shotFrame},&shooting);
+            need(shotOne.complete&&shotOne.context->crtRandomCalls==1&&shotOne.combinedState->process.crtRandom==shotOne.context->crtRandom,
+                "combined timeline publishes consumed CRT state instead of startup seed");
+            auto shotLater=shotFrame;shotLater.admission.now=148;shotLater.animationClock=148;
+            const auto shotBatch=originalSceneTimeline(shot,shotRefs,shootingScene,group,nullptr,0,{}, {shotFrame,shotLater},&shooting);
+            const auto shotChain=originalSceneTimeline(*shotOne.context,shotRefs,shootingScene,group,nullptr,
+                shotOne.admissionClock,shotOne.animationClock,{shotLater},&*shotOne.combinedState);
+            need(shotBatch.complete&&shotChain.complete&&shotBatch.context->crtRandomCalls==shotChain.context->crtRandomCalls&&
+                shotBatch.context->crtRandom==shotChain.context->crtRandom&&shotChain.combinedState->process.crtRandom==shotChain.context->crtRandom,
+                "two chained frames retain the same consumed CRT state as a batch");
             const auto projectileImages=originalFigureUpdateImageState(*pass.context);
             need(p.image==(14u<<14)+156&&p.secondaryImage==(14u<<14)+224&&
                 figureImage(originalFigureImageInputs(p),shotRefs,0,0,std::nullopt,&projectileImages).image==p.image&&originalFigureSubcell(p)==std::make_pair(12,-1),

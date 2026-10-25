@@ -47,6 +47,14 @@ inline std::optional<OriginalBuildingCityEmployment> originalBuildingSavedCityEm
     out.unemploymentPercent=originalBuildingI32(detail::u32(data.data()+population+10402));
     out.shortage=originalBuildingI32(detail::u32(data.data()+population+10410));return out;
 }
+//4AD850 workforce share of ordinary-house residents: difficulty847410 +
+//wage band847424 + health band84743C. Shared by the strict update and native v6.
+inline std::optional<int> originalBuildingLaborPercent(int32_t difficultyIndex,int32_t wageBand,int32_t health){
+    constexpr int difficulty[]={50,45,40,37,35},wage[]={-10,-6,-3,0,3,5},healthBonus[]={-2,-1,0,1,2};
+    if(difficultyIndex<0||difficultyIndex>4||wageBand<0||wageBand>5)return std::nullopt;
+    const unsigned band=health>=80?4:health>=65?3:health>=35?2:health>=20?1:0;
+    return difficulty[difficultyIndex]+wage[wageBand]+healthBonus[band];
+}
 struct OriginalBuildingCityEmploymentResult {OriginalBuildingCityEmployment state;bool shortageNotification=false,unemploymentNotification=false;};
 //Faithful priority/remainder allocation4F1590..4F1994, bounded to the
 //nonnegative saved domain. Notifications are explicit effects for the caller.
@@ -400,6 +408,9 @@ struct OriginalBuildingUpdateContext {
         int32_t taxRate=0,taxableOrdinary=0,taxableElite=0,taxReceived=0,taxOther=0;
         int32_t wages=0,wagesPaid=0,incomeOther=0,expensesOther=0,treasuryStart=0;
         int32_t incomeReceived=0,expensesPaid=0,actualProfit=0;
+        // Population7 wire12027: the observed positive cash-tribute component.
+        // Kept separately as well as in incomeOther; absence is not zero.
+        std::optional<int32_t> tributeIncomeComponent;
         int32_t ordinaryTax=0,eliteTax=0,taxTotal=0,taxForecast=0,wageTotal=0,wageForecast=0;
         int32_t income=0,expenses=0,profit=0,treasuryForecast=0,festivalCount=0,festivalCapacity=0;
     };
@@ -2229,7 +2240,7 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     c.unavailableResources.emplace();for(unsigned n=0;n<36;++n)c.unavailableResources->at(n)=detail::i16(data.data()+p+9904+2*n);
     OriginalBuildingUpdateContext::Accounting a;a.taxRate=value(10);a.taxReceived=value(10458);a.taxOther=value(10462);
     a.wages=value(10414);a.wagesPaid=value(10426);a.treasuryStart=value(10570);a.festivalCount=value(11177);
-    a.incomeReceived=value(10546);a.expensesPaid=value(10554);
+    a.incomeReceived=value(10546);a.expensesPaid=value(10554);a.tributeIncomeComponent=value(12027);
     for(size_t off:{12027u,11440u,11061u,10498u})a.incomeOther=originalBuildingAdd32(a.incomeOther,value(off));
     //591B50 copies1312220(wire10426) to1312224 before4F1A90 consumes it.
     for(size_t off:{11400u,11161u,10534u,10514u,10506u})a.expensesOther=originalBuildingAdd32(a.expensesOther,value(off));
@@ -2436,11 +2447,10 @@ inline OriginalBuildingUpdateBlocker originalBuildingCityLaborStep(OriginalBuild
         if(!l.sampleCount||(l.populationSum==INT32_MIN&&l.sampleCount==-1))return OriginalBuildingUpdateBlocker::CityLabor;
         l.statisticsPending=0;l.averagePopulation=l.populationSum/l.sampleCount;
         if(!c.populationPeak)return OriginalBuildingUpdateBlocker::CityLabor;*c.populationPeak=std::max(*c.populationPeak,*c.populationTotal);}
-    constexpr int difficulty[]={50,45,40,37,35},wage[]={-10,-6,-3,0,3,5},health[]={-2,-1,0,1,2};
-    if(l.difficulty<0||l.difficulty>4||l.wageBand<0||l.wageBand>5)return OriginalBuildingUpdateBlocker::CityLabor;
-    const unsigned band=l.health>=80?4:l.health>=65?3:l.health>=35?2:l.health>=20?1:0;int32_t residents=0;
+    const auto laborPercent=originalBuildingLaborPercent(l.difficulty,l.wageBand,l.health);
+    if(!laborPercent)return OriginalBuildingUpdateBlocker::CityLabor;int32_t residents=0;
     for(const auto& e:*c.buildingInputs)if(e.second.house&&e.second.residents>0&&c.buildings->at(e.first).type<=10)residents=originalBuildingAdd32(residents,e.second.residents);
-    c.cityEmployment->available=originalBuildingPercent(residents,difficulty[l.difficulty]+wage[l.wageBand]+health[band]);
+    c.cityEmployment->available=originalBuildingPercent(residents,*laborPercent);
     const auto formation=originalBuildingFormationStep(*c.formations,*c.figures,*c.figureModels,*c.figureStationary);if(!formation)return OriginalBuildingUpdateBlocker::CityLabor;
     c.formations=formation->formations;c.formationResult=*formation;c.figureOrdinals=formation->figureOrdinals;++c.formationCalls;
     for(unsigned n=0;n<4;++n)c.cityEmployment->available=originalBuildingSub32(c.cityEmployment->available,

@@ -108,7 +108,7 @@ SG3DecodeResult pixels(const SG3Sprite& s,const std::string& path) {
     }
     result.status=SG3DecodeStatus::Decoded;result.alphaApplied=s.alphaLength!=0;result.image=std::move(image);return result;
 }
-std::string companion(const SG3Archive& a,const SG3Sprite& s,const std::string& internal) {
+std::string companion(const SG3Archive& a,const SG3Sprite& s,const std::string& internal,SG3CompanionMemo* memo) {
     namespace fs=std::filesystem;
     fs::path name=fs::path(internal).filename();
     if(s.external) {
@@ -118,16 +118,19 @@ std::string companion(const SG3Archive& a,const SG3Sprite& s,const std::string& 
            name.string().find_first_of("\\:")!=std::string::npos)return {};
         name.replace_extension(".555");
     }
+    const auto key=std::make_pair(internal,name.string());
+    if(memo){auto found=memo->paths.find(key);if(found!=memo->paths.end()){++memo->hits;return found->second;}++memo->resolutions;}
+    const auto remember=[&](std::string path){if(memo&&!path.empty()&&memo->paths.size()<memo->limit)memo->paths.emplace(key,path);return path;};
     auto root=ResourceRoot::fromAbsolute(fs::path(internal).parent_path().string());
     if(!root.configured())return {};
-    auto direct=root.resolve(name.string());if(!direct.empty())return direct;
+    auto direct=root.resolve(name.string());if(!direct.empty())return remember(direct);
     for(const auto& directory:std::vector<std::string>{"","555"}) {
         std::error_code error;
         auto dir=fs::path(root.configuredDirectory())/directory;
         for(fs::directory_iterator it(dir,error),end;!error && it!=end;it.increment(error)) {
             if(lower(it->path().filename().string())!=lower(name.string()))continue;
             auto relative=(fs::path(directory)/it->path().filename()).generic_string();
-            auto resolved=root.resolve(relative);if(!resolved.empty())return resolved;
+            auto resolved=root.resolve(relative);if(!resolved.empty())return remember(resolved);
         }
     }
     return {};
@@ -177,8 +180,8 @@ std::optional<size_t> sg3LogicalIndexForGroup(const SG3Archive& archive,size_t s
     if(!id || id>archive.numImages || id>archive.sprites.size())return std::nullopt;
     return id-1;
 }
-SG3DecodeResult decodeSG3Sprite(const SG3Archive& a,size_t index,const std::string& internal) {
-    SG3DecodeResult result;
+SG3ResolvedSprite resolveSG3Sprite(const SG3Archive& a,size_t index,const std::string& internal,SG3CompanionMemo* memo) {
+    SG3ResolvedSprite result;
     try {
         if(index>=a.sprites.size())return result;
         bool mirrored=false;
@@ -195,15 +198,22 @@ SG3DecodeResult decodeSG3Sprite(const SG3Archive& a,size_t index,const std::stri
         if(s.width==0 && s.height==0 && s.length==0) {
             result.status=SG3DecodeStatus::EmptyRecord;result.mirrored=mirrored;return result;
         }
-        auto path=companion(a,s,internal);
+        auto path=companion(a,s,internal,memo);
         if(path.empty()){result.status=SG3DecodeStatus::MissingDependency;return result;}
-        result=pixels(s,path);result.mirrored=mirrored;
-        if(result.image.valid() && mirrored)for(size_t y=0;y<result.image.height;++y) {
-            auto first=result.image.pixelsBGRA.begin()+y*result.image.width;
-            std::reverse(first,first+result.image.width);
-        }
+        result.sprite=s;result.path=std::move(path);result.mirrored=mirrored;result.status=SG3DecodeStatus::Decoded;
         return result;
     } catch(const std::bad_alloc&){return {};}
+}
+SG3DecodeResult decodeResolvedSG3Sprite(const SG3ResolvedSprite& source) {
+    SG3DecodeResult result;result.status=source.status;result.mirrored=source.mirrored;
+    if(source.status!=SG3DecodeStatus::Decoded)return result;
+    try {result=pixels(source.sprite,source.path);result.mirrored=source.mirrored;
+        if(result.image.valid()&&source.mirrored)for(size_t y=0;y<result.image.height;++y){auto first=result.image.pixelsBGRA.begin()+y*result.image.width;std::reverse(first,first+result.image.width);}
+        return result;
+    }catch(const std::bad_alloc&){return {};}
+}
+SG3DecodeResult decodeSG3Sprite(const SG3Archive& a,size_t index,const std::string& internal) {
+    return decodeResolvedSG3Sprite(resolveSG3Sprite(a,index,internal));
 }
 std::optional<SG3SingleCellGeometry> sg3SingleCellGeometry(const SG3Archive& a,size_t index) {
     if(index>=a.numImages||index>=a.sprites.size())return std::nullopt;

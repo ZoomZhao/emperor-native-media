@@ -1,6 +1,7 @@
 #pragma once
 #include "original_map.hpp"
 #include "original_ground.hpp"
+#include "scene_draw_list.hpp"
 #include <array>
 #include <cstdint>
 #include <string>
@@ -80,7 +81,7 @@ struct MapImageGridStats {
     // a subset of successfully decoded cells,not a substitute for validation.
     size_t decodedCells=0, drawnCells=0, culled=0, visibleCells=0;
     size_t unresolvedIndices=0, geometryUnsupported=0, archiveUnavailable=0, decodeFailures=0;
-    size_t uniqueDecoded=0, cacheBytes=0;
+    size_t uniqueDecoded=0, cacheBytes=0, cpuSpriteDraws=0;
     // Composite (multi-tile) surface art. A cell whose resolved record declares an
     // s*s block is placed from its own per-cell offset, not from the component
     // bounding box: draw-state 0x00FDCD70 bits 0..2 are the column and bits 3..5 the
@@ -112,7 +113,7 @@ enum class MapImageGridOrder { FootprintOrigin, View0DrawCorner };
 // (0x00FDCD70) when the subTile group side (0x00F9D620) equals the declared side.
 MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain&, const OriginalTerrainState&,
     const std::vector<MapImageGridTileset>&, const OriginalMapCamera&,
-    MapImageGridOrder order=MapImageGridOrder::FootprintOrigin);
+    MapImageGridOrder order=MapImageGridOrder::FootprintOrigin,SG3SpriteCache* spriteCache=nullptr,SceneDrawListBuilder* drawList=nullptr,bool deferRaster=false);
 
 // ---- Chain score against the stored grid -----------------------------------
 // Per-branch tally of the reconstructed chain against the stored 0x00FE9880 grid,

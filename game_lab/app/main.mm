@@ -24,6 +24,16 @@
 #include "map_surface.hpp"
 #include "movie_quit_menu.hpp"
 #include "city_playback.hpp"
+#include "city_goal_diagnostics.hpp"
+#include "../native_session_source.hpp"
+#include "../native_start_catalog.hpp"
+#include "../native_session_io.hpp"
+#include "../native_session_presentation.hpp"
+#include "native_game_chrome.hpp"
+#include "native_minimap_view.hpp"
+#include "native_metal_display.hpp"
+#include "native_visual_transaction.hpp"
+#include <deque>
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
@@ -161,8 +171,85 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 
 @end
 
-@interface EmperorAppDelegate : NSObject <NSApplicationDelegate, NSTableViewDelegate, NSTableViewDataSource> {
+#include "native_session_canvas.hpp"
+
+@interface EmperorAppDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate, NSTableViewDelegate, NSTableViewDataSource, NSPopoverDelegate> {
     NSWindow* _window;
+    NSPanel* _nativePanel;
+    NSView* _browserAudioBar;
+    NativeSessionCanvas* _nativeCanvas;
+    NSTextField* _nativeStatus;
+    NSTextField* _nativeRulesLabel;
+    NSTextField* _nativeFoodInfo;
+    NSTextField* _nativeTaxInfo;
+    NSTextField* _nativeDemolitionInfo;
+    NSButton* _nativeDemolitionConfirm;
+    std::optional<game_lab::NativeSessionCommand> _nativeDemolition;
+    NSTextField* _nativeWaterInfo;
+    NSButton* _nativeWaterToggle;
+    NSButton* _nativeHuntingToggle;
+    NSTextField* _nativeHover;
+    std::optional<std::pair<int,int>> _nativeHoverTile;
+    game_lab::NativeRoadGesture _nativeRoadGesture;
+    NSTextField* _nativeX;
+    NSTextField* _nativeY;
+    NSTextField* _nativeFile;
+    NSPopUpButton* _nativeTool;
+    NSButton* _nativePause;
+    NSButton* _nativeResume;
+    NSTimer* _nativeTimer;
+    NSArray<NSButton*>* _nativeSpeedChoices;
+    unsigned _nativeSpeedIndex;
+    NSTextField* _nativeResources;
+    NSTextField* _nativeCompactState;
+    NSTextField* _nativeNotice;
+    NSTextField* _nativeServiceSummary;
+    NSTextField* _nativeDetails;
+    NSButton* _nativeDetailDemolish;
+    NSButton* _nativeHouseConditions;
+    NSArray<NSButton*>* _nativeCategories;
+    NSArray<NSButton*>* _nativeChoices;
+    uint64_t _nativeInspectionId;
+    std::optional<game_lab::NativeCityFeedback> _nativeFeedback;
+    std::weak_ptr<const game_lab::NativeSessionSource> _nativeFeedbackSource;
+    uint64_t _nativeFeedbackEpoch,_nativeFeedbackRevision;
+    NSImageView* _nativeDetailIcon;
+    NSPopover* _nativeHousePopover;
+    NSTextView* _nativeHousePopoverText;
+    uint64_t _nativeHousePopoverHouseId;
+    unsigned _nativeCategoryIndex;
+    NSMutableDictionary<NSNumber*,NSImage*>* _nativeUIImages;
+    std::shared_ptr<const game_lab::NativeSessionSource> _nativeSource;
+    std::shared_ptr<const game_lab::NativeSessionSource> _nativeOverviewSource;
+    NativeMinimapView* _nativeMinimap;
+    std::optional<game_lab::NativeSessionState> _nativeState;
+    game_lab::NativeStartCatalog _nativeStartCatalog;
+    NSPopUpButton* _nativeStartPicker;
+    NSTextField* _nativeStartDetail;
+    NSImageView* _nativeStartPreview;
+    NSButton* _nativeStartConfirm;
+    NSTextField* _nativeStartProgress;
+    NSProgressIndicator* _nativeStartSpinner;
+    dispatch_queue_t _nativeStartQueue;
+    game_lab::NativeStartWorkPtr _nativeStartWork,_nativeStartPreviewWork;
+
+    std::shared_ptr<game_lab::AppMapSurface> _nativeSurface;
+    std::shared_ptr<game_lab::SG3SpriteCache> _nativeSpriteCache;
+    game_lab::OriginalMapCamera _nativeCamera;
+    game_lab::SceneFrameGateState _nativeFrameGate;
+    uint64_t _nativeObservedCacheInvalidations;
+    NativeMetalDisplay* _nativeMetalDisplay;
+    std::unique_ptr<game_lab::metal_scene::Renderer> _nativeRenderer;
+    std::shared_ptr<NativeVisualTransaction> _nativePending;
+    std::shared_ptr<const game_lab::metal_scene::Frame> _nativePresentedFrame;
+    std::deque<game_lab::NativeSessionCommand> _nativeCommands;
+    BOOL _nativeMetalEnabled,_nativeFlushing,_nativeQueueDrainScheduled,_nativePublishing,_nativeGeometryDeferred,_nativeProcessingQueued;
+    std::string _nativeRenderRoute;
+    unsigned _nativeMetalFault;
+    std::string _nativeMessage;
+    std::string _nativeSavedContent;
+    BOOL _nativeExitApproved;
+
     NSSegmentedControl* _navBar;
     NSView* _contentContainer;
     
@@ -212,9 +299,22 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSButton* _cityPlayButton;
     NSButton* _cityPauseButton;
     NSButton* _cityStepButton;
+    NSButton* _cityNoticesButton;
+    NSButton* _cityGoalsButton;
+    NSPanel* _cityGoalsPanel;
+    NSTextView* _cityGoalsText;
+    NSTextField* _cityGoalThreshold;
+    NSPanel* _cityNoticesPanel;
+    NSTextView* _cityNoticesText;
+    NSButton* _cityNoticeAccept;
+    NSButton* _cityNoticeReject;
+    NSButton* _cityNoticeNext;
+    std::optional<game_lab::AppCityTributeId> _cityNoticeSelection;
+    std::string _cityNoticeActionMessage;
     NSTextField* _cityPlaybackStatus;
     game_lab::ResourceRoot _resourceRoot;
     uint32_t _cityPlaybackCrtSeed;
+    game_lab::AppCitySessionState _citySession;
     uint64_t _cityPlaybackEpochMs;
     std::string _cityPlaybackMessage;
     NSView* _candidateView;
@@ -338,11 +438,16 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root selfAuthored:(BOOL)selfAuthored {
     self = [super init];
     if (self) {
+    _nativeMetalEnabled=std::getenv("EMPEROR_NATIVE_METAL")&&std::strcmp(std::getenv("EMPEROR_NATIVE_METAL"),"1")==0;
+        _nativeRenderRoute="CPU";
+        const char* metalFault=std::getenv("EMPEROR_NATIVE_METAL_FAULT");
+        if(_nativeMetalEnabled&&metalFault)_nativeMetalFault=std::strcmp(metalFault,"fail-once")==0?1:std::strcmp(metalFault,"delay")==0?2:0;
         _selfAuthoredLaunch = selfAuthored;
         _candidateDirectory = [NSURL fileURLWithPath:[NSString stringWithUTF8String:root.configuredDirectory().c_str()]];
         _resourceRoot = root;
         // Unix seconds at App start; the original seeds CRT rand the same way.
         _cityPlaybackCrtSeed = uint32_t(std::time(nullptr));
+        _citySession.crtRandom = _cityPlaybackCrtSeed;
         _cityPlaybackEpochMs = appMonotonicMs();
         _media = std::make_unique<game_lab::AppMedia>(root, _audioFactory);
         _originalMapSurface = std::make_unique<game_lab::AppMapSurface>(root);
@@ -355,6 +460,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)dealloc {
+    if(_nativeStartWork)_nativeStartWork->cancelled=true;
+    if(_nativeStartPreviewWork)_nativeStartPreviewWork->cancelled=true;
     if (_media) _media->setStatusChangedCallback({});
 }
 
@@ -377,6 +484,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
+    [self flushNativeVisualForUI];
+    if(!_movieTerminating&&!_nativeExitApproved){
+        if(_nativeState&&!_nativeState->paused)[self onNativePause:nil];
+        if(![self confirmNativeReplacement:@"退出应用"])return NSTerminateCancel;
+        _nativeExitApproved=YES;
+    }
     [self stopSpriteSequence];
     if (_movieExitForced) return NSTerminateNow;
     if (_movieTerminating) {
@@ -403,6 +516,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         if (!result.permitsExit()) {
             const auto reason = game_lab::formatTerminationResult(result);
             owner->_movieQuitRejected = YES;
+            owner->_nativeExitApproved = NO;
             owner->_movieStatusLabel.stringValue = [NSString stringWithUTF8String:reason.c_str()];
             [owner updateMovieControls];
             std::fprintf(stderr, "退出被拒绝：%s（再次按 Cmd+Q 直接退出）\n", reason.c_str());
@@ -424,6 +538,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 
 - (void)applicationWillTerminate:(NSNotification*)notification {
+    [self cancelNativeStartWork];
+    _nativeFrameGate=game_lab::changeSceneFrame(_nativeFrameGate,game_lab::SceneFrameChange::Close).state;
+    if(_nativePending){_nativePending->settled=true;_nativePending->completion=nil;_nativePending.reset();}_nativeCommands.clear();
+    if(_nativeRenderer)_nativeRenderer->shutdown();[_nativeMetalDisplay shutdown];_nativePresentedFrame.reset();
+    [self stopNativeSessionTimer];
     [self stopSpriteSequence];
     [self stopCityPlaybackTimer];
     (void)notification;
@@ -444,10 +563,20 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     // replacing it; both the buttons and these items call the same actions.
     NSMenu* mainMenu=NSApp.mainMenu;
     if(!mainMenu){game_lab::installApplicationMainMenu(@"皇帝：龙之崛起");mainMenu=NSApp.mainMenu;}
+    NSMenuItem* gameItem=[[NSMenuItem alloc]init];[mainMenu addItem:gameItem];
+    NSMenu* game=[[NSMenu alloc]initWithTitle:@"游戏"];gameItem.submenu=game;
+    NSArray* gameActions=@[@[@"新建原生城市…",@"onNativeNew:",@""],@[@"继续游戏…",@"onNativeContinue:",@""],@[@"保存会话…",@"onNativeSaveAs:",@"s"],@[@"返回当前城市",@"onNativeReturn:",@""],@[@"首页并暂停",@"onNativeClose:",@""],@[@"原生规则与兼容范围…",@"onNativeRules:",@""]];
+    for(NSArray* action in gameActions){NSMenuItem* item=[[NSMenuItem alloc]initWithTitle:action[0] action:NSSelectorFromString(action[1]) keyEquivalent:action[2]];item.target=self;[game addItem:item];}
+    NSMenuItem* developmentItem=[[NSMenuItem alloc]init];[mainMenu addItem:developmentItem];
+    NSMenu* development=[[NSMenu alloc]initWithTitle:@"开发"];developmentItem.submenu=development;
+    NSArray* diagnosticNames=@[@"首页",@"旧自写营建实验",@"图素与贴图",@"音乐预览",@"文本资料",@"影片音画预览",@"候选存档",@"原始数据与兼容性诊断"];
+    for(NSInteger index=1;index<8;++index){NSMenuItem* item=[[NSMenuItem alloc]initWithTitle:diagnosticNames[index] action:@selector(onDevelopmentPanel:) keyEquivalent:@""];item.tag=index;item.target=self;[development addItem:item];}
+    NSMenuItem* sessionDetails=[[NSMenuItem alloc]initWithTitle:@"当前原生会话诊断…" action:@selector(onNativeDiagnostics:) keyEquivalent:@""];sessionDetails.target=self;[development addItem:sessionDetails];
+    [development addItem:NSMenuItem.separatorItem];
     NSMenuItem* playbackItem=[[NSMenuItem alloc] init];
-    [mainMenu addItem:playbackItem];
-    NSMenu* playback=[[NSMenu alloc] initWithTitle:@"城市时序"];
-    NSMenuItem* play=[[NSMenuItem alloc] initWithTitle:@"播放（+100 次更新）" action:@selector(onCityPlay:) keyEquivalent:@"p"];
+    [development addItem:playbackItem];
+    NSMenu* playback=[[NSMenu alloc] initWithTitle:@"严格原版城市时序"];
+    NSMenuItem* play=[[NSMenuItem alloc] initWithTitle:@"播放" action:@selector(onCityPlay:) keyEquivalent:@"p"];
     play.target=self;[playback addItem:play];
     NSMenuItem* pause=[[NSMenuItem alloc] initWithTitle:@"暂停" action:@selector(onCityPause:) keyEquivalent:@"P"];
     pause.target=self;[playback addItem:pause];
@@ -455,7 +584,13 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     step.keyEquivalentModifierMask=NSEventModifierFlagCommand;step.target=self;[playback addItem:step];
     playbackItem.submenu=playback;
 }
+- (void)onDevelopmentPanel:(NSMenuItem*)item {
+    if(item.tag<1||item.tag>7)return;
+    if(_nativePanel.visible)[self onNativeClose:nil];
+    [self showTab:item.tag];[_window makeKeyAndOrderFront:nil];
+}
 - (BOOL)validateMenuItem:(NSMenuItem*)item {
+    if(item.action==@selector(onNativeDiagnostics:)||item.action==@selector(onNativeSaveAs:)||item.action==@selector(onNativeReturn:)||item.action==@selector(onNativeRules:)||item.action==@selector(onNativeClose:))return bool(_nativeState);
     if(item.action==@selector(onCityPlay:)||item.action==@selector(onCityPause:)||item.action==@selector(onCityStep:)){
         if(_navBar.selectedSegment!=7||![self cityPlaybackSourceSelected])return NO;
         if(item.action==@selector(onCityPlay:))return YES;
@@ -479,10 +614,14 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self setupMovieView];
     [self setupCandidateView];
     [self setupOriginalMapView];
-    [self showTab:7];
+    [self showTab:0];
     
     // Start the self-authored city tick timer
     _simTimer = [NSTimer scheduledTimerWithTimeInterval:0.25 target:self selector:@selector(onSimulationStep:) userInfo:nil repeats:YES];
+}
+
+- (BOOL)windowShouldClose:(NSWindow*)window {
+    if(window==_window){[NSApp terminate:nil];return NO;}return YES;
 }
 
 - (void)setupWindow {
@@ -493,6 +632,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
                                               defer:NO];
     _window.contentMinSize=NSMakeSize(1024,760);
     _window.title = @"Emperor · 原始数据浏览器";
+    _window.delegate=self;
     [_window center];
     
     NSView* root = _window.contentView;
@@ -518,7 +658,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     bottomBar.autoresizingMask = NSViewWidthSizable | NSViewMaxYMargin;
     bottomBar.wantsLayer = YES;
     bottomBar.layer.backgroundColor = [NSColor colorWithCalibratedWhite:0.12 alpha:1.0].CGColor;
-    [root addSubview:bottomBar];
+    [root addSubview:bottomBar];_browserAudioBar=bottomBar;
     
     _playPauseButton = [NSButton buttonWithTitle:@"▶ 播放" target:self action:@selector(togglePlayPause:)];
     _playPauseButton.frame = NSMakeRect(12, 10, 80, 28);
@@ -635,45 +775,31 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [_mainMenuView addSubview:_mainMenuImageView];
     
     // Classical styled menu buttons panel on top of the background
-    NSView* menuOverlay = [[NSView alloc] initWithFrame:NSMakeRect(40, 70, 260, 560)];
+    NSView* menuOverlay = [[NSView alloc] initWithFrame:NSMakeRect(40, 70, 400, 560)];
     menuOverlay.wantsLayer = YES;
     menuOverlay.layer.backgroundColor = [NSColor colorWithCalibratedRed:0.08 green:0.08 blue:0.1 alpha:0.75].CGColor;
     menuOverlay.layer.cornerRadius = 10;
     [_mainMenuView addSubview:menuOverlay];
     
     NSTextField* titleLabel = [NSTextField labelWithString:@"皇帝：龙之崛起"];
-    titleLabel.frame = NSMakeRect(20, 500, 220, 36);
+    titleLabel.frame = NSMakeRect(20, 500, 360, 36);
     titleLabel.font = [NSFont boldSystemFontOfSize:22];
     titleLabel.textColor = [NSColor colorWithCalibratedRed:0.95 green:0.85 blue:0.4 alpha:1.0];
     [menuOverlay addSubview:titleLabel];
     
-    NSTextField* subLabel = [NSTextField labelWithString:@"媒体资源浏览器 · 2026"];
-    if (!_mainMenuImage) subLabel.stringValue = @"背景图片不可读取或转换失败";
-    subLabel.frame = NSMakeRect(20, 475, 220, 20);
-    subLabel.font = [NSFont systemFontOfSize:12];
-    subLabel.textColor = [NSColor colorWithCalibratedWhite:0.75 alpha:1.0];
-    [menuOverlay addSubview:subLabel];
-    
-    NSArray* btnConfigs = @[
-        @{@"title": @"🏯 营建城邑", @"action": NSStringFromSelector(@selector(gotoMaps:))},
-        @{@"title": @"🖼 图素与贴图", @"action": NSStringFromSelector(@selector(gotoSprites:))},
-        @{@"title": @"🎵 国风民乐鉴赏", @"action": NSStringFromSelector(@selector(gotoMusic:))},
-        @{@"title": @"📜 游戏文本与对话", @"action": NSStringFromSelector(@selector(gotoTexts:))},
-        @{@"title": @"🎬 影片音画预览", @"action": NSStringFromSelector(@selector(gotoMovies:))},
-        @{@"title": @"🔔 播放音效 (祈福)", @"action": NSStringFromSelector(@selector(playBlessSFX:))},
-        @{@"title": @"❌ 退出应用", @"action": NSStringFromSelector(@selector(terminate:))}
-    ];
-    
-    CGFloat y = 420;
-    for (NSDictionary* cfg in btnConfigs) {
-        NSButton* btn = [NSButton buttonWithTitle:cfg[@"title"] target:self action:NSSelectorFromString(cfg[@"action"])];
-        btn.frame = NSMakeRect(20, y, 220, 36);
-        btn.bezelStyle = NSBezelStyleRounded;
-        [menuOverlay addSubview:btn];
-        y -= 48;
-    }
+    NSTextField* subLabel=[NSTextField wrappingLabelWithString:@"原始画面 · 原生玩法 v6\n道路、住宅、供水、食物、税收、拆建与原版劳动力。原版任务和已有城市续玩尚不兼容。"];
+    subLabel.frame=NSMakeRect(20,420,360,72);subLabel.font=[NSFont systemFontOfSize:13];[menuOverlay addSubview:subLabel];
+    NSArray* buttons=@[
+        @[@"新建原生城市 · v6",@"onNativeNew:",@"native-home-new"],
+        @[@"继续游戏 · 选择会话…",@"onNativeContinue:",@"native-home-continue"],
+        @[@"返回当前城市",@"onNativeReturn:",@"native-home-return"],
+        @[@"退出应用",@"terminate:",@"native-home-quit"]];
+    CGFloat y=370;for(NSArray* item in buttons){NSButton* button=[NSButton buttonWithTitle:item[0] target:self action:NSSelectorFromString(item[1])];button.frame=NSMakeRect(20,y,360,36);button.accessibilityIdentifier=item[2];[menuOverlay addSubview:button];y-=48;}
+    NSTextField* root=[NSTextField wrappingLabelWithString:[NSString stringWithFormat:@"当前原始数据目录（只读）\n%@",[NSString stringWithUTF8String:_resourceRoot.configuredDirectory().c_str()]]];
+    root.frame=NSMakeRect(20,10,360,70);root.font=[NSFont systemFontOfSize:11];root.accessibilityIdentifier=@"native-home-root";[menuOverlay addSubview:root];
 }
 
+- (void)gotoOriginalData:(id)sender {(void)sender;[self showTab:7];}
 - (void)gotoMaps:(id)sender {
     (void)sender;
     [self showTab:1];
@@ -1591,7 +1717,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     title.frame = NSMakeRect(20, height - 38, 570, 26);
     title.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     title.font = [NSFont boldSystemFontOfSize:17]; [_originalMapView addSubview:title];
-    _originalMapPicker = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(20, height - 80, 560, 30) pullsDown:NO];
+    _originalMapPicker = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(20, height - 80, 440, 30) pullsDown:NO];
     const auto catalog = _media->originalMapCatalog();
     _originalMapSources = catalog.sources;
     _originalMapVisibleSources=game_lab::originalMapSourceMatches(_originalMapSources,"");
@@ -1608,7 +1734,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapFilter.autoresizingMask=NSViewMinXMargin|NSViewMinYMargin;_originalMapFilter.accessibilityIdentifier=@"original-map-source-filter";[_originalMapView addSubview:_originalMapFilter];
     NSButton* filter=[NSButton buttonWithTitle:@"筛选来源" target:self action:@selector(onOriginalMapFilterChanged:)];
     filter.frame=NSMakeRect(900,height-40,100,26);filter.autoresizingMask=NSViewMinXMargin|NSViewMinYMargin;filter.accessibilityIdentifier=@"original-map-filter-apply";[_originalMapView addSubview:filter];
-    _originalMapBitPicker = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(600, height - 80, 400, 30) pullsDown:NO];
+    _originalMapBitPicker = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(650, height - 80, 350, 30) pullsDown:NO];
     _originalMapBitPicker.menu.autoenablesItems=NO;
     [_originalMapBitPicker addItemWithTitle:@"完整标志值（诊断色，非原版调色板）"];
     for(int bit = 0; bit < 32; ++bit) {
@@ -1632,7 +1758,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapSpatial=[NSButton checkboxWithTitle:@"等距空间（SAV 含已绑定建筑基座）" target:self action:@selector(onOriginalMapPlaneChanged:)];
     _originalMapSpatial.frame=NSMakeRect(620,height-114,380,24);_originalMapSpatial.autoresizingMask=NSViewMinYMargin;
     _originalMapSpatial.accessibilityIdentifier=@"original-map-spatial";[_originalMapView addSubview:_originalMapSpatial];
-    _originalFigureSource=[[NSPopUpButton alloc]initWithFrame:NSMakeRect(620,height-82,380,24) pullsDown:NO];
+    // Keep the SAV picture phase selector beside the data-plane selector;
+    // their old frames overlapped and obscured both choices in a real window.
+    _originalFigureSource=[[NSPopUpButton alloc]initWithFrame:NSMakeRect(470,height-80,160,30) pullsDown:NO];
     [_originalFigureSource addItemsWithTitles:@[@"Saved snapshot",@"post-load k=1"]];
     _originalFigureSource.target=self;_originalFigureSource.action=@selector(onOriginalFigureSourceChanged:);
     _originalFigureSource.autoresizingMask=NSViewMinYMargin;_originalFigureSource.enabled=NO;
@@ -1690,12 +1818,21 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapUnknowns.accessibilityIdentifier=@"original-map-unknown-cells";
     _originalMapUnknowns.accessibilityLabel=@"地表未覆盖格或SAV查格原值";
     unknownScroll.documentView=_originalMapUnknowns;[_originalMapView addSubview:unknownScroll];
-    _cityPlayButton=[NSButton buttonWithTitle:@"▶ 播放（+100 更新）" target:self action:@selector(onCityPlay:)];
+    _cityPlayButton=[NSButton buttonWithTitle:@"▶ 播放" target:self action:@selector(onCityPlay:)];
     _cityPauseButton=[NSButton buttonWithTitle:@"⏸ 暂停" target:self action:@selector(onCityPause:)];
     _cityStepButton=[NSButton buttonWithTitle:@"⏭ 单步 +1" target:self action:@selector(onCityStep:)];
     _cityPlayButton.frame=NSMakeRect(20,height-454,160,26);_cityPauseButton.frame=NSMakeRect(188,height-454,90,26);_cityStepButton.frame=NSMakeRect(286,height-454,110,26);
     for(NSButton* b in @[_cityPlayButton,_cityPauseButton,_cityStepButton]){b.autoresizingMask=NSViewMinYMargin;[_originalMapView addSubview:b];}
     _cityPlayButton.accessibilityIdentifier=@"original-city-play";_cityPauseButton.accessibilityIdentifier=@"original-city-pause";_cityStepButton.accessibilityIdentifier=@"original-city-step";
+    _cityNoticesButton=[NSButton buttonWithTitle:@"年贡消息" target:self action:@selector(onCityNotices:)];
+    _cityNoticesButton.frame=NSMakeRect(410,height-454,180,26);_cityNoticesButton.autoresizingMask=NSViewMinYMargin;
+    _cityNoticesButton.accessibilityIdentifier=@"original-city-notices";[_originalMapView addSubview:_cityNoticesButton];
+    _cityGoalsButton=[NSButton buttonWithTitle:@"目标诊断" target:self action:@selector(onCityGoals:)];
+    _cityGoalsButton.frame=NSMakeRect(610,height-454,140,26);_cityGoalsButton.autoresizingMask=NSViewMinYMargin;
+    _cityGoalsButton.accessibilityIdentifier=@"original-city-goals";[_originalMapView addSubview:_cityGoalsButton];
+    NSButton* native=[NSButton buttonWithTitle:@"新建原生 v6 · 劳动力" target:self action:@selector(onNativeSession:)];
+    native.frame=NSMakeRect(770,height-454,210,26);native.autoresizingMask=NSViewMinYMargin;
+    native.accessibilityIdentifier=@"native-v1-open";[_originalMapView addSubview:native];
     _cityPlaybackStatus=[NSTextField wrappingLabelWithString:@"城市时序：Saved snapshot 为默认画面；点“▶ 播放”或 ⌘P 才开始。"];
     _cityPlaybackStatus.frame=NSMakeRect(20,height-498,980,40);_cityPlaybackStatus.maximumNumberOfLines=3;
     _cityPlaybackStatus.font=[NSFont systemFontOfSize:11];_cityPlaybackStatus.autoresizingMask=NSViewWidthSizable|NSViewMinYMargin;
@@ -1721,6 +1858,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const NSInteger index = _originalMapPicker.indexOfSelectedItem;
     _originalManualCandidate.reset();_originalSelectedSlot.reset();_originalManualVisible.state=NSControlStateValueOff;_originalManualAdopt.enabled=NO;_originalManualSave.enabled=NO;_originalManualClear.enabled=NO;_originalManualMessage.clear();_originalSaveRevision=0;_originalSourceRelative.clear();_originalBuildingSlot.stringValue=@"";
+    if(_cityGoalThreshold)_cityGoalThreshold.stringValue=@"";
+    if(_cityGoalsText)_cityGoalsText.string=@"来源已改变；请选择SAV并重新输入核实后的比较阈值。";
     _originalMapSourceInfo.clear();_originalMapPackageSummary=NO;_originalSaveLayers.reset();_originalSaveBuildings.reset();_originalBuildingLocate.enabled=NO;
     [_originalFigureSource selectItemAtIndex:0];_originalFigureSource.enabled=NO;
     _originalSaveCellX.stringValue=@"0";_originalSaveCellY.stringValue=@"0";
@@ -1730,7 +1869,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     for(NSInteger field=33;field<38;++field)[_originalMapBitPicker itemAtIndex:field].enabled=NO;
     if(index < 0 || static_cast<size_t>(index) >= _originalMapVisibleSources.size()) {
         [_originalMapBitPicker selectItemAtIndex:0];_originalMapInfo.stringValue=@"没有匹配的地图来源";_originalMapUnknowns.string=@"没有匹配来源；图像和坐标已清空。";
-        _originalMapCandidates.enabled=NO;_originalMapCandidates.hidden=YES;_originalMapCameraX.enabled=NO;_originalMapCameraY.enabled=NO;_originalMapCameraApply.enabled=NO;return;
+        _originalMapCandidates.enabled=NO;_originalMapCandidates.hidden=YES;_originalMapCameraX.enabled=NO;_originalMapCameraY.enabled=NO;_originalMapCameraApply.enabled=NO;[self updateCityPlaybackStatusText];return;
     }
     const size_t sourceIndex=_originalMapVisibleSources[static_cast<size_t>(index)];
     _originalSourceRelative=_originalMapSources[sourceIndex].relativePath;
@@ -1769,6 +1908,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         _originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.2f",double(f.y)+(double(game_lab::originalFootprintHeight(f))-1)/2];
     }
     [self onOriginalMapPlaneChanged:nil];
+    [self updateCityPlaybackStatusText];
+    [self refreshCityGoalDiagnostics];
 }
 - (void)onOriginalFigureSourceChanged:(id)sender {
     (void)sender;
@@ -1926,6 +2067,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 - (void)resetCityPlayback {
     [self stopCityPlaybackTimer];
+    [_cityNoticesPanel orderOut:nil];
+    _cityNoticesText.string=@"";_cityNoticeSelection.reset();_cityNoticeActionMessage.clear();
     _cityPlayback.reset();
     _cityPlaybackMessage.clear();
     [self updateCityPlaybackStatusText];
@@ -1945,14 +2088,126 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         _cityPlaybackMessage="播放未准备："+error;return NO;}
     // The App never supplies Unresolved inputs; the timeline names what it lacks.
     _cityPlayback=std::make_unique<game_lab::AppCityPlayback>(*_originalMapSurface,save,decoded.payload,preferences,
-        _cityPlaybackCrtSeed,uint32_t([self cityPlaybackNowMs]),false);
+        _cityPlaybackCrtSeed,uint32_t([self cityPlaybackNowMs]),false,&_citySession);
     _cityPlaybackMessage="已准备；Saved snapshot 仍是默认画面，播放/单步才安装新帧";
     return _cityPlayback->prepared();
+}
+#include "native_visual_app.inc"
+#include "native_session_app.inc"
+
+- (void)refreshCityGoalDiagnostics {
+    if(!_cityGoalsText)return;
+    _cityGoalThreshold.enabled=[self cityPlaybackSourceSelected];
+    if(![self cityPlaybackSourceSelected]){_cityGoalsText.string=@"没有已选择的SAV；没有住宅评估或活动目标组。";return;}
+    std::vector<uint8_t> raw;
+    if(!game_lab::detail::readFile(_media->resourcePath(_originalSourceRelative),4194304,raw)){
+        _cityGoalsText.string=@"无法读取已选择的存档；未保留旧评估。";return;
+    }
+    const auto save=game_lab::decodeOriginalSave(raw);
+    const auto decoded=game_lab::decodeOriginalMapContainer(raw);
+    if(!decoded.complete||save.status!=game_lab::OriginalSaveStatus::LoadedSnapshot||save.snapshotRevision!=_originalSaveRevision){
+        _cityGoalsText.string=@"存档已变化或不完整；请重新选择来源。未保留旧评估。";return;
+    }
+    const std::string report="来源："+_originalSourceRelative+"\n"+
+        game_lab::describeAppCityGoalDiagnostics(decoded.payload,save.buildings,_cityGoalThreshold.stringValue.UTF8String);
+    _cityGoalsText.string=[NSString stringWithUTF8String:report.c_str()];
+}
+- (void)onCityGoalEvaluate:(id)sender {(void)sender;[self refreshCityGoalDiagnostics];}
+- (void)onCityGoals:(id)sender {
+    (void)sender;if(![self cityPlaybackSourceSelected])return;
+    if(!_cityGoalsPanel){
+        _cityGoalsPanel=[[NSPanel alloc] initWithContentRect:NSMakeRect(0,0,780,520)
+            styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable
+            backing:NSBackingStoreBuffered defer:NO];
+        _cityGoalsPanel.title=@"原始城市 · 目标诊断";_cityGoalsPanel.releasedWhenClosed=NO;
+        _cityGoalsPanel.hidesOnDeactivate=NO;_cityGoalsPanel.minSize=NSMakeSize(650,400);
+        NSTextField* label=[NSTextField labelWithString:@"比较阈值（手动核实）"];
+        label.frame=NSMakeRect(16,480,190,26);label.autoresizingMask=NSViewMinYMargin;[_cityGoalsPanel.contentView addSubview:label];
+        _cityGoalThreshold=[[NSTextField alloc] initWithFrame:NSMakeRect(210,478,130,28)];
+        _cityGoalThreshold.placeholderString=@"正整数，非自动目标";_cityGoalThreshold.target=self;
+        _cityGoalThreshold.action=@selector(onCityGoalEvaluate:);_cityGoalThreshold.accessibilityIdentifier=@"original-city-goal-threshold";
+        _cityGoalThreshold.autoresizingMask=NSViewMinYMargin;[_cityGoalsPanel.contentView addSubview:_cityGoalThreshold];
+        NSButton* evaluate=[NSButton buttonWithTitle:@"只读评估" target:self action:@selector(onCityGoalEvaluate:)];
+        evaluate.frame=NSMakeRect(355,478,130,28);evaluate.autoresizingMask=NSViewMinYMargin;
+        evaluate.accessibilityIdentifier=@"original-city-goal-evaluate";[_cityGoalsPanel.contentView addSubview:evaluate];
+        NSScrollView* scroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(16,16,748,450)];
+        scroll.autoresizingMask=NSViewWidthSizable|NSViewHeightSizable;scroll.hasVerticalScroller=YES;
+        _cityGoalsText=[[NSTextView alloc] initWithFrame:scroll.bounds];_cityGoalsText.editable=NO;_cityGoalsText.selectable=YES;
+        _cityGoalsText.font=[NSFont systemFontOfSize:13];_cityGoalsText.autoresizingMask=NSViewWidthSizable;
+        _cityGoalsText.textContainer.widthTracksTextView=YES;_cityGoalsText.verticallyResizable=YES;
+        _cityGoalsText.accessibilityIdentifier=@"original-city-goal-report";
+        scroll.documentView=_cityGoalsText;[_cityGoalsPanel.contentView addSubview:scroll];
+        [_cityGoalsPanel center];
+    }
+    [self refreshCityGoalDiagnostics];[_cityGoalsPanel makeKeyAndOrderFront:nil];
+}
+- (void)onCityNotices:(id)sender {
+    (void)sender;
+    if(![self prepareCityPlayback]){[self updateCityPlaybackStatusText];return;}
+    _cityPlayback->pause();[self stopCityPlaybackTimer];
+    if(const auto* notices=_cityPlayback->notifications()){
+        if(!_cityNoticeSelection||!notices->find(*_cityNoticeSelection))_cityNoticeSelection=notices->nextPending();
+    }
+    if(!_cityNoticesPanel){
+        _cityNoticesPanel=[[NSPanel alloc] initWithContentRect:NSMakeRect(0,0,660,400)
+            styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable
+            backing:NSBackingStoreBuffered defer:NO];
+        _cityNoticesPanel.title=@"原始城市 · 年贡消息";_cityNoticesPanel.releasedWhenClosed=NO;
+        _cityNoticesPanel.hidesOnDeactivate=NO;
+        _cityNoticesPanel.minSize=NSMakeSize(580,300);
+        NSScrollView* scroll=[[NSScrollView alloc] initWithFrame:NSMakeRect(16,68,628,316)];
+        scroll.autoresizingMask=NSViewWidthSizable|NSViewHeightSizable;scroll.hasVerticalScroller=YES;
+        _cityNoticesText=[[NSTextView alloc] initWithFrame:scroll.bounds];_cityNoticesText.editable=NO;
+        _cityNoticesText.font=[NSFont systemFontOfSize:15];_cityNoticesText.autoresizingMask=NSViewWidthSizable;
+        _cityNoticesText.textContainer.widthTracksTextView=YES;_cityNoticesText.verticallyResizable=YES;
+        _cityNoticesText.accessibilityIdentifier=@"original-city-notices-text";
+        scroll.documentView=_cityNoticesText;[_cityNoticesPanel.contentView addSubview:scroll];
+        _cityNoticeAccept=[NSButton buttonWithTitle:@"接受" target:self action:@selector(onAcceptCityNotice:)];
+        _cityNoticeAccept.frame=NSMakeRect(16,20,120,30);_cityNoticeAccept.enabled=NO;
+        _cityNoticeAccept.accessibilityIdentifier=@"original-city-notice-accept";[_cityNoticesPanel.contentView addSubview:_cityNoticeAccept];
+        _cityNoticeReject=[NSButton buttonWithTitle:@"拒绝" target:self action:@selector(onRejectCityNotice:)];
+        _cityNoticeReject.frame=NSMakeRect(148,20,120,30);_cityNoticeReject.enabled=NO;
+        _cityNoticeReject.accessibilityIdentifier=@"original-city-notice-reject";[_cityNoticesPanel.contentView addSubview:_cityNoticeReject];
+        _cityNoticeNext=[NSButton buttonWithTitle:@"下一条待处理" target:self action:@selector(onNextCityNotice:)];
+        _cityNoticeNext.frame=NSMakeRect(280,20,150,30);_cityNoticeNext.enabled=NO;
+        _cityNoticeNext.accessibilityIdentifier=@"original-city-notice-next";[_cityNoticesPanel.contentView addSubview:_cityNoticeNext];
+        NSButton* close=[NSButton buttonWithTitle:@"关闭" target:self action:@selector(onCloseCityNotices:)];
+        close.frame=NSMakeRect(544,20,100,30);close.autoresizingMask=NSViewMinXMargin;
+        close.accessibilityIdentifier=@"original-city-notices-close";[_cityNoticesPanel.contentView addSubview:close];
+        [_cityNoticesPanel center];
+    }
+    [self updateCityPlaybackStatusText];
+    [_cityNoticesPanel makeKeyAndOrderFront:nil];
+}
+- (void)onCloseCityNotices:(id)sender {(void)sender;[_cityNoticesPanel orderOut:nil];}
+- (void)respondToCityNotice:(game_lab::AppCityTributeDecision)decision {
+    if(!_cityPlayback||!_cityNoticeSelection)return;
+    const auto result=_cityPlayback->respondNotification(*_cityNoticeSelection,decision);
+    using R=game_lab::AppCityTributeResult;
+    switch(result){
+        case R::Applied:_cityNoticeActionMessage=decision==game_lab::AppCityTributeDecision::Accept?"本条已接受并入账。":"本条已拒绝，未增加资金。";break;
+        case R::AlreadyCompleted:_cityNoticeActionMessage="本条已经处理，没有重复执行。";break;
+        case R::Overflow:_cityNoticeActionMessage="账目将超出支持范围，尚未处理。";break;
+        case R::MissingLedger:_cityNoticeActionMessage="所需账目尚不可用，尚未处理。";break;
+        case R::ReplayRecording:_cityNoticeActionMessage="当前正在记录帧重放，暂不支持处理通知。";break;
+        case R::Unsupported:_cityNoticeActionMessage="本条金额不在当前支持范围。";break;
+        case R::Stale:_cityNoticeActionMessage="通知已不属于当前城市，未执行。";break;
+    }
+    // Keep the completed selection. A second click cannot select another offer.
+    // The user explicitly chooses the next pending item with its own button.
+    [self updateCityPlaybackStatusText];
+}
+- (void)onAcceptCityNotice:(id)sender {(void)sender;[self respondToCityNotice:game_lab::AppCityTributeDecision::Accept];}
+- (void)onRejectCityNotice:(id)sender {(void)sender;[self respondToCityNotice:game_lab::AppCityTributeDecision::Reject];}
+- (void)onNextCityNotice:(id)sender {
+    (void)sender;const auto* notices=_cityPlayback?_cityPlayback->notifications():nullptr;
+    _cityNoticeSelection=notices?notices->nextPending():std::nullopt;_cityNoticeActionMessage.clear();
+    [self updateCityPlaybackStatusText];
 }
 - (void)onCityPlay:(id)sender {
     (void)sender;
     if(![self prepareCityPlayback]){[self updateCityPlaybackStatusText];return;}
-    _cityPlayback->play(100);
+    _cityPlayback->play();
     [self startCityPlaybackTimer];
     [self updateCityPlaybackStatusText];
 }
@@ -1966,8 +2221,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     (void)sender;
     if(![self prepareCityPlayback]){[self updateCityPlaybackStatusText];return;}
     [self stopCityPlaybackTimer];
-    _cityPlayback->step([self cityPlaybackNowMs]);
-    [self renderCityPlaybackFrame];
+    if(_cityPlayback->step([self cityPlaybackNowMs]))[self renderCityPlaybackFrame];
+    else [self updateCityPlaybackStatusText];
 }
 - (void)onCityPlaybackTimer:(NSTimer*)timer {
     (void)timer;
@@ -2011,13 +2266,32 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
         if(s.state==game_lab::AppCityPlaybackState::Playing)state=@"播放中";
         else if(s.state==game_lab::AppCityPlaybackState::Paused)state=@"已暂停";
         else if(s.state==game_lab::AppCityPlaybackState::Refused)state=@"已拒绝";
-        NSString* refusal=s.refusal.empty()?@"":[NSString stringWithFormat:@"\n拒绝：%@（第 %u 次更新）",[NSString stringWithUTF8String:s.refusal.c_str()],s.refusedUpdate];
+        NSString* refusal=s.refusal.empty()?@"":[NSString stringWithFormat:@"\n拒绝：%@（第 %llu 次更新）",[NSString stringWithUTF8String:s.refusal.c_str()],s.refusedUpdate];
         NSString* error=s.error.empty()?@"":[NSString stringWithFormat:@"\n未准备：%@",[NSString stringWithUTF8String:s.error.c_str()]];
-        text=[NSString stringWithFormat:@"城市时序：%@ · N=%u / 目标 %u · 绘制帧 %llu · 间隔 %u ms · %@%@%@\n%@",
-            state,s.updates,s.target,s.frames,s.intervalMs,@"严格前提",refusal,error,
+        NSString* limit=s.continuous?@"连续模式":[NSString stringWithFormat:@"目标 %u",s.target];
+        text=[NSString stringWithFormat:@"城市时序：%@ · N=%u · %@ · 绘制帧 %llu · 间隔 %u ms · %@%@%@\n%@",
+            state,s.updates,limit,s.frames,s.intervalMs,@"严格前提",refusal,error,
             [NSString stringWithUTF8String:s.premise.c_str()]];
     }
     _cityPlaybackStatus.stringValue=text;
+    const auto* notices=_cityPlayback?_cityPlayback->notifications():nullptr;
+    _cityNoticesButton.enabled=[self cityPlaybackSourceSelected];
+    _cityGoalsButton.enabled=[self cityPlaybackSourceSelected];
+    _cityNoticesButton.title=notices?[NSString stringWithFormat:@"年贡消息（%zu）",notices->saved().size()+notices->generated().size()]:@"年贡消息";
+    if(_cityNoticesText){
+        std::string report=notices?notices->report():"没有已准备的城市消息";
+        const auto* selected=notices&&_cityNoticeSelection?notices->find(*_cityNoticeSelection):nullptr;
+        const bool pending=selected&&selected->state==game_lab::AppCityTributeState::Pending;
+        _cityNoticeAccept.enabled=pending;_cityNoticeReject.enabled=pending;
+        _cityNoticeNext.enabled=notices&&notices->nextPending().has_value()&&!pending;
+        if(selected)report+="\n当前消息 "+std::to_string(selected->slot)+"："+game_lab::AppCityNotifications::stateName(selected->state)+"\n";
+        if(_cityPlayback)if(const auto money=_cityPlayback->tributeFinances())
+            report+="\n余额："+std::to_string(money->treasury)+" · 其他收入："+std::to_string(money->incomeOther)+"\n";
+        if(!_cityNoticeActionMessage.empty())report+="\n"+_cityNoticeActionMessage;
+        NSString* shown=[NSString stringWithFormat:@"%@\n\n%@",[NSString stringWithUTF8String:_originalSourceRelative.c_str()],
+            [NSString stringWithUTF8String:report.c_str()]];
+        if(![_cityNoticesText.string isEqualToString:shown])_cityNoticesText.string=shown;
+    }
 }
 - (void)onOriginalBuildingLocate:(id)sender {
     (void)sender;
@@ -2432,6 +2706,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 - (void)showTab:(NSInteger)idx {
     if(idx!=2){[self stopSpriteSequence];[self renderSpriteSequence];}
     [_navBar setSelectedSegment:idx];
+    // Data-browser controls stay in the explicit Development surface. The home
+    // and native city keep their normal save/continue/quit lifecycle unchanged.
+    _navBar.hidden=idx==0;_browserAudioBar.hidden=idx==0;
+    const NSRect bounds=_window.contentView.bounds;
+    _contentContainer.frame=idx==0?bounds:NSMakeRect(0,48,bounds.size.width,MAX(1.,bounds.size.height-100.));
     for (NSView* sub in [_contentContainer.subviews copy]) {
         [sub removeFromSuperview];
     }

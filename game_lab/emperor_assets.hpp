@@ -4,6 +4,7 @@
 #include <array>
 #include <optional>
 #include <vector>
+#include <map>
 #include "asset_limits.hpp"
 
 namespace game_lab {
@@ -125,6 +126,17 @@ struct SG3DecodeResult {
 };
 // Logical index 0 corresponds to SG image ID1; dummy ID0 is excluded.
 // Companion resolution is confined to the SG directory (including 555/).
+// Immutable resolved decode input; resolving uses the same confined companion rules.
+struct SG3ResolvedSprite {SG3Sprite sprite;std::string path;bool mirrored=false;SG3DecodeStatus status=SG3DecodeStatus::InvalidRecord;};
+// Resolution memo is frame-local, bounded, and stores only successful confined
+// companion paths. Clear before each frame; file-version checks remain separate.
+struct SG3CompanionMemo {
+    size_t limit=2048;
+    std::map<std::pair<std::string,std::string>,std::string> paths;
+    uint64_t resolutions=0,hits=0;
+};
+SG3ResolvedSprite resolveSG3Sprite(const SG3Archive&,size_t,const std::string&,SG3CompanionMemo* memo=nullptr);
+SG3DecodeResult decodeResolvedSG3Sprite(const SG3ResolvedSprite&);
 SG3DecodeResult decodeSG3Sprite(const SG3Archive&, size_t index, const std::string& companion555Path);
 DecodedImage extractSprite(const SG3Sprite& sprite, const std::string& companion555Path);
 // Decoded single-cell geometry only; this is not an original MAP draw origin.

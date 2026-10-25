@@ -382,6 +382,8 @@ inline OriginalBuildingScene composeOriginalSavedGroundScene(const OriginalMapTe
     out.groundRebuilt=true;return out;
 }
 struct OriginalBuildingSceneView {
+    // Deferred views carry only the validated diagnostic background, not a city picture.
+    bool pixelsDeferred=false;size_t overlayCpuDraws=0;
     DecodedImage image;
     MapImageGridStats bases;
     size_t liveRecords=0,placedRecords=0,withheldRecords=0,withheldOutlines=0,unshapedMarkers=0;
@@ -403,9 +405,10 @@ struct OriginalBuildingSceneView {
 // scenes containing objects replay its validated full SAV stamps as commands,
 // inserting objects at their cell phases. No MAP/candidate geometry is inferred.
 inline bool renderOriginalSceneOverlays(const OriginalMapTerrain& terrain,const OriginalBuildingScene& scene,
-    const std::vector<MapImageGridTileset>& tilesets,const OriginalMapCamera& camera,OriginalBuildingSceneView& out,DecodedImage& canvas){
+    const std::vector<MapImageGridTileset>& tilesets,const OriginalMapCamera& camera,OriginalBuildingSceneView& out,DecodedImage& canvas,SG3SpriteCache* spriteCache=nullptr,SceneDrawListBuilder* drawList=nullptr,bool deferRaster=false){
     if(scene.overlays.empty())return true;
     if(scene.overlays.size()>40000)return false;
+    if(drawList)drawList->resetLayer(); // This pass replays bases in final object-interleaved order.
     struct Command {OriginalSceneDepth depth;uint32_t tileset=0,id=0;int left=0,top=0;bool object=false,animation=false,figure=false;};
     std::vector<Command> commands;const int scale=int(camera.scale);const size_t origin=(228-terrain.activeSide)/2;
     const auto position=[&](unsigned x,unsigned y,int ox,int oy){
@@ -443,19 +446,22 @@ inline bool renderOriginalSceneOverlays(const OriginalMapTerrain& terrain,const 
     }
     std::stable_sort(commands.begin(),commands.end(),[](const auto& a,const auto& b){return a.depth<b.depth;});
     canvas.pixelsBGRA.assign(canvas.pixelsBGRA.size(),0);
-    std::map<std::pair<uint32_t,uint32_t>,DecodedImage> cache;std::set<std::pair<uint32_t,uint32_t>> failed;size_t bytes=0;
+    std::map<std::pair<uint32_t,uint32_t>,SG3DecodedSprite> cache;std::set<std::pair<uint32_t,uint32_t>> failed;size_t bytes=0;
     for(const auto& command:commands){
         const auto key=std::make_pair(command.tileset,command.id);auto image=cache.find(key);
         if(image==cache.end()&&!failed.count(key)){
-            const auto* t=findTileset(command.tileset);auto decoded=decodeSG3Sprite(*t->archive,command.id-1,t->internal555);
-            if(!decoded.image.valid())failed.insert(key);
-            else {const size_t added=decoded.image.pixelsBGRA.size()*4;if(added>64u*1024u*1024u-bytes)return false;bytes+=added;image=cache.emplace(key,std::move(decoded.image)).first;}
+            const auto* t=findTileset(command.tileset);auto decoded=decodeSG3Resource(*t->archive,command.id-1,t->internal555,spriteCache);
+            if(!decoded.value->image.valid())failed.insert(key);
+            else {const size_t added=decoded.value->image.pixelsBGRA.size()*4;if(added>64u*1024u*1024u-bytes)return false;bytes+=added;image=cache.emplace(key,std::move(decoded)).first;}
         }
         if(image==cache.end()){if(command.object)++out.overlayDecodeFailures;continue;}
-        const auto& src=image->second;if(command.object)++out.overlayDecoded;if(command.animation)++out.animationDecoded;
+        const auto& src=image->second.value->image;if(command.object)++out.overlayDecoded;if(command.animation)++out.animationDecoded;
         if(command.figure)++out.figureDecoded;
         if(command.left>=int(canvas.width)||command.top>=int(canvas.height)||command.left+int(src.width)*scale<=0||command.top+int(src.height)*scale<=0){if(command.object)++out.overlayCulled;continue;}
         if(command.object)++out.overlayDrawn;
+        if(drawList)drawList->append(image->second,command.left,command.top,scale);
+        if(deferRaster)continue;
+        ++out.overlayCpuDraws;
         for(unsigned y=0;y<src.height;++y)for(unsigned x=0;x<src.width;++x){
             const uint32_t pixel=src.pixelsBGRA[size_t(y)*src.width+x],alpha=pixel>>24;if(!alpha)continue;
             for(int sy=0;sy<scale;++sy)for(int sx=0;sx<scale;++sx){const int xx=command.left+int(x)*scale+sx,yy=command.top+int(y)*scale+sy;
@@ -470,8 +476,10 @@ inline bool renderOriginalSceneOverlays(const OriginalMapTerrain& terrain,const 
 }
 inline OriginalBuildingSceneView renderOriginalBuildingScene(const OriginalMapTerrain& terrain,
     const OriginalBuildingScene& scene,const SG3Archive& archive,const std::string& companion,
-    const OriginalMapCamera& camera,int bit=-1,const std::vector<MapImageGridTileset>& groundTilesets={}){
-    OriginalBuildingSceneView out;if(!scene.accepted||scene.surface.terrain!=terrain.flags)return out;
+    const OriginalMapCamera& camera,int bit=-1,const std::vector<MapImageGridTileset>& groundTilesets={},SG3SpriteCache* spriteCache=nullptr,SceneDrawCapture* capture=nullptr,bool deferRaster=false){
+    if(capture)*capture={};
+    SceneDrawListBuilder builder(camera.width,camera.height);auto* list=capture?&builder:nullptr;
+    OriginalBuildingSceneView out;if(deferRaster&&!capture)return out;out.pixelsDeferred=deferRaster;if(!scene.accepted||scene.surface.terrain!=terrain.flags)return out;
     out.animationCandidates=scene.animationCandidates;out.animationEnabled=scene.animationEnabled;out.animationGated=scene.animationGated;
     out.animationUnknown=scene.animationUnknown;out.animationSelected=scene.animationSelected;out.animationInvalid=scene.animationInvalid;
     out.figureLive=scene.figureLive;out.figurePlaced=scene.figurePlaced;out.figureHidden=scene.figureHidden;
@@ -486,12 +494,21 @@ inline OriginalBuildingSceneView renderOriginalBuildingScene(const OriginalMapTe
     auto background=renderOriginalBuildingFootprints(terrain,scene.withheldFootprints,camera,bit,scene.markers);
     if(!background.image.valid())return out;
     auto tilesets=groundTilesets;tilesets.push_back({2,&archive,companion,201});
-    auto bases=renderMapImageGridViewport(terrain,scene.surface,tilesets,camera,MapImageGridOrder::View0DrawCorner);
+    auto bases=renderMapImageGridViewport(terrain,scene.surface,tilesets,camera,MapImageGridOrder::View0DrawCorner,spriteCache,list,deferRaster);
     if(!bases.image.valid())return out;
-    if(!renderOriginalSceneOverlays(terrain,scene,tilesets,camera,out,bases.image))return {};
+    if(!renderOriginalSceneOverlays(terrain,scene,tilesets,camera,out,bases.image,spriteCache,list,deferRaster))return {};
+    if(capture){
+        if(bases.stats.decodeFailures||out.overlayDecodeFailures||out.overlayInvalid)builder.error="scene_decode_or_object_failure";
+        else if(bases.stats.archiveUnavailable||bases.stats.unresolvedIndices||bases.stats.geometryUnsupported||scene.groundUnresolved)builder.error="scene_resource_or_geometry_unresolved";
+        if(builder.error.empty()){
+            builder.list.background=background.image;builder.error=validateSceneDrawList(builder.list);
+            if(builder.error.empty())capture->list=std::move(builder.list);
+        }
+        capture->error=builder.error;
+    }
     // Existing image-grid compositor supplies the painter order and premultiplied
     // base layer. Numerical ground/withheld annotations are the diagnostic floor.
-    for(size_t i=0;i<bases.image.pixelsBGRA.size();++i){const uint32_t src=bases.image.pixelsBGRA[i],a=src>>24;if(!a)continue;
+    for(size_t i=0;!deferRaster&&i<bases.image.pixelsBGRA.size();++i){const uint32_t src=bases.image.pixelsBGRA[i],a=src>>24;if(!a)continue;
         auto& dst=background.image.pixelsBGRA[i];uint32_t mixed=0;
         for(unsigned shift:{0u,8u,16u,24u})mixed|=(((src>>shift)&255)+(((dst>>shift)&255)*(255-a)+127)/255)<<shift;
         dst=mixed;

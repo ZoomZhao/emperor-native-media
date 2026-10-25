@@ -161,6 +161,7 @@ struct AppMapSurface::Playback {
     OriginalBuildingScene seed;
     OriginalFigureUpdateContext initial;
     OriginalCombinedState combined;
+    AppCityNotifications notifications;
     std::map<uint32_t,SG3Archive> archives;
     std::map<uint32_t,const SG3Archive*> refs;
     OriginalBuildingEmployment employment;
@@ -168,7 +169,9 @@ struct AppMapSurface::Playback {
     std::vector<size_t> buildingDraws;
     std::vector<uint32_t> figureDrawCells;
     std::vector<OriginalSceneTimelineFrame> frames;
+    bool recordReplay=false;
     OriginalCombinedProcessInputs process;
+    AppCitySessionState session;
     // Chained continuation: each admitted frame resumes the complete state of
     // the previous admitted prefix (figures, buildings, process scratch). The
     // snapshot replay above is the fallback for the first frame.
@@ -189,17 +192,25 @@ struct AppMapSurface::Playback {
     unsigned updates=0;
     size_t frames_=0,draws_=0,advances_=0,reselections_=0,preyDeaths_=0,preyCollections_=0;
 };
-AppMapSurface::AppMapSurface(ResourceRoot root):root_(std::move(root)){}
+AppMapSurface::AppMapSurface(ResourceRoot root,std::shared_ptr<SG3SpriteCache> cache):root_(std::move(root)),spriteCache_(std::move(cache)){}
 AppMapSurface::~AppMapSurface()=default;
 bool AppMapSurface::prepareCityPlayback(const OriginalSaveResult& save,const std::vector<uint8_t>& payload,
-    const OriginalCombinedProcessInputs& process){
+    const OriginalCombinedProcessInputs& process,const AppCitySessionState* session,bool recordReplay){
     clear();
     auto playback=std::make_unique<Playback>();
+    playback->recordReplay=recordReplay;
     std::string buildingText;
     if(!preparePostLoadInputs(save,payload,playback->archives,playback->refs,playback->initial,playback->employment,buildingText)){
         error_="SAV 城市时序输入不完整；播放未准备";return false;}
     if(!savedBuildings_||save.status!=OriginalSaveStatus::LoadedSnapshot){error_="SAV 快照场景不可用";return false;}
     const auto& figures=*save.layers.figures;const auto& ground=*save.layers.ground;
+    if(session){
+        playback->session=*session;
+        auto& initial=playback->initial;
+        initial.watchMaximum=session->watchMaximum;initial.inspectorMaximum=session->inspectorMaximum;
+        initial.crtRandomCalls=session->crtRandomCalls;
+        initial.goods->storageSearch=session->storageSearch;initial.goods->industrySearch=session->industrySearch;
+    }
     auto combined=originalCombinedSavedState(playback->initial,save.buildings,payload,save.terrainOffset,save.sizeOffset,process);
     if(!combined){error_="combined saved building inputs";return false;}
     std::vector<uint8_t> speechBytes;
@@ -207,6 +218,10 @@ bool AppMapSurface::prepareCityPlayback(const OriginalSaveResult& save,const std
     if(!originalCombinedBindBuildingServices(*combined,save.buildings,figures,payload,save.terrainOffset,save.sizeOffset,
         ground,*savedBuildings_,archives_.at(2).index,archives_.at(3).index,buildingText,originalBuildingSpeechCounts(speechBytes))){
         error_="combined saved city services";return false;}
+    if(!combined->scenarioMessages){error_="app_scenario_messages_required";return false;}
+    const auto notifications=AppCityNotifications::fromSaved(*combined->scenarioMessages);
+    if(!notifications){error_="app_saved_notifications_invalid";return false;}
+    playback->notifications=*notifications;
     playback->process=process;playback->save=save;playback->figures=figures;playback->buildings=save.buildings;
     playback->seed=*savedBuildings_;playback->combined=std::move(*combined);
     playback->general=archives_.at(2).index;playback->terrainArchive=archives_.at(3).index;
@@ -243,23 +258,42 @@ AppCityTimelineStep AppMapSurface::advanceCityPlayback(const OriginalSceneTimeli
             if(phase!=p.chainPhases.end()&&q.footprint.animationInputs)q.footprint.animationInputs->phase=phase->second;
         }
     }
-    p.frames.push_back(frame);
     OriginalSceneTimeline result;
     if(chain)result=originalSceneTimeline(p.chainInitial,p.refs,input,p.general,&p.employment,
         p.chainAdmission,p.chainClocks,{frame},&p.chainCombined);
-    else result=originalSceneTimeline(p.initial,p.refs,input,p.general,&p.employment,0,{},p.frames,&p.combined);
+    else result=originalSceneTimeline(p.initial,p.refs,input,p.general,&p.employment,
+        p.session.admissionClock,p.session.animationClock,{frame},&p.combined);
     if(!result.complete||!result.context||!result.combinedState){
-        p.frames.pop_back();out.updates=p.updates;out.refusedUpdate=p.updates+1;
+        out.updates=p.updates;out.refusedUpdate=p.updates+1;
         out.refusal=result.refusal.empty()?"timeline_unknown_refusal":result.refusal;return out;
     }
     auto merged=std::move(result);
     if(chain){merged.updates+=p.updates;merged.frames+=p.frames_;merged.buildingDraws+=p.draws_;
         merged.buildingAdvances+=p.advances_;merged.buildingImageReselections+=p.reselections_;
         merged.preyDeaths+=p.preyDeaths_;merged.preyCollections+=p.preyCollections_;}
+    // Capture only a complete candidate. Failed timeline/install leaves both
+    // the rendered scene and the App process session at their committed state.
+    auto session=p.session;
+    const auto& f=*merged.context;const auto& process=merged.combinedState->process;
+    if(!process.cityClocks||!process.randomHistory||!process.wildlifeCounter||!process.wildlifePeriod||
+        !f.watchMaximum||!f.inspectorMaximum||!f.goods||!f.goods->storageSearch||!f.goods->industrySearch){
+        out.updates=p.updates;out.refusedUpdate=p.updates+1;out.refusal="app_session_state_required";return out;
+    }
+    session.cityClocks=*process.cityClocks;session.randomHistory=*process.randomHistory;
+    if(f.crtRandom)session.crtRandom=*f.crtRandom;
+    session.crtRandomCalls=f.crtRandomCalls;session.wildlifeCounter=*process.wildlifeCounter;session.wildlifePeriod=*process.wildlifePeriod;
+    session.watchMaximum=*f.watchMaximum;session.inspectorMaximum=*f.inspectorMaximum;
+    session.storageSearch=*f.goods->storageSearch;session.industrySearch=*f.goods->industrySearch;
+    session.admissionClock=merged.admissionClock;session.animationClock=merged.animationClock;
+    auto notifications=p.notifications;
+    if(!merged.combinedState->scenarioMessages||!notifications.observeCommitted(*merged.combinedState->scenarioMessages)){
+        out.updates=p.updates;out.refusedUpdate=p.updates+1;out.refusal="app_generated_notifications_invalid";return out;
+    }
     auto shown=input;
     if(!installOriginalSceneTimeline(shown,p.save.terrain,p.figures,p.refs,p.buildings,p.general,merged,&p.terrainArchive)){
-        p.frames.pop_back();out.updates=p.updates;out.refusedUpdate=p.updates+1;out.refusal="timeline_install_refused";return out;
+        out.updates=p.updates;out.refusedUpdate=p.updates+1;out.refusal="timeline_install_refused";return out;
     }
+    if(p.recordReplay)p.frames.push_back(std::move(frame));
     p.chainInitial=*merged.context;p.chainCombined=*merged.combinedState;
     p.chainSelections.clear();
     for(const auto& q:shown.placed)p.chainSelections.emplace(q.footprint.slot,q);
@@ -267,6 +301,7 @@ AppCityTimelineStep AppMapSurface::advanceCityPlayback(const OriginalSceneTimeli
     p.chainAdmission=merged.admissionClock;p.chainClocks=merged.animationClock;p.chained=true;
     p.updates=merged.updates;p.frames_=merged.frames;p.draws_=merged.buildingDraws;p.advances_=merged.buildingAdvances;
     p.reselections_=merged.buildingImageReselections;p.preyDeaths_=merged.preyDeaths;p.preyCollections_=merged.preyCollections;
+    p.session=session;p.notifications=std::move(notifications);
     terrain_.flags=merged.context->terrain;savedBuildings_=std::move(shown);
     out.complete=true;out.updates=p.updates;return out;
 }
@@ -287,7 +322,26 @@ uint64_t AppMapSurface::installedSceneDigest()const{
         mix(o.role);mix(o.mode);mix(o.sourceSlot);}
     return h;
 }
+const AppCityNotifications* AppMapSurface::cityNotifications()const{return playback_?&playback_->notifications:nullptr;}
+std::optional<AppCityTributeFinances> AppMapSurface::cityTributeFinances()const{
+    if(!playback_)return std::nullopt;const auto& p=*playback_;
+    const auto& city=p.chained?p.chainCombined:p.combined;
+    if(!city.buildingContext)return std::nullopt;const auto& c=*city.buildingContext;
+    if(!c.treasury||!c.accounting||!c.accounting->tributeIncomeComponent)return std::nullopt;
+    return AppCityTributeFinances{*c.treasury,c.accounting->incomeOther,*c.accounting->tributeIncomeComponent};
+}
+AppCityTributeResult AppMapSurface::respondCityNotification(AppCityTributeId id,AppCityTributeDecision decision){
+    if(!playback_||!playback_->chained||!playback_->chainCombined.buildingContext)return AppCityTributeResult::Stale;
+    auto& p=*playback_;
+    // The legacy frame-only replay journal cannot represent UI transactions.
+    // Normal playback never enables it; refuse instead of silently losing an action.
+    if(p.recordReplay)return AppCityTributeResult::ReplayRecording;
+    return p.notifications.respond(id,decision,*p.chainCombined.buildingContext);
+}
 unsigned AppMapSurface::cityPlaybackUpdates()const{return playback_?playback_->updates:0;}
+std::optional<AppCitySessionState> AppMapSurface::cityPlaybackSession()const{
+    return playback_?std::make_optional(playback_->session):std::nullopt;
+}
 // Preparation failures leave playback_ empty, so the reason must still be
 // reported from error_ rather than hidden behind the prepared check.
 const std::string& AppMapSurface::cityPlaybackError()const{return error_;}
@@ -300,7 +354,8 @@ std::vector<OriginalSceneTimelineFrame> AppMapSurface::cityPlaybackReplayFrames(
     if(!frames.empty())frames.front().combinedProcess=playback_->process;
     return frames;
 }
-OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapCamera& camera,int bit)const{
+OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapCamera& camera,int bit,SceneDrawCapture* capture,bool deferRaster)const{
+    if(capture)*capture={};
     if(!savedBuildings_||!archives_.count(2))return {};
     const auto& archive=archives_.at(2);
     std::vector<MapImageGridTileset> groundTilesets;
@@ -310,7 +365,8 @@ OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapC
     for(uint32_t slot:{14u,17u,38u,39u,40u})if(archives_.count(slot)){
         const auto& a=archives_.at(slot);groundTilesets.push_back({slot,&a.index,a.companion,201});
     }
-    return renderOriginalBuildingScene(terrain_,*savedBuildings_,archive.index,archive.companion,camera,bit,groundTilesets);
+    if(spriteCache_)spriteCache_->beginFrame();
+    return renderOriginalBuildingScene(terrain_,*savedBuildings_,archive.index,archive.companion,camera,bit,groundTilesets,spriteCache_.get(),capture,deferRaster);
 }
 bool AppMapSurface::select(const std::string& relativeMap, const OriginalMapTerrain& expected) {
     clear();

@@ -3,6 +3,7 @@
 #include "map_surface.hpp"
 #include "../original_save.hpp"
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -14,16 +15,20 @@ enum class AppCityPlaybackState { Ready, Playing, Paused, Refused };
 struct AppCityPlaybackPreferences {
     int32_t speed = 80, personalSpeed = 80; // Emperor.inf 0x14 / 0x58
     bool soundEffects = true;               // Emperor.inf 0x0B
+    // Existing block origin 10DE0C8 and annual caller byte 10DE164 give
+    // file offset 0x9C. Absence is unknown; unsupported values stay intact.
+    std::optional<uint8_t> annualDemandResponseMode;
 };
 // Reads the 0x32C-byte preference block loaded into 10DE0C8. An absent, short
 // or unreadable file is reported instead of inventing a value.
 bool readAppCityPlaybackPreferences(const ResourceRoot&, AppCityPlaybackPreferences&, std::string& error);
 struct AppCityPlaybackStatus {
     AppCityPlaybackState state = AppCityPlaybackState::Ready;
+    bool continuous = false;     // no automatic update target; Pause/Step/refusal stops admission
     bool experiment = false;      // headless mechanics tests only: Unresolved inputs supplied
     unsigned target = 0;          // requested admitted updates
     unsigned updates = 0;         // N, admitted updates so far
-    unsigned refusedUpdate = 0;   // 1-based update that refused
+    unsigned long long refusedUpdate = 0;   // 1-based update that refused
     unsigned intervalMs = 0;      // admission cadence at personal speed
     unsigned long long frames = 0; // admitted frames drawn
     size_t decodeFailures = 0;    // accumulated over every rendered frame
@@ -36,13 +41,20 @@ struct AppCityPlaybackStatus {
 class AppCityPlayback {
 public:
     AppCityPlayback(AppMapSurface&, const OriginalSaveResult&, const std::vector<uint8_t>& decodedPayload,
-        const AppCityPlaybackPreferences&, uint32_t crtSeed, uint32_t farmerMs, bool experiment);
+        const AppCityPlaybackPreferences&, uint32_t crtSeed, uint32_t farmerMs, bool experiment, AppCitySessionState* session=nullptr, bool recordReplay=false);
     // VA0x855214 ten scheduler intervals indexed by (100-speed)/10; admission
     // requires interval+2 ms elapsed. False when the speed has no interval.
     static bool admissionIntervalMs(int32_t speed, unsigned& out);
     bool prepared() const { return prepared_; }
     const AppCityPlaybackStatus& status() const { return status_; }
-    // Plays `additional` admitted updates from the current N.
+    const AppCityNotifications* notifications() const {return prepared_?surface_.cityNotifications():nullptr;}
+    std::optional<AppCityTributeFinances> tributeFinances() const {return prepared_?surface_.cityTributeFinances():std::nullopt;}
+    AppCityTributeResult respondNotification(AppCityTributeId id,AppCityTributeDecision decision) {
+        return prepared_?surface_.respondCityNotification(id,decision):AppCityTributeResult::Stale;
+    }
+    // Normal App playback continues until paused, stepped or refused.
+    void play();
+    // Explicit bounded requests remain available for mechanics checks.
     void play(unsigned additional);
     void pause();
     // Exactly one admitted update, never earlier than the cadence allows;
@@ -56,6 +68,7 @@ private:
     bool advance(uint32_t nowMs);
     AppMapSurface& surface_;
     AppCityPlaybackPreferences preferences_;
+    AppCitySessionState* session_=nullptr;
     AppCityPlaybackStatus status_;
     bool prepared_ = false;
     uint32_t intervalMs_ = 0, lastAdmission_ = 0;

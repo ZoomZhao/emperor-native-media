@@ -173,7 +173,27 @@ void pakChecks(const std::filesystem::path& root){
     need(!app.select(source,wrong)&&!app.available()&&!app.render(c).image.valid(),"corrupt complete container cannot expose a stale or partial scene");
 }
 
+void preferenceChecks(const std::filesystem::path& path){
+    using namespace game_lab;
+    std::filesystem::create_directories(path);
+    const auto root=ResourceRoot::fromAbsolute(path.string());
+    AppCityPlaybackPreferences missing;std::string error;
+    need(!missing.annualDemandResponseMode,"no default annual response mode");
+    need(!readAppCityPlaybackPreferences(root,missing,error)&&!missing.annualDemandResponseMode,"missing preference file leaves mode unknown");
+    Bytes bytes(0x32C);put(bytes,0x14,80);put(bytes,0x58,80);bytes[0x0B]=1;
+    bytes[0x9B]=17;bytes[0x9D]=251;bytes[0x9E]=3;bytes[0x9F]=7;
+    for(uint8_t mode:{uint8_t(0),uint8_t(1),uint8_t(2),uint8_t(3),uint8_t(255)}){
+        bytes[0x9C]=mode;write(path/"Emperor.inf",bytes);
+        AppCityPlaybackPreferences parsed;
+        need(readAppCityPlaybackPreferences(root,parsed,error)&&parsed.annualDemandResponseMode==mode,
+            "read exact annual response byte without widening or replacing unsupported values");
+        need(parsed.speed==80&&parsed.personalSpeed==80&&parsed.soundEffects,"adjacent annual preference does not alter existing preferences");
+    }
+    bytes.pop_back();write(path/"Emperor.inf",bytes);AppCityPlaybackPreferences shortFile;
+    need(!readAppCityPlaybackPreferences(root,shortFile,error)&&!shortFile.annualDemandResponseMode,"short preferences cannot supply an annual response mode");
+}
 void authored(const std::filesystem::path& root){
+    preferenceChecks(root/"preferences");
     using namespace game_lab;fixture(root);const auto configured=ResourceRoot::fromAbsolute(root.string());AppMapSurface app(configured);
     auto map=loadOriginalMapTerrain((root/"Cities/own.map").string());need(map.status==OriginalMapStatus::LoadedTerrain,"owned MAP parses");
     need(app.select("Cities/own.map",map.terrain),"App selects same complete MAP");OriginalMapCamera c;c.centerX=c.centerY=42;c.width=256;c.height=192;
@@ -255,7 +275,7 @@ void playback(const std::string& path){
     const uint32_t farmerMs=0;
     const auto catalog=enumerateOriginalMapSources(root);
     size_t sessions=0,reached=0,strictRefusals=0,decodeFailures=0,replayChecks=0;
-    unsigned maxN=0;
+    unsigned maxN=0;size_t registryParsed=0,registryNoMode5=0,registryRecords=0,sessionReloads=0,continuousChecks=0;
     std::vector<std::string> rows;
     for(const auto& source:catalog.sources){
         if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
@@ -264,23 +284,41 @@ void playback(const std::string& path){
         std::vector<uint8_t> raw;
         need(detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,raw),"source bytes");
         const auto payload=decodeOriginalMapContainer(raw).payload;
+        const auto messages=originalBuildingSavedScenarioMessages(payload,save.sizeOffset);
+        need(messages.has_value(),"real saved scenario message table parsed");++registryParsed;registryRecords+=messages->count;
+        OriginalCombinedState eventStage;eventStage.scenarioMessages=messages;
+        // This isolates the registry stage, not a complete city update. Null
+        // slots below are an explicit test premise, never supplied by the App.
+        eventStage.process.eventSlots=std::array<uint32_t,8>{};
+        const bool hasMode5=std::any_of(messages->records.begin(),messages->records.begin()+messages->count,
+            [](const auto& row){return row[2]==5;});
+        const auto eventRefusal=originalCombinedScenarioEvents(eventStage);
+        need(hasMode5?eventRefusal=="scenario_manager_492430_4ed3b0":eventRefusal.empty(),"real registry determines manager branch without duplicate modes");
+        if(!hasMode5)++registryNoMode5;
         OriginalMapCamera camera;camera.width=256;camera.height=192;camera.outlines=false;
         camera.centerX=camera.centerY=double(save.terrain.activeSide)/2;
         // Strict default: only documented categories, so the first update must
         // report the exact named missing input instead of inventing a value.
         AppMapSurface strictSurface(root);
-        AppCityPlayback strict(strictSurface,save,payload,preferences,crtSeed,farmerMs,false);
+        AppCitySessionState strictSession;strictSession.crtRandom=crtSeed;strictSession.admissionClock=1234;
+        strictSession.cityClocks.value[0]=2;strictSession.wildlifeCounter=19;strictSession.randomHistory.cursor=7;
+        AppCityPlayback strict(strictSurface,save,payload,preferences,crtSeed,farmerMs,false,&strictSession);
         need(strict.prepared(),"strict playback prepared");
         need(!strict.status().experiment,"strict default is not the experiment");
-        strict.play(100);
-        need(!strict.tick(interval),"strict premise refuses the first update");
+        strict.play();
+        need(!strict.tick(1234),"load preserves admission clock before cadence");
+        need(strict.status().state==AppCityPlaybackState::Playing,"too-early tick is not a refusal");
+        need(!strict.tick(1234+interval),"strict premise refuses the first update");
         need(strict.status().state==AppCityPlaybackState::Refused,"strict state refused");
         need(strict.status().refusal=="event_ui_5eff20_not_closed","strict named refusal");
         need(strict.status().updates==0,"strict installs no update");
+        need(strictSession.admissionClock==1234&&strictSession.cityClocks.value[0]==2&&strictSession.wildlifeCounter==19&&
+            strictSession.randomHistory.cursor==7&&strictSession.crtRandom==crtSeed,"refused tick cannot commit partial process state");
         ++strictRefusals;
         // Labelled experiment: the same App code path plays the city.
         AppMapSurface surface(root);
-        AppCityPlayback playback(surface,save,payload,preferences,crtSeed,farmerMs,true);
+        AppCitySessionState session;session.crtRandom=crtSeed;
+        AppCityPlayback playback(surface,save,payload,preferences,crtSeed,farmerMs,true,&session,true);
         need(playback.prepared(),"experiment playback prepared");
         need(playback.status().experiment,"experiment premise labelled");
         need(playback.status().premise.find("实验前提")!=std::string::npos,"experiment premise shown");
@@ -291,8 +329,20 @@ void playback(const std::string& path){
         need(view.image.valid(),"first admitted frame renders");
         need(view.timelineUpdates&&*view.timelineUpdates==1,"first frame shows N=1");
         decodeFailures+=playback.status().decodeFailures;
+        // A pending play target must not turn a manual step back into Play.
+        // The App stops its timer for Step; the controller must agree so that
+        // both status and any later timer callback remain paused.
+        playback.play(99);
+        playback.pause();
+        need(playback.step(interval),"step while an unfinished play target exists");
+        need(playback.status().updates==2,"manual step advances exactly one update");
+        need(playback.status().state==AppCityPlaybackState::Paused,"manual step stays paused before play target");
+        need(!playback.tick(interval*2),"timer after manual step admits nothing");
+        need(playback.status().updates==2,"timer after manual step keeps N");
+        view=playback.render(camera);
+        need(view.image.valid(),"manual step frame renders");
         // Pause keeps the picture and the timeline; ticks lose nothing.
-        playback.play(19);
+        playback.play(18);
         uint64_t clock=interval;unsigned pausedAt=0;
         while(playback.status().state==AppCityPlaybackState::Playing&&playback.status().updates<20){
             clock+=interval;if(!playback.tick(clock))continue;
@@ -334,6 +384,68 @@ void playback(const std::string& path){
             if(n==22||n==51||n==100)checkReplay();
         }
         const auto finalStatus=playback.status();
+        // Declared-input transport regression only. The normal adapter above
+        // must still refuse; this does not establish original event semantics.
+        AppMapSurface liveSurface(root);
+        AppCityPlayback live(liveSurface,save,payload,preferences,crtSeed,farmerMs,true);
+        need(live.prepared(),"continuous mechanics prepares");
+        live.play();
+        uint64_t liveClock=0;
+        for(unsigned n=1;n<=98;++n){
+            liveClock+=interval;
+            if(!live.tick(liveClock)) throw std::runtime_error("continuous source="+std::to_string(sessions)+" expected_N="+std::to_string(n)+" actual_N="+std::to_string(live.status().updates)+" refusal="+live.status().refusal);
+            need(live.status().updates==n&&live.status().state==AppCityPlaybackState::Playing,
+                "continuous play remains active");
+            need(live.replayFrames().empty(),"normal storage mode retains no frame journal");
+        }
+        live.pause();const auto digest=liveSurface.installedSceneDigest();
+        liveClock+=10*interval;
+        need(!live.tick(liveClock)&&live.status().updates==98&&liveSurface.installedSceneDigest()==digest,
+            "continuous pause retains exact installed state");
+        need(live.step(liveClock)&&live.status().updates==99&&live.status().state==AppCityPlaybackState::Paused,
+            "step from continuous playback stays paused");
+        liveClock+=interval;need(!live.tick(liveClock),"timer cannot resume after step");
+        live.play();need(live.tick(liveClock)&&live.status().updates==100,"continuous resume keeps the prefix");
+        liveClock+=interval;need(live.tick(liveClock)&&live.status().updates==101&&live.status().state==AppCityPlaybackState::Playing,
+            "continuous play stays active beyond the old 100-update target");
+        live.pause();need(live.replayFrames().empty(),"resume retains no replay history by default");
+        need(live.render(camera).image.valid()&&live.status().decodeFailures==0,"continuous final frame renders");
+        ++continuousChecks;
+        const auto beforeReload=session;
+        if(sessions==1){
+            // Deliberately distinct process values make a reset-to-zero bug
+            // observable. This is a declared-state wiring fixture only.
+            auto marked=session;marked.watchMaximum=123;marked.inspectorMaximum={234,345};
+            marked.storageSearch.fill(7);marked.industrySearch.fill(9);
+            AppMapSurface heldSurface(root);
+            AppCityPlayback held(heldSurface,save,payload,preferences,crtSeed,farmerMs,true,&marked);
+            need(held.prepared(),"nonzero process fixture prepares");
+            OriginalSceneTimelineFrame heldFrame;heldFrame.admission.now=marked.admissionClock;
+            heldFrame.admission.speed=preferences.personalSpeed;heldFrame.animationClock=marked.admissionClock;
+            const auto idle=heldSurface.advanceCityPlayback(heldFrame);const auto carried=heldSurface.cityPlaybackSession();
+            need(idle.complete&&idle.updates==0&&carried&&carried->watchMaximum==123&&
+                carried->inspectorMaximum==marked.inspectorMaximum&&carried->storageSearch==marked.storageSearch&&
+                carried->industrySearch==marked.industrySearch&&carried->crtRandomCalls==marked.crtRandomCalls,
+                "non-admitted load preserves actual maxima, caches and CRT count through context export");
+        }
+        AppMapSurface reloadSurface(root);
+        AppCityPlayback reloaded(reloadSurface,save,payload,preferences,crtSeed,farmerMs,true,&session,true);
+        need(reloaded.prepared(),"same process can load another saved city");
+        need(reloaded.step(0),"reloaded city step uses carried admission clock");
+        auto expectedClocks=beforeReload.cityClocks;advanceOriginalCityClocks(expectedClocks);
+        need(session.cityClocks.value==expectedClocks.value&&session.admissionClock==beforeReload.admissionClock+interval,
+            "successful reload preserves process city clocks and admission epoch");
+        const auto expectedAnimation=originalAnimationClockFrame(beforeReload.animationClock,session.admissionClock);
+        need(session.animationClock.last==expectedAnimation.last&&session.animationClock.flags==expectedAnimation.flags,
+            "reload keeps nonzero animation clocks before applying current host time");
+        need(session.crtRandomCalls>=beforeReload.crtRandomCalls,"reload never resets CRT consumption count");
+        const auto reloadFrames=reloaded.replayFrames();
+        need(reloadFrames.size()==1&&reloadFrames[0].combinedProcess->crtRandom==beforeReload.crtRandom&&
+            reloadFrames[0].combinedProcess->randomHistory->ring==beforeReload.randomHistory.ring&&
+            reloadFrames[0].combinedProcess->randomHistory->cursor==beforeReload.randomHistory.cursor&&
+            reloadFrames[0].combinedProcess->wildlifeCounter==beforeReload.wildlifeCounter,
+            "reload binds actual carried CRT, engine history and wildlife state");
+        ++sessionReloads;
         need(finalStatus.state==AppCityPlaybackState::Paused||finalStatus.state==AppCityPlaybackState::Refused,"playback stopped");
         need(finalStatus.updates==100||!finalStatus.refusal.empty(),"playback reaches 100 or names its refusal");
         need(finalStatus.frames==finalStatus.updates,"one drawn frame per admitted update");
@@ -353,6 +465,9 @@ void playback(const std::string& path){
     need(strictRefusals==sessions,"every strict playback refuses by name");
     std::cout<<"{\"passed\":true,\"App_playback_sources\":"<<sessions
         <<",\"App_playback_reached_100\":"<<reached<<",\"App_playback_strict_refusals\":"<<strictRefusals
+        <<",\"saved_scenario_registries\":"<<registryParsed<<",\"saved_scenario_records\":"<<registryRecords
+        <<",\"saved_registry_no_mode5\":"<<registryNoMode5<<",\"mechanics_session_reloads\":"<<sessionReloads
+        <<",\"continuous_transport_101\":"<<continuousChecks<<",\"continuous_retained_frames\":0"
         <<",\"App_playback_max_N\":"<<maxN<<",\"App_playback_decode_failures\":"<<decodeFailures
         <<",\"App_playback_replay_equal\":"<<replayChecks<<",\"App_playback_cadence_ms\":"<<interval
         <<",\"App_playback_rows\":[";

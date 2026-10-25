@@ -491,6 +491,31 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city){
     city.process.randomHistory=f.services->randomHistory;
     return {};
 }
+// 466E90 consumes the live, loaded message table. Do not require a second
+// caller copy of its modes: annual processing can append/change these rows.
+inline std::string originalCombinedScenarioEvents(OriginalCombinedState& city){
+    auto& p=city.process;
+    if(city.scenarioMessages&&city.scenarioMessages->count>city.scenarioMessages->records.size())
+        return "scenario_manager_492430_records_required";
+    if((!p.managerGate8||*p.managerGate8)&&!city.scenarioMessages&&!p.eventRecordModes)
+        return "scenario_manager_492430_records_required";
+    if(p.eventRecordModes&&p.eventRecordModes->size()>150)return "scenario_manager_492430_records_required";
+    // Preserve explicitly supplied mode constraints, but read the actual live
+    // table too; an external empty list cannot hide an active saved mode5 row.
+    if(p.eventRecordModes)for(uint8_t mode:*p.eventRecordModes)
+        if(mode==5&&(!p.managerGate8||*p.managerGate8))return "scenario_manager_492430_4ed3b0";
+    if(city.scenarioMessages)for(unsigned n=0;n<city.scenarioMessages->count;++n)
+        if(city.scenarioMessages->records[n][2]==5&&(!p.managerGate8||*p.managerGate8))return "scenario_manager_492430_4ed3b0";
+    // 466EA6 overwrites this byte before either slot loop. Its previous value
+    // is not read here. The building stage earlier in this update must still
+    // receive its prior value; only subsequent work sees this write.
+    p.eventProgress=uint8_t{0};
+    p.scenarioFigurePlacementCheck=false; // same A98370+0x3F770 byte
+    if(city.buildingContext)city.buildingContext->scenarioFigurePlacementCheck=false;
+    if(!p.eventSlots)return "scenario_events_466e90_slots_required";
+    if(std::any_of(p.eventSlots->begin(),p.eventSlots->end(),[](uint32_t slot){return slot!=0;}))return "scenario_slot_467680_not_closed";
+    return {};
+}
 // 5371A0 prefix, then exactly one scheduler phase. The only accepted event
 // branches below are proven empty/no-op; positive branches keep their own names.
 inline std::string originalCombinedBeforeFigures(OriginalCombinedState& city,std::vector<uint32_t>& order){
@@ -518,16 +543,7 @@ inline std::string originalCombinedBeforeFigures(OriginalCombinedState& city,std
     city.phase=city.phase==50?0:city.phase+1; //4AC4C8..4E2;tail already completed through the public API.
     if(city.figures.goods)city.figures.goods->savedPhase=city.phase;
     order.push_back(0x466e90);
-    if((!p.managerGate8||*p.managerGate8)&&!p.eventRecordModes)return "scenario_manager_492430_records_required";
-    if(p.eventRecordModes&&p.eventRecordModes->size()>150)return "scenario_manager_492430_records_required";
-    //49244D skips every non-mode5 row;425250 false skips mode5 as well.
-    if(p.eventRecordModes)for(uint8_t mode:*p.eventRecordModes)if(mode==5&&(!p.managerGate8||*p.managerGate8))return "scenario_manager_492430_4ed3b0";
-    if(city.scenarioMessages)for(unsigned n=0;n<city.scenarioMessages->count;++n)
-        if(city.scenarioMessages->records[n][2]==5&&(!p.managerGate8||*p.managerGate8))return "scenario_manager_492430_4ed3b0";
-    if(!p.eventSlots||!p.eventProgress)return "scenario_events_466e90_slots_required";
-    if(std::any_of(p.eventSlots->begin(),p.eventSlots->end(),[](uint32_t slot){return slot!=0;}))return "scenario_slot_467680_not_closed";
-    *p.eventProgress=0; //466EA6; both8-slot loops do no calls for null slots.
-    return {};
+    return originalCombinedScenarioEvents(city);
 }
 inline std::string originalCombinedAfterFigures(OriginalCombinedState& city,std::vector<uint32_t>& order){
     auto& p=city.process;p.randomHistory=city.figures.services->randomHistory;
@@ -733,7 +749,7 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
             out.refusal="figure_draw_cell_sort";return out;}
         ++out.frames;
     }
-    if(city){city->figures=context;
+    if(city){city->figures=context;city->process.crtRandom=context.crtRandom;
         for(auto& e:city->buildings){const auto phase=out.buildingPhases.find(e.first);
             if(phase!=out.buildingPhases.end()&&e.second.state.building.animationInputs)e.second.state.building.animationInputs->phase=phase->second;}
         if(city->buildingContext&&city->buildingContext->disasters){out.createdBuildings=city->buildingContext->disasters->createdBuildings.size();

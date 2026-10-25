@@ -184,8 +184,8 @@ MapGroundResult renderMapGroundViewport(const OriginalMapTerrain& terrain,const 
 }
 MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
         const OriginalTerrainState& state,const std::vector<MapImageGridTileset>& tilesets,
-        const OriginalMapCamera& camera,MapImageGridOrder order) {
-    MapImageGridResult result;const auto activity=analyzeOriginalMap(terrain);size_t pixels=0;
+        const OriginalMapCamera& camera,MapImageGridOrder order,SG3SpriteCache* spriteCache,SceneDrawListBuilder* drawList,bool deferRaster) {
+    MapImageGridResult result;if(deferRaster&&!drawList)return result;const auto activity=analyzeOriginalMap(terrain);size_t pixels=0;
     if(!terrain.valid()||!state.valid()||terrain.flags.size()!=state.terrain.size()||
        !activity.cropValid()||
        !std::isfinite(camera.centerX)||!std::isfinite(camera.centerY)||camera.centerX<0||camera.centerY<0||
@@ -199,7 +199,7 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
         result.image.width=camera.width;result.image.height=camera.height;result.image.pixelsBGRA.assign(pixels,0);
         // The cache key carries the tileset because two archives share the 0-based
         // index space and a bare index would collide across them.
-        std::map<std::pair<uint32_t,size_t>,DecodedImage> cache;const int scale=int(camera.scale);
+        std::map<std::pair<uint32_t,size_t>,SG3DecodedSprite> cache;const int scale=int(camera.scale);
         std::set<std::pair<uint32_t,size_t>> failedDecode;
         std::map<uint32_t,size_t> cellsByTileset,drawnByTileset;
         // Camera-free composite pre-pass. The per-cell offset is the engine's own
@@ -439,17 +439,20 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
                 if(failedDecode.count(key)){result.stats.decodeFailures+=blockCells;continue;}
                 auto found=cache.find(key);
                 if(found==cache.end()) {
-                    auto decoded=decodeSG3Sprite(*anchor.tileset->archive,anchor.index,anchor.tileset->internal555);
-                    if(!decoded.image.valid()){failedDecode.insert(key);result.stats.decodeFailures+=blockCells;continue;}
-                    const size_t bytes=decoded.image.pixelsBGRA.size()*4;
+                    auto decoded=decodeSG3Resource(*anchor.tileset->archive,anchor.index,anchor.tileset->internal555,spriteCache);
+                    if(!decoded.value->image.valid()){failedDecode.insert(key);result.stats.decodeFailures+=blockCells;continue;}
+                    const size_t bytes=decoded.value->image.pixelsBGRA.size()*4;
                     if(bytes>64u*1024u*1024u-result.stats.cacheBytes){result.image={};return result;}
-                    result.stats.cacheBytes+=bytes;found=cache.emplace(key,std::move(decoded.image)).first;++result.stats.uniqueDecoded;
+                    result.stats.cacheBytes+=bytes;found=cache.emplace(key,std::move(decoded)).first;++result.stats.uniqueDecoded;
                 }
                 result.stats.decodedCells+=blockCells;
                 if(left>=int(camera.width)||top>=int(camera.height)||left+int(anchor.width)*scale<=0||top+int(anchor.height)*scale<=0){result.stats.culled+=blockCells;continue;}
                 result.stats.visibleCells+=blockCells;
-                const auto& image=found->second;result.stats.drawnCells+=blockCells;++result.stats.drawnBlocks;
+                const auto& image=found->second.value->image;result.stats.drawnCells+=blockCells;++result.stats.drawnBlocks;
                 drawnByTileset[anchor.tileset->tileset]+=blockCells;
+                if(drawList)drawList->append(found->second,left,top,scale);
+                if(deferRaster)continue;
+                ++result.stats.cpuSpriteDraws;
                 for(uint32_t row=0;row<image.height;++row)for(uint32_t col=0;col<image.width;++col) {
                     const uint32_t source=image.pixelsBGRA[size_t(row)*image.width+col];const uint32_t alpha=source>>24;if(!alpha)continue;
                     for(int sy=0;sy<scale;++sy)for(int sx=0;sx<scale;++sx) {
@@ -482,16 +485,19 @@ MapImageGridResult renderMapImageGridViewport(const OriginalMapTerrain& terrain,
             if(failedDecode.count(key)){++result.stats.decodeFailures;continue;}
             auto found=cache.find(key);
             if(found==cache.end()) {
-                auto decoded=decodeSG3Sprite(*selected->archive,index,selected->internal555);
-                if(!decoded.image.valid()){failedDecode.insert(key);++result.stats.decodeFailures;continue;}
-                const size_t bytes=decoded.image.pixelsBGRA.size()*4;
+                auto decoded=decodeSG3Resource(*selected->archive,index,selected->internal555,spriteCache);
+                if(!decoded.value->image.valid()){failedDecode.insert(key);++result.stats.decodeFailures;continue;}
+                const size_t bytes=decoded.value->image.pixelsBGRA.size()*4;
                 if(bytes>64u*1024u*1024u-result.stats.cacheBytes){result.image={};return result;}
-                result.stats.cacheBytes+=bytes;found=cache.emplace(key,std::move(decoded.image)).first;++result.stats.uniqueDecoded;
+                result.stats.cacheBytes+=bytes;found=cache.emplace(key,std::move(decoded)).first;++result.stats.uniqueDecoded;
             }
             ++result.stats.decodedCells;
             if(left>=int(camera.width)||top>=int(camera.height)||left+78*scale<=0||top+int(geometry->height)*scale<=0){++result.stats.culled;continue;}
             ++result.stats.visibleCells;
-            const auto& image=found->second;++result.stats.drawnCells;++drawnByTileset[tilesetId];
+            const auto& image=found->second.value->image;++result.stats.drawnCells;++drawnByTileset[tilesetId];
+            if(drawList)drawList->append(found->second,left,top,scale);
+                if(deferRaster)continue;
+                ++result.stats.cpuSpriteDraws;
             for(uint32_t row=0;row<image.height;++row)for(uint32_t col=0;col<image.width;++col) {
                 const uint32_t source=image.pixelsBGRA[size_t(row)*image.width+col];const uint32_t alpha=source>>24;if(!alpha)continue;
                 for(int sy=0;sy<scale;++sy)for(int sx=0;sx<scale;++sx) {

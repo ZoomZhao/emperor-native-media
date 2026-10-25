@@ -4,12 +4,21 @@
 #include "../map_reference.hpp"
 #include "../original_building_scene.hpp"
 #include "../resource_root.hpp"
+#include "city_notifications.hpp"
 #include <map>
 #include <memory>
 #include <optional>
 
 namespace game_lab {
 struct OriginalMapSource;
+// The native transaction must reject failures in either rendered layer.
+inline bool nativeSceneResourcesReady(const OriginalBuildingSceneView& view,size_t expectedObjects){
+    return view.image.valid()&&view.placedRecords==expectedObjects&&!view.withheldRecords&&
+        !view.bases.decodeFailures&&!view.overlayDecodeFailures&&!view.overlayInvalid&&!view.groundUnresolved;
+}
+
+inline bool nativeSceneReady(const OriginalBuildingSceneView& view,size_t expectedObjects){return !view.pixelsDeferred&&nativeSceneResourcesReady(view,expectedObjects);}
+
 enum class AppSurfaceIssueKind { GroupSideConflict, BlockGeometryUnsupported, ArchiveUnavailable, IndexUnresolved };
 struct AppSurfaceIssue {
     uint32_t x=0,y=0,storedWord=0,recordSide=0,groupSide=0;
@@ -34,6 +43,19 @@ struct AppSurfacePreviewResult {
 // snapshot. The App owns every non-SAV input; this adapter supplies only the
 // draw lists and the resource root. A refused frame never installs a partial
 // prefix: the saved or last admitted scene stays renderable.
+// Documented process lifetime state (SAV.md runtime-source table). A load
+// replaces saved city state but never reinitializes these values. CRT seed is
+// supplied once by the App; no unresolved event/scheduler field lives here.
+struct AppCitySessionState {
+    OriginalCityClocks cityClocks;
+    OriginalFigureRandomHistory randomHistory{{},0,0};
+    uint32_t crtRandom=0, wildlifeCounter=0, wildlifePeriod=30, admissionClock=0;
+    uint64_t crtRandomCalls=0;
+    OriginalAnimationClock animationClock;
+    int32_t watchMaximum=0;
+    std::array<int32_t,2> inspectorMaximum{};
+    std::array<uint8_t,36> storageSearch{},industrySearch{};
+};
 struct AppCityTimelineStep {
     bool complete=false;
     unsigned updates=0;
@@ -49,7 +71,7 @@ AppSurfacePreviewResult renderMapSurfaceCandidateViewport(const OriginalMapTerra
 // ground from its persisted inputs; no screen registration or gameplay is used.
 class AppMapSurface {
 public:
-    explicit AppMapSurface(ResourceRoot root);
+    explicit AppMapSurface(ResourceRoot root,std::shared_ptr<SG3SpriteCache> spriteCache={});
     ~AppMapSurface();
     AppMapSurface(const AppMapSurface&)=delete;
     AppMapSurface& operator=(const AppMapSurface&)=delete;
@@ -60,23 +82,25 @@ public:
     bool selectPostLoadK1(const OriginalSaveResult&,const std::vector<uint8_t>& decodedPayload);
     bool selectPostLoadTimeline(const OriginalSaveResult&,const std::vector<uint8_t>& decodedPayload,
         const std::vector<OriginalSceneTimelineFrame>&,uint32_t previousAdmission,OriginalAnimationClock);
-    // Replayable SAV city playback. prepareCityPlayback installs the saved
-    // snapshot and retains the post-load figure/building inputs; each
-    // advanceCityPlayback call appends one caller-admitted frame and rebuilds
-    // the scene from the pristine seed plus the carried placements/phases,
-    // which the playback test checks against the cumulative CLI replay.
+    // SAV playback carries only the current scene and process state by default.
+    // Complete frame history is opt-in for bounded replay checks; normal
+    // continuous playback must not retain per-frame draw-cell arrays.
     bool prepareCityPlayback(const OriginalSaveResult&,const std::vector<uint8_t>& decodedPayload,
-        const OriginalCombinedProcessInputs&);
+        const OriginalCombinedProcessInputs&,const AppCitySessionState* session=nullptr,bool recordReplay=false);
     AppCityTimelineStep advanceCityPlayback(const OriginalSceneTimelineFrame&);
     bool cityPlaybackPrepared() const { return playback_!=nullptr; }
     unsigned cityPlaybackUpdates() const;
+    const AppCityNotifications* cityNotifications() const;
+    std::optional<AppCityTributeFinances> cityTributeFinances() const;
+    AppCityTributeResult respondCityNotification(AppCityTributeId,AppCityTributeDecision);
+    std::optional<AppCitySessionState> cityPlaybackSession() const;
     const std::string& cityPlaybackError() const;
     void clearCityPlayback();
     std::vector<OriginalSceneTimelineFrame> cityPlaybackReplayFrames() const;
     // FNV-1a over every installed placement (binding, draw position,
     // components), overlay and terrain flag word: the whole scene, not a viewport.
     uint64_t installedSceneDigest() const;
-    OriginalBuildingSceneView renderSavedBuildings(const OriginalMapCamera&,int bit=-1) const;
+    OriginalBuildingSceneView renderSavedBuildings(const OriginalMapCamera&,int bit=-1,SceneDrawCapture* capture=nullptr,bool deferRaster=false) const;
     bool available() const { return state_.has_value(); }
     const std::string& error() const { return error_; }
     MapImageGridResult render(const OriginalMapCamera&) const;
@@ -93,6 +117,7 @@ private:
         std::map<uint32_t,SG3Archive>&,std::map<uint32_t,const SG3Archive*>&,
         OriginalFigureUpdateContext&,OriginalBuildingEmployment&,std::string&);
     ResourceRoot root_;
+    std::shared_ptr<SG3SpriteCache> spriteCache_;
     OriginalMapTerrain terrain_;
     std::optional<OriginalTerrainState> state_;
     std::optional<OriginalBuildingScene> savedBuildings_;
