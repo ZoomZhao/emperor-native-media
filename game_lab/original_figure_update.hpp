@@ -2569,7 +2569,7 @@ struct OriginalFigureOrderedPass {
 //4E1FA0 vectors reject type11 (59A3B0/4E2360/4E2380);+158=4C8B70
 // releases the route, unlinks and clears target references, then+E8=4C72B0
 // resets represented fields. The inline17C state and priorProgress190 survive.
-inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUpdateContext& context){
+inline bool originalFigureRemoveArrivedWorkerWrites(OriginalFigure& f,OriginalFigureUpdateContext& context){
     if((f.type!=1&&f.type!=2&&f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=23&&f.type!=26&&f.type!=28&&f.type!=29&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=39&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=54&&f.type!=76)||f.alive!=2||
         (f.runtimeClass!=OriginalFigureClass::Figure&&!(f.type==76&&f.runtimeClass==OriginalFigureClass::Pheasant))||f.updateOwner||(f.linkedBuilding&&f.type!=76)||
         !context.services||context.cellHeads.size()!=51984||f.cell>=51984)return false;
@@ -2644,6 +2644,27 @@ inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUp
     f=reset;context.figures.at(f.slot)=f;context.freeSlots.push_back(f.slot);
     while(context.highestLiveSlot&&!context.figures.at(context.highestLiveSlot).alive)--context.highestLiveSlot;
     return true;
+}
+// The public Market retirement boundary must be atomic even when called
+// outside OrderedNextPass (which already owns a wider candidate). Keep the
+// existing primary-first cleanup and route-owner rules; no type24 behavior or
+// Market construction is inferred. A late route/home/cell refusal publishes
+// neither owner cleanup nor a partially recycled pool slot.
+inline bool originalFigureRemoveArrivedWorker(OriginalFigure& f,OriginalFigureUpdateContext& context){
+    if(f.type!=23)return originalFigureRemoveArrivedWorkerWrites(f,context);
+    if(!f.slot||f.slot>=2000||!context.figures.count(f.slot)||context.highestLiveSlot>=2000)return false;
+    for(size_t slot=1;slot<=context.highestLiveSlot;++slot)if(!context.figures.count(slot))return false;
+    auto candidate=context;auto removed=f;
+    if(!originalFigureRemoveArrivedWorkerWrites(removed,candidate))return false;
+    // Removal only mutates existing map values. Preserve their addresses for
+    // callers holding owner/figure references, including f itself in the pool.
+    static_assert(std::is_nothrow_move_assignable<OriginalFigure>::value,"Market removal commit must not throw");
+    static_assert(std::is_nothrow_move_assignable<OriginalFigureBuildingLink>::value,"Market owner commit must not throw");
+    for(auto& row:*candidate.buildings)context.buildings->find(row.first)->second=std::move(row.second);
+    for(auto& row:candidate.figures)context.figures.find(row.first)->second=std::move(row.second);
+    context.services->routeOwners=candidate.services->routeOwners;
+    context.cellHeads.swap(candidate.cellHeads);context.freeSlots.swap(candidate.freeSlots);
+    context.highestLiveSlot=candidate.highestLiveSlot;f=std::move(removed);return true;
 }
 //0x4E27E0,ascending pool slots. Compute the exact supported prefix; an unknown
 // earlier updater poisons later context rather than leaving that slot frozen.

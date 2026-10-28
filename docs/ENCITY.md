@@ -114,6 +114,34 @@ acceptance is claimed for this source change. Real food production, retail23
 construction, buyer24, quality recipes, stall/calendar scheduling and the full
 player market loop remain separate evidence and integration gaps.
 
+### Market retailer retirement boundary
+
+The existing type23 return path already marks an arrived retailer `alive=2`.
+Its removal helper previously cleared the owner's primary/secondary link before
+checking late home/route/cell conditions. An authored direct call with route1000
+returned false after changing primary7 to0. The ordered pool caller already
+restored its wider pre-update candidate; the public cleanup boundary did not.
+
+Type23 removal now runs that existing algorithm on a candidate. Failure
+publishes no owner, route, cell-list, target-reference, reset or FIFO changes;
+success publishes the complete cleanup while preserving map-node addresses.
+Primary-first/secondary-link ordering and reciprocal-only route release retain
+their existing semantics. Unrelated stock, demand, quality, directions, service
+grid and RNG are preserved. Other types use the previous removal path.
+
+The shared market suite has137 authored checks (80 transfers plus57 lifecycle)
+in each Release/UBSan mode. It covers late refusals, malformed pool/cell links,
+head/middle/tail unlinking, primary/secondary cases, another actor's route,
+target clearing, repeated removal, highest-slot bookkeeping and alias safety.
+Copying an already represented pool snapshot and replaying removal is tested;
+this is not a new SAV writer or a native market save format. The native Well
+codec still rejects type23. Existing v1-v6 goldens and native defaults remain.
+
+This closes a public cleanup transaction contract, not a complete market
+lifecycle. Type23 construction/redispatch, type24 actions/removal and food
+quantity/quality production remain unproved or absent. No new market UI,
+original observation, new App or end-to-end replenishment claim is made.
+
 ## Read-only collector fields and qualification boundary (2026-10-28)
 
 `make original-evidence-test` and `make original-evidence-test-undefined` build

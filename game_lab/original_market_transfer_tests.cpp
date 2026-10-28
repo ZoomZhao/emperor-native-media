@@ -2,6 +2,7 @@
 // Authored API-domain tests. Wide bays do not establish an original capacity.
 #include "original_building_scene.hpp"
 #include "original_figure_update.hpp"
+#include "native_walker_codec.hpp"
 #include <iostream>
 #include <stdexcept>
 using namespace game_lab;
@@ -106,6 +107,85 @@ void segment(){
     Segment huge;huge.context.buildings->at(1).marketStorage->at(0).amount=10000;const auto hugeBefore=snapshot(huge);
     need(!originalFigureEntertainmentSegment(huge.figure,huge.context)&&snapshot(huge)==hugeBefore,"sentinel mismatch also rolls back through the multi-house entry point");
 }
+
+// A field visitor is used only to compare every authored Figure member. This
+// does not admit type23 to the native Well codec or invent a saved Market mode.
+std::string figureSnapshot(OriginalFigure f){native_walker_detail::Writer w;native_walker_detail::visitWellWalker(w,f);return w.out;}
+struct Retirement {
+    OriginalFigureUpdateContext context;
+    OriginalFigure figure;
+    Retirement(){
+        context.services.emplace();context.services->routeOwners[4]=7;
+        context.services->directions={2,4,6};context.services->randomFirst=123;context.services->randomSecond=456;
+        context.services->serviceGrid.assign(3,0x12345678);context.highestLiveSlot=9;context.freeSlots={5,4};
+        context.cellHeads.assign(51984,0);context.cellHeads[1000]=6;context.buildings.emplace();
+        Case stock;stock.market.primaryFigure=7;stock.market.secondaryFigures[1]=777;
+        stock.market.marketStorage->at(0)={28,99,10001};stock.market.marketGoods=99;
+        context.buildings->emplace(1,stock.market);
+        for(size_t slot=0;slot<10;++slot){OriginalFigure f;f.slot=slot;context.figures.emplace(slot,f);}
+        figure.slot=7;figure.type=23;figure.alive=2;figure.action=2;figure.owner=1;figure.cell=1000;
+        figure.route=4;figure.next=8;figure.flags120=2;figure.priorProgress=17;figure.recordOffset=999;
+        figure.effectKind=3;context.figures.at(7)=figure;
+        for(size_t slot:{6u,8u,9u}){auto& f=context.figures.at(slot);f.type=28;f.alive=1;f.cell=1000;f.target=7;}
+        context.figures.at(6).next=7;
+    }
+};
+std::string snapshot(const Retirement& c){
+    std::ostringstream out;out<<figureSnapshot(c.figure)<<"pool\n";
+    for(const auto& row:c.context.figures)out<<row.first<<':'<<figureSnapshot(row.second);
+    for(const auto& row:*c.context.buildings){out<<row.first<<':';for(auto v:link(row.second))out<<v<<',';
+        for(auto v:row.second.secondaryFigures)out<<v<<',';}
+    for(auto v:c.context.cellHeads)out<<v<<',';out<<"free:";for(auto v:c.context.freeSlots)out<<v<<',';
+    out<<"highest:"<<c.context.highestLiveSlot;
+    for(auto v:c.context.services->routeOwners)out<<v<<',';
+    for(auto v:c.context.services->directions)out<<unsigned(v)<<',';
+    for(auto v:c.context.services->serviceGrid)out<<v<<',';
+    out<<c.context.services->randomFirst<<','<<c.context.services->randomSecond;return out.str();
 }
-int main(){try{leaf();segment();std::cout<<"{\"passed\":true,\"authored_market_transfer_checks\":"<<checks<<",\"original_data\":false,\"original_capacity_claim\":false}\n";return 0;}
+void rejectRetirement(Retirement c,const char* message){const auto before=snapshot(c);
+    need(!originalFigureRemoveArrivedWorker(c.figure,c.context),message);
+    need(snapshot(c)==before,"refused Market retirement is field-pure including owner, routes, cells, targets and FIFO");}
+void retirement(){
+    Retirement route;route.figure.route=1000;rejectRetirement(route,"invalid late route refuses without clearing primary");
+    Retirement home;home.figure.home=1;rejectRetirement(home,"unsupported late home refuses without clearing owner");
+    Retirement absent;absent.context.cellHeads[1000]=0;rejectRetirement(absent,"missing cell membership leaves route and owner intact");
+    Retirement cycle;cycle.context.figures.at(6).next=6;rejectRetirement(cycle,"cycle before retiring cell member refuses atomically");
+    Retirement wrong;wrong.context.figures.at(6).cell=1001;rejectRetirement(wrong,"wrong-cell predecessor refuses atomically");
+    Retirement missing;missing.context.figures.erase(8);rejectRetirement(missing,"missing highest-pool prefix is not half recycled");
+    Retirement owner;owner.context.buildings->at(1).type=60;rejectRetirement(owner,"unsupported Market owner type remains refused");
+    Retirement zero;zero.figure.slot=0;rejectRetirement(zero,"reserved slot0 is never inserted into FIFO");
+    Retirement updater;updater.figure.updateOwner=1;rejectRetirement(updater,"external update owner is not silently removed");
+    Retirement buyer;buyer.figure.type=24;rejectRetirement(buyer,"unknown type24 cleanup remains refused");
+    for(unsigned position=0;position<3;++position){Retirement c;
+        if(position==0){c.context.cellHeads[1000]=7;c.context.cellHeads[1001]=6;c.context.figures.at(6).cell=1001;c.context.figures.at(6).next=0;}
+        if(position==2){c.figure.next=0;c.context.figures.at(7)=c.figure;c.context.figures.at(8).cell=1002;c.context.cellHeads[1002]=8;}
+        auto* ownerPtr=&c.context.buildings->at(1);auto* poolPtr=&c.context.figures.at(7);
+        const auto goods=link(*ownerPtr);const auto oldCount=c.context.freeSlots.size();
+        need(originalFigureRemoveArrivedWorker(c.figure,c.context),"head/middle/tail Market return removes successfully");
+        need(ownerPtr==&c.context.buildings->at(1)&&poolPtr==&c.context.figures.at(7),"owner and actor map nodes retain identity");
+        need(ownerPtr->primaryFigure==0&&ownerPtr->secondaryFigures[1]==777,"normal retirement clears only the primary-first matching link");
+        need(c.context.services->routeOwners[4]==0&&c.context.freeSlots.size()==oldCount+1&&c.context.freeSlots.back()==7,"route and FIFO released exactly once");
+        need(c.context.cellHeads[1000]==(position==0?8:6)&&c.context.figures.at(6).next==(position==0?0:position==2?0:8),"cell unlink preserves the selected predecessor/head and successor");
+        need(c.context.figures.at(8).target==0&&c.context.figures.at(9).target==0,"flagged target references clear with retirement");
+        need(!c.figure.alive&&!c.context.figures.at(7).alive&&c.figure.recordOffset==999&&c.figure.priorProgress==17&&c.figure.effectKind==3,"reset preserves existing opaque/effect fields");
+        auto expected=goods;expected[5]=0;need(link(*ownerPtr)==expected,"retirement does not consume or invent stock, quality or demand");
+        need(c.context.services->directions==std::vector<uint8_t>({2,4,6})&&c.context.services->serviceGrid==std::vector<uint32_t>(3,0x12345678)&&c.context.services->randomFirst==123&&c.context.services->randomSecond==456,"unrelated service and RNG state is preserved");
+        const auto once=snapshot(c);need(!originalFigureRemoveArrivedWorker(c.figure,c.context)&&snapshot(c)==once,"repeating cleanup after reset never duplicates FIFO");
+    }
+    Retirement secondary;secondary.context.buildings->at(1).primaryFigure=777;secondary.context.buildings->at(1).secondaryFigures[1]=7;
+    need(originalFigureRemoveArrivedWorker(secondary.figure,secondary.context)&&secondary.context.buildings->at(1).primaryFigure==777&&secondary.context.buildings->at(1).secondaryFigures[1]==0,"secondary-only Market return retains unrelated primary");
+    Retirement priority;priority.context.buildings->at(1).secondaryFigures[1]=7;
+    need(originalFigureRemoveArrivedWorker(priority.figure,priority.context)&&priority.context.buildings->at(1).secondaryFigures[1]==7,"existing primary-first duplicate-link semantics are retained");
+    Retirement other;other.context.services->routeOwners[4]=8;
+    need(originalFigureRemoveArrivedWorker(other.figure,other.context)&&other.context.services->routeOwners[4]==8,"another actor's route ownership is never cleared");
+    Retirement highest;highest.context.highestLiveSlot=7;highest.context.figures.at(8).alive=0;highest.context.figures.at(9).alive=0;highest.figure.next=0;highest.context.figures.at(7)=highest.figure;
+    need(originalFigureRemoveArrivedWorker(highest.figure,highest.context)&&highest.context.highestLiveSlot==6,"highest live slot falls only across removed/inactive records");
+    Retirement alias;auto& inPool=alias.context.figures.at(7);auto* ptr=&inPool;
+    need(originalFigureRemoveArrivedWorker(inPool,alias.context)&&ptr==&alias.context.figures.at(7)&&!inPool.alive,"in-pool reference itself survives publication");
+    Retirement a;auto b=a;need(originalFigureRemoveArrivedWorker(a.figure,a.context)&&originalFigureRemoveArrivedWorker(b.figure,b.context)&&snapshot(a)==snapshot(b),"identical restored in-memory snapshots retire identically without replaying service");
+    auto liveRetailer=Retirement{}.figure;liveRetailer.alive=1;
+    std::string error;need(liveRetailer.type==23&&liveRetailer.alive==1&&!encodeNativeWellWalker(liveRetailer,error)&&error=="not_well_walker_type28","native codec rejects an uncleared live type23 Market actor");
+}
+}
+int main(){try{leaf();segment();retirement();std::cout<<"{\"passed\":true,\"authored_market_transfer_checks\":"<<checks<<",\"original_data\":false,\"original_capacity_claim\":false}\n";return 0;}
 catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
