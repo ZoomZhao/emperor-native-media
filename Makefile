@@ -277,3 +277,9 @@ original-evidence-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/original_evidence.py
 original-evidence-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/original_evidence.py --mode undefined
+
+.PHONY: market-transfer-test market-transfer-test-undefined
+market-transfer-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/market_transfer.py --output-dir "$$(mktemp -u /tmp/emperor-market-release-XXXXXXXX)"
+market-transfer-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/market_transfer.py --mode undefined --output-dir "$$(mktemp -u /tmp/emperor-market-undefined-XXXXXXXX)"

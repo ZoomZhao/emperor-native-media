@@ -72,6 +72,83 @@ normally closes the chooser and process. Its parent had already timed out, so
 the cancellation exit code is unavailable and is not counted among the two
 successful gameplay Cmd+Q exit codes.
 
+## MarketHouse conservation contract R2 (2026-10-28)
+
+This is a checked transfer contract for the existing project consumer, not a
+claim about original Market capacity or legal original saves. Its input guard
+allowed a six-bay amount10000, while the smallest-positive-bay selector only
+selects values strictly below10000. The authored counterexample returned success
+after adding10 food to a house but left market food10000 unchanged. The old
+binary/result is retained locally; no original input was needed.
+
+`originalFigureMarketHouse` now calculates into separate market/house candidates.
+For food28 and materials19/13/25/23/22/24, actual source debit must equal the
+signed household-word increase in words0/1/6/2/4/5/3. Unmapped resources must not
+change. A missing later model, unrepresentable credit or mismatch rejects the
+whole callback, including earlier quality, demand, cache and count writes. The
+existing selector and sentinel are retained: a large untouched bay does not
+alone cause rejection when a smaller eligible bay supplies the entire credit.
+No capacity400/800 rule is invented. Model intermediates use checked wide
+arithmetic; demand and service-count signed-word wrapping is preserved, while
+a stock-credit wrap cannot pass as a conserved positive transfer.
+
+The entire type23 service segment also uses a candidate. Failure on a later
+house or the final grid check cannot leave earlier recipients served. Success
+publishes links and the service-grid lane together without replacing map nodes;
+owner references remain valid. Other service types retain their existing path,
+and movement keeps its wider transaction boundary.
+
+Run `make market-transfer-test` and `make market-transfer-test-undefined`, or
+`python3 scripts/market_transfer.py --mode release --output-dir <new absolute
+local directory>`. Each mode compiles47 project dependencies and passes80 new
+authored transfer checks,138 HouseGoods consumer checks and3369 full figure/
+combined checks, including784 existing storage-transfer cases. The runner clears
+the original-data root for its children; the real branch reports SKIP. These
+are synthetic API/format/caller contracts, not new original-game observations.
+
+Coverage includes all seven resource lanes at9999/10000/10001, mixed compartments,
+partial selector exhaustion, late missing models, multiple-house and grid-error
+rollback, saturated demand, final-food quality, numeric boundaries and ordinary
+distribution. Existing signed Apps and saves are untouched. No new App/GUI
+acceptance is claimed for this source change. Real food production, retail23
+construction, buyer24, quality recipes, stall/calendar scheduling and the full
+player market loop remain separate evidence and integration gaps.
+
+## Read-only collector fields and qualification boundary (2026-10-28)
+
+`make original-evidence-test` and `make original-evidence-test-undefined` build
+an exporter that accepts only the finite input manifest beneath the per-process
+`EMPEROR_GAMEDATA_ROOT`. With no root, real inputs explicitly SKIP. Use
+`--source` to select an existing manifest entry; input hashes and identities
+must remain unchanged. No game is launched and no save is written.
+
+The `clock-producer-figure7-v1` field contract reads phase/cycle/month-part/month
+from existing SAV19 anchors even when there are no buildings. It separately
+exports saved year words without inferring their calendar meaning. Existing
+Common5/industry readers provide stocks, resource identities, employment,
+operating flags and Hunter counters; independent reader aliases are checked.
+Selected Hunter, prey and projectile records expose known Figure7 base fields,
+including signed coordinates and raw links. Food/quality words remain raw
+observations rather than recipes or business capacities. Unknown variable FSA
+stops parsing and withholds later pool/Goods certification; a known base record
+never establishes the complete type23/type24 lifecycle.
+
+Release and UBSan each pass2353 authored format checks and28 Python path/contract
+groups. Four existing read-only inputs pass203 structural checks per mode,
+including an empty city. These counts establish framing and cross-reader
+agreement, not live production or original algorithm equivalence. Market
+replenishment, calendar/month services and health/consumption remain incomplete.
+The native-v6 default, previous save formats and fixed App packages are unchanged.
+
+Three separate bounded original-control qualification attempts failed before
+reaching a verified paused city. The last run's first complete observation of
+both game and launcher absence, with input restored, was541.7 seconds after
+startup, outside its300-second window. The original supervisor terminal record
+is missing. Pause/double-save/road and controlled owner-loss checks were not
+completed; automatic progression remains disabled. Later local offline driver
+repairs do not retroactively qualify that run. Controllers, captures, raw saves,
+trial logs and source/hash manifests are not part of this repository delivery.
+
 ## Supported source and rules
 
 The v1 loader accepts a complete, view0 SAV19 with a complete4,000-record building table, no live buildings and saved population0. It requires validated ground layers and a nonnegative saved treasury. The tested source is an independently created initial tutorial save. MAP and populated SAV session creation are explicitly unavailable; their existing read-only browsing remains separate.

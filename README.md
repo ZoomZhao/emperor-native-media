@@ -2,6 +2,14 @@
 
 Load legally owned original Emperor data with `--data-root`, render it natively on macOS, then port logic. Current phase: **DATA FIRST**. CitySimulation, EMP1 and authored gameplay remain frozen and separate from original behavior.
 
+The latest source-only increment checks MarketHouse transfer conservation and
+extends the bounded read-only evidence exporter. It does not replace the
+versioned App packages or change the native-v6 default/old-save behavior.
+The market production/replenishment loop and complete calendar/health rules
+remain incomplete. Original control qualification is still0/3; no automatic
+original-game progression is qualified. See [current measured scope](STATUS.md)
+and [collector/qualification limits](docs/ENCITY.md#read-only-collector-fields-and-qualification-boundary-2026-10-28).
+
 ## Launch the local App
 
 Versioned native deliveries contain `EmperorApp.app`, `Start.command`,

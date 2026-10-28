@@ -1,6 +1,7 @@
 #pragma once
 #include "original_figure_image.hpp"
 #include <set>
+#include <type_traits>
 
 namespace game_lab {
 // Load0x534C78..91 restores the personal speed unless network play is active.
@@ -801,7 +802,7 @@ inline int originalFigureServiceSector(int x,int y){
 //5D50C0 consumes smallest positive compartments first, preserving resource
 //identity when caller's clear flag is0. Market5D61C0=false, so warehouse
 //accounting+288 and image+2A0 callbacks are not reached.
-inline bool originalFigureMarketHouse(OriginalFigureBuildingLink& market,OriginalFigureBuildingLink& h,
+inline bool originalFigureMarketHouseWrites(OriginalFigureBuildingLink& market,OriginalFigureBuildingLink& h,
     const OriginalFigureUpdateContext& context,int& count){
     if(h.type<2||h.type>17|| (h.residents<1&&h.type<11))return true;
     if(!market.marketStorage||market.marketStorage->size()!=6||!market.marketDemand||!market.marketQuality||!h.houseGoods||!h.foodQuality)return false;
@@ -828,22 +829,44 @@ inline bool originalFigureMarketHouse(OriginalFigureBuildingLink& market,Origina
     //857334 six64-byte descriptors: resource,house index,market index,model column.
     constexpr unsigned resources[]={19,13,25,23,22,24},indices[]={1,6,2,4,5,3},columns[]={9,11,10,13,13,12};
     const int model=h.houseModel==7?7:h.type==11?h.houseModel+2:(h.houseModel==14||h.houseModel==8)?h.houseModel:h.houseModel+1;
-    for(unsigned k=0;k<6;++k){int wanted=10;
+    for(unsigned k=0;k<6;++k){int64_t wanted=10;
         if(h.residents||k>1){const auto col=context.houseMarketModels.find(columns[k]);if(col==context.houseMarketModels.end())return false;
             const auto row=col->second.find(model);if(row==col->second.end())return false;
-            wanted=row->second*(h.size>1?4:1);if(h.type>10)wanted*=2;}
+            wanted=int64_t(row->second)*(h.size>1?4:1);if(h.type>10)wanted*=2;
+            if(wanted<INT32_MIN||wanted>INT32_MAX)return false;}
         auto& counter=market.marketDemand->at(k+1);counter=originalFigureWord(int(counter)-1);if(counter<0)counter=0;
         if(!wanted)continue;counter=2000;const int available=amount(resources[k]);if(!available)continue;
-        const int limit=std::max(10,wanted);int give=limit-goods[indices[k]];
+        const int64_t limit=std::max<int64_t>(10,wanted);int64_t give=limit-goods[indices[k]];
         if(give<1||give>available)give=wanted-goods[indices[k]];
-        give=std::min(limit,std::max(0,give));if(give>0){give=std::min(give,available);
-            goods[indices[k]]=originalFigureWord(int(goods[indices[k]])+give);consume(resources[k],give);}
+        give=std::min(limit,std::max<int64_t>(0,give));if(give>0){give=std::min<int64_t>(give,available);
+            goods[indices[k]]=originalFigureWord(int(uint16_t(int64_t(goods[indices[k]])+give)));consume(resources[k],int(give));}
     }
     int total=0;for(const auto& c:storage)total+=int(c.amount);market.marketGoods=total;++count;return true;
 }
+// Public transfer contract. Keep the existing selector (including its10000
+// sentinel), units and quality/demand arithmetic, but never publish a credit
+// whose actual source debit differs. No original Market capacity is inferred.
+// A missing later model or an unrepresentable stock credit rejects the whole
+// callback, including earlier food/quality/demand writes and the service count.
+inline bool originalFigureMarketHouse(OriginalFigureBuildingLink& market,OriginalFigureBuildingLink& h,
+    const OriginalFigureUpdateContext& context,int& count){
+    if(h.type<2||h.type>17||(h.residents<1&&h.type<11))return true;
+    if(&market==&h||count==INT32_MAX)return false;
+    auto nextMarket=market,nextHouse=h;int nextCount=count;
+    if(!originalFigureMarketHouseWrites(nextMarket,nextHouse,context,nextCount))return false;
+    std::array<int64_t,29> before{},after{},credit{};
+    for(const auto& c:*market.marketStorage)before[c.resource]+=c.amount;
+    for(const auto& c:*nextMarket.marketStorage)after[c.resource]+=c.amount;
+    constexpr unsigned resources[]={28,19,13,25,23,22,24},indices[]={0,1,6,2,4,5,3};
+    for(unsigned k=0;k<7;++k)credit[resources[k]]=int64_t(nextHouse.houseGoods->at(indices[k]))-h.houseGoods->at(indices[k]);
+    for(size_t resource=0;resource<before.size();++resource)
+        if(credit[resource]<0||before[resource]-after[resource]!=credit[resource])return false;
+    static_assert(std::is_nothrow_move_assignable<OriginalFigureBuildingLink>::value,"Market commit must not throw");
+    market=std::move(nextMarket);h=std::move(nextHouse);count=nextCount;return true;
+}
 // Full clipped radius1 box then radius2 box, preserving repeated callbacks,
 // wall shadow sectors and signed service cap (429E10/42A1A0).
-inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureUpdateContext& context){
+inline bool originalFigureEntertainmentSegmentWrites(OriginalFigure& f,OriginalFigureUpdateContext& context){
     const bool watch=f.type==29,herb=f.type==30,market=f.type==23,inspector=f.type==39,shrine=f.type==35,well=f.type==28,school=f.type==34;
     if((f.type!=36&&!watch&&!herb&&!market&&!inspector&&!shrine&&!well&&!school)||!context.buildings||!context.services||context.services->serviceGrid.size()!=51984||
         context.buildingOwners.size()!=51984||context.feature.size()!=51984||context.terrain.size()!=51984||
@@ -921,6 +944,22 @@ inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureU
     else if(shrine)context.services->serviceGrid[f.cell]|=7u<<15;
     else if(!school)context.services->serviceGrid[f.cell]|=7u<<9; //School metadata category-1;venue category3.
     return true;
+}
+// A Market visit can touch several houses, then refuse on a later one or on
+// the final grid check. Publish this entire segment together. Other service
+// kinds keep their existing behavior; movement already owns its wider scratch.
+inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureUpdateContext& context){
+    if(f.type!=23)return originalFigureEntertainmentSegmentWrites(f,context);
+    auto candidate=context;auto next=f;
+    if(!originalFigureEntertainmentSegmentWrites(next,candidate))return false;
+    if(context.buildings->size()!=candidate.buildings->size())return false;
+    for(const auto& row:*candidate.buildings)if(!context.buildings->count(row.first))return false;
+    // Preserve map-node identities for callers holding a reference to the
+    // owner. These moves and the grid swap do not allocate during publication.
+    static_assert(std::is_nothrow_move_assignable<OriginalFigureBuildingLink>::value,"Market segment commit must not throw");
+    static_assert(std::is_nothrow_move_assignable<OriginalFigure>::value,"Market figure commit must not throw");
+    for(auto& row:*candidate.buildings)context.buildings->find(row.first)->second=std::move(row.second);
+    context.services->serviceGrid.swap(candidate.services->serviceGrid);f=std::move(next);return true;
 }
 //4B9590 cardinal road exits. Preserve the original grid-category minimum
 // filtering at >2 exits. Building/roadblock special paths remain refused.

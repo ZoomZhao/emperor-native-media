@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "original_evidence_figures.hpp"
 #include "original_evidence_route.hpp"
+#include "original_evidence_fields.hpp"
 #include "original_save.hpp"
 #include "original_building_update.hpp"
 #include "../file_io/include/city19_goal_archive.hpp"
@@ -41,6 +42,7 @@ J storage(const std::optional<std::vector<game_lab::OriginalStorageCompartment>>
 int32_t signedWord(uint32_t v){return v<=32767?int32_t(v):int32_t(v)-65536;}
 J exportSnapshot(const std::vector<uint8_t>& input){
     using namespace game_lab;J out=J::object();out["schema"]="original-evidence-v1";
+    out["field_contract"]="clock-producer-figure7-v1";
     out["risk_contract"]="common5-risk-v1";
     out["risk_units"]="signed16_accumulators_not_percentages";
     out["risk_semantics"]="existing_project_disaster_branches_not_original_probability";
@@ -70,11 +72,17 @@ J exportSnapshot(const std::vector<uint8_t>& input){
         if(city.cityEmployment){const auto& e=*city.cityEmployment;J j=J::object();j["available"]=e.available;j["employed"]=e.employed;j["unemployed"]=e.unemployed;J rows=J::array();
             for(const auto& r:e.rows){J row=J::object();row["demand"]=r.demand;row["allocated"]=r.allocated;row["priority"]=r.priority;rows.add(row);}j["rows"]=rows;cj["employment"]=j;}
     }out["city"]=cityValid?cj:J();
-    J clock;for(const auto& b:saved.buildings.footprints){const auto c=originalBuildingSavedUpdateContext(d,saved.terrainOffset,saved.sizeOffset,b,OriginalBuildingUpdateScope::AdmittedTicks,true);
-        if(!c)continue;clock=J::object();clock["phase"]=number(c->phase);clock["cycle"]=number(c->cycle);clock["month_part"]=number(c->monthPart);clock["month"]=number(c->month);
-        clock["ranges_valid"]=c->phase&&*c->phase<=50&&c->monthPart&&*c->monthPart<=15&&c->month&&*c->month<=11;break;}
+    J clock;const auto globalClock=evidenceSavedClock(d,saved.terrainOffset,saved.sizeOffset);
+    if(globalClock){clock=J::object();clock["phase"]=globalClock->phase;clock["cycle"]=globalClock->cycle;
+        clock["month_part"]=globalClock->monthPart;clock["month"]=globalClock->month;clock["ranges_valid"]=globalClock->rangesValid();
+        clock["source"]="anchored_SAV19_global_fields";clock["footprint_reader_crosscheck"]=J();
+        for(const auto& b:saved.buildings.footprints){const auto c=originalBuildingSavedUpdateContext(d,saved.terrainOffset,saved.sizeOffset,b,OriginalBuildingUpdateScope::AdmittedTicks,true);
+            if(!c)continue;clock["footprint_reader_crosscheck"]=c->phase==globalClock->phase&&c->cycle==globalClock->cycle&&
+                c->monthPart==globalClock->monthPart&&c->month==globalClock->month;break;}}
     out["clock"]=clock;
     const auto links=originalFigureBuildingLinks(d,saved.buildings);const auto inputs=originalBuildingUpdateInputs(d,saved.buildings);
+    const auto production=originalBuildingProductionInputs(d,saved.buildings);
+    out["producer_inputs_complete"]=bool(production);
     bool linksComplete=bool(links);if(links){for(const auto& b:saved.buildings.footprints)linksComplete&=links->count(b.slot)>0;
         for(const auto& b:saved.buildings.objectBuildings)linksComplete&=links->count(b.slot)>0;}
     out["building_links_complete"]=linksComplete;out["building_inputs_complete"]=bool(inputs);J buildings=J::array();
@@ -82,6 +90,18 @@ J exportSnapshot(const std::vector<uint8_t>& input){
         j["slot"]=entry.first;j["type"]=b.type;j["alive"]=b.alive;j["x"]=b.x;j["y"]=b.y;j["cell"]=b.cell;
         j["workers"]=b.workers;j["road_access"]=b.roadAccess;j["road_x"]=b.roadX;j["road_y"]=b.roadY;
         j["parent_common_wire"]=b.parent;j["primary_figure"]=b.primaryFigure;j["secondary_figures"]=array(b.secondaryFigures);j["cargo_figures"]=array(b.cargoFigures);
+        j["output_resource_wire_u8"]=b.outputResource;
+        j["hunter_return_goods_s16"]=b.type==33?J(b.hunterReturnGoods):J();
+        const auto producer=production?production->find(entry.first):std::map<size_t,OriginalBuildingProductionInputs>::const_iterator{};
+        const auto* p=production&&producer!=production->end()?&producer->second:nullptr;J pj;
+        if(p){pj=J::object();pj["primary_resource_wire_s16"]=p->primaryResource;pj["secondary_resource_wire_s16"]=p->secondaryResource;
+            pj["primary_stock_s16"]=p->primaryStock;pj["secondary_stock_s16"]=p->secondaryStock;
+            pj["workers_s16"]=p->workers;pj["operational_s16"]=p->operational;pj["enabled_u8"]=p->enabled;pj["labor_disabled_u8"]=p->laborDisabled;
+            pj["industry_first_word_s16"]=detail::i16(p->industry.data());
+            pj["industry_delay_u8"]=p->industry[0x63-4];pj["industry_timer_u8"]=p->industry[0x5f-4];
+            pj["hunter_active_count_u8"]=b.type==33?J(p->industry[0x5c-4]):J();
+            pj["scope"]="framed_existing_industry_reader_not_recipe_or_capacity_proof";}
+        j["production"]=pj;j["hunter_production_link_crosscheck"]=number(evidenceHunterProductionCrosscheck(b,p));
         j["storage_policy_index"]=number(b.storagePolicy);
         j["storage"]=storage(b.storage);j["market_storage"]=storage(b.marketStorage);j["market_goods"]=number(b.marketGoods);
         j["market_quality_raw"]=number(b.marketQuality);j["market_demand"]=b.marketDemand?array(*b.marketDemand):J();
@@ -114,6 +134,8 @@ J exportSnapshot(const std::vector<uint8_t>& input){
     actors["declared"]=prefix.declared;actors["completed"]=prefix.completed;actors["stop_offset"]=prefix.stopOffset;
     actors["stop_slot"]=prefix.stopSlot;actors["reason"]=prefix.reason;actors["unqualified_class"]=prefix.unqualifiedClass;
     actors["fsa_semantics_complete"]=false;actors["absence_certified"]=prefix.complete&&prefix.declared==2000;
+    actors["selected_types"]=array(evidenceSelectedFigureTypes);
+    actors["hunt_scope"]="Figure7_base_only; variable_FSA_and_non76_prey_behavior_unknown";
     bool crosscheck=prefix.complete&&saved.layers.figures&&saved.layers.figures->status==OriginalFigureStatus::Complete&&
         saved.layers.figures->slots.size()==prefix.records.size();
     if(crosscheck)for(size_t n=0;n<prefix.records.size();++n){const auto& p=prefix.records[n];const auto& f=saved.layers.figures->slots[n];
@@ -131,7 +153,7 @@ J exportSnapshot(const std::vector<uint8_t>& input){
     J records=J::array(),counts=J::object();std::map<unsigned,size_t> liveCounts;
     const auto services=originalFigureSavedServices(d,saved.terrainOffset);
     size_t selected=0;for(const auto& f:prefix.records){const auto type=f.field(18),alive=f.field(22);if(!type||!alive||!*alive)continue;++liveCounts[*type];
-        if(*type!=2&&*type!=19&&*type!=21&&*type!=22&&*type!=23&&*type!=24&&*type!=28&&*type!=39)continue;
+        if(!evidenceSelectedFigure(*type))continue;
         if(++selected>256)continue; // Explicit output/memory budget, never silently certify truncation.
         J j=J::object();j["slot"]=f.slot;j["type"]=*type;j["record_complete"]=f.recordComplete;j["alias"]=f.alias;
         j["wire_begin"]=f.begin;j["wire_end"]=f.end;
@@ -153,6 +175,8 @@ J exportSnapshot(const std::vector<uint8_t>& input){
         j["route_contract_scope"]="reference_only_not_complete_actor_semantics";
         j["cell_and_next_bounds_valid"]=cell&&*cell<51984&&next&&*next<2000;
         j["saved_route"]=routeState;J fields=J::array();size_t n=0;
+        J hunt;const auto hf=evidenceHuntFields(f);if(hf){hunt=J::object();for(const auto& e:*hf)hunt[e.first]=e.second;}
+        j["hunt_base_fields"]=hunt;
         for(const auto& field:emperor::file_io::research::figure7_fields){J q=J::object();q["receiver_offset"]=field.receiver_offset;q["wire_width"]=field.bytes;
             q["unsigned_wire_value"]=field.bytes<=4?J(f.fields.at(n)):J();if(field.bytes==20)q["opaque_numeric_bytes"]=array(f.opaque380);++n;fields.add(q);}j["base_fields"]=fields;records.add(j);
     }

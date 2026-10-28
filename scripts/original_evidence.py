@@ -20,11 +20,27 @@ SOURCES = tuple('Save/2026102301/' + n + '.sav' for n in ('320110', '320111', '3
 # Exact finite application-level allowance. It creates no directory/file and
 # grants neither an OS permission nor approval to execute the experiment.
 CAPTURE_SOURCES = tuple('Save/2026102801/' + str(n) + '.sav' for n in range(280001, 280017))
-READ_SOURCES = SOURCES + CAPTURE_SOURCES
+EMPTY_SOURCE = 'Save/2026102301/历史战役自动保存_1.sav'
+FOOD_CHAIN_CAPTURES = tuple('Save/2026102802/' + str(n) + '.sav' for n in range(281001, 281033))
+PROTECTED_SOURCES = SOURCES + (EMPTY_SOURCE,)
+ALL_CAPTURES = CAPTURE_SOURCES + FOOD_CHAIN_CAPTURES
+READ_SOURCES = PROTECTED_SOURCES + ALL_CAPTURES
 MAX_INPUT = 4 * 1024 * 1024
 BUDGET = {'total_cycles': 80, 'total_phase_steps': 4080, 'total_seconds': 1800,
           'market_cycles': 32, 'market_phase_steps': 1632, 'market_seconds': 900,
           'market_round_trips': 2}
+FOOD_CHAIN_BUDGET = dict(BUDGET, total_seconds=2700, preparation_cycles=48,
+                        preparation_phase_steps=2448, preparation_seconds=900,
+                        gross_build_spend=800, net_treasury_drop=1000)
+FIELD_CONTRACT = 'clock-producer-figure7-v1'
+SELECTED_TYPES = (2, 19, 20, 21, 22, 23, 24, 28, 39, 40, 54, 75, 76, 77)
+HUNT_FIELDS = {'counter_s16': (62, True), 'destination_x_s16': (44, True),
+               'destination_y_s16': (46, True), 'home_x_s16': (52, True), 'home_y_s16': (54, True),
+               'hidden_wire_u8': (111, False), 'previous_action_wire_u8': (24, False),
+               'free_movement_wire_u8': (20, False), 'movement_mode_wire_u8': (128, False),
+               'linked_building_wire_u32': (328, False), 'flags120_wire_u32': (288, False),
+               'damage_wire_u32': (168, False), 'projectile_wire_u8': (297, False),
+               'projectile_hits_wire_u8': (160, False)}
 
 
 def sha(data):
@@ -53,7 +69,7 @@ def read_candidate(root, relative):
         fd = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
         try:
             before = os.fstat(fd)
-            if relative in CAPTURE_SOURCES and before.st_nlink != 1:
+            if relative in ALL_CAPTURES and before.st_nlink != 1:
                 raise ValueError('capture must not alias another file')
             if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= MAX_INPUT:
                 raise ValueError('regular bounded SAV required')
@@ -80,9 +96,9 @@ def read_candidate(root, relative):
 
 def capture_target_status(root, relative):
     """Stat an exact NEW target. Never create, copy, grant permission or overwrite."""
-    if relative in SOURCES:
+    if relative in PROTECTED_SOURCES:
         raise ValueError('protected candidate cannot be a capture target')
-    if relative not in CAPTURE_SOURCES:
+    if relative not in ALL_CAPTURES:
         raise ValueError('target outside exact capture allocation')
     if not root.is_absolute() or root.resolve() != root:
         raise ValueError('canonical absolute data root required')
@@ -134,6 +150,73 @@ def risk_counters(s, b):
     return r
 
 
+def field_contract_issues(s):
+    """Known exported fields only; never infer a producer/FSA/calendar algorithm."""
+    issues = []
+    if s.get('field_contract') != FIELD_CONTRACT:
+        issues.append('clock_producer_figure7_field_contract_required')
+    clock = s.get('clock') or {}
+    if clock.get('source') != 'anchored_SAV19_global_fields' or (clock.get('footprint_reader_crosscheck') is not None and clock.get('footprint_reader_crosscheck') is not True):
+        issues.append('global_clock_source_or_reader_crosscheck')
+    if s.get('producer_inputs_complete') is not True:
+        issues.append('framed_producer_reader_incomplete')
+    for b in s.get('buildings', []):
+        if b.get('type') not in (33, 35, 43):
+            continue
+        p = b.get('production')
+        if not isinstance(p, dict):
+            issues.append('producer_fields_missing')
+            continue
+        for k in ('primary_resource_wire_s16', 'secondary_resource_wire_s16', 'primary_stock_s16',
+                  'secondary_stock_s16', 'workers_s16', 'operational_s16', 'industry_first_word_s16'):
+            if type(p.get(k)) is not int or not -32768 <= p[k] <= 32767:
+                issues.append('producer_signed_word_required:' + k)
+        for k in ('enabled_u8', 'labor_disabled_u8', 'industry_delay_u8', 'industry_timer_u8'):
+            if type(p.get(k)) is not int or not 0 <= p[k] <= 255:
+                issues.append('producer_byte_required:' + k)
+        if any(p.get(a) != b.get(z) for a, z in (('workers_s16', 'workers'), ('operational_s16', 'operational'),
+                                                ('enabled_u8', 'enabled'), ('labor_disabled_u8', 'labor_disabled'))):
+            issues.append('producer_common_reader_mirror_mismatch')
+        if b['type'] == 33:
+            if b.get('hunter_production_link_crosscheck') is not True or type(b.get('hunter_return_goods_s16')) is not int or b['hunter_return_goods_s16'] != p.get('secondary_stock_s16'):
+                issues.append('hunter_return_stock_alias_mismatch')
+            if type(p.get('hunter_active_count_u8')) is not int or not 0 <= p['hunter_active_count_u8'] <= 255:
+                issues.append('hunter_active_count_byte_required')
+    a = s.get('actors') or {}
+    if a.get('selected_types') != list(SELECTED_TYPES) or a.get('fsa_semantics_complete') is not False:
+        issues.append('declared_base_selection_scope_required')
+    if a.get('base_pool_complete') is not True or a.get('selected_records_complete') is not True:
+        issues.append('complete_actor_export_required_not_partial_FSA')
+    counts, records = a.get('live_counts_in_read_prefix') or {}, a.get('records') or []
+    count_values = [counts.get(str(t), 0) for t in SELECTED_TYPES]
+    if any(type(n) is not int or not 0 <= n <= 8192 for n in count_values):
+        issues.append('selected_count_contract')
+    else:
+        expected = sum(count_values)
+        if expected > 256 or a.get('selected_record_budget') != 256 or type(a.get('selected_records_count')) is not int or a['selected_records_count'] != expected or len(records) != expected:
+            issues.append('selected_count_or_output_budget')
+    for f in records:
+        if f.get('type') not in SELECTED_TYPES or f.get('record_complete') is not True:
+            issues.append('selected_record_scope_or_partial')
+        if f.get('type') not in (40, 54, 75, 76, 77):
+            continue
+        h = f.get('hunt_base_fields')
+        raw = {x.get('receiver_offset'): x.get('unsigned_wire_value') for x in f.get('base_fields', [])}
+        if not isinstance(h, dict):
+            issues.append('hunt_base_fields_missing')
+            continue
+        for k, (offset, signed) in HUNT_FIELDS.items():
+            value = raw.get(offset)
+            maximum = 65535 if signed else 255 if k.endswith('_u8') else 0xffffffff
+            if type(value) is not int or value < 0 or value > maximum:
+                issues.append('hunt_base_wire_required:' + k)
+                continue
+            expected = value - 65536 if signed and value > 32767 else value
+            if type(h.get(k)) is not int or h[k] != expected:
+                issues.append('hunt_named_base_mismatch:' + k)
+    return sorted(set(issues))
+
+
 def qualify(s):
     """Snapshot qualification is distinct from dynamic experiment admission."""
     calendar, operating, market = [], [], []
@@ -143,6 +226,8 @@ def qualify(s):
         if s.get(flag) is not True:
             calendar.append(flag + '_required')
     clock = s.get('clock') or {}
+    if clock.get('footprint_reader_crosscheck') is False:
+        calendar.append('global_clock_reader_crosscheck_failed')
     if not clock.get('ranges_valid') or not all(type(clock.get(k)) is int and 0 <= clock[k] <= maximum
                                               for k, maximum in (('phase', 50), ('cycle', 0xffffffff), ('month_part', 15), ('month', 11))):
         calendar.append('qualified_clock_required')
@@ -216,9 +301,13 @@ def qualify(s):
               'observed_type39_visits_and_both_risk_counter_trends', 'no_collapse_or_other_scene_pollution',
               'pre_first_dispatch_baseline_for_creation_claim', 'game_date_matches_serialized_year_fields',
               'market_compound_road_and_dispatch_verified']
+    field_issues = field_contract_issues(s)
     return {'calendar_snapshot_ready': not calendar,
             'operating_city_snapshot_ready': not calendar and not operating,
-            'market_state_export_ready': not calendar and not operating and not market,
+            'market_state_export_ready': not calendar and not operating and not market and
+                                         (s.get('field_contract') is None or not field_issues),
+            'collector_field_contract_ready': not field_issues,
+            'collector_field_blockers': field_issues,
             'experiment_ready': False, 'calendar_blockers': sorted(set(calendar)),
             'operating_blockers': sorted(set(operating)), 'market_blockers': sorted(set(market)),
             'observed_market_actor_counts': {str(t): (actors.get('live_counts_in_read_prefix') or {}).get(str(t), 0)
@@ -243,6 +332,7 @@ def verify_export(s):
     require(s.get('building_links_complete') and s.get('building_inputs_complete'), 'building coverage')
     require(s.get('city_contract_complete'), 'city source contract')
     require((s.get('clock') or {}).get('ranges_valid'), 'clock ranges')
+    require(not field_contract_issues(s), 'clock/producer/selected-base field contract: ' + ','.join(field_contract_issues(s)))
     require(type(s['city'].get('year_word_wire')) is int and type(s['city'].get('scenario_start_year_wire')) is int, 'separate year words')
     for b in s.get('buildings', []):
         require(risk_counters(s, b) is not None, 'Common5 signed risk raw/canonical/alias and reader equivalence')
@@ -264,10 +354,13 @@ def verify_export(s):
     return checks
 
 
-def audit_series(entries, domain):
+def audit_series(entries, domain, scope='existing'):
     """Check numeric observations without driving or authorizing the game."""
     if domain not in ('calendar', 'market', 'consumption_health') or not 2 <= len(entries) <= 256:
         raise ValueError('known domain and 2..256 explicit numeric observations required')
+    if scope not in ('existing', 'food-chain'):
+        raise ValueError('known observation scope required')
+    budget = FOOD_CHAIN_BUDGET if scope == 'food-chain' else BUDGET
     issues, changes = [], []
     key = {'calendar': 'calendar_snapshot_ready', 'market': 'market_state_export_ready',
            'consumption_health': 'operating_city_snapshot_ready'}[domain]
@@ -276,7 +369,7 @@ def audit_series(entries, domain):
     if entries[0]['elapsed_seconds'] != 0:
         raise ValueError('ledger must start at elapsed_seconds=0')
     last_step, last_seconds = start, 0
-    limits = (BUDGET['market_cycles'], BUDGET['market_phase_steps'], BUDGET['market_seconds']) if domain == 'market' else (BUDGET['total_cycles'], BUDGET['total_phase_steps'], BUDGET['total_seconds'])
+    limits = (budget['market_cycles'], budget['market_phase_steps'], budget['market_seconds']) if domain == 'market' else (budget['total_cycles'], budget['total_phase_steps'], budget['total_seconds'])
     last, bound_reached, last_trips = first, False, 0
     for index, entry in enumerate(entries):
         if bound_reached:
@@ -296,11 +389,11 @@ def audit_series(entries, domain):
             issues.append('observation_%d_budget_exceeded' % index)
         if domain == 'market':
             trips = entry.get('reported_complete_round_trips')
-            if type(trips) is not int or trips < last_trips or trips > BUDGET['market_round_trips'] or (index == 0 and trips != 0):
+            if type(trips) is not int or trips < last_trips or trips > budget['market_round_trips'] or (index == 0 and trips != 0):
                 issues.append('observation_%d_round_trip_counter_unqualified' % index)
             else:
                 last_trips = trips
-                bound_reached |= trips == BUDGET['market_round_trips']
+                bound_reached |= trips == budget['market_round_trips']
         bound_reached |= step-start >= limits[1] or seconds >= limits[2] or clock['cycle']-first['clock']['cycle'] >= limits[0]
         if s.get('active_side') != first.get('active_side') or (s.get('city') or {}).get('scenario_start_year_wire') != first['city'].get('scenario_start_year_wire'):
             issues.append('observation_%d_scenario_binding_changed' % index)
@@ -308,7 +401,7 @@ def audit_series(entries, domain):
             changes.append({'index': index, 'phase_steps_since_prior': step-last_step,
                             'changed_domains': [k for k in ('clock', 'city', 'buildings', 'actors', 'goods_services') if s.get(k) != last.get(k)]})
         last_step, last_seconds, last = step, seconds, s
-    return {'schema': 'evidence-ledger-audit-v1', 'domain': domain, 'observations': len(entries),
+    return {'schema': 'evidence-ledger-audit-v1', 'domain': domain, 'scope': scope, 'observations': len(entries),
             'numeric_checks_passed': not issues, 'issues': issues, 'changes': changes,
             'phase_steps': last_step-start, 'elapsed_seconds': last_seconds,
             'stop_at_bound': bound_reached,
@@ -316,11 +409,15 @@ def audit_series(entries, domain):
             'remaining_gates': 'Manual pause, action/scene log, fire/patrol, scenario identity and endpoint-complete transfer balance still required; reported trip counts are not inferred proof.'}
 
 
-def protocol(reports):
+def protocol(reports, scope='existing'):
     """Executable preflight result, not a launch instruction or experimental permission."""
-    return {'schema': 'evidence-protocol-v1', 'original_launch_permitted': False,
-            'status': 'awaiting_parent_review_and_dynamic_gates', 'hard_limits_first_bound_wins': BUDGET,
-            'allowed_variable': 'normal_game_clock_only; no wage/building/policy/recipe/quality changes',
+    if scope not in ('existing', 'food-chain'):
+        raise ValueError('known observation scope required')
+    food_chain = scope == 'food-chain'
+    return {'schema': 'evidence-protocol-v1', 'original_launch_permitted': False, 'scope': scope,
+            'status': 'dynamic_gates_required_tool_is_not_permission',
+            'hard_limits_first_bound_wins': FOOD_CHAIN_BUDGET if food_chain else BUDGET,
+            'allowed_variable': 'normal empty-city preparation:8 homes (max10),80roads; one each Well/tower/Hunter/Mill/ordinary-market/foodshop; menu costs measured, no repeated child charge; then freeze construction/wages/policy/recipe/quality' if food_chain else 'normal_game_clock_only; no wage/building/policy/recipe/quality changes',
             'candidate_results': [{'source': r['source'], 'sha256': r['input_sha256'],
                                    'qualification': r['qualification']} for r in reports],
             'read_points': {
@@ -333,6 +430,10 @@ def protocol(reports):
                                'city.treasury/population/health_target/health_smoothed/health_rating',
                                'house goods12/food_quality_raw/water_service/herbalist/residents/type/model',
                                'mill storage and market storage/demand/quality', '23/24 all base_fields and owner/route/cargo links'],
+            'field_contract_required_for_food_source_observation': FIELD_CONTRACT,
+            'food_source_fields': ['production signed Common5 stocks/resources/workers and industry first-word/timer/delay',
+                                   'Hunter return-goods aliases secondary stock: count once; active-hunter byte',
+                                   '40/54/75..77 known Figure7 base/hunt fields; no variable FSA or non76 behavior proof'],
             'stop_immediately': ['fire or collapse', 'uncontrolled population/scene contamination',
                                  'treasury<=0 or unmeasurable', 'parser refusal or source/scenario mismatch',
                                  'lost reliable pause', 'any hard limit'],
@@ -341,9 +442,10 @@ def protocol(reports):
             'cannot_establish': ['general monthly/health/recipe algorithms from finite traces',
                                  'undecoded variable FSA state', 'pre-first-dispatch history from a partial actor pool'],
             'capture_authorization': 'This tool never launches an experiment or grants authorization. Reads only explicitly selected manifest entries; default is the three candidates.',
-            'capture_target_allowance': list(CAPTURE_SOURCES),
+            'capture_target_allowance': list(FOOD_CHAIN_CAPTURES if food_chain else CAPTURE_SOURCES),
             'capture_gate': 'Application list only, independent of external task authorization and OS permissions. Require dedicated test player, fresh target absence and reject overwrite prompts. Never overwrite candidates or existing captures.',
-            'funds_net_drop_stop': 200,
+            'funds_net_drop_stop': 1000 if food_chain else 200,
+            'food_chain_stops': 'Total80cycles/4080phases/45min incl pauses and retries; prep48cycles/15min, market2rounds/32cycles/15min;800gross construction,1000net treasury decline; first reached or fire/collapse/uncontrolled risk/no patrol/unknownFSA/lost identity/pause/parser failure stops, no reset.' if food_chain else None,
             'numeric_ledger_format': {'schema': 'evidence-series-v1', 'domain': 'calendar',
                                       'observations': [{'elapsed_seconds': 0, 'reported_complete_round_trips': 0,
                                                         'snapshot': '<numeric exported snapshot object>'}]},
@@ -355,11 +457,12 @@ def protocol(reports):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--mode', choices=['release', 'undefined'], default='release')
+    p.add_argument('--scope', choices=['existing', 'food-chain'], default='existing', help='explicit bounded protocol; never grants experimental permission')
     p.add_argument('--output-dir', type=Path)
     p.add_argument('--skip-real', action='store_true')
     p.add_argument('--series', type=Path, help='audit an existing numeric JSON ledger only; no build, SAV reads or game')
     p.add_argument('--source', action='append', choices=READ_SOURCES, help='exact read-only source; defaults to three protected candidates')
-    p.add_argument('--check-capture-targets', action='store_true', help='stat the16 allocated target names only; no build, game or file creation')
+    p.add_argument('--check-capture-targets', action='store_true', help='stat scope exact target names only; no build, game or file creation')
     args = p.parse_args()
     if (args.series or args.check_capture_targets) and args.source:
         p.error('--source cannot be combined with series/target-only checks')
@@ -391,7 +494,7 @@ def main():
             result['SKIP'] = 'EMPEROR_GAMEDATA_ROOT unset'
         else:
             try:
-                result['targets'] = [capture_target_status(Path(data_root), name) for name in CAPTURE_SOURCES]
+                result['targets'] = [capture_target_status(Path(data_root), name) for name in (FOOD_CHAIN_CAPTURES if args.scope == 'food-chain' else CAPTURE_SOURCES)]
             except (OSError, ValueError) as exc:
                 result['error'] = str(exc)
         write_json(out / 'capture-targets.json', result)
@@ -428,7 +531,7 @@ def main():
         data = json.loads(raw)
         if data.get('schema') != 'evidence-series-v1':
             p.error('numeric series schema required')
-        result = audit_series(data['observations'], data['domain'])
+        result = audit_series(data['observations'], data['domain'], args.scope)
         result['ledger_sha256'] = sha(raw)
         write_json(out / 'series-audit.json', result)
         print(json.dumps({'report': str(out / 'series-audit.json'), 'numeric_checks_passed': result['numeric_checks_passed']}))
@@ -488,12 +591,12 @@ def main():
                 value = json.loads((out / ('candidate-' + str(i) + '.stdout')).read_text())
                 value['structural_checks_passed'] = verify_export(value)
                 value.update(source=source, input_sha256=sha(raw), input_identity=identity)
-                value['source_role'] = 'protected_candidate' if source in SOURCES else 'reserved_capture'
+                value['source_role'] = 'protected_candidate' if source in SOURCES else 'protected_empty_source' if source == EMPTY_SOURCE else 'reserved_capture'
                 value['qualification'] = qualify(value)
                 write_json(out / ('candidate-' + str(i) + '.json'), value)
                 report['snapshots'].append(value)
             report['protocol'] = str(out / 'protocol.json')
-            write_json(out / 'protocol.json', protocol(report['snapshots']))
+            write_json(out / 'protocol.json', protocol(report['snapshots'], args.scope))
             for source, before in original.items():
                 raw, identity = read_candidate(root, source)
                 if sha(raw) != before['sha256'] or identity != before['identity']:

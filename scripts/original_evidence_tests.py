@@ -8,6 +8,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from original_evidence import SOURCES, CAPTURE_SOURCES, READ_SOURCES, MAX_INPUT, BUDGET, read_candidate, capture_target_status, qualify, protocol, audit_series, risk_counters
+from original_evidence import FIELD_CONTRACT, SELECTED_TYPES, HUNT_FIELDS, field_contract_issues
+from original_evidence import EMPTY_SOURCE, FOOD_CHAIN_CAPTURES, PROTECTED_SOURCES, ALL_CAPTURES, FOOD_CHAIN_BUDGET
 
 
 def city_fixture():
@@ -32,7 +34,91 @@ def city_fixture():
             'actors': {'base_pool_complete': True, 'strict_reader_crosscheck': True, 'selected_records_complete': True, 'absence_certified': True, 'records': []}}
 
 
+def fields_fixture():
+    s = city_fixture()
+    s.update(field_contract=FIELD_CONTRACT, producer_inputs_complete=True)
+    s['clock'].update(source='anchored_SAV19_global_fields', footprint_reader_crosscheck=None)
+    s['actors'].update(selected_types=list(SELECTED_TYPES), fsa_semantics_complete=False,
+                       selected_record_budget=256, selected_records_count=0, live_counts_in_read_prefix={})
+    return s
+
+
+def hunter_fixture():
+    s = fields_fixture()
+    p = dict(primary_resource_wire_s16=0, secondary_resource_wire_s16=0, primary_stock_s16=-32768,
+             secondary_stock_s16=32767, workers_s16=7, operational_s16=1, industry_first_word_s16=-2,
+             enabled_u8=1, labor_disabled_u8=0, industry_delay_u8=255, industry_timer_u8=0, hunter_active_count_u8=3)
+    s['buildings'].append(dict(slot=5, type=33, production=p, workers=7, operational=1, enabled=1, labor_disabled=0,
+                               hunter_return_goods_s16=32767, hunter_production_link_crosscheck=True))
+    return s
+
+
 class EvidenceTests(unittest.TestCase):
+    def test_additive_field_contract_and_legacy_scope(self):
+        s = fields_fixture()
+        self.assertEqual(field_contract_issues(s), [])
+        self.assertTrue(qualify(s)['collector_field_contract_ready'])
+        legacy = city_fixture()
+        self.assertFalse(qualify(legacy)['collector_field_contract_ready'])
+        self.assertTrue(qualify(legacy)['calendar_snapshot_ready'])
+        self.assertFalse(qualify(s)['experiment_ready'])
+
+    def test_global_clock_source_and_crosscheck(self):
+        for value in (False, 0, 1, 'true'):
+            s = fields_fixture(); s['clock']['footprint_reader_crosscheck'] = value
+            self.assertIn('global_clock_source_or_reader_crosscheck', field_contract_issues(s))
+        s = fields_fixture(); s['clock']['source'] = 'invented_building'
+        self.assertTrue(field_contract_issues(s))
+        s = fields_fixture(); s['clock']['footprint_reader_crosscheck'] = False
+        self.assertFalse(qualify(s)['calendar_snapshot_ready'])
+
+    def test_signed_producer_alias_is_one_stock(self):
+        s = hunter_fixture()
+        self.assertEqual(field_contract_issues(s), [])
+        for value in (-32768, -1, 0, 50, 100, 32767):
+            s['buildings'][-1]['hunter_return_goods_s16'] = value
+            s['buildings'][-1]['production']['secondary_stock_s16'] = value
+            self.assertEqual(field_contract_issues(s), [])
+        s['buildings'][-1]['hunter_return_goods_s16'] += 1
+        self.assertIn('hunter_return_stock_alias_mismatch', field_contract_issues(s))
+
+    def test_producer_missing_width_bool_and_mirror_refusals(self):
+        for key in hunter_fixture()['buildings'][-1]['production']:
+            for value in (None, True, -32769, 65536):
+                s = hunter_fixture(); s['buildings'][-1]['production'][key] = value
+                self.assertTrue(field_contract_issues(s), (key, value))
+        s = hunter_fixture(); s['buildings'][-1]['production'] = None
+        self.assertIn('producer_fields_missing', field_contract_issues(s))
+        s = hunter_fixture(); s['producer_inputs_complete'] = False
+        self.assertIn('framed_producer_reader_incomplete', field_contract_issues(s))
+        s = hunter_fixture(); s['buildings'][-1]['workers'] += 1
+        self.assertIn('producer_common_reader_mirror_mismatch', field_contract_issues(s))
+
+    def test_hunt_named_fields_preserve_wire_widths(self):
+        for kind in (40, 54, 75, 76, 77):
+            s = fields_fixture(); values = {off: 0 for off, _ in HUNT_FIELDS.values()}
+            values.update({62: 32768, 44: 65535, 328: 0xffffffff, 288: 0x80000000})
+            fields = {k: values[o]-65536 if signed and values[o]>32767 else values[o] for k, (o, signed) in HUNT_FIELDS.items()}
+            actor = dict(type=kind, record_complete=True, hunt_base_fields=fields,
+                         base_fields=[dict(receiver_offset=o, unsigned_wire_value=v) for o, v in values.items()])
+            s['actors'].update(records=[actor], selected_records_count=1, live_counts_in_read_prefix={str(kind): 1})
+            self.assertEqual(field_contract_issues(s), [])
+            actor['hunt_base_fields']['counter_s16'] = 32768
+            self.assertIn('hunt_named_base_mismatch:counter_s16', field_contract_issues(s))
+            actor['hunt_base_fields'] = None
+            self.assertIn('hunt_base_fields_missing', field_contract_issues(s))
+
+    def test_selected_scope_budget_partial_FSA(self):
+        for key, value in (('base_pool_complete', False), ('selected_records_complete', False),
+                           ('fsa_semantics_complete', True), ('selected_types', [23, 24]),
+                           ('selected_record_budget', 257), ('selected_records_count', True)):
+            s = fields_fixture(); s['actors'][key] = value
+            self.assertTrue(field_contract_issues(s), key)
+        s = fields_fixture(); s['actors'].update(records=[dict(type=20, record_complete=True)]*257,
+                       selected_records_count=257, live_counts_in_read_prefix={'20':257}, selected_records_complete=False)
+        self.assertIn('selected_count_or_output_budget', field_contract_issues(s))
+        self.assertFalse(qualify(s)['market_state_export_ready'])
+
     def test_risk_counter_causes_and_no_safe_probability(self):
         for field, raw, legacy, cause in (('collapse_counter', 'common5_68_s16', 'fire_risk', 'collapse'),
                                           ('ignition_counter', 'common5_70_s16', 'damage_risk', 'ignition')):
@@ -71,7 +157,7 @@ class EvidenceTests(unittest.TestCase):
 
     def test_exact_future_allowance_never_creates_or_grants(self):
         self.assertEqual(len(CAPTURE_SOURCES), 16)
-        self.assertEqual(len(READ_SOURCES), 19)
+        self.assertEqual(len(READ_SOURCES), 52)
         self.assertTrue(set(SOURCES).isdisjoint(CAPTURE_SOURCES))
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp).resolve()
@@ -117,6 +203,7 @@ class EvidenceTests(unittest.TestCase):
             root=Path(tmp).resolve()
             (root/'Save').mkdir()
             for name in ('Save/2026102801/280017.sav','Save/2026102801/*.sav',
+                         'Save/2026102802/281000.sav','Save/2026102802/281033.sav',
                          'Save/2026102801/../2026102301/320112.sav','/Save/2026102801/280001.sav',
                          'Save/other/280001.sav','Save/2026102801/subdir/280001.sav'):
                 with self.assertRaises(ValueError):
@@ -265,6 +352,47 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(BUDGET['total_cycles']*51, BUDGET['total_phase_steps'])
         self.assertIn('fire or collapse', plan['stop_immediately'])
         self.assertTrue(json.loads(json.dumps(plan)) == plan)
+
+    def test_new_food_chain_exact_paths_and_unchanged_old_budget(self):
+        self.assertEqual(len(FOOD_CHAIN_CAPTURES),32)
+        self.assertTrue(set(PROTECTED_SOURCES).isdisjoint(ALL_CAPTURES))
+        self.assertEqual(FOOD_CHAIN_CAPTURES[0],'Save/2026102802/281001.sav')
+        self.assertEqual(FOOD_CHAIN_CAPTURES[-1],'Save/2026102802/281032.sav')
+        self.assertEqual(BUDGET['total_seconds'],1800)
+        self.assertEqual(FOOD_CHAIN_BUDGET['total_seconds'],2700)
+        self.assertEqual(FOOD_CHAIN_BUDGET['preparation_phase_steps'],48*51)
+        self.assertEqual(FOOD_CHAIN_BUDGET['total_phase_steps'],80*51)
+        self.assertFalse(protocol([], 'food-chain')['original_launch_permitted'])
+        self.assertEqual(len(protocol([], 'food-chain')['capture_target_allowance']),32)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();(root/'Save').mkdir()
+            for name in FOOD_CHAIN_CAPTURES:
+                self.assertEqual(capture_target_status(root,name)['state'],'reserved_name_absent')
+            self.assertFalse((root/'Save/2026102802').exists())
+            with self.assertRaises(FileNotFoundError):read_candidate(root,FOOD_CHAIN_CAPTURES[0])
+            target=root/FOOD_CHAIN_CAPTURES[0];target.parent.mkdir();target.write_bytes(b'authored capture')
+            self.assertEqual(read_candidate(root,FOOD_CHAIN_CAPTURES[0])[0],b'authored capture')
+            with self.assertRaisesRegex(ValueError,'overwrite'):capture_target_status(root,FOOD_CHAIN_CAPTURES[0])
+            with self.assertRaisesRegex(ValueError,'protected'):capture_target_status(root,EMPTY_SOURCE)
+            for name in ('Save/2026102802/281033.sav','Save/2026102802/*.sav',
+                         'Save/2026102802/../2026102301/320112.sav','Save/other/281001.sav'):
+                with self.assertRaises(ValueError):read_candidate(root,name)
+            target.unlink();outside=root/'other';outside.write_bytes(b'outside')
+            target.symlink_to(outside)
+            with self.assertRaises(OSError):read_candidate(root,FOOD_CHAIN_CAPTURES[0])
+            target.unlink();os.link(outside,target)
+            with self.assertRaisesRegex(ValueError,'alias'):read_candidate(root,FOOD_CHAIN_CAPTURES[0])
+
+    def test_food_chain_scope_is_explicit_not_global_budget_change(self):
+        a,b=city_fixture(),city_fixture()
+        entries=[{'elapsed_seconds':0,'snapshot':a},{'elapsed_seconds':1801,'snapshot':b}]
+        self.assertFalse(audit_series(entries,'calendar')['numeric_checks_passed'])
+        self.assertTrue(audit_series(entries,'calendar','food-chain')['numeric_checks_passed'])
+        entries[-1]['elapsed_seconds']=2700
+        self.assertTrue(audit_series(entries,'calendar','food-chain')['stop_at_bound'])
+        entries[-1]['elapsed_seconds']=2701
+        self.assertFalse(audit_series(entries,'calendar','food-chain')['numeric_checks_passed'])
+        with self.assertRaises(ValueError):audit_series(entries,'calendar','unbounded')
 
     def test_compound_market_is_not_a_staffed_shop(self):
         s = city_fixture()
