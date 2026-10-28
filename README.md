@@ -4,6 +4,36 @@ Load legally owned original Emperor data with `--data-root`, render it natively 
 
 ## Launch the local App
 
+Versioned native deliveries contain `EmperorApp.app`, `Start.command`,
+`Start-Metal.command`, `PLAY.txt` and a hash manifest. Keep that version folder
+together; both launchers use its relative App path and can be moved with it.
+No original data is included. Pass `--data-root /absolute/owned/data`, set
+`EMPEROR_GAMEDATA_ROOT` for that process, or use the normal directory chooser.
+An explicit missing directory is refused; restart with the correct directory
+instead of silently switching resources. Existing-source/model mismatches also
+refuse to replace a running city. `scripts/package_native_release.py` publishes
+only to a new external version directory, validates the bundle/signature and
+never overwrites a previous release.
+
+From the home screen choose **新建原生城市…**, then an admitted empty source.
+Both development checkboxes are off by default. **城市经营与预防巡检（开发版）**
+explicitly selects the current v8 strategy; it does not migrate old saves.
+The new city is paused and empty. Use **入城口** or its minimap marker to locate
+the source road network, connect roads, and place houses. **邻路** means only
+local adjacency; **入城可达** uses the runtime's entrance-distance calculation,
+which may include ordinary walking ground. **接原路网** separately compares
+actual road components. Neither field promises a dispatch or future arrival.
+Restore play to let actual incoming people arrive, then staff wells
+and preventive towers. Workers and dispatched walkers do not themselves prove
+that a house has received water or a patrol. Save to a new `.encity`; Continue
+checks the same original source/model and loads its saved policy paused.
+
+This is a bounded native game mode. Continuous original market supply,
+calendar/health/material consumption, higher house evolution, active
+firefighting and inhabited original-city import remain incomplete. Preserve
+older Apps and matching older saves for rollback; an older App may reject a
+newer saved strategy. Temporary verification checkpoints are not player starts.
+
 **Native playable subset v6 (labor and construction):** the city uses the measured1024×768 original-interface reference:798×720 map,40-pixel top border,8-pixel bottom border and226-pixel split sidebar. Eleven category positions form one column; the four supported native categories work and the other seven remain disabled. Existing pause/speed/service/save controls stay explicitly marked **原生操作** in the lower sidebar; original advisors remain unavailable. A live terrain overview occupies the measured111×111 radar content area at(853,542);its native colours are not an original-palette claim. Click to locate the main camera;the white viewport follows zoom/pan/resize. Terrain is cached per source and native construction marks update separately,so ticks do not rebuild the terrain bitmap. Detailed state and data-browser entries live in the **开发** menu; **游戏** and the in-game **文件** menu retain New/Continue/Save/Home/Quit. Original interface art is read from the external data root; all text uses the macOS system font. Clicking a category only opens it and cancels the prior tool; choose a building in the measured3×2 selector grid before placing it on the map. The grid uses54×53 slots at(856+54×column,318+54×row) in the1024×768 reference. Housing andwater use the first slot;the food icon uses the last slot,following locally recorded tutorial selections. Road/browse/demolition buttons remain explicitly native tools. Selection shows actual model price and service conditions,never charges,and Esc/right-click cancels construction while retaining the selected category. Category choices operate the same existing transactions. Browse-click inspects a native object; dragging pans. Speed1×/2×/4× changes only wall-clock pacing,not persisted rules. Religious/trade controls remain explicitly disabled. **原生规则 / 来源 / 兼容范围…** retains the full rule/source explanation.
 
 **Current acceptance:** native v6 uses the existing saved labor-pool and allocation model; this is code-path agreement, not proof of original-game scheduling. The selected house shows both hypothetical strict water branches and separate native water coverage. Original house-water state and automatic upgrades remain unconnected. Frozen candidate-6 passes both supported empty sources on CPU and Metal: **4/4** GUI flows, **200/200** mode checks plus **10/10** comparison/protection checks, and **4/4** real Cmd+Q exits with code 0. Querying conditions preserves the city and serialized bytes. See [candidate-6 acceptance](docs/ENCITY.md#candidate-6-water-condition-gui-acceptance-2026-10-25).
@@ -105,3 +135,89 @@ The current continuous-control package retains strict event guards. Its source a
 Native v1 map controls: hover previews road/2×2-house placement; green means the same native transaction validation allows it, red explains refusal. Click to build, including while paused. Right-click/Esc or Browse cancels. Option-drag (or Browse-drag) pans; wheel/± zooms around the pointer/centre; arrow keys pan while the map has focus. Window resizing preserves aspect ratio; dark margins ignore clicks. Coordinate fields remain an auxiliary route. Original rules and `.encity` version are unchanged.
 
 Native v1 roads: press and drag from a start tile to an end tile; the preview follows X first, then Y. Release commits the entire path atomically. Existing roads are blue/free, new legal tiles green; red rejects the whole path. Preview shows new/existing counts and total cost. Esc/right-click, leaving the image, or losing window focus cancels the pending path. Returning after cancellation cannot commit until a new press. Houses still use a single click. ENCITY v1 and residency rules remain unchanged.
+
+The explicitly selected **new v8** city now uses native incoming type11 groups
+for first occupancy and capacity-limited later arrivals. The saved RUNTIME8 5
+policy connects reservation, ordered arrival, cleanup, population/meal receipts
+and exact resumption; the old native meal cycle does not also add residents.
+Existing v8 checkpoints retain their saved policy, and v6 remains the default.
+This is a bounded native adapter: type12 emigration, type13 empty-house arrival,
+original population statistics/calendar, and inhabited original-SAV import are
+still unsupported. See [population contract and tests](docs/ENCITY.md#explicit-native-immigration-b-2026-10-27).
+
+Housing feedback follows each saved policy. In the incoming-group modes it
+shows committed reservations, departure/road/entry actions, actual capacity
+and the saved phase28 water cache. A missing meal-cycle arrival is not reported
+as a food refusal, and no meal-based population ETA is shown. Food receipts
+and saved job assignments remain separate facts. Queries do not run the
+scheduler or change RNG, routes, inventory or save bytes; older modes keep their
+meal-cycle explanations. Wells distinguish road access, workers, dispatch,
+service and return instead of treating road access as proof of supply.
+
+
+**Optional city-context C1:** the separate development App offers
+**城市状态与阶段派工（开发版）**. This explicitly selects RUNTIME8 6 and preserves
+city working state across reconstruction/save/load. Wells/Hunters use saved
+phase25 assignments, and phase17 reads the normalized house food field; default
+v6 and earlier checkpoint policies retain their behavior. New native cities
+start with empty owned warehouse/trade pools, while continuing a C1 save
+restores its saved inventory and policies. This does not complete the original
+calendar or material-consumption schedule. A house whose proposed update would
+consume materials waits with a specific reason; supported water-only transitions
+and other houses continue. See [C1 state and scheduling contract](docs/ENCITY.md#explicit-city-context-c1-2026-10-27).
+
+The development source also fixes the storage-transfer return contract: partial
+physical acceptance subtracts only the amount actually stored from a carrier.
+This is an inventory-conservation repair, not market activation or calendar
+completion. The fixed C1 App remains unchanged; see the
+[warehouse transfer contract](docs/ENCITY.md#warehouse-transfer-conservation-2026-10-27).
+
+
+### Native preventive Inspector development mode (2026-10-28)
+
+The explicit development city mode also has a separate native preventive
+Inspector strategy (`native_inspection_prevention_v1`, `RUNTIME8 7`). A tower
+must receive scheduled workers and actually dispatch/move its Inspector before
+any service is recorded. Both accumulated risk counters, owner/route cleanup,
+return/redispatch, service-grid decay and in-flight saves use the shared runtime.
+Old defaults and saved modes stay unchanged. Road edits cancel current patrols
+without clearing risk; tower downgrades retire only the auxiliary patrol.
+These are named native adaptation policies. Fire targeting, active firefighting
+and continued city play after a disaster replacement remain unsupported and
+refuse the entire candidate. The new mode is not full original simulation.
+
+### Bounded original-evidence collector (2026-10-27)
+
+`scripts/original_evidence.py` builds a read-only SAV19 numeric exporter, tests
+its framing/path/qualification contracts and preflights three explicit candidate
+saves under the process-local `EMPEROR_GAMEDATA_ROOT`. It does not run the game.
+City year words, clock, health, treasury, house goods12/quality, Mill8/Market6,
+Goods1 policies and complete known Figure7 base fields are exported separately.
+Risk words have an explicit `common5-risk-v1` contract: signed accumulator68
+feeds the existing collapse branch and70 the ignition branch. Deprecated
+`fire_risk`/`damage_risk` aliases retain their old values; they are not hazard
+probabilities. Qualification crosschecks raw/canonical/alias values and both
+readers, and never certifies preventive coverage from tower staffing alone.
+Unknown classes or variable FSA payloads stop the actor reader; partial data can
+never certify absence or an operating-city start. The three current candidates
+export successfully, but **0/3** qualify as a stocked operating-city baseline.
+
+```sh
+python3 scripts/original_evidence.py --output-dir /tmp/evidence-no-assets
+EMPEROR_GAMEDATA_ROOT=/absolute/isolated/Game-ddraw python3 scripts/original_evidence.py --mode undefined --output-dir /tmp/evidence-real
+```
+
+Both output directories must be new and outside the data root. With no root,
+real-data checks report SKIP. Reports and raw numeric observations stay outside
+Git. [Field scope, candidate limitations and bounded protocol](docs/SAV.md#bounded-evidence-export-and-candidate-preflight-2026-10-27).
+
+
+The evidence collector additionally reserves exactly16 new numeric capture names
+under `Save/2026102801/` (`280001.sav` through `280016.sav`). This application list
+grants no system access or experimental authorization. `--check-capture-targets`
+only checks absence; it creates nothing and refuses every existing target.
+`--source` selects an exact permitted read path; default remains the three old
+candidates. Protected candidates can never pass capture-target validation.
+Route diagnostics preserve no-route roam counters and exhausted-route cleanup
+counters instead of labeling them corrupt. Unknown FSA still stops before later
+actors or Goods can be certified. [Updated field contract](docs/SAV.md#evidence-route-and-capture-path-contract-2026-10-28).

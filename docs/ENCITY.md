@@ -2,6 +2,76 @@
 
 This independently authored playable subset was explicitly selected by the user. It shares original SAV decoding, SG3/555 assets and the existing native renderer, but owns separate rules and state. It neither extends EMP1/CitySimulation nor supplies values to the strict original executor's anonymous event gates. Original missions and SAV continuation are not supported. Unknown original behavior is not claimed as implemented.
 
+## Ordinary fresh-city entry and versioned delivery (2026-10-28)
+
+The normal home screen can create the existing explicit city-contract development
+mode from either admitted empty SAV source. Both development options start off;
+unselected creation remains v6. Old native saves keep their saved strategy and
+are never migrated by opening a newer App. The development option is a bounded
+native implementation, not original mission or populated-SAV continuation.
+
+The house panel explains the opening sequence: locate the source entrance, lay
+roads into its existing road network, build neighboring houses, resume for real
+immigrant arrivals, then use the resulting labor for a Well and preventive tower.
+`入城口` is a view-only action and the minimap marks the source endpoint. It does
+not construct a road, grant population, move an actor or change the saved policy.
+Only the two admitted empty sources are validated; other sources retain their
+existing named refusals.
+
+Entrance feedback is computed from the same `nativeToStrict` projection as the
+runtime. These are deliberately separate facts: `入城可达` reads the B7C runtime
+distance, which can traverse ordinary ground; `接原路网` compares the selected
+neighboring road's B0C component with the actual entrance road component. A
+locally adjacent road can satisfy the first and fail the second. Neither fact
+asserts that an immigrant is already scheduled or guaranteed to arrive. Missing
+source/template/endpoints remain named unknowns, not fabricated zero distances.
+No scheduler, route generation, staffing or save-wire behavior was changed.
+
+`scripts/package_native_release.py` copies the signed, self-authored App into a
+new, unique directory outside the repository. It refuses existing targets,
+symlinks, unexpected bundle files and invalid signatures. It includes relative
+`Start.command` (CPU), `Start-Metal.command`, `PLAY.txt` and a final `release.json`
+receipt; launchers reject incomplete deliveries. Keep the directory together.
+No game data, private absolute resource path, login item or permanent environment
+setting is packaged. With no resource argument/environment the App offers its
+normal directory chooser. Explicit invalid roots fail instead of silently
+falling back. A root can be supplied with `--data-root` or the process-local
+`EMPEROR_GAMEDATA_ROOT`. The original data remains external and read-only.
+
+The final same-production CLI tests pass **760/760 per source**, for both sources
+in Release and UBSan: ordinary zero-population construction, physical road vs
+runtime reachability, query purity, connection removal, natural arrivals,
+staffing/water/patrol, and exact file recovery. Each uses 59 normal construction
+commands, first arrival at update391, patrol at573 and cached water at641, with
+population24. These are deterministic native updates, not recovered original
+calendar timings. Existing feedback regression remains **2232/2232 per mode**
+over two sources and24 checkpoints; startup contract18 checks and packaging10
+authored test methods pass.
+
+The signed **72e9b34b…** App binds **152/152** production files and **31/31**
+compiled units. Ordinary-home GUI acceptance passes **4/4** source/backend flows:
+CPU **204/204**, Metal **204/204**, with two normal Cmd+Q exits0 and no forced
+cleanup. Every flow creates a genuinely empty city, performs all59 paid map
+clicks, observes actual arrivals and population24, cached water and preventive
+patrol service, then byte-exactly saves/reloads its own played city. No native
+fixture is loaded before construction. CPU/Metal fresh and prepared-paused saves
+are byte-identical for both sources. GUI checkpoint sampling observes arrival
+at391 (CPU) /396 (Metal), and combined service at641 (CPU) /650,648 (Metal);
+these are observed pause points, not claims of different simulation rules.
+
+CPU used the first unique persistent directory; Metal directly used the final
+unique directory. Both directories have byte-identical bundles and launchers;
+the final receipt also binds the hardened packager. Actual final launchers pass
+help and explicit missing-root failures through a path containing spaces. Metal
+uses a spaced, local symlink referring only to the already authorized external
+root; no resource payload is copied or published. With no root argument or
+environment, the same final version visibly presents its resource chooser.
+Initial AX/Escape probes failed to retain a normal cancellation result; their
+records remain. A current-picture/foreground/owned-window-verified Cancel click
+normally closes the chooser and process. Its parent had already timed out, so
+the cancellation exit code is unavailable and is not counted among the two
+successful gameplay Cmd+Q exit codes.
+
 ## Supported source and rules
 
 The v1 loader accepts a complete, view0 SAV19 with a complete4,000-record building table, no live buildings and saved population0. It requires validated ground layers and a nonnegative saved treasury. The tested source is an independently created initial tutorial save. MAP and populated SAV session creation are explicitly unavailable; their existing read-only browsing remains separate.
@@ -381,3 +451,767 @@ Covered interactions include source selection, direct categories/tools, legal ro
 The two admitted sources have independent initial-funds expectations (2000 and 18000). Test placement uses bounded product-hover coordinates instead of a source-specific camera offset; the negative placement is a house overlapping a road committed by that run. All **7/7** checked real inputs and **118/118** common protected evidence entries remain unchanged. Raw inputs, saves, images, action logs and complete binding reports stay outside Git.
 
 This verifies native UI and model projections only. The original house-water walker state, decay/update timing and automatic house upgrades/downgrades remain unconnected and lack independent live-original acceptance. Normal strict-original progression remains **0/6** at the existing event gate. ASan initialization failed in an earlier attempt and remains stopped; these GUI passes do not establish an ASan result.
+
+
+## Experimental v7 house-state foundation
+
+V7 is an explicitly selected native foundation format named
+original-data-native-v7-foundation. The default/latest playable rules remain v6.
+It does not migrate an old checkpoint on load, recover an original running city,
+or enable automatic house upgrading. Candidate-6 and earlier accepted App
+packages remain separate fixed deliverables.
+
+
+### V7 wire layout and limits
+
+The encoder retains the legacy source/seed, state, FOOD, TAX, and LABOR records.
+Immediately after LABOR it writes one model-table line and one clock line:
+
+    HOUSEMODELS <count> [<model> <capacity>]...
+    HOUSECLOCK unknown
+
+A supplied clock replaces the second line with:
+
+    HOUSECLOCK <phase> <monthPart>
+
+HOUSEMODELS contains the complete seed capacity table in ascending model order,
+including unused rows, so readback must bind that table to the same seed.
+Only the admitted models 0/2/4 contribute to supported house capacities or the
+historical departure ceiling; an unrelated bound row is not a new supported
+grade. HOUSECLOCK unknown preserves missing timing evidence instead of choosing
+a phase or calendar mapping.
+
+The ordinary object rows and RETIRED count/id/kind rows follow unchanged.
+After those records, v7 appends:
+
+    HOUSES <count>
+    <id> <type> <model> <servicesKnown> <water> <tailhex> <imageWord20> <imageHouseByte3c>
+
+There is exactly one HOUSES row for each active house, in ascending object-id
+order; no nonhouse or retired object owns one. servicesKnown is 0 or 1. water is
+a decimal 0, 1, or 2, or a single "-" for unknown, independently of servicesKnown
+and tailhex. The encoder emits tailhex as exactly 122 lowercase hexadecimal
+characters for the 61 remaining-state bytes. imageWord20 is a signed 16-bit
+decimal and imageHouseByte3c an unsigned byte decimal. Types/models still pass
+the supported-grade validation; serializing a value does not enable evolution.
+
+The named byte ceilings are nativeSessionLegacyByteLimit = 512000 for versions
+1–6 and nativeSessionFoundationByteLimit = 2 * 1024 * 1024 (2097152) for v7.
+nativeSessionByteLimit selects the budget only after the caller identifies a
+recognized version/rules pair. nativeSessionWireVersion inspects that header;
+nativeSessionReference additionally locates the source. Neither replaces full
+body/source/model/state validation by decodeNativeSession. Unknown versions do
+not acquire the larger v7 allowance.
+
+The extension stores a native house's explicit type/model, 61 bounded remaining
+state bytes, a flag saying whether those service bytes are known, independent
+optional houseWater (unknown or 0/1/2), and the image fields consumed by the
+existing projection. Model capacities are source/model-bound. Unknown service
+state is not substituted with the native well-radius overlay. In particular,
+houseWater is a separately latched value: storing later decayed service bytes
+must not recompute or overwrite an earlier water value. This preserves the
+distinction between reading supply and later service decay without claiming a
+measured original cadence.
+
+An optional house clock stores an explicit phase/month part, or remains unknown.
+Ordinary native ticks do not advance it, decay these service bytes, recompute
+latched water, or invoke strict automatic house evolution. A known clock and
+water value alone do not enable evolution. Type 4 and unsupported image/type
+combinations must refuse explicitly; they are never silently projected as type 3.
+Supported explicit grades use the same model for validation, population capacity,
+persistence, and scene projection. Existing native first arrival may retain its
+preexisting empty type-2 to occupied type-3 presentation transition; this is not
+a claim that the missing original type-3 to type-4 upgrade is implemented.
+
+V1–v6 have no hidden v7 runtime state and retain their prior encoding and rules.
+A v7 implementation must reject missing per-house state, house metadata attached
+to nonhouses, incompatible type/model pairs, out-of-domain water or phase values,
+missing/unsupported active model capacities, mismatched capacity tables, and
+malformed/trailing records before publication. The admitted 3999-object maximum
+also has to fit its bounded v7 parser budget; the old format's byte ceiling cannot
+silently make a valid new state impossible to reload.
+
+The regression source fixes 12 authored v1–v6 byte strings (empty and constructed
+states for each version) captured before the v7 production change. Their source
+header SHA-256 was a4bbfc18179f72dc50c77fcb69d85b73c6bda0f0a7fc8bbc6f5a23aa96246048.
+The new synthetic tests cover those legacy bytes, explicit v7 roundtrip and
+rejection, independent water/tail persistence, grade capacity and projection,
+unknown-state preservation, and disabled automatic evolution. Test results are
+reported only after the matching production implementation is compiled and run;
+these are contract/compatibility tests, not original-data or GUI acceptance.
+
+The original strict routines currently remain incomplete for the observed first
+upgrade: type-4 selection and the water carrier's return branch are not admitted.
+An original-to-native clock mapping and complete walker/service persistence are
+also unresolved. Address-annotated migration code is a project-code contract, not
+independent clean-room proof of original timing or behavior. This foundation
+therefore does not improve the retained strict-original acceptance denominator,
+does not justify a new upgrade algorithm, and does not authorize decompilation,
+original binary execution, or asset upload.
+
+
+Retired houses retain identity and kind, not their former runtime grade. Historical departure validation therefore uses the maximum capacity of the admitted house models 0/2/4 only; unrelated table rows cannot widen this bound. Active houses still use their own exact model capacity. The regression includes legitimate 14/21-resident demolitions and fabricated departures above that supported ceiling.
+
+The byte budget is enforced at all four boundaries: header/reference inspection,
+new-file publication, file readback, and full decode. A large valid v7 checkpoint
+must pass the entire write-new → read-file → decode chain; extending only the
+decoder is insufficient. Oversized v1–v6 and unrecognized headers do not inherit
+v7's larger allowance. All versions retain a finite maximum.
+
+The IO regression creates a unique /tmp directory with an empty simulated data
+root and a separate checkpoint directory. It uses only generated native bytes.
+It verifies exact large-file readback, refusal to replace an existing v6/v7 file,
+data-root read/write rejection, version-specific size limits, and a controlled
+overlong-filename failure that leaves the prior file and caller state unchanged.
+These checks do not alter permissions, fill a disk, or access user saves.
+
+
+### Non-GUI verification (2026-10-26)
+
+Release and UBSan each pass 173391 authored assertions on the same frozen
+production/test source snapshot. This includes the 12 pre-v7 golden cases
+(126 checks) and 213 v7 foundation checks, of which 35 are IO checks; these
+subcounts overlap and must not be added to the total. Supported-grade
+capacity/projection, 14/21-resident demolition, and refusal of fabricated
+departures widened by an unrelated model99 are included.
+
+The 3999-house synthetic checkpoint is 619393 bytes, exceeding the legacy
+512000 ceiling but within v7's 2097152-byte budget. Its actual new-file write,
+independent read, and decode/re-encode are exact. The IO checks also preserve
+the exact legacy ceiling, reject oversized old/unknown headers and oversized
+v7 input, refuse existing-target replacement and simulated data-root access,
+and retain caller/file state after controlled temporary-file creation failure.
+
+Each mode binds 43 compiler-derived project dependencies and records unchanged
+production/test hashes before and after compilation/runs. Each test process has
+a 60-second deadline. The separate unset-data-root invocation exits with SKIP
+in both modes; this is not a real-data pass. No original assets, user saves,
+App windows, or ASan are used. These results establish native format/contracts
+and do not enable automatic upgrading or improve strict-original acceptance.
+
+
+### Explicit v8 house runtime development mode (2026-10-26)
+
+V8 is an explicit default-off new-city option; default v6 and all v1–v7 wire
+identities remain unchanged. It is a native adapter, not original-city continuation.
+The immutable source factory binds the same SAV/model revisions and requires the
+supplied figure/building models, speech metadata and existing SG archives. It
+constructs an explicitly labelled fresh native Well-only pool; it does not resume
+source wildlife or invent a recovered original process clock.
+
+After HOUSES, `RUNTIME8 1` carries a fixed named field schema: phase/cycle/month
+state and origin, complete Well figures, cell-head links, free FIFO/highest slot,
+route owners/directions, shared service grid, full dual32-bit RNG and process
+history, formation/speech state, hook countdown, per-House automation, Well
+primary/counters, complete strict building records/context, persistent holds and
+native policy tags. Payloads are explicit versioned fields, not memory/pointers.
+Integer narrowing/counts/duplicates/strings are bounded. V8 reference/write/read/
+decode allow64MiB; v7 remains2MiB and v1–v6 retain512000 bytes. Writes use unique
+outside-data names and never replace files.
+
+The whole transaction copies native ledger/resident input, executes an admitted
+strict phase and ordered Well pass, synchronizes grade/capacity/render mirrors,
+validates persistence, and only then offers a render candidate. Any failure keeps
+the old state. Direct raw v8 Tick refuses. Original phase28 water is independent
+of the later-decaying service tail. Phases21/22/28/31/35–40 and existing empty
+phases are admitted; unrelated phases/post-pass are explicit native skips.
+One native tick advances one phase; phase50 wraps while retaining source
+month-part/cycle. This is NOT proven original calendar timing. Native v6 labor,
+Hunter production, arrivals/type3 first arrival, food and tax remain labelled
+native policies, not original engine equivalence.
+
+Local original2614/2612 evidence admits occupied type4 variant1/group472/physical1512.
+Actual type3→4, capacity, image and save updates are connected. Variant0/empty4
+and subsequent type4 evolution remain unproved. A grade change retains the native
+constructed2×2 collision footprint, explicitly tagged; the original type4 virtual
+pass-through predicate is not claimed. A Well hitting its unproved return target
+is held with the same owner/route and does not respawn; other objects continue.
+Normal Well demolition uses reciprocal worker/cell/route cleanup before deletion.
+These limits prevent a claim of complete continuous delivery or full升降级.
+
+Stable-source Release and UBSan each pass2/2 explicit empty-source adapter
+scenarios ×1807 checks at700 updates (including native adjacency/dispatch regressions): real dispatch/service/type3→4, grade capacity,
+resumed-phase equality, named return hold/no respawn, Well removal/FIFO/route
+cleanup, atomic refusal and actual write/read/no-overwrite. Original SAV hashes
+are unchanged. The core/legacy suite passes173481 checks per mode; outer-wire
+passes32/32 including12 legacy identities plus1 v7 literal. Query regression
+passes27 cases and360 candidate comparisons. These are adapter metrics; strict
+original normal update remains0/6.
+
+GUI acceptance is tracked against independent App hashes, never inherited
+from candidate-6. The corrected package (binary3ceb3399…) passed actual CPU and
+Metal on both selected inputs: default-off v8 creation, update110/population28
+with four dry houses, live delivery/type3→4 by update348/population29, loaded
+update700/population42 and resumed to703, pause, exact save/reload, actual house
+condition popovers with byte-identical saves before/after queries,1024/1280-wide
+window changes, select/cancel without city mutation, and normal Cmd+Q/exit0 for
+both processes. Logs confirm the CPU/Metal route and all expected walkers drawn.
+The map crops match geometry but are not byte-identical: each has2298240 pixels,
+maximum RGB channel difference2 (local screenshot/display comparison, not an
+original-game equivalence test). The v8 water overlay now uses persisted cached
+water instead of static v6 coverage. Failed driver navigation/AX transport/save-
+marker assertions are preserved, diagnosed and independently resolved by actual
+state; they are not counted as product passes. Source0/source1 input hashes stayed
+unchanged. Test evidence is outside Git in the house-v8-gui-acceptance-20261026
+output. The subsequent native-only road/initial-roam footprint correction is also
+verified: it preserves the constructed footprint view for road-owner probes and
+phase31 dispatch, then restores canonical type4 in all pools before publication.
+Strict type tables remain unchanged and the new phase input defaults off.
+Type4 lifecycle needs no extra skip: constructed houseInUse=1 survives conversion.
+Final package binaryfa1b8026c14a8c3bba23a9758071f9d7a9df0c74e4699ffd34bcfbc69a71455a
+binds143/143 production files and independently passes both sources in CPU and
+Metal, including the live110→348 delivery/upgrade,700→703 resume, actual
+condition/query byte invariance, save/reload, resize/cancel and normalCmd+Q/exit0.
+Final GUI evidence is in house-v8-gui-fa1b8026-20261026 outside Git; prior driver
+failures are preserved. No prior package's result is silently reused. Earlier approval denials and subsequent accepted user
+authorization remain in local evidence.
+No ASan, push, original executable inspection, asset upload or user-save overwrite.
+
+
+A later bounded local prefix investigation validates all2000 Figure slots,
+class/object references, complete draw-cell chains and immediate known following
+tables for six isolated test SAVs. Two known type28 records (2614/2612, same Well)
+are action2 with destination=owner road=home=roam origin(89,88),roamSteps0 and
+reciprocal routes. This is numeric prefix observation only: the animal layout
+contract is still candidate, unknownFixed4 is not traversed, and whole-SAV
+admission/source support is unchanged. Opus reviewed the necessary source and
+numbers in the existing approved session at12:52–12:54UTC and proposed a default-
+off, guarded native observed-return policy. That NEW policy is not implemented
+in this package: return target ambiguity/nonzero-route handling and subsequent
+type4 evolution remain explicit limits. It is not evidence of a general original
+return algorithm, calendar timing or full升降级.
+
+
+### Limited native observed Well-return policy v1 (2026-10-26)
+
+The explicitly selected new-v8 App path now opts into a **native observation
+policy**, not a proven general original return algorithm. Default new-city rules
+remain v6; the programmatic runtime constructor defaults to Hold. Old untagged
+v8 saves keep Hold. The frozen fa1b8026 package and candidate-6 are not replaced.
+
+Two known type28 records from locally validated Figure prefixes (2614/2612,
+same Well) have action2, zero roamSteps and a destination equal to owner-road,
+home and roam origin. The full2000-slot/class/object/draw-cell graph and immediate
+known following tables validate that bounded numeric observation. The unknown
+animal contract remains candidate and unknownFixed4 is not traversed; this does
+not admit the whole SAV or enlarge strict-original supported-source counts.
+
+The caller-owned observed flag defaults absent in the strict context and is
+restored before a phase candidate is published. It is enabled only by the saved
+v8 versioned policy tag. A transition requires a live reciprocal Well/worker,
+route0, matching owner-road/home/origin, legal current/home cells and roads,
+and a path accepted by the existing mode18 route finder. The transition frame
+retains position/route/destinationCell, sets action2/destination/roamSteps0 and
+writes the normal next frame. FollowRoute starts on the following update.
+Negative/inconsistent route values or missing/changed roads are not guessed.
+Existing route allocation, walking services, arrival removal, primary/cell/route/
+FIFO cleanup and the subsequent phase31 hook do the rest.
+
+Policy version/conflict errors and a saved transition missing its enabling policy
+are atomic named refusals. Evidence-outside states retain their own worker and
+route in a named hold; other native objects continue. Restoring the exact legal
+road rechecks qualification before continuation. Holds, full route/phase state,
+policy tags and transition provenance survive save/reload. These are development
+v8 policies for a policy-aware engine, not a promise that earlier v8 draft
+binaries implement them; legacy v1-v7/default-v6 byte behavior is unchanged.
+
+The phase39 caller also supplies its admitted native type/model pairs. A valid
+strict candidate outside that projection contract is isolated as
+house_target_native_grade_unsupported, preserving the record and conversion
+count instead of failing the whole city during projection. The direct guard
+regression keeps a positive3-to4 candidate blocked when4/model1 is omitted;
+geometry/identity failures still refuse before that guard. This does not invent
+any type4 evolution target, delay, goods consumption or merge/split behavior.
+
+Frozen run2 non-GUI verification passes six groups: Release and UBSan local
+on both selected sources (106797/106686 assertions per mode), plus genuine
+Release natural continuation for both. The latter changes neither model, speed
+nor roamSteps/limit:862/1117 updates complete two returns, reciprocal cleanup and
+phase31 redispatches, followed by20/17 new service writes and60/82 decays.
+All61 actual file checkpoints resume byte-identically, including before/after
+transition, route flight, arrival and redispatch. Source/dependency hashes match;
+negative policy/route/ownership/coordinate/road cases retain their assertions.
+UBSan natural soak is not run and no ASan result is claimed.
+
+A separate actual-command regression removes either the home road or current
+road while the worker is returning, saves/reloads the hold, rebuilds that same
+road, and verifies route/phase-consistent recovery. Both cases pass. Fresh
+Observed constructors also pass the full existing two-source build/service/
+first3-to4/capacity/save integration at700 updates (1809 checks each), retaining
+independent legacy-Hold cleanup probes. These are native adapter checks.
+
+The final independent package is in house-v8-return-policy-v1-r2-app-20261026,
+binary631d3d71975189b4ae93d7d8d17de05309157c445cab10d61ee5fbfcdc34de48,
+with143/143 production inputs. Actual CPU and Metal two-source return/redispatch
+GUI, in-flight and post-redispatch exact save/reload, visible policy, query
+invariance, resize/cancel and normalCmd+Q/exit0 pass (122/119 recorded checks).
+Both modes enter action2 with route1, return/clear the old1999 worker, and publish
+new primary1998. The native maps/sprites admit without zero/unsupported/failed
+figure images. Metal mode uses CPU for its initial empty-city request; all730
+later published frames use Metal, including the return scenarios. GUI boundary
+inputs are explicitly staged native checkpoints; they do not substitute for the
+separate natural two-round runs. The early CPU inspector emitted an8-bit counter
+as a character; the failed driver record is kept, the inspector fixed, and the
+same paused instance subsequently completes the full acceptance. No old pass
+count is substituted for this binary.
+
+Still missing: type4's actual evolution target function (up/down target,
+applicable delay and whether slot/2x2 geometry survives). Existing5-to4 code does
+not establish4-to3. Generic model1 water/threshold queries and known zero goods
+columns do not establish that dispatch. The implementation keeps that path
+isolated and does not silently substitute a type3/5 approximation. Source
+month-part/cycle tail remains the labelled native preserve policy. Strict
+original normal progression is still0/6. No original executable inspection,
+asset/image upload, commit/push or user-save overwrite occurs.
+
+
+### Occupied-house rehousing R3 (2026-10-27)
+
+This supersedes the earlier development package's type4-downgrade blocker,
+without changing default v6 or strict-original admission (still0/6). R2's
+explicit observed-dry native policy admits the measured occupied type4/model1
+to type3/model0 transition, retains its constructed2x2 footprint, then applies
+capacity refresh and outgoing population accounting. Positive-delay rewatering,
+empty type4 conversion and higher type4 evolution remain isolated. The original
+observation and the native implementation are separate evidence categories.
+
+R3 adds the explicit native_migrant_nonempty_rehousing_policy_v1 tag and
+RUNTIME8 3. Layout is unchanged from2; this wire identity requires both the
+new policy and observed-dry mode. Versions1/2 cannot silently carry the new
+policy. Default v6 and legacy v1-v7 golden bytes stay unchanged; old v8
+checkpoints do not silently gain rehousing. Fresh explicitly selected v8 App
+sessions use the R3 policy.
+
+A type13 migrant uses the existing reservation/action7/action8 arrival path
+for a nonempty target. Reciprocal house.worker ownership, slot0 cleanup,
+capacity, route/FIFO membership and exact arrival provenance are checked in
+one copied phase transaction. Only proved positive resident deltas enter the
+arrival/meal ledger; repeated ticks or restore do not add people twice.
+Demolishing its reserved target releases the owned route and reservation but
+keeps the migrant payload and people alive at the same cell in native waiting
+action6. This target-removal fallback is an explicit native policy, not proof
+of general original behavior. An empty target remains in a named hold rather
+than inventing its conversion; a nearer empty house is not silently skipped.
+
+On one frozen production revision, source0 Release passes2616 checks; source1
+Release and source0 UBSan each pass2788, including repeated/capacity-clipped
+arrivals, full houses, cancellation/target demolition, action7/8 restore,
+empty-boundary holds and population conservation. The latter two runs each
+execute360 ticks and53 replay boundaries. R3 codec Release/UBSan each pass117;
+the independent outer-wire/legacy validator passes32/32. These use explicitly
+staged native fixtures over the two admitted sources, not new original samples.
+
+Independent R3 binary4adb278c84b32b2ed7f289ff74aedc369d4840dcc9797542f87fc82e7a7e7bb7
+binds143/143 production sources. Actual CPU144/144 and Metal139/139 GUI checks
+cover both sources' visible bounded policy, resident2-to6 arrival, reservation
+cleanup, byte-exact save/reload and no repeated arrival. Each backend also tests
+source0 actual cancel and target demolition with all four migrants retained,
+then normal Cmd+Q/exit0. Early
+Go-sheet keyboard and window-raise driver failures remain recorded; recovery
+uses the same paused CPU instance, not substituted prior-package results.
+The package, source snapshot and evidence are outside Git in the local
+house-v8-nonempty-rehousing-r3 and house-r3-integration outputs. R2 and earlier
+accepted packages,31 protected original inputs and user saves remain unchanged.
+No ASan, original-game experiment, asset upload, commit or push is performed.
+
+
+### Explicit native immigration B (2026-10-27)
+
+The new explicitly selected v8 App path uses
+`native_population_immigrant11_policy_v1` and `RUNTIME8 5`. Default-v6 cities,
+old v1-v7 wire bytes and RUNTIME8 1-4 policies retain their old behavior.
+Loading an old v8 checkpoint never enables this strategy implicitly. Empty
+original-source admission is unchanged; this does not import an inhabited SAV.
+
+**Authority and scheduling.** `NativePopulationRuntime` owns every mutable
+`OriginalBuildingUpdateContext::Labor` field (27), employment rows/notices,
+immigrant spacing, delays and remainders, and cumulative receipts. Native
+conversion restores these fields instead of resetting them from the template.
+The admitted phase23 calls the whole existing
+`originalBuildingCityLaborStep`; its resulting figures, reservation links,
+services and labor state are published in one transaction. Native construction
+starts with its own empty formation pool, not stale source wildlife formations.
+Health/sentiment inputs and model values come from the admitted source; the
+preserved-month-part native clock is not a recovered original calendar.
+Population-statistics pending work, military formation work and type12
+emigration remain named unsupported domains, with no partial committed phase.
+
+Only proven strict arrivals write new-mode residents. The previous native
+meal-cycle arrival loop is disabled for this policy alone; food/tax and native
+v6 staffing policies remain explicit native adapters. Arrival publication
+rebases that derived staffing on the final resident count, keeping prebuilt
+Wells/Hunters, figure links and persisted records consistent. It does not claim
+original phase25 execution. Old modes keep their previous meal growth.
+
+**Wire and receipts.** After the frozen observedDry/type13 extension and before
+object automation records, wire5 adds `populationRuntime` and
+`immigrantPayloads`. The latter uses its own `NATIVE-IMMIGRANT 1 118` framing;
+it is never inserted into the frozen v1 Well visitor. Full Labor/Employment
+state and these five uint64 receipts persist: `admitted`, `arrived`, `unplaced`,
+`populationArrived`, `populationDeparted`.
+
+- `admitted = live type11 offered people + arrived + unplaced`.
+- Native resident total equals `populationArrived - populationDeparted`.
+- The existing since-meal receipts additionally reconcile actual arrivals,
+  observed excess departures and demolition with the last food receipt.
+
+Admissions use successful allocation slot/serial/home/amount proofs. The
+original labor `arrivals` counter includes attempted allocations and is not
+substituted for that receipt. Offers allocated and normally removed in the same
+pass are still admitted/unplaced once. Inconsistent strict-context population
+or labor mirrors refuse load-ready checks. Negative decrementing delays,
+spacing outside0..10000000 and cumulative counters above399900000000000 are
+rejected before updater execution.
+
+**Arrival and cleanup.** Type11/action8 has a per-house proof, deduplicated and
+summed for the complete ordered pass. Ordinary empty type2/model0 uses the
+existing worker conversion to type3/model0. Strict worker code only clips an
+empty house; the new native reservation policy separately clips a nonempty
+reservation before execution and records excess as unplaced. A full target or
+known unreachable entry cancels through normal owned cleanup. Actual home,
+slot0, cell membership, FIFO, route ownership and full actor reset are checked.
+Several houses may arrive in one pass; global `lastArrival` need not equal one
+house's delta. A lower-slot arrival may release a target subsequently reserved
+by a higher-slot type13; that later reservation is proved in slot order using
+the existing nearest-house function rather than requiring the final worker to
+be zero. This never enables type13 arrival into an empty house.
+
+Demolishing an inbound target cancels its offer; demolishing a type13 target
+releases its reservation while keeping the departed people. Mixed11/13 contexts
+use the same saved capabilities for both pre- and post-cancellation checks.
+Occupied demolition explicitly debits the strict/native population mirrors.
+Query/preview operate on discarded candidates; failed operations retain all
+bytes and do not leak a phase prefix.
+
+**Validation on one frozen code version.** Source-bound native integration:
+Release9137/9137 for each of2 admitted SAV sources,4937 updates and62 exact
+next-tick replay boundaries each, including actual natural first occupancy,
+nonempty clipping/full cancellation, multiple same-pass arrivals, mixed-family
+target cancellation, same-pass unreachable offer cancellation and a prebuilt
+unstaffed Well acquiring workers after arrival. UBSan9120/9120 uses the same
+code without the17 file-stage assertions. These are native/authored integration
+cases over real source data, not new original-game observations. Independent
+codec69/69, arrival proof183/183 and population wire578/578 pass in both modes;
+old wire1-4 manual goldens remain exact. Shared A contract770/770 per source,
+old dry/rehousing and native core173481/173481 per mode pass. Historical failed
+driver/fixture/implementation runs are retained outside Git. The final separate R2 App binary is `e4a7a380276c7105f4d8dc1360cd63a439a1262b5408810025403f30fade7d4d`.
+Its explicit source manifest covers146/146 production files and31/31 compiled
+units, including the three new contract/immigrant headers. Only that packaging
+manifest generator changed after the frozen final regression; all runtime code
+remained identical. Strict signature and all embedded source hashes verify.
+
+Actual GUI on the same signed binary: CPU238/238 and Metal238/238, each over2
+sources, with real Well construction, live action7 advancement/in-flight reload,
+source-bound action8 arrival, population receipt checks, query byte invariance,
+staffing restore, pause/speed, two window sizes and new-file save/reload. The GUI
+uses checkpoints for the long route and close approach; the complete4937-update
+paths are separately CLI evidence, not claimed as an uninterrupted GUI walk.
+Both real Cmd+Q exits return0 without force/discard. CPU logs84 CPU frames;
+Metal logs1 initial CPU frame and84 Metal frames. Each has56 visible-figure
+samples with placed1/decoded1 and no zero/unsupported figure; these counters
+are not scanout/FPS or pixel-equivalence claims. All79 protected inputs and7
+older fixed App binaries remain unchanged.
+
+The first B App failed its actual CPU GUI because scene projection still
+omitted type11 while the committed-state guard counted it. Its failed report
+and normal exit0 are retained. R2 independently decodes the full118-field11
+payload into slots/live/liveTypes; new action7/8 projection assertions prevent
+that omission. No completeness guard or failed assertion was removed.
+
+Reproduce the B contract with `make native-population-test` or
+`make native-population-test-undefined`. Real-source integration reads only the
+per-process `EMPEROR_GAMEDATA_ROOT`; use repeatable `--source` arguments with
+`scripts/native_population.py` to select admitted sources. Unset roots are
+reported as SKIP, never counted as original-data success. Original assets,
+SAVs, screenshots and binaries are not committed. No push or ASan was run.
+
+
+## Explicit city-context C1 (2026-10-27)
+
+C1 is an optional native development policy, selected by the new-city checkbox
+**城市状态与阶段派工（开发版）**. It implies the v8 runtime and immigration policy;
+it does not change the default v6 mode or silently upgrade existing files.
+RUNTIME8 1–5 retain their framing and policy-specific behavior. Unsupported
+policy versions, a hidden city payload without its tag, absent population
+state, conflicting mirrors and mismatched worker ownership refuse before load
+or update can replace a city.
+
+### State ownership and wire6
+
+`native_city_context.hpp` captures69 top-level mutable city-context members plus
+native job assignments. These include accounting/derived caches, census,
+religion, cycle-tail/trade state, totals, Goods/GoodsRecords, trends and counters.
+Immutable templates/models/terrain remain source-bound. Labor/Employment,
+population, actors, RNG and phase clock keep their existing single owners rather
+than acquiring second C copies. UI notifications/redraw requests are not replayed
+as a persisted event queue; annual message/offers remain in their existing outer
+combined-state domain, which C1 does not schedule.
+
+The additive RUNTIME8 6 extension contains a named `NATIVE-CITY-CONTEXT 1`
+text packet and `native_city_context_contract_v1`. Typed ranges, vector/map
+counts, duplicates, trailing data and active references are checked. Only this
+packet has an8MiB string limit; older wire strings keep their existing262144-byte
+limit. A446529-byte legal packet is round-tripped without weakening those limits.
+Rebuilding from a poisoned template overlays the saved mutable state, rather
+than resetting it. A rejected whole-step candidate publishes neither a context
+prefix nor population/shape/stock/assignment changes.
+
+### Food, Goods and employment contracts
+
+The existing house format consumers agree on12 signed little-endian Goods
+words at normalized payload offset13 (wire offset17 minus its4-byte framing).
+`original_house_goods_contract.hpp` is their shared bounded accessor. The C1
+food census uses word0 at that offset. Legacy callers retain their old offset
+policy unless explicitly selecting normalized C1 processing.
+
+The source factory reads the existing parsed Goods component into an optional
+immutable template source. Fresh C1 construction requires either that source
+or an already supplied Goods context; missing data returns
+`city_goods_source_required`. Fresh construction clears only native-owned
+warehouse/trade pools and retains source policies/priority/unavailability;
+`native_city_goods_empty_owned_pool_v1` names this native initialization.
+Continuing an existing C1 save never runs that initializer: nonzero saved
+inventory, policy and derived fields survive load/reconstruction and next-step
+replay. Figure Goods are authoritative after the ordered actor pass; they sync
+to city Goods before persistence, and the saved phase mirrors the shared phase.
+
+C1 admits complete phases12 availability,17 food census and25 employment, in
+addition to the already supported B phases. Its saved jobs are the staffing
+authority for Wells/Hunters, presentation and production; v6 staffing is not
+recalculated after every C1 arrival or template rebuild. Construction adds an
+unemployed job, demolition removes it transactionally, and phase25 assigns it.
+Type4's no-employment-category override and initial missing employment-notice
+cursor are explicitly tagged native adapters; provided false notice values
+remain false. Old B/default paths do not acquire those initializers.
+
+### Frozen calendar and material-consuming houses
+
+Phase50 calendar/month/year/month-service and general health scheduling remain
+outside C1. The existing51-phase loop retains its explicit native frozen-month
+policy. Advancing that loop cannot be represented as advancing the original
+calendar. General production/market/storage logistics and original nonempty-SAV
+import are not supplied by this patch.
+
+A retained high-grade house with positive material demands demonstrates why
+that boundary matters: a strict direction0 candidate can debit materials again
+at frozen monthPart0/7. Before committing that candidate,
+`planNativePhaseHouseEvolution` compares all12 Goods words. If C1 would change
+any word, it discards both candidate building and candidate context, returning
+`native_city_material_schedule_unmapped`. Phase39 isolates only that house and
+restores its full record/context links; other supported houses and phases keep
+running. This guard protects stock but **does not complete material consumption**.
+
+The shared query and presenter expose the same reason:
+“物资消耗时序尚未接通，保持当前住宅和库存；其他已支持的供水与升降级继续运行。”
+The query is byte-preserving. This is not a blanket downgrade prohibition:
+the existing admitted water-only type4 dry downgrade and positive-delay rewater
+reset still execute, with their own explicit evidence/grade restrictions.
+Legacy non-C candidate behavior is unchanged.
+
+### Concentrated validation and remaining scope
+
+All scores below are bounded native/authored execution over source data, not
+new observations of the original game. Original strict simulation remains0/6.
+No new original-game experiment, ASan run or push was performed.
+
+- Codec1023/1023, normalized-Goods138/138 and old population-wire578/578 pass
+  in Release and UBSan. Their actual compiler dependencies still match final
+  source. Independent old wire1–5 goldens and the large C packet remain exact.
+- Final C contract1515/1515 in each mode covers template poisoning, all10
+  selected restore phases, exact schemas, inventory construction-versus-load,
+  policy retention, missing Goods, notice initialization, mirror rejection and
+  failed-operation rollback. It includes103 ticks/three phase39 material holds,
+  checking type/model/61-byte tail/population/shape/Goods/worker invariance,
+  pure query/presenter agreement and continuing other-house/phase25 work.
+  C water-only dry and rewater candidates match actual runtime outcomes.
+- Two admitted empty SAV sources each pass33974 checks in Release and UBSan:
+  1760 native updates,51/51 exact next-phase save restorations,35 passes each
+  of availability/food/employment, natural type11 arrival at tick1636 and
+  Well staffing at1658, then102 more updates. These start from native-owned
+  cities, not inhabited original-SAV continuation.
+- Old B Release paths pass9137 checks/4937 updates/62 restorations per source.
+  Final legacy core173481 passes per mode; old A query770 and dry/rewater268
+  and53588 checks pass per source. Existing accepted packages remain separate.
+
+The real-source runner's conservative sourcewide flag retained a failure when
+App-only reason text changed during the CLI runs. The raw reports are preserved.
+Their actual compiler dependency hashes match the final CLI version; the final
+query/presenter suite and App were compiled afterward. The separate compiled-
+input binding records this distinction instead of rewriting an old report.
+
+Use `make native-city-context-test` or `make native-city-context-test-undefined`.
+`scripts/native_city_context.py` accepts repeatable relative `--source` paths
+and an optional new absolute `--build-dir`. Real inputs are read only from the
+per-process `EMPEROR_GAMEDATA_ROOT`; unset roots report SKIP. Outputs default to
+a unique local test directory; no original input is modified. GUI package and
+source binding evidence is retained outside Git and summarized in STATUS.md.
+
+
+The final independent C1 App binary is
+`077fe349f7a91902eabb5a509d5b63474f9dda05c5b8f4f7614036b5e073132a`.
+Its reviewed GUI-build snapshot contains148 production files and31 compilation
+units, with a valid strict signature. CPU285/285 and Metal279/279 actual GUI
+checks cover both sources: fresh explicit C1 creation, real Well deletion and
+reconstruction, live type11 action7 motion/exact in-flight restoration,
+source-bound action8 actual arrival, scheduled-worker feedback, pure conditions,
+continued updates, two window sizes, save/reload and real Cmd+Q exit0.
+
+CPU acceptance resumed the same paused App after two driver errors: a hidden
+legacy-label binding, then an undefined resume-only variable. Both failures and
+the earlier passed checks are retained separately; final counts include executed
+resume checks. The corrected check selects the visible Well category and reads
+its real worker summary instead of a retired hidden widget. The production App
+was unchanged. Metal runs the full corrected driver from fresh launch. Long
+natural arrival/staffing paths are the separate1760-update C1 CLI checks; GUI
+uses source-bound checkpoints for route/approach. Earlier B4937-update evidence
+is a regression result, not additional C1 runtime steps.
+
+After both GUI routes exited, only README/STATUS/this document were updated.
+The signed App and its embedded README/manifest retain the exact GUI-build
+version, while current repository documentation records the final outcomes.
+At the C1 freeze, all runtime sources matched that148-file build snapshot;
+the later README wording was the only difference from its production-source list. Frozen GUI-build and
+current documentation/source snapshots are retained separately outside Git.
+No accepted earlier App was replaced.
+
+
+## Warehouse transfer conservation (2026-10-27)
+
+This development-source repair does not replace the frozen C1 App above.
+`originalFigureWarehouseDeliver` returns **actual accepted units**, including a
+physical partial fit; `originalFigureStorageWithdraw` returns **units not
+removed**, so cargo acquired is request minus return. `nullopt` rejects an
+unsupported or invalid transfer before any stock write. A valid zero result is
+a refusal/no-op, and resource0 (empty bay identity) cannot carry positive stock.
+
+The counterexample has eight400-unit Warehouse bays: seven full of another
+resource, the last requested-resource bay at399, policy headroom at3200 and
+incoming cargo2. Previously the helper credited1 then returned0, leaving cargo2.
+Now it returns1, with stock delta1 and retained cargo1. The same accepted-prefix
+contract applies to the existing Mill and trade-station delivery paths; known
+bay counts/capacities, policy gates, first-tie selection and represented unsigned
+Goods arithmetic are unchanged. No market capacity/quality rule is inferred.
+
+Type19 commits accepted stock and residual cargo together; Mill reservations
+release the original incoming cargo before any next reservation. Type21/22
+home-return still requires full acceptance: a partial local candidate is
+refused, not partially committed or silently discarded. Type21 withdrawal
+creates only the cargo actually removed. Warehouse exporter allocation precedes
+withdrawal, so an exhausted/failed allocator cannot debit stock. Raw hook and
+allocator functions mutate an owned candidate and may leave a prefix on
+failure; atomicity belongs to the public phase/timeline transaction, not these
+lowlevel mutators. Figure updates and ordered-pass failures publish no partial
+stock, cargo, route, reservation or FIFO candidate.
+
+The combined authored figure suite passes3369/3369 in Release and UBSan,
+including784 table cases for physical/policy headroom, full/partial/zero
+transfers, Warehouse/Mill/station pools, clear/retain identity and unsigned
+withdrawal. Actual caller regressions cover Mill partial reservation release,
+Warehouse residual cargo, image-failure retry, type21/22 partial-return refusal,
+allocator failure and later-slot transaction rollback. The standalone
+counterexample changes from returned0/physical+1 to returned1/physical+1.
+Real-data corpus tests report SKIP with an unset root; these authored checks
+are not original-game observations or additional C1 GUI acceptance.
+
+General market replenishment/type24, food quality, unsupported Mill withdrawal,
+partial home-return continuation and original calendar/material consumption
+remain outside this repair. Existing explicit refusals remain. No new format,
+UI entry, production capacity or phase is enabled.
+
+## Policy-aware committed housing feedback (2026-10-28)
+
+`native_population_feedback.hpp` indexes the existing house reservations,
+type11/type13 payloads, Well owners and strict-record references once per
+query. It adds no wire fields or scheduler. Incoming-group policies show the
+actual departure/road/entry action and reserved people before capacity or
+structural information. Full and pending-excess houses remain distinct.
+Cleared or demolished targets cannot retain a displayed reservation. Missing
+or inconsistent records produce an explicit unavailable result.
+
+The shared housing/category/detail/hover consumers use the saved phase28 water
+cache independently of decayed service bytes. The empty meal-arrival list of
+the incoming-group policy is never interpreted as a per-house food refusal.
+Meal and tax planners still describe their own native accounting; existing
+food receipts and C1 job assignments are separate from actual people arriving.
+Earlier v1–v6 and untagged/earlier-v8 modes retain their meal explanations.
+Well feedback distinguishes access, workers, dispatch, movement, held routes
+and return; C1 saved staffing is identified separately from older derived
+native staffing. No query advances RNG, actors, routes, inventory, revision or
+rules version. Repeated query/description calls must preserve encoded bytes.
+
+The concentrated Release and UBSan feedback suites each pass 2,232 checks:
+374 authored legacy checks, 272 checks over the two admitted original sources,
+and 1,586 checks over 24 existing native checkpoints, including saved outward
+and returning water walkers. Synthetic cache, action,
+population/overcapacity and invalid-reference fixtures are explicitly authored
+native boundary cases, not new original-game observations. Actual native
+target-demolition transactions are queried after cancellation. The root-unset
+branch still returns SKIP. GUI acceptance and package/source bindings are
+recorded separately in STATUS; this repair does not complete the original
+calendar, economy, firefighting or unsupported house grades.
+
+## Explicit preventive Inspector strategy: RUNTIME8 7 (2026-10-28)
+
+This additive native strategy is `native_inspection_prevention_v1`. It requires
+the existing C1 city contract and enables Inspector Tower124 / Figure39 only
+for the explicitly selected development city mode. Default v6 and runtime1–6
+are unchanged; loading an old archive does not enable this strategy. It still
+constructs a new native pool over an admitted empty original source, not an
+import/continuation of an inhabited original city.
+
+Runtime7 appends a required optional-valued `inspection` block after
+`cityContext` and before the existing per-object projection fields. It contains
+named fields: `payloads`, `maximum` (two signed process maxima), `decayCounter`,
+`dispatches`, `returns`, `services`, and `visits`. Each visit stores native tick,
+figure slot and both counter values before/after an actual successful service
+callback. `NATIVE-INSPECTOR 1` reuses the complete named Figure member traversal
+under a separate magic/type check; it never disguises39 as a Well walker.
+Unknown versions, missing fields, unsupported actions/grades, invalid ownership
+or graph/payload budgets refuse; integer narrowing is checked. Existing outer
+ENCITY syntax permits an optional final newline; losing a mandatory runtime
+end marker or field is a different, invalid truncation.
+
+Tower identity, footprint, cost and funds remain native object/ledger authority.
+Cost, workers, reduction, walking speed and roam length come from the same
+source/model revision as the city. The canonical strict record owns model,
+upgrade, risk words, primary/auxiliary references, dispatch counter and direction.
+Workers remain phase25 authority; query/render never allocates them. The new
+mode adds124 to worker-key capture and validation without changing old object
+sets. The explicit native Hunter economy is retained; its availability consumer
+gets a native-constructed zero-stock production view, not fabricated original
+production. A new tower has a declared native-zero-initialized hook payload.
+
+Inspector creation uses the existing shared constructor, serial/RNG/speech,
+cell chain and FIFO. Full staffing still requires the actual counter threshold;
+the action6 countdown, action7 departure, action8 roam, action9 return and
+owner-cell cleanup follow the existing supported service updater. Inspector
+auxiliary creation/checking and cleanup consistently use its +6C slot; Warehouse
++6A behavior is unchanged. A model downgrade cancels only the auxiliary through
+normal reciprocal cleanup before the basic-owner gate could orphan it.
+
+Two native adaptations are explicit: tower return-road availability is derived
+from the computed overlay's adjacent-road selection rather than blindly kept
+at constructor zero, and deleting a native road first cancels current patrols
+with normal route/cell/owner/FIFO cleanup. Risk and historical visits remain;
+later phase31 can redispatch. These are not new claims about original live-edit
+or constructor semantics. No force removal, unknown fire route, or silent held
+Inspector is substituted for a complete loop.
+
+Actual clipped, occluded service callbacks reduce both signed accumulated risk
+words and write serviceGrid bits3–5. Workers, proximity to a tower and an old
+grid bit do not certify a house visit. Neither the risk words nor the truncated
+Figure watchCoverage byte are probabilities. `maximum` and the phase45 decay
+counter are explicitly native-fresh zero state, then persist exactly across
+rebuild/save/reload. Every eighth phase45 call decays existing packed lanes;
+the phase sequence remains the labeled native adaptation with the calendar
+tail/month state held, not a proven original wall-clock/day schedule.
+
+The complete candidate includes risk growth, services, staffing, population,
+goods, RNG and graph state. Positive disaster triggers, active fire targeting,
+unknown special service paths and unported watch-risk branches refuse without
+committing partial effects. Active firefighting, fire spread with process wind,
+building replacement by ruins and continued disaster recovery are unsupported.
+The App pauses on such failure and explains the boundary; it does not erase
+risk, reset fireCount or report that disasters are implemented. GUI terminology
+distinguishes employed/pending-dispatch/in-flight/returning and a historical
+actual visit. Selecting a tool or inspecting an object changes no simulation.

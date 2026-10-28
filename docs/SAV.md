@@ -1292,3 +1292,154 @@ Actual native App inspection and captured pixels confirm **5/5** real sources, i
 The first AX button call returned error-25200, but a subsequent read-only inspection proved the panel had opened; it was not clicked again. Validation resumed from that observed state. No result was inferred solely from a tool's success or error status. Local GUI captures/actions, test binaries and compiler-derived dependencies are hash-bound alongside the new package. No assets are bundled, committed or uploaded, and the frozen authored gameplay is unchanged.
 
 The current goal-diagnostic App matches **111/111** recorded production/source hashes and **29/29** compiled units; both diagnostic test binaries match **28/28** compiler-derived dependencies. Strict code-signature verification passes. Cmd+Q was not emitted because the exact-target foreground check failed; this package therefore has no new Cmd+Q acceptance. The exact App quit menu succeeds **1/1**, with monitored exit0 and no remaining native test App or Wine game processes. The idle isolated launcher was retained. All8 research inputs remain byte-identical. Earlier movie Cmd+Q and decoder cleanup evidence belongs to the previous package. No commit or push was made.
+
+
+## Bounded evidence export and candidate preflight (2026-10-27)
+
+The evidence-only module is `game_lab/original_evidence_figures.hpp`,
+`original_evidence_export.cpp` and `scripts/original_evidence.py`. It adds no App
+entry, gameplay clock, calendar service or inferred original algorithm. The
+existing production SAV/building/figure readers remain unchanged. Work first
+reviewed their complete framing and consumers; source annotations containing
+addresses were not treated as new independent evidence and no original binary
+or disassembly was accessed.
+
+The CLI consumes one immutable byte snapshot on stdin (4 MiB cap; existing
+container decoded cap 8 MiB). Python confines reads to the three explicit
+candidate paths under the per-process data root, uses openat/O_NOFOLLOW through
+every child directory, requires a regular bounded file, checks identity/size/
+mtime/ctime during reading and verifies source SHA/identity again after export.
+Reports use new local output paths outside the original data tree. Invalid
+containers return3 with no snapshot domains; over-budget input returns2 with no
+partial JSON. Runtime decoders are not relaxed by diagnostic prefix success.
+
+| Domain | Existing read contract reused | Qualification boundary |
+|---|---|---|
+| Anchors/buildings | decodeOriginalSave, complete4000 building profile | Unique bounded anchors, full links/inputs required |
+| Clock/year | originalBuildingSavedUpdateContext, originalBuildingSavedCityContext | phase0..50, part0..15, month0..11; `year_word_wire` retains the field currently named elapsedYears separately from scenarioStartYears. Its observed negative value is not called an elapsed duration; no BC epoch or rollover algorithm inferred |
+| Health/city | Saved city accounting/labor/cycleTail | Treasury, population, wages, health target/smoothed/rating and statistics cursors are data; producers, weights and consumption timing remain unknown |
+| Houses | originalFigureBuildingLinks + originalHouseGoodsFromPayload | Twelve signed goods words are cross-checked against the61-byte House1 payload; food word0 and raw quality are separate; industry arrays are never substituted |
+| Storage/market | Existing Mill8, Market6/demand7/quality and Goods1 readers | Preserve resource, amount and serialized capacity plus36-resource ledgers and200 policy records in this corpus. Do not infer a universal market business capacity or recipe |
+| Relationships | Common5 plus the qualified Stall4 tail | Common parent wire is distinct from the shop's `parent_slot`; market parent has no workforce requirement. Shop staff and compound routing are distinct from a direct road-access byte |
+| Actors23/24 | figure7_fields and already-supported Figure/Pheasant/Emissary framing | All known base requests are exported, preserving two-byte enum values and the opaque20-byte block. Class references/object aliases are checked. Unknown class or variable FSA stops before skipping it; no salamander layout is guessed. At most256 selected active actors are exported; a larger selection explicitly fails completeness |
+
+A complete2000-slot known base pool is cross-checked with the existing strict
+figure reader for slot/type/alive/action/owner/cargo/route fields. Complete base
+coverage does not prove state-machine semantics or whole-SAV acceptance. Absent
+23/24 actors can be reported only with complete pool coverage. Owner/route/cargo
+base fields and referenced saved route owner/directions are numeric observations,
+not a reconstructed type24 algorithm.
+
+Concentrated authored tests cover every requested base field, every truncation
+boundary, enum width, opaque block, aliases, invalid references/versions,
+unsupported class/FSA and count/cache/byte budgets (**1023** checks). The Python
+suite has **13** groups for exact path manifests, symlinks/FIFO/empty/oversize,
+mutation during read, missing-versus-zero fields, compound market identity,
+qualification, monotonic ledger and all hard budget classes. Release and UBSan
+also exercise malformed-container and stdin-budget refusals. Real candidate
+exports run **88** structural checks per mode, not88 original gameplay tests.
+
+The three isolated candidate files are320110,320111 and320112 in the previously
+indexed numeric test-player directory; all input hashes remain unchanged. All
+three yield qualified clock/city/house data and2000-slot base pools; no active23
+or24 is present. The empty candidate has no operating city. The middle candidate
+has new, not-yet-operating Mill/Market/shop records. The latest candidate has an
+employed operating Mill and shop but all8 Mill compartments are empty. Thus
+operating-city qualification is **0/3**, rather than a claimed market round-trip
+pass. Raw numeric outputs and source hashes remain in local evidence, not Git.
+
+The generated `protocol.json` contains candidate bindings, exact field/read-point
+lists, refusal gates and first-bound-wins limits: total80 cycles/4080 phase steps/
+30minutes; market at most2 reported complete round trips or32 cycles/1632 phase
+steps/15minutes within that total. Original launch permission remains false.
+No new original-game observation was performed. A numeric ledger can be audited
+with `--series /absolute/local-ledger.json --output-dir /new/local/report`;
+its schema and command are emitted in the protocol. The checker detects
+unqualified snapshots, reversed time, scenario binding changes, over-limit or
+post-stop observations. A reported trip count remains a reported count, not
+proof of inventory balance or a general algorithm.
+
+Before any future experiment, the parent must review the protocol and establish
+real pause/scenario identity, patrol/fire and collapse conditions, qualified
+food stock, compound dispatch and test-only save protection. Only the normal
+clock may vary under this proposed protocol; adding food production or creating
+a new initial city is a separate preparation decision, not silently included.
+Stop on fire/collapse, uncontrolled scene changes, nonpositive/unmeasurable
+funds, parser refusal, wrong source/scenario, lost pause or any bound. Existing
+rollover observations need not be repeated. Finite traces cannot supply missing
+monthly-service algorithms, health weights, quality recipes or undecoded FSA
+semantics. C1 isolation, old modes, fixed Apps and the warehouse repair remain.
+
+
+## Evidence route and capture path contract (2026-10-28)
+
+The evidence-only `original_evidence_route.hpp` corrects an observational
+validation error; no production updater is changed. `originalFigureRoam`
+increments the signed cursor without allocating a route.
+`originalFigureSavedRouteDirection` accepts cursor>=length, releases its own
+reciprocal owner, sets route0/direction8 and retains cursor/length. Therefore
+route0/cursor10/length0 is not a path-array overflow. The real320112 type28
+record is now reported `roaming_without_route`, valid reference, no saved-route
+array; its bytes are unchanged. A route0 state with cursor<length remains
+unknown without the terrain-dependent CellHeight lookahead context, not corrupt
+or silently accepted for full movement. Negative route IDs remain unqualified.
+
+For route1..999, length0..500 and nonnegative cursor are required. An in-use
+cursor must have the complete saved direction service and matching reciprocal
+owner. Exhausted cursors do not dereference the array; a foreign owner is
+preserved, as the existing direction function does. This reference check never
+certifies the type24 business state machine, repairs raw counters, or changes
+FSA acceptance. Unknown class/FSA still stops the pool and prevents certification
+of later actors and the following Goods section.
+
+The finite input list keeps the three candidates read-only and adds exactly
+`Save/2026102801/280001.sav` through `280016.sav`. There is no wildcard or arbitrary
+directory switch. Source selection is explicit with `--source`; default remains
+the three candidates. `--check-capture-targets` stats only these names without
+creating files/directories. Protected candidates, existing targets, traversal,
+absolute/alternate/sibling paths, parent/final symlinks and capture hardlinks
+refuse. An absent test-player directory is reported as pending, not created.
+These checks are not an OS permission or an experimental approval. A GUI saver
+must recheck absence immediately before Save and reject overwrite dialogs; a
+preflight cannot atomically control a later application write.
+
+Release/UBSan each pass1064 authored framing/route/serialization checks,
+18 Python path/qualification groups and89 structural checks over the same3
+original candidate files. The additional real check covers the retained
+no-route counter. The unchanged candidate files still contain no active23/24;
+this remains a valid possible pre-dispatch state, not a requirement to start
+with a buyer already present. A source with zero food can be a preparation
+start even though it is not yet a stocked consumption-observation start.
+The16 real reserved targets were absent on exact-path preflight; none was
+created during this tooling task. No new original-game or GUI run is claimed.
+
+### Risk-counter and patrol qualification correction (2026-10-28)
+
+The serialized Common5 own-version word is included in byte offsets68/70/72:
+signed16 collapse-branch accumulator, ignition-branch accumulator and burning
+counter. Runtime receiver offsets74/76/78 are different offsets. Both typed
+readers share the bounded `originalBuildingRiskWords` decoder. The semantics
+describe existing project update branches, not a complete original probability
+model. Legacy `fireRisk`/`damageRisk` member names, strict-record codec keys and
+old numeric JSON aliases remain unchanged. Earlier fire/damage prose labels
+must not be read as causal hazard names: legacy fireRisk1000 calls nonburning
+destruction, while legacy damageRisk1000 calls ignition.
+
+The collector now exports `common5-risk-v1`, raw signed words, canonical
+collapse/ignition/burning counters and reader equivalence. Qualification checks
+every mirror and rejects absent/inconsistent contracts; an old report needs
+re-export, never silent interpretation by name. The two threshold reasons are
+separate; negative signed values remain decodable but unqualified as a safe
+start. Values918 or126 are counters, not percentages. There is no new near-risk
+cutoff and no inference of a safe horizon merely from values below1000.
+
+Patrol evidence requires actual type39 visits and both counter trends. Five
+workers or an existing tower cannot establish service coverage. The exporter
+includes known type2/39 base records and tower spawn counters without guessing
+FSA semantics. In the already captured320112→280002 interval (+30 phases),
+slot5 changes type3/model0→4/model1, burning0→2, legacy damage918→0 and four
+type2 flames appear. This is consistent with ignition resetting both counters,
+not a corrupt field or a measured918 threshold. There is no live39 at either
+endpoint; the exact original intervening RNG and patrol history remain unknown.
+This correction does not run the original, synthesize a safe input, change
+disaster algorithms or alter persisted gameplay bytes.
