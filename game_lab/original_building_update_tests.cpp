@@ -2,6 +2,7 @@
 #include "original_save.hpp"
 #include "original_pak.hpp"
 #include "original_building_scene.hpp"
+#include "native_city_context.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <numeric>
@@ -19,6 +20,95 @@ OriginalBuildingUpdateState field(uint16_t type=194,int16_t progress=0,uint16_t 
 }
 OriginalBuildingUpdateContext context(OriginalBuildingUpdateScope scope){
     OriginalBuildingUpdateContext c(scope,true);c.phase=0;c.monthPart=1;c.cycle=4;c.month=7;c.terrainFlags=8;c.typeDisabled=false;return c;
+}
+OriginalBuildingUpdateContext tailFixture(){
+    auto c=context(OriginalBuildingUpdateScope::AdmittedTicks);c.phase=50;c.monthPart=0;c.cycle=4;
+    c.cycleTail.emplace();c.cycleTail->alternateMode=false;c.cycleTail->smoothedHealth=59;c.cycleTail->healthTarget=80;
+    c.cycleTail->productionHistory={3,901,2,603};c.cycleTail->currentHealthRating=147;
+    c.labor.emplace();c.labor->difficulty=2;c.labor->health=59;c.populationTotal=400;
+    c.buildingTotals.emplace();c.buildingTotals->staffedProducers[4]=2;c.buildingTotals->staffedProducers[2]=1;
+    c.goodsRecords.emplace();c.goods.emplace();c.trade.emplace();c.statistics.emplace();c.statistics->currentFaction=0;
+    c.scenarioMonths=0;c.elapsedYears=-2050;c.scenarioStartYears=-2050;c.monthlyServices=true;
+    c.terrain=std::vector<uint32_t>(51984);c.terrainOwners=std::vector<uint16_t>(51984);c.activeSide=1;c.cropBase=229;
+    OriginalBuildingFootprint b;b.slot=7;b.type=72;b.size=2;b.wellImageInputs.emplace();b.wellImageInputs->byte6f=2;
+    OriginalBuildingUpdateInputs i;i.identity=7;i.alive=1;i.word92=123;i.modelUpgrade=2;
+    auto crop=field();crop.inputs.modelUpgrade=0;crop.inputs.word92=45;
+    crop.building.slot=8;crop.inputs.identity=8;originalBuildingSetCropFlags(crop.inputs,33);
+    c.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,b},{8,crop.building}};
+    c.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,i},{8,crop.inputs}};
+    c.notificationEffects={1234};c.buildingRedraws={6};return c;
+}
+// The existing C1 field visitor covers all city-owned tail/trade/forecast data.
+// Schedule, Labor, per-building expiry/flags and output buffers have separate
+// owners, so include those explicitly rather than claiming a new calendar codec.
+std::string tailSnapshot(OriginalBuildingUpdateContext c){
+    auto city=captureNativeCityContext(c);native_city_context_detail::Writer w;native_city_context_detail::fields(w,city);
+    w.value(c.phase);w.value(c.cycle);w.value(c.monthPart);w.value(c.month);
+    w.out<<c.labor.has_value()<<' ';if(c.labor){w.value(c.labor->health);w.value(c.labor->difficulty);}
+    if(c.buildingInputs)for(auto& e:*c.buildingInputs){w.value(e.first);w.value(e.second.alive);w.value(e.second.word92);w.value(e.second.modelUpgrade);w.value(e.second.industry);}
+    if(c.buildings)for(auto& e:*c.buildings){w.value(e.first);w.out<<e.second.wellImageInputs.has_value()<<' ';if(e.second.wellImageInputs)w.value(e.second.wellImageInputs->byte6f);}
+    w.value(c.notificationEffects);for(auto value:c.buildingRedraws)w.value(value);return w.out.str();
+}
+std::string messageSnapshot(OriginalBuildingScenarioMessages m){
+    native_city_context_detail::Writer w;w.value(m.records);w.value(m.count);w.value(m.notificationPending);
+    for(auto& n:m.notices){w.value(n.id);w.value(n.slot);w.value(n.faction);w.value(n.resource);w.value(n.amount);w.value(n.title);w.value(n.dialogFlags);}return w.out.str();
+}
+void refusedTail(OriginalBuildingUpdateContext c,OriginalBuildingUpdateBlocker expected,const char* reason){
+    const auto before=tailSnapshot(c);need(originalBuildingCycleTailStep(c)==expected,reason);
+    need(tailSnapshot(c)==before,"failed tail preserves all owned state, schedule, Labor, expiry and output buffers");
+    need(originalBuildingCycleTailStep(c)==expected&&tailSnapshot(c)==before,"retry of refused tail has no cumulative health/date/expiry effects");
+}
+void cycleTailTransactions(){
+    for(uint32_t part=0;part<=15;++part){auto c=tailFixture();c.monthPart=part;
+        const bool missing=part==5||part==6||part==7||part==11||part==15;
+        if(missing){refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"unknown postincrement monthly service remains refused");continue;}
+        need(originalBuildingCycleTailStep(c)==OriginalBuildingUpdateBlocker::None,"already supported ordinary parts remain successful");
+        need(c.monthPart==part+1&&c.cycle==5&&c.phase==0&&c.cycleTail->calls==1&&c.cycleTail->smoothedHealth==60&&c.labor->health==60,"successful tail commits one health/date/call update");
+        need(c.buildingInputs->at(7).word92==0&&c.buildingInputs->at(7).modelUpgrade==1&&c.buildings->at(7).wellImageInputs->byte6f==1&&originalBuildingCropFlags(c.buildingInputs->at(8))==32,"successful expiry/image and crop decay still use the existing rules");
+        need(c.cycleTail->foodForecast==std::array<int32_t,2>{3604,901},"successful tail preserves independent production forecast");
+    }
+    for(uint32_t month:{0u,1u,11u}){auto c=tailFixture();c.month=month;c.monthPart=15;c.cycle=UINT32_MAX;
+        refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"unimplemented month/year crossing rejects without changing saved dates");}
+    auto c=tailFixture();c.cycle=UINT32_MAX;
+    need(originalBuildingCycleTailStep(c)==OriginalBuildingUpdateBlocker::None&&c.cycle==0,"existing unsigned cycle wrap is preserved only on successful tail");
+    c=tailFixture();c.goods.reset();refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing forecast input rolls back prior health and expiry");
+    c=tailFixture();c.buildingInputs->at(7).modelUpgrade.reset();refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing expiry state rolls back earlier date effects");
+    c=tailFixture();c.monthPart=2;c.cycleTail->currentHealthRating=151;refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing previous rating rolls back forecast and health effects");
+    c=tailFixture();c.monthPart=3;c.monthlyServices.reset();refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing fortification service rolls back health/date/expiry");
+    c=tailFixture();c.cycleTail->alternateMode=true;refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"alternate calendar mode is not silently admitted");
+    c=tailFixture();c.monthPart=1;c.scenarioMonths=-1;auto& partner=c.trade->partners[0];partner.alive=1;partner.enabled=1;partner.relationTimers.resize(22);partner.relationTimers[0][0][0]=2;
+    refusedTail(c,OriginalBuildingUpdateBlocker::InvalidState,"late invalid scenario age rolls back earlier partner timer decrement");
+    c=tailFixture();c.buildings->erase(7);const auto beforeException=tailSnapshot(c);bool threw=false;
+    try{(void)originalBuildingCycleTailStep(c);}catch(const std::out_of_range&){threw=true;}
+    need(threw&&tailSnapshot(c)==beforeException,"mid-tail exception preserves caller state and retains the original error");
+    // One known positive annual message can be computed before a later missing
+    // timer service refuses. Both the context AND external records must roll back.
+    auto annual=tailFixture();annual.month=1;annual.monthPart=1;auto& own=annual.trade->partners[0];own.alive=1;own.faction=0;own.blocked=1;
+    auto& ally=annual.trade->partners[1];ally.alive=1;ally.faction=1;ally.kind=2;ally.enabled=1;ally.relations[0].state=2;ally.relations[0].war=1;own.relations[1].state=2;
+    std::array<OriginalBuildingAnnualOffer,22> offers{};offers[1]={100,29};OriginalBuildingScenarioMessages messages;messages.records[0][113]=0xa5;
+    const auto prior=tailSnapshot(annual),priorMessages=messageSnapshot(messages);
+    for(unsigned retry=0;retry<2;++retry){need(originalBuildingCycleTailWithAnnualStep(annual,offers,&messages,uint8_t(2))==OriginalBuildingUpdateBlocker::MonthlyCity,"annual message followed by missing timers refuses");
+        need(tailSnapshot(annual)==prior&&messageSnapshot(messages)==priorMessages,"late annual failure publishes neither notice nor health/date/diplomacy prefix");}
+    auto complete=annual;complete.trade->partners[1].relationTimers.resize(22);
+    auto noMode=complete;need(originalBuildingCycleTailWithAnnualStep(noMode,offers,&messages)==OriginalBuildingUpdateBlocker::MonthlyCity&&tailSnapshot(noMode)==tailSnapshot(complete)&&messageSnapshot(messages)==priorMessages,"unknown annual response mode remains atomic refusal");
+    auto restored=complete;auto replayMessages=messages;
+    need(originalBuildingCycleTailWithAnnualStep(complete,offers,&messages,uint8_t(2))==OriginalBuildingUpdateBlocker::None&&messages.count==1&&messages.notices.size()==1&&messages.notificationPending&&complete.cycle==5&&complete.monthPart==2,"supported annual message and date commit together");
+    need(messages.records[0][113]==0xa5&&messages.notices[0].resource==29&&messages.notices[0].amount==100,"successful annual record preserves padding and original demand units");
+    need(originalBuildingCycleTailWithAnnualStep(restored,offers,&replayMessages,uint8_t(2))==OriginalBuildingUpdateBlocker::None&&tailSnapshot(restored)==tailSnapshot(complete)&&messageSnapshot(replayMessages)==messageSnapshot(messages),"same restored annual input produces identical next state and one notice");
+    need(originalBuildingCycleTailWithAnnualStep(complete,offers,&messages,uint8_t(2))==OriginalBuildingUpdateBlocker::None&&messages.count==1&&messages.notices.size()==1,"next ordinary part does not repeat the committed annual demand");
+    auto full=annual;full.trade->partners[1].relationTimers.resize(22);OriginalBuildingScenarioMessages capacity;capacity.count=140;
+    need(originalBuildingCycleTailWithAnnualStep(full,offers,&capacity,uint8_t(2))==OriginalBuildingUpdateBlocker::None&&capacity.count==140&&capacity.notices.empty(),"existing full-message-pool success semantics remain unchanged");
+    // C1 retains its own fields only; the fixture's other owners are copied.
+    // No new clock/annual-message schema, source, trigger or scheduler is added.
+    auto original=tailFixture();auto checkpoint=captureNativeCityContext(original);std::string error;
+    const auto bytes=encodeNativeCityContext(checkpoint,error);need(bool(bytes),"existing C1 owned-state checkpoint encodes");
+    const auto decoded=decodeNativeCityContext(*bytes,error);need(bool(decoded),"existing C1 checkpoint decodes");
+    auto reloaded=original;reloaded.cycleTail->smoothedHealth=0;applyNativeCityContext(*decoded,reloaded);
+    need(tailSnapshot(reloaded)==tailSnapshot(original),"restoring C1 state leaves schedule and Labor with their existing owners");
+    need(originalBuildingCycleTailStep(original)==OriginalBuildingUpdateBlocker::None&&originalBuildingCycleTailStep(reloaded)==OriginalBuildingUpdateBlocker::None&&tailSnapshot(original)==tailSnapshot(reloaded),"restored C1 fields yield identical supported next-tail state");
+    auto blocked=tailFixture();blocked.monthPart=5;const auto blockedBytes=encodeNativeCityContext(captureNativeCityContext(blocked),error);
+    need(originalBuildingCycleTailStep(blocked)==OriginalBuildingUpdateBlocker::MonthlyCity&&encodeNativeCityContext(captureNativeCityContext(blocked),error)==blockedBytes,"failed tail does not change persisted C1 bytes");
+    need(!decodeNativeCityContext(bytes->substr(0,bytes->size()/2),error),"truncated existing C1 data stays refused; no implicit repair");
 }
 void authored(){
     {
@@ -75,9 +165,9 @@ void authored(){
         orderedAnnual.cycleTail.emplace();orderedAnnual.cycleTail->alternateMode=false;orderedAnnual.cycleTail->healthTarget=61;orderedAnnual.cycleTail->smoothedHealth=60;
         orderedAnnual.buildingInputs.emplace();orderedAnnual.buildings.emplace();orderedAnnual.trade->partners[5].relations[3].annualFlag=0;
         need(originalBuildingCycleTailWithAnnualStep(orderedAnnual)==OriginalBuildingUpdateBlocker::MonthlyCity&&
-            orderedAnnual.cycleTail->smoothedHealth==61&&orderedAnnual.monthPart==2&&orderedAnnual.cycle==8&&
+            orderedAnnual.cycleTail->smoothedHealth==60&&orderedAnnual.monthPart==1&&orderedAnnual.cycle==7&&
             orderedAnnual.trade->partners[5].relations[3].annualFlag==0,
-            "annual tail reaches health and clock writes then refuses missing forecast before diplomatic flags");
+            "annual tail with missing forecast publishes neither health nor clock prefix before diplomatic flags");
     }
     auto c=context(OriginalBuildingUpdateScope::ProductionPasses);
     for(uint16_t type:{uint16_t(194),uint16_t(196)})for(uint16_t flags:{uint16_t(0),uint16_t(1),uint16_t(32),uint16_t(33),uint16_t(0x4000),uint16_t(0x8021)}){
@@ -1014,4 +1104,4 @@ void original(){
     }
 }
 }
-int main(){try{authored();const size_t authoredChecks=checks;original();std::cout<<"{\"passed\":true,\"authored_checks\":"<<authoredChecks<<",\"all_checks\":"<<checks<<"}\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{cycleTailTransactions();authored();const size_t authoredChecks=checks;original();std::cout<<"{\"passed\":true,\"authored_checks\":"<<authoredChecks<<",\"all_checks\":"<<checks<<"}\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

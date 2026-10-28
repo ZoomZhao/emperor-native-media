@@ -142,6 +142,43 @@ lifecycle. Type23 construction/redispatch, type24 actions/removal and food
 quantity/quality production remain unproved or absent. No new market UI,
 original observation, new App or end-to-end replenishment claim is made.
 
+## Cycle-tail rejection transaction (2026-10-28)
+
+`originalBuildingCycleTailStep` and `originalBuildingCycleTailWithAnnualStep`
+now evaluate their existing operations on a whole context candidate. Annual
+records and notices supplied outside the context are staged with it. Only a
+successful tail publishes both domains, using nonthrowing moves. Ordinary
+forecast/month-service refusals, later annual trade failures and mid-operation
+exceptions leave the caller's health, Labor mirror, clocks, expiry/image bytes,
+crop flags, forecasts, trade timers, redraws and notifications unchanged.
+
+The old authored postincrement-part6 counterexample returned MonthlyCity while
+changing inputpart5/cycle8/health50 into6/9/51. The same input now returns the
+same blocker and preserves5/8/50. The whole-record and scene-playback callers
+already owned wider candidates; these public tail entries previously did not.
+The in-memory CombinedBeforeFigures diagnostic prepass remains distinct from
+publishing a successful city update; this change does not advertise a new
+whole-scene API contract.
+
+The existing building suite adds104 checks,479 total per Release/UBSan mode:
+all16 incoming month parts, unknown services6/7/8/12, endpoint refusal including
+raw month11, known successful expiry/forecast/health/crop work, retry purity,
+late trade and annual-notice rollback, message capacity, exceptions and C1
+owned-state encode/decode/replay. Annual notices are not added to the C1 format;
+its clock/Labor ownership and the absence of a full calendar codec remain.
+An existing test that expected partial annual health/date writes now asserts
+no publication. The new matrix runs independently from the large legacy test
+function to stay within the existing stack limit; no assertion or sanitizer
+was removed. The initial stack-overflow failure remains in local evidence.
+
+Related Release/UBSan suites pass137 market,138 HouseGoods,3369 combined
+figure and173481 native authored checks, with12 legacy save goldens. Collector
+2353 authored,28 Python groups and203 structural checks over4 existing inputs
+also pass per mode. Building/market real-data runtime branches explicitly SKIP.
+No new original observation or App acceptance is claimed. Native phase50 keeps
+its existing skip/refusal policy; unknown monthly services, complete month/year
+advancement, health producers and food consumption are not enabled.
+
 ## Read-only collector fields and qualification boundary (2026-10-28)
 
 `make original-evidence-test` and `make original-evidence-test-undefined` build

@@ -8,6 +8,7 @@
 #include "../file_io/include/city19_religion_archive.hpp"
 #include <set>
 #include <cmath>
+#include <type_traits>
 
 namespace game_lab {
 inline int16_t originalBuildingSignedWord(uint16_t v);
@@ -1899,7 +1900,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingFoodForecastStep(OriginalBu
 }
 //4AC650 ordinary parts: health, date construction468210 (returns false),
 //42DA70 expiry,593090 forecast,part-specific work,then4C0570 crop decay.
-inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStep(OriginalBuildingUpdateContext& c){
+inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(OriginalBuildingUpdateContext& c){
     if(!c.cycleTail||!c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.monthPart||!c.cycle)return OriginalBuildingUpdateBlocker::MonthlyCity;
     //Part16 monthly/calendar services and alternate UI mode are not ordinary tails.
     if(*c.monthPart>=15||*c.cycleTail->alternateMode)return OriginalBuildingUpdateBlocker::MonthlyCity;
@@ -1962,6 +1963,15 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStep(OriginalBuild
             if(current!=*tail.previousHealthRating)c.notificationEffects.push_back(unsigned(current-151+0xda));}}
     for(auto& e:*c.buildingInputs)if(e.second.alive==1&&e.second.industry)originalBuildingDecayCropFlags(e.second);
     c.phase=0;++tail.calls;return OriginalBuildingUpdateBlocker::None;
+}
+// A public tail either commits all existing effects or none. In particular,
+// later missing monthly services cannot leak health, expiry or clock prefixes.
+// This adds no month/year producer and preserves every existing refusal.
+inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStep(OriginalBuildingUpdateContext& c){
+    auto candidate=c;const auto result=originalBuildingCycleTailStepWrites(candidate);
+    if(result!=OriginalBuildingUpdateBlocker::None)return result;
+    static_assert(std::is_nothrow_move_assignable<OriginalBuildingUpdateContext>::value,"Cycle tail publication must not throw");
+    c=std::move(candidate);return result;
 }
 //4A5840->441DF0/441EE0. Additive ordinary annual service: the old
 //cycle-tail API retains its conservative alliance refusal. 444130 tests
@@ -2085,12 +2095,12 @@ inline OriginalBuildingUpdateBlocker originalBuildingAnnualDiplomacyWithMessages
     }
     return OriginalBuildingUpdateBlocker::None;
 }
-//Additive tail retains the legacy entry point unchanged. The prefix below is
+//Additive tail retains the existing successful operations. The prefix below is
 //4AC650..4ACAB0:health,expiry,forecast before the annual part2 service.
-inline OriginalBuildingUpdateBlocker originalBuildingCycleTailWithAnnualStep(OriginalBuildingUpdateContext& c,
+inline OriginalBuildingUpdateBlocker originalBuildingCycleTailWithAnnualStepWrites(OriginalBuildingUpdateContext& c,
     const std::optional<std::array<OriginalBuildingAnnualOffer,22>>& offers=std::nullopt,
     OriginalBuildingScenarioMessages* messages=nullptr,std::optional<uint8_t> responseMode=std::nullopt){
-    if(!c.monthPart||*c.monthPart!=1||!c.month||*c.month!=1)return originalBuildingCycleTailStep(c);
+    if(!c.monthPart||*c.monthPart!=1||!c.month||*c.month!=1)return originalBuildingCycleTailStepWrites(c);
     if(!c.cycleTail||!c.cycleTail->alternateMode||*c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.cycle)
         return OriginalBuildingUpdateBlocker::MonthlyCity;
     auto& tail=*c.cycleTail;const int old=tail.smoothedHealth;
@@ -2119,6 +2129,21 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailWithAnnualStep(Ori
         if(p.reserves[0]<originalBuildingSub32(int32_t(target),used))p.reserves[0]=originalBuildingAdd32(p.reserves[0],1);}
     for(auto& e:*c.buildingInputs)if(e.second.alive==1&&e.second.industry)originalBuildingDecayCropFlags(e.second);
     c.phase=0;++tail.calls;return OriginalBuildingUpdateBlocker::None;
+}
+// Annual notices are caller-owned, outside the context and its save codec.
+// Stage them with the entire tail, so a later trade/timer refusal cannot publish
+// either a notice or its health/date/diplomacy prefix. Copies may throw before
+// publication; both final moves are nonthrowing.
+inline OriginalBuildingUpdateBlocker originalBuildingCycleTailWithAnnualStep(OriginalBuildingUpdateContext& c,
+    const std::optional<std::array<OriginalBuildingAnnualOffer,22>>& offers=std::nullopt,
+    OriginalBuildingScenarioMessages* messages=nullptr,std::optional<uint8_t> responseMode=std::nullopt){
+    auto candidate=c;std::optional<OriginalBuildingScenarioMessages> pending;
+    if(messages)pending=*messages;
+    const auto result=originalBuildingCycleTailWithAnnualStepWrites(candidate,offers,pending?&*pending:nullptr,responseMode);
+    if(result!=OriginalBuildingUpdateBlocker::None)return result;
+    static_assert(std::is_nothrow_move_assignable<OriginalBuildingUpdateContext>::value,"Annual context publication must not throw");
+    static_assert(std::is_nothrow_move_assignable<OriginalBuildingScenarioMessages>::value,"Annual message publication must not throw");
+    c=std::move(candidate);if(messages)*messages=std::move(*pending);return result;
 }
 //4AC36A..394 ->591EC0/5925A0. Positive empire transitions remain
 //refused;zero strength is derived from the complete nonmilitary formations.
