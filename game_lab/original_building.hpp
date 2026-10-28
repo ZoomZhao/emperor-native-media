@@ -1,5 +1,6 @@
 #pragma once
 #include "original_map.hpp"
+#include "original_building_risk.hpp"
 #include "asset_bytes.hpp"
 #include <algorithm>
 #include <array>
@@ -133,6 +134,13 @@ inline std::optional<uint16_t> originalResidentialWallVariant(uint8_t mask,unsig
 inline std::optional<OriginalBuildingBaseSelection> originalBuildingBaseSelection(const OriginalBuildingFootprint& f){
     OriginalBuildingBaseSelection out;
     switch(f.type){
+    // Independent local original snapshots 2614/2612: occupied type4 at
+    // grid30224, randomByte95, matches group472 physical1512. Only this
+    // observed variant is admitted; variant0/empty type4 remain unproved.
+    case 0x4:{
+        if(!f.imageInputs||!f.imageInputs->randomByte||
+           !(*f.imageInputs->randomByte&1u)||f.imageInputs->word20<=0)return std::nullopt;
+        out={0x472,1,2,"China_Housing.bmp"};break;}
     case 0x2:case 0x3:case 0x5:case 0x7:{
         if(!f.imageInputs||!f.imageInputs->randomByte)return std::nullopt;
         const auto& i=*f.imageInputs;
@@ -521,6 +529,8 @@ struct OriginalBuildingUpdateInputs {
     int8_t desirability=0;uint8_t desirabilityBonus=0; //+5E/+60,427F6C/427F86;wire84/86.
     //Common5 requests427EDD/EEA/EF7 and42806F. +92 IS serialized
     //at wire130;427430 clears it before reading the selected version.
+    // Legacy names retained by strict-record codecs: fireRisk is the collapse
+    // branch counter, damageRisk the ignition branch counter (Common5 68/70).
     int16_t fireRisk=0,damageRisk=0,burning=0,word92=0;
     uint8_t fireproof=0,fireDirection=0,fireSuppressed=0;
     int32_t watchRisk=0;
@@ -567,7 +577,8 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         v.primaryFigure=detail::i16(p+41);v.word30=detail::i16(p+43);v.word34=detail::i16(p+47);
         v.stock=detail::i16(p+58);v.faction=p[3];v.direction=p[51];v.houseInUse=p[7];
         v.desirability=int8_t(p[84]);v.desirabilityBonus=p[86];
-        v.fireRisk=detail::i16(p+68);v.damageRisk=detail::i16(p+70);v.burning=detail::i16(p+72);
+        const auto risks=originalBuildingRiskWords(p,182);if(!risks)return std::nullopt;
+        v.fireRisk=risks->collapse;v.damageRisk=risks->ignition;v.burning=risks->burning;
         v.word92=detail::i16(p+130);v.fireproof=p[74];v.fireDirection=p[75];v.fireSuppressed=p[84];
         const auto watch=detail::u32(p+125);v.watchRisk=int32_t(watch>INT32_MAX?int64_t(watch)-4294967296LL:watch);
         v.modelDesirability=int8_t(p[85]);v.modelUpgrade=p[100];

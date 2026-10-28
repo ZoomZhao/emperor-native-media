@@ -70,7 +70,7 @@ enum class OriginalFigureUpdateStatus {Computed,DispatchGate,UnsupportedType,Eff
     PheasantContext,PheasantThreat,PheasantRoute,PheasantDestination,PheasantBuilding,OrderedPoolPass,
     MovementModel,RouteGeneration,RouteBoundary,MovementHeight,EarlierSlot,PoolRemoval,LaterSlotEffects,
     CellContext,CellCombat,SegmentService,NextDirection,InspectorFireContext,InspectorFireSearch,WorkerEmployment,SupplierArrival,SupplierSearch,
-    GoodsSearch,GoodsArrival,Projectile,CrtRandomRequired,MigrantHouseSearch};
+    GoodsSearch,GoodsArrival,Projectile,CrtRandomRequired,MigrantHouseSearch,WellReturnDestination};
 inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus status){
     switch(status){case OriginalFigureUpdateStatus::Computed:return "computed";
     case OriginalFigureUpdateStatus::DispatchGate:return "dispatch_gate";
@@ -100,6 +100,7 @@ inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus sta
     case OriginalFigureUpdateStatus::Projectile:return "projectile_allocation_or_collision_5ea510_5e6200";
     case OriginalFigureUpdateStatus::CrtRandomRequired:return "crt_rand_state_required_wall_clock_seeded_not_in_sav";
     case OriginalFigureUpdateStatus::MigrantHouseSearch:return "migrant_nearest_house_4add60_after_wait51";
+    case OriginalFigureUpdateStatus::WellReturnDestination:return "well_walker_return_destination_unported";
     case OriginalFigureUpdateStatus::PheasantContext:return "pheasant_complete_saved_context";
     case OriginalFigureUpdateStatus::PheasantThreat:return "pheasant_threat_qualification_4e5340";
     case OriginalFigureUpdateStatus::PheasantRoute:return "pheasant_route_4e47a0_and_arrival";
@@ -113,6 +114,10 @@ inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus sta
     case OriginalFigureUpdateStatus::CombatRouteAndTarget:return "type_action_route_target_combat_update";}
     return "ordered_type_update";
 }
+// Optional committed-service diagnostics. Disabled for legacy callers.
+struct OriginalInspectionVisit {
+    size_t figure=0,building=0;int16_t collapseBefore=0,ignitionBefore=0,collapseAfter=0,ignitionAfter=0;
+};
 struct OriginalFigureFirstUpdate {
     OriginalFigureUpdateStatus status=OriginalFigureUpdateStatus::UnsupportedType;
     uint32_t updaterVA=0;
@@ -123,6 +128,7 @@ struct OriginalFigureFirstUpdate {
     std::optional<std::map<size_t,OriginalFigureBuildingLink>> buildings;
     std::optional<int32_t> watchMaximum;
     std::optional<std::array<int32_t,2>> inspectorMaximum;
+    std::vector<OriginalInspectionVisit> inspectionVisits;
     std::optional<OriginalFigureGoodsServices> goods;
     std::optional<std::vector<size_t>> freeSlots;
     std::optional<uint32_t> crtRandom;
@@ -267,6 +273,7 @@ struct OriginalFigureUpdateContext {
     std::optional<int32_t> watchtowerReduction;
     std::optional<int32_t> inspectorReduction;
     std::optional<std::array<int32_t,2>> inspectorMaximum; //D95084/88, explicit persistent process scratch.
+    bool captureInspectionVisits=false;std::vector<OriginalInspectionVisit> inspectionVisits;
     std::optional<int32_t> watchMaximum; //D95080 process input; retained between calls, absent refuses.
     std::optional<OriginalFigureCropServices> crops;
     std::vector<uint8_t> elevation;
@@ -279,6 +286,9 @@ struct OriginalFigureUpdateContext {
     std::optional<int32_t> festivalVenue;
     std::optional<std::array<int16_t,3>> entertainmentAvailable;
     std::optional<bool> waterOverride; //48E110(C701D8),restored Festival4 predicate;absent refuses Well basic service.
+    // Explicit caller-owned native observation policy. Absent/false preserves
+    // strict refusal; never loaded from an original SAV or inferred globally.
+    std::optional<bool> wellReturnObservedHomePolicy;
     std::vector<size_t> freeSlots; //postload4E9FE0 descending inactive slots; removal appends.
     size_t highestLiveSlot=0;
     std::optional<uint32_t> crtRandom; //Required on consumption:wall-clock seeded,not in SAV;state at timeline entry,not startup srand argument.
@@ -859,16 +869,19 @@ inline bool originalFigureEntertainmentSegment(OriginalFigure& f,OriginalFigureU
                     if(shadows[size_t((sector+14)&15)]==1)shadows[size_t((sector+15)&15)]=1;}
                 continue;}
             if(sector>=0&&shadows[size_t(sector)]&&std::abs(dx)+std::abs(dy)>shadows[size_t(sector)])continue;
-            if(inspector){auto* target=&h;unsigned hops=0;
-                while(target->parent>0){auto parent=context.buildings->find(size_t(target->parent));if(parent==context.buildings->end()||++hops>=500)return false;target=&parent->second;}
+            if(inspector){auto* target=&h;size_t targetSlot=slot;unsigned hops=0;
+                while(target->parent>0){auto parent=context.buildings->find(size_t(target->parent));if(parent==context.buildings->end()||++hops>=500)return false;targetSlot=parent->first;target=&parent->second;}
                 if(target->type==0x47){if(!target->inspectorParent)return false;auto parent=context.buildings->find(*target->inspectorParent);
-                    if(parent==context.buildings->end())return false;target=&parent->second;}
+                    if(parent==context.buildings->end())return false;targetSlot=parent->first;target=&parent->second;}
                 //4B3930's ordinary identity branch; unported monument parent chains refuse.
                 if(target->type==0x82||target->type==0x83||target->type==0x84)return false;
+                const int16_t beforeCollapse=target->fireRisk,beforeIgnition=target->damageRisk;
                 auto& maximum=*context.inspectorMaximum;maximum[0]=std::max(maximum[0],int32_t(target->fireRisk));
                 maximum[1]=std::max(maximum[1],int32_t(target->damageRisk));
                 target->fireRisk=std::max<int16_t>(0,originalFigureWord(int(target->fireRisk)-int16_t(*context.inspectorReduction)));
                 target->damageRisk=std::max<int16_t>(0,originalFigureWord(int(target->damageRisk)-int16_t(*context.inspectorReduction)));
+                if(context.captureInspectionVisits){if(context.inspectionVisits.size()>=65536)return false;
+                    context.inspectionVisits.push_back({f.slot,targetSlot,beforeCollapse,beforeIgnition,target->fireRisk,target->damageRisk});}
                 //House+B8=42DD40 reads accepting+9; cited ordinary vtables use413A00.
                 if(target->type>=2&&target->type<18){if(target->accepting&&target->residents>0)++count;}
                 else if(!originalFigureBuildingPassThroughFalse(target->type)&&target->type!=0x3b)return false;
@@ -1094,7 +1107,7 @@ inline void originalFigurePublishWrites(OriginalFigureFirstUpdate& out,const Ori
             entry.second.destinationCell!=prior.destinationCell))out.linkedWrites.emplace(entry);}
     if(before.cellHeads!=after.cellHeads)out.cellHeads=after.cellHeads;
     out.watchMaximum=after.watchMaximum;
-    out.inspectorMaximum=after.inspectorMaximum;
+    out.inspectorMaximum=after.inspectorMaximum;out.inspectionVisits=after.inspectionVisits;
     out.goods=after.goods;
     out.freeSlots=after.freeSlots;out.crtRandom=after.crtRandom;out.crtRandomCalls=after.crtRandomCalls;
     out.allocatedSlots=after.allocatedSlots;out.highestLiveSlot=after.highestLiveSlot;
@@ -1110,7 +1123,7 @@ inline bool originalFigureSpecialGoods(const OriginalFigure& f){const unsigned r
 //first tie, then repeat. 5D2760 clears identity only when clear is true.
 inline std::optional<unsigned> originalFigureStorageWithdraw(OriginalFigureBuildingLink& b,unsigned resource,
     unsigned wanted,bool clear,OriginalFigureGoodsServices& goods){
-    if((b.type!=0x36&&b.type!=0x3a)||!b.storage||!b.storagePolicy||*b.storagePolicy>=goods.policies.size()||resource>28)return std::nullopt;
+    if((b.type!=0x36&&b.type!=0x3a)||!b.storage||!b.storagePolicy||*b.storagePolicy>=goods.policies.size()||resource>28||(!resource&&wanted))return std::nullopt;
     for(const auto& c:*b.storage)if(c.capacity!=400||c.amount>400||c.resource>28||(!c.resource&&c.amount))return std::nullopt;
     while(wanted){size_t selected=b.storage->size();uint32_t minimum=10000;
         for(size_t k=0;k<b.storage->size();++k){const auto& c=b.storage->at(k);
@@ -1124,13 +1137,15 @@ inline std::optional<unsigned> originalFigureStorageWithdraw(OriginalFigureBuild
     }
     return wanted;
 }
+// Transfer contract: nullopt rejects before writes; otherwise the returned
+// accepted count equals the committed bay/pool delta, including a partial fit.
 // Warehouse7BE1BC+154=5D4E80: policy gate, then fullest compatible bay
 // (first tie) one unit at a time. +284=5D5080 credits each attempted unit;
 // 5D2790 assigns identity and clamps to capacity. Existing scene selector
 // rebinds changed compartments; no stock-based image formula is added here.
 inline std::optional<unsigned> originalFigureWarehouseDeliver(OriginalFigureBuildingLink& b,unsigned resource,
     unsigned amount,OriginalFigureGoodsServices& goods){
-    if((b.type!=0x35&&b.type!=0x36&&b.type!=0x3a)||!b.storage||b.storage->size()!=(b.type==0x3a?15:8)||!b.storagePolicy||*b.storagePolicy>=goods.policies.size()||resource>28||amount>32767)return std::nullopt;
+    if((b.type!=0x35&&b.type!=0x36&&b.type!=0x3a)||!b.storage||b.storage->size()!=(b.type==0x3a?15:8)||!b.storagePolicy||*b.storagePolicy>=goods.policies.size()||resource>28||(!resource&&amount)||amount>32767)return std::nullopt;
     if(b.type==0x35&&(resource<1||resource>9))return 0; //7B72C8+154=555230->5DB4C0 food-only gate.
     for(const auto& c:*b.storage)if(c.capacity!=400||c.amount>400||c.resource>28||(!c.resource&&c.amount))return std::nullopt;
     if((b.alive!=1&&b.alive!=3)||b.workers<=0||b.suppress)return 0;
@@ -1146,7 +1161,7 @@ inline std::optional<unsigned> originalFigureWarehouseDeliver(OriginalFigureBuil
     for(unsigned n=0;n<wanted;++n){size_t selected=b.storage->size();int maximum=-1;
         for(size_t k=0;k<b.storage->size();++k){const auto& c=b.storage->at(k);
             if(((c.resource==0&&c.amount==0)||c.resource==resource)&&c.amount<c.capacity&&int(c.amount)>maximum){maximum=int(c.amount);selected=k;}}
-        if(selected==b.storage->size())return 0; //original retains partial bay/accounting writes but returns0.
+        if(selected==b.storage->size())return n; //Physical shortage retains only this accepted prefix.
         auto& c=b.storage->at(selected);
         if(b.type!=0x3a)++goods.warehouse[resource];
         else if(policy.trade[resource]==7)++goods.trade7[resource];else if(policy.trade[resource]==5)++goods.trade5[resource];
@@ -1972,6 +1987,38 @@ inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigu
     if(!originalFigureWriteWalkingImage(f,code,archives,context->view)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     originalFigurePublishWrites(out,f,*context,local);return out;
 }
+// Narrow native adapter derived from two bounded Figure-prefix observations,
+// not a proven general original return algorithm. All three candidate origins
+// must coincide; no nonzero route is discarded or guessed. Pure route probing
+// proves the existing mode18 path can be generated without mutating any pool.
+inline std::string originalFigureObservedWellReturnBlocker(const OriginalFigure& f,
+    const OriginalFigureUpdateContext& c,bool inFlight=false){
+    if(!c.wellReturnObservedHomePolicy.value_or(false))return "policy_disabled";
+    if(f.type!=28||!c.buildings)return "owner_context_missing";
+    if(f.alive!=1||!f.slot||f.slot>=2000)return "walker_identity_invalid";
+    if((inFlight&&f.action!=2)||(!inFlight&&f.action!=1))return "action_unproven";
+    const auto owner=c.buildings->find(size_t(f.owner));
+    if(f.owner<=0||owner==c.buildings->end()||owner->second.type!=72||owner->second.alive!=1||owner->second.primaryFigure!=int(f.slot))return "owner_primary_mismatch";
+    if(!inFlight&&f.route!=0)return "existing_route_unproven";
+    if(inFlight&&f.route<0)return "return_route_invalid";
+    if(inFlight&&f.route>0&&(!c.services||f.route>=1000||c.services->routeOwners[size_t(f.route)]!=int(f.slot)))return "return_route_owner_mismatch";
+    const auto& b=owner->second;
+    if(b.roadX!=f.homeX||b.roadY!=f.homeY||f.homeX!=f.roamOriginX||f.homeY!=f.roamOriginY)return "home_origin_owner_road_differ";
+    if(inFlight&&(f.destinationX!=f.homeX||f.destinationY!=f.homeY))return "return_destination_differs";
+    if(!c.cropBase||!c.activeSide||f.homeX<0||f.homeY<0||unsigned(f.homeX)>=*c.activeSide||unsigned(f.homeY)>=*c.activeSide||c.terrain.size()!=51984||c.buildingOwners.size()!=51984)return "home_outside_map";
+    if(f.x<0||f.y<0||unsigned(f.x)>=*c.activeSide||unsigned(f.y)>=*c.activeSide||
+       int64_t(f.cell)!=int64_t(*c.cropBase)+f.x+228LL*f.y)return "current_position_invalid";
+    if(f.cell>=51984||(c.terrain[f.cell]&0x4c)!=0x40||c.buildingOwners[f.cell])return "current_road_missing";
+    const int64_t target=int64_t(*c.cropBase)+f.homeX+228LL*f.homeY;
+    if(target<0||target>=51984||(c.terrain[size_t(target)]&0x4c)!=0x40||c.buildingOwners[size_t(target)])return "home_road_missing";
+    if(!c.passability||c.passability->spawn.cropBase!=*c.cropBase)return "return_passability_missing";
+    if(!inFlight||f.route==0){
+        bool reached=false;auto route=originalFigureEngineRoute(*c.passability,f.x,f.y,f.homeX,f.homeY,0x10c,4,&reached);
+        if(reached&&route&&route->empty()&&(f.x!=f.homeX||f.y!=f.homeY))route=originalFigureEngineRoute(*c.passability,f.x,f.y,f.homeX,f.homeY,0x10c);
+        if(!route||!reached||(route->empty()&&(f.x!=f.homeX||f.y!=f.homeY)))return "home_route_unavailable";
+    }
+    return {};
+}
 //0x4D0270/0x4D3A70/0x4D3B50/0x4CD230 bounded owner-valid walk/roam.
 inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
@@ -2060,7 +2107,13 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
                 (f.roamSteps>=int(f.roamLimit)*4/5&&f.x==f.roamOriginX&&f.y==f.roamOriginY);
             f.hidden=0;
             if(returning){
-                if(f.type!=23)return out;
+                if(f.type==28){
+                    if(!originalFigureObservedWellReturnBlocker(f,local).empty()){
+                        out.status=OriginalFigureUpdateStatus::WellReturnDestination;return out;}
+                    f.action=2;f.destinationX=f.homeX;f.destinationY=f.homeY;f.roamSteps=0;
+                    // Keep route==0/destinationCell and position unchanged. As
+                    // in the shared handler, FollowRoute begins NEXT update.
+                }else{
                 //544910 selects fourth role1:8574A8 has(3,3) in both Market orientations.
                 //4BA580 radius0 on this size1 parent returns its sole road cell.
                 if(owner->second.size!=1||!local.cropBase||local.terrain.size()!=51984)return out;
@@ -2069,6 +2122,7 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
                 f.action=2;f.destinationX=originalFigureWord(tx);f.destinationY=originalFigureWord(ty);f.roamSteps=0;
                 if(f.route>0){if(f.route>=1000||!local.services)return out;
                     if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}
+                }
             }else {const auto movement=originalFigureRoam(f,unsigned(speed->second),terrainFlags,local);
                 if(!movement.state){out.status=movement.status;return out;}f=*movement.state;}
         }else{const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
@@ -2602,6 +2656,7 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                         if(result.buildings)context->buildings=result.buildings;
                         if(result.watchMaximum)context->watchMaximum=*result.watchMaximum;
                         if(result.inspectorMaximum)context->inspectorMaximum=*result.inspectorMaximum;
+                        if(context->captureInspectionVisits)context->inspectionVisits=result.inspectionVisits;
                         if(result.goods)context->goods=result.goods;
                         if(result.roadblockGate)context->roadblockGate=result.roadblockGate;
                         if(result.freeSlots){context->freeSlots=*result.freeSlots;context->crtRandom=result.crtRandom;context->crtRandomCalls=result.crtRandomCalls;

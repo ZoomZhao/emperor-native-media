@@ -3,6 +3,7 @@
 #include "original_building_animation.hpp"
 #include "original_terrain.hpp"
 #include "original_figure_update.hpp"
+#include "original_house_goods_contract.hpp"
 #include "../file_io/include/city19_later7_layout.hpp"
 #include "../file_io/include/city19_religion_archive.hpp"
 #include <set>
@@ -189,13 +190,14 @@ inline std::optional<OriginalBuildingFormationResult> originalBuildingFormationS
 enum class OriginalBuildingUpdateBlocker {None,InvalidState,MissingContext,ExternalWrites,
     ProductionVirtuals,RoadRefresh,Employment,HousingEvolution,BuildingVirtual20,
     RiskAndFire,MonthlyCity,Availability,CityPhase,UnclosedPhase,HousingCapacity,CityLabor,Trade,
-    FarmerWallClock,FireWind};
+    FarmerWallClock,FireWind,EmploymentCategoryPolicy};
 inline const char* originalBuildingUpdateBlockerName(OriginalBuildingUpdateBlocker b){
     switch(b){case OriginalBuildingUpdateBlocker::None:return "computed";
     case OriginalBuildingUpdateBlocker::InvalidState:return "invalid_saved_building_update_inputs";
     case OriginalBuildingUpdateBlocker::MissingContext:return "explicit_phase_terrain_disabled_context_required";
     case OriginalBuildingUpdateBlocker::FarmerWallClock:return "farmer_wall_clock_766da0_required";
     case OriginalBuildingUpdateBlocker::FireWind:return "fire_wind_c82f2c_required";
+    case OriginalBuildingUpdateBlocker::EmploymentCategoryPolicy:return "employment_category_override_out_of_range";
     case OriginalBuildingUpdateBlocker::ExternalWrites:return "intervening_figure_city_writes_not_supplied";
     case OriginalBuildingUpdateBlocker::ProductionVirtuals:return "production_virtuals_51e4a0_74_208";
     case OriginalBuildingUpdateBlocker::RoadRefresh:return "road_refresh_4acfc0_426df0_1391fe0";
@@ -378,6 +380,8 @@ struct OriginalBuildingUpdateContext {
     // This is a building-only experiment, never a complete future city state.
     bool isolateBuildingWrites;
     std::optional<uint32_t> phase,monthPart,cycle,month;
+    // C1 explicit format normalization; false preserves legacy food bytes/behavior.
+    bool normalizedHouseGoods=false;
     std::optional<uint32_t> terrainFlags;
     std::optional<bool> typeDisabled;
     // Population7 unavailable[output], model5, and Festival4+50/+54/+58.
@@ -445,6 +449,8 @@ struct OriginalBuildingUpdateContext {
     std::optional<std::map<size_t,OriginalBuildingProductionInputs>> productionInputs;
     std::optional<std::array<int16_t,36>> unavailableResources;
     std::optional<OriginalBuildingEmployment> employmentModel;
+    // Explicit native adaptation only; absent preserves strict type mapping.
+    std::optional<std::map<uint16_t,int>> employmentCategoryOverrides;
     std::optional<std::map<size_t,bool>> buildingUnavailable;
     std::optional<int32_t> unemploymentTrend,shortageNoticeCountdown,elapsedYears,scenarioStartYears;
     unsigned employmentCalls=0;
@@ -1022,10 +1028,13 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
         if(i.operational<=0)i.roadFailure=2;
         auto present=originalBuildingHookFigure(i.primaryFigure,figureType,s.building.slot,c);if(!present)return OriginalBuildingUpdateBlocker::MissingContext;
         bool full=*present;
-        const bool extra=(type==124||type==127)&& (i.model>0||i.upgrade!=0);
+        const bool extra=type==124?(i.model>0||i.modelUpgrade.value_or(0)!=0):type==127&&(i.model>0||i.upgrade!=0);
+        // Inspector cleanup/serialized secondary ownership uses +6C, not the
+        // Warehouse exporter +6A. Keep other type contracts unchanged.
+        const size_t secondaryOffset=type==124?0x6c-4:0x6a-4;
         if((extra||type==71)&&full){if(!i.hookIndustry)return OriginalBuildingUpdateBlocker::MissingContext;
-            int16_t second=detail::i16(i.hookIndustry->data()+0x6a-4);auto next=originalBuildingHookFigure(second,figureType,s.building.slot,c);if(!next)return OriginalBuildingUpdateBlocker::MissingContext;
-            i.hookIndustry->at(0x6a-4)=uint8_t(second);i.hookIndustry->at(0x6b-4)=uint8_t(uint16_t(second)>>8);full=*next;}
+            int16_t second=detail::i16(i.hookIndustry->data()+secondaryOffset);auto next=originalBuildingHookFigure(second,figureType,s.building.slot,c);if(!next)return OriginalBuildingUpdateBlocker::MissingContext;
+            i.hookIndustry->at(secondaryOffset)=uint8_t(second);i.hookIndustry->at(secondaryOffset+1)=uint8_t(uint16_t(second)>>8);full=*next;}
         if(full)return OriginalBuildingUpdateBlocker::None;
         if(!c.walkersDisabled)return OriginalBuildingUpdateBlocker::MissingContext;if(*c.walkersDisabled)return OriginalBuildingUpdateBlocker::None;
         if(!c.poolRoadSelected||!c.poolRoadSelected->count(s.building.slot))return OriginalBuildingUpdateBlocker::MissingContext;
@@ -1045,7 +1054,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
             const auto slot=originalBuildingAllocateService(c,uint8_t(figureType),i.faction,road.x,road.y,i.direction);
             if(!slot)return OriginalBuildingUpdateBlocker::BuildingVirtual20;if(!*slot)return OriginalBuildingUpdateBlocker::None;
             if(i.primaryFigure>0){if(!i.hookIndustry)return OriginalBuildingUpdateBlocker::MissingContext;
-                i.hookIndustry->at(0x6a-4)=uint8_t(*slot);i.hookIndustry->at(0x6b-4)=uint8_t(*slot>>8);}else i.primaryFigure=int16_t(*slot);
+                i.hookIndustry->at(secondaryOffset)=uint8_t(*slot);i.hookIndustry->at(secondaryOffset+1)=uint8_t(*slot>>8);}else i.primaryFigure=int16_t(*slot);
             auto& f=c.figures->at(*slot);f.owner=int16_t(s.building.slot);f.action=6;f.counter=30;
             i.direction=uint8_t((i.direction+4)&7);f.previousDirection=i.direction;
             if(!originalBuildingBeginServiceRoam(f,i,c))return OriginalBuildingUpdateBlocker::BuildingVirtual20;
@@ -1201,11 +1210,15 @@ inline OriginalBuildingUpdateBlocker originalBuildingStorageStep(OriginalBuildin
     ++c.storageCalls;return OriginalBuildingUpdateBlocker::None;
 }
 //4AEDF0 ->591490 includes storage reset,then Mill+58 and house+12.
-inline OriginalBuildingUpdateBlocker originalBuildingFoodStep(OriginalBuildingUpdateContext& c){
+inline OriginalBuildingUpdateBlocker originalBuildingFoodStepWrites(OriginalBuildingUpdateContext& c){
     if(!c.scenarioFoodOverride||*c.scenarioFoodOverride||!c.buildingInputs||!c.buildingLinks||!c.poolRoadSelected||!c.populationTotal)return OriginalBuildingUpdateBlocker::CityPhase;
     const auto storage=originalBuildingStorageStep(c);if(storage!=OriginalBuildingUpdateBlocker::None)return storage;
     if(!c.cityDerived)c.cityDerived.emplace();auto& d=*c.cityDerived;d.food=0;d.millFood.fill(0);
-    for(const auto& e:*c.buildingInputs){const auto& i=e.second;if(i.house&&(i.alive==1||i.alive==3)&&i.residents)d.food=originalBuildingAdd32(d.food,detail::i16(i.house->data()+14));}
+    for(const auto& e:*c.buildingInputs){const auto& i=e.second;if(i.house&&(i.alive==1||i.alive==3)&&i.residents){
+        const auto food=c.normalizedHouseGoods?originalHouseGoodsWord(i.house->data(),i.house->size(),0):
+            std::optional<int16_t>(detail::i16(i.house->data()+14));
+        if(!food)return OriginalBuildingUpdateBlocker::CityPhase;
+        d.food=originalBuildingAdd32(d.food,*food);}}
     for(auto& e:*c.buildingLinks){auto& b=e.second;if(b.type!=53||(b.alive!=1&&b.alive!=3))continue;
         const auto road=c.poolRoadSelected->find(e.first);const auto input=c.buildingInputs->find(e.first);
         if(road==c.poolRoadSelected->end()||input==c.buildingInputs->end()||!b.storage)return OriginalBuildingUpdateBlocker::CityPhase;
@@ -1214,6 +1227,15 @@ inline OriginalBuildingUpdateBlocker originalBuildingFoodStep(OriginalBuildingUp
     for(unsigned n=1;n<10;++n)d.food=originalBuildingAdd32(d.food,d.millFood[n]);d.foodConsumption=originalBuildingPercent(*c.populationTotal,25);
     d.foodMonths=d.foodConsumption>0?d.food/d.foodConsumption:int32_t(d.food>0);
     d.warehouse=c.goods->warehouse;d.trade5=c.goods->trade5;d.trade7=c.goods->trade7;++c.foodCalls;return OriginalBuildingUpdateBlocker::None;
+}
+// The opt-in C1 path publishes storage, road and food-statistic writes only
+// after the entire food service succeeds. Legacy callers retain their exact
+// existing low-level prefix behavior; their outer transaction still owns it.
+inline OriginalBuildingUpdateBlocker originalBuildingFoodStep(OriginalBuildingUpdateContext& c){
+    if(!c.normalizedHouseGoods)return originalBuildingFoodStepWrites(c);
+    auto candidate=c;const auto result=originalBuildingFoodStepWrites(candidate);
+    if(result==OriginalBuildingUpdateBlocker::None)c=std::move(candidate);
+    return result;
 }
 inline OriginalBuildingUpdateBlocker originalBuildingAccountingStep(OriginalBuildingUpdateContext& c){
     if(!c.cityEmployment||!c.accounting||!c.formations||!c.figures||!c.figureModels||!c.figureStationary)
@@ -2148,10 +2170,21 @@ inline std::optional<int> originalBuildingEmploymentCategory(uint16_t type){
     case 35:case 43:return 1;case 53:case 54:case 58:case 62:case 66:case 67:case 71:return 2;
     case 72:case 124:case 127:case 207:return 3;case 211:return 5;case 214:return 6;default:return std::nullopt;}
 }
+inline bool originalBuildingEmploymentCategoryPolicyValid(const OriginalBuildingUpdateContext& c){
+    if(c.employmentCategoryOverrides)for(const auto& entry:*c.employmentCategoryOverrides)
+        if(entry.second< -1||entry.second>9)return false;
+    return true;
+}
+inline std::optional<int> originalBuildingEmploymentCategory(uint16_t type,const OriginalBuildingUpdateContext& c){
+    if(c.employmentCategoryOverrides){const auto row=c.employmentCategoryOverrides->find(type);
+        if(row!=c.employmentCategoryOverrides->end())return row->second< -1||row->second>9?std::nullopt:std::optional<int>(row->second);}
+    return originalBuildingEmploymentCategory(type);
+}
 inline OriginalBuildingUpdateBlocker originalBuildingAvailabilityStep(OriginalBuildingUpdateContext& c){
+    if(!originalBuildingEmploymentCategoryPolicyValid(c))return OriginalBuildingUpdateBlocker::EmploymentCategoryPolicy;
     if(!c.buildings||!c.buildingInputs||!c.terrain||!c.cropBase)return OriginalBuildingUpdateBlocker::Availability;
     for(auto& e:*c.buildingInputs){auto& i=e.second;if(i.alive!=1&&i.alive!=3)continue;const auto& b=c.buildings->at(e.first);
-        if((!originalBuildingEmploymentCategory(b.type)&&!(b.type==161&&c.disasters))||!b.imageInputs||b.imageInputs->gridIndex>=c.terrain->size())return OriginalBuildingUpdateBlocker::Availability;
+        if((!originalBuildingEmploymentCategory(b.type,c)&&!(b.type==161&&c.disasters))||!b.imageInputs||b.imageInputs->gridIndex>=c.terrain->size())return OriginalBuildingUpdateBlocker::Availability;
         bool inputIndustry=false;if(b.type==33||b.type==35||b.type==43){if(!c.productionInputs)return OriginalBuildingUpdateBlocker::Availability;
             const auto p=c.productionInputs->find(e.first);if(p==c.productionInputs->end())return OriginalBuildingUpdateBlocker::Availability;
             inputIndustry=p->second.primaryStock!=0||p->second.secondaryStock!=0;}
@@ -2168,12 +2201,13 @@ inline OriginalBuildingUpdateBlocker originalBuildingAvailabilityStep(OriginalBu
 //4AE220->4AE7F0->4F19A0:all supplied+188=4271D0,+18C=51E310.
 //Preferred rows use+F4=4E1C40 for Trading/Inspector/Watchtower/Herbalist.
 inline OriginalBuildingUpdateBlocker originalBuildingEmploymentStep(OriginalBuildingUpdateContext& c){
+    if(!originalBuildingEmploymentCategoryPolicyValid(c))return OriginalBuildingUpdateBlocker::EmploymentCategoryPolicy;
     if(c.empireProduction){const auto blocker=originalBuildingUnavailableStep(c);if(blocker!=OriginalBuildingUpdateBlocker::None)return blocker;}
     if(!c.buildings||!c.buildingInputs||!c.cityEmployment||!c.employmentModel||!c.buildingUnavailable||!c.buildingLinks||
         !c.unemploymentTrend||!c.shortageNoticeCountdown||!c.elapsedYears||!c.scenarioStartYears)return OriginalBuildingUpdateBlocker::Employment;
     auto& city=*c.cityEmployment;for(auto& r:city.rows)r.demand=r.allocated=r.preferred=r.preferredAllocated=0;
     struct Candidate{size_t slot;int category,required;bool preferred;};std::vector<Candidate> candidates;
-    for(auto& e:*c.buildingInputs){auto& i=e.second;const auto type=c.buildings->at(e.first).type;const auto cat=type==161&&c.disasters?std::optional<int>(-1):originalBuildingEmploymentCategory(type);
+    for(auto& e:*c.buildingInputs){auto& i=e.second;const auto type=c.buildings->at(e.first).type;const auto cat=type==161&&c.disasters?std::optional<int>(-1):originalBuildingEmploymentCategory(type,c);
         if(!cat)return OriginalBuildingUpdateBlocker::Employment;i.employmentCategory=uint8_t(*cat);
         const auto unavailable=c.buildingUnavailable->find(e.first);const auto link=c.buildingLinks->find(e.first);
         if(unavailable==c.buildingUnavailable->end()||link==c.buildingLinks->end())return OriginalBuildingUpdateBlocker::Employment;

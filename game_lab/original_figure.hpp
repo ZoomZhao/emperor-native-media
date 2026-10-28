@@ -310,7 +310,9 @@ struct OriginalFigureBuildingLink {
     std::optional<std::array<uint8_t,2>> waterService; //embedded+32/+34,517410 tail49/51.
     uint8_t upgrade=0; //common+6F,427430 wire99;Well+224=5B3AD0.
     int32_t watchRisk=0; //common+8C,427430; mutable5B3ED0.
-    int16_t fireRisk=0,damageRisk=0; //common+4A/+4C, wire68/70.
+    // Legacy names: collapse/ignition branch counters, respectively. Preserve
+    // raw values in all bidirectional mirrors; Common5 wire68/70, signed16.
+    int16_t fireRisk=0,damageRisk=0;
     std::optional<size_t> inspectorParent;int16_t parent=0; //common+3C,wire54;4B3930.
     struct CropDelivery {uint16_t flags=0;uint32_t pending=0;};
     std::optional<CropDelivery> cropDelivery; //embedded+6A and outer+150.
@@ -375,7 +377,8 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         const int policy=detail::i16(data.data()+at+88);if(policy>=0)link.storagePolicy=size_t(policy);
         link.roadX=detail::i16(data.data()+at+37);link.roadY=detail::i16(data.data()+at+39);link.roamDirection=data[at+51];
         link.inspectorSecondary=detail::i16(data.data()+at+18)>0||data[at+100]!=0;
-        link.fireRisk=detail::i16(data.data()+at+68);link.damageRisk=detail::i16(data.data()+at+70);
+        const auto risks=originalBuildingRiskWords(data.data()+at,182);if(!risks)return std::nullopt;
+        link.fireRisk=risks->collapse;link.damageRisk=risks->ignition;
         link.parent=detail::i16(data.data()+at+54);
         link.residents=detail::i16(data.data()+at+27);link.freeSlots=detail::i16(data.data()+at+29);link.houseModel=detail::i16(data.data()+at+18);
         const auto risk=detail::u32(data.data()+at+125);link.watchRisk=int32_t(risk>INT32_MAX?int64_t(risk)-4294967296LL:risk);

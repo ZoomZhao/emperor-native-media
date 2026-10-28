@@ -30,8 +30,10 @@ inline std::optional<std::pair<int,int>> nativeSessionTile(const OriginalMapCame
     const double x=std::floor(c.centerX+(a+b)/2+.5),y=std::floor(c.centerY+(b-a)/2+.5);
     if(x<0||y<0||x>=side||y>=side)return std::nullopt;return std::pair<int,int>{int(x),int(y)};
 }
+// Lightweight legacy preview. Resource-backed v8 App callers route through
+// previewNativeSessionCommand in native_house_runtime.hpp instead.
 inline NativeSessionResult nativeSessionPlacementPreview(const NativeSessionSeed& seed,const NativeSessionState& state,NativeSessionAction action,int64_t x,int64_t y) {
-    if(action!=NativeSessionAction::Road&&action!=NativeSessionAction::House&&action!=NativeSessionAction::Well&&action!=NativeSessionAction::Hunter)return {false,"no_construction_tool"};
+    if(action!=NativeSessionAction::Road&&action!=NativeSessionAction::House&&action!=NativeSessionAction::Well&&action!=NativeSessionAction::Hunter&&action!=NativeSessionAction::Inspector)return {false,"no_construction_tool"};
     auto copy=state;return transactNativeSession(seed,copy,{action,state.revision,x,y});
 }
 using NativeTile=std::pair<int,int>;

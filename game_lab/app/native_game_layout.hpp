@@ -16,6 +16,7 @@ struct NativeGameLayout {
         return {width-220,height-76.-38.*row,46,38};
     }
     NativeGameRect minimap() const {return {width-171,height-653,111,111};}
+    NativeGameRect entrance() const {return {width-220,height-612,46,28};}
     NativeGameRect tool(unsigned slot) const {
         if(slot>=6)return {};
         // Local original selectors: 3 columns, 2 rows; edge uncertainty +/-1 point.

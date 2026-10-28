@@ -2,6 +2,9 @@
 // Original read-only art decorates Cocoa controls. All text uses the system font.
 #include "native_game_layout.hpp"
 static inline NSRect NativeNSRect(game_lab::NativeGameRect r){return NSMakeRect(r.x,r.y,r.width,r.height);}
+// Inspector uses an existing selector cell beside the service category's Well.
+// Cancel stays in cell2; the two service choices never overlap.
+static inline NSRect NativeToolRect(const game_lab::NativeGameLayout& layout,unsigned tool){return NativeNSRect(tool==6?layout.tool(4):layout.toolFor(tool));}
 
 // Nine-slice drawing keeps corner and edge pixels at their source size. Only the
 // interior is resampled, so a decorative frame is never stretched as a whole image.

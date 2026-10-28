@@ -7,7 +7,7 @@ import argparse, hashlib, json, os, shlex, subprocess
 ROOT=Path(__file__).resolve().parents[1]
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=['release','undefined'],default='release');p.add_argument('--output-dir',type=Path,required=True);p.add_argument('--save',action='append',default=[]);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=['release','undefined'],default='release');p.add_argument('--output-dir',type=Path,required=True);p.add_argument('--save',action='append',default=[]);p.add_argument('--checkpoint',type=Path,action='append',default=[]);a=p.parse_args()
  out=a.output_dir.resolve()
  if out==ROOT or ROOT in out.parents:p.error('output must be outside repository')
  out.mkdir(parents=True,exist_ok=True)
@@ -32,7 +32,12 @@ def main():
    if Path(name).is_absolute() or Path(root).resolve() not in f.parents:raise ValueError('source outside data root')
    inputs[name]=sha(f)
   run(['--real',name])
- assert all(sha(Path(root)/n)==v for n,v in inputs.items())
+ for path in a.checkpoint:
+  path=path.resolve()
+  if not path.is_file() or path.suffix!='.encity':raise ValueError('existing native checkpoint required')
+  if root and (path==Path(root).resolve() or Path(root).resolve() in path.parents):raise ValueError('native checkpoint must be outside original data')
+  inputs[str(path)]=sha(path);run(['--checkpoint',str(path)])
+ assert all(sha(Path(n) if Path(n).is_absolute() else Path(root)/n)==v for n,v in inputs.items())
  assert all(sha(ROOT/n)==v for n,v in bindings.items())
  result={'suite':'read-only-native-feedback','mode':a.mode,'driver_sha256':sha(__file__),'commands':commands,'sources_sha256':bindings,'objects_sha256':{f.name:sha(f) for f in objects},'binary_sha256':sha(binary),'runs':runs,'real_inputs_sha256':inputs,'App_executed':False}
  (out/'verification.json').write_text(json.dumps(result,indent=2)+'\n')

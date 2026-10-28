@@ -89,7 +89,7 @@ const NativeHouseEvolutionView& onlyHouse(const NativeHouseEvolutionReport& repo
 bool has(const std::vector<std::string>& values,const std::string& name){
     for(const auto& v:values)if(v==name)return true;return false;
 }
-size_t waterBinaryCases=0,branchStepCases=0;
+size_t waterBinaryCases=0,branchStepCases=0,planEquivalenceCases=0;
 // Independent 519120/51A3F0 probe on one authored house at the same site.
 struct BranchProbe {std::optional<bool> current,next;int direction=0;bool contextValid=true;};
 BranchProbe probeBranch(const NativeHouseModels& models,int desirability,uint8_t water){
@@ -128,6 +128,206 @@ void requireBranchesMatchProbe(const NativeHouseModels& models,const NativeHouse
     };
     if(v.desirability)checkBonus(*v.desirability);
     if(v.desirabilityWithBonus)checkBonus(*v.desirabilityWithBonus);
+}
+struct StrictPlanFixture {
+    OriginalBuildingUpdateState state;
+    OriginalBuildingUpdateContext context{OriginalBuildingUpdateScope::AdmittedTicks,true};
+};
+StrictPlanFixture planFixture(const NativeHouseModels& models,uint16_t type=3,
+                              int desirability=0,uint8_t delay=0,uint32_t part=1) {
+    StrictPlanFixture f;
+    constexpr unsigned side=24,cropBase=((228-side)/2)*229;
+    auto& c=f.context;c.buildingModels=models.building;c.houseModels=models.house;
+    c.terrainOwners=std::vector<uint16_t>(cells,0);
+    c.activeSide=side;c.cropBase=cropBase;
+    c.evolutionDisabled=false;c.forceHouseEvolution=false;c.monthPart=part;
+    auto& b=f.state.building;b.slot=2;b.type=type;b.x=5;b.y=5;b.size=2;
+    b.imageInputs.emplace();b.imageInputs->gridIndex=cropBase+5+228*5;
+    c.terrainOwners->at(b.imageInputs->gridIndex)=uint16_t(b.slot);
+    auto& i=f.state.inputs;i.alive=1;i.identity=2;i.house.emplace();i.house->fill(0);
+    i.model=int16_t(std::max(0,int(type)-3));i.residents=10;i.modelDesirability=desirability;
+    i.house->at(52)=delay;
+    return f;
+}
+void connectPlanPool(StrictPlanFixture& f){
+    auto& c=f.context;const size_t slot=f.state.building.slot;
+    c.buildings.emplace();c.buildingInputs.emplace();c.buildingLinks.emplace();
+    c.buildings->emplace(slot,f.state.building);c.buildingInputs->emplace(slot,f.state.inputs);
+    OriginalFigureBuildingLink link;link.type=f.state.building.type;link.alive=f.state.inputs.alive;
+    link.x=int16_t(f.state.building.x);link.y=int16_t(f.state.building.y);
+    link.cell=f.state.building.imageInputs->gridIndex;
+    c.buildingLinks->emplace(slot,link);
+}
+void testPlanContextPreservesPools(){
+    auto models=parseModels({-99,1,0,0,0,0});models.house.at(0)[10]=2;
+    auto f=planFixture(models,2,10,0,7);f.state.building.imageInputs->randomByte=0;
+    f.state.inputs.house->at(0x16-1-4)=8;connectPlanPool(f);
+    f.context.phase=39;f.context.waterScratch=73;f.context.houseEvolutionCalls=7;
+    f.context.houseConversions=3;f.context.houseRedraws=2;f.context.buildingRedraws.insert(99);
+    const auto plan=planNativeHouseEvolution(f.state,f.context,0);
+    need(plan.candidate&&plan.candidateContext&&plan.error.empty(),"context candidate accompanies strict success");
+    const auto& c=*plan.candidateContext;
+    need(plan.retainsHouseIdentityAndGeometry&&plan.invariantError.empty(),"ordinary conversion retains identity and geometry");
+    need(plan.candidate->building.type==3&&c.buildings->at(2).type==3&&
+         c.buildingInputs->at(2).model==0&&c.buildingLinks->at(2).type==3,
+         "candidate conversion reaches local pool and figure mirror");
+    need(detail::i16(c.buildingInputs->at(2).house->data()+0x16-1-4)==6&&
+         c.buildingInputs->at(2).houseWater==0,"pool keeps candidate goods and cached water");
+    need(c.houseEvolutionCalls==8&&c.houseConversions==4&&c.houseRedraws==3&&
+         c.buildingRedraws.count(2)&&c.buildingRedraws.count(99)&&
+         c.phase&&*c.phase==39&&c.waterScratch==73,"full context retains strict counters redraws and unrelated state");
+    need(f.state.building.type==2&&f.context.buildings->at(2).type==2&&
+         detail::i16(f.context.buildingInputs->at(2).house->data()+0x16-1-4)==8&&
+         f.context.houseEvolutionCalls==7&&f.context.houseConversions==3&&
+         !f.context.buildingRedraws.count(2),"input state and context remain unchanged");
+}
+void testPlanOwnershipNeedsResolution(){
+    const auto models=parseModels({-99,100,0,0,0,0});auto f=planFixture(models);
+    connectPlanPool(f);const auto oldCell=f.state.building.imageInputs->gridIndex;
+    f.context.terrainOwners->at(oldCell)=0;f.context.terrainOwners->at(oldCell+1)=2;
+    const auto relocated=planNativeHouseEvolution(f.state,f.context,0);
+    need(relocated.candidate&&relocated.candidateContext&&relocated.error.empty(),"strict relocation result retained for explicit caller policy");
+    need(!relocated.retainsHouseIdentityAndGeometry&&
+         relocated.invariantError=="house_candidate_geometry_changed"&&
+         relocated.candidate->building.x==6&&relocated.candidate->inputs.alive==1&&
+         relocated.candidateContext->ownershipRepairs[3]==1&&
+         relocated.candidateContext->buildingLinks->at(2).x==6&&
+         relocated.candidateContext->buildingLinks->at(2).cell==oldCell+1,
+         "relocation is flagged and complete context mirrors repaired geometry");
+    need(f.state.building.x==5&&f.context.buildingLinks->at(2).x==5&&
+         f.context.ownershipRepairs[3]==0,"relocation cannot leak into source");
+    f=planFixture(models);connectPlanPool(f);std::fill(f.context.terrainOwners->begin(),f.context.terrainOwners->end(),0);
+    const auto retired=planNativeHouseEvolution(f.state,f.context,0);
+    need(retired.candidate&&retired.candidateContext&&retired.error.empty()&&
+         retired.candidate->inputs.alive==4&&retired.candidateContext->buildingInputs->at(2).alive==4&&
+         retired.candidateContext->buildingLinks->at(2).alive==4&&
+         retired.candidateContext->ownershipRepairs[2]==1,
+         "strict ownership loss preserves retirement candidate and context");
+    need(!retired.retainsHouseIdentityAndGeometry&&retired.invariantError=="house_candidate_inactive"&&
+         f.state.inputs.alive==1&&f.context.buildingInputs->at(2).alive==1,
+         "retired result is not an ordinary publishable house");
+}
+void testPlanContextFailureAtomic(){
+    auto f=planFixture(parseModels({-99,-99,0,0,0,0}),3,10,9);connectPlanPool(f);
+    const auto refused=planNativeHouseEvolution(f.state,f.context,2);
+    need(!refused.candidate&&!refused.candidateContext&&!refused.retainsHouseIdentityAndGeometry&&
+         refused.error=="house_evolution_target_unsupported"&&
+         f.context.buildingInputs->at(2).house->at(52)==9&&
+         f.context.houseConversions==0&&f.context.buildingRedraws.empty(),
+         "strict target refusal exposes neither local nor context prefix");
+    f=planFixture(parseModels({-99,100,0,0,0,0}));connectPlanPool(f);
+    f.context.buildings->erase(2);
+    const auto missing=planNativeHouseEvolution(f.state,f.context,0);
+    need(!missing.candidate&&!missing.candidateContext&&
+         missing.blocker==OriginalBuildingUpdateBlocker::InvalidState&&
+         missing.error=="house_candidate_pool_unconnected"&&f.context.buildingInputs->count(2),
+         "incomplete supplied pool refuses atomically");
+    f=planFixture(parseModels({-99,100,0,0,0,0}),3,-120,8);connectPlanPool(f);
+    f.context.buildingLinks->clear();
+    const auto unsynced=planNativeHouseEvolution(f.state,f.context,0);
+    need(!unsynced.candidate&&!unsynced.candidateContext&&
+         unsynced.error=="house_candidate_pool_sync_failed"&&
+         f.state.inputs.house->at(52)==8&&f.context.buildingInputs->at(2).house->at(52)==8,
+         "mirror sync failure cannot leak candidate delay writes");
+}
+void testPlanMatchesStrictStep(){
+    const auto models=parseModels({-99,100,0,0,0,0});
+    for(uint16_t type:{2,3,5,7})for(int desirability:{-120,-10,0,10,120})
+        for(uint8_t water:{0,1,2})for(uint8_t delay:{0,8,9})for(uint32_t part:{1,7}){
+            auto f=planFixture(models,type,desirability,delay,part);
+            const auto originalTail=*f.state.inputs.house;
+            const auto originalImage=*f.state.building.imageInputs;
+            const auto plan=planNativeHouseEvolution(f.state,f.context,water);
+            auto direct=f.state;auto context=f.context;direct.inputs.houseWater=water;
+            const auto blocker=originalBuildingHouseEvolutionStep(direct,context);
+            need(plan.blocker==blocker,"plan uses strict blocker");
+            need(plan.direction&&*plan.direction==context.houseEvolutionResult,"plan uses strict intent");
+            need(bool(plan.candidate)==(blocker==OriginalBuildingUpdateBlocker::None),"candidate iff strict success");
+            need(bool(plan.candidateContext)==bool(plan.candidate),"state and context candidates are paired");
+            if(plan.candidate){
+                const auto& candidate=*plan.candidate;
+                need(candidate.building.type==direct.building.type&&candidate.inputs.model==direct.inputs.model&&
+                     candidate.inputs.house==direct.inputs.house&&candidate.inputs.houseWater==direct.inputs.houseWater&&
+                     candidate.inputs.alive==direct.inputs.alive&&
+                     candidate.building.imageInputs->word20==direct.building.imageInputs->word20&&
+                     candidate.building.imageInputs->houseByte3c==direct.building.imageInputs->houseByte3c,
+                     "candidate exact strict state");
+                need(plan.error.empty(),"accepted candidate has no error");
+            }else need(!plan.error.empty(),"refused candidate has reason");
+            need(*f.state.inputs.house==originalTail&&f.state.building.type==type&&
+                 f.state.building.imageInputs->word20==originalImage.word20,"source unchanged");
+            need(f.context.houseEvolutionCalls==0&&f.context.houseConversions==0&&
+                 f.context.buildingRedraws.empty(),"context unchanged");
+            ++planEquivalenceCases;
+        }
+}
+void testPlanUnknownInputs(){
+    const auto models=parseModels({-99,100,0,0,0,0});auto f=planFixture(models);
+    auto plan=planNativeHouseEvolution(f.state,f.context);
+    need(!plan.candidate&&!plan.direction&&plan.error=="house_water_unconnected","unknown water refused");
+    plan=planNativeHouseEvolution(f.state,f.context,3);
+    need(!plan.candidate&&plan.error=="invalid_house_water","invalid water refused");
+    f.context.monthPart.reset();plan=planNativeHouseEvolution(f.state,f.context,0);
+    need(!plan.candidate&&plan.error=="house_cycle_unmapped","unknown clock refused");
+    f=planFixture(models);f.state.inputs.house.reset();plan=planNativeHouseEvolution(f.state,f.context,0);
+    need(!plan.candidate&&plan.error=="house_runtime_unconnected","missing runtime refused");
+    f=planFixture(models);f.state.building.type=4;plan=planNativeHouseEvolution(f.state,f.context,2);
+    need(!plan.candidate&&!plan.direction&&plan.error=="house_type_unsupported","type4 input refused");
+    f=planFixture(models);f.context.monthPart=16;plan=planNativeHouseEvolution(f.state,f.context,0);
+    need(!plan.candidate&&plan.error=="invalid_house_month_part","monthly tail refused");
+}
+void testUnsupportedCandidateDoesNotLeak(){
+    const auto models=parseModels({-99,-99,0,0,0,0});auto f=planFixture(models,3,10,9);
+    const auto before=*f.state.inputs.house;
+    const auto plan=planNativeHouseEvolution(f.state,f.context,2);
+    need(plan.direction&&*plan.direction==1,"unsupported target retains intent");
+    need(!plan.candidate&&plan.blocker==OriginalBuildingUpdateBlocker::HousingEvolution&&
+         plan.error=="house_evolution_target_unsupported","type4 target refused");
+    need(*f.state.inputs.house==before&&f.state.inputs.house->at(52)==9,"failed delay reset never leaks");
+    const auto env=makeEnv();const auto report=queryNativeHouseEvolution(env.source,env.state,models);
+    const auto& v=onlyHouse(report);
+    need(v.direction&&*v.direction==1,"query preserves intent");
+    need(v.candidateAcceptedIfWater&&!*v.candidateAcceptedIfWater&&
+         v.candidateAcceptedIfNoWater&&!*v.candidateAcceptedIfNoWater,"query labels refusal");
+    need(!v.candidateTypeIfWater&&!v.candidateTypeIfNoWater&&!v.candidatePublishable,"no publishable target");
+    need(has(v.candidateMissing,"house_evolution_target_unsupported")&&
+         has(v.candidateMissing,"house_runtime_state_unconnected"),"candidate blockers explicit");
+}
+void testPlanConsumesOnlyCandidateGoods(){
+    auto models=parseModels({-99,100,0,0,0,0});models.house.at(0)[10]=2;
+    auto f=planFixture(models,3,0,0,7);
+    f.state.inputs.house->at(0x16-1-4)=8;
+    f.state.inputs.house->at(55)=1;
+    const auto plan=planNativeHouseEvolution(f.state,f.context,0);
+    need(plan.candidate&&plan.direction&&*plan.direction==0,"goods candidate accepted");
+    need(detail::i16(plan.candidate->inputs.house->data()+0x16-1-4)==6,
+         "part7 candidate consumes model amount");
+    need(detail::i16(f.state.inputs.house->data()+0x16-1-4)==8,"query cannot consume source stock");
+    need(plan.candidate->building.imageInputs->word20==10&&
+         plan.candidate->building.imageInputs->houseByte3c==1,"candidate image fields are strict outputs");
+    f.context.monthPart=1;
+    const auto other=planNativeHouseEvolution(f.state,f.context,0);
+    need(other.candidate&&detail::i16(other.candidate->inputs.house->data()+0x16-1-4)==8,
+         "part1 candidate does not consume stock");
+}
+void testPlanDeferredCounter(){
+    const auto models=parseModels({-99,100,0,0,0,0});auto f=planFixture(models,3,-120,8);
+    const auto first=planNativeHouseEvolution(f.state,f.context,0);
+    need(first.candidate&&first.direction&&*first.direction==-1&&
+         first.candidate->inputs.house->at(52)==9&&first.candidate->building.type==3,
+         "delay8 becomes9 without changing type");
+    need(f.state.inputs.house->at(52)==8,"delay does not change source");
+    const auto second=planNativeHouseEvolution(*first.candidate,f.context,0);
+    need(second.candidate&&second.candidate->inputs.house->at(52)==0&&
+         second.candidate->building.type==3,"strict lower-bound type3 resets saturated delay");
+}
+void testPlanUsesActualModel(){
+    auto models=parseModels({-99,-99,0,0,0,0});
+    models.house.at(2)[0]=-99;models.house.at(2)[1]=100;
+    auto f=planFixture(models,5,10);
+    const auto plan=planNativeHouseEvolution(f.state,f.context,0);
+    need(plan.candidate&&plan.direction&&*plan.direction==0&&
+         plan.candidate->building.type==5&&plan.candidate->inputs.model==2,"actual model row used");
 }
 void testStrictDirection(){
     const auto env=makeEnv();const auto models=parseModels({-99,100,0,0,0,0});
@@ -364,6 +564,108 @@ void testQueryIsReadOnly(){
             "source scene unchanged shape");
     }
 }
+Env makeV7Env(uint16_t type=3,uint16_t model=0){
+    auto env=makeEnv(6);
+    env.state.rulesVersion=7;
+    for(uint16_t row=0;row<15;++row)env.source.seed.houseCapacities[row]=100;
+    env.state.houseClock=NativeHouseClock{39,1};
+    for(auto& object:env.state.objects)if(object.kind==NativeObjectKind::House){
+        NativeHouseRuntime runtime;runtime.type=type;runtime.model=model;
+        runtime.servicesKnown=true;runtime.houseWater=0;
+        runtime.imageWord20=int16_t(object.residents);runtime.imageHouseByte3c=1;
+        runtime.remaining[55]=1;object.house=runtime;
+    }
+    return env;
+}
+NativeHouseRuntime& v7House(Env& env){
+    for(auto& object:env.state.objects)if(object.kind==NativeObjectKind::House&&object.house)
+        return *object.house;
+    throw std::runtime_error("missing v7 fixture house");
+}
+void testV7IndependentWater(){
+    const auto models=parseModels({-99,-99,0,0,1,0});
+    auto dry=withWellAt(makeV7Env(),8,5);
+    auto& dryState=v7House(dry);dryState.houseWater=0;
+    dryState.remaining[45]=96;dryState.remaining[47]=96;
+    const auto dryReport=queryNativeHouseEvolution(dry.source,dry.state,models);
+    const auto& d=onlyHouse(dryReport);
+    need(d.runtimeStateKnown&&d.actualWater&&*d.actualWater==0,"persisted dry water known");
+    need(d.nativeWatered&&*d.nativeWatered,"fixture native radius is covered");
+    need(d.nextMet&&!*d.nextMet&&d.direction&&*d.direction==0,
+         "tail96 and native coverage do not replace cached dry water");
+    need(d.actualPlan.candidate&&d.actualPlan.error.empty()&&
+         d.actualPlan.candidate->inputs.houseWater==0,"actual dry plan admitted");
+    need(!has(d.candidateMissing,"house_evolution_target_unsupported")&&
+         has(d.scenarioMissing,"house_evolution_target_unsupported"),
+         "counterfactual wet refusal is not an actual dry blocker");
+    auto wet=makeV7Env();v7House(wet).houseWater=2;
+    v7House(wet).remaining[45]=v7House(wet).remaining[47]=0;
+    const auto wetReport=queryNativeHouseEvolution(wet.source,wet.state,models);
+    const auto& w=onlyHouse(wetReport);
+    need(w.actualWater&&*w.actualWater==2&&w.nativeWatered&&!*w.nativeWatered,"persisted wet value independent");
+    need(w.nextMet&&*w.nextMet&&w.direction&&*w.direction==1,"cached wet value survives tail decay");
+    need(!w.actualPlan.candidate&&w.actualPlan.error=="house_evolution_target_unsupported",
+         "actual type4 conversion remains refused");
+    need(!d.candidatePublishable&&!w.candidatePublishable,"plans never publish");
+}
+void testV7KnownTailStock(){
+    auto env=makeV7Env();env.state.houseClock=NativeHouseClock{39,7};
+    v7House(env).remaining[0x16-1-4]=8;
+    const auto models=parseModels({-99,100,0,2,0,0});
+    const auto before=encodeNativeSession(env.source.seed,env.state);
+    need(!before.empty(),"v7 fixture encodes");
+    const auto report=queryNativeHouseEvolution(env.source,env.state,models);
+    const auto& v=onlyHouse(report);
+    need(v.currentMet&&*v.currentMet&&v.direction&&*v.direction==0,"known tail supplies inventory requirement");
+    need(v.actualMonthPart&&*v.actualMonthPart==7&&!v.scenarioClockAssumed,"actual persisted clock used");
+    need(v.actualPlan.candidate&&
+         detail::i16(v.actualPlan.candidate->inputs.house->data()+0x16-1-4)==6,
+         "actual candidate consumes model stock at supplied part7");
+    need(!has(v.missing,"house_runtime_col10"),"known runtime column not marked missing");
+    need(encodeNativeSession(env.source.seed,env.state)==before&&
+         v7House(env).remaining[0x16-1-4]==8,"query preserves v7 persisted bytes");
+}
+void testV7UnknownInputGates(){
+    const auto models=parseModels({-99,100,0,0,0,0});
+    auto env=makeV7Env();env.state.houseClock.reset();
+    auto report=queryNativeHouseEvolution(env.source,env.state,models);
+    const auto& clock=onlyHouse(report);
+    need(!clock.actualPlan.candidate&&clock.actualPlan.error=="house_cycle_unmapped"&&
+         !clock.actualMonthPart&&clock.scenarioClockAssumed,"unknown clock never borrowed from what-if");
+    need(clock.direction&&*clock.direction==0&&!clock.candidatePublishable,"direction-only scenario retained");
+    env=makeV7Env();v7House(env).houseWater.reset();
+    report=queryNativeHouseEvolution(env.source,env.state,models);
+    const auto& water=onlyHouse(report);
+    need(!water.actualWater&&!water.actualPlan.candidate&&
+         water.actualPlan.error=="house_water_unconnected","unknown water refused");
+    env=makeV7Env();v7House(env).servicesKnown=false;v7House(env).remaining.fill(0);
+    report=queryNativeHouseEvolution(env.source,env.state,models);
+    const auto& tail=onlyHouse(report);
+    need(!tail.runtimeStateKnown&&!tail.currentMet&&!tail.nextMet&&!tail.direction&&
+         !tail.actualPlan.candidate&&tail.actualPlan.error=="house_runtime_state_unconnected",
+         "unknown tail is not default zero runtime");
+    need(has(tail.missing,"house_runtime_state_unconnected"),"unknown tail named in conditions");
+}
+void testV7ActualGradeModel(){
+    auto env=makeV7Env(5,2);auto models=parseModels({-99,-99,0,0,0,0});
+    models.house.at(2)[0]=-99;models.house.at(2)[1]=100;
+    const auto report=queryNativeHouseEvolution(env.source,env.state,models);
+    const auto& v=onlyHouse(report);
+    need(v.currentThresholdUp&&*v.currentThresholdUp==100&&v.direction&&*v.direction==0,
+         "query thresholds use persisted grade model");
+    need(v.actualPlan.candidate&&v.actualPlan.candidate->building.type==5&&
+         v.actualPlan.candidate->inputs.model==2,"query and candidate preserve same grade");
+}
+void testV7BonusCandidateAmbiguity(){
+    const auto env=makeV7Env();const auto models=parseModels({-99,5,0,0,0,0});
+    const auto report=queryNativeHouseEvolution(env.source,env.state,models);
+    const auto& v=onlyHouse(report);
+    need(!v.direction&&!v.actualPlan.candidate&&
+         v.actualPlan.error=="house_desirability_bonus_unconnected",
+         "unknown bonus cannot select different persistent candidate");
+    need(has(v.candidateMissing,"house_desirability_bonus_unconnected")&&!v.candidatePublishable,
+         "actual candidate ambiguity named");
+}
 void realData(){
     const char* env=std::getenv("EMPEROR_GAMEDATA_ROOT");
     if(!env||!*env){std::cout<<"{\"passed\":true,\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset\"}\n";return;}
@@ -467,13 +769,27 @@ void realData(){
 
 int main(int argc,char** argv){
     try{
-        bool real=false;for(int n=1;n<argc;++n)if(std::string(argv[n])=="--real")real=true;
+        bool real=false,transactionContext=false;
+        for(int n=1;n<argc;++n){
+            if(std::string(argv[n])=="--real")real=true;
+            if(std::string(argv[n])=="--transaction-context")transactionContext=true;
+        }
+        if(transactionContext){
+            testPlanContextPreservesPools();testPlanOwnershipNeedsResolution();testPlanContextFailureAtomic();
+            std::cout<<"{\"passed\":true,\"authored_transaction_context_cases\":3}\n";return 0;
+        }
         if(real){realData();return 0;}
         testStrictDirection();testTargetWaterMissing();testBonusMissing();
         testRuntimeColumnMissing();testEmptyEarlyReturn();testTargetRowMissing();
         testRevisionValidation();testQueryIsReadOnly();testWaterIsBinary();
         testBranchesMatchEvolutionStep();testNativeCoverageZeroInfluence();
         testWellDesirabilityPropagation();testEdgeClippedInfluence();
+        testPlanContextPreservesPools();testPlanOwnershipNeedsResolution();testPlanContextFailureAtomic();
+        testPlanMatchesStrictStep();testPlanUnknownInputs();
+        testUnsupportedCandidateDoesNotLeak();testPlanUsesActualModel();
+        testPlanConsumesOnlyCandidateGoods();testPlanDeferredCounter();
+        testV7IndependentWater();testV7KnownTailStock();testV7UnknownInputGates();
+        testV7ActualGradeModel();testV7BonusCandidateAmbiguity();
         const auto env=makeEnv();const auto models=parseModels({-99,100,0,0,0,0});
         const auto start=std::chrono::steady_clock::now();
         const auto first=queryNativeHouseEvolution(env.source,env.state,models);
@@ -482,13 +798,14 @@ int main(int argc,char** argv){
         const auto second=queryNativeHouseEvolution(env.source,env.state,models);
         const double repeatMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-repeatStart).count();
         need(first.houses.size()==second.houses.size(),"repeat house count");
-        std::cout<<"{\"passed\":true,\"authored_house_cases\":13,\"rules_versions\":6,"
-            <<"\"case_names\":[\"strict_direction\",\"target_water_missing\",\"bonus_missing\","
+        std::cout<<"{\"passed\":true,\"authored_house_cases\":27,\"rules_versions\":7,\"legacy_rules_versions\":6,\"foundation_version\":7,"
+            <<"\"case_names\":[\"candidate_context_pools\",\"candidate_ownership_invariant\",\"candidate_context_failure_atomic\",\"strict_direction\",\"target_water_missing\",\"bonus_missing\","
             <<"\"runtime_column_missing\",\"empty_early_return\",\"target_row_missing\","
             <<"\"revision_validation\",\"read_only_invariance\",\"water_is_binary\","
             <<"\"branches_match_evolution_step\",\"native_coverage_zero_influence\","
-            <<"\"well_desirability_propagation\",\"edge_clipped_influence\"],"
+            <<"\"well_desirability_propagation\",\"edge_clipped_influence\",\"plan_matches_strict_step\",\"plan_unknown_inputs\",\"unsupported_candidate_no_leak\",\"plan_actual_model\",\"candidate_goods_consumption\",\"candidate_delay_counter\",\"v7_independent_water\",\"v7_known_tail_stock\",\"v7_unknown_input_gates\",\"v7_actual_grade_model\",\"v7_bonus_candidate_ambiguity\"],"
             <<"\"water_binary_cases\":"<<waterBinaryCases<<",\"branch_step_cases\":"<<branchStepCases
+            <<",\"plan_equivalence_cases\":"<<planEquivalenceCases
             <<",\"query_first_ms\":"<<firstMs<<",\"query_repeat_ms\":"<<repeatMs
             <<",\"houses\":"<<first.houses.size()<<"}\n";
         return 0;

@@ -11,9 +11,10 @@ namespace game_lab {
 // The caller must still load that seed and run the complete strict decoder.
 struct NativeSessionReference { std::string source;uint32_t version=0; };
 inline std::optional<NativeSessionReference> nativeSessionReference(const std::string& bytes){
-    if(bytes.size()>512000||bytes.find('\0')!=std::string::npos)return std::nullopt;
+    if(bytes.size()>nativeSessionRuntimeByteLimit||bytes.find('\0')!=std::string::npos)return std::nullopt;
     std::istringstream in(bytes);std::string magic,rules,path;uint32_t version=0;uint64_t source=0,model=0;
     if(!(in>>magic>>version>>rules>>std::quoted(path)>>source>>model)||magic!="ENCITY"||!nativeRulesName(version)||rules!=nativeRulesName(version)||path.empty()||path.size()>4096)return std::nullopt;
+    if(bytes.size()>nativeSessionByteLimit(version))return std::nullopt;
     const std::filesystem::path relative(path);if(relative.has_root_path()||relative.extension()!=".sav")return std::nullopt;
     for(const auto& part:relative)if(part=="."||part=="..")return std::nullopt;
     return NativeSessionReference{path,version};
@@ -31,7 +32,9 @@ inline bool nativeSessionPathOutsideData(const std::string& path,const std::stri
 }
 inline bool writeNativeSessionNew(const std::string& path,const std::string& dataRoot,const std::string& bytes,std::string& error){
     error="存档必须是原始数据目录以外的新 .encity 文件；已有文件不会覆盖。";
-    if(!std::filesystem::path(path).is_absolute()||std::filesystem::path(path).extension()!=".encity"||bytes.empty()||bytes.size()>512000||!nativeSessionPathOutsideData(path,dataRoot))return false;
+    const auto version=nativeSessionWireVersion(bytes);
+    if(!std::filesystem::path(path).is_absolute()||std::filesystem::path(path).extension()!=".encity"||bytes.empty()||
+       !version||bytes.size()>nativeSessionByteLimit(*version)||!nativeSessionPathOutsideData(path,dataRoot))return false;
     std::string pattern=path+".tmp-XXXXXX";std::vector<char> name(pattern.begin(),pattern.end());name.push_back(0);
     const int fd=mkstemp(name.data());if(fd<0){error="无法创建同目录临时文件。";return false;}
     bool okay=true;size_t done=0;while(done<bytes.size()){
@@ -46,8 +49,9 @@ inline std::optional<std::string> readNativeSessionFile(const std::string& path,
     error="会话文件不可读、超出上限或位于原始数据目录。";std::error_code ec;
     const auto canonical=std::filesystem::canonical(path,ec);
     if(ec||canonical.extension()!=".encity"||!nativeSessionPathOutsideData(canonical.string(),dataRoot)||!std::filesystem::is_regular_file(canonical,ec)||ec)return std::nullopt;
-    const auto size=std::filesystem::file_size(canonical,ec);if(ec||size>512000)return std::nullopt;
+    const auto size=std::filesystem::file_size(canonical,ec);if(ec||size>nativeSessionRuntimeByteLimit)return std::nullopt;
     std::ifstream in(canonical,std::ios::binary);std::string text(size,'\0');if(!in.read(text.data(),text.size())||in.peek()!=EOF)return std::nullopt;
+    const auto version=nativeSessionWireVersion(text);if(!version||text.size()>nativeSessionByteLimit(*version))return std::nullopt;
     error.clear();return text;
 }
 } // namespace game_lab

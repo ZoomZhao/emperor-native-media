@@ -270,7 +270,7 @@ inline std::string originalCombinedSyncBuildings(OriginalCombinedState& city){
         auto& h=*s.inputs.house;
         if(link.laborDisabled)h.at(55)=*link.laborDisabled;
         for(unsigned n=0;n<4;++n)h.at(13-4+n)=link.religion->at(n);
-        for(unsigned n=0;n<12;++n){const uint16_t v=uint16_t(link.houseGoods->at(n));h.at(17-4+2*n)=uint8_t(v);h.at(18-4+2*n)=uint8_t(v>>8);}
+        if(!originalHouseGoodsToPayload(h,*link.houseGoods))return "shared_house_goods_payload_required";
         for(unsigned n=0;n<3;++n)h.at((n==2?45:42+n)-4)=link.entertainment->at(n);
         h.at(44-4)=*link.herbalist;h.at(49-4)=link.waterService->at(0);h.at(51-4)=link.waterService->at(1);
         h.at(53-4)=*link.foodQuality;
@@ -312,7 +312,10 @@ inline OriginalBuildingUpdateBlocker originalCombinedWarehouseHook(OriginalBuild
     const auto output=originalBuildingStorageExport(b,*c.goods,percent,true);if(!output)return OriginalBuildingUpdateBlocker::MissingContext;
     if(*output>=0)return OriginalBuildingUpdateBlocker::BuildingVirtual20;return OriginalBuildingUpdateBlocker::None;
 }
-inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city){
+// An explicit caller exclusion affects only per-record phase31 hooks. The
+// default remains the full strict pass; native v8 retains its labelled v6
+// Hunter economy while admitting the separate Well/house runtime.
+inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,const std::set<size_t>& excludedLocalHooks={}){
     const auto blocker=originalCombinedPhaseBlocker(city.phase);if(!blocker.empty())return blocker;
     //Empty cases are dispatch targets4AC4C8;9 calls40FC20, a RET.
     const bool empty=city.phase==0||city.phase==2||city.phase==9||city.phase==14||city.phase==15||city.phase==19||
@@ -387,6 +390,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city){
     //Local writes run once, in ascending slot order. Phase20's resource scan
     //follows ALL production records (4AC3BF then4AC3C4), never one scan per record.
     if(city.phase==20||city.phase==31||city.phase==35||city.phase==36||city.phase==39||city.phase==40||city.phase==48)for(auto& e:city.buildings){auto& b=e.second;
+        if(city.phase==31&&excludedLocalHooks.count(e.first))continue;
         b.state.inputs=c.buildingInputs->at(e.first);
         if(city.phase==20){c.unavailable=b.context.unavailable;c.requiredWorkers=b.context.requiredWorkers;
             c.festivalProductionBoost=b.context.festivalProductionBoost;c.terrainFlags=b.context.terrainFlags;c.typeDisabled=b.context.typeDisabled;
@@ -433,7 +437,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city){
             if(i.modelUpgrade)footprint.wellImageInputs->byte6f=*i.modelUpgrade;}
         link.roamDirection=i.direction;link.accepting=i.houseInUse;link.industryInput=i.stock;
         if(i.house){if(!link.houseGoods||!link.foodQuality)return "combined_house_goods_bridge_required";
-            for(unsigned n=0;n<12;++n)link.houseGoods->at(n)=detail::i16(i.house->data()+17-4+2*n);
+            link.houseGoods=originalHouseGoodsFromPayload(*i.house);
             link.foodQuality=i.house->at(53-4);}
         if(i.industry&&link.cropDelivery)link.cropDelivery->flags=originalBuildingCropFlags(i);
         if(i.hookIndustry){const auto& data=*i.hookIndustry;

@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 #include "native_session.hpp"
+#include "native_walker_codec.hpp"
+#include "native_house_runtime_bridge.hpp"
+#include "native_immigrant_codec.hpp"
+#include <memory>
 #include "native_session_interaction.hpp"
 #include "resource_root.hpp"
 #include "original_building_update.hpp"
 #include "original_building_scene.hpp"
 
 namespace game_lab {
-struct NativeSessionSource { NativeSessionSeed seed; OriginalSaveResult save; };
+struct NativeHouseRuntimeResources;
+struct NativeSessionSource { NativeSessionSeed seed; OriginalSaveResult save; std::shared_ptr<const NativeHouseRuntimeResources> runtime{}; };
 // Metadata is observational only; it never relaxes admission or invents defaults.
 struct NativeSourceMetadata {uint32_t side=0;std::optional<int64_t> funds;};
 inline std::optional<NativeSessionSource> loadNativeSessionSource(const ResourceRoot& root,const std::string& relative,std::string& error,NativeSourceMetadata* metadata=nullptr) {
@@ -45,8 +50,13 @@ inline std::optional<NativeSessionSource> loadNativeSessionSource(const Resource
     if(!models||!caps||!models->count(2)||!models->count(22)||!caps->count(0))return std::nullopt;
     NativeSessionSeed seed;seed.source=relative;seed.sourceRevision=save.snapshotRevision;seed.modelRevision=nativeTextRevision(text);
     seed.side=save.terrain.activeSide;seed.initialFunds=*city.treasury;seed.houseCost=models->at(2)[0];seed.roadCost=models->at(22)[0];seed.houseCapacity=caps->at(0);
+    // v7 capacity is taken from the same original model table row by row. No
+    // missing/invalid row is remapped to row0; the live object validation fails.
+    for(const auto& [model,capacity]:*caps)if(model>=0&&model<=UINT16_MAX&&capacity>0&&capacity<=100)
+        seed.houseCapacities.emplace(uint16_t(model),uint32_t(capacity));
     if(models->count(72))seed.wellCost=models->at(72)[0]; // named original Well row, Normal-price column
     if(models->count(33))seed.hunterCost=models->at(33)[0]; // original Hunter's Tent, Normal construction price
+    if(models->count(124)&&models->at(124)[0]>0&&models->at(124)[5]>0){seed.inspectorCost=uint32_t(models->at(124)[0]);seed.inspectorWorkers=uint32_t(models->at(124)[5]);}
     // v6 labor inputs: saved difficulty/wage band/health (4AD850 share) and
     // saved category priorities; employment is model column5. Saved military
     // formation labor would reduce the pool, so any nonzero value leaves v6 unavailable.
@@ -75,7 +85,7 @@ inline std::vector<NativeSessionChoice> nativeSessionChoices(const ResourceRoot&
         if(source&&validateNativeSession(source->seed,startNativeSession(source->seed,5)).empty())result.push_back({path,source->seed.side,source->seed.initialFunds});}
     return result;
 }
-struct NativeSessionScene { OriginalMapTerrain terrain; OriginalBuildingProfile buildings; OriginalSavedGround ground; };
+struct NativeSessionScene { OriginalMapTerrain terrain; OriginalBuildingProfile buildings; OriginalSavedGround ground; std::optional<OriginalFigureProfile> figures{}; };
 inline std::optional<NativeSessionScene> nativeSessionScene(const NativeSessionSource& source,const NativeSessionState& state) {
     if(!validateNativeSession(source.seed,state).empty()||!source.save.layers.ground)return std::nullopt;
     NativeSessionScene out{source.save.terrain,source.save.buildings,*source.save.layers.ground};
@@ -85,15 +95,38 @@ inline std::optional<NativeSessionScene> nativeSessionScene(const NativeSessionS
             if(o.kind==NativeObjectKind::Road){out.terrain.flags[cell]|=0x40u;out.ground.state.roadDistance[cell]=255;}
             else{out.terrain.flags[cell]|=8u;out.ground.owner[cell]=uint16_t(o.id);}}
         if(o.kind!=NativeObjectKind::Road){
-            OriginalBuildingFootprint f;f.type=o.kind==NativeObjectKind::Well?72:o.kind==NativeObjectKind::Hunter?33:o.residents?3:2;f.slot=size_t(o.id);f.x=o.x;f.y=o.y;f.size=2;
+            OriginalBuildingFootprint f;f.type=o.kind==NativeObjectKind::Well?72:o.kind==NativeObjectKind::Hunter?33:o.kind==NativeObjectKind::Inspector?124:o.residents?3:2;f.slot=size_t(o.id);f.x=o.x;f.y=o.y;f.size=2;
             // A new native-owned Well deliberately uses the basic Well image,
             // not an inferred original saved service/upgrade runtime state.
             if(o.kind==NativeObjectKind::Well){f.wellImageInputs=OriginalWellImageInputs{0,0};++out.buildings.namedWellRecords;}
+            else if(o.kind==NativeObjectKind::Inspector){
+                std::string e;const auto rec=state.strictRecords.find(o.id);if(rec==state.strictRecords.end())return std::nullopt;
+                const auto i=decodeNativeStrictRecord(rec->second,e);if(!i)return std::nullopt;f.wellImageInputs=OriginalWellImageInputs{i->model,i->modelUpgrade.value_or(0)};++out.buildings.namedInspectorRecords;
+            }
+            else if(o.kind==NativeObjectKind::House&&state.rulesVersion>=7){
+                const auto projected=nativeHouseProjectionType(state,o);
+                if(!projected||!o.house)return std::nullopt;
+                f.type=*projected;
+                f.imageInputs.emplace();f.imageInputs->gridIndex=(o.y+origin)*228+o.x+origin;
+                f.imageInputs->randomByte=out.ground.state.randomByte[f.imageInputs->gridIndex];
+                f.imageInputs->houseByte3c=o.house->imageHouseByte3c;
+                f.imageInputs->word20=o.house->imageWord20;f.imageInputs->savedView=0;
+            }
             else if(o.kind==NativeObjectKind::House){
             f.imageInputs.emplace();f.imageInputs->gridIndex=(o.y+origin)*228+o.x+origin;f.imageInputs->randomByte=out.ground.state.randomByte[f.imageInputs->gridIndex];
             f.imageInputs->houseByte3c=o.residents?1:0;f.imageInputs->word20=int16_t(o.residents);f.imageInputs->savedView=0;}
             out.buildings.footprints.push_back(f);out.buildings.slotTypes[f.slot]=f.type;++out.buildings.liveTypeCounts[f.type];++out.buildings.liveSizedRecords;
         }
+    }
+    if(state.rulesVersion==8){
+        OriginalFigureProfile figures;figures.status=OriginalFigureStatus::Complete;figures.declared=figures.parsed=2000;
+        figures.savedView=0;figures.cellHeads=state.figureRuntime->cellHeads;figures.slots.resize(2000);
+        for(size_t slot=0;slot<2000;++slot)figures.slots[slot].slot=slot;
+        for(const auto& payload:state.figureRuntime->wellWalkerPayloads){std::string e;const auto w=decodeNativeWellWalker(payload,e);if(!w||w->slot>=2000)return std::nullopt;figures.slots[w->slot]=*w;figures.live.push_back(*w);++figures.liveTypes[w->type];}
+        for(const auto& payload:state.figureRuntime->migrantPayloads){std::string e;const auto w=decodeNativeMigrant(payload,e);if(!state.observedDry||!w||w->slot>=2000)return std::nullopt;figures.slots[w->slot]=*w;figures.live.push_back(*w);++figures.liveTypes[w->type];}
+        for(const auto& payload:state.figureRuntime->immigrantPayloads){std::string e;const auto w=decodeNativeImmigrant(payload,e);if(!nativeUsesImmigration(state)||!w||w->slot>=2000||figures.slots[w->slot].alive)return std::nullopt;figures.slots[w->slot]=*w;figures.live.push_back(*w);++figures.liveTypes[w->type];}
+        if(state.inspection)for(const auto& payload:state.inspection->payloads){std::string e;const auto w=decodeNativeInspector(payload,e);if(!w||w->slot>=2000||figures.slots[w->slot].alive)return std::nullopt;figures.slots[w->slot]=*w;figures.live.push_back(*w);++figures.liveTypes[w->type];}
+        out.figures=std::move(figures);
     }
     out.ground.state.terrain=out.terrain.flags;return out;
 }

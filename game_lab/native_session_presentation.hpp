@@ -6,12 +6,13 @@
 #include <sstream>
 namespace game_lab {
 inline double nativePresentationInterval(unsigned speed){return 1.0/(speed==2?2:speed==4?4:1);}
-inline unsigned nativeToolCategory(unsigned tool){return tool==2?0:tool==4?1:tool==3?2:3;}
-inline bool nativeToolAvailable(unsigned tool,unsigned version){return tool<=5&&!(tool==3&&version<2)&&!(tool==4&&version<3)&&!(tool==5&&version<4);}
+inline unsigned nativeToolCategory(unsigned tool){return tool==2?0:tool==4?1:(tool==3||tool==6)?2:3;}
+inline bool nativeToolAvailable(unsigned tool,unsigned version,bool inspection=false){return tool==6?version==8&&inspection:tool<=5&&!(tool==3&&version<2)&&!(tool==4&&version<3)&&!(tool==5&&version<4);}
 inline bool nativeCategoryAvailable(unsigned category,unsigned version){return category<4&&(category!=1||version>=3)&&(category!=2||version>=2);}
-inline std::string nativeToolUnavailableReason(unsigned tool,unsigned version){
- if(tool>5)return "此工具不存在。";
- if(nativeToolAvailable(tool,version))return {};
+inline std::string nativeToolUnavailableReason(unsigned tool,unsigned version,bool inspection=false){
+ if(tool>6)return "此工具不存在。";
+ if(nativeToolAvailable(tool,version,inspection))return {};
+ if(tool==6)return "此存档未启用预防巡检；旧规则保持不变。";
  const std::string rules="当前规则 v"+std::to_string(version);
  if(tool==3)return rules+" 不支持水井；载入旧档不会自动升级。";
  if(tool==4)return rules+" 不支持猎人营地；载入旧档不会自动升级。";
@@ -29,21 +30,59 @@ inline std::string nativeCategoryUnavailableReason(unsigned category,unsigned ve
 inline std::string nativeCategoryHint(unsigned category){
  if(category==0)return "住宅\n点地图上的自建住宅查看入住、邻路和供水状态；选择“住宅”建造 2×2。";
  if(category==1)return "食物\n点猎人营地查看工人与产出；营地邻路且生产开启才会产肉。";
- if(category==2)return "水井\n点水井查看是否邻路启用；供水覆盖范围外扩 4 格。";
+ if(category==2)return "公共服务\n选择水井查看供水；巡检塔仅在预防巡检规则下可用。";
  return "道路与拆除\n拖动铺路；点自建对象查看状态，拆除需暂停并确认。";
+}
+inline std::string nativeResidentFlowText(const NativeObjectFeedback& f){
+ if(!f.housing)return {};
+ const auto& h=*f.housing;std::ostringstream text;
+ if(h.incoming){const auto& a=*h.incoming;
+  if(!a.held.empty())text<<"迁入等待处理";
+  else text<<(a.action==6?"迁入出发等待":a.action==7?"迁入途中":"正在入户");
+  text<<" · 预约 "<<a.people<<" 人";
+  if(f.residents>=h.capacity)text<<"\n当前容量已满，等待处理预约";
+  else if(f.entryReachable&&!*f.entryReachable)text<<"\n入城路径条件失效；预约待调度核验";
+ }else if(f.residents>h.capacity)text<<"超容量，等待容量／迁出阶段处理";
+ else if(f.full)text<<"已满员，当前无迁入预约";
+ else if(!f.connected)text<<"断路；当前无迁入预约";
+ else if(f.entryReachable&&!*f.entryReachable)text<<"邻路；运行时入城路径不可达";
+ else if(f.entryRoadConnected&&!*f.entryRoadConnected)text<<"仅邻路，未接原有路网\n迁入以实际调度与行人为准";
+ else if(!f.entryAccessError.empty())text<<"等待迁入调度；入城连通性未核实";
+ else text<<"等待迁入调度，当前未预约";
+ return text.str();
+}
+inline std::string nativeWellFlowText(const NativeObjectFeedback& f){
+ if(!f.wellFlow)return {};
+ if(f.wellFlow->walker){const auto& a=*f.wellFlow->walker;
+  if(!a.held.empty())return "送水人等待路线确认";
+  if(a.action==2)return "送水人返回水井";
+  if(a.action==1)return "送水人行路服务";
+  return "送水人动作 "+std::to_string(a.action);
+ }
+ if(!f.connected)return "断路，当前未派出送水人";
+ if(!f.workers)return "邻路，等待派工";
+ return "已有工人，等待派遣 · 计数 "+std::to_string(f.wellFlow->dispatchCounter);
 }
 inline std::string nativeCategorySummary(const NativeSessionSeed& seed,const NativeSessionState& state,unsigned category,const NativeCityFeedback& q){
  if(!q.error.empty())return "当前状态无法评估："+q.error;
  std::ostringstream text;
  if(category==0){
-  std::size_t houses=0,connected=0,watered=0,blocked=0;unsigned long long residents=0;
+  std::size_t houses=0,connected=0,watered=0,blocked=0;unsigned long long residents=0,capacity=0;bool capacityKnown=true;
   for(const auto& o:q.objects)if(o.kind==NativeObjectKind::House){
    ++houses;residents+=o.residents;connected+=o.connected;watered+=o.watered;
    blocked+=(!o.connected||(state.rulesVersion>=2&&!o.watered)||o.foodShortage);}
-  text<<"住宅 "<<houses<<" 座 · 住民 "<<residents<<"/"<<houses*seed.houseCapacity<<"\n";
-  if(state.rulesVersion>=2)text<<"邻路 "<<connected<<" · 有水 "<<watered<<" · 入住受阻 "<<blocked<<"\n";
+  for(const auto& o:state.objects)if(o.kind==NativeObjectKind::House){const auto row=nativeHouseCapacity(seed,state,o);if(row)capacity+=*row;else capacityKnown=false;}
+  text<<"住宅 "<<houses<<" 座 · 住民 "<<residents<<"/";if(capacityKnown)text<<capacity;else text<<"容量未知";text<<"\n";
+  if(q.population.scheduled){text<<"邻路 "<<connected<<" · 有水 "<<watered<<"\n";
+   if(q.entrance.error.empty()){size_t reachable=0,roads=0;for(const auto& row:q.entrance.houses)reachable+=row.second;for(const auto& row:q.entrance.roadHouses)roads+=row.second;
+    text<<"入城可达 "<<reachable<<" / "<<houses<<"\n";
+    if(q.entrance.roadHouses.size()==houses)text<<"接原路网 "<<roads<<" / "<<houses<<"\n";else text<<"路网接入未核实\n";}
+   else text<<"入城连通性未核实\n";
+   text<<"在途 "<<q.population.incomingPeople<<" · 未预约迁出 "<<q.population.waitingRehousing<<"\n";
+  }
+  else if(state.rulesVersion>=2)text<<"邻路 "<<connected<<" · 有水 "<<watered<<" · 入住受阻 "<<blocked<<"\n";
   else text<<"邻路 "<<connected<<" · 入住受阻 "<<blocked<<"\n";
-  text<<(state.paused?"已暂停；可查看和建造。":"运行中；点住宅查看入住条件。");
+  if(!q.population.scheduled)text<<(state.paused?"已暂停；可查看和建造。":"运行中；点住宅查看入住条件。");
  }else if(category==1){
   std::size_t hunters=0;for(const auto& o:q.objects)if(o.kind==NativeObjectKind::Hunter)++hunters;
   text<<"肉 "<<q.foodStock<<"/"<<nativeFoodCapacity<<" · 营地 "<<hunters<<"\n";
@@ -53,6 +92,13 @@ inline std::string nativeCategorySummary(const NativeSessionSeed& seed,const Nat
    if(state.rulesVersion>=6)text<<" · 劳力 "<<q.labor.available<<" · 岗位 "<<q.labor.demand;
   }else text<<"旧规则不运行食物生产/消费";
  }else if(category==2){
+  if(nativeUsesInspection(state)&&state.inspection){
+   size_t wells=0,towers=0,wet=0,dry=0;
+   for(const auto& o:q.objects){wells+=o.kind==NativeObjectKind::Well;towers+=o.kind==NativeObjectKind::Inspector;if(o.kind==NativeObjectKind::House){wet+=o.watered;dry+=!o.watered;}}
+   text<<"水井 "<<wells<<" · 巡检塔 "<<towers<<"\n住宅有水 "<<wet<<" / 无水 "<<dry<<"\n";
+   text<<"巡检服务 "<<state.inspection->services<<" 次\n派遣 "<<state.inspection->dispatches<<" · 回收 "<<state.inspection->returns<<"\n预防巡检；灭火尚未接通";
+   return text.str();
+  }
   if(state.rulesVersion<2)text<<"旧规则：供水不参与入住，水井不可建。";
   else{
    std::size_t wells=0,active=0,wet=0,dry=0;unsigned long long workers=0,required=0;
@@ -60,10 +106,10 @@ inline std::string nativeCategorySummary(const NativeSessionSeed& seed,const Nat
     if(o.kind==NativeObjectKind::Well){++wells;active+=o.connected;workers+=o.workers;required+=o.requiredWorkers;}
     else if(o.kind==NativeObjectKind::House){wet+=o.watered;dry+=!o.watered;}
    }
-   text<<"井 "<<wells<<" · 启用 "<<active<<" · 断路 "<<wells-active<<"\n";
+   text<<"井 "<<wells<<(state.rulesVersion==8?" · 邻路 ":" · 启用 ")<<active<<" · 断路 "<<wells-active<<"\n";
    text<<"住宅有水 "<<wet<<" / 无水 "<<dry<<"\n";
    if(state.rulesVersion>=6)text<<"水井工人 "<<workers<<"/"<<required<<" · ";
-   text<<"井需邻路，供水外扩 "<<nativeWaterRadius<<" 格";
+   if(state.rulesVersion==8)text<<"井需邻路和工人；送水人行经供水";else text<<"井需邻路，供水外扩 "<<nativeWaterRadius<<" 格";
   }
  }else{
   std::size_t roads=0,connected=0;
@@ -76,17 +122,33 @@ inline std::string nativeCategorySummary(const NativeSessionSeed& seed,const Nat
    text<<" · 邻路 "<<t.eligible<<" 人\n";
   }
   text<<(state.paused?"已暂停；拆除无退款。":"运行中；拆除前需暂停。");
+  if(nativeUsesInspection(state))text<<"\n拆路会先取消当前巡检；风险与历史保留，随后重新派遣。";
  }
  return text.str();
 }
 inline std::string nativeObjectDescription(const NativeSessionSeed& seed,const NativeSessionState& state,uint64_t id,const NativeCityFeedback& q){
  if(!q.error.empty())return "当前会话无法评估："+q.error;
  const auto*f=q.find(id);if(!f)return "点击自建建筑查看详情。原始地表只读，不可拆改。";
- std::ostringstream text;text<<(f->kind==NativeObjectKind::Road?"道路":f->kind==NativeObjectKind::House?"普通住宅":f->kind==NativeObjectKind::Well?"水井":"猎人营地")<<" #"<<id<<"\n";
+ std::ostringstream text;text<<(f->kind==NativeObjectKind::Road?"道路":f->kind==NativeObjectKind::House?"普通住宅":f->kind==NativeObjectKind::Well?"水井":f->kind==NativeObjectKind::Inspector?(f->inspection.upgraded?"升级巡检塔":"巡检塔"):"猎人营地")<<" #"<<id<<"\n";
+ if(f->inspection.enabled&&(f->kind==NativeObjectKind::House||f->kind==NativeObjectKind::Inspector)){
+  if(f->kind==NativeObjectKind::House){const auto object=std::find_if(state.objects.begin(),state.objects.end(),[&](const auto& o){return o.id==id;});
+   const auto capacity=object!=state.objects.end()?nativeHouseCapacity(seed,state,*object):std::nullopt;
+   text<<"住民 "<<f->residents<<" / ";if(capacity)text<<*capacity;else text<<"容量未知";
+   text<<"\n"<<(f->connected?"邻路":"断路")<<" · "<<(f->watered?"有水":"缺水")<<"\n";
+   if(f->housing)text<<nativeResidentFlowText(*f)<<"\n";
+  }
+  text<<nativeInspectionRecordText(f->inspection,state.ticks,f->connected,f->workers,f->requiredWorkers);
+  if(f->kind==NativeObjectKind::House)text<<"\n条件…查看升降级和完整巡检记录";
+  if(state.paused)text<<"\n已暂停；恢复后推进。";
+  text<<"\n拆除无退款。";return text.str();
+ }
  if(f->kind==NativeObjectKind::House){
-  text<<"住民 "<<f->residents<<" / "<<seed.houseCapacity<<"\n";
+  const auto found=std::find_if(state.objects.begin(),state.objects.end(),[&](const auto& o){return o.id==id;});
+  const auto capacity=found!=state.objects.end()?nativeHouseCapacity(seed,state,*found):std::nullopt;
+  text<<"住民 "<<f->residents<<" / ";if(capacity)text<<*capacity;else text<<"容量未知";text<<"\n";
   text<<(f->connected?"邻路":"断路");if(state.rulesVersion>=2)text<<" · "<<(f->watered?"有水":"缺水");text<<"\n";
-  if(f->full)text<<"已满员，不再入住。";
+  if(f->housing)text<<nativeResidentFlowText(*f);
+  else if(f->full)text<<"已满员，不再入住。";
   else if(!f->connected||!f->watered||f->foodShortage){
    text<<"入住受阻：";bool comma=false;const auto cause=[&](const char*t){if(comma)text<<"、";text<<t;comma=true;};
    if(!f->connected)cause("断路");if(!f->watered)cause("缺水");if(f->foodShortage)cause("缺粮");
@@ -94,11 +156,16 @@ inline std::string nativeObjectDescription(const NativeSessionSeed& seed,const N
   }else if(q.mealBlockedByTax)text<<"本轮将拒绝：税收溢出。";
   else text<<"等待 "<<q.untilMeal<<" 次更新后入住+1。";
   if(state.paused)text<<"\n已暂停；恢复后推进。";
-  if(state.rulesVersion>=6&&q.food.laborOverride)text<<"\n缺粮但营地缺工：继续入住以补充劳动力。";
-  if(state.rulesVersion>=3)text<<"\n按现状估计；缺粮不迁出。";
+  if(!q.population.scheduled&&state.rulesVersion>=6&&q.food.laborOverride)text<<"\n缺粮但营地缺工：继续入住以补充劳动力。";
+  if(!q.population.scheduled&&state.rulesVersion>=3)text<<"\n按现状估计；缺粮不迁出。";
  }else if(f->kind==NativeObjectKind::Well){
-  text<<(f->connected?"供水启用 · 邻路":"供水停用 · 断路（未邻路）")<<"\n覆盖占地外扩 "<<nativeWaterRadius<<" 格。\n无需食物；不受生产开关影响。";
-  if(state.rulesVersion>=6)text<<"\n工人 "<<f->workers<<" / "<<f->requiredWorkers<<"（原版模型；v6不影响供水范围）";
+  if(state.rulesVersion==8){
+   text<<nativeWellFlowText(*f)<<"\n";
+   const auto o=std::find_if(state.objects.begin(),state.objects.end(),[&](const auto& item){return item.id==id;});
+   if(o!=state.objects.end()&&o->well){text<<"派出计数 "<<unsigned(o->well->spawnCounter)<<" · 行人 "<<o->well->primaryFigure;
+    const auto held=state.heldWalkerReasons.find(size_t(std::max<int16_t>(0,o->well->primaryFigure)));if(held!=state.heldWalkerReasons.end())text<<"\n回程目标尚未证实，已保留行人等待。";}
+  }else text<<(f->connected?"供水启用 · 邻路":"供水停用 · 断路（未邻路）")<<"\n覆盖占地外扩 "<<nativeWaterRadius<<" 格。\n无需食物；不受生产开关影响。";
+  if(state.rulesVersion>=6)text<<"\n工人 "<<f->workers<<" / "<<f->requiredWorkers<<(state.rulesVersion==8?(nativeUsesCityContext(state)?"（已保存派工）":"（当前策略派工）"):"（原版模型；v6不影响供水范围）");
  }else if(f->kind==NativeObjectKind::Hunter){
   if(!f->connected||!state.huntingEnabled){text<<"生产停用：";if(!f->connected)text<<"断路";if(!state.huntingEnabled)text<<(!f->connected?"、":"")<<"狩猎已暂停";}
   else if(q.foodStock==nativeFoodCapacity)text<<"库存已满，本轮不产。";
@@ -115,6 +182,7 @@ inline std::string nativeCityFeedbackSummary(const NativeSessionState& state,con
  std::ostringstream text;
  if(state.rulesVersion>=3){text<<"肉"<<q.foodStock<<"/"<<nativeFoodCapacity<<" · 餐倒计"<<q.untilMeal<<"\n预计产"<<q.food.cycle.produced<<" / 需"<<q.food.cycle.demand<<"\n";
   if(q.mealBlockedByTax)text<<"税溢出，本轮不更新";
+  else if(q.population.scheduled){text<<"现有住民缺餐 "<<q.food.cycle.demand-q.food.cycle.fed<<" 份\n在途预约 "<<q.population.incomingPeople<<" 人";}
   else if(q.food.cycle.fed<q.food.cycle.demand)text<<"缺"<<q.food.cycle.demand-q.food.cycle.fed<<"份，"<<(q.food.laborOverride?"营地缺工，继续入住":"入住停增");
   else text<<"预计新入住"<<q.food.cycle.arrivals<<"人";
  }else text<<"旧规则：不运行食物消费";
@@ -125,9 +193,14 @@ inline std::string nativeCityFeedbackSummary(const NativeSessionState& state,con
 inline std::string nativeCityFeedbackExplanation(const NativeSessionState& state,const NativeCityFeedback& q){
  if(!q.error.empty())return "无法评估："+q.error;
  std::ostringstream text;text<<"按当前人口、道路、供水与生产状态估计；倒计单位为城市更新次数；期间建设或人口改变会重新计算。暂停不推进周期。";
- if(state.rulesVersion>=3)text<<"\n下次供餐距"<<q.untilMeal<<"更新："<<q.activeHunters<<"个启用营地最多产"<<q.productionPotential<<"肉；库存上限使实际可产"<<q.food.cycle.produced<<"。现有住民需求"<<q.food.cycle.demand<<"，可供"<<q.food.cycle.fed<<"，再按住宅编号安排"<<q.food.cycle.arrivals<<"人入住，预计余粮"<<q.food.stock<<"。";
- if(state.rulesVersion>=6)text<<"\n劳动力"<<q.labor.available<<"人＝住民×原版就业比例；岗位"<<q.labor.demand<<"（原版模型：营地/水井各需定员），就业"<<q.labor.employed<<"，缺工"<<q.labor.shortage<<"，失业"<<q.labor.unemployed<<"。营地按工人比例产肉；营地缺工时缺粮不阻止入住。";
+ if(state.rulesVersion>=3){text<<"\n下次供餐距"<<q.untilMeal<<"更新："<<q.activeHunters<<"个启用营地最多产"<<q.productionPotential<<"肉；库存上限使实际可产"<<q.food.cycle.produced<<"。现有住民需求"<<q.food.cycle.demand<<"，可供"<<q.food.cycle.fed;
+  if(q.population.scheduled)text<<"，预计余粮"<<q.food.stock<<"。\n人口由迁入调度和实际行人入户更新，不按餐周期增加。当前在途预约"<<q.population.incomingPeople<<"人，尚未重新预约的迁出者"<<q.population.waitingRehousing<<"人。供水缓存与服务衰减分别保存，不把缺水或本餐缺粮当成每个在途行人的拒绝原因。";
+  else text<<"，再按住宅编号安排"<<q.food.cycle.arrivals<<"人入住，预计余粮"<<q.food.stock<<"。";}
+ if(state.rulesVersion>=6){text<<"\n劳动力"<<q.labor.available<<(nativeUsesCityContext(state)?"人（已保存的调度结果）；岗位":"人＝住民×原版就业比例；岗位")<<q.labor.demand<<(nativeUsesInspection(state)?"（模型定员；营地／水井／巡检塔）":"（原版模型：营地/水井各需定员）")<<"，就业"<<q.labor.employed<<"，缺工"<<q.labor.shortage<<"，失业"<<q.labor.unemployed;
+  if(q.population.scheduled)text<<"。营地按工人比例产肉。";
+  else text<<"。营地按工人比例产肉；营地缺工时缺粮不阻止入住。";}
  if(state.rulesVersion>=5)text<<"\n下次税收距"<<q.untilTax<<"更新：按当前邻路"<<q.tax.cycle.eligible<<"人 × "<<nativeTaxPerResident<<"金 = "<<q.tax.cycle.income<<"金；断路"<<q.tax.cycle.disconnected<<"人不缴，空房"<<q.tax.cycle.emptyHouses<<"户。税收先于同轮新入住；届时人口可能改变。";
+ if(q.entrance.required)text<<"\n入城可达为当前运行时路径条件，可能包含步行地面；接原路网另按真实道路分区核验。两者都不承诺已派遣或未来到达。";
  return text.str();
 }
 inline std::string nativeHouseEvolutionMissingLabel(const std::string& name){
@@ -155,6 +228,23 @@ inline const char* nativeHouseDirectionShortLabel(int direction){return directio
 struct NativeHouseEvolutionText {std::string summary,detail;};
 inline NativeHouseEvolutionText nativeHouseEvolutionText(const NativeHouseEvolutionView& v){
  NativeHouseEvolutionText out;
+ if(v.runtimeEnabled){
+  const std::string water=!v.actualWater?"未知":*v.actualWater?"有水":"无水";
+  out.summary="运行阶段"+std::to_string(v.runtimePhase)+" · "+water;
+  std::ostringstream text;text<<"住宅运行状态（开发版）\n类型 "<<v.runtimeType<<" · 模型 "<<v.runtimeModel<<" · "<<water<<"\n服务衰减和阶段28供水缓存独立保存。\n下降延迟 "<<unsigned(v.runtimeDelay)<<" / 9";
+  if(v.currentMet)text<<"\n当前需求："<<(*v.currentMet?"满足":"不满足");
+  if(v.nextMet)text<<"\n下一等级需求："<<(*v.nextMet?"满足":"不满足");
+  if(v.direction)text<<"\n严格判定方向："<<nativeHouseDirectionLabel(*v.direction);
+  const bool materialWait=v.runtimeHold=="native_city_material_schedule_unmapped"||v.actualPlan.error=="native_city_material_schedule_unmapped";
+  if(materialWait){out.summary+=" · 物资时序待接通";text<<"\n等待：物资消耗时序尚未接通，保持当前住宅和库存；其他已支持的供水与升降级继续运行。";}
+  else if(!v.runtimeHold.empty())text<<"\n等待：此住宅类型的后续升降级尚未接通（"<<v.runtimeHold<<"）。";
+  else if(!v.actualPlan.error.empty())text<<"\n尚未支持："<<v.actualPlan.error;
+  text<<"\n运行时阶段已启用；查看本身不推进城市。";
+  if(v.observedDryEnabled){text<<"\n限定缺水降级已启用：住宅降级后先保留人口，再在容量阶段迁出超员。";if(v.pendingExcess)text<<" 当前等待迁出 "<<v.pendingExcess<<" 人。";text<<(v.nonemptyRehousingEnabled?"非空住宅重新入住已接通；空宅转换仍等待，原版重入住行为尚未实测。\n":"重新入住其他住宅仍未验证。\n");}
+  text<<(v.observedReturnEnabled?"限定原生回程已启用，证据外情况等待；原版日历尾部和部分住宅路径仍有缺口。":"早期回程等待策略保持；原版日历尾部、送水回程和部分住宅路径仍有缺口。");
+  text<<"不代表原版完整续玩。";
+  out.detail=text.str();return out;
+ }
  std::ostringstream d;d<<"原版公式判定 · 未调度 · 不改变城市";
  const auto appendNative=[&](std::ostringstream& text,const std::optional<bool>& watered){
   text<<"\n原生供水覆盖："<<(!watered?"不可判定":*watered?"有":"无")<<"（自写规则，非原版）";

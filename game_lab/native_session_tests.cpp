@@ -15,6 +15,489 @@ void need(bool v,const char* why){++checks;if(!v)throw std::runtime_error(why);}
 NativeSessionSeed fixture(){NativeSessionSeed s;s.source="test.sav";s.sourceRevision=1;s.modelRevision=2;s.side=8;s.initialFunds=100;s.roadCost=2;s.houseCost=15;s.houseCapacity=7;s.buildable.assign(64,1);s.sourceRoad.assign(64,0);return s;}
 void apply(const NativeSessionSeed& seed,NativeSessionState& s,NativeSessionAction a,int x=0,int y=0){const auto r=transactNativeSession(seed,s,{a,s.revision,x,y});need(r.committed,r.error.c_str());}
 void reject(const NativeSessionSeed& seed,NativeSessionState& s,NativeSessionCommand c,const std::string& reason){const auto before=encodeNativeSession(seed,s);const auto r=transactNativeSession(seed,s,c);need(!r.committed&&r.error==reason,"named rejection");need(encodeNativeSession(seed,s)==before,"failed transaction is atomic");}
+NativeSessionSeed legacyGoldenSeed(){
+ auto seed=fixture();seed.source="golden.sav";seed.initialFunds=1000;seed.wellCost=25;seed.hunterCost=32;
+ seed.laborPercent=50;seed.hunterWorkers=2;seed.wellWorkers=4;seed.laborPriority.fill(3);return seed;
+}
+void legacyCodecGolden(){
+ // Captured with the pre-v7 header a4bbfc18179f72dc50c77fcb69d85b73c6bda0f0a7fc8bbc6f5a23aa96246048.
+ // These literals are authored fixtures, not original SAV or asset data.
+ struct Case {unsigned version;bool constructed;const char* bytes;};
+ const Case cases[]={
+  {1,false,R"ENCITY(ENCITY 1 original-data-native-v1
+"golden.sav" 1 2
+8 1000 2 15 7
+0 0 1 1 1000 0
+)ENCITY"},
+  {1,true,R"ENCITY(ENCITY 1 original-data-native-v1
+"golden.sav" 1 2
+8 1000 2 15 7
+10 6 3 1 983 2
+1 22 1 2 0
+2 2 2 2 3
+)ENCITY"},
+  {2,false,R"ENCITY(ENCITY 2 original-data-native-v2
+"golden.sav" 1 2
+8 1000 2 15 7 25 4
+0 0 1 1 1000 0
+)ENCITY"},
+  {2,true,R"ENCITY(ENCITY 2 original-data-native-v2
+"golden.sav" 1 2
+8 1000 2 15 7 25 4
+12 6 5 1 956 4
+1 22 1 2 0
+2 2 2 2 3
+3 72 2 4 0
+4 22 1 4 0
+)ENCITY"},
+  {3,false,R"ENCITY(ENCITY 3 original-data-native-v3
+"golden.sav" 1 2
+8 1000 2 15 7 25 4 32
+0 0 1 1 1000 0
+FOOD meat 4 100 1 0 0 0 0 0 0 0
+)ENCITY"},
+  {3,true,R"ENCITY(ENCITY 3 original-data-native-v3
+"golden.sav" 1 2
+8 1000 2 15 7 25 4 32
+14 6 7 1 922 6
+FOOD meat 4 100 1 6 12 6 4 2 2 1
+1 22 1 2 0
+2 2 2 2 3
+3 72 2 4 0
+4 22 1 4 0
+5 33 4 4 0
+6 22 4 3 0
+)ENCITY"},
+  {4,false,R"ENCITY(ENCITY 4 original-data-native-v4
+"golden.sav" 1 2
+8 1000 2 15 7 25 4 32
+0 0 1 1 1000 0
+FOOD meat 4 100 1 0 0 0 0 0 0 0 0
+RETIRED 0
+)ENCITY"},
+  {4,true,R"ENCITY(ENCITY 4 original-data-native-v4
+"golden.sav" 1 2
+8 1000 2 15 7 25 4 32
+14 6 7 1 922 6
+FOOD meat 4 100 1 6 12 6 4 2 2 1 0
+1 22 1 2 0
+2 2 2 2 3
+3 72 2 4 0
+4 22 1 4 0
+5 33 4 4 0
+6 22 4 3 0
+RETIRED 0
+)ENCITY"},
+  {5,false,R"ENCITY(ENCITY 5 original-data-native-v5
+"golden.sav" 1 2
+8 1000 2 15 7 25 4 32
+0 0 1 1 1000 0
+FOOD meat 4 100 1 0 0 0 0 0 0 0 0
+TAX 4 1 0 0 0 0 0 0
+RETIRED 0
+)ENCITY"},
+  {5,true,R"ENCITY(ENCITY 5 original-data-native-v5
+"golden.sav" 1 2
+8 1000 2 15 7 25 4 32
+14 6 7 1 923 6
+FOOD meat 4 100 1 6 12 6 4 2 2 1 0
+TAX 4 1 1 1 1 0 0 1
+1 22 1 2 0
+2 2 2 2 3
+3 72 2 4 0
+4 22 1 4 0
+5 33 4 4 0
+6 22 4 3 0
+RETIRED 0
+)ENCITY"},
+  {6,false,R"ENCITY(ENCITY 6 original-data-native-v6
+"golden.sav" 1 2
+8 1000 2 15 7 25 4 32
+0 0 1 1 1000 0
+FOOD meat 4 100 1 0 0 0 0 0 0 0 0
+TAX 4 1 0 0 0 0 0 0
+LABOR 50 2 4 3 3 3 3 3 3 3 3 3 3
+RETIRED 0
+)ENCITY"},
+  {6,true,R"ENCITY(ENCITY 6 original-data-native-v6
+"golden.sav" 1 2
+8 1000 2 15 7 25 4 32
+14 6 7 1 923 6
+FOOD meat 4 100 1 0 2 2 2 2 2 1 0
+TAX 4 1 1 1 1 0 0 1
+LABOR 50 2 4 3 3 3 3 3 3 3 3 3 3
+1 22 1 2 0
+2 2 2 2 3
+3 72 2 4 0
+4 22 1 4 0
+5 33 4 4 0
+6 22 4 3 0
+RETIRED 0
+)ENCITY"},
+ };
+ const auto seed=legacyGoldenSeed();const auto begin=checks;
+ for(const auto& test:cases){
+  auto state=startNativeSession(seed,test.version);
+  if(test.constructed){
+   apply(seed,state,NativeSessionAction::Road,1,2);apply(seed,state,NativeSessionAction::House,2,2);
+   if(test.version>=2){apply(seed,state,NativeSessionAction::Well,2,4);apply(seed,state,NativeSessionAction::Road,1,4);}
+   if(test.version>=3){apply(seed,state,NativeSessionAction::Hunter,4,4);apply(seed,state,NativeSessionAction::Road,4,3);}
+   apply(seed,state,NativeSessionAction::Resume);for(int n=0;n<6;++n)apply(seed,state,NativeSessionAction::Tick);apply(seed,state,NativeSessionAction::Pause);
+  }
+  need(encodeNativeSession(seed,state)==test.bytes,"v1-v6 pre-v7 golden bytes unchanged");
+  auto enriched=seed;enriched.houseCapacities={{0,7},{2,14},{4,21}};need(encodeNativeSession(enriched,state)==test.bytes,"v7 seed metadata never changes legacy bytes");
+  std::string error;const auto restored=decodeNativeSession(seed,test.bytes,error);
+  need(restored&&restored->rulesVersion==test.version,"legacy literal loads without migration");
+  need(encodeNativeSession(seed,*restored)==test.bytes,"legacy literal re-encodes byte exact");
+ }
+ std::cout<<"{\"legacy_golden_cases\":12,\"legacy_golden_checks\":"<<checks-begin<<",\"passed\":true}\n";
+}
+
+
+void houseFoundationGolden(){
+ // Fixed authored wire contract, independent of the encoder and of v8 runtime.
+ // Latched water2 deliberately coexists with an all-zero61-byte service tail.
+ static constexpr const char* golden=R"ENCITY(ENCITY 7 original-data-native-v7-foundation
+"golden.sav" 1 2
+8 1000 2 15 7 25 4 32
+1 0 2 1 985 1
+FOOD meat 4 100 1 0 0 0 0 0 0 0 0
+TAX 4 1 0 0 0 0 0 0
+LABOR 50 2 4 3 3 3 3 3 3 3 3 3 3
+HOUSEMODELS 3 0 7 2 14 4 21
+HOUSECLOCK unknown
+1 2 2 2 0
+RETIRED 0
+HOUSES 1
+1 2 0 1 2 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 -1 3
+)ENCITY";
+ const auto begin=checks;auto seed=legacyGoldenSeed();seed.houseCapacities={{0,7},{2,14},{4,21}};
+ auto state=startNativeSession(seed,7);apply(seed,state,NativeSessionAction::House,2,2);
+ auto& runtime=*state.objects.front().house;runtime.servicesKnown=true;runtime.houseWater=2;
+ runtime.imageWord20=-1;runtime.imageHouseByte3c=3;
+ need(encodeNativeSession(seed,state)==golden,"v7 fixed golden bytes remain compatible beside v8");
+ std::string error;const auto decoded=decodeNativeSession(seed,golden,error);
+ need(decoded&&decoded->rulesVersion==7,"v7 golden loads as foundation without implicit migration");
+ need(encodeNativeSession(seed,*decoded)==golden,"v7 independent literal re-encodes byte exact");
+ need(!decoded->houseClock,"v7 unknown clock is never synthesized during decode");
+ const auto& loaded=*decoded->objects.front().house;
+ need(loaded.servicesKnown&&loaded.houseWater==2&&std::all_of(loaded.remaining.begin(),loaded.remaining.end(),[](uint8_t n){return n==0;}),"v7 literal preserves latched water independently of all-zero tail");
+ need(loaded.imageWord20==-1&&loaded.imageHouseByte3c==3,"v7 literal preserves signed image word and image byte");
+ need(!nativeHouseAutomaticEvolutionBlocker(*decoded).empty(),"v7 literal cannot implicitly enable full runtime");
+ const std::string bytes(golden);const auto records=bytes.find("HOUSES 1\n");
+ need(records!=std::string::npos,"v7 literal has an explicit required house-state section");
+ need(!decodeNativeSession(seed,bytes.substr(0,records),error),"v7 foundation refuses omitted HOUSES section");
+ need(!decodeNativeSession(seed,bytes.substr(0,records)+"HOUSES 0\n",error),"v7 foundation refuses missing per-house record");
+ need(!decodeNativeSession(seed,bytes.substr(0,records)+"HOUSES 1\n",error),"v7 foundation refuses a truncated per-house record");
+ auto continued=*decoded;apply(seed,continued,NativeSessionAction::Resume);
+ apply(seed,continued,NativeSessionAction::Tick);apply(seed,continued,NativeSessionAction::Pause);
+ const auto& after=*continued.objects.front().house;
+ need(continued.rulesVersion==7&&!continued.houseClock&&!nativeHouseAutomaticEvolutionBlocker(continued).empty(),"v7 native Tick does not promote foundation to a full runtime");
+ need(after.type==2&&after.model==0&&after.servicesKnown&&after.houseWater==2&&after.remaining==loaded.remaining,"v7 native Tick leaves stored grade and independent service state unchanged");
+ std::cout<<"{\"house_v7_golden_cases\":1,\"house_v7_golden_checks\":"<<checks-begin<<",\"passed\":true}\n";
+}
+
+struct NativeRuntimeValidationFixture {NativeSessionSeed seed;NativeSessionState state;};
+NativeRuntimeValidationFixture houseRuntimeValidationFixture(){
+ // Entirely synthetic admission to the state validator, not to source loading
+ // or the strict phase engine. An empty live-walker pool has every slot free.
+ auto seed=legacyGoldenSeed();seed.houseCapacities={{0,7},{2,14},{4,21}};
+ seed.sourceClock=NativeHouseClockSeed{};seed.sourceClock->phase=7;seed.sourceClock->cycle=3;
+ seed.sourceClock->monthPart=2;seed.sourceClock->month=4;seed.waterOverride=false;
+ for(int model=0;model<15;++model){std::array<int32_t,24> row{};
+  row[17]=model==2?14:model==4?21:7;seed.houseModels.emplace(model,row);}
+ auto state=startNativeSession(seed,8);state.paused=false;state.revision=4;state.nextId=5;
+ state.objects={{1,NativeObjectKind::Road,1,2,0},{2,NativeObjectKind::House,2,2,0},
+                {3,NativeObjectKind::Well,2,4,0},{4,NativeObjectKind::Hunter,4,4,0}};
+ state.funds-=seed.roadCost+seed.houseCost+seed.wellCost+seed.hunterCost;
+ auto& house=state.objects[1];house.house.emplace();house.house->servicesKnown=true;house.house->houseWater=0;
+ house.automation.emplace();house.automation->cachedWater=0;house.automation->wellId=3;
+ state.objects[2].well.emplace();
+ state.houseSchedule.emplace();auto& clock=*state.houseSchedule;
+ clock.phase=7;clock.cycle=3;clock.monthPart=2;clock.month=4;clock.origin=NativeHouseClockOrigin::SourceSaved;
+ state.buildingHookCountdown=0;
+ auto& figures=state.figureRuntime.emplace();figures.cellHeads.assign(51984,0);figures.highestFigureSlot=0;
+ for(uint16_t slot=1;slot<2000;++slot)figures.freeFigureSlots.push_back(slot);
+ auto& services=figures.services;services.directions.assign(500000,0);services.serviceGrid.assign(51984,0);
+ services.randomFirst=0xfedcba98u;services.randomSecond=0x89abcdefu;
+ services.randomRing.emplace();for(size_t n=0;n<100;++n)services.randomRing->at(n)=uint32_t(n);
+ services.randomRing->at(99)=127;services.randomCursor=99;services.randomPrevious=127;
+ services.fireCount=0;services.criminalCount=0;services.allocationSerial=0;
+ return {std::move(seed),std::move(state)};
+}
+void houseRuntimeValidation(){
+ const auto begin=checks;const auto fixture=houseRuntimeValidationFixture();const auto& seed=fixture.seed;const auto& state=fixture.state;
+ need(validateNativeSession(seed,state).empty(),"synthetic v8 validator fixture with complete empty pools is legal");
+ need(state.figureRuntime->services.randomFirst>127&&state.figureRuntime->services.randomSecond>127,"both RNG registers preserve their full32-bit domain");
+ auto refuses=[&](const NativeSessionState& bad,const char* why){need(!validateNativeSession(seed,bad).empty(),why);};
+ for(unsigned version:{6u,7u}){
+  const auto old=startNativeSession(seed,version);need(validateNativeSession(seed,old).empty(),"known source metadata does not migrate legacy state");
+  auto legacyRefuses=[&](const NativeSessionState& bad,const char* why){refuses(bad,why);need(encodeNativeSession(seed,bad).empty(),"legacy encoding cannot silently discard v8 state");};
+  auto bad=old;bad.houseSchedule=state.houseSchedule;legacyRefuses(bad,"v6/v7 reject a hidden v8 schedule");
+  bad=old;bad.figureRuntime=state.figureRuntime;legacyRefuses(bad,"v6/v7 reject hidden figure pools and RNG");
+  bad=old;bad.buildingHookCountdown=0;legacyRefuses(bad,"v6/v7 reject even a zero-valued v8 hook countdown");
+  bad=old;bad.heldHouseReasons.emplace(1,"synthetic hold");legacyRefuses(bad,"v6/v7 reject hidden v8 held reasons");
+  bad=old;bad.objects.push_back({1,NativeObjectKind::House,2,2,0});bad.revision=1;bad.nextId=2;bad.funds-=seed.houseCost;
+  if(version==7)bad.objects.back().house.emplace();
+  bad.objects.back().automation.emplace();legacyRefuses(bad,"v6/v7 reject per-house v8 automation");
+  bad=old;bad.objects.push_back({1,NativeObjectKind::Well,2,4,0});bad.revision=1;bad.nextId=2;bad.funds-=seed.wellCost;
+  bad.objects.back().well.emplace();legacyRefuses(bad,"v6/v7 reject per-well v8 state");
+ }
+ auto bad=state;bad.houseSchedule.reset();refuses(bad,"v8 requires an explicit runtime schedule");
+ bad=state;bad.houseClock=NativeHouseClock{0,0};refuses(bad,"v8 cannot carry a v7 opaque clock instead of runtime state");
+ bad=state;bad.figureRuntime.reset();refuses(bad,"v8 requires the figure and service pools");
+ bad=state;bad.houseSchedule->phase=51;refuses(bad,"v8 rejects a phase outside0..50");
+ bad=state;bad.houseSchedule->monthPart=16;refuses(bad,"v8 rejects a month segment outside0..15");
+ bad=state;bad.houseSchedule->month=12;refuses(bad,"v8 rejects a month outside0..11");
+ bad=state;bad.houseSchedule->origin=NativeHouseClockOrigin(99);refuses(bad,"v8 rejects an unknown schedule provenance");
+ bad=state;bad.figureRuntime->cellHeads.pop_back();refuses(bad,"v8 refuses a shortened51984-cell figure index");
+ bad=state;bad.figureRuntime->cellHeads.push_back(0);refuses(bad,"v8 refuses an oversized figure index");
+ bad=state;bad.figureRuntime->services.directions.pop_back();refuses(bad,"v8 refuses a shortened500000-step route pool");
+ bad=state;bad.figureRuntime->services.directions.push_back(0);refuses(bad,"v8 refuses an oversized route pool");
+ bad=state;bad.figureRuntime->services.serviceGrid.pop_back();refuses(bad,"v8 refuses a shortened51984-cell service grid");
+ bad=state;bad.figureRuntime->services.serviceGrid.push_back(0);refuses(bad,"v8 refuses an oversized service grid");
+ bad=state;bad.figureRuntime->freeFigureSlots.back()=bad.figureRuntime->freeFigureSlots.front();refuses(bad,"v8 rejects duplicate free FIFO identities without changing its size");
+ bad=state;bad.figureRuntime->freeFigureSlots.back()=0;refuses(bad,"v8 cannot allocate reserved figure slot0");
+ bad=state;bad.figureRuntime->freeFigureSlots.back()=2000;refuses(bad,"v8 free FIFO refuses out-of-pool identities");
+ bad=state;bad.figureRuntime->highestFigureSlot=2000;refuses(bad,"v8 rejects an out-of-pool high-water slot");
+ bad=state;bad.buildingHookCountdown=-1;refuses(bad,"v8 rejects a negative hook countdown");
+
+ bad=state;bad.objects[1].house->houseWater.reset();refuses(bad,"v8 rejects cached water presence mismatch at the house field");
+ bad=state;bad.objects[1].automation->cachedWater.reset();refuses(bad,"v8 rejects cached water presence mismatch at automation");
+ bad=state;bad.objects[1].automation->cachedWater=2;refuses(bad,"v8 rejects unequal independently stored cached water values");
+ bad=state;bad.objects[1].automation->cachedWater=3;refuses(bad,"v8 rejects an out-of-domain automation water cache");
+ auto latched=state;latched.objects[1].house->houseWater=2;latched.objects[1].automation->cachedWater=2;
+ need(validateNativeSession(seed,latched).empty(),"v8 matching water caches remain independent of the zero service tail");
+ for(size_t index:{size_t(0),size_t(1),size_t(3)}){bad=state;bad.objects[index].well.emplace();refuses(bad,"only a Well may carry the well runtime record");}
+ for(size_t index:{size_t(0),size_t(2),size_t(3)}){bad=state;bad.objects[index].automation.emplace();bad.objects[index].automation->cachedWater=0;refuses(bad,"only a House may carry the automation runtime record");}
+
+ auto wide=state;wide.figureRuntime->services.randomFirst=UINT32_MAX;wide.figureRuntime->services.randomSecond=0x80000000u;
+ need(validateNativeSession(seed,wide).empty(),"full-width dual RNG registers are not7-bit history values");
+ bad=state;bad.figureRuntime->services.randomRing->at(0)=128;refuses(bad,"random history elements retain their7-bit bound");
+ bad=state;bad.figureRuntime->services.randomCursor=100;refuses(bad,"random history cursor is confined to100 slots");
+ bad=state;bad.figureRuntime->services.randomPrevious=128;refuses(bad,"random previous value retains its7-bit bound");
+ for(unsigned mask=1;mask<7;++mask){bad=state;auto& random=bad.figureRuntime->services;
+  if(!(mask&1))random.randomRing.reset();if(!(mask&2))random.randomCursor.reset();if(!(mask&4))random.randomPrevious.reset();
+  refuses(bad,"v8 rejects every nonempty partial RNG history triple");}
+
+ // Only the bridge may execute v8. The old authored native Tick must neither
+ // advance a partial chain nor consume any route/RNG state before refusing.
+ auto gated=state;const auto before=encodeNativeSession(seed,gated);need(!before.empty(),"legal v8 gate fixture has a complete checkpoint representation");
+ const auto result=transactNativeSession(seed,gated,{NativeSessionAction::Tick,gated.revision});
+ need(!result.committed&&result.error=="runtime_bridge_required","direct v8 native Tick must require the complete runtime bridge");
+ need(encodeNativeSession(seed,gated)==before,"rejected direct v8 Tick preserves every persisted field");
+ const auto& a=*gated.figureRuntime;const auto& b=*state.figureRuntime;
+ need(gated.revision==state.revision&&gated.ticks==state.ticks&&gated.paused==state.paused&&gated.houseSchedule->phase==state.houseSchedule->phase&&gated.houseSchedule->cycle==state.houseSchedule->cycle&&gated.houseSchedule->monthPart==state.houseSchedule->monthPart&&gated.houseSchedule->month==state.houseSchedule->month&&gated.buildingHookCountdown==state.buildingHookCountdown&&gated.heldHouseReasons==state.heldHouseReasons,"direct v8 gate keeps scheduler and delay state unchanged");
+ need(a.wellWalkerPayloads==b.wellWalkerPayloads&&a.cellHeads==b.cellHeads&&a.freeFigureSlots==b.freeFigureSlots&&a.highestFigureSlot==b.highestFigureSlot&&a.speechCounters==b.speechCounters&&a.speechCounts==b.speechCounts&&a.speechChoices==b.speechChoices,"direct v8 gate keeps pool identities and speech state unchanged");
+ const auto& ar=a.services;const auto& br=b.services;
+ need(ar.formationImpacts==br.formationImpacts&&ar.routeOwners==br.routeOwners&&ar.directions==br.directions&&ar.randomFirst==br.randomFirst&&ar.randomSecond==br.randomSecond&&ar.randomRing==br.randomRing&&ar.randomCursor==br.randomCursor&&ar.randomPrevious==br.randomPrevious&&ar.fireCount==br.fireCount&&ar.criminalCount==br.criminalCount&&ar.allocationSerial==br.allocationSerial&&ar.serviceGrid==br.serviceGrid,"direct v8 gate keeps routes/full RNG/services unchanged");
+ std::cout<<"{\"house_v8_validator_checks\":"<<checks-begin<<",\"passed\":true}\n";
+}
+
+NativeSessionSource syntheticSessionSource(const NativeSessionSeed& seed){
+ NativeSessionSource source;source.seed=seed;source.save.terrain.activeSide=seed.side;
+ constexpr size_t cells=228u*228u;source.save.terrain.flags.assign(cells,0);
+ auto& ground=source.save.layers.ground.emplace();ground.activeSide=seed.side;
+ ground.cropStorageBase=((228-seed.side)/2)*229;ground.waterMode=0;ground.material.assign(cells,0);ground.owner.assign(cells,0);
+ auto& terrain=ground.state;terrain.image.assign(cells,0);terrain.draw.assign(cells,0);terrain.terrain.assign(cells,0);terrain.feature.assign(cells,0);
+ terrain.subTile.assign(cells,0);terrain.randomByte.assign(cells,0);terrain.gF05160.assign(cells,0);terrain.gEAC3F0.assign(cells,0);
+ terrain.roadDistance.assign(cells,0);terrain.fertility.assign(cells,0);terrain.gBEBF3A.assign(cells,0);terrain.gBF8A4A.assign(cells,0);
+ return source;
+}
+
+void houseFoundationIo(const NativeSessionSeed& seed,const NativeSessionState& state,const std::string& bytes){
+ const auto begin=checks;std::string error;const auto ref=nativeSessionReference(bytes);
+ need(ref&&ref->version==7&&ref->source==seed.source,"large v7 header reference survives legacy byte ceiling");
+ char pattern[]="/tmp/emperor-v7-foundation-io-XXXXXX";const char* created=mkdtemp(pattern);need(created,"isolated IO fixture directory created");
+ const std::filesystem::path directory(created),data=directory/"empty-data-root",outputs=directory/"checkpoints";
+ struct Cleanup {std::filesystem::path path;~Cleanup(){std::error_code ec;std::filesystem::remove_all(path,ec);}} cleanup{directory};
+ need(std::filesystem::create_directory(data)&&std::filesystem::create_directory(outputs),"independent empty data root and outputs created");
+ const auto output=(outputs/"large-v7.encity").string();const auto original=encodeNativeSession(seed,state);
+ need(writeNativeSessionNew(output,data.string(),bytes,error),"large v7 actual atomic new-file write");
+ const auto disk=readNativeSessionFile(output,data.string(),error);need(disk&&*disk==bytes,"large v7 independent file read is exact");
+ const auto decoded=decodeNativeSession(seed,*disk,error);need(decoded&&encodeNativeSession(seed,*decoded)==bytes,"large v7 file decodes and re-encodes exactly");
+ auto alternative=state;++alternative.revision;const auto alternativeBytes=encodeNativeSession(seed,alternative);
+ need(!alternativeBytes.empty()&&alternativeBytes!=bytes,"collision uses a different valid v7 checkpoint");
+ need(!writeNativeSessionNew(output,data.string(),alternativeBytes,error),"large v7 existing target is never replaced");
+ const auto afterCollision=readNativeSessionFile(output,data.string(),error);
+ need(afterCollision&&*afterCollision==bytes&&encodeNativeSession(seed,state)==original,"failed collision preserves old file and caller state");
+ const auto legacy=encodeNativeSession(seed,startNativeSession(seed,6));need(!legacy.empty(),"legacy IO control fixture encodes");
+ const auto existing=(outputs/"existing-v6.encity").string();need(writeNativeSessionNew(existing,data.string(),legacy,error),"legacy control file written");
+ need(!writeNativeSessionNew(existing,data.string(),bytes,error),"v7 cannot overwrite a v6 checkpoint");
+ const auto legacyRead=readNativeSessionFile(existing,data.string(),error);need(legacyRead&&*legacyRead==legacy,"v6 target retains exact old bytes");
+ const auto protectedOutput=(data/"blocked.encity").string();
+ need(!writeNativeSessionNew(protectedOutput,data.string(),bytes,error)&&!std::filesystem::exists(protectedOutput),"even large v7 cannot write inside empty simulated data root");
+ auto writeRaw=[&](const std::filesystem::path& path,const std::string& text){
+  std::ofstream stream(path,std::ios::binary|std::ios::trunc);stream.write(text.data(),std::streamsize(text.size()));stream.close();need(bool(stream),"authored raw rejection fixture written");
+ };
+ const auto protectedRead=(data/"read-blocked.encity").string();writeRaw(protectedRead,bytes);
+ need(!readNativeSessionFile(protectedRead,data.string(),error),"large v7 inside simulated data root cannot be read as native checkpoint");
+
+ auto legacyAtLimit=legacy;legacyAtLimit.resize(512000,' ');
+ need(nativeSessionReference(legacyAtLimit).has_value()&&decodeNativeSession(seed,legacyAtLimit,error).has_value(),"legacy exact512000 byte ceiling remains accepted");
+ const auto edgeLegacy=(outputs/"legacy-at-limit.encity").string();need(writeNativeSessionNew(edgeLegacy,data.string(),legacyAtLimit,error),"legacy exact-limit file still writes");
+ const auto edgeLegacyRead=readNativeSessionFile(edgeLegacy,data.string(),error);need(edgeLegacyRead&&*edgeLegacyRead==legacyAtLimit,"legacy exact-limit file still reads");
+
+ auto tooLargeLegacy=legacy;tooLargeLegacy.resize(512001,' ');
+ need(!nativeSessionReference(tooLargeLegacy),"v6 header retains legacy512000 limit");
+ need(!decodeNativeSession(seed,tooLargeLegacy,error),"v6 decoder retains legacy512000 limit");
+ const auto refusedLegacy=(outputs/"refused-large-v6.encity").string();
+ need(!writeNativeSessionNew(refusedLegacy,data.string(),tooLargeLegacy,error)&&!std::filesystem::exists(refusedLegacy),"v6 writer cannot use v7's larger limit");
+ const auto legacyOversizePath=(outputs/"raw-large-v6.encity").string();writeRaw(legacyOversizePath,tooLargeLegacy);
+ need(!readNativeSessionFile(legacyOversizePath,data.string(),error),"v6 reader cannot use v7's larger limit");
+ const std::string invalidHeader(512001,'x');need(!nativeSessionReference(invalidHeader),"large unknown header is not a v7 reference");
+ const auto invalidOutput=(outputs/"invalid-header.encity").string();
+ need(!writeNativeSessionNew(invalidOutput,data.string(),invalidHeader,error)&&!std::filesystem::exists(invalidOutput),"unknown header cannot request extended writer budget");
+ writeRaw(invalidOutput,invalidHeader);need(!readNativeSessionFile(invalidOutput,data.string(),error),"unknown header cannot request extended reader budget");
+ auto tooLargeV7=bytes;tooLargeV7.resize(3u*1024u*1024u,' ');
+ need(!nativeSessionReference(tooLargeV7),"v7 header still has a bounded size");
+ const auto oversizedOutput=(outputs/"oversized-v7.encity").string();
+ need(!writeNativeSessionNew(oversizedOutput,data.string(),tooLargeV7,error)&&!std::filesystem::exists(oversizedOutput),"v7 writer remains bounded");
+ writeRaw(oversizedOutput,tooLargeV7);need(!readNativeSessionFile(oversizedOutput,data.string(),error),"v7 reader remains bounded");
+ std::set<std::string> beforeFailure;for(const auto& entry:std::filesystem::directory_iterator(outputs))beforeFailure.insert(entry.path().filename().string());
+ const auto longName=(outputs/(std::string(300,'x')+".encity")).string();
+ need(!writeNativeSessionNew(longName,data.string(),bytes,error),"temporary-file creation failure is reported without permission or disk changes");
+ std::set<std::string> afterFailure;for(const auto& entry:std::filesystem::directory_iterator(outputs))afterFailure.insert(entry.path().filename().string());
+ need(beforeFailure==afterFailure,"failed save leaves no owned temporary artifacts");
+ const auto kept=readNativeSessionFile(output,data.string(),error);need(kept&&*kept==bytes&&encodeNativeSession(seed,state)==original,"failed new-path save preserves caller state and existing checkpoint");
+ std::cout<<"{\"house_v7_io_checks\":"<<checks-begin<<",\"passed\":true}\n";
+}
+
+void houseFoundation(){
+ const auto begin=checks;auto seed=legacyGoldenSeed();seed.houseCapacities={{0,7},{2,14},{4,21}};
+ // Keep the existing native v6 labor-shortage arrival rule active; capacity, not starvation, must end this fixture.
+ seed.hunterWorkers=100;
+ need(nativeLatestRulesVersion==6,"v7 foundation does not change default latest version");
+ auto city=startNativeSession(seed,7);need(validateNativeSession(seed,city).empty(),"explicit v7 empty session admitted");
+ need(!city.houseClock,"new v7 has no invented original clock");
+ need(!nativeHouseAutomaticEvolutionBlocker(city).empty(),"unknown original clock blocks auto evolution");
+ const auto emptyBytes=encodeNativeSession(seed,city);need(emptyBytes.find("ENCITY 7 original-data-native-v7-foundation\n")==0,"v7 foundation is explicitly named");
+ apply(seed,city,NativeSessionAction::Road,1,2);apply(seed,city,NativeSessionAction::House,2,2);
+ need(city.objects[1].house&&city.objects[1].house->type==2&&city.objects[1].house->model==0,"new native house has explicit empty grade");
+ need(!city.objects[1].house->servicesKnown&&!city.objects[1].house->houseWater,"new house service state is unknown");
+ need(nativeHouseCapacity(seed,city,city.objects[1])==std::make_optional(uint32_t(7)),"empty grade uses model0 capacity");
+ need(nativeHouseProjectionType(city,city.objects[1])==std::make_optional(uint16_t(2)),"empty grade projection is type2");
+ apply(seed,city,NativeSessionAction::Well,2,4);apply(seed,city,NativeSessionAction::Road,1,4);
+ apply(seed,city,NativeSessionAction::Hunter,4,4);apply(seed,city,NativeSessionAction::Road,4,3);apply(seed,city,NativeSessionAction::Resume);
+ apply(seed,city,NativeSessionAction::Tick);apply(seed,city,NativeSessionAction::Tick);apply(seed,city,NativeSessionAction::Pause);
+ need(city.objects[1].residents==1&&city.objects[1].house->type==3,"existing native arrival only changes empty grade2 to3");
+ auto& house=*city.objects[1].house;house.type=5;house.model=2;house.servicesKnown=true;house.houseWater=2;
+ house.remaining[45]=0;house.remaining[47]=0;house.remaining[52]=8;house.remaining[60]=255;
+ house.imageWord20=1;house.imageHouseByte3c=1;city.houseClock=NativeHouseClock{39,7};
+ need(validateNativeSession(seed,city).empty(),"synthetic supported grade state admitted");
+ need(nativeHouseCapacity(seed,city,city.objects[1])==std::make_optional(uint32_t(14)),"grade5 uses model2 capacity not row0");
+ need(nativeHouseProjectionType(city,city.objects[1])==std::make_optional(uint16_t(5)),"typed grade drives projection");
+ const auto source=syntheticSessionSource(seed);const auto projected=nativeSessionScene(source,city);
+ need(projected&&projected->buildings.footprints.size()==3,"synthetic house/well/hunter project without asset access");
+ const auto footprint=std::find_if(projected->buildings.footprints.begin(),projected->buildings.footprints.end(),[&](const auto& f){return f.slot==city.objects[1].id;});
+ need(footprint!=projected->buildings.footprints.end()&&footprint->type==5&&projected->buildings.slotTypes[footprint->slot]==5,"scene and slot type consume same persisted grade");
+ need(footprint->imageInputs&&footprint->imageInputs->word20==house.imageWord20&&footprint->imageInputs->houseByte3c==house.imageHouseByte3c,"scene uses persisted image state");
+ const auto bytes=encodeNativeSession(seed,city);need(!bytes.empty(),"supported v7 encodes");
+ std::string error;const auto restored=decodeNativeSession(seed,bytes,error);need(restored&&restored->rulesVersion==7&&encodeNativeSession(seed,*restored)==bytes,"v7 typed state byte exact roundtrip");
+ const auto& loaded=*restored->objects[1].house;
+ need(loaded.type==5&&loaded.model==2&&loaded.remaining==house.remaining&&loaded.servicesKnown&&loaded.houseWater==2,"v7 preserves independent water and all61 opaque bytes");
+ need(loaded.remaining[45]==0&&loaded.remaining[47]==0&&loaded.houseWater==2,"phase28 water survives later tail decay without recomputation");
+ need(loaded.imageWord20==1&&loaded.imageHouseByte3c==1,"v7 preserves render inputs");
+ need(restored->houseClock&&restored->houseClock->phase==39&&restored->houseClock->monthPart==7,"explicit clock roundtrips");
+ for(const auto water:{std::optional<uint8_t>{},std::optional<uint8_t>{0},std::optional<uint8_t>{1},std::optional<uint8_t>{2}}){
+  auto state=city;state.objects[1].house->houseWater=water;const auto wire=encodeNativeSession(seed,state);need(!wire.empty(),"water unknown0/1/2 are persistable");
+  const auto loadedState=decodeNativeSession(seed,wire,error);need(loadedState&&loadedState->objects[1].house->houseWater==water,"water tag roundtrips independently of tail");
+  need(!nativeHouseAutomaticEvolutionBlocker(state).empty(),"even explicit water and clock cannot enable unsupported auto evolution");
+ }
+
+ auto lateService=city;lateService.objects[1].house->houseWater=0;lateService.objects[1].house->remaining[45]=96;
+ const auto lateWire=encodeNativeSession(seed,lateService);const auto lateRead=decodeNativeSession(seed,lateWire,error);
+ need(lateRead&&lateRead->objects[1].house->houseWater==0&&lateRead->objects[1].house->remaining[45]==96,"new service bytes do not retroactively recompute latched water");
+ for(const auto& grade:{std::pair<uint16_t,uint16_t>{3,0},{5,2},{7,4}}){
+  auto typed=city;typed.objects[1].house->type=grade.first;typed.objects[1].house->model=grade.second;
+  need(validateNativeSession(seed,typed).empty(),"each supported occupied grade validates");
+  need(nativeHouseProjectionType(typed,typed.objects[1])==std::make_optional(grade.first)&&nativeHouseCapacity(seed,typed,typed.objects[1])==std::make_optional(seed.houseCapacities.at(grade.second)),"each grade shares capacity and projection model");
+  const auto gradeWire=encodeNativeSession(seed,typed);const auto gradeRead=decodeNativeSession(seed,gradeWire,error);
+  need(gradeRead&&gradeRead->objects[1].house->type==grade.first&&gradeRead->objects[1].house->model==grade.second,"every supported occupied grade persists exactly");
+ }
+
+ auto unknown=city;unknown.houseClock.reset();unknown.objects[1].house->servicesKnown=false;unknown.objects[1].house->houseWater.reset();
+ const auto unknownBytes=encodeNativeSession(seed,unknown);const auto unknownRead=decodeNativeSession(seed,unknownBytes,error);
+ need(unknownRead&&!unknownRead->houseClock&&!unknownRead->objects[1].house->servicesKnown&&!unknownRead->objects[1].house->houseWater,"unknown runtime state remains unknown across persistence");
+ auto rejectState=[&](NativeSessionState bad,const char* why){
+  need(!validateNativeSession(seed,bad).empty(),why);need(encodeNativeSession(seed,bad).empty(),"invalid v7 cannot encode");
+ };
+ auto bad=city;bad.objects[1].house.reset();rejectState(bad,"v7 refuses missing house runtime");
+ bad=city;bad.objects[0].house=NativeHouseRuntime{};rejectState(bad,"nonhouse refuses house runtime");
+ bad=city;bad.objects[1].house->type=4;bad.objects[1].house->model=1;rejectState(bad,"unsupported type4 stays explicit");
+ need(!nativeHouseProjectionType(bad,bad.objects[1]),"unsupported type4 is never silently projected as type3");
+ need(!nativeSessionScene(source,bad),"unsupported house cannot install a scene");
+ bad=city;bad.objects[1].house->model=4;rejectState(bad,"type and model mismatch refused");
+ bad=city;bad.objects[1].house->houseWater=3;rejectState(bad,"out of domain water refused");
+ bad=city;bad.houseClock->phase=51;rejectState(bad,"phase outside admitted51 stage contract refused");
+ auto missing=seed;missing.houseCapacities.erase(2);need(!validateNativeSession(missing,city).empty()&&!nativeHouseCapacity(missing,city,city.objects[1]),"missing capacity row refuses instead of using row0");
+ auto zero=seed;zero.houseCapacities[2]=0;need(!validateNativeSession(zero,city).empty(),"zero active model capacity refused");
+ auto huge=seed;huge.houseCapacities[2]=101;need(!validateNativeSession(huge,city).empty(),"unsupported capacity bound refused explicitly");
+ auto changed=seed;changed.houseCapacities[4]=22;need(!decodeNativeSession(changed,bytes,error),"v7 binds unused model table rows as well as active capacity");
+ for(const auto& text:{bytes+"trailing",bytes.substr(0,bytes.size()/2),bytes+bytes})need(!decodeNativeSession(seed,text,error),"trailing/truncated/duplicate v7 records refused");
+ for(unsigned version=1;version<=6;++version){
+  auto old=startNativeSession(seed,version);const auto before=encodeNativeSession(seed,old);auto oldRuntime=old;oldRuntime.houseClock=NativeHouseClock{0,0};
+  need(!validateNativeSession(seed,oldRuntime).empty()&&encodeNativeSession(seed,oldRuntime).empty(),"legacy format refuses hidden house clock");
+  apply(seed,old,NativeSessionAction::House,2,2);old.objects.back().house=NativeHouseRuntime{};
+  need(!validateNativeSession(seed,old).empty()&&encodeNativeSession(seed,old).empty(),"legacy format refuses hidden per-house metadata");
+  need(!before.empty(),"old versions do not require v7 state");
+ }
+ const auto tail=city.objects[1].house->remaining;const auto water=city.objects[1].house->houseWater;
+ apply(seed,city,NativeSessionAction::Resume);for(int n=0;n<36;++n)apply(seed,city,NativeSessionAction::Tick);apply(seed,city,NativeSessionAction::Pause);
+ need(city.objects[1].residents==14,"native arrivals respect grade capacity14 rather than row0 capacity7");
+ need(city.objects[1].house->type==5&&city.objects[1].house->model==2,"native ticks never perform automatic grade evolution");
+ need(city.objects[1].house->remaining==tail&&city.objects[1].house->houseWater==water,"native ticks do not invent original service decay or update water");
+ need(city.houseClock&&city.houseClock->phase==39&&city.houseClock->monthPart==7,"native ticks never invent original clock progression");
+ need(!nativeHouseAutomaticEvolutionBlocker(city).empty(),"auto evolution remains disabled after native ticks");
+
+
+ // Retirement keeps kind/id but not a former grade. Bound historical departures
+ // by supported house models only; an unrelated model row is not extra capacity.
+ auto extraModels=seed;extraModels.houseCapacities[99]=100;
+ need(nativeHouseCapacityCeiling(extraModels,city)==21,"unsupported model99 cannot raise supported house ceiling");
+ auto withoutTop=extraModels;withoutTop.houseCapacities.erase(4);
+ need(nativeHouseCapacityCeiling(withoutTop,city)==14,"ceiling uses only present admitted model0/2/4 rows");
+ auto legacyCeiling=startNativeSession(extraModels,6);
+ need(nativeHouseCapacityCeiling(extraModels,legacyCeiling)==7,"legacy departure ceiling remains row0");
+ for(const auto& grade:{std::pair<uint16_t,uint16_t>{5,2},{7,4}}){
+  auto occupied=city;occupied.objects[1].house->type=grade.first;occupied.objects[1].house->model=grade.second;
+  const auto capacity=extraModels.houseCapacities.at(grade.second);
+  if(occupied.objects[1].residents<capacity){
+   apply(extraModels,occupied,NativeSessionAction::Resume);
+   for(unsigned n=0;n<42&&occupied.objects[1].residents<capacity;++n)apply(extraModels,occupied,NativeSessionAction::Tick);
+   apply(extraModels,occupied,NativeSessionAction::Pause);
+  }
+  need(occupied.objects[1].residents==capacity,"high-grade demolition fixture reaches its actual model capacity");
+  const uint64_t id=occupied.objects[1].id;const auto population=nativePopulation(occupied);const auto funds=occupied.funds;
+  const auto preview=planNativeDemolition(extraModels,occupied,id);
+  need(preview.candidate&&preview.object.residents==capacity,"capacity14/21 occupied house has a valid pure demolition candidate");
+  NativeSessionCommand command{NativeSessionAction::Demolish,occupied.revision};command.objectId=id;
+  const auto result=transactNativeSession(extraModels,occupied,command);
+  need(result.committed&&nativePopulation(occupied)==population-capacity&&occupied.departedSinceMeal==capacity,"capacity14/21 residents retire successfully without a row0 cap rejection");
+  need(occupied.funds==funds&&occupied.retired.back().id==id,"higher-grade demolition preserves money and retired identity");
+  std::string roundtripError;const auto retiredBytes=encodeNativeSession(extraModels,occupied);
+  const auto retiredRead=decodeNativeSession(extraModels,retiredBytes,roundtripError);
+  need(retiredRead&&retiredRead->departedSinceMeal==capacity&&encodeNativeSession(extraModels,*retiredRead)==retiredBytes,"high-grade historical departure persists exactly");
+  auto fabricated=occupied;fabricated.departedSinceMeal=22;fabricated.lastFood.demand=22;fabricated.lastFood.arrivals=0;fabricated.lastFood.fed=0;
+  need(!validateNativeSession(extraModels,fabricated).empty()&&encodeNativeSession(extraModels,fabricated).empty(),"model99 cannot admit historical departures above supported ceiling21");
+ }
+
+ // The admitted 3999-house state must roundtrip even though its v7 extension
+ // exceeds the legacy 512000-byte parser ceiling. No external data is used.
+ auto largeSeed=seed;largeSeed.side=228;largeSeed.initialFunds=1000000;largeSeed.buildable.assign(228u*228u,1);largeSeed.sourceRoad.assign(228u*228u,0);
+ auto large=startNativeSession(largeSeed,7);large.objects.reserve(3999);
+ for(unsigned n=0;n<3999;++n){NativeSessionObject o{uint64_t(n)+1,NativeObjectKind::House,(n%114)*2,(n/114)*2,0};o.house.emplace();large.objects.push_back(o);}
+ large.revision=3999;large.nextId=4000;large.funds=largeSeed.initialFunds-3999*int64_t(largeSeed.houseCost);
+ need(validateNativeSession(largeSeed,large).empty(),"maximum admitted house count remains structurally valid");
+ const auto largeBytes=encodeNativeSession(largeSeed,large);need(largeBytes.size()>512000,"maximum v7 fixture exercises the extended parser budget");
+ const auto largeRead=decodeNativeSession(largeSeed,largeBytes,error);
+ need(largeRead&&largeRead->objects.size()==3999&&encodeNativeSession(largeSeed,*largeRead)==largeBytes,"maximum v7 state roundtrips within bounded parser budget");
+ houseFoundationIo(largeSeed,large,largeBytes);
+ need(!decodeNativeSession(largeSeed,std::string(3u*1024u*1024u,'x'),error),"unbounded input is still rejected");
+
+ std::cout<<"{\"house_v7_foundation_checks\":"<<checks-begin<<",\"passed\":true}\n";
+}
+
 void roads(){
  const auto seed=fixture();size_t endpointCases=0;
  for(int y=0;y<8;++y)for(int x=0;x<8;++x)for(int ty=0;ty<8;++ty)for(int tx=0;tx<8;++tx){
@@ -71,7 +554,7 @@ void water(){
  auto legacyReload=decodeNativeSession(seed,encodeNativeSession(seed,legacy),error);need(legacyReload&&legacyReload->rulesVersion==1&&nativePopulation(*legacyReload)==1,"legacy growth still ignores water");
  auto missing=seed;missing.wellCost=0;auto ms=startNativeSession(missing,2);need(validateNativeSession(missing,ms)=="missing_well_model_price","v2 missing price rejected");need(validateNativeSession(missing,startNativeSession(missing)).empty(),"v1 does not need well model");
  auto exact=seed;exact.initialFunds=25;auto es=startNativeSession(exact,2);apply(exact,es,NativeSessionAction::Well,0,0);need(es.funds==0,"exact well price accepted");auto poor=seed;poor.initialFunds=24;auto ps=startNativeSession(poor,2);reject(poor,ps,{NativeSessionAction::Well,0,0,0},"insufficient_funds");
- auto broken=s;broken.objects[2].residents=1;need(validateNativeSession(seed,broken)=="invalid_residents","well cannot contain residents");broken=s;broken.rulesVersion=7;need(validateNativeSession(seed,broken)=="unsupported_native_rules","unknown rules rejected");
+ auto broken=s;broken.objects[2].residents=1;need(validateNativeSession(seed,broken)=="invalid_residents","well cannot contain residents");broken=s;broken.rulesVersion=9;need(validateNativeSession(seed,broken)=="unsupported_native_rules","unknown rules rejected");
  auto modify=[&](const std::string& a,const std::string& b){auto bad=bytes;const auto at=bad.find(a);need(at!=std::string::npos,"mutation target exists");bad.replace(at,a.size(),b);need(!decodeNativeSession(seed,bad,error),"incompatible water save rejected");};
  modify("ENCITY 2","ENCITY 3");modify("native-v2","native-v1");modify("7 25 4\n","7 25 5\n");modify("7 25 4\n","7 24 4\n");
  // Coverage is clipped square distance from the2x2 well footprint, unioned.
@@ -246,7 +729,7 @@ void presentation(){
 }
 void authored(){
  presentation();
- roads();water();food();demolition();tax();checkpointHelpers();
+ legacyCodecGolden();houseFoundationGolden();houseFoundation();houseRuntimeValidation();roads();water();food();demolition();tax();checkpointHelpers();
  auto seed=fixture();auto s=startNativeSession(seed);need(validateNativeSession(seed,s).empty(),"fresh state");
  reject(seed,s,{NativeSessionAction::Tick,0},"paused");reject(seed,s,{NativeSessionAction::House,0,-1,0},"outside_scene");
  apply(seed,s,NativeSessionAction::House,2,2);need(s.funds==85,"house cost once");

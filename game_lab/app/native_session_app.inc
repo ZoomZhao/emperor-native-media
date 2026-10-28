@@ -8,7 +8,9 @@
         [_nativeMinimap installOverview:overview image:image];_nativeOverviewSource=_nativeSource;
         std::fprintf(stderr,"native_minimap base_generated side=%u active=%zu pixels=%u\n",overview->side,overview->activeCells,overview->pixels);
     }
-    [_nativeMinimap updateCamera:_nativeCamera objects:_nativeState->objects];
+    const auto entry=[self nativeFeedback].entrance.entry;
+    const std::optional<game_lab::OriginalMapPoint> point=entry?std::make_optional(game_lab::OriginalMapPoint{double(entry->first),double(entry->second)}):std::nullopt;
+    [_nativeMinimap setEntrance:point];[_nativeMinimap updateCamera:_nativeCamera objects:_nativeState->objects];
 }
 // SPDX-License-Identifier: MIT
 // Versioned native UI implementation included inside EmperorAppDelegate. This uses
@@ -23,7 +25,7 @@
 - (const game_lab::NativeCityFeedback&)nativeFeedback {
     const auto epoch=_nativeFrameGate.sessionEpoch,revision=_nativeState->revision;
     if(!_nativeFeedback||_nativeFeedbackSource.lock()!=_nativeSource||_nativeFeedbackEpoch!=epoch||_nativeFeedbackRevision!=revision){
-        _nativeFeedback=game_lab::queryNativeCityFeedback(_nativeSource->seed,*_nativeState);_nativeFeedbackEpoch=epoch;_nativeFeedbackRevision=revision;_nativeFeedbackSource=_nativeSource;
+        _nativeFeedback=game_lab::queryNativeCityFeedback(_nativeSource->seed,*_nativeState,_nativeSource->runtime?&_nativeSource->runtime->strictTemplate:nullptr);_nativeFeedbackEpoch=epoch;_nativeFeedbackRevision=revision;_nativeFeedbackSource=_nativeSource;
     }
     return *_nativeFeedback;
 }
@@ -65,8 +67,11 @@
     const auto* object=[self nativeFeedback].find(_nativeInspectionId);
     if(!object||object->kind!=game_lab::NativeObjectKind::House)return nil;
     const auto& report=[self nativeHouseEvolution];
-    if(const auto* view=report.find(_nativeInspectionId))
-        return [NSString stringWithUTF8String:game_lab::nativeHouseEvolutionText(*view).detail.c_str()];
+    if(const auto* view=report.find(_nativeInspectionId)){
+        NSString* text=[NSString stringWithUTF8String:game_lab::nativeHouseEvolutionText(*view).detail.c_str()];
+        if(object->inspection.enabled){const auto inspection=game_lab::nativeInspectionRecordText(object->inspection,_nativeState->ticks,object->connected,object->workers,object->requiredWorkers,true);text=[text stringByAppendingFormat:@"\n\n巡检与风险\n%@",[NSString stringWithUTF8String:inspection.c_str()]];}
+        return text;
+    }
     return [NSString stringWithFormat:@"住宅条件未算\n%@",[NSString stringWithUTF8String:game_lab::nativeHouseEvolutionErrorText(report.error).c_str()]];
 }
 - (void)popoverDidShow:(NSNotification*)note {
@@ -108,7 +113,7 @@
     NSString* summary=[NSString stringWithUTF8String:game_lab::nativeCategorySummary(seed,*_nativeState,_nativeCategoryIndex,feedback).c_str()];
     _nativeServiceSummary.stringValue=summary;_nativeServiceSummary.accessibilityLabel=summary;
     NSString* description=nil;NSString* tooltip=nil;
-    if(tool>0){NSArray* selection=@[@"浏览",[NSString stringWithFormat:@"道路 · %u 金 / 格\n拖动预览整条路径，松开一次提交。",seed.roadCost],[NSString stringWithFormat:@"普通住宅 · %u 金 / 2×2\n容量 %u 人；入住按当前版本的道路、供水及食物条件。",seed.houseCost,seed.houseCapacity],[NSString stringWithFormat:@"水井 · %u 金 / 2×2\n邻路启用；原生供水范围外扩4格。",seed.wellCost],[NSString stringWithFormat:@"猎人营地 · %u 金 / 2×2\n邻路且生产开启，每2更新最多产4肉。",seed.hunterCost],@"拆除 · 无退款\n先选自己的对象，再确认；可取消。"];
+    if(tool>0){NSString* houseTool=game_lab::nativeUsesImmigration(*_nativeState)?[NSString stringWithFormat:@"普通住宅 · %u 金 / 2×2\n容量随已保存等级变化；人口按实际迁入预约和行人入户更新。",seed.houseCost]:[NSString stringWithFormat:@"普通住宅 · %u 金 / 2×2\n容量 %u 人；入住按当前版本的道路、供水及食物条件。",seed.houseCost,seed.houseCapacity];NSArray* selection=@[@"浏览",[NSString stringWithFormat:@"道路 · %u 金 / 格\n拖动预览整条路径，松开一次提交。",seed.roadCost],houseTool,(_nativeState->rulesVersion==8?[NSString stringWithFormat:@"水井 · %u 金 / 2×2\n邻路和工人满足后派出送水人；行经住宅写入供水。",seed.wellCost]:[NSString stringWithFormat:@"水井 · %u 金 / 2×2\n邻路启用；原生供水范围外扩4格。",seed.wellCost]),[NSString stringWithFormat:@"猎人营地 · %u 金 / 2×2\n邻路且生产开启，每2更新最多产4肉。",seed.hunterCost],@"拆除 · 无退款\n先选自己的对象，再确认；可取消。",[NSString stringWithFormat:@"巡检塔 · %u 金 / 2×2\n邻路就业后派遣；实际行经才降低风险。灭火尚未接通。",seed.inspectorCost]];
         description=tool<NSInteger(selection.count)?[selection[tool] stringByAppendingString:@"\n\n选择只启用工具，不扣费。地图预览后单击施工；右键取消。"]:[NSString stringWithUTF8String:game_lab::nativeCategoryHint(_nativeCategoryIndex).c_str()];
     }else if(_nativeInspectionId){description=[NSString stringWithUTF8String:game_lab::nativeObjectDescription(seed,*_nativeState,_nativeInspectionId,feedback).c_str()];
         const auto* inspected=feedback.find(_nativeInspectionId);
@@ -123,9 +128,17 @@
                 description=[description stringByAppendingFormat:@"\n\n住宅条件未算\n%@",reason];tooltip=description;
             }
         }
-    }else{description=[NSString stringWithFormat:@"%@\n当前为浏览；分类切换不会施工。",[NSString stringWithUTF8String:game_lab::nativeCategoryHint(_nativeCategoryIndex).c_str()]];}
+    }else if(feedback.entrance.required&&_nativeCategoryIndex==0){description=@"新城开局\n① 点“入城口”定位原有路网。\n② 铺路接通路网，再建邻路住宅。\n③ 恢复，等待实际行人入户。\n④ 人口形成劳力后建水井和巡检塔；工人不等于已服务。";}
+    else{description=[NSString stringWithFormat:@"%@\n当前为浏览；分类切换不会施工。",[NSString stringWithUTF8String:game_lab::nativeCategoryHint(_nativeCategoryIndex).c_str()]];}
     if(!tooltip)tooltip=description;
+    if(tool==0&&_nativeInspectionId){const auto* record=feedback.find(_nativeInspectionId);if(record&&record->inspection.enabled){
+        const auto inspection=game_lab::nativeInspectionRecordText(record->inspection,_nativeState->ticks,record->connected,record->workers,record->requiredWorkers,true);
+        tooltip=[tooltip stringByAppendingFormat:@"\n\n%@",[NSString stringWithUTF8String:inspection.c_str()]];
+    }}
     _nativeDetails.stringValue=description;_nativeDetails.toolTip=tooltip;
+    if(_nativeEntrance){_nativeEntrance.hidden=!feedback.entrance.required;_nativeEntrance.enabled=feedback.entrance.entry.has_value();
+        _nativeEntrance.toolTip=feedback.entrance.entry?[NSString stringWithFormat:@"定位来源入城口 (%d,%d)；邻路不代表已连通入城路网。",feedback.entrance.entry->first,feedback.entrance.entry->second]:@"当前来源的入城口无法核实；不会猜测位置。";
+        _nativeEntrance.accessibilityHelp=_nativeEntrance.toolTip;}
     unsigned icon=0;const auto*object=[self nativeFeedback].find(_nativeInspectionId);
     if(tool==0&&object)icon=object->kind==game_lab::NativeObjectKind::House?1491:object->kind==game_lab::NativeObjectKind::Well?1551:object->kind==game_lab::NativeObjectKind::Hunter?1512:0;
     _nativeDetailIcon.image=icon?[self nativeUI:icon]:nil;_nativeDetailIcon.hidden=!_nativeDetailIcon.image;
@@ -156,24 +169,24 @@
 - (void)updateNativeToolPalette {
     if(!_nativeState||!_nativeSource)return;const auto version=_nativeState->rulesVersion;
     const auto layout=game_lab::nativeGameLayout(_nativePanel.contentView.bounds.size.width,_nativePanel.contentView.bounds.size.height);
-    NSArray* names=@[@"查看建筑 / 拖动地图",[NSString stringWithFormat:@"道路 · %u 金 / 格",_nativeSource->seed.roadCost],[NSString stringWithFormat:@"普通住宅 · %u 金 / 2×2",_nativeSource->seed.houseCost],[NSString stringWithFormat:@"水井 · %u 金 / 2×2",_nativeSource->seed.wellCost],[NSString stringWithFormat:@"猎人营地 · %u 金 / 2×2",_nativeSource->seed.hunterCost],@"拆除 · 先预览后确认"];
-    NSArray* categoryNames=@[@"住宅",@"食物",@"公共服务：水井",@"道路与拆除"];
+    NSArray* names=@[@"查看建筑 / 拖动地图",[NSString stringWithFormat:@"道路 · %u 金 / 格",_nativeSource->seed.roadCost],[NSString stringWithFormat:@"普通住宅 · %u 金 / 2×2",_nativeSource->seed.houseCost],[NSString stringWithFormat:@"水井 · %u 金 / 2×2",_nativeSource->seed.wellCost],[NSString stringWithFormat:@"猎人营地 · %u 金 / 2×2",_nativeSource->seed.hunterCost],@"拆除 · 先预览后确认",[NSString stringWithFormat:@"巡检塔 · %u 金 / 2×2",_nativeSource->seed.inspectorCost]];
+    NSArray* categoryNames=@[@"住宅",@"食物",@"公共服务",@"道路与拆除"];
     for(NSButton* b in _nativeCategories){const auto tag=unsigned(b.tag);NSString* reason=[NSString stringWithUTF8String:game_lab::nativeCategoryUnavailableReason(tag,version).c_str()];
         b.enabled=game_lab::nativeCategoryAvailable(tag,version);b.state=tag==_nativeCategoryIndex?NSControlStateValueOn:NSControlStateValueOff;
         b.toolTip=reason.length?[NSString stringWithFormat:@"%@\n%@",categoryNames[tag],reason]:[NSString stringWithFormat:@"%@\n点击查看分类摘要。",categoryNames[tag]];
         b.accessibilityHelp=reason.length?reason:@"点击查看分类摘要。";b.needsDisplay=YES;}
     for(NSButton* b in _nativeChoices){const auto tag=unsigned(b.tag);const bool visible=b.tag==0||game_lab::nativeToolCategory(tag)==_nativeCategoryIndex;
-        NSString* reason=[NSString stringWithUTF8String:game_lab::nativeToolUnavailableReason(tag,version).c_str()];
+        NSString* reason=[NSString stringWithUTF8String:game_lab::nativeToolUnavailableReason(tag,version,game_lab::nativeUsesInspection(*_nativeState)).c_str()];
         b.accessibilityLabel=names[b.tag];b.toolTip=reason.length?[NSString stringWithFormat:@"%@\n%@",names[b.tag],reason]:names[b.tag];b.accessibilityHelp=reason;
-        b.hidden=!visible;b.enabled=game_lab::nativeToolAvailable(tag,version);b.state=b.tag==_nativeTool.indexOfSelectedItem?NSControlStateValueOn:NSControlStateValueOff;
-        b.frame=NativeNSRect(layout.toolFor(tag));b.needsDisplay=YES;}
+        b.hidden=!visible||(tag==6&&!game_lab::nativeUsesInspection(*_nativeState));b.enabled=game_lab::nativeToolAvailable(tag,version,game_lab::nativeUsesInspection(*_nativeState));b.state=b.tag==_nativeTool.indexOfSelectedItem?NSControlStateValueOn:NSControlStateValueOff;
+        b.frame=NativeToolRect(layout,tag);b.needsDisplay=YES;}
 }
 - (void)onNativeCategory:(NSButton*)sender {
     if(!_nativeState||!game_lab::nativeCategoryAvailable(unsigned(sender.tag),_nativeState->rulesVersion))return;
     _nativeCategoryIndex=unsigned(sender.tag);_nativeInspectionId=0;
     [_nativeTool selectItemAtIndex:0];[self onNativeTool:nil];[self updateNativeInspection];
 }
-- (void)onNativePaletteTool:(NSButton*)sender {if(!_nativeState||sender.tag<0||sender.tag>5||!game_lab::nativeToolAvailable(unsigned(sender.tag),_nativeState->rulesVersion)||(sender.tag!=0&&game_lab::nativeToolCategory(unsigned(sender.tag))!=_nativeCategoryIndex))return;if(sender.tag!=0)_nativeInspectionId=0;[_nativeTool selectItemAtIndex:sender.tag];[self onNativeTool:nil];[self updateNativeInspection];}
+- (void)onNativePaletteTool:(NSButton*)sender {if(!_nativeState||sender.tag<0||sender.tag>6||!game_lab::nativeToolAvailable(unsigned(sender.tag),_nativeState->rulesVersion,game_lab::nativeUsesInspection(*_nativeState))||(sender.tag!=0&&game_lab::nativeToolCategory(unsigned(sender.tag))!=_nativeCategoryIndex))return;if(sender.tag!=0)_nativeInspectionId=0;[_nativeTool selectItemAtIndex:sender.tag];[self onNativeTool:nil];[self updateNativeInspection];}
 - (void)onNativeRules:(id)sender {(void)sender;[self nativeError:_nativeRulesLabel.stringValue];}
 - (void)onNativeDiagnostics:(id)sender {(void)sender;if(!_nativeState)return;
     [self nativeError:[NSString stringWithFormat:@"%@\n\n%@\n%@\n%@",_nativeStatus.stringValue,_nativeWaterInfo.stringValue,_nativeFoodInfo.stringValue,_nativeTaxInfo.stringValue]];
@@ -191,24 +204,29 @@
     if(!_nativeState||!_nativeSource)return;const auto& s=*_nativeState;const auto& seed=_nativeSource->seed;
     _nativeWaterToggle.enabled=s.rulesVersion>=2;
     if(s.rulesVersion==1){_nativeWaterInfo.stringValue=@"v1旧规则：供水不参与入住，井不可建；加载不会自动升级规则。";_nativeCanvas.needsDisplay=YES;return;}
+    const auto& feedback=[self nativeFeedback];
+    if(!feedback.error.empty()){_nativeWaterInfo.stringValue=@"当前供水状态不可评估；原状态保留。";_nativeCanvas.needsDisplay=YES;return;}
     const auto roads=game_lab::nativeRoads(seed,s),water=game_lab::nativeWaterCoverage(seed,s);size_t wells=0,active=0,wet=0,dry=0;NSString* inspected=@"青色=有水住宅，橙色=无水住宅";
     NSBezierPath* coverage=[NSBezierPath bezierPath];NSBezierPath* wetPath=[NSBezierPath bezierPath];NSBezierPath* dryPath=[NSBezierPath bezierPath];
     const auto add=[&](NSBezierPath* path,unsigned x,unsigned y){const auto p=game_lab::nativeSessionProject(_nativeCamera,x,y);const double w=40*_nativeCamera.scale,h=20*_nativeCamera.scale;
         if(p.x+w<0||p.x-w>_nativeCamera.width||p.y+h<0||p.y-h>_nativeCamera.height)return;
         [path moveToPoint:NSMakePoint(p.x,p.y-h)];[path lineToPoint:NSMakePoint(p.x+w,p.y)];[path lineToPoint:NSMakePoint(p.x,p.y+h)];[path lineToPoint:NSMakePoint(p.x-w,p.y)];[path closePath];};
     const bool show=_nativeWaterToggle.state==NSControlStateValueOn;
-    if(show)for(unsigned y=0;y<seed.side;++y)for(unsigned x=0;x<seed.side;++x)if(water[size_t(y)*seed.side+x])add(coverage,x,y);
+    if(show&&s.rulesVersion<8)for(unsigned y=0;y<seed.side;++y)for(unsigned x=0;x<seed.side;++x)if(water[size_t(y)*seed.side+x])add(coverage,x,y);
     for(const auto& object:s.objects){
         const bool connected=game_lab::nativeHouseConnected(seed,object,roads);
         if(object.kind==game_lab::NativeObjectKind::Well){++wells;active+=connected;}
-        if(object.kind==game_lab::NativeObjectKind::House){const bool supplied=game_lab::nativeHouseWatered(seed,object,water);wet+=supplied;dry+=!supplied;
+        if(object.kind==game_lab::NativeObjectKind::House){const bool supplied=s.rulesVersion==8&&object.house?object.house->houseWater.value_or(0)!=0:game_lab::nativeHouseWatered(seed,object,water);wet+=supplied;dry+=!supplied;
             if(show)for(unsigned dy=0;dy<2;++dy)for(unsigned dx=0;dx<2;++dx)add(supplied?wetPath:dryPath,object.x+dx,object.y+dy);}
         if(object.kind!=game_lab::NativeObjectKind::Road&&_nativeHoverTile&&_nativeHoverTile->first>=int(object.x)&&_nativeHoverTile->first<int(object.x)+2&&_nativeHoverTile->second>=int(object.y)&&_nativeHoverTile->second<int(object.y)+2){
-            if(object.kind==game_lab::NativeObjectKind::Well)inspected=[NSString stringWithFormat:@"井#%llu：%@",object.id,connected?@"邻路，已供水":@"未邻路，未供水"];
+            if(object.kind==game_lab::NativeObjectKind::Well){const auto f=feedback.find(object.id);
+                inspected=s.rulesVersion==8&&f?[NSString stringWithFormat:@"井#%llu：%@",object.id,[NSString stringWithUTF8String:game_lab::nativeWellFlowText(*f).c_str()]]:[NSString stringWithFormat:@"井#%llu：%@",object.id,connected?@"邻路，已供水":@"未邻路，未供水"];}
             else if(object.kind==game_lab::NativeObjectKind::Hunter)inspected=[NSString stringWithFormat:@"营地#%llu：%@ / %@",object.id,connected?@"邻路":@"未邻路",s.huntingEnabled?@"生产已开":@"生产已停"];
-            else inspected=[NSString stringWithFormat:@"住宅#%llu：%@ / %@，入住%u/%u",object.id,game_lab::nativeHouseWatered(seed,object,water)?@"有水":@"无水",connected?@"邻路":@"未邻路",object.residents,seed.houseCapacity];}
+            else if(object.kind==game_lab::NativeObjectKind::Inspector)inspected=[NSString stringWithFormat:@"巡检塔#%llu：%@；不表示住宅已供水",object.id,connected?@"邻路":@"断路"];
+            else {const auto capacity=game_lab::nativeHouseCapacity(seed,s,object);
+                inspected=[NSString stringWithFormat:@"住宅#%llu：%@ / %@，入住%u/%@",object.id,(s.rulesVersion==8&&object.house?object.house->houseWater.value_or(0)!=0:game_lab::nativeHouseWatered(seed,object,water))?@"有水":@"无水",connected?@"邻路":@"未邻路",object.residents,capacity?[NSString stringWithFormat:@"%u",*capacity]:@"容量未知"];}}
     }
-    _nativeWaterInfo.stringValue=[NSString stringWithFormat:@"井启用 %zu/%zu · 住宅有水 %zu / 无水 %zu · %@",active,wells,wet,dry,inspected];
+    _nativeWaterInfo.stringValue=[NSString stringWithFormat:@"%@ %zu/%zu · 住宅有水 %zu / 无水 %zu · %@",s.rulesVersion==8?@"邻路井":@"井启用",active,wells,wet,dry,inspected];
     if(show){_nativeCanvas.waterPath=coverage;_nativeCanvas.wetHousePath=wetPath;_nativeCanvas.dryHousePath=dryPath;}_nativeCanvas.needsDisplay=YES;
 }
 - (void)onNativeWaterOverlay:(id)sender {(void)sender;[self updateNativeWaterOverlay];}
@@ -224,15 +242,18 @@
     if(!id){_nativeHover.stringValue=@"拆除：此处没有本会话新增对象；原图道路、建筑和地形不可拆。";return;}
     const auto plan=game_lab::planNativeDemolition(_nativeSource->seed,state,*id);
     if(!plan.candidate){_nativeHover.stringValue=[NSString stringWithUTF8String:plan.error.c_str()];return;}
+    game_lab::NativeSessionCommand preview{game_lab::NativeSessionAction::Demolish,state.revision};preview.objectId=*id;
+    const auto checked=game_lab::previewNativeSessionCommand(_nativeSource->seed,state,preview,_nativeSource->runtime.get());
+    if(!checked.committed){_nativeHover.stringValue=[NSString stringWithUTF8String:checked.error.c_str()];return;}
     const auto& o=plan.object;NSBezierPath* path=[NSBezierPath bezierPath];
     for(unsigned dy=0;dy<game_lab::nativeObjectSide(o.kind);++dy)for(unsigned dx=0;dx<game_lab::nativeObjectSide(o.kind);++dx){
         const auto p=game_lab::nativeSessionProject(_nativeCamera,o.x+dx,o.y+dy);const double w=40*_nativeCamera.scale,h=20*_nativeCamera.scale;
         [path moveToPoint:NSMakePoint(p.x,p.y-h)];[path lineToPoint:NSMakePoint(p.x+w,p.y)];[path lineToPoint:NSMakePoint(p.x,p.y+h)];[path lineToPoint:NSMakePoint(p.x-w,p.y)];[path closePath];}
     _nativeCanvas.previewPath=path;_nativeCanvas.previewAllowed=NO;_nativeCanvas.needsDisplay=YES;
-    NSString* name=o.kind==game_lab::NativeObjectKind::Road?@"道路":o.kind==game_lab::NativeObjectKind::House?@"住宅":o.kind==game_lab::NativeObjectKind::Well?@"水井":@"猎人营地";
+    NSString* name=o.kind==game_lab::NativeObjectKind::Road?@"道路":o.kind==game_lab::NativeObjectKind::House?@"住宅":o.kind==game_lab::NativeObjectKind::Well?@"水井":o.kind==game_lab::NativeObjectKind::Inspector?@"巡检塔":@"猎人营地";
     _nativeHover.stringValue=[NSString stringWithFormat:@"拆除 %@ #%llu · (%u,%u) %u×%u · 无退款 · 移出%u人 · %@",name,o.id,o.x,o.y,game_lab::nativeObjectSide(o.kind),game_lab::nativeObjectSide(o.kind),o.residents,_nativeDemolition?@"已选中；点下方确认才执行":@"单击仅选中，不删除"];
     const auto& b=plan.before;const auto& a=plan.after;
-    _nativeDemolitionInfo.stringValue=[NSString stringWithFormat:@"启用井 %u→%u · 有水住宅 %u→%u · 邻路住宅 %u→%u · 生产营地 %u→%u；肉%u保留。",b.wells,a.wells,b.wateredHouses,a.wateredHouses,b.connectedHouses,a.connectedHouses,b.hunters,a.hunters,state.foodStock];
+    _nativeDemolitionInfo.stringValue=[NSString stringWithFormat:@"%@ %u→%u · 有水住宅 %u→%u · 邻路住宅 %u→%u · 生产营地 %u→%u；肉%u保留。",state.rulesVersion==8?@"邻路井":@"启用井",b.wells,a.wells,b.wateredHouses,a.wateredHouses,b.connectedHouses,a.connectedHouses,b.hunters,a.hunters,state.foodStock];
     _nativeDemolitionConfirm.enabled=_nativeDemolition.has_value();
     _nativeDetails.stringValue=[_nativeHover.stringValue stringByAppendingFormat:@"\n%@",_nativeDemolitionInfo.stringValue];
 }
@@ -245,6 +266,9 @@
     if(!_nativeState->paused){_nativeMessage="拆除前请先暂停；所选对象保留，尚未进入拆除。";[self updateNativeSessionLabels];return;}
     const auto plan=game_lab::planNativeDemolition(_nativeSource->seed,*_nativeState,_nativeInspectionId);
     if(!plan.candidate){_nativeMessage="该对象当前不可拆："+plan.error;[self updateNativeSessionLabels];return;}
+    game_lab::NativeSessionCommand preview{game_lab::NativeSessionAction::Demolish,_nativeState->revision};preview.objectId=_nativeInspectionId;
+    const auto checked=game_lab::previewNativeSessionCommand(_nativeSource->seed,*_nativeState,preview,_nativeSource->runtime.get());
+    if(!checked.committed){_nativeMessage="该对象当前不可拆："+checked.error;[self updateNativeSessionLabels];return;}
     if(_nativeTool.indexOfSelectedItem!=5)[_nativeTool selectItemAtIndex:5];
     _nativeCategoryIndex=game_lab::nativeToolCategory(5);
     game_lab::NativeSessionCommand command{game_lab::NativeSessionAction::Demolish,_nativeState->revision};command.objectId=plan.object.id;_nativeDemolition=command;
@@ -268,13 +292,14 @@
     _nativeHover.hidden=(!_nativeHoverTile&&!_nativeDemolition)||_nativeTool.indexOfSelectedItem==0;
     _nativeCanvas.browseMode=_nativeTool.indexOfSelectedItem==0;_nativeCanvas.roadMode=_nativeTool.indexOfSelectedItem==1;
     if(_nativeTool.indexOfSelectedItem==5)return;
-    if(!_nativeHoverTile||_nativeCanvas.browseMode){_nativeHover.stringValue=_nativeCanvas.browseMode?@"浏览模式 · 拖动平移；选择道路、住宅、水井或营地开始建造。":@"道路可按住拖动预览；绿=新增，蓝=已有免费，红=整条拒绝。";_nativeCanvas.needsDisplay=YES;return;}
+    if(!_nativeHoverTile||_nativeCanvas.browseMode){_nativeHover.stringValue=_nativeCanvas.browseMode?@"浏览模式 · 拖动平移；选择分类中的建筑或道路开始建造。":@"道路可按住拖动预览；绿=新增，蓝=已有免费，红=整条拒绝。";_nativeCanvas.needsDisplay=YES;return;}
     const auto reason=[](const std::string& error)->NSString* {
         if(error.empty())return @"可建";if(error=="insufficient_funds")return @"余额不足，整条不建";
         if(error=="outside_scene")return @"超出城市边界，已取消";
         if(error=="occupied_or_unsupported_terrain")return @"占用/地形不可建，整条不建";
         if(error=="object_limit")return @"已达3999次总建造上限（含已拆），不能继续建造";
         if(error=="road_path_already_present")return @"全为已有道路，无需施工";
+        const auto inspection=game_lab::nativeInspectionErrorText(error);if(!inspection.empty())return [NSString stringWithUTF8String:inspection.c_str()];
         return [NSString stringWithUTF8String:error.c_str()];};
     NSBezierPath* path=[NSBezierPath bezierPath];NSBezierPath* existing=[NSBezierPath bezierPath];
     const auto add=[&](NSBezierPath* to,int x,int y){const auto p=game_lab::nativeSessionProject(_nativeCamera,x,y);const double w=40*_nativeCamera.scale,h=20*_nativeCamera.scale;
@@ -282,21 +307,31 @@
     const auto [x,y]=*_nativeHoverTile;
     if(_nativeCanvas.roadMode){
         const auto start=_nativeRoadGesture.start.value_or(*_nativeHoverTile),end=_nativeRoadGesture.end.value_or(*_nativeHoverTile);
-        const auto plan=game_lab::planNativeRoadPath(_nativeSource->seed,*_nativeState,start.first,start.second,end.first,end.second);
+        auto plan=game_lab::planNativeRoadPath(_nativeSource->seed,*_nativeState,start.first,start.second,end.first,end.second);
+        if(plan.error.empty()){
+            const game_lab::NativeSessionCommand preview{game_lab::NativeSessionAction::RoadPath,_nativeState->revision,start.first,start.second,end.first,end.second};
+            const auto checked=game_lab::previewNativeSessionCommand(_nativeSource->seed,*_nativeState,preview,_nativeSource->runtime.get());
+            if(!checked.committed)plan.error=checked.error;
+        }
         for(const auto& cell:plan.cells)add(cell.existing?existing:path,cell.x,cell.y);
         _nativeCanvas.previewAllowed=plan.error.empty();
         _nativeHover.stringValue=[NSString stringWithFormat:@"道路 (%d,%d)→(%d,%d) · 先X后Y · 新增 %zu / 已有 %zu · 总计 %lld 金 · %@ · %@",
             start.first,start.second,end.first,end.second,plan.newCells,plan.cells.size()-plan.newCells,plan.cost,reason(plan.error),_nativeRoadGesture.start?(plan.error.empty()?@"松开整条提交":@"松开不提交"):@"按住拖动或单击"];
     }else{
-        const bool well=_nativeTool.indexOfSelectedItem==3,hunter=_nativeTool.indexOfSelectedItem==4;const auto result=game_lab::nativeSessionPlacementPreview(_nativeSource->seed,*_nativeState,well?game_lab::NativeSessionAction::Well:hunter?game_lab::NativeSessionAction::Hunter:game_lab::NativeSessionAction::House,x,y);
+        const bool well=_nativeTool.indexOfSelectedItem==3,hunter=_nativeTool.indexOfSelectedItem==4,inspector=_nativeTool.indexOfSelectedItem==6;const game_lab::NativeSessionCommand preview{well?game_lab::NativeSessionAction::Well:hunter?game_lab::NativeSessionAction::Hunter:inspector?game_lab::NativeSessionAction::Inspector:game_lab::NativeSessionAction::House,_nativeState->revision,x,y};const auto result=game_lab::previewNativeSessionCommand(_nativeSource->seed,*_nativeState,preview,_nativeSource->runtime.get());
         for(int dy=0;dy<2;++dy)for(int dx=0;dx<2;++dx)add(path,x+dx,y+dy);
         _nativeCanvas.previewAllowed=result.committed;
-        _nativeHover.stringValue=[NSString stringWithFormat:@"%@ 2×2 (%d,%d) · %u 金 · %@ · 单击确认，暂停时可建",well?@"水井":hunter?@"猎人营地":@"住宅",x,y,well?_nativeSource->seed.wellCost:hunter?_nativeSource->seed.hunterCost:_nativeSource->seed.houseCost,reason(result.error)];
+        _nativeHover.stringValue=[NSString stringWithFormat:@"%@ 2×2 (%d,%d) · %u 金 · %@ · 单击确认，暂停时可建",well?@"水井":hunter?@"猎人营地":inspector?@"巡检塔":@"住宅",x,y,well?_nativeSource->seed.wellCost:hunter?_nativeSource->seed.hunterCost:inspector?_nativeSource->seed.inspectorCost:_nativeSource->seed.houseCost,reason(result.error)];
     }
     _nativeCanvas.previewPath=path;_nativeCanvas.existingPath=existing;_nativeCanvas.needsDisplay=YES;
 }
 - (void)onNativeTool:(id)sender {(void)sender;if(_nativeTool.indexOfSelectedItem>0)_nativeCategoryIndex=game_lab::nativeToolCategory(unsigned(_nativeTool.indexOfSelectedItem));[self updateNativeToolPalette];_nativeDemolition.reset();[_nativeCanvas cancelGesture];_nativeRoadGesture.cancel();[self updateNativePreview];[_nativeCanvas refreshPointer];}
 - (void)onNativeCancel:(id)sender {(void)sender;_nativeDemolition.reset();[_nativeCanvas cancelGesture];_nativeRoadGesture.cancel();[_nativeTool selectItemAtIndex:0];[self updateNativeToolPalette];[self updateNativeInspection];[self updateNativePreview];}
+- (void)onNativeEntrance:(id)sender {
+    (void)sender;if(!_nativeSource||!_nativeState)return;const auto entry=[self nativeFeedback].entrance.entry;if(!entry)return;
+    [self onNativeCancel:nil];_nativeInspectionId=0;auto camera=_nativeCamera;camera.centerX=entry->first;camera.centerY=entry->second;[self nativeViewCamera:camera];
+    _nativeMessage="已定位入城口；把住宅道路接到这片原有路网，再恢复等待迁入。";[self updateNativeSessionLabels];
+}
 - (void)nativeViewCamera:(const game_lab::OriginalMapCamera&)camera {
     [self flushNativeVisualForUI];if(!_nativeState)return;
     _nativeFrameGate=game_lab::changeSceneFrame(_nativeFrameGate,game_lab::SceneFrameChange::Camera).state;
@@ -313,19 +348,24 @@
     _nativeStatus.stringValue=[NSString stringWithFormat:@"原生 v%u · %@ · 更新 %llu · 人口 %llu · 余额 %lld · 道路 %zu · 住宅 %zu · 水井 %zu · 营地 %zu\n%@",
         s.rulesVersion,s.paused?@"已暂停":@"运行中",s.ticks,game_lab::nativePopulation(s),s.funds,roads,houses,wells,hunters,[NSString stringWithUTF8String:_nativeMessage.c_str()]];
     _nativePanel.title=[NSString stringWithFormat:@"原始数据 · 原生可玩子集 v%u",s.rulesVersion];
-    [_nativeTool itemAtIndex:3].enabled=s.rulesVersion>=2;[_nativeTool itemAtIndex:4].enabled=s.rulesVersion>=3;[_nativeTool itemAtIndex:5].enabled=s.rulesVersion>=4;
-    if((s.rulesVersion<4&&_nativeTool.indexOfSelectedItem==5)||(s.rulesVersion==1&&_nativeTool.indexOfSelectedItem==3)||(s.rulesVersion<3&&_nativeTool.indexOfSelectedItem==4))[_nativeTool selectItemAtIndex:0];
+    [_nativeTool itemAtIndex:3].enabled=s.rulesVersion>=2;[_nativeTool itemAtIndex:4].enabled=s.rulesVersion>=3;[_nativeTool itemAtIndex:5].enabled=s.rulesVersion>=4;[_nativeTool itemAtIndex:6].enabled=game_lab::nativeUsesInspection(s);
+    if((_nativeTool.indexOfSelectedItem==6&&!game_lab::nativeUsesInspection(s))||(s.rulesVersion<4&&_nativeTool.indexOfSelectedItem==5)||(s.rulesVersion==1&&_nativeTool.indexOfSelectedItem==3)||(s.rulesVersion<3&&_nativeTool.indexOfSelectedItem==4))[_nativeTool selectItemAtIndex:0];
     _nativeHuntingToggle.enabled=s.rulesVersion>=3;_nativeHuntingToggle.state=s.rulesVersion>=3&&s.huntingEnabled?NSControlStateValueOn:NSControlStateValueOff;
     if(s.rulesVersion>=3)_nativeFoodInfo.stringValue=[NSString stringWithFormat:@"肉 %u/%u · 累产 %llu / 累耗 %llu · 上轮产 %u / 老居民吃 %u（需%u，缺%u）/ 新入住 %u · %@",s.foodStock,game_lab::nativeFoodCapacity,s.foodProduced,s.foodConsumed,s.lastFood.produced,s.lastFood.fed,s.lastFood.demand,s.lastFood.demand-s.lastFood.fed,s.lastFood.arrivals,s.huntingEnabled?@"生产开启":@"生产暂停"];
     else _nativeFoodInfo.stringValue=@"当前旧版本不运行食物生产/消费，入住规则保持原样；不会自动升级。";
+    if(game_lab::nativeUsesImmigration(s))_nativeFoodInfo.stringValue=[NSString stringWithFormat:@"肉 %u/%u · 累产 %llu / 累耗 %llu · 上轮产 %u / 住民吃 %u（需%u，缺%u）\n人口按实际行人入户；餐账不预测迁入。%@",s.foodStock,game_lab::nativeFoodCapacity,s.foodProduced,s.foodConsumed,s.lastFood.produced,s.lastFood.fed,s.lastFood.demand,s.lastFood.demand-s.lastFood.fed,s.huntingEnabled?@"生产开启":@"生产暂停"];
     NSString* policy=s.rulesVersion>=3?@"井邻路供水/外扩4格；住宅须邻路+有水。营地邻路每2更新产4肉，库存100。\n同轮先产后吃：每人1份，新住民另1份（按住宅编号）；缺餐停增，不迁出。":s.rulesVersion==2?@"v2：井邻路启用，占地外扩4格、不限户数；住宅四格有水且邻路，每2更新+1人。缺水停增，不迁出。":@"v1旧规则：邻路住宅每2更新+1人，不检查供水/食物；水井和营地不可建。";
     if(s.rulesVersion>=5)policy=[policy stringByAppendingString:@"\nv5原生税：每4更新按本轮开始时邻路住民每人1金；先税后餐，暂停不收，无税务建筑/劳动等价。视图不产生收入。"];
     if(s.rulesVersion>=6)policy=[policy stringByAppendingFormat:@"\nv6劳动力：住民×%u%%（原版来源存档的难度/工资/健康档）；营地%u人、水井%u人（原版模型第5列），按原版类别优先级分配。营地按工人比例产肉；新住民不另耗肉；营地缺工时缺粮不阻止入住，满员仍缺粮才停增。水井工人仅显示，不改供水范围。",seed.laborPercent,seed.hunterWorkers,seed.wellWorkers];
+    if(s.rulesVersion==8)policy=game_lab::nativeUsesObservedRewatering(s)?@"开发版：限定供水、缺水降级、非空住宅重新入住及有水恢复已启用。已确认的水需求住宅在恢复供水后的演化阶段清除缺水延迟；空宅转换和更高住宅升级仍有缺口，不代表原版通用时序或完整经济。":game_lab::nativeUsesNonemptyMigrantRehousing(s)?@"开发版：限定供水、缺水降级及非空住宅重新入住已启用。迁出者会预约已有住民且有空位的住宅；目标拆除时保留人数重新等待。空宅转换、中途复水及更高住宅升级仍有缺口；不代表原版通用时序或完整经济。":s.observedDry?@"开发版：限定送水回程与缺水住宅降级已启用。缺水延迟后降级，再按容量阶段迁出超员；迁出者可按现有路线离城，重新入住其他住宅尚未验证。原版日历尾部、其他住宅演化和完整经济仍有缺口。":game_lab::nativeUsesObservedWellReturn(s)?@"开发版：已接通送水、服务衰减、住宅演化、容量、画面与存档。限定原生回程只用于原井路口、出发点仍一致且路径可确认的水夫；其余情况单独等待。每次更新推进一个阶段，原版日历尾部不推进；住宅后续路径仍有缺口，不代表原版通用算法或完整经济。":@"早期v8开发版：送水回程保持原先等待策略，未自动改变已有存档。已接通的服务与住宅阶段继续运行，原版日历与部分住宅路径仍有缺口。";
+    if(game_lab::nativeUsesInspection(s))policy=[policy stringByAppendingFormat:@"\n预防巡检：塔%u金，模型定员%u人；派出不等于覆盖，选择住宅查看实际经过及风险累计。正常归塔后可再次派遣，未支持灭火／灾后续跑。",seed.inspectorCost,seed.inspectorWorkers];
+    if(game_lab::nativeUsesCityContext(s))policy=[policy stringByAppendingString:@"\nC1：城市可变状态单独保存；岗位仅在派工阶段更新，查询和重绘不重分工人。住宅物资食物统计与原生肉库存分开。月份仍冻结，需要消耗物资的演化保留原状并等待；完整日历、物流和健康触发尚未接通。"];
     _nativeRulesLabel.stringValue=[NSString stringWithFormat:@"原生规则 v%u · 来源 %@\n原始Normal价格：路%u/格、房%u/2×2（%u人）、井%u/2×2、营地%u/2×2；暂停可建。\n%@\n原生简化：无原任务/农时/猎人/运输/市场/劳动等价；无原版经济/灾害/贸易。旧档保留原规则。",s.rulesVersion,[NSString stringWithUTF8String:seed.source.c_str()],seed.roadCost,seed.houseCost,seed.houseCapacity,seed.wellCost,seed.hunterCost,policy];
     _nativeRulesLabel.stringValue=[_nativeRulesLabel.stringValue stringByAppendingFormat:@"\n原始界面装饰 %lu/18；中文使用 macOS 系统字体。缺少装饰时采用纯色控件，不改变玩法。",(unsigned long)_nativeUIImages.count];
     if(s.rulesVersion>=4)_nativeFoodInfo.stringValue=[_nativeFoodInfo.stringValue stringByAppendingFormat:@" · 餐后拆迁%u人",s.departedSinceMeal];
     if(s.rulesVersion>=6){const auto& q=[self nativeFeedback];const auto& l=q.labor;
-        _nativeFoodInfo.stringValue=[_nativeFoodInfo.stringValue stringByAppendingFormat:@"\n劳力 %d（住民×%u%%）· 岗位 %d · 就业 %d · 缺工 %d%@",l.available,seed.laborPercent,l.demand,l.employed,l.shortage,q.food.laborOverride?@" · 营地缺工，缺粮仍入住":@""];}
+        if(game_lab::nativeUsesCityContext(s))_nativeFoodInfo.stringValue=[_nativeFoodInfo.stringValue stringByAppendingFormat:@"\n阶段派工：劳力 %d · 岗位 %d · 已分配 %d · 缺工 %d",l.available,l.demand,l.employed,l.shortage];
+        else _nativeFoodInfo.stringValue=[_nativeFoodInfo.stringValue stringByAppendingFormat:@"\n劳力 %d（住民×%u%%）· 岗位 %d · 就业 %d · 缺工 %d%@",l.available,seed.laborPercent,l.demand,l.employed,l.shortage,!game_lab::nativeUsesImmigration(s)&&q.food.laborOverride?@" · 营地缺工，缺粮仍入住":@""];}
     if(s.rulesVersion>=5){const auto& plan=[self nativeFeedback].tax;const auto& t=plan.cycle;
         NSString* reason=!plan.error.empty()?@"余额上限：下轮将拒绝":t.eligible?@"未到税期不收":t.disconnected?@"断路住民不收":@"无住民可收";
         _nativeTaxInfo.stringValue=[NSString stringWithFormat:@"税每%u更新 · 距下次%llu · 当前可税%u人/断路%u人/空房%u · 上次+%llu · 累计%llu（%llu期）· %@",game_lab::nativeTaxPeriod,game_lab::nativeTaxPeriod-s.ticks%game_lab::nativeTaxPeriod,t.eligible,t.disconnected,t.emptyHouses,s.lastTax.income,s.taxReceived,s.taxCycles,reason];
@@ -355,12 +395,18 @@
     const auto action=command.action;_nativeDemolition.reset();_nativeExitApproved=NO;
     if(!_nativeSource||!_nativeState)return NO;
     const double operationStarted=CACurrentMediaTime();
-    auto next=*_nativeState;const auto result=game_lab::transactNativeSession(_nativeSource->seed,next,command);
-    if(!result.committed){_nativeMessage=result.error=="object_limit"?"已达3999次总建造上限（含已拆对象）；未执行，也未扣费。":result.error=="tax_overflow"?"税收将超过余额上限；本轮税收、供餐和人口均未提交，城市已暂停。":"未执行："+result.error;[self updateNativeSessionLabels];return NO;}
-    const bool redraw=action==game_lab::NativeSessionAction::Demolish||action==game_lab::NativeSessionAction::Hunter||action==game_lab::NativeSessionAction::Well||action==game_lab::NativeSessionAction::RoadPath||action==game_lab::NativeSessionAction::Road||action==game_lab::NativeSessionAction::House||game_lab::nativePopulation(next)!=game_lab::nativePopulation(*_nativeState);
+    auto next=*_nativeState;const auto result=next.rulesVersion==8&&_nativeSource->runtime?
+        game_lab::transactNativeHouseRuntime(_nativeSource->seed,next,command,*_nativeSource->runtime):game_lab::transactNativeSession(_nativeSource->seed,next,command);
+    if(!result.committed){const auto inspection=game_lab::nativeInspectionErrorText(result.error);_nativeMessage=!inspection.empty()?inspection:result.error=="object_limit"?"已达3999次总建造上限（含已拆对象）；未执行，也未扣费。":result.error=="tax_overflow"?"税收将超过余额上限；本轮税收、供餐和人口均未提交，城市已暂停。":"未执行："+result.error;[self updateNativeSessionLabels];return NO;}
+    const bool redraw=(next.rulesVersion==8&&action==game_lab::NativeSessionAction::Tick)||action==game_lab::NativeSessionAction::Inspector||action==game_lab::NativeSessionAction::Demolish||action==game_lab::NativeSessionAction::Hunter||action==game_lab::NativeSessionAction::Well||action==game_lab::NativeSessionAction::RoadPath||action==game_lab::NativeSessionAction::Road||action==game_lab::NativeSessionAction::House||game_lab::nativePopulation(next)!=game_lab::nativePopulation(*_nativeState);
     __weak EmperorAppDelegate* weakSelf=self;
     void (^complete)(BOOL)=^(BOOL ok){EmperorAppDelegate* me=weakSelf;if(!me)return;
-        if(ok)me->_nativeMessage=action==game_lab::NativeSessionAction::Tick?"原生规则计时；原版任务与事件未运行。":"操作已提交。";
+        if(ok){
+            if(me->_nativeState&&me->_nativeState->rulesVersion==8){
+                const auto& s=*me->_nativeState;
+                me->_nativeMessage="住宅运行阶段 "+std::to_string(s.houseSchedule->phase)+" · 等待送水人 "+std::to_string(s.heldWalkerReasons.size())+" · 住宅未支持路径 "+std::to_string(s.heldHouseReasons.size());
+            }else me->_nativeMessage=action==game_lab::NativeSessionAction::Tick?"原生规则计时；原版任务与事件未运行。":"操作已提交。";
+        }
         else if(action==game_lab::NativeSessionAction::Tick&&me->_nativeState){const auto reason=me->_nativeMessage;[me stopNativeSessionTimer];game_lab::transactNativeSession(me->_nativeSource->seed,*me->_nativeState,{game_lab::NativeSessionAction::Pause,me->_nativeState->revision});me->_nativeMessage=reason;}
         [me updateNativeSessionLabels];
         if(action==game_lab::NativeSessionAction::Tick)std::fprintf(stderr,"native_tick completed=%d redraw=%d elapsed_ms=%.3f tick=%llu\n",ok?1:0,redraw?1:0,(CACurrentMediaTime()-operationStarted)*1000,me->_nativeState?me->_nativeState->ticks:0);
@@ -399,7 +445,7 @@
     const auto a=std::from_chars(xs.data(),xs.data()+xs.size(),x),b=std::from_chars(ys.data(),ys.data()+ys.size(),y);
     if(a.ec!=std::errc{}||a.ptr!=xs.data()+xs.size()||b.ec!=std::errc{}||b.ptr!=ys.data()+ys.size()){
         _nativeMessage="坐标需要非负整数。";[self updateNativeSessionLabels];return;}
-    if(!_nativeState)return;const game_lab::NativeSessionCommand command{_nativeTool.indexOfSelectedItem==1?game_lab::NativeSessionAction::RoadPath:_nativeTool.indexOfSelectedItem==3?game_lab::NativeSessionAction::Well:_nativeTool.indexOfSelectedItem==4?game_lab::NativeSessionAction::Hunter:game_lab::NativeSessionAction::House,_nativeState->revision,x,y,x,y};[self nativeCommand:command];
+    if(!_nativeState)return;const game_lab::NativeSessionCommand command{_nativeTool.indexOfSelectedItem==1?game_lab::NativeSessionAction::RoadPath:_nativeTool.indexOfSelectedItem==3?game_lab::NativeSessionAction::Well:_nativeTool.indexOfSelectedItem==4?game_lab::NativeSessionAction::Hunter:_nativeTool.indexOfSelectedItem==6?game_lab::NativeSessionAction::Inspector:game_lab::NativeSessionAction::House,_nativeState->revision,x,y,x,y};[self nativeCommand:command];
 }
 - (void)onNativeFocus:(id)sender {
     (void)sender;[_nativeCanvas cancelGesture];if(!_nativeSource||!_nativeState)return;
@@ -509,7 +555,7 @@
             [me->_nativeStartSpinner stopAnimation:nil];
             if(error.empty())me->_nativeStartPreview.image=[me nativeCPUImage:*pixels];
             me->_nativeStartConfirm.enabled=me->_nativeStartPreview.image!=nil;
-            NSString* status=me->_nativeStartConfirm.enabled?@"数据条件通过 · 可创建原生 v6\n创建时还会核验原图素材；非原版任务或原版续玩。": [NSString stringWithFormat:@"暂不可创建\n%@",error.empty()?@"预览图像创建失败。":[NSString stringWithUTF8String:error.c_str()]];
+            NSString* status=me->_nativeStartConfirm.enabled?@"数据条件通过 · 可创建原生城市\n创建时还会核验原图素材；非原版任务或原版续玩。": [NSString stringWithFormat:@"暂不可创建\n%@",error.empty()?@"预览图像创建失败。":[NSString stringWithUTF8String:error.c_str()]];
             [me setNativeStartDetail:entry status:status];
             me->_nativeStartPreview.accessibilityLabel=me->_nativeStartPreview.image?@"所选SAV的真实地形概览，原生配色，不是原版关卡截图。":@"所选来源没有可用预览。";
         }];
@@ -561,8 +607,8 @@
     (void)sender;if(_nativeStartPicker)return;[self flushNativeVisualForUI];
     if(!_nativeStartQueue)_nativeStartQueue=dispatch_queue_create("org.emperor.native-source-reader",DISPATCH_QUEUE_SERIAL);
     _nativeStartWork=std::make_shared<game_lab::NativeStartWork>();_nativeStartCatalog={};
-    NSAlert* alert=[NSAlert new];alert.messageText=@"选择开局来源 · 原生 v6";
-    alert.informativeText=@"后台逐份核验，最多128份。按真实文件名选择，不支持项可查看原因；可随时取消。源文件只读，MAP/PAK开局与原版任务尚不兼容。";
+    NSAlert* alert=[NSAlert new];alert.messageText=@"选择开局来源";
+    alert.informativeText=@"后台逐份核验，最多128份。按真实文件名选择，不支持项可查看原因。默认v6；开发模式需明确勾选。创建后暂停，先铺路连入城口路网，再建住宅。原始来源只读，不兼容原版任务续玩。";
     NSView* content=[[NSView alloc]initWithFrame:NSMakeRect(0,0,620,350)];
     _nativeStartProgress=[NSTextField labelWithString:@"正在后台查找SAV来源…可随时取消"];_nativeStartProgress.frame=NSMakeRect(26,318,594,24);_nativeStartProgress.font=[NSFont systemFontOfSize:12];_nativeStartProgress.accessibilityIdentifier=@"native-new-progress";[content addSubview:_nativeStartProgress];
     _nativeStartSpinner=[[NSProgressIndicator alloc]initWithFrame:NSMakeRect(0,321,18,18)];_nativeStartSpinner.style=NSProgressIndicatorStyleSpinning;[_nativeStartSpinner startAnimation:nil];[content addSubview:_nativeStartSpinner];
@@ -570,19 +616,27 @@
     _nativeStartPicker.target=self;_nativeStartPicker.action=@selector(onNativeStartSelection:);[content addSubview:_nativeStartPicker];
     _nativeStartPreview=[[NSImageView alloc]initWithFrame:NSMakeRect(0,28,240,240)];_nativeStartPreview.imageScaling=NSImageScaleProportionallyUpOrDown;_nativeStartPreview.accessibilityIdentifier=@"native-new-preview";[content addSubview:_nativeStartPreview];
     NSTextField* caption=[NSTextField labelWithString:@"真实地形概览 · 原生配色"];caption.frame=NSMakeRect(0,0,260,24);caption.font=[NSFont systemFontOfSize:12];[content addSubview:caption];
-    _nativeStartDetail=[NSTextField wrappingLabelWithString:@"尚未完成核验，当前城市保持不变。"];_nativeStartDetail.frame=NSMakeRect(260,10,360,258);_nativeStartDetail.font=[NSFont systemFontOfSize:13];_nativeStartDetail.accessibilityIdentifier=@"native-new-detail";[content addSubview:_nativeStartDetail];
-    alert.accessoryView=content;_nativeStartConfirm=[alert addButtonWithTitle:@"创建 v6 城市"];_nativeStartConfirm.accessibilityIdentifier=@"native-new-confirm";_nativeStartConfirm.enabled=NO;[alert addButtonWithTitle:@"取消"].accessibilityIdentifier=@"native-new-cancel";
+    _nativeStartDetail=[NSTextField wrappingLabelWithString:@"尚未完成核验，当前城市保持不变。"];_nativeStartDetail.frame=NSMakeRect(260,62,360,206);_nativeStartDetail.font=[NSFont systemFontOfSize:13];_nativeStartDetail.accessibilityIdentifier=@"native-new-detail";[content addSubview:_nativeStartDetail];
+    NSButton* runtime=[NSButton checkboxWithTitle:@"送水与住宅演化（开发版·限定回程）" target:nil action:nullptr];
+    runtime.frame=NSMakeRect(260,30,360,26);runtime.font=[NSFont systemFontOfSize:12];runtime.accessibilityIdentifier=@"native-new-v8";
+    runtime.toolTip=@"单独新建 v8；保留旧版规则。井的道路格、出发点仍一致时使用限定原生回程；道路变化或无法确认时等待，不代表原版通用算法。";[content addSubview:runtime];
+    NSButton* cityContract=[NSButton checkboxWithTitle:@"城市经营与预防巡检（开发版）" target:nil action:nullptr];
+    cityContract.frame=NSMakeRect(260,4,360,26);cityContract.font=[NSFont systemFontOfSize:12];cityContract.accessibilityIdentifier=@"native-new-city-contract";
+    cityContract.toolTip=@"显式新版：包含送水、住宅演化与预防巡检；工人按派工阶段更新并保存，食物统计使用独立物资账。完整日历、物流、灭火及灾后恢复尚未接通；遇未支持灾害会暂停并保留原状态。旧存档不会自动开启。";[content addSubview:cityContract];
+    alert.accessoryView=content;_nativeStartConfirm=[alert addButtonWithTitle:@"创建城市"];_nativeStartConfirm.accessibilityIdentifier=@"native-new-confirm";_nativeStartConfirm.enabled=NO;[alert addButtonWithTitle:@"取消"].accessibilityIdentifier=@"native-new-cancel";
     [self beginNativeStartCatalog];
     const auto answer=[alert runModal];const NSInteger index=_nativeStartPicker.indexOfSelectedItem;
     const auto selected=index>=0&&size_t(index)<_nativeStartCatalog.entries.size()?std::make_optional(_nativeStartCatalog.entries[size_t(index)]):std::nullopt;
-    const BOOL previewReady=_nativeStartConfirm.enabled;
+    const BOOL previewReady=_nativeStartConfirm.enabled;const BOOL useCityContract=cityContract.state==NSControlStateValueOn;const BOOL useRuntime=useCityContract||runtime.state==NSControlStateValueOn;
     [self cancelNativeStartWork];
     _nativeStartPicker=nil;_nativeStartDetail=nil;_nativeStartPreview=nil;_nativeStartConfirm=nil;_nativeStartProgress=nil;_nativeStartSpinner=nil;_nativeStartCatalog={};
     if(answer!=NSAlertFirstButtonReturn||!previewReady||!selected||!selected->supported()||![self confirmNativeReplacement:@"新建另一座城市"])return;
     // Re-read after all modal confirmations; never silently start a changed seed.
     std::string error;auto source=game_lab::reloadNativeStartSource(_resourceRoot,*selected,error);
     if(!source){[self nativeError:[NSString stringWithUTF8String:error.c_str()]];return;}
-    auto state=game_lab::startNativeSession(source->seed,game_lab::nativeLatestRulesVersion);[self presentNativeSource:std::move(*source) state:std::move(state) checkpoint:nil];
+    if(useRuntime&&!game_lab::prepareNativeHouseRuntimeSource(_resourceRoot,*source,error)){[self nativeError:[NSString stringWithUTF8String:error.c_str()]];return;}
+    auto state=useRuntime?game_lab::startNativeHouseRuntime(source->seed,*source->runtime,error,game_lab::NativeWellReturnPolicy::ObservedHomeRoad,true,true,true,true,bool(useCityContract),bool(useCityContract)):std::optional<game_lab::NativeSessionState>{game_lab::startNativeSession(source->seed,game_lab::nativeLatestRulesVersion)};
+    if(!state){[self nativeError:[NSString stringWithUTF8String:error.c_str()]];return;}[self presentNativeSource:std::move(*source) state:std::move(*state) checkpoint:nil];
 }
 - (void)onNativeContinue:(id)sender {
     [self flushNativeVisualForUI];
@@ -593,12 +647,15 @@
     const auto reference=bytes?game_lab::nativeSessionReference(*bytes):std::nullopt;
     if(!reference){[self nativeError:bytes?@"不是受支持的原生会话；当前城市未替换。":[NSString stringWithUTF8String:error.c_str()]];return;}
     auto source=game_lab::loadNativeSessionSource(_resourceRoot,reference->source,error);
+    if(source&&reference->version==8&&!game_lab::prepareNativeHouseRuntimeSource(_resourceRoot,*source,error))source.reset();
     auto state=source?game_lab::decodeNativeSession(source->seed,*bytes,error):std::nullopt;
     if(!source||!state){[self nativeError:[NSString stringWithFormat:@"会话未载入：%@。请使用保存时的原始数据目录；当前城市未替换。",[NSString stringWithUTF8String:error.c_str()]]];return;}
+    if(state->rulesVersion==8){error=game_lab::validateNativeHouseRuntimeReady(source->seed,*state,*source->runtime);if(!error.empty()){[self nativeError:[NSString stringWithUTF8String:error.c_str()]];return;}}
     NSAlert* info=[[NSAlert alloc]init];info.messageText=[NSString stringWithFormat:@"继续原生 v%u",state->rulesVersion];info.informativeText=[NSString stringWithFormat:@"原始来源：%@\n更新%llu · 人口%llu · 余额%lld\n保留该版本规则，载入后暂停。",[NSString stringWithUTF8String:source->seed.source.c_str()],state->ticks,game_lab::nativePopulation(*state),state->funds];[info addButtonWithTitle:@"继续此会话"].accessibilityIdentifier=@"native-continue-confirm";[info addButtonWithTitle:@"取消"];
     if([info runModal]!=NSAlertFirstButtonReturn||![self confirmNativeReplacement:@"载入另一份会话"])return;
     source=game_lab::reloadNativeStartSource(_resourceRoot,game_lab::nativeStartIdentity(*source),error);
     if(!source){[self nativeError:[NSString stringWithFormat:@"会话未载入：%@。当前城市未替换。",[NSString stringWithUTF8String:error.c_str()]]];return;}
+    if(state->rulesVersion==8&&!game_lab::prepareNativeHouseRuntimeSource(_resourceRoot,*source,error)){[self nativeError:[NSString stringWithUTF8String:error.c_str()]];return;}
     if(!state->paused){const auto result=game_lab::transactNativeSession(source->seed,*state,{game_lab::NativeSessionAction::Pause,state->revision});if(!result.committed){[self nativeError:@"会话无法安全暂停，未替换当前城市。"];return;}}
     [self presentNativeSource:std::move(*source) state:std::move(*state) checkpoint:panel.URL.path];
 }
@@ -607,10 +664,14 @@
     (void)sender;_nativeDemolition.reset();[_nativeCanvas cancelGesture];if(!_nativeSource||!_nativeState)return;
     std::string error;const auto bytes=game_lab::readNativeSessionFile(_nativeFile.stringValue.UTF8String,_resourceRoot.configuredDirectory(),error);
     if(!bytes){_nativeMessage=error;[self updateNativeSessionLabels];return;}
-    const auto state=game_lab::decodeNativeSession(_nativeSource->seed,*bytes,error);
+    auto source=*_nativeSource;
+    if(game_lab::nativeSessionWireVersion(*bytes)==std::make_optional(uint32_t(8))&&!source.runtime&&
+       !game_lab::prepareNativeHouseRuntimeSource(_resourceRoot,source,error)){_nativeMessage=error;[self updateNativeSessionLabels];return;}
+    const auto state=game_lab::decodeNativeSession(source.seed,*bytes,error);
     if(!state){_nativeMessage="会话拒绝："+error;[self updateNativeSessionLabels];return;}
+    if(state->rulesVersion==8){error=game_lab::validateNativeHouseRuntimeReady(source.seed,*state,*source.runtime);if(!error.empty()){_nativeMessage="会话拒绝："+error;[self updateNativeSessionLabels];return;}}
     if(![self confirmNativeReplacement:@"重载会话"])return;
-    [self presentNativeSource:*_nativeSource state:*state checkpoint:_nativeFile.stringValue];
+    [self presentNativeSource:std::move(source) state:*state checkpoint:_nativeFile.stringValue];
 }
 - (void)onNativeClose:(id)sender {
     [self flushNativeVisualForUI];
@@ -627,6 +688,12 @@
     [self presentNativeSource:std::move(*source) state:std::move(state) checkpoint:nil];
 }
 - (NativeInstallResult)presentNativeSource:(game_lab::NativeSessionSource)source state:(game_lab::NativeSessionState)state checkpoint:(NSString*)checkpoint {
+    // Prove a loaded representation before pausing/replacing the old city.
+    if(state.rulesVersion==8){std::string error;
+        if(!source.runtime&&!game_lab::prepareNativeHouseRuntimeSource(_resourceRoot,source,error)){[self nativeError:[NSString stringWithUTF8String:error.c_str()]];return NativeInstallResult::Failed;}
+        error=game_lab::validateNativeHouseRuntimeReady(source.seed,state,*source.runtime);
+        if(!error.empty()){[self nativeError:[NSString stringWithUTF8String:error.c_str()]];return NativeInstallResult::Failed;}
+    }
     [self flushNativeVisualForUI];if(_nativeState&&!_nativeState->paused)[self onNativePause:nil];
     _nativeFrameGate=game_lab::changeSceneFrame(_nativeFrameGate,game_lab::SceneFrameChange::BeginSession).state;
     if(!state.paused){const auto paused=game_lab::transactNativeSession(source.seed,state,{game_lab::NativeSessionAction::Pause,state.revision});if(!paused.committed){[self nativeError:@"会话不能安全暂停，未替换当前城市。"];return NativeInstallResult::Failed;}}
@@ -654,7 +721,7 @@
     button(@"退出",@selector(terminate:),@"native-file-quit",NativeNSRect(layout.fileQuit())).toolTip=@"正常退出；有未保存进度时会先询问。";
     _nativeResources=label(@"",NativeNSRect(layout.resources()),14);_nativeResources.accessibilityIdentifier=@"native-resources";
     _nativeCompactState=label(@"",NativeNSRect(layout.compactState()),12);_nativeCompactState.accessibilityIdentifier=@"native-session-state";
-    NSMutableArray* categories=[NSMutableArray array];NSArray* names=@[@"住宅",@"食物",@"公共服务：水井",@"道路与拆除"];
+    NSMutableArray* categories=[NSMutableArray array];NSArray* names=@[@"住宅",@"食物",@"公共服务",@"道路与拆除"];
     const unsigned rows[]={0,1,4,10};
     const unsigned allIDs[]={1323,1327,1331,1335,1339,1343,1347,1351,1355,1359,1319};
     for(unsigned row=0;row<11;++row){int active=-1;for(unsigned i=0;i<4;++i)if(rows[i]==row)active=int(i);
@@ -663,10 +730,10 @@
         else {b.accessibilityIdentifier=[NSString stringWithFormat:@"native-unavailable-category-%u",row];b.accessibilityLabel=[NSString stringWithFormat:@"原版分类 %u · 尚未实现",row+1];b.toolTip=@"此原版类别尚未实现，不能建造。";b.accessibilityHelp=b.toolTip;}
         [chrome addSubview:b];
     }_nativeCategories=categories;
-    _nativeTool=[[NSPopUpButton alloc]initWithFrame:NSZeroRect pullsDown:NO];[_nativeTool addItemsWithTitles:@[@"浏览 / 取消",@"道路",@"住宅 2×2",@"水井 2×2",@"猎人营地 2×2",@"拆除（预览）"]];_nativeTool.menu.autoenablesItems=NO;[_nativeTool selectItemAtIndex:0];_nativeCategoryIndex=3;
-    NSMutableArray* choices=[NSMutableArray array];NSArray* titles=@[@"查看建筑 / 拖动地图",@"道路",@"普通住宅",@"水井",@"猎人营地",@"拆除"];
-    const unsigned icons[]={0,0,1491,1551,1512,0};NSArray* shortTitles=@[@"查看",@"道路",@"住宅",@"水井",@"狩猎",@"拆除"];
-    for(unsigned i=0;i<6;++i){NativeBuildButton* b=[NativeBuildButton buttonWithTitle:shortTitles[i] target:self action:@selector(onNativePaletteTool:)];b.frame=NativeNSRect(layout.toolFor(i));b.autoresizingMask=NSViewMinXMargin|NSViewMinYMargin;b.font=[NSFont systemFontOfSize:11];b.accessibilityIdentifier=[NSString stringWithFormat:@"native-tool-%u",i];b.accessibilityLabel=titles[i];if(icons[i])b.image=[self nativeUI:icons[i]];b.tag=i;[chrome addSubview:b];[choices addObject:b];}_nativeChoices=choices;
+    _nativeTool=[[NSPopUpButton alloc]initWithFrame:NSZeroRect pullsDown:NO];[_nativeTool addItemsWithTitles:@[@"浏览 / 取消",@"道路",@"住宅 2×2",@"水井 2×2",@"猎人营地 2×2",@"拆除（预览）",@"巡检塔 2×2"]];_nativeTool.menu.autoenablesItems=NO;[_nativeTool selectItemAtIndex:0];_nativeCategoryIndex=3;
+    NSMutableArray* choices=[NSMutableArray array];NSArray* titles=@[@"查看建筑 / 拖动地图",@"道路",@"普通住宅",@"水井",@"猎人营地",@"拆除",@"巡检塔"];
+    const unsigned icons[]={0,0,1491,1551,1512,0,0};NSArray* shortTitles=@[@"查看",@"道路",@"住宅",@"水井",@"狩猎",@"拆除",@"巡检"];
+    for(unsigned i=0;i<7;++i){NativeBuildButton* b=[NativeBuildButton buttonWithTitle:shortTitles[i] target:self action:@selector(onNativePaletteTool:)];b.frame=NativeToolRect(layout,i);b.autoresizingMask=NSViewMinXMargin|NSViewMinYMargin;b.font=[NSFont systemFontOfSize:11];b.accessibilityIdentifier=[NSString stringWithFormat:@"native-tool-%u",i];b.accessibilityLabel=titles[i];if(icons[i])b.image=[self nativeUI:icons[i]];b.tag=i;[chrome addSubview:b];[choices addObject:b];}_nativeChoices=choices;
     NativeBuildButton* cancel=[NativeBuildButton buttonWithTitle:@"取消" target:self action:@selector(onNativeCancel:)];cancel.frame=NativeNSRect(layout.toolCancel());cancel.autoresizingMask=NSViewMinXMargin|NSViewMinYMargin;cancel.font=[NSFont systemFontOfSize:11];cancel.accessibilityIdentifier=@"native-v4-demolish-cancel";cancel.accessibilityLabel=@"取消当前操作";cancel.toolTip=@"取消当前工具、拆除选择或道路预览，回到浏览；不修改城市。";[chrome addSubview:cancel];
     _nativeDetails=label(@"",NativeNSRect(layout.details()),12);_nativeDetails.accessibilityIdentifier=@"native-building-details";
     NSClickGestureRecognizer* houseConditions=[[NSClickGestureRecognizer alloc]initWithTarget:self action:@selector(onNativeHouseConditions:)];
@@ -678,6 +745,7 @@
     _nativeHouseConditions.accessibilityLabel=@"住宅完整条件";_nativeHouseConditions.enabled=NO;_nativeHouseConditions.accessibilityValue=@"已收起";
     _nativeDetailDemolish=button(@"拆除所选…",@selector(onNativeDetailDemolish:),@"native-detail-demolish",NativeNSRect(layout.detailDemolish()));_nativeDetailDemolish.toolTip=@"先在浏览模式点击自建对象。";_nativeDetailDemolish.enabled=NO;
     _nativeNotice=label(@"",NativeNSRect(layout.notice()),12);_nativeNotice.accessibilityIdentifier=@"native-notice";
+    _nativeEntrance=button(@"入城口",@selector(onNativeEntrance:),@"native-entry-locate",NativeNSRect(layout.entrance()));_nativeEntrance.font=[NSFont systemFontOfSize:11];_nativeEntrance.hidden=YES;
     _nativeStatus=[NSTextField wrappingLabelWithString:@""];_nativeStatus.accessibilityIdentifier=@"native-v1-status";
     _nativeFoodInfo=[NSTextField wrappingLabelWithString:@""];_nativeFoodInfo.accessibilityIdentifier=@"native-v3-food-status";
     _nativeWaterInfo=[NSTextField wrappingLabelWithString:@""];_nativeWaterInfo.accessibilityIdentifier=@"native-v2-water-status";
@@ -728,10 +796,10 @@
     void (^complete)(BOOL)=^(BOOL ok){EmperorAppDelegate* me=weakOwner;if(!me)return;
         if(!ok){if(created){[me->_nativePanel orderOut:nil];me->_nativePanel=nil;}else [me updateNativeSessionLabels];[me nativeError:[NSString stringWithUTF8String:me->_nativeMessage.c_str()]];return;}
         [me resetCityPlayback];[me stopNativeSessionTimer];me->_nativeDemolition.reset();me->_nativeHoverTile.reset();me->_nativeRoadGesture.cancel();[me->_nativeCanvas cancelGesture];[me->_nativeTool selectItemAtIndex:0];me->_nativeCategoryIndex=3;
-        me->_nativeFile.stringValue=checkpoint?:[[me->_nativeFile.stringValue stringByDeletingLastPathComponent]stringByAppendingPathComponent:[NSString stringWithFormat:@"城市-v6-%@.encity",NSUUID.UUID.UUIDString]];
+        me->_nativeFile.stringValue=checkpoint?:[[me->_nativeFile.stringValue stringByDeletingLastPathComponent]stringByAppendingPathComponent:[NSString stringWithFormat:@"城市-v%u-%@.encity",me->_nativeState->rulesVersion,NSUUID.UUID.UUIDString]];
         me->_nativeSavedContent=game_lab::nativeSessionContent(me->_nativeSource->seed,*me->_nativeState);me->_nativeExitApproved=NO;me->_nativeInspectionId=0;
         me->_nativeX.integerValue=int(me->_nativeCamera.centerX);me->_nativeY.integerValue=int(me->_nativeCamera.centerY);
-        me->_nativeMessage=checkpoint?"会话已按原规则载入并暂停；点恢复继续。":"新v6空城已暂停。先放道路和住宅，再接通水井与营地；营地需要住民当工人，缺工时缺粮仍会入住。鼠标拖路，右键取消。";
+        me->_nativeMessage=checkpoint?"会话已按原规则载入并暂停；点恢复继续。":me->_nativeState->rulesVersion==8?"新开发城已暂停。先点“入城口”定位原有路网；道路连通后建住宅，恢复等待实际迁入。人口形成劳力后建井和巡检塔。未支持路径会保留等待。":"新v6空城已暂停。先放道路和住宅，再接通水井与营地；营地需要住民当工人，缺工时缺粮仍会入住。鼠标拖路，右键取消。";
         [me updateNativeSessionLabels];if(created)[me->_nativePanel center];[me->_nativePanel makeKeyAndOrderFront:nil];
     };
     const auto result=[self beginNativeCandidate:state source:candidateSource camera:camera completion:complete];

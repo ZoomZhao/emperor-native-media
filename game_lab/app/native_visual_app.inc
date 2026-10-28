@@ -131,12 +131,19 @@
     if(!projected){_nativeMessage="原生状态校验失败，未提交。";return reject();}
     if(!_nativeSpriteCache)_nativeSpriteCache=std::make_shared<game_lab::SG3SpriteCache>();
     auto surface=std::make_shared<game_lab::AppMapSurface>(_resourceRoot,_nativeSpriteCache);
-    if(!surface->selectSavedBuildings(projected->terrain,projected->buildings,&projected->ground)){_nativeMessage="绘制准备失败，未提交："+surface->error();return reject();}
+    if(!surface->selectSavedBuildings(projected->terrain,projected->buildings,&projected->ground,0,projected->figures?&*projected->figures:nullptr)){_nativeMessage="绘制准备失败，未提交："+surface->error();return reject();}
     const double selectedAt=CACurrentMediaTime();
     const auto cacheBefore=_nativeSpriteCache->statistics();
     game_lab::SceneDrawCapture capture;
     const bool deferred=_nativeMetalEnabled&&!_nativeFlushing;
     auto view=surface->renderSavedBuildings(camera,-1,deferred?&capture:nullptr,deferred);
+    if(candidate.rulesVersion==8){
+        const size_t figures=candidate.figureRuntime->wellWalkerPayloads.size()+candidate.figureRuntime->migrantPayloads.size()+candidate.figureRuntime->immigrantPayloads.size()+(candidate.inspection?candidate.inspection->payloads.size():0);
+        std::fprintf(stderr,"native_v8_figures expected=%zu live=%zu placed=%zu hidden=%zu zero=%zu unsupported=%zu decoded=%zu failures=%zu\n",figures,view.figureLive,view.figurePlaced,view.figureHidden,view.figureZeroImage,view.figureUnsupported,view.figureDecoded,view.overlayDecodeFailures);
+        if(view.figureLive!=figures||view.figurePlaced+view.figureHidden!=figures||view.figureZeroImage||view.figureUnsupported){
+            _nativeMessage="行人画面不完整，候选城市未提交。";return reject();
+        }
+    }
     const auto cacheAfter=_nativeSpriteCache->statistics();
     std::fprintf(stderr,"native_prepare project_ms=%.3f select_ms=%.3f draw_ms=%.3f cache_hits=%llu cache_requests=%llu path_resolutions=%llu path_hits=%llu resolve_ms=%.3f validate_ms=%.3f decode_ms=%.3f cache_bytes=%zu\n",(projectedAt-startedAt)*1000,(selectedAt-projectedAt)*1000,(CACurrentMediaTime()-selectedAt)*1000,cacheAfter.hits-cacheBefore.hits,cacheAfter.requests-cacheBefore.requests,cacheAfter.pathResolutions-cacheBefore.pathResolutions,cacheAfter.pathHits-cacheBefore.pathHits,(cacheAfter.resolveNs-cacheBefore.resolveNs)/1e6,(cacheAfter.validateNs-cacheBefore.validateNs)/1e6,(cacheAfter.decodeNs-cacheBefore.decodeNs)/1e6,cacheAfter.bytes);
     const auto invalidations=cacheAfter.invalidations;

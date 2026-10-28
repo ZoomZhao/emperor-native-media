@@ -26,6 +26,7 @@
 #include "city_playback.hpp"
 #include "city_goal_diagnostics.hpp"
 #include "../native_session_source.hpp"
+#include "../native_house_runtime_source.hpp"
 #include "../native_start_catalog.hpp"
 #include "../native_session_io.hpp"
 #include "../native_session_presentation.hpp"
@@ -207,6 +208,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTextField* _nativeDetails;
     NSButton* _nativeDetailDemolish;
     NSButton* _nativeHouseConditions;
+    NSButton* _nativeEntrance;
     NSArray<NSButton*>* _nativeCategories;
     NSArray<NSButton*>* _nativeChoices;
     uint64_t _nativeInspectionId;
@@ -790,7 +792,7 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     NSTextField* subLabel=[NSTextField wrappingLabelWithString:@"原始画面 · 原生玩法 v6\n道路、住宅、供水、食物、税收、拆建与原版劳动力。原版任务和已有城市续玩尚不兼容。"];
     subLabel.frame=NSMakeRect(20,420,360,72);subLabel.font=[NSFont systemFontOfSize:13];[menuOverlay addSubview:subLabel];
     NSArray* buttons=@[
-        @[@"新建原生城市 · v6",@"onNativeNew:",@"native-home-new"],
+        @[@"新建原生城市…",@"onNativeNew:",@"native-home-new"],
         @[@"继续游戏 · 选择会话…",@"onNativeContinue:",@"native-home-continue"],
         @[@"返回当前城市",@"onNativeReturn:",@"native-home-return"],
         @[@"退出应用",@"terminate:",@"native-home-quit"]];

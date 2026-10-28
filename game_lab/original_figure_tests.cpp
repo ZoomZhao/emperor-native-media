@@ -406,6 +406,16 @@ void combinedAuthored(){
     stocked.figureCellHeads=std::vector<uint16_t>(51984);stocked.figureStationary.emplace();stocked.scenarioFigurePlacementCheck=false;
     stocked.industryCarts=true;stocked.figureSpeechCounters.emplace();stocked.figureSpeechCounts.emplace();stocked.figureSpeechCounts->at(254)=3;
     stocked.freeFigureSlots={7};stocked.goods->warehouse[18]=100;auto withdrawing=warehouse;
+    auto noSlots=stocked;noSlots.freeFigureSlots.clear();auto noSlotsWarehouse=warehouse;
+    need(originalCombinedWarehouseHook(noSlotsWarehouse,noSlots)==OriginalBuildingUpdateBlocker::None&&
+        noSlots.buildingLinks->at(4).storage->front().amount==100&&noSlots.goods->warehouse[18]==100&&
+        noSlots.allocatedFigures.empty()&&detail::i16(noSlotsWarehouse.inputs.hookIndustry->data()+0x6a-4)==0,
+        "exhausted warehouse exporter allocator leaves stock and in-transit ownership untouched");
+    auto noAllocator=stocked;noAllocator.figureSpeechCounts.reset();auto noAllocatorWarehouse=warehouse;
+    need(originalCombinedWarehouseHook(noAllocatorWarehouse,noAllocator)==OriginalBuildingUpdateBlocker::MissingContext&&
+        noAllocator.buildingLinks->at(4).storage->front().amount==100&&noAllocator.goods->warehouse[18]==100&&
+        noAllocator.allocatedFigures.empty(),
+        "allocator context failure before exporter creation cannot debit warehouse stock");
     need(originalCombinedWarehouseHook(withdrawing,stocked)==OriginalBuildingUpdateBlocker::None&&stocked.figures->at(7).type==22&&
         stocked.figures->at(7).action==10&&stocked.figures->at(7).amount==100&&stocked.figures->at(7).owner==4&&
         detail::i16(withdrawing.inputs.hookIndustry->data()+0x6a-4)==7&&stocked.buildingLinks->at(4).storage->front().amount==0&&
@@ -1237,6 +1247,64 @@ void authored(){
             "Mill food delivery uses fullest-bay acceptance and the common warehouse accounting callback");
         need(originalFigureWarehouseDeliver(mill,18,100,goods)==0&&mill.storage->at(1).amount==0,
             "Mill virtual154 rejects nonfood before common storage acceptance");
+        { // The return count is an ownership transfer, not merely a success flag.
+        // Mixed other-resource bays exhaust physical space before policy headroom.
+        size_t transferCases=0;
+        const auto stockOf=[](const OriginalFigureBuildingLink& b,unsigned r){unsigned n=0;
+            for(const auto& bay:*b.storage)if(bay.resource==r)n+=bay.amount;return n;};
+        for(const unsigned kind:{53u,54u,58u})for(const unsigned mode:{5u,7u}){
+            if(kind!=58&&mode==7)continue;
+            const unsigned resource=kind==53?1:25,other=kind==53?2:24;
+            for(const unsigned space:{0u,1u,2u,399u,400u})for(const unsigned policyRoom:{0u,1u,3u,400u,3200u})
+                for(const unsigned cargo:{0u,1u,2u,3u,400u,401u,32767u}){
+                    OriginalFigureBuildingLink b;b.type=uint8_t(kind);b.alive=1;b.workers=1;b.storagePolicy=0;
+                    b.storage=std::vector<OriginalStorageCompartment>(kind==58?15:8,{uint8_t(other),400,400});
+                    b.storage->back()={uint8_t(space==400?0:resource),400-space,400};
+                    OriginalFigureGoodsServices g;g.policies.resize(1);g.policies[0].trade[resource]=uint8_t(mode);
+                    const unsigned before=stockOf(b,resource);g.policies[0].limit[resource]=int32_t(before+policyRoom);
+                    g.warehouse[resource]=g.trade5[resource]=g.trade7[resource]=before;
+                    const unsigned expected=std::min(cargo,std::min(space,policyRoom));
+                    const auto accepted=originalFigureWarehouseDeliver(b,resource,cargo,g);++transferCases;
+                    need(accepted==expected&&stockOf(b,resource)==before+expected&&cargo-*accepted+stockOf(b,resource)==cargo+before,
+                        "physical and policy partial acceptance preserves stock plus retained live cargo");
+                    need(g.warehouse[resource]==before+(kind!=58?expected:0)&&
+                        g.trade5[resource]==before+(kind==58&&mode==5?expected:0)&&
+                        g.trade7[resource]==before+(kind==58&&mode==7?expected:0),
+                        "exact accepted prefix credits only the owning warehouse or trade-mode pool");
+                    const unsigned repeatExpected=std::min(cargo-expected,std::min(space-expected,policyRoom-expected));
+                    const auto repeated=originalFigureWarehouseDeliver(b,resource,cargo-expected,g);
+                    need(repeated==repeatExpected&&stockOf(b,resource)==before+expected+repeatExpected,
+                        "retry retains exact residual cargo and cannot duplicate a previously accepted prefix");
+                }
+        }
+        for(const unsigned kind:{54u,58u})for(const unsigned mode:{0u,5u,7u})for(const bool clear:{false,true})
+            for(const unsigned requested:{0u,1u,50u,100u,150u,450u,451u}){
+                OriginalFigureBuildingLink b;b.type=uint8_t(kind);b.storagePolicy=0;
+                b.storage=std::vector<OriginalStorageCompartment>{{25,200,400},{25,100,400},{25,100,400},{24,50,400}};
+                OriginalFigureGoodsServices g;g.policies.resize(1);g.policies[0].trade[25]=uint8_t(mode);
+                g.warehouse[25]=g.trade5[25]=g.trade7[25]=10; // Deliberately represented unsigned pool arithmetic.
+                const auto left=originalFigureStorageWithdraw(b,25,requested,clear,g);++transferCases;
+                const unsigned removed=std::min(requested,400u);
+                need(left==requested-removed&&stockOf(b,25)==400-removed&&stockOf(b,24)==50,
+                    "withdrawal remainder plus actual removed cargo equals request without touching another resource");
+                need(g.warehouse[25]==uint32_t(10-(kind==54?removed:0))&&
+                    g.trade5[25]==uint32_t(10-(kind==58&&mode==5?removed:0))&&
+                    g.trade7[25]==uint32_t(10-(kind==58&&mode==7?removed:0)),
+                    "withdrawal decrements the owning represented unsigned pool only");
+                for(const auto& bay:*b.storage)need(bay.resource||!bay.amount,"withdrawal never leaves positive stock in an empty identity");
+            }
+        auto invalid=receiving;auto unchanged=goods;
+        const auto invalidStock=stockOf(invalid,18);const auto invalidPool=unchanged.warehouse;
+        need(!originalFigureWarehouseDeliver(invalid,0,1,unchanged)&&
+            !originalFigureStorageWithdraw(invalid,0,1,true,unchanged)&&
+            !originalFigureWarehouseDeliver(invalid,29,1,unchanged)&&
+            !originalFigureWarehouseDeliver(invalid,18,32768,unchanged)&&
+            stockOf(invalid,18)==invalidStock&&unchanged.warehouse==invalidPool,
+            "invalid resource identity or oversized cargo rejects without any stock or pool write");
+        need(originalFigureWarehouseDeliver(invalid,0,0,unchanged)==0&&
+            originalFigureStorageWithdraw(invalid,0,0,true,unchanged)==0,
+            "zero empty-resource transfer is a no-op rather than manufacturing a bay identity");
+        std::cout<<"{\"storage_transfer_matrix_cases\":"<<transferCases<<"}\n";}
         {auto delivery=one;delivery.slot=2;delivery.type=19;delivery.action=11;delivery.counter=5;delivery.subtype=1;delivery.amount=100;
             delivery.delivery=9;delivery.homeX=5;delivery.homeY=6;delivery.owner=8;delivery.cell=10000;delivery.direction=8;delivery.previousDirection=0;
             auto millArchive=archive;millArchive.numImages=512;millArchive.sprites.resize(512);millArchive.imageIndex.fill(1);
@@ -1248,7 +1316,19 @@ void authored(){
             need(accepted.state&&accepted.state->action==13&&accepted.state->amount==0&&accepted.state->counter==0&&
                 accepted.buildings->at(9).storage->front().amount==100&&accepted.buildings->at(9).incomingFigures==0&&
                 accepted.buildings->at(9).incomingAmount==0,
-                "Mill arrival at sixth call accepts food,debits both original-cargo reservation words and returns carrier home");}
+                "Mill arrival at sixth call accepts food,debits both original-cargo reservation words and returns carrier home");
+            auto partialMill=millContext;partialMill.cropBase=0;partialMill.services.emplace();
+            partialMill.services->directions.assign(500000,0);partialMill.goods->storageSearch=std::array<uint8_t,36>{};
+            partialMill.goods->industrySearch=std::array<uint8_t,36>{};partialMill.goods->storageSearch->fill(1);
+            partialMill.goods->industrySearch->fill(1);partialMill.goods->godGate=0;partialMill.goods->unavailable[1]=1;
+            partialMill.buildings->at(9).storage=std::vector<OriginalStorageCompartment>(8,{2,400,400});
+            partialMill.buildings->at(9).storage->back()={1,399,400};partialMill.goods->warehouse[1]=399;
+            delivery.movementMode=1;partialMill.figures.at(delivery.slot)=delivery;
+            const auto millRemainder=originalFigureFirstUpdate(delivery,millRefs,&partialMill,0x40);
+            need(millRemainder.state&&millRemainder.state->amount==99&&millRemainder.state->action==6&&
+                millRemainder.buildings->at(9).storage->back().amount==400&&millRemainder.goods->warehouse[1]==400&&
+                millRemainder.buildings->at(9).incomingFigures==0&&millRemainder.buildings->at(9).incomingAmount==0,
+                "Mill physical partial fit preserves remaining cargo and releases original incoming reservation exactly once");}
         OriginalFigureUpdateContext context;context.cropBase=0;context.goods=goods;context.goods->storageSearch=std::array<uint8_t,36>{};
         context.goods->industrySearch=std::array<uint8_t,36>{};context.goods->godGate=0;context.buildings.emplace();
         context.services.emplace();context.services->directions.assign(500000,0);
@@ -1653,6 +1733,34 @@ void authored(){
             need(retainedCargo.state&&retainedCargo.state->amount==3&&retainedCargo.state->action==6&&retainedCargo.state->counter==0&&
                 retainedCargo.state->stationary==1&&retainedCargo.state->delivery==0&&retainedCargo.goods->warehouse[18]==rejectedContext.goods->warehouse[18],
                 "rejected delivery retains all cargo and enters stationary search failure without inventing warehouse credit");
+            auto partial=context;partial.goods->industrySearch->fill(1);partial.goods->storageSearch->fill(1);
+            auto& partialB=partial.buildings->at(8);
+            partialB.storage=std::vector<OriginalStorageCompartment>(8,{24,400,400});partialB.storage->back()={18,399,400};
+            partial.goods->warehouse[18]=399;
+            const auto partialDelivery=originalFigureFirstUpdate(delivery,refs,&partial,0xc0);
+            need(partialDelivery.state&&partialDelivery.state->amount==2&&partialDelivery.state->action==6&&
+                partialDelivery.buildings->at(8).storage->back().amount==400&&partialDelivery.goods->warehouse[18]==400&&
+                partialDelivery.state->amount+partialDelivery.goods->warehouse[18]==delivery.amount+partial.goods->warehouse[18],
+                "type19 publishes physically partial acceptance with conserved live cargo and Goods");
+            const auto missingImage=originalFigureFirstUpdate(delivery,{},&partial,0xc0);
+            need(!missingImage.state&&!missingImage.goods&&!missingImage.buildings&&partial.goods->warehouse[18]==399&&
+                partial.buildings->at(8).storage->back().amount==399&&partial.figures.at(delivery.slot).amount==3,
+                "late image failure publishes none of a tentative partial transfer");
+            const auto retryDelivery=originalFigureFirstUpdate(delivery,refs,&partial,0xc0);
+            need(retryDelivery.state&&retryDelivery.state->amount==partialDelivery.state->amount&&
+                retryDelivery.goods->warehouse==partialDelivery.goods->warehouse,
+                "same-input retry after failed image selection is deterministic and cannot double-credit");
+            auto orderedInput=partial;orderedInput.figures.clear();orderedInput.cellHeads.assign(51984,0);
+            for(size_t slot=0;slot<2000;++slot){OriginalFigure dead;dead.slot=slot;orderedInput.figures.emplace(slot,dead);}
+            orderedInput.figures.at(delivery.slot)=delivery;orderedInput.cellHeads[delivery.cell]=uint16_t(delivery.slot);
+            orderedInput.terrain.assign(51984,0xc0);
+            auto later=delivery;later.slot=delivery.slot+1;later.cell=51984;orderedInput.figures.at(later.slot)=later;
+            const auto refusedPass=originalFigureOrderedNextPass(orderedInput,refs);
+            need(refusedPass.accepted&&!refusedPass.complete&&!refusedPass.context&&refusedPass.computed==0&&
+                refusedPass.prefixComputed==1&&!refusedPass.figures.at(delivery.slot).state&&
+                !refusedPass.figures.at(delivery.slot).goods&&orderedInput.goods->warehouse[18]==399&&
+                orderedInput.buildings->at(8).storage->back().amount==399,
+                "blocked later slot discards an earlier successful cargo transfer and all stock publication");
             auto industrial=delivery;industrial.action=12;industrial.counter=4;industrial.delivery=10;industrial.amount=100;
             auto kilnContext=context;OriginalFigureBuildingLink kiln;kiln.type=0x2b;kiln.alive=1;kiln.industryInput=300;kiln.incomingFigures=1;
             kilnContext.buildings->at(10)=kiln;kilnContext.figures[industrial.slot]=industrial;
@@ -1683,6 +1791,14 @@ void authored(){
             returned.route=0;returned.destinationX=returned.x;returned.destinationY=returned.y;
             context.passability->spawn.cropBase=*context.cropBase;context.buildings->at(8).primaryFigure=int16_t(returned.slot);
             context.figures[returned.slot]=returned;context.modelSpeeds[22]=6;
+            auto partialReturn=context;partialReturn.buildings->at(8).storage=
+                std::vector<OriginalStorageCompartment>(8,{24,400,400});partialReturn.buildings->at(8).storage->back()={18,399,400};
+            partialReturn.goods->warehouse[18]=399;
+            const auto refusedReturn=originalFigureFirstUpdate(returned,refs,&partialReturn,0xc0);
+            need(!refusedReturn.state&&!refusedReturn.goods&&!refusedReturn.buildings&&
+                partialReturn.buildings->at(8).storage->back().amount==399&&partialReturn.goods->warehouse[18]==399&&
+                partialReturn.figures.at(returned.slot).amount==3,
+                "type22 incomplete home acceptance refuses the entire local candidate without losing retained cargo");
             const auto accepted=originalFigureFirstUpdate(returned,refs,&context,0xc0);
             need(accepted.state&&accepted.state->alive==2&&accepted.state->amount==0&&
                 accepted.buildings->at(8).storage->at(2).amount==3,
@@ -1700,6 +1816,14 @@ void authored(){
             station.storagePolicy=0;station.storage=std::vector<OriginalStorageCompartment>(15,{0,0,400});
             station.cargoFigures[0]=station.cargoFigures[2]=int16_t(traded.slot);context.goods->policies[0].trade[18]=7;
             context.goods->policies[0].limit[18]=6000;context.goods->trade7[18]=50;context.figures[traded.slot]=traded;
+            auto partialTrade=context;partialTrade.buildings->at(9).storage=
+                std::vector<OriginalStorageCompartment>(15,{24,400,400});partialTrade.buildings->at(9).storage->back()={18,399,400};
+            partialTrade.goods->trade7[18]=399;
+            const auto refusedTrade=originalFigureFirstUpdate(traded,refs,&partialTrade,0xc0);
+            need(!refusedTrade.state&&!refusedTrade.goods&&!refusedTrade.buildings&&
+                partialTrade.buildings->at(9).storage->back().amount==399&&partialTrade.goods->trade7[18]==399&&
+                partialTrade.figures.at(traded.slot).amount==3,
+                "type21 partial home return rolls back both stock and mode7 pool instead of discarding residual cargo");
             const auto tradeReturn=originalFigureFirstUpdate(traded,refs,&context,0xc0);
             need(tradeReturn.state&&tradeReturn.state->alive==2&&tradeReturn.state->amount==3&&tradeReturn.state->counter==0&&
                 tradeReturn.buildings->at(9).storage->front().amount==3&&tradeReturn.goods->trade7[18]==53,

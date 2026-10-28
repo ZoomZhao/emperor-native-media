@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-TEMP = Path('/private/var/folders/5n/nsp1d6sn0_76p_0f_j_dmj_c0000gn/T/opencode')
+TEMP = Path(tempfile.gettempdir())
 
 
 def main():
@@ -61,7 +61,7 @@ def main():
             'evolution': ('direction==-1&&delay<9', 'direction==-1&&delay<8', 'house failed requirement waits through old delay8 before conversion'),
             'lifecycle': ('int(*i.modelDesirability)>=threshold&&!upgraded', 'int(*i.modelDesirability)>threshold&&!upgraded', 'phase40 inclusive desirability threshold upgrades model and existing Well selector'),
             'fire': ('if(i.burning<0)i.burning=0;', 'if(i.burning<0)i.burning=1;', 'fire pass normalizes negative burning before zero-fire exit'),
-            'risk': ('uint16_t(i.damageRisk)+3', 'uint16_t(i.damageRisk)+2', 'risk phase0 and region0 add model fire3 and damage2 plus fixed3'),
+            'risk': ('uint16_t(i.damageRisk)+3', 'uint16_t(i.damageRisk)+2', 'risk phase0 region0 adds collapse model7=3 and ignition model6=2 plus fixed3'),
             'effect': ('((value-1)<<bit)', '((value)<<bit)', 'eighth monument pass decays packed3-bit lanes and preserves upper five bits'),
             'counter': ('c.phase47Counters.fill(0)', 'c.phase47Counters.fill(1)', 'phase47 clears four literal counters and advances to48'),
             'tail': ('++*c.cycle;++*c.monthPart;', '++*c.cycle;', 'ordinary phase50 increments both clocks smooths health59 to60 and resets phase'),
@@ -73,7 +73,7 @@ def main():
             'storage-export': ('if(percent<50)return -1;', 'if(percent<51)return -1;', 'storage export accepts earliest mode3 bay only from staffing50'),
             'station': ('if(type==58)i.available=1;', 'if(type==58)i.suppression=1;', 'TradingStation hook writes runtime48 availability while preserving legacy suppression contract'),
             'house-model': ('originalBuildingAdd32(row[k],modifier[k])', 'originalBuildingSub32(row[k],modifier[k])', 'HOUSE MODS adds selected row then clamps all24 independent model columns'),
-            'ignition': ('i.burning=int16_t((i.fireDirection&7)+1)', 'i.burning=int16_t((i.fireDirection&7)+2)', 'positive damage threshold calls42A700 and initializes burning from saved direction low bits'),
+            'ignition': ('i.burning=int16_t((i.fireDirection&7)+1)', 'i.burning=int16_t((i.fireDirection&7)+2)', 'ignition counter threshold calls42A700 and initializes burning from saved direction low bits'),
             'figure-delta': ('const size_t allocatedBefore=c.allocatedFigures.size()', 'const size_t allocatedBefore=0', 'created records describe only this call while cumulative allocator bookkeeping survives continuation'),
             'cart-input': ('uint16_t(p.secondaryStock)-100u', 'uint16_t(p.secondaryStock)-99u', 'Kiln cart consumes progress and both100 input stocks before allocation using literal runtime70 flag'),
             'cart-cargo': ('const int amount=i.upgrade?400:100', 'const int amount=i.upgrade?399:100', 'Kiln publishes finalized cart19 amount400 pottery action21 reciprocal link and production total'),
@@ -83,7 +83,7 @@ def main():
             'annual-child': ('auto& r=p.relations[size_t(current)]', 'auto& r=p.relations[20]', 'annual false444160 branch clears only current faction annual flag and preserves other children'),
             'saved-serial': ('serial=original_save19::criminalCount+24', 'serial=original_save19::criminalCount+28', 'saved building allocation serial follows hook countdown at53167D and excludes following decoy'),
             'saved-production': ('c.dispatchedProduction[n]=value(10722+4*n)', 'c.dispatchedProduction[n]=value(10578+4*n)', 'nested Population7 production array reads59487B wire10722 independently of prior trade7 array'),
-            'threshold-ruins': ('originalBuildingDestroy(c,e.first,false)', 'originalBuildingDestroy(c,e.first,true)', 'fire threshold replaces original with ascending free-slot ruin161 and retains original tombstone identity'),
+            'threshold-ruins': ('originalBuildingDestroy(c,e.first,false)', 'originalBuildingDestroy(c,e.first,true)', 'collapse counter threshold replaces original with ascending free-slot ruin161 and retains original tombstone identity'),
             'fortification': ('p.fortified=uint8_t(count>=100)', 'p.fortified=uint8_t(count>100)', 'part4 inclusive100 terrain wall cells sets fortified using full228 row scan'),
         }
         before, after, assertion = mutations[args.bite_kind]
