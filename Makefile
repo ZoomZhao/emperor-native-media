@@ -258,3 +258,22 @@ post-figure-pass-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/post_figure_pass.py
 post-figure-pass-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/post_figure_pass.py --mode undefined
+
+.PHONY: native-population-test native-population-test-undefined
+native-population-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/native_population.py
+native-population-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/native_population.py --mode undefined
+
+.PHONY: native-city-context-test native-city-context-test-undefined
+native-city-context-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/native_city_context.py
+native-city-context-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/native_city_context.py --mode undefined
+
+
+.PHONY: original-evidence-test original-evidence-test-undefined
+original-evidence-test:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/original_evidence.py
+original-evidence-test-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/original_evidence.py --mode undefined
