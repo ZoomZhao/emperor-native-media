@@ -1056,6 +1056,53 @@ Source responsibility check: `AppCityPlayback::tick` already gates admission on 
 Falsifiable limit: a second, reproducible load that restores the pause banner would narrow the current load-specific observation; an identified event with visible onset/dismissal and corresponding saved state would test whether its persistence is represented in SAV. Neither test by itself identifies anonymous runtime predicates or establishes the eight callback contracts. No further broad sampling was performed in this increment.
 
 
+### Supervised manual paused snapshot pair (2026-10-29)
+
+A separately budgeted original-game procedure passes **1/1** supervised manual
+trial, including **2/2** new normal-UI saves from one explicitly paused process.
+Independent rereads establish different regular files with identical complete
+bytes, raw clock/year fields and all exported nonclock state. Closed-menu pause,
+normal game/launcher exit and input-source/key restoration were verified within
+the approved window. Earlier failed short-window attempts remain failures.
+This does not revise the older sample denominators above, certify the automatic
+save consumer, advance native-App coverage or establish market/calendar logic.
+Original images, saves, individual fingerprints and local paths remain outside Git.
+
+For an independently authorized collection window, reuse this manual sequence:
+
+1. Use the existing normal isolated launcher. Bind the exact process/window and
+   test profile; preserve all old files. Choose two names from the explicit
+   application manifest and confirm both are absent. Start one wall-clock budget
+   before launch; preparation, tool waits, saves and cleanup all count.
+2. Inspect fresh images. An open menu is only automatic suspension; a missing
+   pause banner is not evidence of running. If already explicitly paused, do not
+   toggle. Otherwise establish actual calendar progression, use the previously
+   verified normal HID pause gesture once and check the visible pause banner.
+   Where needed, select an already enabled ABC input source temporarily. Finish
+   owned key events on the same stream, release both Shift keys and restore the
+   original input source. A successful input call alone proves no UI transition.
+3. From the closed-menu paused city, open **File > Save** and wait for the actual
+   save dialog. Its default field can be an existing name: never press OK first.
+   Replace it with the new numeric name, then inspect a fresh image and read
+   every digit. Check the target is still absent immediately before one normal
+   OK click. An unknown overwrite dialog receives no confirmation.
+4. Verify the actual new file, stable identity and independent parser result.
+   Return to closed-menu explicit pause and wait at least one second. Without
+   resume, reload or another pause toggle, repeat for the second new name.
+   Uncertain submission means inspect the filesystem first, never press OK again.
+5. Compare distinct file identities, raw cycle/phase/month-part/month and year
+   words, plus nonclock state. Equal full bytes are stronger evidence than a
+   partial-field comparison. Do not combine different processes or attach an
+   earlier save to manufacture a pair. Finish with normal game/launcher exit,
+   key/input restoration and protected-file checks, retaining any new snapshots.
+
+A clearly recognized current dialog/name can be manually verified without the
+private whole-screen/OCR/glyph classifier passing. This removes an additional
+engineering condition, not an OS permission, input-identity check or overwrite
+protection. Unknown controls still stop input. This method proves that these
+snapshots did not progress while explicitly paused; it proves no universal
+calendar interpretation, safe running interval, food recipe or market lifecycle.
+
 ## Continuous control and event source audit
 
 This increment starts from `e195147` with all earlier working-tree changes retained. It removes the App's fixed 100-update Play target and default accumulation of a frame journal. Play now continues until Pause, Step or a named refusal. Bounded requests and full replay recording remain explicit test options; normal playback retains the current timeline state. Both toolbar and menu labels match this behavior. Counter exhaustion reports its actual next update with a 64-bit refusal ordinal instead of showing update 0. This is host control work, not recovered event semantics.
