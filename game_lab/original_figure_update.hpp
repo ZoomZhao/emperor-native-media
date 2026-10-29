@@ -2602,10 +2602,11 @@ inline bool originalFigureRemoveArrivedWorkerWrites(OriginalFigure& f,OriginalFi
         if(f.type!=36&&owner->second.primaryFigure!=int(f.slot))return false;
         if(owner->second.primaryFigure==int(f.slot))owner->second.primaryFigure=0;
         else if(f.type==36&&owner->second.secondaryFigures[1]==int(f.slot))owner->second.secondaryFigures[1]=0;
-    }else if(f.type==23){ //Market primary-first,then embedded+6C.
+    }else if(f.type==23){ // Market ownership admits both decoded auxiliary slots.
         if(!context.buildings)return false;auto owner=context.buildings->find(size_t(f.owner));
         if(owner==context.buildings->end()||owner->second.type!=0x3b)return false;
         if(owner->second.primaryFigure==int(f.slot))owner->second.primaryFigure=0;
+        else if(owner->second.secondaryFigures[0]==int(f.slot))owner->second.secondaryFigures[0]=0;
         else if(owner->second.secondaryFigures[1]==int(f.slot))owner->second.secondaryFigures[1]=0;
     }else if(f.type==39||f.type==29){ //4C8D4C..4C8E08: primary first, then embedded+6C.
         if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
