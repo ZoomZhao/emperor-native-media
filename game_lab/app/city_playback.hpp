@@ -61,6 +61,8 @@ public:
         if(value)value->continuation.controller={status_.refusedUpdate,status_.decodeFailures,status_.refusal,status_.error,status_.premise};return value;
     }
 
+    // Rebind the host owner only after preparing the complete App replacement.
+    void bindSession(AppCitySessionState* session) noexcept {session_=session;}
     void play();
     // Explicit bounded requests remain available for mechanics checks.
     void play(unsigned additional);

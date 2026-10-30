@@ -104,6 +104,38 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     return game_lab::presentImage(presenter, width, height, pixels) == game_lab::PresentationResult::Presented;
 }
 
+// CPU pixels, source identity and statistics are prepared before publication.
+struct OriginalCityPresentation {
+    NSImage* image=nil;
+    NSString* accessibility=nil;
+    NSString* info=nil;
+    NSString* detail=nil;
+};
+static std::optional<OriginalCityPresentation> originalCityPresentation(
+    const game_lab::OriginalBuildingSceneView& view,const game_lab::OriginalMapTerrain& terrain,
+    const std::string& source,const game_lab::AppCityPlaybackStatus& status,
+    const game_lab::OriginalMapCamera& camera,NSImage* image) {
+    if(!view.image.valid()||!image)return std::nullopt;
+    const auto analysis=game_lab::analyzeOriginalMap(terrain);
+    const std::string info="当前来源："+source+"\n城市时序 · CPU · N="+std::to_string(status.updates)+
+        " · 活动边长 "+std::to_string(terrain.activeSide)+" · 非地图外格 "+std::to_string(analysis.activeCells)+
+        "\n已放置建筑 "+std::to_string(view.placedRecords)+"/"+std::to_string(view.liveRecords)+
+        " · 人物 "+std::to_string(view.figurePlaced)+"/"+std::to_string(view.figureLive)+
+        "；已安装同一检查点/获准状态画面，未知原版输入仍须拒绝。";
+    const std::string detail="当前来源："+source+"\n城市时序画面：已放置建筑 "+std::to_string(view.placedRecords)+"/"+std::to_string(view.liveRecords)+
+        "，对象层解码 "+std::to_string(view.overlayDecoded)+"/"+std::to_string(view.overlayObjects)+
+        "，失败 "+std::to_string(view.overlayDecodeFailures+view.overlayInvalid)+
+        "，人物放置 "+std::to_string(view.figurePlaced)+"/"+std::to_string(view.figureLive)+
+        "；建筑动画帧 "+std::to_string(view.animationDecoded)+"/"+std::to_string(view.animationSelected)+"。\n";
+    NSString* relative=[NSString stringWithUTF8String:source.c_str()];
+    OriginalCityPresentation p;p.image=image;p.info=[NSString stringWithUTF8String:info.c_str()];p.detail=[NSString stringWithUTF8String:detail.c_str()];
+    if(!relative||!p.info||!p.detail)return std::nullopt;
+    p.accessibility=[NSString stringWithFormat:@"%@，城市时序 N=%u，绘制帧 %llu，CPU %u×%u，相机 %.17g,%.17g，%@",relative,
+        status.updates,status.frames,view.image.width,view.image.height,camera.centerX,camera.centerY,
+        status.refusal.empty()?@"已安装当前获准画面":@"保留最后获准状态画面"];
+    return p.accessibility?std::optional<OriginalCityPresentation>(p):std::nullopt;
+}
+
 @interface InteractiveMapView : NSImageView {
     std::vector<size_t> _routeRoads, _routeWarehouses;
     size_t _routeFarm;
@@ -433,6 +465,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 - (instancetype)initWithResourceRoot:(const game_lab::ResourceRoot&)root selfAuthored:(BOOL)selfAuthored;
 - (NSApplicationTerminateReply)forceExitAfterMovieStall:(const char*)reason;
+- (NSURL*)chooseWorldCheckpointURL;
+- (BOOL)openWorldCheckpointPath:(NSString*)path error:(std::string&)error;
+- (NSImage*)originalWorldCPUImage:(const game_lab::DecodedImage&)pixels;
+- (void)applyCityPresentationControls;
+- (void)publishCityPresentation:(const OriginalCityPresentation&)p;
 - (void)refreshAudioStatus;
 - (void)updateMovieControls;
 - (void)updateMovieTimer;
@@ -1943,7 +1980,9 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self onOriginalMapPlaneChanged:nil];
 }
 - (void)onOriginalMapPlaneChanged:(id)sender {
-    (void)sender; _originalMapImage.image = nil;
+    (void)sender;
+    if(_cityPlayback&&_cityPlayback->prepared()){[self renderCityPlaybackFrame];return;}
+    _originalMapImage.image = nil;
     _originalMapUnknowns.string=@"当前为数值视图；不提供已验证的原版地表覆盖。";
     _originalMapImage.accessibilityLabel = @"没有显示地形网格";
     const auto& result = _originalMapResult;
@@ -2122,36 +2161,79 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     else _cityPlaybackMessage="保存失败："+result.error;
     [self updateCityPlaybackStatusText];
 }
-- (void)onWorldOpen:(id)sender {
-    (void)sender;if(_cityPlayback)_cityPlayback->pause();[self stopCityPlaybackTimer];
+- (NSURL*)chooseWorldCheckpointURL {
     NSOpenPanel* panel=[NSOpenPanel openPanel];panel.title=@"打开原版世界 checkpoint";
     panel.canChooseFiles=YES;panel.canChooseDirectories=NO;panel.allowsMultipleSelection=NO;
-    if([panel runModal]!=NSModalResponseOK)return;
-    std::string error;
+    return [panel runModal]==NSModalResponseOK?panel.URL:nil;
+}
+- (NSImage*)originalWorldCPUImage:(const game_lab::DecodedImage&)pixels {
+    return imageFromPixels(pixels.width,pixels.height,pixels.pixelsBGRA);
+}
+- (void)applyCityPresentationControls {
+    if(_originalMapBitPicker.indexOfSelectedItem<0||_originalMapBitPicker.indexOfSelectedItem>32)[_originalMapBitPicker selectItemAtIndex:0];
+    for(NSInteger i=33;i<39;++i)[_originalMapBitPicker itemAtIndex:i].enabled=NO;
+    _originalMapSpatial.state=NSControlStateValueOn;_originalMapSpatial.enabled=NO;
+    _originalMapCrop.enabled=NO;_originalMapOutlines.hidden=NO;_originalMapOutlines.enabled=YES;
+    _originalMapCameraX.enabled=YES;_originalMapCameraY.enabled=YES;_originalMapCameraApply.enabled=YES;
+    _originalMapCandidates.hidden=YES;_originalMapCandidates.enabled=NO;_originalFigureSource.enabled=NO;
+    _originalSaveCellX.enabled=NO;_originalSaveCellY.enabled=NO;_originalSaveCellApply.enabled=NO;
+    _originalManualAdopt.enabled=NO;_originalManualSave.enabled=NO;_originalManualClear.enabled=NO;
+}
+- (void)publishCityPresentation:(const OriginalCityPresentation&)p {
+    // No event-loop yield between publishing pixels and their matching labels.
+    _originalMapImage.image=p.image;_originalMapImage.accessibilityLabel=p.accessibility;
+    _originalMapInfo.stringValue=p.info;_originalMapUnknowns.string=p.detail;
+}
+- (BOOL)openWorldCheckpointPath:(NSString*)path error:(std::string&)error {
+    if(!path){error="world_open_cancelled";return NO;}
     try{
-        const auto bytes=game_lab::readOriginalWorldCheckpointFile(panel.URL.path.UTF8String,_resourceRoot.configuredDirectory(),error);
+        const auto bytes=game_lab::readOriginalWorldCheckpointFile(path.UTF8String,_resourceRoot.configuredDirectory(),error);
         const auto snapshot=bytes?game_lab::decodeOriginalWorldCheckpoint(*bytes,error):std::nullopt;
-        if(!snapshot){_cityPlaybackMessage="打开失败："+error;[self updateCityPlaybackStatusText];return;}
-        // Prepare UI metadata before the backend publication; never re-run SAV
-        // selection/AfterLoad over a successfully restored checkpoint.
-        auto source=game_lab::bindOriginalWorldSource(_resourceRoot,snapshot->source.source.relative,error);
-        if(!source){_cityPlaybackMessage="打开失败："+error;[self updateCityPlaybackStatusText];return;}
-        std::string sourceRelative=snapshot->source.source.relative;
-        auto buildings=std::optional<game_lab::OriginalBuildingProfile>(source->save.buildings);
-        auto layers=std::optional<game_lab::OriginalSaveCellLayers>(source->save.layers);
-        auto terrain=snapshot->terrain.map;
-        auto player=game_lab::AppCityPlayback::fromWorldSnapshot(*_originalMapSurface,*snapshot,[self cityPlaybackNowMs],&_citySession,error);
-        if(!player){_cityPlaybackMessage="打开失败："+error;[self updateCityPlaybackStatusText];return;}
-        [self stopCityPlaybackTimer];_cityPlayback=std::move(player);_originalSourceRelative=std::move(sourceRelative);
-        _originalSaveRevision=source->save.snapshotRevision;_originalSaveBuildings=std::move(buildings);_originalSaveLayers=std::move(layers);
-        _originalMapResult.terrain=std::move(terrain);
+        if(!snapshot)return NO;
+        auto source=game_lab::bindOriginalWorldSource(_resourceRoot,snapshot->source.source.relative,error);if(!source)return NO;
+        if(source->binding.source.bytes!=snapshot->source.source.bytes||source->binding.source.digest!=snapshot->source.source.digest||source->binding.payloadDigest!=snapshot->source.payloadDigest||source->binding.legacyRevision!=snapshot->source.legacyRevision){error="world_restore_presentation_source";return NO;}
+        auto surface=std::make_unique<game_lab::AppMapSurface>(_resourceRoot);game_lab::AppCitySessionState session;
+        auto player=game_lab::AppCityPlayback::fromWorldSnapshot(*surface,*snapshot,[self cityPlaybackNowMs],&session,error);if(!player)return NO;
+        auto camera=snapshot->camera.value_or(game_lab::originalBuildingFocusCamera(source->save.buildings.footprints,game_lab::OriginalMapCamera{}));
+        const auto view=player->render(camera,-1);
+        if(!view.image.valid()||view.bases.decodeFailures||view.overlayDecodeFailures||view.overlayInvalid||view.groundUnresolved){error="world_restore_presentation_pixels";return NO;}
+        const auto picture=originalCityPresentation(view,snapshot->terrain.map,snapshot->source.source.relative,player->status(),camera,[self originalWorldCPUImage:view.image]);
+        if(!picture){error="world_restore_presentation_image";return NO;}
+        auto buildings=std::optional<game_lab::OriginalBuildingProfile>(source->save.buildings);auto layers=std::optional<game_lab::OriginalSaveCellLayers>(source->save.layers);
+        game_lab::OriginalMapResult map;map.status=game_lab::OriginalMapStatus::LoadedTerrain;map.terrain=snapshot->terrain.map;
+        map.inputBytes=source->save.inputBytes;map.decodedBytes=source->save.decodedBytes;map.frames=source->save.frames;
+        std::string relative=snapshot->source.source.relative;std::string sourceInfo="来源："+relative+" · 已恢复当前世界检查点\n"+game_lab::describeOriginalSave(source->save)+"\n";
+        auto sources=_originalMapSources;size_t selected=sources.size();
+        for(size_t i=0;i<sources.size();++i)if(sources[i].kind==game_lab::OriginalMapSourceKind::SaveFile&&sources[i].relativePath==relative){selected=i;break;}
+        if(selected==sources.size())sources.push_back({game_lab::OriginalMapSourceKind::SaveFile,relative,relative,0});
+        std::vector<size_t> visible;NSMenu* menu=[[NSMenu alloc]initWithTitle:@""];menu.autoenablesItems=NO;
+        for(size_t i=0;i<sources.size();++i){NSString* title=[NSString stringWithUTF8String:sources[i].label.c_str()];if(!title){error="world_restore_source_text";return NO;}[menu addItemWithTitle:title action:nil keyEquivalent:@""];visible.push_back(i);}
+        NSString* x=[NSString stringWithFormat:@"%.17g",camera.centerX];NSString* y=[NSString stringWithFormat:@"%.17g",camera.centerY];
+        NSString* slot=buildings->footprints.empty()?@"":[NSString stringWithFormat:@"%zu",buildings->footprints.front().slot];
+        if(!menu||!x||!y||!slot){error="world_restore_presentation_text";return NO;}
+        std::string message="已恢复原版世界；保持暂停，前提标签与未知业务拒绝仍有效。";
+        static_assert(std::is_nothrow_copy_assignable<game_lab::AppCitySessionState>::value,"session publication mustnot throw");
+        static_assert(std::is_nothrow_move_assignable<game_lab::OriginalMapResult>::value,"map publication mustnot throw");
+        [self stopCityPlaybackTimer];_citySession=session;player->bindSession(&_citySession);
+        _cityPlayback.swap(player);_originalMapSurface.swap(surface);
+        _originalSourceRelative.swap(relative);_originalMapSourceInfo.swap(sourceInfo);_cityPlaybackMessage.swap(message);
+        _originalSaveRevision=source->save.snapshotRevision;_originalSaveBuildings.swap(buildings);_originalSaveLayers.swap(layers);_originalMapResult=std::move(map);_originalMapPackageSummary=NO;
+        _originalMapSources.swap(sources);_originalMapVisibleSources.swap(visible);_originalMapPicker.menu=menu;[_originalMapPicker selectItemAtIndex:NSInteger(selected)];_originalMapFilter.stringValue=@"";
+        [_originalMapBitPicker selectItemAtIndex:0];[_originalFigureSource selectItemAtIndex:0];
+        _originalMapCameraX.stringValue=x;_originalMapCameraY.stringValue=y;_originalMapOutlines.state=camera.outlines?NSControlStateValueOn:NSControlStateValueOff;
+        _originalManualCandidate.reset();_originalSelectedSlot.reset();_originalManualMessage.clear();_originalManualVisible.state=NSControlStateValueOff;
+        _originalBuildingSlot.stringValue=slot;_originalBuildingLocate.enabled=!_originalSaveBuildings->footprints.empty();_originalBuildingSlot.enabled=_originalBuildingLocate.enabled;
+        _originalSaveCellX.stringValue=@"0";_originalSaveCellY.stringValue=@"0";
         _worldLogicalClock=true;_worldHostAnchor=appMonotonicMs();_worldLogicalAnchor=snapshot->continuation.session.admissionClock;
         _worldReceipt={};_cityNoticeSelection.reset();_cityNoticeActionMessage.clear();
-        for(size_t i=0;i<_originalMapVisibleSources.size();++i)if(_originalMapSources[_originalMapVisibleSources[i]].relativePath==_originalSourceRelative){[_originalMapPicker selectItemAtIndex:NSInteger(i)];break;}
-        if(snapshot->camera){_originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.17g",snapshot->camera->centerX];_originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.17g",snapshot->camera->centerY];}
-        _cityPlaybackMessage="已恢复原版世界；保持暂停，前提标签与未知业务拒绝仍有效。";
-        [self renderCityPlaybackFrame];[self updateCityPlaybackStatusText];
-    }catch(const std::exception& e){_cityPlaybackMessage="打开失败："+std::string(e.what());[self updateCityPlaybackStatusText];}
+        if(_cityGoalThreshold)_cityGoalThreshold.stringValue=@"";if(_cityGoalsText)_cityGoalsText.string=@"检查点已恢复；请重新输入核实后的比较阈值。";
+        [self applyCityPresentationControls];[self publishCityPresentation:*picture];error.clear();return YES;
+    }catch(const std::exception& e){error=e.what();return NO;}
+}
+- (void)onWorldOpen:(id)sender {
+    (void)sender;if(_cityPlayback)_cityPlayback->pause();[self stopCityPlaybackTimer];NSURL* url=[self chooseWorldCheckpointURL];if(!url)return;
+    std::string error;if(![self openWorldCheckpointPath:url.path error:error])_cityPlaybackMessage="打开失败："+error;
+    [self updateCityPlaybackStatusText];
 }
 #include "native_visual_app.inc"
 #include "native_session_app.inc"
@@ -2298,20 +2380,12 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     camera=game_lab::originalBuildingFocusCamera(_originalSaveBuildings->footprints,camera);
     if(!readMapCameraNumber(_originalMapCameraX,camera.centerX)||!readMapCameraNumber(_originalMapCameraY,camera.centerY)){
         [self updateCityPlaybackStatusText];return;}
-    const int bit=static_cast<int>(_originalMapBitPicker.indexOfSelectedItem)-1;
+    const NSInteger index=_originalMapBitPicker.indexOfSelectedItem;
+    const int bit=index>=0&&index<=32?int(index)-1:-1;
     auto view=_cityPlayback->render(camera,bit);
-    if(view.image.valid()){
-        presentPixels(_originalMapImage,view.image.width,view.image.height,view.image.pixelsBGRA);
-        const auto& s=_cityPlayback->status();
-        _originalMapImage.accessibilityLabel=[NSString stringWithFormat:@"%@，城市时序 N=%u，绘制帧 %llu，%@",_originalMapPicker.titleOfSelectedItem,
-            s.updates,s.frames,s.refusal.empty()?@"已安装最新获准帧":@"拒绝后保留上次获准帧"];
-        std::string detail="城市时序画面：已放置建筑 "+std::to_string(view.placedRecords)+"/"+std::to_string(view.liveRecords)+
-            "，对象层解码 "+std::to_string(view.overlayDecoded)+"/"+std::to_string(view.overlayObjects)+
-            "，失败 "+std::to_string(view.overlayDecodeFailures+view.overlayInvalid)+
-            "，人物放置 "+std::to_string(view.figurePlaced)+"/"+std::to_string(view.figureLive)+
-            "；建筑动画帧 "+std::to_string(view.animationDecoded)+"/"+std::to_string(view.animationSelected)+"。\n";
-        _originalMapUnknowns.string=[NSString stringWithUTF8String:detail.c_str()];
-    }
+    const auto picture=originalCityPresentation(view,_originalMapResult.terrain,_originalSourceRelative,_cityPlayback->status(),camera,[self originalWorldCPUImage:view.image]);
+    if(picture){[self applyCityPresentationControls];[self publishCityPresentation:*picture];}
+    else _cityPlaybackMessage="当前画面未能更新；保留此前已安装的画面。";
     [self updateCityPlaybackStatusText];
 }
 - (void)updateCityPlaybackStatusText {
