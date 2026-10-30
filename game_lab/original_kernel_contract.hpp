@@ -13,6 +13,8 @@ namespace game_lab {
 // Host metadata only. Never used as original RNG, serial, or business state.
 struct OriginalKernelAllocation {size_t slot=0;uint16_t serial=0;};
 struct OriginalKernelHandle {uint64_t epoch=0,generation=0;size_t slot=0;uint16_t serial=0;};
+struct OriginalWorldIdentityEntry {size_t slot=0;uint16_t serial=0;uint8_t type=0;uint64_t generation=0;};
+struct OriginalWorldIdentityLedger {uint64_t next=1;std::vector<OriginalWorldIdentityEntry> live;};
 class OriginalKernelIdentities {
     struct Entry {uint16_t serial=0;uint8_t type=0;uint64_t generation=0;};
     uint64_t epoch_=0,next_=1;
@@ -42,6 +44,21 @@ public:
             else {if(old==live_.end()||old->second.serial!=f.allocationSerial){error="kernel_untracked_allocation";return std::nullopt;}
                 auto entry=old->second;if(entry.type!=f.type){if(out.next_==std::numeric_limits<uint64_t>::max()){error="kernel_generation_exhausted";return std::nullopt;}entry.type=f.type;entry.generation=out.next_++;}next.emplace(slot,entry);}}
         out.live_=std::move(next);error.clear();return out;
+    }
+    OriginalWorldIdentityLedger persistent()const{OriginalWorldIdentityLedger out;out.next=next_;for(const auto& [slot,e]:live_)out.live.push_back({slot,e.serial,e.type,e.generation});return out;}
+    template<class Pool> static bool validPersistent(const OriginalWorldIdentityLedger& value,const Pool& pool,std::string& error){
+        if(!value.next||value.live.size()>1999){error="world_identity_ledger_bounds";return false;}size_t previous=0,count=0;std::set<uint64_t> generations;
+        for(const auto& [slot,f]:pool)if(f.alive){(void)slot;++count;}if(count!=value.live.size()){error="world_identity_ledger_pool";return false;}
+        for(const auto& e:value.live){const auto f=pool.find(e.slot);if(!e.slot||e.slot>=2000||e.slot<=previous||!e.generation||e.generation>=value.next||!generations.insert(e.generation).second||f==pool.end()||!f->second.alive||f->second.type!=e.type||f->second.allocationSerial!=e.serial){error="world_identity_ledger_entry";return false;}previous=e.slot;}error.clear();return true;
+    }
+    template<class Pool> static std::optional<OriginalKernelIdentities> restore(const OriginalWorldIdentityLedger& value,const Pool& pool,std::string& error){
+        if(!validPersistent(value,pool,error))return std::nullopt;
+        OriginalKernelIdentities out;out.next_=value.next;if(!out.next_||value.live.size()>1999){error="world_identity_ledger_bounds";return std::nullopt;}
+        size_t previous=0;std::set<uint64_t> generations;
+        for(const auto& e:value.live){if(!e.slot||e.slot>=2000||e.slot<=previous||!e.generation||e.generation>=value.next||!generations.insert(e.generation).second){error="world_identity_ledger_entry";return std::nullopt;}
+            previous=e.slot;out.live_.emplace(e.slot,Entry{e.serial,e.type,e.generation});}
+        const auto epochValue=epoch();if(!epochValue){error="kernel_load_epoch_exhausted";return std::nullopt;}out.epoch_=*epochValue;
+        if(!out.consistent(pool)){error="world_identity_ledger_pool";return std::nullopt;}error.clear();return out;
     }
     template<class Pool> bool consistent(const Pool& pool)const{
         if(!epoch_)return false;size_t count=0;

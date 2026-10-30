@@ -41,7 +41,7 @@ struct AppCityPlaybackStatus {
 class AppCityPlayback {
 public:
     AppCityPlayback(AppMapSurface&, const OriginalSaveResult&, const std::vector<uint8_t>& decodedPayload,
-        const AppCityPlaybackPreferences&, uint32_t crtSeed, uint32_t farmerMs, bool experiment, AppCitySessionState* session=nullptr, bool recordReplay=false);
+        const AppCityPlaybackPreferences&, uint32_t crtSeed, uint32_t farmerMs, bool experiment, AppCitySessionState* session=nullptr, bool recordReplay=false,const OriginalWorldBoundSource* boundSource=nullptr);
     // VA0x855214 ten scheduler intervals indexed by (100-speed)/10; admission
     // requires interval+2 ms elapsed. False when the speed has no interval.
     static bool admissionIntervalMs(int32_t speed, unsigned& out);
@@ -55,6 +55,12 @@ public:
     // Normal App playback continues until paused, stepped or refused.
     // Value restore is distinct from an original-SAV load and resumes paused.
     bool restoreCheckpoint(const AppMapSurface::CityCheckpoint&,uint64_t sourceRevision);
+    static std::unique_ptr<AppCityPlayback> fromWorldSnapshot(AppMapSurface&,const OriginalWorldSnapshot&,uint64_t hostNow,AppCitySessionState*,std::string&);
+    std::optional<OriginalWorldSnapshot> worldSnapshot(std::string& error)const{
+        if(!prepared_){error="world_controller_not_prepared";return std::nullopt;}auto value=surface_.worldSnapshot(error);
+        if(value)value->continuation.controller={status_.refusedUpdate,status_.decodeFailures,status_.refusal,status_.error,status_.premise};return value;
+    }
+
     void play();
     // Explicit bounded requests remain available for mechanics checks.
     void play(unsigned additional);
@@ -67,6 +73,9 @@ public:
     OriginalBuildingSceneView render(const OriginalMapCamera&, int bit = -1);
     std::vector<OriginalSceneTimelineFrame> replayFrames() const { return surface_.cityPlaybackReplayFrames(); }
 private:
+    explicit AppCityPlayback(AppMapSurface& surface):surface_(surface){}
+    uint32_t logicalNow(uint64_t now){if(!virtualClock_)return uint32_t(now);if(reanchor_){hostAnchor_=now;logicalAnchor_=lastAdmission_;reanchor_=false;}return logicalAnchor_+uint32_t(now-hostAnchor_);}
+    bool virtualClock_=false,reanchor_=true;uint64_t hostAnchor_=0;uint32_t logicalAnchor_=0;
     bool advance(uint32_t nowMs);
     AppMapSurface& surface_;
     AppCityPlaybackPreferences preferences_;

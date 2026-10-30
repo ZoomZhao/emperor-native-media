@@ -2,6 +2,7 @@
 #include "map_surface.hpp"
 #include "../original_pak.hpp"
 #include "../original_kernel_checkpoint.hpp"
+#include "../original_world_checkpoint_codec.hpp"
 #include "../../file_io/include/city19_goal_archive.hpp"
 #include <filesystem>
 #include <set>
@@ -175,6 +176,10 @@ struct AppMapSurface::Playback {
     OriginalCombinedProcessInputs process;
     AppCitySessionState session;
     OriginalKernelIdentities identities;
+    std::optional<OriginalWorldSourceBinding> worldSource;
+    std::optional<OriginalWorldPolicy> worldPolicy;
+    uint64_t worldRevision=1;
+    OriginalWorldControllerStatus worldController;
     std::string resourceRoot,buildingModelText,figureModelText;
     using ResourceStamp=std::pair<uintmax_t,std::filesystem::file_time_type>;
     std::map<std::string,ResourceStamp> resourceStamps;
@@ -245,6 +250,65 @@ bool AppMapSurface::restoreCityCheckpoint(const CityCheckpoint& checkpoint,uint6
         if(!view.image.valid()||view.bases.decodeFailures||view.overlayDecodeFailures||view.overlayInvalid||view.groundUnresolved||!cp.resourcesCurrent())return false;
         if(publicationProbe_)publicationProbe_("checkpoint_prepared");swapPrepared(candidate);error_.clear();return true;
     }catch(const std::exception&){return false;}
+}
+
+bool AppMapSurface::prepareBoundCityPlayback(const OriginalWorldBoundSource& source,const OriginalWorldPolicy& policy,const AppCitySessionState& session,bool replay){
+    try{
+        std::string error;if(source.binding.legacyRevision!=source.save.snapshotRevision||source.binding.payloadDigest!=originalWorldDigest(source.payload.data(),source.payload.size())||!verifyOriginalWorldBinding(root_,source.binding,error)){error_=error.empty()?"world_source_context_mismatch":error;return false;}
+        AppMapSurface candidate(root_,spriteCache_);candidate.publicationProbe_=publicationProbe_;
+        if(!candidate.prepareCityPlaybackCandidate(source.save,source.payload,policy.initial,&session,replay)){error_=candidate.error_;return false;}
+        if(!verifyOriginalWorldBinding(root_,source.binding,error)){error_=error;return false;}
+        candidate.playback_->worldSource=source.binding;candidate.playback_->worldPolicy=policy;
+        if(publicationProbe_)publicationProbe_("bound_source_prepared");swapPrepared(candidate);error_.clear();return true;
+    }catch(const std::exception& e){error_=e.what();return false;}
+}
+std::optional<OriginalWorldSnapshot> AppMapSurface::worldSnapshot(std::string& error)const{
+    try{
+        if(!playback_||!savedBuildings_||!playback_->worldSource||!playback_->worldPolicy){error="world_source_context_required";return std::nullopt;}
+        const auto& p=*playback_;if(!verifyOriginalWorldBinding(root_,*p.worldSource,error))return std::nullopt;
+        OriginalWorldSnapshot out;out.commitRevision=p.worldRevision;out.source=*p.worldSource;out.policy=*p.worldPolicy;
+        out.city=p.chained?p.chainCombined:p.combined;
+        const auto& actual=p.chained?p.chainInitial:p.initial;
+        // The complete value copies must have the same authoritative pool.
+        original_world_codec_detail::Writer a,b;a.value(actual.figures);b.value(out.city.figures.figures);if(a.bytes!=b.bytes){error="world_active_figure_alias";return std::nullopt;}
+        out.marketBases=p.marketBases;for(auto& row:out.marketBases)row.second=originalMarketKnownBaseAt(row.second,out.city.figures.figures.at(row.first));
+        out.terrain={terrain_,state_};out.scene.shown=*savedBuildings_;out.scene.selections=p.chainSelections;out.scene.phases=p.chainPhases;
+        auto& c=out.continuation;c.controller=p.worldController;if(!p.chained)c.initialFigures=p.initial;c.chained=p.chained;c.admission=p.chained?p.chainAdmission:p.session.admissionClock;c.clocks=p.chained?p.chainClocks:p.session.animationClock;c.session=p.session;
+        c.buildingDraws=p.buildingDraws;c.figureDrawCells=p.figureDrawCells;c.updates=p.updates;c.frames=p.frames_;c.draws=p.draws_;c.advances=p.advances_;c.reselections=p.reselections_;c.preyDeaths=p.preyDeaths_;c.preyCollections=p.preyCollections_;
+        out.ledger=p.identities.persistent();out.notifications=p.notifications.persistent();out.camera=lastPlaybackCamera_;
+        error=originalWorldCheckpointValueIssue(out);if(!error.empty())return std::nullopt;return out;
+    }catch(const std::exception& e){error=e.what();return std::nullopt;}
+}
+uint64_t AppMapSurface::worldRevision()const{return playback_?playback_->worldRevision:0;}
+bool AppMapSurface::restoreWorldSnapshot(const OriginalWorldSnapshot& s,std::string& error){
+    try{
+        error=originalWorldCheckpointValueIssue(s);if(!error.empty())return false;
+        if(!verifyOriginalWorldBinding(root_,s.source,error))return false;
+        const auto source=bindOriginalWorldSource(root_,s.source.source.relative,error);if(!source)return false;
+        if(source->binding.source.digest!=s.source.source.digest||source->binding.payloadDigest!=s.source.payloadDigest){error="world_restore_source_changed";return false;}
+        AppMapSurface candidate(root_,spriteCache_);const auto& save=source->save;
+        // Pure saved-scene composition: no originalFigurePostLoadContext,
+        // population recount, RNG, constructors, callbacks or date update.
+        if(!candidate.selectSavedBuildings(save.terrain,save.buildings,save.layers.ground?&*save.layers.ground:nullptr,0,save.layers.figures?&*save.layers.figures:nullptr)){error="world_restore_seed_scene";return false;}
+        auto p=std::make_unique<Playback>();p->save=save;p->figures=*save.layers.figures;p->buildings=save.buildings;p->seed=*candidate.savedBuildings_;
+        p->general=candidate.archives_.at(2).index;p->terrainArchive=candidate.archives_.at(3).index;
+        for(uint32_t slot:{14u,17u,38u,39u,40u}){const auto found=candidate.archives_.find(slot);if(found==candidate.archives_.end()){error="world_restore_archive";return false;}p->archives.emplace(slot,found->second.index);p->refs.emplace(slot,&p->archives.at(slot));}
+        std::vector<uint8_t> text;if(!detail::readFile(root_.resolve("Model/EmperorBuildingModels.txt"),1048576,text)){error="world_restore_model";return false;}p->buildingModelText=std::string(text.begin(),text.end());const auto employment=parseOriginalBuildingEmployment(p->buildingModelText);if(!employment){error="world_restore_model";return false;}p->employment=*employment;
+        if(!detail::readFile(root_.resolve("Model/EmperorFigureModels.txt"),100000,text)){error="world_restore_model";return false;}p->figureModelText=std::string(text.begin(),text.end());p->resourceRoot=root_.resolve("");
+        for(const auto& row:candidate.archives_){const auto& name=row.second.companion;auto index=std::filesystem::path(name);index.replace_extension(".sg3");for(const auto& path:{name,index.string()}){std::error_code ec;const auto size=std::filesystem::file_size(path,ec);if(ec){error="world_restore_resource_stamp";return false;}const auto time=std::filesystem::last_write_time(path,ec);if(ec){error="world_restore_resource_stamp";return false;}p->resourceStamps.emplace(path,Playback::ResourceStamp{size,time});}}
+        p->initial=s.continuation.initialFigures?*s.continuation.initialFigures:s.city.figures;p->combined=s.city;p->chained=s.continuation.chained;
+        if(p->chained){p->chainInitial=s.city.figures;p->chainCombined=s.city;}
+        const auto ids=OriginalKernelIdentities::restore(s.ledger,s.city.figures.figures,error);if(!ids)return false;const auto notices=AppCityNotifications::restore(s.notifications,*s.city.scenarioMessages);if(!notices){error="world_restore_notifications";return false;}
+        p->identities=*ids;p->notifications=*notices;p->worldSource=s.source;p->worldPolicy=s.policy;p->worldRevision=s.commitRevision;p->process=s.policy.initial;p->marketBases=s.marketBases;
+        const auto& c=s.continuation;p->worldController=c.controller;p->session=c.session;p->buildingDraws=c.buildingDraws;p->figureDrawCells=c.figureDrawCells;p->chainAdmission=c.admission;p->chainClocks=c.clocks;p->chainSelections=s.scene.selections;p->chainPhases=s.scene.phases;
+        p->updates=c.updates;p->frames_=c.frames;p->draws_=c.draws;p->advances_=c.advances;p->reselections_=c.reselections;p->preyDeaths_=c.preyDeaths;p->preyCollections_=c.preyCollections;
+        candidate.playback_=std::move(p);candidate.terrain_=s.terrain.map;candidate.state_=s.terrain.state;candidate.savedBuildings_=s.scene.shown;candidate.lastPlaybackCamera_=s.camera;
+        auto camera=s.camera.value_or(OriginalMapCamera{});if(!s.camera){camera.width=256;camera.height=192;camera.centerX=camera.centerY=double(save.terrain.activeSide)/2;}
+        const auto view=candidate.renderSavedBuildings(camera);if(!view.image.valid()||view.bases.decodeFailures||view.overlayDecodeFailures||view.overlayInvalid||view.groundUnresolved){error="world_restore_pixels";return false;}
+        if(!verifyOriginalWorldBinding(root_,s.source,error))return false;
+        candidate.lastPlaybackCamera_=s.camera;candidate.playback_->worldRevision=s.commitRevision;
+        if(publicationProbe_)publicationProbe_("world_before_publish");swapPrepared(candidate);error_.clear();error.clear();return true;
+    }catch(const std::exception& e){error=e.what();return false;}
 }
 std::optional<OriginalKernelHandle> AppMapSurface::cityFigureHandle(size_t slot)const{return playback_?playback_->identities.handle(slot):std::nullopt;}
 bool AppMapSurface::cityFigureHandleCurrent(const OriginalKernelHandle& handle)const{return playback_&&playback_->identities.matches(handle);}
@@ -327,6 +391,7 @@ AppCityTimelineStep AppMapSurface::advanceCityPlaybackCandidate(const OriginalSc
     AppCityTimelineStep out;
     if(!playback_){out.refusal="city_playback_not_prepared";return out;}
     auto& p=*playback_;
+    if(p.worldRevision==UINT64_MAX){out.refusal="world_commit_revision_exhausted";out.updates=p.updates;return out;}
     auto frame=supplied;frame.buildingDraws=p.buildingDraws;frame.figureDrawCells=p.figureDrawCells;
     frame.combinedProcess.reset(); //the snapshot seed already carries the initial process state
     const bool chain=p.chained;
@@ -412,7 +477,7 @@ AppCityTimelineStep AppMapSurface::advanceCityPlaybackCandidate(const OriginalSc
     p.reselections_=merged.buildingImageReselections;p.preyDeaths_=merged.preyDeaths;p.preyCollections_=merged.preyCollections;
     p.session=session;p.notifications=std::move(notifications);p.identities=std::move(identities);
     terrain_.flags.swap(nextTerrain);*savedBuildings_=std::move(shown);
-    out.complete=true;out.updates=p.updates;return out;
+    ++p.worldRevision;out.complete=true;out.updates=p.updates;return out;
 }
 uint64_t AppMapSurface::installedSceneDigest()const{
     uint64_t h=1469598103934665603ull;
@@ -445,7 +510,8 @@ AppCityTributeResult AppMapSurface::respondCityNotification(AppCityTributeId id,
     // The legacy frame-only replay journal cannot represent UI transactions.
     // Normal playback never enables it; refuse instead of silently losing an action.
     if(p.recordReplay)return AppCityTributeResult::ReplayRecording;
-    return p.notifications.respond(id,decision,*p.chainCombined.buildingContext);
+    if(p.worldRevision==UINT64_MAX)return AppCityTributeResult::Overflow;
+    const auto result=p.notifications.respond(id,decision,*p.chainCombined.buildingContext);if(result==AppCityTributeResult::Applied)++p.worldRevision;return result;
 }
 unsigned AppMapSurface::cityPlaybackUpdates()const{return playback_?playback_->updates:0;}
 std::optional<AppCitySessionState> AppMapSurface::cityPlaybackSession()const{
@@ -464,7 +530,11 @@ std::vector<OriginalSceneTimelineFrame> AppMapSurface::cityPlaybackReplayFrames(
     return frames;
 }
 OriginalBuildingSceneView AppMapSurface::renderSavedBuildings(const OriginalMapCamera& camera,int bit,SceneDrawCapture* capture,bool deferRaster)const{
-    if(playback_)lastPlaybackCamera_=camera;
+    if(playback_){
+        const auto& old=lastPlaybackCamera_;
+        const bool changed=!old||old->centerX!=camera.centerX||old->centerY!=camera.centerY||old->width!=camera.width||old->height!=camera.height||old->scale!=camera.scale||old->outlines!=camera.outlines;
+        if(changed){if(playback_->worldRevision==UINT64_MAX)return {};lastPlaybackCamera_=camera;++playback_->worldRevision;}
+    }
     if(capture)*capture={};
     if(!savedBuildings_||!archives_.count(2))return {};
     const auto& archive=archives_.at(2);

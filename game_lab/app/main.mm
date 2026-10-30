@@ -24,6 +24,7 @@
 #include "map_surface.hpp"
 #include "movie_quit_menu.hpp"
 #include "city_playback.hpp"
+#include "../original_world_checkpoint_io.hpp"
 #include "city_goal_diagnostics.hpp"
 #include "../native_session_source.hpp"
 #include "../native_house_runtime_source.hpp"
@@ -318,6 +319,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     uint32_t _cityPlaybackCrtSeed;
     game_lab::AppCitySessionState _citySession;
     uint64_t _cityPlaybackEpochMs;
+    bool _worldLogicalClock;
+    uint64_t _worldHostAnchor;
+    uint32_t _worldLogicalAnchor;
+    game_lab::OriginalWorldSaveReceipt _worldReceipt;
     std::string _cityPlaybackMessage;
     NSView* _candidateView;
     NSTextView* _candidateReport;
@@ -584,6 +589,10 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     pause.target=self;[playback addItem:pause];
     NSMenuItem* step=[[NSMenuItem alloc] initWithTitle:@"单步（+1 次更新）" action:@selector(onCityStep:) keyEquivalent:@"\uF703"];
     step.keyEquivalentModifierMask=NSEventModifierFlagCommand;step.target=self;[playback addItem:step];
+    [playback addItem:NSMenuItem.separatorItem];
+    for(NSArray* action in @[@[@"保存原版世界 checkpoint…",@"onWorldSave:"],@[@"打开原版世界 checkpoint…",@"onWorldOpen:"]]){
+        NSMenuItem* item=[[NSMenuItem alloc]initWithTitle:action[0] action:NSSelectorFromString(action[1]) keyEquivalent:@""];item.target=self;[playback addItem:item];
+    }
     playbackItem.submenu=playback;
 }
 - (void)onDevelopmentPanel:(NSMenuItem*)item {
@@ -593,6 +602,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 }
 - (BOOL)validateMenuItem:(NSMenuItem*)item {
     if(item.action==@selector(onNativeDiagnostics:)||item.action==@selector(onNativeSaveAs:)||item.action==@selector(onNativeReturn:)||item.action==@selector(onNativeRules:)||item.action==@selector(onNativeClose:))return bool(_nativeState);
+    if(item.action==@selector(onWorldOpen:))return _navBar.selectedSegment==7&&bool(_originalMapSurface);
+    if(item.action==@selector(onWorldSave:))return _navBar.selectedSegment==7&&[self cityPlaybackSourceSelected];
     if(item.action==@selector(onCityPlay:)||item.action==@selector(onCityPause:)||item.action==@selector(onCityStep:)){
         if(_navBar.selectedSegment!=7||![self cityPlaybackSourceSelected])return NO;
         if(item.action==@selector(onCityPlay:))return YES;
@@ -2048,9 +2059,11 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
 // ----------------------------------------------------
 - (uint64_t)cityPlaybackNowMs {
     const uint64_t now=appMonotonicMs();
+    if(_worldLogicalClock)return uint32_t(_worldLogicalAnchor+uint32_t(now-_worldHostAnchor));
     return now>_cityPlaybackEpochMs?now-_cityPlaybackEpochMs:0;
 }
 - (BOOL)cityPlaybackSourceSelected {
+    if(_cityPlayback&&_cityPlayback->prepared())return YES;
     const NSInteger index=_originalMapPicker.indexOfSelectedItem;
     if(index<0||size_t(index)>=_originalMapVisibleSources.size())return NO;
     const auto source=_originalMapVisibleSources[size_t(index)];
@@ -2071,28 +2084,74 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
     [self stopCityPlaybackTimer];
     [_cityNoticesPanel orderOut:nil];
     _cityNoticesText.string=@"";_cityNoticeSelection.reset();_cityNoticeActionMessage.clear();
-    _cityPlayback.reset();
+    _cityPlayback.reset();_worldReceipt={};
     _cityPlaybackMessage.clear();
     [self updateCityPlaybackStatusText];
 }
 - (BOOL)prepareCityPlayback {
     if(_cityPlayback)return _cityPlayback->prepared();
     if(![self cityPlaybackSourceSelected]){_cityPlaybackMessage="当前来源不是可播放的 SAV19 城市存档";return NO;}
-    const auto save=game_lab::loadOriginalSave(_media->resourcePath(_originalSourceRelative));
-    std::vector<uint8_t> raw;
-    if(!save.readStable||save.snapshotRevision!=_originalSaveRevision||
-       !game_lab::detail::readFile(_media->resourcePath(_originalSourceRelative),4194304,raw)){
-        _cityPlaybackMessage="播放未准备：存档已变化或无法读取";return NO;}
-    const auto decoded=game_lab::decodeOriginalMapContainer(raw);
-    if(!decoded.complete){_cityPlaybackMessage="播放未准备：容器解码不完整";return NO;}
+    std::string bindingError;
+    const auto bound=game_lab::bindOriginalWorldSource(_resourceRoot,_originalSourceRelative,bindingError);
+    if(!bound||bound->save.snapshotRevision!=_originalSaveRevision){
+        _cityPlaybackMessage="播放未准备："+bindingError;return NO;}
     game_lab::AppCityPlaybackPreferences preferences;std::string error;
     if(!game_lab::readAppCityPlaybackPreferences(_resourceRoot,preferences,error)){
         _cityPlaybackMessage="播放未准备："+error;return NO;}
     // The App never supplies Unresolved inputs; the timeline names what it lacks.
-    _cityPlayback=std::make_unique<game_lab::AppCityPlayback>(*_originalMapSurface,save,decoded.payload,preferences,
-        _cityPlaybackCrtSeed,uint32_t([self cityPlaybackNowMs]),false,&_citySession);
+    _cityPlayback=std::make_unique<game_lab::AppCityPlayback>(*_originalMapSurface,bound->save,bound->payload,preferences,
+        _cityPlaybackCrtSeed,uint32_t([self cityPlaybackNowMs]),false,&_citySession,false,&*bound);
     _cityPlaybackMessage="已准备；Saved snapshot 仍是默认画面，播放/单步才安装新帧";
     return _cityPlayback->prepared();
+}
+// Checkpoint dialogs are synchronous on the App thread. No worker callback can
+// publish an obsolete load or acknowledge a newer revision. The pure backend
+// validates source bindings and pixels before swapping the current world.
+- (void)onWorldSave:(id)sender {
+    (void)sender;if(![self prepareCityPlayback]){[self updateCityPlaybackStatusText];return;}
+    _cityPlayback->pause();[self stopCityPlaybackTimer];
+    NSSavePanel* panel=[NSSavePanel savePanel];panel.title=@"保存原版世界 checkpoint";
+    panel.nameFieldStringValue=@"original-world.emworld";panel.canCreateDirectories=YES;
+    if([panel runModal]!=NSModalResponseOK)return;
+    std::string error;const auto snapshot=_cityPlayback->worldSnapshot(error);
+    if(!snapshot){_cityPlaybackMessage="保存失败："+error;[self updateCityPlaybackStatusText];return;}
+    const auto result=game_lab::writeOriginalWorldCheckpointNew(panel.URL.path.UTF8String,_resourceRoot.configuredDirectory(),*snapshot);
+    _worldReceipt.acknowledge(result,snapshot->commitRevision,_originalMapSurface->worldRevision());
+    if(result.state==game_lab::OriginalWorldPublication::PublishedDurable)_cityPlaybackMessage="世界已保存；恢复时保持暂停。";
+    else if(result.state==game_lab::OriginalWorldPublication::PublishedDurabilityUnknown)_cityPlaybackMessage="文件已经发布，持久性尚未确认："+result.error+"；请核对该文件，勿盲目重试。";
+    else _cityPlaybackMessage="保存失败："+result.error;
+    [self updateCityPlaybackStatusText];
+}
+- (void)onWorldOpen:(id)sender {
+    (void)sender;if(_cityPlayback)_cityPlayback->pause();[self stopCityPlaybackTimer];
+    NSOpenPanel* panel=[NSOpenPanel openPanel];panel.title=@"打开原版世界 checkpoint";
+    panel.canChooseFiles=YES;panel.canChooseDirectories=NO;panel.allowsMultipleSelection=NO;
+    if([panel runModal]!=NSModalResponseOK)return;
+    std::string error;
+    try{
+        const auto bytes=game_lab::readOriginalWorldCheckpointFile(panel.URL.path.UTF8String,_resourceRoot.configuredDirectory(),error);
+        const auto snapshot=bytes?game_lab::decodeOriginalWorldCheckpoint(*bytes,error):std::nullopt;
+        if(!snapshot){_cityPlaybackMessage="打开失败："+error;[self updateCityPlaybackStatusText];return;}
+        // Prepare UI metadata before the backend publication; never re-run SAV
+        // selection/AfterLoad over a successfully restored checkpoint.
+        auto source=game_lab::bindOriginalWorldSource(_resourceRoot,snapshot->source.source.relative,error);
+        if(!source){_cityPlaybackMessage="打开失败："+error;[self updateCityPlaybackStatusText];return;}
+        std::string sourceRelative=snapshot->source.source.relative;
+        auto buildings=std::optional<game_lab::OriginalBuildingProfile>(source->save.buildings);
+        auto layers=std::optional<game_lab::OriginalSaveCellLayers>(source->save.layers);
+        auto terrain=snapshot->terrain.map;
+        auto player=game_lab::AppCityPlayback::fromWorldSnapshot(*_originalMapSurface,*snapshot,[self cityPlaybackNowMs],&_citySession,error);
+        if(!player){_cityPlaybackMessage="打开失败："+error;[self updateCityPlaybackStatusText];return;}
+        [self stopCityPlaybackTimer];_cityPlayback=std::move(player);_originalSourceRelative=std::move(sourceRelative);
+        _originalSaveRevision=source->save.snapshotRevision;_originalSaveBuildings=std::move(buildings);_originalSaveLayers=std::move(layers);
+        _originalMapResult.terrain=std::move(terrain);
+        _worldLogicalClock=true;_worldHostAnchor=appMonotonicMs();_worldLogicalAnchor=snapshot->continuation.session.admissionClock;
+        _worldReceipt={};_cityNoticeSelection.reset();_cityNoticeActionMessage.clear();
+        for(size_t i=0;i<_originalMapVisibleSources.size();++i)if(_originalMapSources[_originalMapVisibleSources[i]].relativePath==_originalSourceRelative){[_originalMapPicker selectItemAtIndex:NSInteger(i)];break;}
+        if(snapshot->camera){_originalMapCameraX.stringValue=[NSString stringWithFormat:@"%.17g",snapshot->camera->centerX];_originalMapCameraY.stringValue=[NSString stringWithFormat:@"%.17g",snapshot->camera->centerY];}
+        _cityPlaybackMessage="已恢复原版世界；保持暂停，前提标签与未知业务拒绝仍有效。";
+        [self renderCityPlaybackFrame];[self updateCityPlaybackStatusText];
+    }catch(const std::exception& e){_cityPlaybackMessage="打开失败："+std::string(e.what());[self updateCityPlaybackStatusText];}
 }
 #include "native_visual_app.inc"
 #include "native_session_app.inc"
@@ -2275,6 +2334,8 @@ static bool presentPixels(NSImageView* view, uint32_t width, uint32_t height,
             state,s.updates,limit,s.frames,s.intervalMs,@"严格前提",refusal,error,
             [NSString stringWithUTF8String:s.premise.c_str()]];
     }
+    if(_cityPlayback)text=[text stringByAppendingString:(_worldReceipt.savedRevision&&*_worldReceipt.savedRevision==_originalMapSurface->worldRevision())?@" · 当前版本已保存":@" · 当前版本尚未保存 checkpoint"];
+    if(_cityPlayback&&!_cityPlaybackMessage.empty())text=[text stringByAppendingFormat:@"\n%@",[NSString stringWithUTF8String:_cityPlaybackMessage.c_str()]];
     _cityPlaybackStatus.stringValue=text;
     const auto* notices=_cityPlayback?_cityPlayback->notifications():nullptr;
     _cityNoticesButton.enabled=[self cityPlaybackSourceSelected];

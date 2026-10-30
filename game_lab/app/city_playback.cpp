@@ -107,7 +107,7 @@ bool AppCityPlayback::admissionIntervalMs(int32_t speed, unsigned& out) {
 
 AppCityPlayback::AppCityPlayback(AppMapSurface& surface, const OriginalSaveResult& save,
     const std::vector<uint8_t>& payload, const AppCityPlaybackPreferences& preferences,
-    uint32_t crtSeed, uint32_t farmerMs, bool experiment, AppCitySessionState* session, bool recordReplay)
+    uint32_t crtSeed, uint32_t farmerMs, bool experiment, AppCitySessionState* session, bool recordReplay,const OriginalWorldBoundSource* boundSource)
     : surface_(surface), preferences_(preferences), session_(session) {
     AppCitySessionState initial;initial.crtRandom=crtSeed;
     if(session_)initial=*session_;
@@ -123,8 +123,52 @@ AppCityPlayback::AppCityPlayback(AppMapSurface& surface, const OriginalSaveResul
     status_.intervalMs = intervalMs_;
     status_.premise = describePremise(preferences, initial.crtRandom, farmerMs, experiment, intervalMs_);
     auto premises = documentedPremises(preferences, initial, farmerMs);
+    const auto documented=premises;
     if (experiment) applyUnresolvedZeroPremises(premises);
-    if (!surface_.prepareCityPlayback(save, payload, premises, &initial, recordReplay)) {
+    OriginalWorldPolicy policy;policy.experimental=experiment;policy.initial=premises;
+    policy.preferences={preferences_.speed,preferences_.personalSpeed,preferences_.soundEffects,preferences_.annualDemandResponseMode};
+    policy.origins[0]=premises.cityClocks?uint8_t(documented.cityClocks?2:3):0;
+    policy.origins[1]=premises.randomHistory?uint8_t(documented.randomHistory?2:3):0;
+    policy.origins[2]=premises.eventGate17?uint8_t(documented.eventGate17?2:3):0;
+    policy.origins[3]=premises.eventGate16?uint8_t(documented.eventGate16?2:3):0;
+    policy.origins[4]=premises.cityMode?uint8_t(documented.cityMode?2:3):0;
+    policy.origins[5]=premises.schedulerGate16?uint8_t(documented.schedulerGate16?2:3):0;
+    policy.origins[6]=premises.eventSlots?uint8_t(documented.eventSlots?2:3):0;
+    policy.origins[7]=premises.eventProgress?uint8_t(documented.eventProgress?2:3):0;
+    policy.origins[8]=premises.eventRecordModes?uint8_t(documented.eventRecordModes?2:3):0;
+    policy.origins[9]=premises.managerGate8?uint8_t(documented.managerGate8?2:3):0;
+    policy.origins[10]=premises.wildlifeCounter?uint8_t(documented.wildlifeCounter?2:3):0;
+    policy.origins[11]=premises.wildlifePeriod?uint8_t(documented.wildlifePeriod?2:3):0;
+    policy.origins[12]=premises.wildlifePause?uint8_t(documented.wildlifePause?2:3):0;
+    policy.origins[13]=premises.wildlifeMode?uint8_t(documented.wildlifeMode?2:3):0;
+    policy.origins[14]=premises.serviceCoverage?uint8_t(documented.serviceCoverage?2:3):0;
+    policy.origins[15]=premises.shortageNotice?uint8_t(documented.shortageNotice?2:3):0;
+    policy.origins[16]=premises.unemploymentNotice?uint8_t(documented.unemploymentNotice?2:3):0;
+    policy.origins[17]=premises.religionBonusEnabled?uint8_t(documented.religionBonusEnabled?2:3):0;
+    policy.origins[18]=premises.religionPreviousRating?uint8_t(documented.religionPreviousRating?2:3):0;
+    policy.origins[19]=premises.religionSelected?uint8_t(documented.religionSelected?2:3):0;
+    policy.origins[20]=premises.migrantSpacing?uint8_t(documented.migrantSpacing?2:3):0;
+    policy.origins[21]=premises.scenarioFigurePlacementCheck?uint8_t(documented.scenarioFigurePlacementCheck?2:3):0;
+    policy.origins[22]=premises.highestEverBuildingSlot?uint8_t(documented.highestEverBuildingSlot?2:3):0;
+    policy.origins[23]=premises.producerTail?uint8_t(documented.producerTail?2:3):0;
+    policy.origins[24]=premises.staffedProducerTail?uint8_t(documented.staffedProducerTail?2:3):0;
+    policy.origins[25]=premises.forceHouseEvolution?uint8_t(documented.forceHouseEvolution?2:3):0;
+    policy.origins[26]=premises.alternateMode?uint8_t(documented.alternateMode?2:3):0;
+    policy.origins[27]=premises.effectDecayCounter?uint8_t(documented.effectDecayCounter?2:3):0;
+    policy.origins[28]=premises.wallClock?uint8_t(documented.wallClock?2:3):0;
+    policy.origins[29]=premises.cropDispatchModel?uint8_t(documented.cropDispatchModel?2:3):0;
+    policy.origins[30]=premises.cropDispatchRadius?uint8_t(documented.cropDispatchRadius?2:3):0;
+    policy.origins[31]=premises.effectPlacementCulled?uint8_t(documented.effectPlacementCulled?2:3):0;
+    policy.origins[32]=premises.visualEffectCount?uint8_t(documented.visualEffectCount?2:3):0;
+    policy.origins[33]=premises.windDirection?uint8_t(documented.windDirection?2:3):0;
+    policy.origins[34]=premises.previousHealthRating?uint8_t(documented.previousHealthRating?2:3):0;
+    policy.origins[35]=premises.crtRandom?uint8_t(documented.crtRandom?2:3):0;
+    policy.origins[36]=premises.soundEffectsEnabled?uint8_t(documented.soundEffectsEnabled?2:3):0;
+    policy.origins[37]=premises.buildingEditMode?uint8_t(documented.buildingEditMode?2:3):0;
+    policy.origins[38]=premises.annualDemandResponseMode?uint8_t(documented.annualDemandResponseMode?2:3):0;
+
+    const bool matches=!boundSource||(boundSource->save.snapshotRevision==save.snapshotRevision&&boundSource->binding.payloadDigest==originalWorldDigest(payload.data(),payload.size()));
+    if (!matches||!(boundSource?surface_.prepareBoundCityPlayback(*boundSource,policy,initial,recordReplay):surface_.prepareCityPlayback(save, payload, premises, &initial, recordReplay))) {
         status_.state = AppCityPlaybackState::Refused;
         status_.error = surface_.cityPlaybackError();
         return;
@@ -132,6 +176,16 @@ AppCityPlayback::AppCityPlayback(AppMapSurface& surface, const OriginalSaveResul
     prepared_ = true;
 }
 
+std::unique_ptr<AppCityPlayback> AppCityPlayback::fromWorldSnapshot(AppMapSurface& surface,const OriginalWorldSnapshot& s,uint64_t hostNow,AppCitySessionState* session,std::string& error){
+    auto out=std::unique_ptr<AppCityPlayback>(new AppCityPlayback(surface));
+    out->preferences_={s.policy.preferences.speed,s.policy.preferences.personalSpeed,s.policy.preferences.soundEffects,s.policy.preferences.annualDemandResponseMode};
+    if(!admissionIntervalMs(out->preferences_.speed,out->intervalMs_)){error="world_restore_speed";return {};}
+    out->status_.state=AppCityPlaybackState::Paused;out->status_.experiment=s.policy.experimental;out->status_.intervalMs=out->intervalMs_;out->status_.updates=s.continuation.updates;out->status_.frames=s.continuation.frames;
+    out->status_.refusedUpdate=s.continuation.controller.refusedUpdate;out->status_.decodeFailures=s.continuation.controller.decodeFailures;
+    out->status_.refusal=s.continuation.controller.refusal;out->status_.error=s.continuation.controller.error;out->status_.premise=s.continuation.controller.premise;
+    out->session_=session;out->lastAdmission_=s.continuation.admission;out->virtualClock_=true;out->hostAnchor_=hostNow;out->logicalAnchor_=out->lastAdmission_;out->reanchor_=true;
+    if(!surface.restoreWorldSnapshot(s,error))return {};if(session)*session=s.continuation.session;out->prepared_=true;return out;
+}
 bool AppCityPlayback::restoreCheckpoint(const AppMapSurface::CityCheckpoint& checkpoint,uint64_t sourceRevision){
     if(!prepared_||!surface_.restoreCityCheckpoint(checkpoint,sourceRevision))return false;
     const auto session=surface_.cityPlaybackSession();if(session){lastAdmission_=session->admissionClock;if(session_)*session_=*session;}
@@ -155,12 +209,13 @@ void AppCityPlayback::play(unsigned additional) {
 }
 
 void AppCityPlayback::pause() {
+    if(virtualClock_)reanchor_=true;
     if (status_.state == AppCityPlaybackState::Playing) status_.state = AppCityPlaybackState::Paused;
 }
 
 bool AppCityPlayback::tick(uint64_t nowMs) {
     if (status_.state != AppCityPlaybackState::Playing) return false;
-    const uint32_t now = uint32_t(nowMs);
+    const uint32_t now = logicalNow(nowMs);
     if (int32_t(now - (lastAdmission_ + intervalMs_)) < 0) return false;
     return advance(now);
 }
@@ -169,7 +224,7 @@ bool AppCityPlayback::step(uint64_t nowMs) {
     if (!prepared_ || status_.state == AppCityPlaybackState::Refused) return false;
     status_.continuous = false;
     status_.state = AppCityPlaybackState::Paused;
-    uint32_t now = uint32_t(nowMs);
+    uint32_t now = logicalNow(nowMs);
     // A step advances the admission clock by one cadence when the host clock
     // has not reached it yet; it never moves the clock backwards.
     const uint32_t due = lastAdmission_ + intervalMs_;
@@ -180,6 +235,7 @@ bool AppCityPlayback::step(uint64_t nowMs) {
     if (status_.state != AppCityPlaybackState::Refused)
         status_.state = AppCityPlaybackState::Paused;
     status_.target = std::max(status_.target, status_.updates);
+    if(virtualClock_)reanchor_=true;
     return stepped;
 }
 

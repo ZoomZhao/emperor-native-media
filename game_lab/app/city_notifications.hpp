@@ -17,8 +17,25 @@ struct AppCityTributeRecord {
     AppCityTributeState state=AppCityTributeState::History;
 };
 struct AppCityTributeFinances {int32_t treasury=0,incomeOther=0,tributeIncomeComponent=0;};
+struct OriginalWorldNotifications {unsigned savedCount=0,committedCount=0;std::vector<AppCityTributeRecord> saved,live;};
 class AppCityNotifications {
 public:
+    OriginalWorldNotifications persistent()const{return {savedCount_,committedCount_,saved_,live_};}
+    static bool validPersistent(const OriginalWorldNotifications& value,const OriginalBuildingScenarioMessages& messages){
+        if(value.savedCount>value.committedCount||value.committedCount!=messages.count||messages.count>150||value.saved.size()+value.live.size()>150)return false;
+        std::set<uint16_t> used;
+        for(unsigned group=0;group<2;++group)for(const auto& row:group?value.live:value.saved){
+            if(row.slot>=messages.count||!used.insert(row.slot).second||messages.records[row.slot][2]!=29||!same(row,read(messages,row.slot)))return false;
+            if(group){if(row.slot<value.savedCount||row.state==AppCityTributeState::History||unsigned(row.state)>unsigned(AppCityTributeState::Unsupported)||row.resource!=29||row.faction<0||row.faction>=22||((row.state==AppCityTributeState::Unsupported)!=(row.amount<=0)))return false;}
+            else if(row.slot>=value.savedCount||row.state!=AppCityTributeState::History)return false;
+        }
+        for(unsigned n=0;n<value.committedCount;++n)if(messages.records[n][2]==29&&!used.count(uint16_t(n)))return false;
+        return true;
+    }
+    static std::optional<AppCityNotifications> restore(const OriginalWorldNotifications& value,const OriginalBuildingScenarioMessages& messages){
+        if(!validPersistent(value,messages))return std::nullopt;const auto id=nextLoad();if(!id)return std::nullopt;
+        AppCityNotifications out;out.load_=*id;out.savedCount_=value.savedCount;out.committedCount_=value.committedCount;out.saved_=value.saved;out.live_=value.live;return out;
+    }
     static std::optional<AppCityNotifications> fromSaved(const OriginalBuildingScenarioMessages& messages) {
         if(messages.count>messages.records.size()||!messages.notices.empty())return std::nullopt;
         AppCityNotifications out;

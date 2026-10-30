@@ -1577,3 +1577,66 @@ Validation on the frozen candidate: Release and UBSan each46 kernel checks,4381 
 The expanded local save directory also exposed an outdated test premise: an unmodified baseline and candidate both stop one earlier sample at N8 with `monthly_city_4ac650`. Continuous-mode regression now requires the same existing refusal boundary as bounded mode instead of forcing101 across missing services. That does not grant progression. The two explicitly selected admitted sources used for this batch have no such refusal in their measured100 updates. Real-data tests still SKIP successfully without process-local `EMPEROR_GAMEDATA_ROOT`; SKIP is never original-data progress.
 
 Run `python3 scripts/original_kernel_foundation.py --mode release --build-dir /absolute/new/outside/source` (or `--mode undefined`). For original-data checks, inject the verified root for that process only and supply `--real-playback --source Save/profile/qualified.sav` and/or `--market-source Save/profile/observed.sav`. No source-name/quantity formula is embedded in the runtime. Disk persistence for the complete world, nonempty event callbacks, full calendar services and24/25 lifecycle remain named blockers for their owning systems.
+
+
+## Original-world disk checkpoint v1 (2026-10-30)
+
+Baseline `00f1383` had only complete represented **in-memory** checkpoints. The separate `.emworld` writer/reader now persists that represented world; it is neither a SAV writer nor an ENCity migration. Unsupported original classes/FSA or unrepresented original state cannot be claimed as restored. Native v6, existing v7/v8/runtime codecs and original input files are unchanged.
+
+### State ownership and restoration
+
+`OriginalWorldSnapshot` keeps the active combined authority, all2000 figure slots (including sentinel and inactive residue), full represented update contexts and their optional-presence bits, complete routes/directions/FIFO/cell links, actor allocation counter and host generation ledger, buildings/house state, Goods/physical inventory as distinct lagged roles, annual22 offers and150 message records with padding, registry/process data, scene/selection/image-write history, continuation/session clocks, controller refusal/decode diagnostics and camera. Current runtime tables are explicit by-value overrides; immutable external archives/models are content-bound sources. It does not normalize a stale mirror, recount population, reselect from a later actor, clear a dead follower, reseed RNG or replay constructors, consumption, annual callbacks or notification payments. Inactive residual references are preserved; live pair/owner/route checks retain their established domain. In particular, an inactive buyer retaining its former follower is not a live dangling pair.
+
+Initial N0 input context and the active combined context can legitimately differ in prepared process inputs. Both roles are stored at N0, while their authoritative actor pools and cell/terrain aliases must agree. Chained snapshots store the current context; inactive seed/replay history is not replayed. Shared/local/world phases and Goods cache versus physical stock retain legal lag. Restore creates fresh host load epochs and notification IDs while preserving allocation generations, next counter, original16-bit serials (including0) and dispositions. The original32-bit allocation counter remains distinct. Decoding and hydration contain no original AfterLoad/recount/update callback.
+
+The policy capsule records the current provider version, initial optional inputs,39 provenance classifications, explicit experimental label and saved speed/sound/annual preference. Ordinary mode still refuses unknown event/slot/manager producers. A saved tag is not business qualification. Declared zero-premise experiments remain labelled on a different controller after restore; they cannot be promoted by changing a tag and recomputing checksums. Nonempty eight-slot words are plain data, never native pointers. Restore begins paused, preserves the logical32-bit time domain, and reanchors elapsed host time on resume without offline catch-up. Same-process subsequent SAV loads continue using the restored process session.
+
+### External binding and pure candidate publication
+
+`bindOriginalWorldSource` hashes the same bounded source bytes passed to the original decoders, verifies complete known2000-slot parsing, and retains a payload SHA-256. It hashes19 explicitly named dependencies: both model texts, EmperorText and SG3/555 pairs for the eight currently required archives. Required relative paths have no absolute/traversal components; descriptor walking rejects intermediate and leaf symlinks. Stable double reads plus descriptor/name identity checks reject changing content. The source/model/resource hashes, sizes, exact dependency set and contract revision must match at load; legacy FNV/mtime are not a disk trust boundary. Identical relative contents can bind at an explicitly configured relocated root. Original assets are never embedded in a checkpoint or repository.
+
+The restore bridge rebuilds only immutable archive owners/references, source bindings and saved-scene seed needed by the existing adapter. It restores every current value, validates the graph and pixels, rechecks external content, then publishes with a nonthrowing surface swap. Errors before this point preserve the prior canonical persistent world, session and valid old handles. Fresh host epochs/cache activity and diagnostic ID gaps are excluded from canonical persistent comparison. An arbitrary checksum-valid file is not authenticated or trusted: structural/knownness/policy/graph validation still applies. Load and Save menu consumers run synchronously; there is no queued load publication to race a later source selection. Dialog cancellation leaves the current world values intact. This makes no responsive-background-I/O or actual-GUI acceptance claim.
+
+### Wire schema
+
+All numbers are explicit little-endian wires; fixed integer widths are checked by field kind, signed bits retained, enums checked, bool/optional tags exactly0/1, finite doubles only. No object ABI, native pointer, address, vtable or machine code is saved. The two represented `const char*` members (`GroundSelection.branch`, `OriginalBuildingImageBinding.archive`) use checked symbolic IDs backed by static strings on restore. The actual type161 ruin scene also uses `DATA/China_Terrain.sg3`; its symbol is appended as ID278, preserving the previous278 IDs. Record fields carry exact sequential16-bit IDs,8-bit kind and64-bit byte length. Maps/sets have strictly increasing unique keys; arrays have their declared fixed cardinality. Every field and section must consume exactly its length. No missing member gets a default.
+
+The64-byte header contains16-byte `EMPEROR-WORLD` magic (zero padded), version1, header size64, zero flags, total bytes, committed revision, mandatory section count14, reserved0, directory size784 and required feature mask31. Fourteen56-byte directory entries contain16-bit section/schema IDs,32-bit zero flags,64-bit offset/length and SHA-256. Payloads are contiguous starting at848. The40-byte footer is `ENDWORLD` plus SHA-256 of all preceding bytes. Every payload also has its own digest. These detect corruption; they are not authentication.
+
+| Section | Owned values |
+|---|---|
+|1 SOURCE|Strong external source/payload/resource bindings and contract revision|
+|2 POLICY|Provider/input provenance, knownness, preferences and experiment label|
+|3 PROCESS|World phase and current process inputs|
+|4 FIGURE-POOL|All2000 typed slots and owned raw known24/25 bases|
+|5 FIGURE-CONTEXT|All remaining figure-context fields, routes, cell/FIFO, tables and image-write inputs|
+|6 BUILDINGS|All combined per-building state and local contexts|
+|7 CITY-CONTEXT|Complete shared city update context and lagged mirrors|
+|8 OUTER-SCENARIO|Annual offers and scenario-message records/receipts|
+|9 POST-REGISTRY|Registry/result and rebuilt movement terrain|
+|10 TERRAIN|Current map and optional stored terrain state|
+|11 SCENE|Committed scene, selectors and animation phases|
+|12 CONTINUATION|N0 prepared context when applicable, next input/draw/session/clock/counters|
+|13 HOST-LIFECYCLE|Persistent generations and notification dispositions; new host IDs on load|
+|14 VIEW|Optional current camera|
+
+Limits:128MiB file,512MiB aggregate decoded allocation charge, depth32,1MiB strings,500000 vector elements,4000 map/set entries. Claimed counts are checked against remaining wire bytes and charged before reserve. Header/version/features, exact14 section IDs/schema versions, gaps/overlaps/overflow, field tags/kinds/lengths, trailing bytes and semantic contradictions reject with named errors. Writer validation also rejects unsupported values rather than truncating them.
+
+### File publication and receipts
+
+`writeOriginalWorldCheckpointNew` accepts only a new `.emworld` leaf outside the canonical original-data root and application bundles. It anchors the parent descriptor and verifies named identity, creates its own exclusive0600 temporary, writes all bytes with short-write/EINTR handling, fsyncs/closes the file, then uses exclusive `linkat` to publish without overwrite and fsyncs the directory. It cleans only its own temporary. Concurrent writers cannot replace each other or an existing regular file/symlink. Parent replacement and cancellation before publication fail. Reader uses the same anchored parent and no-follow leaf, stable full reads, bounds and exact decode. Its leaf open uses `O_NONBLOCK` before `fstat` enforces regular-file type: a FIFO with no writer cannot hang the synchronous App menu before validation. The source-binding reader uses the same nonblocking regular-file gate.
+
+There are three outcomes: `NotPublished`, `PublishedDurable`, `PublishedDurabilityUnknown`. Once link succeeds, later errors/exceptions never claim no file was written and never delete the final file. An unknown result must be resolved against the existing file digest/revision; blind retry is unsafe. A save receipt acknowledges only a durable captured revision still current in the same synchronous owner. Later advances, camera changes or accepted tribute invalidate that match; loading another world discards the receipt. Process-termination tests establish atomic visibility at the exercised boundaries, not real hardware power-loss durability.
+
+### Verification scope
+
+The runner `scripts/test_original_world_checkpoint.py` builds outside source/GameData, binds current inputs before and after, checks fresh Clang declarations against frozen visitors (including the separately partitioned figure context), and executes authored codec/I/O tests. `--legacy` adds existing kernel, base, building/market/Goods, native, notifications, map and independent food composition suites. Use `--mode release` or `--mode undefined`; ASan is not used. Real tests require process-local `EMPEROR_GAMEDATA_ROOT` and explicit `--source`, `--base-source` or `--retired-source`; unset roots report SKIP successfully. Raw test outputs remain outside Git. Actual measured counts and remaining acceptance limitations are recorded in STATUS and the independent-review handoff; no old green result substitutes for a frozen-source rerun.
+
+
+### Checkpoint review R2: FIFO and complete module compositions
+
+The independent review found a pre-validation FIFO open could block the synchronous Open menu. The reader and source-binding gate now open nonblocking and reject all nonregular types before attempting reads. Self-authored no-writer FIFO children have a2-second watchdog; the real-world headless consumer also checks prompt refusal and byte-exact old world/save-receipt preservation. Symlink, regular-file, source-binding and publication semantics are retained.
+
+`original_world_checkpoint_composition_tests.cpp` adds actual supported-function → new disk file → decode → next supported-function comparisons across the whole represented world: service constructors around16/32-bit serial wrap (W08), actual two-node drawing sort (W10), ordered Hunter/projectile allocation writing earlier prey after its image write (W16), retailer home arrival/retirement and immigrant arrival/population/cleanup/next FIFO constructor (W18), partial storage acceptance with99 residual cargo and Goods/reservation continuation (W19), actual phase44 dry destruction plus the production ruin scene-installation bridge and phase46 continuation (W20), and late annual failure/retry/messages/dispositions after disk (W26). These are authored kernel/module graphs under explicit known inputs, not App/original-game play qualification. No unsupported transport or missing service is invented. The residual-cargo and annual-retry tests supply any later missing prerequisite explicitly to both callers; restore supplies none.
+
+This composition exposed a second concrete defect: the actual ruin scene used a Terrain archive pointer symbol omitted from the initial whitelist. Appending the known symbol fixes lossless saving without changing old IDs, format version, original data or business rules. W13 rich actions across every family and W37 failure at every individual allocation remain accurately limited. Actual new-menu GUI and real power-loss durability remain unrun.

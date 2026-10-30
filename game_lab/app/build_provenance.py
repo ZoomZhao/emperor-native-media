@@ -6,6 +6,23 @@ import sys
 
 repository = Path(__file__).resolve().parents[2]
 sources = [
+    'game_lab/native_observed_dry_downgrade.hpp',
+    'game_lab/original_evidence_fields.hpp',
+    'game_lab/original_evidence_figures.hpp',
+    'game_lab/original_evidence_route.hpp',
+
+    'game_lab/original_world_snapshot.hpp',
+    'game_lab/original_world_checkpoint_codec.hpp',
+    'game_lab/original_world_checkpoint_codec.cpp',
+    'game_lab/original_world_checkpoint_fields.inc',
+    'game_lab/original_world_checkpoint_binding.hpp',
+    'game_lab/original_world_checkpoint_binding.cpp',
+    'game_lab/original_world_checkpoint_io.hpp',
+    'game_lab/original_world_checkpoint_io.cpp',
+    'game_lab/original_kernel_checkpoint.hpp',
+    'game_lab/original_kernel_contract.hpp',
+    'game_lab/original_market_base_codec.hpp',
+
     'game_lab/original_building_scene.hpp',
     'game_lab/original_building_animation.hpp',
     'game_lab/original_figure.hpp',

@@ -5,6 +5,7 @@
 #include "../original_building_scene.hpp"
 #include "../resource_root.hpp"
 #include "city_notifications.hpp"
+#include "../original_world_snapshot.hpp"
 #include <map>
 #include <memory>
 #include <optional>
@@ -47,16 +48,7 @@ struct AppSurfacePreviewResult {
 // Documented process lifetime state (SAV.md runtime-source table). A load
 // replaces saved city state but never reinitializes these values. CRT seed is
 // supplied once by the App; no unresolved event/scheduler field lives here.
-struct AppCitySessionState {
-    OriginalCityClocks cityClocks;
-    OriginalFigureRandomHistory randomHistory{{},0,0};
-    uint32_t crtRandom=0, wildlifeCounter=0, wildlifePeriod=30, admissionClock=0;
-    uint64_t crtRandomCalls=0;
-    OriginalAnimationClock animationClock;
-    int32_t watchMaximum=0;
-    std::array<int32_t,2> inspectorMaximum{};
-    std::array<uint8_t,36> storageSearch{},industrySearch{};
-};
+
 struct AppCityTimelineStep {
     bool complete=false;
     unsigned updates=0;
@@ -89,6 +81,11 @@ public:
     bool prepareCityPlayback(const OriginalSaveResult&,const std::vector<uint8_t>& decodedPayload,
         const OriginalCombinedProcessInputs&,const AppCitySessionState* session=nullptr,bool recordReplay=false);
     AppCityTimelineStep advanceCityPlayback(const OriginalSceneTimelineFrame&);
+    bool prepareBoundCityPlayback(const OriginalWorldBoundSource&,const OriginalWorldPolicy&,const AppCitySessionState&,bool replay=false);
+    std::optional<OriginalWorldSnapshot> worldSnapshot(std::string& error)const;
+    bool restoreWorldSnapshot(const OriginalWorldSnapshot&,std::string& error);
+    uint64_t worldRevision()const;
+
     // Opaque complete in-memory checkpoint. It owns mutable state and resource owners;
     // never interpreted as an original SAV or an ENCity version.
     struct CityCheckpoint;
