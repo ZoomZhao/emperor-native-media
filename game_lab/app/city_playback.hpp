@@ -53,6 +53,8 @@ public:
         return prepared_?surface_.respondCityNotification(id,decision):AppCityTributeResult::Stale;
     }
     // Normal App playback continues until paused, stepped or refused.
+    // Value restore is distinct from an original-SAV load and resumes paused.
+    bool restoreCheckpoint(const AppMapSurface::CityCheckpoint&,uint64_t sourceRevision);
     void play();
     // Explicit bounded requests remain available for mechanics checks.
     void play(unsigned additional);

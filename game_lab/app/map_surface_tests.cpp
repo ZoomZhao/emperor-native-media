@@ -261,7 +261,7 @@ void authored(const std::filesystem::path& root){
 // the labelled experiment premises must complete 100 admitted updates, keep
 // pause/resume/step exact and redraw every admitted frame without decode
 // failures. Host-clock values come from this process, never from the user.
-void playback(const std::string& path){
+void playback(const std::string& path,const std::vector<std::string>& selected={}){
     using namespace game_lab;
     const auto root=ResourceRoot::fromAbsolute(path);
     if(!root.configured())throw std::runtime_error("explicit existing data root required");
@@ -274,11 +274,12 @@ void playback(const std::string& path){
     const uint32_t crtSeed=uint32_t(std::time(nullptr));
     const uint32_t farmerMs=0;
     const auto catalog=enumerateOriginalMapSources(root);
-    size_t sessions=0,reached=0,strictRefusals=0,decodeFailures=0,replayChecks=0;
+    size_t sessions=0,reached=0,strictRefusals=0,decodeFailures=0,replayChecks=0,monthlyBoundaries=0;
     unsigned maxN=0;size_t registryParsed=0,registryNoMode5=0,registryRecords=0,sessionReloads=0,continuousChecks=0;
     std::vector<std::string> rows;
     for(const auto& source:catalog.sources){
         if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
+        if(!selected.empty()&&std::find(selected.begin(),selected.end(),source.relativePath)==selected.end())continue;
         ++sessions;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));
         std::vector<uint8_t> raw;
@@ -303,6 +304,7 @@ void playback(const std::string& path){
         AppCitySessionState strictSession;strictSession.crtRandom=crtSeed;strictSession.admissionClock=1234;
         strictSession.cityClocks.value[0]=2;strictSession.wildlifeCounter=19;strictSession.randomHistory.cursor=7;
         AppCityPlayback strict(strictSurface,save,payload,preferences,crtSeed,farmerMs,false,&strictSession);
+        if(!strict.prepared())throw std::runtime_error("strict source="+source.relativePath+" preparation="+strict.status().error);
         need(strict.prepared(),"strict playback prepared");
         need(!strict.status().experiment,"strict default is not the experiment");
         strict.play();
@@ -329,6 +331,37 @@ void playback(const std::string& path){
         need(view.image.valid(),"first admitted frame renders");
         need(view.timelineUpdates&&*view.timelineUpdates==1,"first frame shows N=1");
         decodeFailures+=playback.status().decodeFailures;
+        // Full value restore and late publication failures use the real App adapter.
+        // Test premises above remain explicit; restoring never changes admission inputs.
+        const auto checkpoint=surface.cityCheckpoint();need(bool(checkpoint),"complete App checkpoint captured");
+        const auto checkpointDigest=surface.installedSceneDigest();const auto checkpointN=surface.cityPlaybackUpdates();
+        const auto checkpointSession=*surface.cityPlaybackSession();const auto checkpointNotices=surface.cityNotifications()->report();
+        std::optional<OriginalKernelHandle> staleHandle;
+        for(const auto& figure:save.layers.figures->live)if((staleHandle=surface.cityFigureHandle(figure.slot)))break;
+        for(const char* stage:{"before_pixels","before_publish"}){
+            surface.setCityPublicationProbe([stage](const char* point){if(std::string(point)==stage)throw std::runtime_error("injected candidate failure");});
+            need(!playback.step(interval),"late candidate exception refuses");
+            need(surface.installedSceneDigest()==checkpointDigest&&surface.cityPlaybackUpdates()==checkpointN&&
+                surface.cityNotifications()->report()==checkpointNotices&&surface.cityPlaybackSession()->crtRandom==checkpointSession.crtRandom&&
+                surface.cityPlaybackSession()->admissionClock==checkpointSession.admissionClock,"late exception preserves scene N notifications RNG and clock");
+            surface.setCityPublicationProbe({});need(playback.restoreCheckpoint(*checkpoint,save.snapshotRevision),"restore complete checkpoint after refusal");
+            need(playback.status().state==AppCityPlaybackState::Paused&&playback.status().updates==checkpointN&&playback.status().frames==checkpointN,"restore stops host admission at committed N");
+        }
+        auto invalidCamera=camera;invalidCamera.width=2049;
+        need(!playback.render(invalidCamera).image.valid(),"bounded renderer rejects oversized viewport before allocation");
+        need(!playback.step(interval)&&playback.status().refusal=="kernel_candidate_pixels_refused"&&surface.installedSceneDigest()==checkpointDigest&&surface.cityPlaybackUpdates()==checkpointN,
+            "real pixel preparation failure retains the committed world");
+        need(playback.restoreCheckpoint(*checkpoint,save.snapshotRevision),"pixel refusal can restore without granting new rules");
+        need(!staleHandle||!surface.cityFigureHandleCurrent(*staleHandle),"pre-restore command identity is stale");
+        need(!surface.restoreCityCheckpoint(*checkpoint,save.snapshotRevision+1)&&surface.installedSceneDigest()==checkpointDigest,"wrong source restore leaves prior scene");
+        surface.setCityPublicationProbe([](const char* point){if(std::string(point)=="checkpoint_prepared"||std::string(point)=="load_prepared")throw std::runtime_error("injected load failure");});
+        need(!surface.restoreCityCheckpoint(*checkpoint,save.snapshotRevision)&&surface.installedSceneDigest()==checkpointDigest,"restore exception atomic");
+        need(!surface.prepareCityPlayback(save,payload,{},&checkpointSession)&&surface.installedSceneDigest()==checkpointDigest&&surface.cityPlaybackUpdates()==checkpointN,"failed SAV prepare preserves old playback");
+        surface.setCityPublicationProbe({});
+        need(playback.step(interval),"retry publishes once after both late failures");const auto continuedDigest=surface.installedSceneDigest();const auto continuedSession=*surface.cityPlaybackSession();
+        need(playback.restoreCheckpoint(*checkpoint,save.snapshotRevision)&&playback.step(interval)&&surface.installedSceneDigest()==continuedDigest&&
+            surface.cityPlaybackSession()->crtRandom==continuedSession.crtRandom&&surface.cityPlaybackSession()->cityClocks.value==continuedSession.cityClocks.value,"restored next step equals uninterrupted step");
+        need(playback.restoreCheckpoint(*checkpoint,save.snapshotRevision),"resume existing test from original checkpoint");
         // A pending play target must not turn a manual step back into Play.
         // The App stops its timer for Step; the controller must agree so that
         // both status and any later timer callback remain paused.
@@ -391,13 +424,18 @@ void playback(const std::string& path){
         need(live.prepared(),"continuous mechanics prepares");
         live.play();
         uint64_t liveClock=0;
+        bool continuousBlocked=false;
         for(unsigned n=1;n<=98;++n){
             liveClock+=interval;
-            if(!live.tick(liveClock)) throw std::runtime_error("continuous source="+std::to_string(sessions)+" expected_N="+std::to_string(n)+" actual_N="+std::to_string(live.status().updates)+" refusal="+live.status().refusal);
+            if(!live.tick(liveClock)){
+                need(live.status().state==AppCityPlaybackState::Refused&&live.status().updates==n-1&&
+                    finalStatus.state==AppCityPlaybackState::Refused&&finalStatus.updates==n-1&&finalStatus.refusal==live.status().refusal,
+                    "continuous mode stops at the same unsupported boundary as bounded mode");continuousBlocked=true;break;}
             need(live.status().updates==n&&live.status().state==AppCityPlaybackState::Playing,
                 "continuous play remains active");
             need(live.replayFrames().empty(),"normal storage mode retains no frame journal");
         }
+        if(!continuousBlocked){
         live.pause();const auto digest=liveSurface.installedSceneDigest();
         liveClock+=10*interval;
         need(!live.tick(liveClock)&&live.status().updates==98&&liveSurface.installedSceneDigest()==digest,
@@ -411,6 +449,7 @@ void playback(const std::string& path){
         live.pause();need(live.replayFrames().empty(),"resume retains no replay history by default");
         need(live.render(camera).image.valid()&&live.status().decodeFailures==0,"continuous final frame renders");
         ++continuousChecks;
+        }
         const auto beforeReload=session;
         if(sessions==1){
             // Deliberately distinct process values make a reset-to-zero bug
@@ -454,6 +493,7 @@ void playback(const std::string& path){
         need(finalStatus.decodeFailures==0,"no decode failures on the App path");
         maxN=std::max(maxN,finalStatus.updates);
         if(finalStatus.updates>=100&&finalStatus.refusal.empty())++reached;
+        else {need(finalStatus.refusal=="monthly_city_4ac650","only the existing unported monthly boundary replaces the old N100 premise");++monthlyBoundaries;}
         rows.push_back(std::string("{\"source\":")+std::string("\"")+source.relativePath+"\""+
             ",\"N\":"+std::to_string(finalStatus.updates)+",\"state\":\""+
             (finalStatus.state==AppCityPlaybackState::Paused?"paused":finalStatus.state==AppCityPlaybackState::Refused?"refused":"playing")+
@@ -461,10 +501,11 @@ void playback(const std::string& path){
             ",\"decode_failures\":"+std::to_string(finalStatus.decodeFailures)+"}");
     }
     need(sessions>0,"no SAV sources");
-    need(reached==sessions,"every source save completes through the App path");
+    need(selected.empty()||sessions==selected.size(),"all explicitly selected sources ran");
+    need(reached+monthlyBoundaries==sessions,"every source reaches the tested target or the proved existing monthly refusal");
     need(strictRefusals==sessions,"every strict playback refuses by name");
     std::cout<<"{\"passed\":true,\"App_playback_sources\":"<<sessions
-        <<",\"App_playback_reached_100\":"<<reached<<",\"App_playback_strict_refusals\":"<<strictRefusals
+        <<",\"App_playback_monthly_boundaries\":"<<monthlyBoundaries<<",\"App_playback_reached_100\":"<<reached<<",\"App_playback_strict_refusals\":"<<strictRefusals
         <<",\"saved_scenario_registries\":"<<registryParsed<<",\"saved_scenario_records\":"<<registryRecords
         <<",\"saved_registry_no_mode5\":"<<registryNoMode5<<",\"mechanics_session_reloads\":"<<sessionReloads
         <<",\"continuous_transport_101\":"<<continuousChecks<<",\"continuous_retained_frames\":0"
@@ -636,6 +677,6 @@ void metrics(const std::string& path){
 }
 }
 int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--metrics"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true}\n";return 0;}metrics(root);}
-    else if(argc==2&&std::string(argv[1])=="--playback"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return 0;}playback(root);}
+    else if(argc>=2&&std::string(argv[1])=="--playback"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return 0;}playback(root,std::vector<std::string>(argv+2,argv+argc));}
     else if(argc==2)authored(std::filesystem::absolute(argv[1]));else throw std::runtime_error("fixture directory or --metrics required");return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

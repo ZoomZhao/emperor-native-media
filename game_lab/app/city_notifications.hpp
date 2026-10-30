@@ -24,12 +24,15 @@ public:
         AppCityNotifications out;
         // Every load has a process-unique identity, including a new surface or
         // another resource root. Exhaustion fails rather than recycling IDs.
-        static std::atomic<uint64_t> next{1};auto id=next.load();
-        do {if(id==UINT64_MAX)return std::nullopt;}while(!next.compare_exchange_weak(id,id+1));
-        out.load_=id;out.savedCount_=out.committedCount_=messages.count;
+        const auto id=nextLoad();if(!id)return std::nullopt;
+        out.load_=*id;out.savedCount_=out.committedCount_=messages.count;
         for(unsigned i=0;i<messages.count;++i)if(messages.records[i][2]==29)
             out.saved_.push_back(read(messages,i));
         return out;
+    }
+    // Checkpoint restores retain dispositions but invalidate pre-restore UI IDs.
+    std::optional<AppCityNotifications> reloaded()const{
+        const auto id=nextLoad();if(!id)return std::nullopt;auto out=*this;out.load_=*id;return out;
     }
     // Called on a candidate and published only after the whole update installs.
     // Slots are append-only in the current producer. No slot reuse is admitted.
@@ -93,6 +96,8 @@ public:
         case AppCityTributeState::Accepted:return "已接受";case AppCityTributeState::Rejected:return "已拒绝";
         case AppCityTributeState::Unsupported:return "金额不在当前支持范围";}return "未知";}
 private:
+    static std::optional<uint64_t> nextLoad(){static std::atomic<uint64_t> next{1};auto id=next.load();
+        do{if(id==UINT64_MAX)return std::nullopt;}while(!next.compare_exchange_weak(id,id+1));return id;}
     static bool same(const AppCityTributeRecord& a,const AppCityTributeRecord& b){return a.slot==b.slot&&a.faction==b.faction&&a.resource==b.resource&&a.amount==b.amount;}
     static AppCityTributeRecord read(const OriginalBuildingScenarioMessages& m,unsigned i) {
         const auto* r=m.records[i].data();return {uint16_t(i),detail::i16(r+28),detail::i16(r+4),detail::i16(r+12),AppCityTributeState::History};

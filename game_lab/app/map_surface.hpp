@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <functional>
 
 namespace game_lab {
 struct OriginalMapSource;
@@ -88,6 +89,15 @@ public:
     bool prepareCityPlayback(const OriginalSaveResult&,const std::vector<uint8_t>& decodedPayload,
         const OriginalCombinedProcessInputs&,const AppCitySessionState* session=nullptr,bool recordReplay=false);
     AppCityTimelineStep advanceCityPlayback(const OriginalSceneTimelineFrame&);
+    // Opaque complete in-memory checkpoint. It owns mutable state and resource owners;
+    // never interpreted as an original SAV or an ENCity version.
+    struct CityCheckpoint;
+    std::shared_ptr<const CityCheckpoint> cityCheckpoint() const;
+    bool restoreCityCheckpoint(const CityCheckpoint&,uint64_t expectedSourceRevision);
+    std::optional<OriginalKernelHandle> cityFigureHandle(size_t slot) const;
+    bool cityFigureHandleCurrent(const OriginalKernelHandle&) const;
+    // Diagnostic fault seam: can reject/throw, never approve unknown gameplay.
+    void setCityPublicationProbe(std::function<void(const char*)> p){publicationProbe_=std::move(p);}
     bool cityPlaybackPrepared() const { return playback_!=nullptr; }
     unsigned cityPlaybackUpdates() const;
     const AppCityNotifications* cityNotifications() const;
@@ -107,6 +117,9 @@ public:
     AppSurfacePreviewResult renderPreview(const OriginalMapCamera&) const;
     AppSurfaceDiagnostics diagnostics(const MapImageGridStats&) const;
 private:
+    bool prepareCityPlaybackCandidate(const OriginalSaveResult&,const std::vector<uint8_t>&,const OriginalCombinedProcessInputs&,const AppCitySessionState*,bool);
+    AppCityTimelineStep advanceCityPlaybackCandidate(const OriginalSceneTimelineFrame&);
+    void swapPrepared(AppMapSurface&) noexcept;
     bool adoptState(const OriginalMapTerrain&,std::optional<OriginalTerrainState>);
     struct Archive { SG3Archive index; std::string companion; };
     struct Playback;
@@ -123,6 +136,8 @@ private:
     std::optional<OriginalBuildingScene> savedBuildings_;
     std::map<uint32_t, Archive> archives_;
     std::unique_ptr<Playback> playback_;
+    mutable std::optional<OriginalMapCamera> lastPlaybackCamera_;
+    std::function<void(const char*)> publicationProbe_;
     std::string error_;
 };
 }

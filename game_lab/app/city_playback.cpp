@@ -132,6 +132,12 @@ AppCityPlayback::AppCityPlayback(AppMapSurface& surface, const OriginalSaveResul
     prepared_ = true;
 }
 
+bool AppCityPlayback::restoreCheckpoint(const AppMapSurface::CityCheckpoint& checkpoint,uint64_t sourceRevision){
+    if(!prepared_||!surface_.restoreCityCheckpoint(checkpoint,sourceRevision))return false;
+    const auto session=surface_.cityPlaybackSession();if(session){lastAdmission_=session->admissionClock;if(session_)*session_=*session;}
+    status_.updates=surface_.cityPlaybackUpdates();status_.frames=status_.updates;status_.target=0;status_.continuous=false;status_.state=AppCityPlaybackState::Paused;
+    status_.refusal.clear();status_.error.clear();status_.refusedUpdate=0;return true;
+}
 void AppCityPlayback::play() {
     if (!prepared_ || status_.state == AppCityPlaybackState::Refused) return;
     status_.continuous = true;

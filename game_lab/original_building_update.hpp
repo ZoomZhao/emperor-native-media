@@ -401,6 +401,7 @@ struct OriginalBuildingUpdateContext {
     //54CC60 requires the entire ordered figure pool and source6 groups.
     std::optional<std::array<OriginalBuildingFormation,100>> formations;
     std::optional<std::vector<OriginalFigure>> figures;
+    std::vector<OriginalKernelAllocation> allocationEvents; // host identity events, not original gameplay inputs
     std::optional<std::map<unsigned,std::array<int32_t,18>>> figureModels;
     std::optional<std::map<size_t,uint8_t>> figureStationary;
     //Figure+6C writes from54CC60; retained separately until Figure exposes it.
@@ -755,7 +756,7 @@ inline std::optional<size_t> originalBuildingAllocateService(OriginalBuildingUpd
     (void)faction;
     f.x=f.priorX=f.homeX=f.destinationX=x;f.y=f.priorY=f.homeY=f.destinationY=y;f.cell=uint32_t(cell);
     f.subX=originalBuildingSignedWord(uint16_t(uint32_t(uint16_t(x))*20));f.subY=originalBuildingSignedWord(uint16_t(uint32_t(uint16_t(y))*20));
-    f.allocationSerial=uint16_t((*c.figureServices->allocationSerial)++);f.allocationPhase=f.allocationPhaseCopy=uint8_t(originalFigureRandomNext(*c.figureServices)&3);
+    f.allocationSerial=uint16_t((*c.figureServices->allocationSerial)++);c.allocationEvents.push_back({slot,f.allocationSerial});f.allocationPhase=f.allocationPhaseCopy=uint8_t(originalFigureRandomNext(*c.figureServices)&3);
     if(!fireEffect){auto& counter=c.figureSpeechCounters->at(unsigned(speech));c.figureSpeechChoices[slot]=originalBuildingSignedWord(uint16_t(counter%int32_t(divisor)));
         counter=originalBuildingAdd32(counter,1);}
     auto& head=c.figureCellHeads->at(size_t(cell));if(!head)head=uint16_t(slot);else{size_t tail=head;std::set<size_t> seen;
@@ -2377,7 +2378,7 @@ inline std::optional<size_t> originalBuildingAllocateMigrant(OriginalBuildingUpd
     OriginalFigure f;f.slot=slot;f.type=type;f.alive=1;f.progress=20;f.direction=0;f.previousDirection=0;
     f.x=f.priorX=f.homeX=f.destinationX=x;f.y=f.priorY=f.homeY=f.destinationY=y;f.cell=uint32_t(cell);
     f.subX=int16_t(uint16_t(uint32_t(uint16_t(x))*20));f.subY=int16_t(uint16_t(uint32_t(uint16_t(y))*20));
-    f.allocationSerial=uint16_t((*services.allocationSerial)++);f.allocationPhase=f.allocationPhaseCopy=uint8_t(services.randomFirst&3);
+    f.allocationSerial=uint16_t((*services.allocationSerial)++);c.allocationEvents.push_back({slot,f.allocationSerial});f.allocationPhase=f.allocationPhaseCopy=uint8_t(services.randomFirst&3);
     //4EA3B0 and4C92D0 leave constructor speed+61 at0.
     auto& speechCounter=c.figureSpeechCounters->at(speech);c.figureSpeechChoices[slot]=originalBuildingSignedWord(uint16_t(speechCounter%int32_t(divisor)));
     speechCounter=originalBuildingAdd32(speechCounter,1);

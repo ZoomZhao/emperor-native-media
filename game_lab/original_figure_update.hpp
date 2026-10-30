@@ -1,5 +1,6 @@
 #pragma once
 #include "original_figure_image.hpp"
+#include "original_kernel_contract.hpp"
 #include <set>
 #include <type_traits>
 
@@ -135,6 +136,7 @@ struct OriginalFigureFirstUpdate {
     std::optional<uint32_t> crtRandom;
     uint64_t crtRandomCalls=0;
     std::optional<int32_t> roadblockGate;
+    std::vector<OriginalKernelAllocation> allocationEvents; // ordered events for this admitted world update
     std::set<size_t> allocatedSlots;
     size_t allocationCount=0,buildingAllocationCount=0;
     std::optional<std::array<int32_t,359>> speechCounters;
@@ -295,6 +297,7 @@ struct OriginalFigureUpdateContext {
     std::optional<uint32_t> crtRandom; //Required on consumption:wall-clock seeded,not in SAV;state at timeline entry,not startup srand argument.
     uint64_t crtRandomCalls=0; //Cumulative successfully ported7665FD calls,including discarded sound variation.
     std::optional<std::array<bool,51>> animationFlags; //current418AA0 flags,for5CFE60(speed100).
+    std::vector<OriginalKernelAllocation> allocationEvents;
     std::set<size_t> allocatedSlots;
     size_t allocationCount=0,buildingAllocationCount=0;
     // Inputs at each primary image write. A later Hunter can turn an earlier
@@ -1150,6 +1153,7 @@ inline void originalFigurePublishWrites(OriginalFigureFirstUpdate& out,const Ori
     out.goods=after.goods;
     out.freeSlots=after.freeSlots;out.crtRandom=after.crtRandom;out.crtRandomCalls=after.crtRandomCalls;
     out.allocatedSlots=after.allocatedSlots;out.highestLiveSlot=after.highestLiveSlot;
+    out.allocationEvents=after.allocationEvents;
     out.allocationCount=after.allocationCount;out.buildingAllocationCount=after.buildingAllocationCount;
     out.speechCounters=after.speechCounters;
     out.roadblockGate=after.roadblockGate;
@@ -1409,7 +1413,7 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
             if(!slot)return size_t(0);auto cart=OriginalFigure{};cart.slot=slot;cart.type=20;cart.alive=1;cart.progress=20;cart.action=action;cart.leaderLink=leader;cart.subtype=subtype;
             cart.x=cart.priorX=cart.homeX=cart.destinationX=f.x;cart.y=cart.priorY=cart.homeY=cart.destinationY=f.y;cart.cell=f.cell;
             cart.subX=originalFigureWord(20*f.x);cart.subY=originalFigureWord(20*f.y);cart.direction=f.direction;
-            cart.allocationSerial=uint16_t((*local.services->allocationSerial)++);cart.allocationPhase=cart.allocationPhaseCopy=uint8_t(originalFigureRandomNext(*local.services)&3);
+            cart.allocationSerial=uint16_t((*local.services->allocationSerial)++);local.allocationEvents.push_back({slot,cart.allocationSerial});cart.allocationPhase=cart.allocationPhaseCopy=uint8_t(originalFigureRandomNext(*local.services)&3);
             //84E798+40*20=-1;4C92F6..FE skips the speech callback.
             local.figures.at(slot)=cart;
             local.primaryImageInputs.erase(slot);
@@ -1638,7 +1642,7 @@ inline OriginalFigureUpdateStatus originalFigureHunterProjectile(const OriginalF
     auto p=OriginalFigure{};p.slot=slot;p.runtimeClass=OriginalFigureClass::Figure;p.type=54;p.alive=1;p.progress=20;
     p.x=p.priorX=p.homeX=hunter.x;p.y=p.priorY=p.homeY=hunter.y;p.destinationX=int16_t(x);p.destinationY=int16_t(y);
     p.cell=*context.cropBase+p.x+228*p.y;if(p.cell>=51984)return OriginalFigureUpdateStatus::Projectile;p.subX=originalFigureWord(20*p.x);p.subY=originalFigureWord(20*p.y);
-    p.allocationSerial=uint16_t((*context.services->allocationSerial)++);
+    p.allocationSerial=uint16_t((*context.services->allocationSerial)++);context.allocationEvents.push_back({p.slot,p.allocationSerial});
     p.allocationPhase=p.allocationPhaseCopy=uint8_t(originalFigureRandomNext(*context.services)&3);
     if(!originalFigureCrtRandomNext(context))return OriginalFigureUpdateStatus::CrtRandomRequired;
     p.raise=10;p.owner=int16_t(hunter.slot);p.freeMovement=1;p.height=uint8_t(hunter.height+18);p.projectile=true;
@@ -2722,11 +2726,11 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                         if(result.roadblockGate)context->roadblockGate=result.roadblockGate;
                         if(result.freeSlots){context->freeSlots=*result.freeSlots;context->crtRandom=result.crtRandom;context->crtRandomCalls=result.crtRandomCalls;
                             context->allocatedSlots=result.allocatedSlots;context->highestLiveSlot=result.highestLiveSlot;
-                            context->allocationCount=result.allocationCount;context->buildingAllocationCount=result.buildingAllocationCount;}
+                            context->allocationEvents=result.allocationEvents;context->allocationCount=result.allocationCount;context->buildingAllocationCount=result.buildingAllocationCount;}
                         if(result.speechCounters)context->speechCounters=result.speechCounters;
                         if(result.state->alive==2){if(!originalFigureRemoveArrivedWorker(*result.state,*context)){
                                  result.state.reset();result.services.reset();result.buildings.reset();result.goods.reset();result.cellHeads.reset();result.linkedWrites.clear();
-                                 result.freeSlots.reset();result.crtRandom.reset();result.roadblockGate.reset();result.allocatedSlots.clear();result.highestLiveSlot=0;
+                                 result.freeSlots.reset();result.crtRandom.reset();result.roadblockGate.reset();result.allocatedSlots.clear();result.allocationEvents.clear();result.highestLiveSlot=0;
                                 result.status=OriginalFigureUpdateStatus::PoolRemoval;*context=std::move(before);}
                             else {result.services=context->services;result.buildings=context->buildings;result.cellHeads=context->cellHeads;}}
                     }
@@ -2745,7 +2749,7 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
     for(auto& entry:out.figures)if(entry.second.state){
         if(out.complete)entry.second.state=context->figures.at(entry.first);
         else {entry.second.state.reset();entry.second.services.reset();entry.second.buildings.reset();entry.second.goods.reset();entry.second.cellHeads.reset();entry.second.linkedWrites.clear();
-            entry.second.freeSlots.reset();entry.second.crtRandom.reset();entry.second.roadblockGate.reset();entry.second.allocatedSlots.clear();entry.second.highestLiveSlot=0;
+            entry.second.freeSlots.reset();entry.second.crtRandom.reset();entry.second.roadblockGate.reset();entry.second.allocatedSlots.clear();entry.second.allocationEvents.clear();entry.second.highestLiveSlot=0;
             entry.second.status=OriginalFigureUpdateStatus::LaterSlotEffects;}}
     if(out.complete)out.context=std::move(context);
     else {out.blocked+=out.computed;out.computed=0;}

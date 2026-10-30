@@ -1,6 +1,6 @@
 # Emperor native data on macOS
 
-Load legally owned original Emperor data with `--data-root`, render it natively on macOS, then port logic. Current phase: **DATA FIRST**. CitySimulation, EMP1 and authored gameplay remain frozen and separate from original behavior.
+Load legally owned original Emperor data with `--data-root`, render it natively on macOS, then port logic. Current phase: **DATA FIRST**. Kernel foundation now has staged publication, host identity guards, explicit in-memory checkpoint restore and a lossless known-base24/25 codec. This does not enable original market transport or missing event/calendar behavior; existing v6 formats and delivered Apps remain unchanged. [Scope and validation](docs/SAV.md#original-kernel-foundation-and-value-checkpoints-2026-10-30). CitySimulation, EMP1 and authored gameplay remain frozen and separate from original behavior.
 
 The latest source-only increment checks MarketHouse transfer conservation and
 extends the bounded read-only evidence exporter. It does not replace the

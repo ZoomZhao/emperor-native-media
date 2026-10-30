@@ -322,7 +322,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
         city.phase==26||city.phase==34||city.phase==41||city.phase==42||city.phase==46||city.phase==49;
     if(!city.buildingContext){if(empty)return {};return "combined_shared_building_context_required";}
     auto& c=*city.buildingContext;auto& f=city.figures;
-    c.createdFigureRecords.clear();c.removedFigureRecords.clear();const size_t allocatedBefore=c.allocatedFigures.size();
+    c.createdFigureRecords.clear();c.removedFigureRecords.clear();c.allocationEvents.clear();const size_t allocatedBefore=c.allocatedFigures.size();
     const auto sync=originalCombinedSyncBuildings(city);if(!sync.empty())return sync;
     c.phase=city.phase;c.figureServices=f.services;c.buildingLinks=f.buildings;c.goods=f.goods;c.figures.emplace();c.figureStationary.emplace();
     c.figureOrdinals.clear(); //54CC60 writes only when called, not on intervening phases
@@ -445,6 +445,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
             if(link.type==71&&link.entertainment)for(unsigned n=0;n<3;++n)link.entertainment->at(n)=data.at(0x5d-4+n);
             if(link.type==54||link.type==58||link.type==59||link.type==71||link.type==124)
                 for(unsigned n=0;n<2;++n)link.secondaryFigures[n]=detail::i16(data.data()+0x6a-4+2*n);}}
+    f.allocationEvents.insert(f.allocationEvents.end(),c.allocationEvents.begin(),c.allocationEvents.end());
     f.services=c.figureServices;f.buildings=c.buildingLinks;f.goods=c.goods;f.crtRandom=c.crtRandom;f.crtRandomCalls=c.crtRandomCalls;
     f.speechCounters=c.figureSpeechCounters;f.speechCounts=c.figureSpeechCounts;
     if(city.phase==43)f.services->fireCount=c.fireTotals[2]; //4AF9CE writes C82F28 before Inspector4E2E90.
@@ -647,7 +648,7 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
             !bases.emplace(p.footprint.slot,&base).second){out.refusal="building_animation_phase";return out;}
         out.buildingPhases.emplace(p.footprint.slot,*p.footprint.animationInputs->phase);
     }
-    auto context=initial;std::optional<OriginalCombinedState> city;
+    auto context=initial;std::vector<OriginalKernelAllocation> committedAllocations;std::optional<OriginalCombinedState> city;
     if(combined){city=*combined;context.workerRoadExits=combined->figures.workerRoadExits;
         context.migrationRoadEndpoints=combined->figures.migrationRoadEndpoints;
         if(combined->process.crtRandom)context.crtRandom=combined->process.crtRandom;
@@ -665,6 +666,7 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
         if(!count||*count>10000-out.updates){out.refusal="admitted_update_observations";return out;}
         out.admissionClock=admitted.last;
         for(unsigned step=0;step<*count;++step){
+            context.allocationEvents.clear();
             if(city){city->figures=context;
                 out.refusal=originalCombinedBeforeFigures(*city,out.lastUpdateOrder);
                 out.figureAllocations=city->figures.allocationCount;out.buildingFigureAllocations=city->figures.buildingAllocationCount;
@@ -675,6 +677,7 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
                         out.figureAllocations+=city->buildingContext->allocatedFigures.size()-out.buildingFigureAllocations;
                         out.buildingFigureAllocations=city->buildingContext->allocatedFigures.size();}
                     out.refusedUpdate=out.updates+1;out.lastPass={};return out;}
+                if(auto e=originalKernelAuthorityIssue(*city);!e.empty()){out.refusal=e;out.refusedUpdate=out.updates+1;return out;}
                 OriginalBuildingProfile selectionProfile;
                 for(const auto& e:city->buildings)selectionProfile.footprints.push_back(e.second.state.building);
                 for(const auto& p:scene.placed){const auto& footprint=city->buildings.at(p.footprint.slot).state.building;
@@ -734,11 +737,12 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
                 if(e.second.storage)out.buildingStorage[e.first]=*e.second.storage;}
             if(city){city->figures=*out.lastPass.context;
                 out.refusal=originalCombinedSyncBuildings(*city);
+                if(out.refusal.empty())out.refusal=originalKernelAuthorityIssue(*city);
                 if(out.refusal.empty())out.refusal=originalCombinedAfterFigures(*city,out.lastUpdateOrder);
                 if(!out.refusal.empty()){out.refusedUpdate=out.updates+1;out.lastPass={};return out;}
                 for(const auto& p:scene.placed){const auto& b=city->buildings.at(p.footprint.slot).state;
                     if(b.inputs.alive==1||b.inputs.alive==3)out.buildingSelections[p.footprint.slot]=b.building;}}
-            context=*out.lastPass.context;++out.updates;
+            context=*out.lastPass.context;committedAllocations.insert(committedAllocations.end(),context.allocationEvents.begin(),context.allocationEvents.end());++out.updates;
         }
         // One supplied slot means one actual draw, repetitions are meaningful.
         for(size_t slot:frame.buildingDraws){const auto base=bases.find(slot);
@@ -753,7 +757,9 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
             out.refusal="figure_draw_cell_sort";return out;}
         ++out.frames;
     }
+    context.allocationEvents=std::move(committedAllocations);
     if(city){city->figures=context;city->process.crtRandom=context.crtRandom;
+        if(auto e=originalKernelAuthorityIssue(*city);!e.empty()){out.refusal=e;return out;}
         for(auto& e:city->buildings){const auto phase=out.buildingPhases.find(e.first);
             if(phase!=out.buildingPhases.end()&&e.second.state.building.animationInputs)e.second.state.building.animationInputs->phase=phase->second;}
         if(city->buildingContext&&city->buildingContext->disasters){out.createdBuildings=city->buildingContext->disasters->createdBuildings.size();
