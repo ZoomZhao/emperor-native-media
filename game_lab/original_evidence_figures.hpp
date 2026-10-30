@@ -9,6 +9,7 @@ namespace game_lab {
 struct EvidenceFigure {
     size_t slot=0,begin=0,end=0;
     bool recordComplete=false,alias=false;
+    OriginalFigureClass runtimeClass=OriginalFigureClass::Figure;
     std::vector<uint32_t> fields;
     std::array<uint8_t,20> opaque380{};
     std::optional<uint32_t> field(unsigned offset) const {
@@ -62,6 +63,7 @@ inline EvidenceFigurePrefix evidenceFigurePrefix(const std::vector<uint8_t>& dat
             out.records.push_back(f);++out.completed;continue;
         }
         if(nextPID>=32768)return stop("cache_budget");const auto objectPID=nextPID++;
+        f.runtimeClass=kind==Kind::Pheasant?OriginalFigureClass::Pheasant:kind==Kind::Emissary?OriginalFigureClass::Emissary:OriginalFigureClass::Figure;
         if(kind!=Kind::Figure){if(!take(2))return stop("own_version_truncated");
             if(detail::u16(data.data()+at-2)!=2)return stop("own_version");}
         if(!take(2))return stop("base_version_truncated");

@@ -25,8 +25,60 @@ void record(std::vector<uint8_t>& d,unsigned type,const std::string& name="Figur
 }
 EvidenceFigurePrefix parse(const std::vector<uint8_t>& d){return evidenceFigurePrefix(d,0,d.size(),1);}
 void put(std::vector<uint8_t>& d,size_t at,uint32_t v,unsigned n=2){for(unsigned k=0;k<n;++k)d.at(at+k)=uint8_t(v>>(8*k));}
+
+void marketReferenceTests(){
+    const auto figure=[](size_t slot,unsigned type){EvidenceFigure f;f.slot=slot;f.recordComplete=true;
+        for(const auto& field:emperor::file_io::research::figure7_fields)f.fields.push_back(field.receiver_offset==18?type:field.receiver_offset==22?unsigned(type!=0):0u);return f;};
+    const auto set=[](EvidenceFigure& f,unsigned offset,uint32_t value){size_t i=0;for(const auto& field:emperor::file_io::research::figure7_fields){if(field.receiver_offset==offset){f.fields.at(i)=value;return;}++i;}throw std::runtime_error("unknown_fixture_offset");};
+    EvidenceFigurePrefix p;p.complete=true;p.declared=p.completed=2000;
+    for(size_t slot=0;slot<2000;++slot)p.records.push_back(figure(slot,0));
+    p.records[10]=figure(10,24);p.records[11]=figure(11,25);
+    for(size_t slot:{size_t(10),size_t(11)})set(p.records[slot],98,16);
+    set(p.records[10],104,12);set(p.records[10],102,11);set(p.records[11],114,10);
+    set(p.records[10],66,7);set(p.records[10],70,2);
+    std::map<size_t,EvidenceMarketBuilding> buildings{{16,{66,1,size_t(13),int16_t(10)}},{13,{59,1,{},{}}},{12,{53,1,{},{}}}};
+    OriginalFigureSavedServices sv;sv.directions.resize(500000,2);sv.routeOwners[7]=10;
+    const auto call=[&](const EvidenceFigurePrefix& q,size_t id=10){return evidenceMarketLinks(q.records.at(id),q,&buildings,&sv);};
+    const auto before=p.records[10].fields;const auto owners=sv.routeOwners;
+    for(size_t id:{size_t(10),size_t(11)}){const auto r=call(p,id);check(r.valid==true&&r.buyer==10&&r.companion==11&&r.owner==16&&r.parent==13&&r.delivery==12);check(std::string(r.state)=="reciprocal_pair");}
+    check(p.records[10].fields==before&&sv.routeOwners==owners);
+    {auto f=p.records[10];f.slot=0;check(evidenceMarketLinks(f,p,&buildings,&sv).valid==false);f.slot=2000;check(evidenceMarketLinks(f,p,&buildings,&sv).valid==false);}
+    {auto b=buildings;b[16].parentSlot=4000;b[4000]={59,1,{},{}};const auto r=evidenceMarketLinks(p.records[10],p,&b,&sv);check(r.valid==false&&std::string(r.state)=="stall_parent_reference");}
+    {auto q=p;q.records[1999]=q.records[10];q.records[1999].slot=1999;q.records[1998]=q.records[11];q.records[1998].slot=1998;
+        q.records[10]=figure(10,0);q.records[11]=figure(11,0);set(q.records[1999],102,1998);set(q.records[1998],114,1999);
+        set(q.records[1999],98,3999);set(q.records[1998],98,3999);set(q.records[1999],104,3997);
+        std::map<size_t,EvidenceMarketBuilding> b{{3999,{66,1,size_t(3998),int16_t(1999)}},{3998,{59,1,{},{}}},{3997,{53,1,{},{}}}};
+        auto v=sv;v.routeOwners[7]=1999;check(evidenceMarketLinks(q.records[1999],q,&b,&v).valid==true);check(evidenceMarketLinks(q.records[1998],q,&b,&v).valid==true);}
+
+    const auto reject=[&](EvidenceFigurePrefix q){check(call(q).valid!=true);};
+    for(unsigned t:{0u,23u,28u}){auto q=p;set(q.records[11],18,t);reject(q);q=p;set(q.records[10],18,t);check(call(q,11).valid!=true);}
+    for(uint32_t id:{0xffffu,2000u,32767u}){auto q=p;set(q.records[10],102,id);reject(q);q=p;set(q.records[11],114,id);check(call(q,11).valid!=true);}
+    {auto q=p;set(q.records[11],114,12);reject(q);q=p;set(q.records[10],102,0);reject(q);}
+    {auto q=p;q.records[12]=figure(12,25);set(q.records[12],114,10);reject(q);}
+    {auto q=p;set(q.records[10],102,0);q.records[11]=figure(11,0);auto r=call(q);check(r.valid==true&&!r.companion&&std::string(r.state)=="no_companion_reference");}
+    for(size_t id:{size_t(10),size_t(11)}){auto q=p;set(q.records[id],22,2);check(call(q).valid!=true);q=p;q.records[id].alias=true;reject(q);q=p;q.records[id].recordComplete=false;reject(q);q=p;q.records[id].runtimeClass=OriginalFigureClass::Emissary;reject(q);}
+    {auto q=p;q.complete=false;check(!call(q).valid.has_value());q=p;q.records.pop_back();check(!call(q).valid.has_value());q=p;set(q.records[11],98,17);reject(q);}
+    for(uint32_t id:{0u,4000u,0xffffu}){auto q=p;set(q.records[10],98,id);reject(q);q=p;set(q.records[10],104,id);reject(q);}
+    for(unsigned t:{53u,59u,62u}){auto b=buildings;b[16].type=uint16_t(t);check(evidenceMarketLinks(p.records[10],p,&b,&sv).valid==false);}
+    {auto b=buildings;b[16].parentSlot.reset();check(evidenceMarketLinks(p.records[10],p,&b,&sv).valid==false);b=buildings;b[13].type=66;check(evidenceMarketLinks(p.records[10],p,&b,&sv).valid==false);b=buildings;b[16].stallWord30.reset();check(!evidenceMarketLinks(p.records[10],p,&b,&sv).valid.has_value());b[16].stallWord30=11;check(evidenceMarketLinks(p.records[10],p,&b,&sv).valid==false);}
+    for(unsigned t:{53u,54u,56u,58u}){auto b=buildings;b[12].type=uint16_t(t);check(evidenceMarketLinks(p.records[10],p,&b,&sv).valid==true);}
+    {auto b=buildings;b[12].type=59;check(evidenceMarketLinks(p.records[10],p,&b,&sv).valid==false);b.erase(12);check(evidenceMarketLinks(p.records[10],p,&b,&sv).valid==false);check(!evidenceMarketLinks(p.records[10],p,nullptr,&sv).valid.has_value());}
+    {auto v=sv;v.routeOwners[7]=11;check(evidenceMarketLinks(p.records[10],p,&buildings,&v).valid==false);auto q=p;set(q.records[10],68,2);check(evidenceMarketLinks(q.records[10],q,&buildings,&v).valid==true);check(v.routeOwners[7]==11);check(!evidenceMarketLinks(p.records[10],p,&buildings,nullptr).valid.has_value());}
+    for(const auto route:std::vector<std::array<uint32_t,3>>{{1000,0,2},{7,0xffff,2},{7,0,501},{0,0,2}}){auto q=p;set(q.records[10],66,route[0]);set(q.records[10],68,route[1]);set(q.records[10],70,route[2]);reject(q);}
+    for(unsigned type:{24u,25u}){
+        auto wire=list(1);record(wire,type,"Figure",false,{{25,0x1234},{65,0xfffe},{98,0xffff},{130,0x8000},{200,0xffffffffu},{228,0x80000000u}});
+        const auto frozen=wire;auto a=parse(wire);check(a.complete&&wire==frozen&&a.records[0].runtimeClass==OriginalFigureClass::Figure);const auto f=evidenceMarketFields(a.records[0]);check(f&&f->size()==39);
+        check(f->at("receiver_25_wire_u16")==0x1234&&f->at("receiver_65_wire_u16")==0xfffe);check(f->at("receiver_98_s16")==-1&&f->at("receiver_130_s16")==-32768);check(f->at("receiver_200_u32")==4294967295LL&&f->at("receiver_228_u32")==2147483648LL);
+        for(size_t cut=0;cut<wire.size();++cut)check(!parse(std::vector<uint8_t>(wire.begin(),wire.begin()+cut)).complete);
+        a.records[0].fields.pop_back();check(!evidenceMarketFields(a.records[0]));
+    }
+    check(!evidenceMarketFields(figure(1,23))&&evidenceSelectedFigure(25));
+    auto wire=list(2);record(wire,25,"Figure",true);const auto stop=wire.size();record(wire,24);auto a=parse(wire);check(!a.complete&&a.completed==0&&a.stopOffset==stop&&a.reason=="variable_fsa_unqualified");check(!a.records[0].recordComplete);
+    wire=list(2);record(wire,24);record(wire,25,"cSalamanderFig");a=parse(wire);check(!a.complete&&a.completed==1&&a.reason=="unqualified_class");
+}
 }
 int main(){try{
+    marketReferenceTests();
     // No footprint argument: an empty city reads the same anchored clock.
     for(const size_t terrain:{size_t(32),size_t(303),size_t(5003)}){
         const size_t end=terrain+original_save19::c82ef4+4,side=end+176;

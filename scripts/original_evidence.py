@@ -33,7 +33,9 @@ FOOD_CHAIN_BUDGET = dict(BUDGET, total_seconds=2700, preparation_cycles=48,
                         preparation_phase_steps=2448, preparation_seconds=900,
                         gross_build_spend=800, net_treasury_drop=1000)
 FIELD_CONTRACT = 'clock-producer-figure7-v1'
-SELECTED_TYPES = (2, 19, 20, 21, 22, 23, 24, 28, 39, 40, 54, 75, 76, 77)
+LEGACY_SELECTED_TYPES = (2, 19, 20, 21, 22, 23, 24, 28, 39, 40, 54, 75, 76, 77)
+SELECTED_TYPES = (2, 19, 20, 21, 22, 23, 24, 25, 28, 39, 40, 54, 75, 76, 77)
+MARKET_LINK_CONTRACT = 'figure24-25-reference-v1'
 HUNT_FIELDS = {'counter_s16': (62, True), 'destination_x_s16': (44, True),
                'destination_y_s16': (46, True), 'home_x_s16': (52, True), 'home_y_s16': (54, True),
                'hidden_wire_u8': (111, False), 'previous_action_wire_u8': (24, False),
@@ -41,6 +43,48 @@ HUNT_FIELDS = {'counter_s16': (62, True), 'destination_x_s16': (44, True),
                'linked_building_wire_u32': (328, False), 'flags120_wire_u32': (288, False),
                'damage_wire_u32': (168, False), 'projectile_wire_u8': (297, False),
                'projectile_hits_wire_u8': (160, False)}
+
+MARKET_FIELDS = {
+    'receiver_5_u8': (5, False, 1),
+    'receiver_8_u32': (8, False, 4),
+    'receiver_12_u32': (12, False, 4),
+    'receiver_19_u8': (19, False, 1),
+    'receiver_22_u8': (22, False, 1),
+    'receiver_25_wire_u16': (25, False, 2),
+    'receiver_26_wire_u16': (26, False, 2),
+    'receiver_27_wire_u16': (27, False, 2),
+    'receiver_28_s16': (28, True, 2),
+    'receiver_30_s16': (30, True, 2),
+    'receiver_44_s16': (44, True, 2),
+    'receiver_46_s16': (46, True, 2),
+    'receiver_48_u32': (48, False, 4),
+    'receiver_52_s16': (52, True, 2),
+    'receiver_54_s16': (54, True, 2),
+    'receiver_64_u8': (64, False, 1),
+    'receiver_65_wire_u16': (65, False, 2),
+    'receiver_66_s16': (66, True, 2),
+    'receiver_68_s16': (68, True, 2),
+    'receiver_70_s16': (70, True, 2),
+    'receiver_97_u8': (97, False, 1),
+    'receiver_98_s16': (98, True, 2),
+    'receiver_100_s16': (100, True, 2),
+    'receiver_102_s16': (102, True, 2),
+    'receiver_104_s16': (104, True, 2),
+    'receiver_114_s16': (114, True, 2),
+    'receiver_128_u8': (128, False, 1),
+    'receiver_130_s16': (130, True, 2),
+    'receiver_136_u8': (136, False, 1),
+    'receiver_144_s16': (144, True, 2),
+    'receiver_148_u16': (148, False, 2),
+    'receiver_161_u8': (161, False, 1),
+    'receiver_200_u32': (200, False, 4),
+    'receiver_228_u32': (228, False, 4),
+    'receiver_276_u32': (276, False, 4),
+    'receiver_304_s16': (304, True, 2),
+    'receiver_368_u8': (368, False, 1),
+    'receiver_400_u32': (400, False, 4),
+    'receiver_404_u32': (404, False, 4),
+}
 
 
 def sha(data):
@@ -150,6 +194,123 @@ def risk_counters(s, b):
     return r
 
 
+def market_link_issues(s):
+    """Recheck references and raw mirrors; no cargo, FSA or movement inference."""
+    a = s.get('actors') or {}
+    if a.get('market_link_contract') != MARKET_LINK_CONTRACT:
+        return ['market_link_contract_required']
+    issues = []
+    if a.get('market_links_complete') is not True:
+        issues.append('market_links_not_qualified')
+    if a.get('strict_reader_crosscheck') is not True or any(type(a.get(k)) is not int or a[k] != 2000 for k in ('declared', 'completed')):
+        issues.append('market_complete_crosschecked_pool_required')
+    rows, buildings = a.get('records') or [], s.get('buildings') or []
+    if not any(r.get('type') in (24, 25) for r in rows):
+        return issues
+    actors = {r.get('slot'): r for r in rows if type(r.get('slot')) is int}
+    owners = {b.get('slot'): b for b in buildings if type(b.get('slot')) is int}
+    if len(actors) != len(rows) or len(owners) != len(buildings):
+        issues.append('market_duplicate_or_missing_identity')
+    for f in rows:
+        if f.get('type') not in (24, 25):
+            continue
+        if type(f.get('slot')) is not int or not 1 <= f['slot'] < 2000:
+            issues.append('market_actor_identity_range')
+            continue
+        base = f.get('base_fields')
+        if not isinstance(base, list) or any(not isinstance(v, dict) for v in base):
+            issues.append('market_base_record_list_required')
+            continue
+        raw = {v.get('receiver_offset'): v for v in base}
+        if len(raw) != len(base):
+            issues.append('market_duplicate_base_offset')
+        mf, ref = f.get('market_base_fields'), f.get('market_reference')
+        if not isinstance(mf, dict) or set(mf) != set(MARKET_FIELDS):
+            issues.append('market_raw_fields_required')
+            continue
+        for k, (offset, signed, width) in MARKET_FIELDS.items():
+            r = raw.get(offset) or {}
+            value = r.get('unsigned_wire_value')
+            if r.get('wire_width') != width or type(value) is not int or not 0 <= value < (1 << (8 * width)):
+                issues.append('market_raw_width_or_value:' + k)
+                continue
+            expected = value - 65536 if signed and value > 32767 else value
+            if type(mf.get(k)) is not int or mf[k] != expected:
+                issues.append('market_raw_mirror:' + k)
+        for name, offset in (('owner', 98), ('delivery', 104), ('home', 100), ('target', 144),
+                             ('amount', 130), ('leader_link', 114), ('follower', 102),
+                             ('route', 66), ('route_cursor', 68), ('route_length', 70), ('x', 28), ('y', 30)):
+            if type(f.get(name)) is not int or f[name] != mf.get('receiver_%d_s16' % offset):
+                issues.append('market_named_raw_mismatch:' + name)
+        for name, offset, suffix in (('action', 64, 'u8'), ('resource', 136, 'u8'), ('subtype', 19, 'u8'),
+                                     ('allocation_serial', 148, 'u16'), ('age', 276, 'u32'),
+                                     ('destination_cell', 48, 'u32'), ('route_phase', 368, 'u8'),
+                                     ('progress_wire', 65, 'wire_u16'), ('speed', 97, 'u8')):
+            if type(f.get(name)) is not int or f[name] != mf.get('receiver_%d_%s' % (offset, suffix)):
+                issues.append('market_named_raw_mismatch:' + name)
+        if type(f.get('runtime_class_raw')) is not int or f.get('runtime_class_raw') != 0 or f.get('alias') is not False or mf.get('receiver_22_u8') != 1:
+            issues.append('market_live_Figure_record_required')
+        if not isinstance(ref, dict) or ref.get('reference_valid') is not True:
+            issues.append('market_actor_reference_unqualified')
+            continue
+        if f['type'] == 25 and (type(f.get('leader_link')) is not int or not 1 <= f['leader_link'] < 2000):
+            issues.append('market_leader_identity_range')
+            continue
+        buyer = f if f['type'] == 24 else actors.get(f.get('leader_link'))
+        if not buyer or buyer.get('type') != 24:
+            issues.append('market_leader_type24_required')
+            continue
+        follower = buyer.get('follower')
+        companion = actors.get(follower) if follower else None
+        if type(follower) is not int or not 0 <= follower < 2000 or (follower and (not companion or companion.get('type') != 25)):
+            issues.append('market_follower_type25_required')
+            continue
+        if companion and (companion.get('leader_link') != buyer.get('slot') or companion.get('owner') != buyer.get('owner')):
+            issues.append('market_pair_not_reciprocal')
+        if f['type'] == 25 and (not companion or companion.get('slot') != f.get('slot')):
+            issues.append('market_reverse_pair_not_reciprocal')
+        reverse = [r.get('slot') for r in rows if r.get('type') == 25 and r.get('leader_link') == buyer.get('slot')]
+        if reverse != ([companion['slot']] if companion else []):
+            issues.append('market_reverse_pair_not_reciprocal')
+        invalid_building_refs = [k for k in ('owner', 'delivery')
+                                 if type(buyer.get(k)) is not int or not 1 <= buyer[k] < 4000]
+        if invalid_building_refs:
+            issues.extend('market_building_reference_range:' + k for k in invalid_building_refs)
+            continue
+        stall, source = owners.get(buyer.get('owner')), owners.get(buyer.get('delivery'))
+        if not stall or stall.get('type') not in (66, 67) or stall.get('alive') != 1:
+            issues.append('market_owner_stall_required')
+            continue
+        if type(stall.get('parent_slot')) is not int or not 1 <= stall['parent_slot'] < 4000:
+            issues.append('market_parent_identity_range')
+            continue
+        parent = owners.get(stall.get('parent_slot'))
+        if not parent or parent.get('type') != 59 or parent.get('alive') != 1:
+            issues.append('market_parent59_required')
+        if type(stall.get('stall_word30_wire_s16')) is not int or stall['stall_word30_wire_s16'] != buyer.get('slot'):
+            issues.append('market_stall_word30_mismatch')
+        if not source or source.get('type') not in (53, 54, 56, 58) or source.get('alive') != 1:
+            issues.append('market_delivery_storage_required')
+        expected = dict(buyer_slot=buyer.get('slot'), companion_slot=companion.get('slot') if companion else None,
+                        owner_slot=buyer.get('owner'), parent_market_slot=stall.get('parent_slot'),
+                        delivery_slot=buyer.get('delivery'), state='reciprocal_pair' if companion else 'no_companion_reference')
+        if any(ref.get(k) != v or (type(v) is int and type(ref.get(k)) is not int) for k, v in expected.items()):
+            issues.append('market_reference_claim_mismatch')
+        route, cursor, length = f.get('route'), f.get('route_cursor'), f.get('route_length')
+        if f.get('route_reference_valid') is not True or not all(type(v) is int for v in (route, cursor, length)):
+            issues.append('market_route_reference_required')
+        elif route == 0:
+            if cursor < length or f.get('saved_route') is not None or f.get('route_cursor_is_array_index') is not False:
+                issues.append('market_no_route_reference_mismatch')
+        elif not 0 < route < 1000 or cursor < 0 or not 0 <= length <= 500:
+            issues.append('market_route_bounds')
+        elif cursor < length:
+            sr = f.get('saved_route') or {}
+            if sr.get('saved_owner') != f.get('slot') or f.get('reciprocal_route_owner') is not True or f.get('route_cursor_is_array_index') is not True or len(sr.get('directions') or []) != length:
+                issues.append('market_active_route_owner_mismatch')
+    return sorted(set(issues))
+
+
 def field_contract_issues(s):
     """Known exported fields only; never infer a producer/FSA/calendar algorithm."""
     issues = []
@@ -183,20 +344,26 @@ def field_contract_issues(s):
             if type(p.get('hunter_active_count_u8')) is not int or not 0 <= p['hunter_active_count_u8'] <= 255:
                 issues.append('hunter_active_count_byte_required')
     a = s.get('actors') or {}
-    if a.get('selected_types') != list(SELECTED_TYPES) or a.get('fsa_semantics_complete') is not False:
+    selected = tuple(a.get('selected_types') or ())
+    legacy = selected == LEGACY_SELECTED_TYPES and 'market_link_contract' not in a and 'market_links_complete' not in a
+    if (selected != SELECTED_TYPES and not legacy) or a.get('fsa_semantics_complete') is not False:
         issues.append('declared_base_selection_scope_required')
+    if not legacy:
+        issues.extend(market_link_issues(s))
     if a.get('base_pool_complete') is not True or a.get('selected_records_complete') is not True:
         issues.append('complete_actor_export_required_not_partial_FSA')
     counts, records = a.get('live_counts_in_read_prefix') or {}, a.get('records') or []
-    count_values = [counts.get(str(t), 0) for t in SELECTED_TYPES]
+    count_values = [counts.get(str(t), 0) for t in selected]
     if any(type(n) is not int or not 0 <= n <= 8192 for n in count_values):
         issues.append('selected_count_contract')
     else:
         expected = sum(count_values)
         if expected > 256 or a.get('selected_record_budget') != 256 or type(a.get('selected_records_count')) is not int or a['selected_records_count'] != expected or len(records) != expected:
             issues.append('selected_count_or_output_budget')
+        if any(sum(r.get('type') == t for r in records) != counts.get(str(t), 0) for t in selected):
+            issues.append('selected_type_count_mismatch')
     for f in records:
-        if f.get('type') not in SELECTED_TYPES or f.get('record_complete') is not True:
+        if f.get('type') not in selected or f.get('record_complete') is not True:
             issues.append('selected_record_scope_or_partial')
         if f.get('type') not in (40, 54, 75, 76, 77):
             continue
@@ -307,11 +474,12 @@ def qualify(s):
             'market_state_export_ready': not calendar and not operating and not market and
                                          (s.get('field_contract') is None or not field_issues),
             'collector_field_contract_ready': not field_issues,
+            'market_companion_reference_ready': actors.get('market_link_contract') == MARKET_LINK_CONTRACT and not field_issues,
             'collector_field_blockers': field_issues,
             'experiment_ready': False, 'calendar_blockers': sorted(set(calendar)),
             'operating_blockers': sorted(set(operating)), 'market_blockers': sorted(set(market)),
             'observed_market_actor_counts': {str(t): (actors.get('live_counts_in_read_prefix') or {}).get(str(t), 0)
-                                             if actors.get('absence_certified') else None for t in (23, 24)},
+                                             if actors.get('absence_certified') else None for t in (23, 24, 25)},
             'risk_counter_maxima': {field: max((r[field] for r in risks if r is not None), default=None)
                                    for field in ('collapse_counter', 'ignition_counter')},
             'hazard_safety_certified': False,

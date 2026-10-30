@@ -118,6 +118,7 @@ J exportSnapshot(const std::vector<uint8_t>& input){
             j["spawn_counter"]=i.spawnCounter;j["spawn_aux"]=i.spawnAux;
             j["supplier_status"]=number(i.supplierStatus);j["stall_resource_index"]=number(i.stallResourceIndex);
             j["parent_slot"]=number(i.parentSlot);
+            j["stall_word30_wire_s16"]=(b.type==66||b.type==67)?J(i.word30):J();
             j["cached_water"]=i.houseWater;j["desirability"]=number(i.modelDesirability);
             const auto goods=i.house?originalHouseGoodsFromPayload(i.house->data(),i.house->size()):std::nullopt;
             j["goods12_crosscheck"]=goods&&b.houseGoods?J(*goods==*b.houseGoods):J();}}
@@ -142,8 +143,17 @@ J exportSnapshot(const std::vector<uint8_t>& input){
         crosscheck&=p.slot==f.slot&&p.field(18)==f.type&&p.field(22)==f.alive&&p.field(64)==f.action&&
             p.field(98)&&signedWord(*p.field(98))==f.owner&&p.field(130)&&signedWord(*p.field(130))==f.amount&&
             p.field(66)&&signedWord(*p.field(66))==f.route&&p.field(68)&&signedWord(*p.field(68))==f.routeCursor&&
-            p.field(70)&&signedWord(*p.field(70))==f.routeLength;}
+            p.field(70)&&signedWord(*p.field(70))==f.routeLength&&p.runtimeClass==f.runtimeClass&&
+            p.field(114)&&signedWord(*p.field(114))==f.leaderLink&&p.field(102)&&signedWord(*p.field(102))==f.follower&&
+            p.field(104)&&signedWord(*p.field(104))==f.delivery&&p.field(148)==f.allocationSerial;}
     actors["strict_reader_crosscheck"]=crosscheck;
+    actors["market_link_contract"]=evidenceMarketLinkContract;
+    std::map<size_t,EvidenceMarketBuilding> marketBuildings;
+    if(links&&inputs)for(const auto& entry:*links){EvidenceMarketBuilding b;b.type=entry.second.type;b.alive=entry.second.alive;
+        const auto i=inputs->find(entry.first);if(i!=inputs->end()){b.parentSlot=i->second.parentSlot;
+            if(b.type==66||b.type==67)b.stallWord30=i->second.word30;}marketBuildings.emplace(entry.first,b);}
+    bool marketLinksComplete=prefix.complete&&crosscheck&&linksComplete&&bool(inputs);
+
     J goods;
     if(prefix.complete&&prefix.declared==2000){const auto g=originalFigureSavedGoodsServices(d,prefix.stopOffset,saved.sizeOffset,saved.terrainOffset);
         if(g){goods=J::object();goods["warehouse36"]=array(g->warehouse);goods["trade5_36"]=array(g->trade5);
@@ -156,9 +166,9 @@ J exportSnapshot(const std::vector<uint8_t>& input){
         if(!evidenceSelectedFigure(*type))continue;
         if(++selected>256)continue; // Explicit output/memory budget, never silently certify truncation.
         J j=J::object();j["slot"]=f.slot;j["type"]=*type;j["record_complete"]=f.recordComplete;j["alias"]=f.alias;
-        j["wire_begin"]=f.begin;j["wire_end"]=f.end;
+        j["wire_begin"]=f.begin;j["wire_end"]=f.end;j["runtime_class_raw"]=int(f.runtimeClass);
         for(const auto& pair:{std::pair<const char*,unsigned>{"owner",98},{"target",144},{"home",100},{"delivery",104},
-            {"amount",130},{"route",66},{"route_cursor",68},{"route_length",70},{"x",28},{"y",30},{"next",16}}){
+            {"leader_link",114},{"follower",102},{"amount",130},{"route",66},{"route_cursor",68},{"route_length",70},{"x",28},{"y",30},{"next",16}}){
             const auto v=f.field(pair.second);j[pair.first]=v?J(signedWord(*v)):J();}
         for(const auto& pair:{std::pair<const char*,unsigned>{"action",64},{"resource",136},{"subtype",19},{"cell",40},
             {"destination_cell",48},{"progress_wire",65},{"route_phase",368},{"speed",97},{"age",276},{"allocation_serial",148}})j[pair.first]=number(f.field(pair.second));
@@ -177,10 +187,19 @@ J exportSnapshot(const std::vector<uint8_t>& input){
         j["saved_route"]=routeState;J fields=J::array();size_t n=0;
         J hunt;const auto hf=evidenceHuntFields(f);if(hf){hunt=J::object();for(const auto& e:*hf)hunt[e.first]=e.second;}
         j["hunt_base_fields"]=hunt;
+        J marketFields;const auto mf=evidenceMarketFields(f);if(mf){marketFields=J::object();for(const auto& e:*mf)marketFields[e.first]=e.second;}
+        j["market_base_fields"]=marketFields;J marketReference;
+        if(*type==24||*type==25){const auto q=evidenceMarketLinks(f,prefix,links&&inputs?&marketBuildings:nullptr,services?&*services:nullptr);
+            marketReference=J::object();marketReference["reference_valid"]=number(q.valid);marketReference["state"]=q.state;
+            marketReference["buyer_slot"]=number(q.buyer);marketReference["companion_slot"]=number(q.companion);
+            marketReference["owner_slot"]=number(q.owner);marketReference["parent_market_slot"]=number(q.parent);marketReference["delivery_slot"]=number(q.delivery);
+            marketLinksComplete&=q.valid==true&&bool(mf);}
+        j["market_reference"]=marketReference;
         for(const auto& field:emperor::file_io::research::figure7_fields){J q=J::object();q["receiver_offset"]=field.receiver_offset;q["wire_width"]=field.bytes;
             q["unsigned_wire_value"]=field.bytes<=4?J(f.fields.at(n)):J();if(field.bytes==20)q["opaque_numeric_bytes"]=array(f.opaque380);++n;fields.add(q);}j["base_fields"]=fields;records.add(j);
     }
     for(const auto& c:liveCounts)counts[std::to_string(c.first)]=c.second;actors["live_counts_in_read_prefix"]=counts;actors["records"]=records;
+    actors["market_links_complete"]=marketLinksComplete&&selected<=256;
     actors["selected_records_complete"]=prefix.complete&&selected<=256;actors["selected_records_count"]=selected;actors["selected_record_budget"]=256;
     out["actors"]=actors;out["unknown"]=array(std::vector<std::string>{"displayed_year_epoch_mapping","monthly_services_algorithm", "health_weights_and_food_consumption_formula","quality_code_to_recipe_mapping","market_business_capacity","variable_figure_fsa_payload_and_semantics","pre_first_dispatch_history","dynamic_patrol_and_risk_trend"});
     return out;

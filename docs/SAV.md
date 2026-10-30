@@ -1490,3 +1490,68 @@ not a corrupt field or a measured918 threshold. There is no live39 at either
 endpoint; the exact original intervening RNG and patrol history remain unknown.
 This correction does not run the original, synthesize a safe input, change
 disaster algorithms or alter persisted gameplay bytes.
+
+
+## Market companion reference observability (2026-10-30)
+
+The evidence-only selected set adds Figure type25 to the previous14 types.
+The unchanged known Figure7 framing now exports the companion, so a buyer's
+`follower` (receiver102) and the companion's `leader_link` (receiver114) can be
+checked in both directions. These are distinct from the cell-list `next` link.
+The existing Figure/Pheasant/Emissary class identity is retained as
+`runtime_class_raw`; this adds no class or variable-FSA reader.
+
+Each24/25 record adds39 `market_base_fields` using receiver-offset, signedness
+and wire-width names. In particular, `receiver_200_u32` and `receiver_228_u32`
+remain raw numeric observations, not named cargo, source, quantity or quality.
+Two-byte enum requests preserve both wire bytes. Existing full base fields,
+image words, generic amount/resource, and all old named values are unchanged.
+A zero generic amount/resource does not certify an absence of cargo. Neither
+action7 nor a destination pointing home certifies an observed loading event.
+
+The additive `actors.market_link_contract` is
+`figure24-25-reference-v1`. Per-record `market_reference` checks the represented
+live Figure-class shape:24 owns a decoded Stall66/67, its qualified parent is
+Market59, the Stall's raw `stall_word30_wire_s16` names that buyer, and delivery
+references an existing live storage type53/54/56/58. A positive follower must be
+a live25 with a reciprocal leader and matching owner; a reverse-only or
+cross-type link refuses certification. Zero follower is legitimate when no
+reverse companion exists. Existing route reference checks apply separately to
+buyer and companion; retained no-route counters and exhausted-route foreign
+ownership are preserved. Unknown live/retirement states, missing services,
+aliases or unqualified classes remain unqualified, rather than repaired. This
+is a reference-shape contract, not validation of the complete lifecycle.
+
+`market_links_complete` is true only with the complete2000-slot base pool,
+strict-reader cross-check, complete building inputs and bounded selected output.
+Python independently checks raw/named mirrors, pair/building/route claims,
+per-type counts and the256-record cap. A contradictory new report cannot
+assert this scope by setting a Boolean alone. Both consumers require actor identities1..1999
+and referenced owner/delivery/parent-market identities1..3999, even if the
+record identities, raw fields and reference claims are consistently rewritten
+together. Old14-type reports without the
+new contract remain readable under their old scope;
+`market_companion_reference_ready` is false for them. New15-type reports must
+carry the additive contract. Existing schema/field-contract names and paths
+are unchanged. Unknown FSA still stops before later actors and Goods;
+`whole_sav_accepted` and `fsa_semantics_complete` remain false.
+
+Concentrated Release and UBSan validation each pass3266 authored format/reference
+checks,37 Python groups, malformed/container-budget refusal paths and219
+structural checks across4 existing read-only samples. Both modes produce
+byte-identical exports. Companion coverage increases from0 to2 exported
+observations out of2 present observations; these are the same buyer/companion
+pair observed at two saved times, not two independent chains or completed
+lifecycles. All4 snapshots qualify their represented reference scope. The4 archived old reports still validate at their
+old scope and every prior field is unchanged. Counterexamples cover signed/raw
+widths, truncation, type25 FSA stop, unknown classes, wrong/one-way/duplicate
+links, owner/parent/Stall/source mismatches, missing/foreign/exhausted routes,
+forged qualifications, null/duplicate fields, consistently rewritten out-of-range
+identities, legal upper limits and output limits. No-companion, no-route and
+exhausted-route/foreign-owner positive cases remain accepted. Tests use only
+authored fixtures; no original bytes or private reports are committed.
+
+This work does not add a24/25 updater, graphics selector, load/unload recipe,
+market creation, native codec, calendar algorithm or new original-game run.
+The next evidence audit must include the companion and raw payload before
+implementing gameplay; native v6 defaults and old saves are unaffected.

@@ -8,7 +8,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from original_evidence import SOURCES, CAPTURE_SOURCES, READ_SOURCES, MAX_INPUT, BUDGET, read_candidate, capture_target_status, qualify, protocol, audit_series, risk_counters
-from original_evidence import FIELD_CONTRACT, SELECTED_TYPES, HUNT_FIELDS, field_contract_issues
+from original_evidence import FIELD_CONTRACT, SELECTED_TYPES, LEGACY_SELECTED_TYPES, HUNT_FIELDS, field_contract_issues
+from original_evidence import MARKET_FIELDS, MARKET_LINK_CONTRACT, market_link_issues
 from original_evidence import EMPTY_SOURCE, FOOD_CHAIN_CAPTURES, PROTECTED_SOURCES, ALL_CAPTURES, FOOD_CHAIN_BUDGET
 
 
@@ -39,6 +40,7 @@ def fields_fixture():
     s.update(field_contract=FIELD_CONTRACT, producer_inputs_complete=True)
     s['clock'].update(source='anchored_SAV19_global_fields', footprint_reader_crosscheck=None)
     s['actors'].update(selected_types=list(SELECTED_TYPES), fsa_semantics_complete=False,
+                       market_link_contract=MARKET_LINK_CONTRACT, market_links_complete=True, declared=2000, completed=2000,
                        selected_record_budget=256, selected_records_count=0, live_counts_in_read_prefix={})
     return s
 
@@ -53,7 +55,201 @@ def hunter_fixture():
     return s
 
 
+def market_fixture():
+    s = fields_fixture()
+    s['buildings'][3]['stall_word30_wire_s16'] = 10
+    def actor(slot, kind, overrides):
+        raw = {o: 0 for o, signed, width in MARKET_FIELDS.values()}
+        raw.update({22: 1, 98: 4, 148: 92 if kind == 24 else 95, 200: 12, 228: 100})
+        raw.update(overrides)
+        f = dict(slot=slot, type=kind, runtime_class_raw=0, alias=False, record_complete=True,
+                 base_fields=[dict(receiver_offset=o, wire_width=w, unsigned_wire_value=raw[o]) for o, signed, w in MARKET_FIELDS.values()],
+                 market_base_fields={k: raw[o] - 65536 if signed and raw[o] > 32767 else raw[o] for k, (o, signed, w) in MARKET_FIELDS.items()})
+        for key, o in (('owner', 98), ('delivery', 104), ('home', 100), ('target', 144), ('amount', 130),
+                       ('leader_link', 114), ('follower', 102), ('route', 66), ('route_cursor', 68), ('route_length', 70), ('x', 28), ('y', 30)):
+            f[key] = raw[o] - 65536 if raw[o] > 32767 else raw[o]
+        for key, o in (('action', 64), ('resource', 136), ('subtype', 19), ('allocation_serial', 148), ('age', 276),
+                       ('destination_cell', 48), ('route_phase', 368), ('progress_wire', 65), ('speed', 97)):
+            f[key] = raw[o]
+        f.update(route_reference_valid=True, route_cursor_is_array_index=kind == 24, reciprocal_route_owner=True if kind == 24 else None,
+                 saved_route=dict(saved_owner=slot, directions=[2, 4]) if kind == 24 else None,
+                 market_reference=dict(reference_valid=True, state='reciprocal_pair', buyer_slot=10, companion_slot=11,
+                                       owner_slot=4, parent_market_slot=3, delivery_slot=2))
+        return f
+    a = actor(10, 24, {104: 2, 102: 11, 66: 7, 70: 2})
+    b = actor(11, 25, {114: 10, 136: 28, 19: 1})
+    s['actors'].update(records=[a, b], selected_records_count=2, live_counts_in_read_prefix={'24': 1, '25': 1})
+    return s
+
+
+def change_market_field(f, offset, value, named=None):
+    for raw in f['base_fields']:
+        if raw['receiver_offset'] == offset:
+            raw['unsigned_wire_value'] = value
+    for k, (o, signed, width) in MARKET_FIELDS.items():
+        if o == offset:
+            v = value - 65536 if signed and value > 32767 else value
+            f['market_base_fields'][k] = v
+            if named:
+                f[named] = v
+
+
+def remap_market_references(s, buyer=10, companion=11, owner=4, parent=3, delivery=2):
+    a, b = s['actors']['records']
+    a['slot'], b['slot'] = buyer, companion
+    change_market_field(a, 102, companion, 'follower')
+    change_market_field(b, 114, buyer, 'leader_link')
+    change_market_field(a, 104, delivery, 'delivery')
+    for f in (a, b):
+        change_market_field(f, 98, owner, 'owner')
+        f['market_reference'].update(buyer_slot=buyer, companion_slot=companion,
+                                     owner_slot=owner, parent_market_slot=parent, delivery_slot=delivery)
+    a['saved_route']['saved_owner'] = buyer
+    mill, market, stall = s['buildings'][1:]
+    mill['slot'], market['slot'], stall['slot'] = delivery, parent, owner
+    stall.update(parent_slot=parent, stall_word30_wire_s16=buyer)
+
+
 class EvidenceTests(unittest.TestCase):
+    def test_market_consistent_out_of_range_identities(self):
+        for changes in ({'owner': 4000}, {'owner': 0}, {'delivery': 4000}, {'delivery': 0},
+                        {'parent': 4000}, {'parent': 0}, {'buyer': 0}, {'buyer': 2000},
+                        {'companion': 0}, {'companion': 2000}):
+            s = market_fixture()
+            remap_market_references(s, **changes)
+            issues = field_contract_issues(s)
+            self.assertTrue(issues, changes)
+            self.assertFalse(qualify(s)['market_companion_reference_ready'])
+            if changes == {'owner': 4000}:
+                self.assertIn('market_building_reference_range:owner', issues)
+            if changes == {'buyer': 0}:
+                self.assertIn('market_actor_identity_range', issues)
+        s = market_fixture()
+        remap_market_references(s, buyer=1999, companion=1998, owner=3999, parent=3998, delivery=3997)
+        self.assertEqual(field_contract_issues(s), [])
+
+    def test_market_boundary_fix_preserves_no_route_and_exhaustion(self):
+        s = market_fixture()
+        a = s['actors']['records'][0]
+        change_market_field(a, 66, 0, 'route')
+        change_market_field(a, 68, 10, 'route_cursor')
+        change_market_field(a, 70, 0, 'route_length')
+        a.update(saved_route=None, route_cursor_is_array_index=False, reciprocal_route_owner=None)
+        self.assertEqual(field_contract_issues(s), [])
+        s = market_fixture()
+        a = s['actors']['records'][0]
+        change_market_field(a, 68, 2, 'route_cursor')
+        a['saved_route']['saved_owner'] = 11
+        a.update(route_cursor_is_array_index=False, reciprocal_route_owner=False)
+        self.assertEqual(field_contract_issues(s), [])
+
+    def test_market_pair_known_fields_and_raw_numbers(self):
+        s = market_fixture()
+        self.assertEqual(field_contract_issues(s), [])
+        self.assertTrue(qualify(s)['market_companion_reference_ready'])
+        self.assertEqual(len(MARKET_FIELDS), 39)
+        for f in s['actors']['records']:
+            self.assertTrue(all(k.startswith('receiver_') for k in f['market_base_fields']))
+            change_market_field(f, 200, 0xffffffff)
+            change_market_field(f, 228, 0x80000000)
+            change_market_field(f, 130, 0x8000, 'amount')
+        self.assertEqual(field_contract_issues(s), [])
+        self.assertEqual(s['actors']['records'][0]['amount'], -32768)
+
+    def test_market_legacy_selection_keeps_only_old_scope(self):
+        s = fields_fixture()
+        s['actors']['selected_types'] = list(LEGACY_SELECTED_TYPES)
+        s['actors'].pop('market_link_contract')
+        s['actors'].pop('market_links_complete')
+        self.assertEqual(field_contract_issues(s), [])
+        self.assertFalse(qualify(s)['market_companion_reference_ready'])
+        s['actors']['market_link_contract'] = MARKET_LINK_CONTRACT
+        self.assertTrue(field_contract_issues(s))
+
+    def test_market_raw_and_named_tampering(self):
+        for offset, value in ((200, 0x100000000), (25, 65536), (22, True)):
+            s = market_fixture()
+            change_market_field(s['actors']['records'][0], offset, value)
+            self.assertTrue(field_contract_issues(s))
+        for field in ('leader_link', 'follower', 'owner', 'delivery', 'action', 'allocation_serial', 'progress_wire'):
+            s = market_fixture()
+            s['actors']['records'][0][field] += 1
+            self.assertTrue(field_contract_issues(s), field)
+        for field in ('market_base_fields', 'market_reference', 'runtime_class_raw'):
+            s = market_fixture()
+            s['actors']['records'][0].pop(field)
+            self.assertTrue(field_contract_issues(s), field)
+        s = market_fixture()
+        s['actors']['records'][0]['base_fields'][0]['wire_width'] = 4
+        self.assertTrue(field_contract_issues(s))
+
+    def test_market_wrong_cross_type_and_reverse_links(self):
+        for index, offset, value, name in ((0, 102, 0, 'follower'), (0, 102, 2000, 'follower'),
+                                          (1, 114, 0xffff, 'leader_link'), (1, 114, 11, 'leader_link'),
+                                          (1, 98, 3, 'owner'), (0, 104, 3, 'delivery')):
+            s = market_fixture()
+            change_market_field(s['actors']['records'][index], offset, value, name)
+            self.assertTrue(field_contract_issues(s))
+        for index, kind in ((0, 28), (1, 23)):
+            s = market_fixture()
+            s['actors']['records'][index]['type'] = kind
+            self.assertTrue(field_contract_issues(s))
+        for bindex, key, value in ((3, 'type', 62), (3, 'parent_slot', 2), (3, 'parent_slot', None),
+                                   (3, 'stall_word30_wire_s16', 11), (2, 'type', 66), (1, 'alive', 0)):
+            s = market_fixture()
+            s['buildings'][bindex][key] = value
+            self.assertTrue(field_contract_issues(s), (bindex, key))
+
+    def test_market_route_and_forged_qualification(self):
+        for key, value in (('market_links_complete', False), ('market_link_contract', 'unknown'),
+                           ('base_pool_complete', False), ('selected_records_complete', False), ('fsa_semantics_complete', True)):
+            s = market_fixture()
+            s['actors'][key] = value
+            self.assertTrue(field_contract_issues(s), key)
+        for key, value in (('reference_valid', False), ('buyer_slot', 11), ('companion_slot', None), ('state', 'loaded')):
+            s = market_fixture()
+            s['actors']['records'][0]['market_reference'][key] = value
+            self.assertTrue(field_contract_issues(s), key)
+        s = market_fixture()
+        s['actors']['records'][0]['saved_route']['saved_owner'] = 11
+        self.assertTrue(field_contract_issues(s))
+        s = market_fixture()
+        s['actors']['records'][0]['alias'] = True
+        self.assertTrue(field_contract_issues(s))
+        s = market_fixture()
+        s['actors']['records'][1]['runtime_class_raw'] = 1
+        self.assertTrue(field_contract_issues(s))
+
+    def test_market_duplicate_offsets_pool_and_scalar_types(self):
+        s = market_fixture()
+        f = s['actors']['records'][0]
+        f['base_fields'].append(copy.deepcopy(f['base_fields'][0]))
+        self.assertIn('market_duplicate_base_offset', field_contract_issues(s))
+        for key, value in (('declared', 1999), ('completed', 1999), ('declared', True), ('strict_reader_crosscheck', False)):
+            s = market_fixture()
+            s['actors'][key] = value
+            self.assertIn('market_complete_crosschecked_pool_required', field_contract_issues(s))
+        s = market_fixture()
+        s['actors']['records'][0]['runtime_class_raw'] = False
+        self.assertTrue(field_contract_issues(s))
+        for invalid in (None, {}, [None]):
+            s = market_fixture()
+            s['actors']['records'][0]['base_fields'] = invalid
+            self.assertIn('market_base_record_list_required', field_contract_issues(s))
+
+    def test_market_optional_companion_and_output_budget(self):
+        s = market_fixture()
+        a = s['actors']['records'][0]
+        change_market_field(a, 102, 0, 'follower')
+        a['market_reference'].update(companion_slot=None, state='no_companion_reference')
+        s['actors'].update(records=[a], selected_records_count=1, live_counts_in_read_prefix={'24': 1})
+        self.assertEqual(field_contract_issues(s), [])
+        frozen = copy.deepcopy(s)
+        self.assertEqual(market_link_issues(s), [])
+        self.assertEqual(s, frozen)
+        s['actors'].update(records=[copy.deepcopy(a)]*257, selected_records_count=257, live_counts_in_read_prefix={'24': 257})
+        self.assertTrue(field_contract_issues(s))
+
     def test_additive_field_contract_and_legacy_scope(self):
         s = fields_fixture()
         self.assertEqual(field_contract_issues(s), [])
