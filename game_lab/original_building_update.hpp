@@ -1039,9 +1039,20 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
             i.hookIndustry->at(secondaryOffset)=uint8_t(second);i.hookIndustry->at(secondaryOffset+1)=uint8_t(uint16_t(second)>>8);full=*next;}
         if(full)return OriginalBuildingUpdateBlocker::None;
         if(!c.walkersDisabled)return OriginalBuildingUpdateBlocker::MissingContext;if(*c.walkersDisabled)return OriginalBuildingUpdateBlocker::None;
-        if(!c.poolRoadSelected||!c.poolRoadSelected->count(s.building.slot))return OriginalBuildingUpdateBlocker::MissingContext;
-        if(!c.poolRoadSelected->at(s.building.slot))return OriginalBuildingUpdateBlocker::None;
-        if(type==71)return OriginalBuildingUpdateBlocker::BuildingVirtual20; //48B780 qualification needs descriptor service
+        //Type71 +54=4295C0 compares the requested figure against +2E and never
+        //consults the shared road map. Its +1B4=48B950 reads the saved
+        //entertainment byte +69, so a stall with no poolRoadSelected entry is
+        //gated by that byte rather than refused as a missing road.
+        if(type==71){if(!i.hookIndustry)return OriginalBuildingUpdateBlocker::MissingContext;
+            if(!i.hookIndustry->at(0x69-4))return OriginalBuildingUpdateBlocker::None;}
+        else{if(!c.poolRoadSelected||!c.poolRoadSelected->count(s.building.slot))return OriginalBuildingUpdateBlocker::MissingContext;
+            if(!c.poolRoadSelected->at(s.building.slot))return OriginalBuildingUpdateBlocker::None;}
+        //48B780 asks +25C for figure types 33,32,34 and falls through to
+        //416B60->+1B4 whenever any one is present. 51CB50 then releases the
+        //recorded primary figure (428E10->506240) and writes it back to zero.
+        if(type==71){int16_t present=i.primaryFigure;
+            const auto live=originalBuildingHookFigure(present,36,s.building.slot,c);if(!live)return OriginalBuildingUpdateBlocker::MissingContext;
+            if(*live)i.primaryFigure=0;return OriginalBuildingUpdateBlocker::None;}
         if(!c.employmentModel||!c.employmentModel->count(type))return OriginalBuildingUpdateBlocker::MissingContext;
         const int required=i.laborDisabled?0:c.employmentModel->at(type);
         int percent=required>0?int(i.workers)*100/required:0;if(percent<1)return OriginalBuildingUpdateBlocker::None;
@@ -1325,7 +1336,10 @@ inline OriginalBuildingUpdateBlocker originalBuildingPoolRoadStep(OriginalBuildi
                 const int relative=int(other.imageInputs->gridIndex)-int(b.imageInputs->gridIndex);
                 roads.ownerProbes.push_back({uint16_t(other.slot),b.imageInputs->gridIndex,relative,relative,false});}
             const auto access=originalBuildingRoadAccess(b,roads);if(!access)return OriginalBuildingUpdateBlocker::RoadRefresh;
-            c.poolRoadAccess->operator[](b.slot)=*access;}}
+            //426DF0 returns whether 4BAF40 chose a road cell, and the spawn
+            //steps read that selection. Record it with the access, as the load
+            //does, so a building that gains a road after load is not refused.
+            c.poolRoadAccess->operator[](b.slot)=*access;if(c.poolRoadSelected)c.poolRoadSelected->operator[](b.slot)=access->selected;}}
     for(auto& entry:*c.buildingInputs){auto& i=entry.second;if(i.alive!=1&&i.alive!=3)continue;
         const auto access=c.poolRoadAccess->find(entry.first);if(access==c.poolRoadAccess->end())return OriginalBuildingUpdateBlocker::RoadRefresh;
         i.distance=originalBuildingSignedWord(access->second.distance);i.roadX=access->second.x;i.roadY=access->second.y;
@@ -1468,7 +1482,10 @@ inline OriginalBuildingUpdateBlocker originalBuildingTradeStep(OriginalBuildingU
             if(!id||!c.figures->at(size_t(id)).alive||c.figures->at(size_t(id)).action==4){vacancy=true;break;}}
         if(!vacancy)continue;
         if(p.timer>0){--p.timer;++t.timersChanged;continue;}
-        if(!t.dispatchDelay||!c.statistics->religionBonusEnabled)return OriginalBuildingUpdateBlocker::MissingContext;
+        //5DC4A0 constructs the trade service with land delay 0x22 at +8 and
+        //sea delay 4 at +C. The saved timer reset matches the land literal.
+        if(!t.dispatchDelay)t.dispatchDelay=std::array<int32_t,2>{4,0x22};
+        if(!c.statistics->religionBonusEnabled)return OriginalBuildingUpdateBlocker::MissingContext;
         int32_t delay=t.dispatchDelay->at(p.sea==1?0:1);
         if(p.faction!=faction&&*c.statistics->religionBonusEnabled){if(!c.statistics->religionBonus)return OriginalBuildingUpdateBlocker::MissingContext;
             if(*c.statistics->religionBonus==11)delay=delay>=0?delay/2:-int32_t((-(int64_t(delay))+1)/2);}
@@ -1917,7 +1934,18 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
     auto blocker=originalBuildingFoodForecastStep(c);if(blocker!=OriginalBuildingUpdateBlocker::None)return blocker;
     //Named remaining services;never interpret a nonempty Empire/calendar as empty.
     const unsigned part=*c.monthPart;
-    if(part==6||part==7||part==8||part==12)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    //4AC882 masks the cycle with 0x8000000F and runs the 591200 rating only
+    //when the result is zero, i.e. every 16th cycle. Other cycles do nothing
+    //for parts 6 and 8.
+    if(part==6||part==8){const int32_t cycle=int32_t(*c.cycle);const int32_t masked=cycle&0x8000000f;
+        if((masked<0?((masked-1)|~0x0f)+1:masked)==0)return OriginalBuildingUpdateBlocker::MonthlyCity;}
+    //4A8ED0 selects a partner only when one is alive, holds reserves at +3AB8,
+    //is not blocked, is not kind 4 or 6 and is not the current faction. With no
+    //such partner the call returns before its request, so nothing is missing.
+    else if(part==7){if(!c.trade||!c.statistics)return OriginalBuildingUpdateBlocker::MonthlyCity;
+        const int current=c.statistics->currentFaction;
+        for(const auto& p:c.trade->partners)if(p.alive&&p.reserves[4]&&!(p.blocked&4)&&p.kind!=4&&p.kind!=6&&int(p.faction)!=current)return OriginalBuildingUpdateBlocker::MonthlyCity;}
+    else if(part==12)return OriginalBuildingUpdateBlocker::MonthlyCity;
     if(part==4){ //4ACB59->442890(1),current Grid only;441310/20 flag
         if(!c.monthlyServices||!*c.monthlyServices||!c.trade||!c.statistics||!c.terrain||!c.terrainOwners||!c.buildings||!c.activeSide||!c.cropBase)return OriginalBuildingUpdateBlocker::MonthlyCity;
         const int current=c.statistics->currentFaction;if(current<0||current>=22||c.terrain->size()!=51984||c.terrainOwners->size()!=51984)return OriginalBuildingUpdateBlocker::InvalidState;

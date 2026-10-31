@@ -19,16 +19,18 @@
 
 ## Stage 2: 1000 updates — 0/6
 
-`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates).
+`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release and UBSan agree.
 
 | Source | Updates | Calendar | First refusal |
 |---|---|---|---|
-| zoom/历史战役自动存档_2 | 209 | 7 / 4 | animal spawn `4EA8E0` (formation phase, reported as `city_accounting_4f1560_4ac2fa`) |
-| zoom/载入旧存档自动保存 | 235 | 1 / 4 | `poolRoadSelected` missing for building that gained a road after load |
-| 项羽/历史战役自动保存_1 | 236 | 1 / 4 | same |
-| zoom/历史战役自动保存_1 | 305 | 1 / 5 | monthly tail part 6 (`591200` city ratings); parts 7/8/12 also unported |
-| 项羽/.sav | 235 | 8 / 5 | same |
-| 项羽/历史战役自动存档_2 | 305 | 7 / 5 | same |
+| zoom/历史战役自动保存_1 | 611 | 1 / 11 | monthly tail part 12 `4A90A0` (trade requests) |
+| 项羽/历史战役自动存档_2 | 611 | 7 / 11 | same |
+| 项羽/.sav | 541 | 8 / 11 | same |
+| 项羽/历史战役自动保存_1 | 356 | 1 / 6 | `monthly_city_4ac650` (part 6, 16th-cycle rating `591200`) |
+| zoom/载入旧存档自动保存 | 284 | 1 / 5 | `city_accounting_4f1560_4ac2fa` |
+| zoom/历史战役自动存档_2 | 209 | 7 / 4 | animal spawn `4EA8E0` (formation phase) |
+
+Ported 2026-11-01: type-71 stall road gate/spawn (`4295C0`, `48B950`, `48B780`, `51CB50`), post-load road selection (`426DF0`), trade delays from constructor `5DC4A0` (land 0x22, sea 4), tail parts 6/8 cycle gate (`4AC882`) and part 7 no-partner return (`4A8ED0`). Executable read: Chinese build `EmperorCH.exe` (SHA `dbdeca1e…`); the documented `0ca8fc07…` is not on disk. Same section layout; 352 differing `.text` bytes near `525F2A`/`527B2E`, none at read addresses.
 
 ## Fidelity — 0/0
 
@@ -60,10 +62,10 @@ Process state the SAV does not store, supplied in normal play, withheld by `stri
 
 ## Next step
 
-1. Record `poolRoadSelected` for buildings that gain road access after load.
-2. Port monthly tail parts 6/7/8/12 (`591200`, `4A8ED0`, `4A90A0`).
-3. Port animal spawn placement `4EA8E0` (`551690/5516E0/551700/551650`, terrain test `59CBB0`).
-4. Collect clean original save pairs and run `fidelity-metric`.
+1. Port tail part 12 `4A90A0` (route table `C5DB78` via `483730`, partner ratings `592370`, war/tribute `441F70`).
+2. Port the 16th-cycle city rating `591200` and the remaining accounting refusal at 284.
+3. Port animal spawn placement `4EA8E0` (cell search over `F6A9E0`/`FC3750`).
+4. Clean original pairs: being collected via Codex CLI per `docs/ORIGINAL_GAME_OPERATIONS.md`; isolated copy already has one clean pair (`2026102301/…0102 → …0103`, 1104 updates).
 
 ## Retained, frozen
 

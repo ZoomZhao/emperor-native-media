@@ -60,7 +60,12 @@ void refusedTail(OriginalBuildingUpdateContext c,OriginalBuildingUpdateBlocker e
 }
 void cycleTailTransactions(){
     for(uint32_t part=0;part<=15;++part){auto c=tailFixture();c.monthPart=part;
-        const bool missing=part==5||part==6||part==7||part==11||part==15;
+        //The tail increments the part before its services, so the part read
+        //here is one behind the service that runs. Parts 6 and 7 (entered
+        //from 5 and 6) only act when the cycle is a multiple of 16 or a trade
+        //partner qualifies, and parts 5 and 11 have no service. This fixture
+        //has neither, so those pass through; part 12 and the month rollover do not.
+        const bool missing=part==11||part==15;
         if(missing){refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"unknown postincrement monthly service remains refused");continue;}
         need(originalBuildingCycleTailStep(c)==OriginalBuildingUpdateBlocker::None,"already supported ordinary parts remain successful");
         need(c.monthPart==part+1&&c.cycle==5&&c.phase==0&&c.cycleTail->calls==1&&c.cycleTail->smoothedHealth==60&&c.labor->health==60,"successful tail commits one health/date/call update");
@@ -106,7 +111,7 @@ void cycleTailTransactions(){
     auto reloaded=original;reloaded.cycleTail->smoothedHealth=0;applyNativeCityContext(*decoded,reloaded);
     need(tailSnapshot(reloaded)==tailSnapshot(original),"restoring C1 state leaves schedule and Labor with their existing owners");
     need(originalBuildingCycleTailStep(original)==OriginalBuildingUpdateBlocker::None&&originalBuildingCycleTailStep(reloaded)==OriginalBuildingUpdateBlocker::None&&tailSnapshot(original)==tailSnapshot(reloaded),"restored C1 fields yield identical supported next-tail state");
-    auto blocked=tailFixture();blocked.monthPart=5;const auto blockedBytes=encodeNativeCityContext(captureNativeCityContext(blocked),error);
+    auto blocked=tailFixture();blocked.monthPart=11;const auto blockedBytes=encodeNativeCityContext(captureNativeCityContext(blocked),error);
     need(originalBuildingCycleTailStep(blocked)==OriginalBuildingUpdateBlocker::MonthlyCity&&encodeNativeCityContext(captureNativeCityContext(blocked),error)==blockedBytes,"failed tail does not change persisted C1 bytes");
     need(!decodeNativeCityContext(bytes->substr(0,bytes->size()/2),error),"truncated existing C1 data stays refused; no implicit repair");
 }
@@ -542,7 +547,7 @@ void authored(){
     partner.traders[0]=0;partner.timer=0;trading.trade->dispatchDelay=std::array<int32_t,2>{11,19};
     need(originalBuildingTradeStep(trading)==OriginalBuildingUpdateBlocker::None&&partner.timer==19,"land trade expired timer reads explicit process service delay before searching building registry");
     trading.trade->dispatchDelay.reset();partner.timer=0;
-    need(originalBuildingTradeStep(trading)==OriginalBuildingUpdateBlocker::MissingContext,"trade timer expiry requires process delay rather than a fitted saved timer");
+    need(originalBuildingTradeStep(trading)==OriginalBuildingUpdateBlocker::None&&partner.timer==0x22,"trade timer expiry uses the 5DC4A0 land delay when no service value was supplied");
     std::vector<uint8_t> tradeBytes(13000);tradeBytes[0]=7;tradeBytes[11091]=9;tradeBytes[11093]=8;tradeBytes[11095]=7;tradeBytes[11097]=6;tradeBytes[11090]=99;
     need(originalBuildingSavedTradeContext(tradeBytes,12287,trading)&&trading.trade->counters==std::array<int16_t,4>{9,8,7,6},"nested Population7 trade shorts use four literal offsets and skip neighboring byte");
     tradeBytes[0]=6;need(!originalBuildingSavedTradeContext(tradeBytes,12287,trading),"trade globals reject wrong nested Population version");
