@@ -1,21 +1,26 @@
-# DATA FIRST status
+# Status — ORIGINAL CITY RUNS
 
-2026-10-31 · macOS arm64 · published `2316c78`. **Native v6 remains the new-city default; ordinary original simulation is blocked.** Existing delivered Apps are retained.
+2026-10-31 · macOS arm64
 
-| Measured scope | Result / boundary |
-|---|---|
-| Original-world disk checkpoint v1 | Baseline had no world disk writer. Separate14-section `.emworld`, SHA source/resource binding, complete represented state, pure atomic paused restore and3-state exclusive publication now implemented. Current declarations **90/90 records,1111/1111 direct fields** match frozen visitors. Release/UBSan counts and final binding below; no unknown FSA/business promotion. |
-| Disk verification | Latest authored path-hardening batch per mode: **2014/2014** codec, **126/126** I/O; NUL target/root refusal and byte-exact normal v1 output. Final-code real-input recheck per mode: **244** checks, both prior admitted N0 sources **2/2** actual disk/fresh-process next-step comparisons, **6/6** full-world late-failure comparisons and **16/16** supported phase-edge disk comparisons; original files unchanged. These retain existing declared-premise labels, not ordinary-play qualification. Prior existing5 sources/**9/9** raw24/25 bases +1 retired endpoint preserve represented values; not full market business. |
-| Checkpoint R2 compositions |7 requested requirements covered by8 authored function/disk/next-step groups (14 files). FIFO nonblocking refusal and actual old-world/receipt preservation added; actual type161 Terrain symbol restored. W13 all rich actions/W37 every allocation failure remain limited; no original-game/GUI sampling. Final mode counts/source binding are in the handoff. |
-| Frozen regressions | Each mode: kernel46, raw base4381, building479, market158, HouseGoods138, city-context1023, population578, city-contract1515, combined3369, legacy-native173481; old **12/12** golden files exact. Food **6 groups/106** conditional API checks. Real-data SKIP remains separate. |
-| Checkpoint display correction | GUI baseline restored storage **4/4** flows but kept old MAP pixels/identity/statistics. Candidate now prepares current-world CPU pixels and matching source/statistics before publication; Release/UBSan actual-consumer **4/4** source/preference cases, **366/366** checks per mode; bound new package in the handoff. Independent real GUI retest passes **4/4** source/startup-preference combinations, including saved-camera restart, Open/Save cancellation and invalid-file preservation; **8/8** processes quit normally with exit0. Both preferences use **CPU NSImageView**; **original-world Metal GPU window presentation remains untested**. |
-| Checkpoint GPU transfer | Release/UBSan each **6/6** disk/fresh-process cases (2 distinct source files ×3 cameras), **12** completed Metal textures and **6** explicit injected completion failures; **402** checks per mode. All six sampled N0 corner views have **0 sprite items**: this qualifies GPU background transfer/readback and completed-texture lifetime only, not sprite rendering or a Metal window. |
-| Native checkpoint sprite GPU | Existing accepted v8 ENCITY checkpoints from **2/2** original-resource sources: Release/UBSan each **152/152** checks, **2** fresh-process restores, **6** real Metal completed frames and **2** injected failures. Restored **361/367** sprite commands include visible buildings and figures; CPU/GPU pixels match exactly. Separate actual-App method tests **177/177** per mode preserve full encoded state and prior image on failure, with a GPU substitute. Headless validation; not original-SAV continuation or a Metal window. |
-| Native checkpoint Metal window | **4/4** real Metal restore flows, **50/50** functional checks and **12/12** exact retained-canvas comparisons; six baseline processes exit0. Actual `NativeSessionCanvas`/`CAMetalLayer`, not a startup preference or MTKView claim. CPU-window parity **0/2** at the existing premultiplied RGB≤1 / exact-alpha criterion: **751/734** of2,298,240 pixels exceed it, maximum2. No production experiment retained; strict display parity remains blocked. |
-| Event-record qualification | One existing source now has its **1/1** live mode5 record located; Release/UBSan and independent Python agree on **9/9** live records. The external event-label table lists Flood at156:5, but the record-to-label and manager lifecycle remain unqualified. Input unchanged; no original-game run. |
-| Ordinary original behavior | Historical **0/6** update1 (`event_ui_5eff20_not_closed`). Restoring a file grants no qualification. Event/eight-slot providers, full month/year/health and24/25 transport remain named owning-system blockers. Existing labelled experiments are not ordinary play. |
-| Existing native delivery | Frozen candidate-6 CPU/Metal **4/4** source/backend GUI flows retained; v6 roads/house/water/food/demolition/tax and explicit default-off v8 development strategies unchanged. Initial checkpoint menu GUI found the display blocker above; the corrected candidate passed the four CPU-presented GUI combinations above. No delivered App is replaced. [Native format and prior validation](docs/ENCITY.md). |
-| Original evidence and rendering retained | Collector15 selected types; four prior sources219 structural checks and **2/2** observed24↔25 pairs. SG3 **71751/72370** images, **58/58** indexes. Unknown variable FSA stops parsing; no market100-unit formula or timing inference. [Original format/limits](docs/SAV.md). |
-| Protection and publication | Latest check: **248/248** baseline-present files and **2/2** selected native inputs unchanged; **6** pre-existing missing files remain absent. The display correction was published as `2316c78fd62a5a11dc43516893d9b00789e77f6d`; the current tests/docs remain unpushed. No original-game launch, ASan or external asset transfer; delivered Apps unchanged. |
+## Primary metric
 
-[World disk format, ownership and verification](docs/SAV.md#original-world-disk-checkpoint-v1-2026-10-30) · [Build/use](README.md). CitySimulation/EMP1 and authored gameplay remain frozen. Counts certify their stated domains only; candidate CPU-presented GUI retesting and bounded offscreen GPU transfer checks are complete; Original-world (`.emworld`) Metal window/nonempty sprite rendering and physical power-loss durability remain untested. Native ENCITY offscreen sprite restore is qualified; its real Metal restore flows pass, while strict CPU/Metal window parity fails as recorded above.
+**Original SAVs running ≥100 consecutive updates in normal App Play: 0/6.**
+All six stop at update 1 with `event_ui_5eff20_not_closed`.
+
+## Current blocker
+
+`0x5EFF20` event/UI step: normal mode does not supply event gates +17/+16 (and the other unresolved process inputs in `game_lab/app/city_playback.cpp` `applyUnresolvedZeroPremises`), so the first update refuses. With those inputs zeroed (experiment mode) sources reach updates 21–41 and then refuse at unported code: phase 40 `4AC2B0`, building virtual20 `416D20`, house evolution `519120/518EF0`, road refresh `4ACFC0`, monthly tail `4AC650`.
+
+## Open hypotheses
+
+None yet. Each new `HYPOTHESIS(<id>)` in code gets one line here: id, evidence, how to verify.
+
+## Next step
+
+1. Add a `primary-metric` runner (normal Play, 6 sources, up to 100 updates, reports X/6 and first refusal per source).
+2. Supply the event gates and other premise inputs in normal mode as labelled hypotheses; keep strict refusal selectable for tests.
+3. Port the first unported-code blocker the runner reports, then repeat.
+
+## Retained, frozen
+
+Native v6/v8 city App, EMP1, CitySimulation, `.emworld` checkpoints, CPU/Metal display paths and SG3 rendering (71751/72370 images) keep building and passing their tests; not extended this phase. Details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md) · previous full status table in git history at `3c85560:STATUS.md`. Build/use: [README.md](README.md).
