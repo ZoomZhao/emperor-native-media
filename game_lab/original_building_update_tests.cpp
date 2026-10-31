@@ -63,9 +63,11 @@ void cycleTailTransactions(){
         //The tail increments the part before its services, so the part read
         //here is one behind the service that runs. Parts 6 and 7 (entered
         //from 5 and 6) only act when the cycle is a multiple of 16 or a trade
-        //partner qualifies, and parts 5 and 11 have no service. This fixture
-        //has neither, so those pass through; part 12 and the month rollover do not.
-        const bool missing=part==11||part==15;
+        //partner qualifies, and parts 5 and 11 have no service. Part 12
+        //(4A90A0, entered from 11) records a request only for a partner at war
+        //that has an ally. This fixture has none of those, so they pass
+        //through; only the month rollover does not.
+        const bool missing=part==15;
         if(missing){refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"unknown postincrement monthly service remains refused");continue;}
         need(originalBuildingCycleTailStep(c)==OriginalBuildingUpdateBlocker::None,"already supported ordinary parts remain successful");
         need(c.monthPart==part+1&&c.cycle==5&&c.phase==0&&c.cycleTail->calls==1&&c.cycleTail->smoothedHealth==60&&c.labor->health==60,"successful tail commits one health/date/call update");
@@ -80,6 +82,12 @@ void cycleTailTransactions(){
     c=tailFixture();c.buildingInputs->at(7).modelUpgrade.reset();refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing expiry state rolls back earlier date effects");
     c=tailFixture();c.monthPart=2;c.cycleTail->currentHealthRating=151;refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing previous rating rolls back forecast and health effects");
     c=tailFixture();c.monthPart=3;c.monthlyServices.reset();refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing fortification service rolls back health/date/expiry");
+    {
+        auto war=tailFixture();war.monthPart=11;auto& enemy=war.trade->partners[2];enemy.alive=1;enemy.faction=2;enemy.reserves[4]=1;enemy.relations[0].state=2;
+        auto& warAlly=war.trade->partners[3];warAlly.alive=1;warAlly.faction=3;warAlly.relations[2].state=2;
+        refusedTail(war,OriginalBuildingUpdateBlocker::MonthlyCity,"part 12 partner at war with an ally reaches the unported 494260 request");
+        enemy.relations[0].state=1;need(originalBuildingCycleTailStep(war)==OriginalBuildingUpdateBlocker::None&&war.monthPart==12,"part 12 with no allied war partner records nothing");
+    }
     c=tailFixture();c.cycleTail->alternateMode=true;refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"alternate calendar mode is not silently admitted");
     c=tailFixture();c.monthPart=1;c.scenarioMonths=-1;auto& partner=c.trade->partners[0];partner.alive=1;partner.enabled=1;partner.relationTimers.resize(22);partner.relationTimers[0][0][0]=2;
     refusedTail(c,OriginalBuildingUpdateBlocker::InvalidState,"late invalid scenario age rolls back earlier partner timer decrement");
@@ -111,8 +119,10 @@ void cycleTailTransactions(){
     auto reloaded=original;reloaded.cycleTail->smoothedHealth=0;applyNativeCityContext(*decoded,reloaded);
     need(tailSnapshot(reloaded)==tailSnapshot(original),"restoring C1 state leaves schedule and Labor with their existing owners");
     need(originalBuildingCycleTailStep(original)==OriginalBuildingUpdateBlocker::None&&originalBuildingCycleTailStep(reloaded)==OriginalBuildingUpdateBlocker::None&&tailSnapshot(original)==tailSnapshot(reloaded),"restored C1 fields yield identical supported next-tail state");
-    auto blocked=tailFixture();blocked.monthPart=11;const auto blockedBytes=encodeNativeCityContext(captureNativeCityContext(blocked),error);
-    need(originalBuildingCycleTailStep(blocked)==OriginalBuildingUpdateBlocker::MonthlyCity&&encodeNativeCityContext(captureNativeCityContext(blocked),error)==blockedBytes,"failed tail does not change persisted C1 bytes");
+    auto blocked=tailFixture();blocked.monthPart=15;const auto blockedBytes=encodeNativeCityContext(captureNativeCityContext(blocked),error);
+    need(originalBuildingCycleTailStep(blocked)==OriginalBuildingUpdateBlocker::MonthlyCity,"blocked tail still refuses");
+    const auto afterBlocked=encodeNativeCityContext(captureNativeCityContext(blocked),error);
+    if(!afterBlocked||*afterBlocked!=*blockedBytes)throw std::runtime_error(std::string("failed tail C1 changed: ")+error);
     need(!decodeNativeCityContext(bytes->substr(0,bytes->size()/2),error),"truncated existing C1 data stays refused; no implicit repair");
 }
 void authored(){

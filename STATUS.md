@@ -23,14 +23,14 @@
 
 | Source | Updates | Calendar | First refusal |
 |---|---|---|---|
-| zoom/历史战役自动保存_1 | 611 | 1 / 11 | monthly tail part 12 `4A90A0` (trade requests) |
-| 项羽/历史战役自动存档_2 | 611 | 7 / 11 | same |
-| 项羽/.sav | 541 | 8 / 11 | same |
+| zoom/历史战役自动保存_1 | 815 | 1 / 15 | month rollover (tail part 15 → next month) |
+| 项羽/历史战役自动存档_2 | 815 | 7 / 15 | same |
+| 项羽/.sav | 745 | 8 / 15 | same |
 | 项羽/历史战役自动保存_1 | 356 | 1 / 6 | `monthly_city_4ac650` (part 6, 16th-cycle rating `591200`) |
 | zoom/载入旧存档自动保存 | 284 | 1 / 5 | `city_accounting_4f1560_4ac2fa` |
 | zoom/历史战役自动存档_2 | 209 | 7 / 4 | animal spawn `4EA8E0` (formation phase) |
 
-Ported 2026-11-01: type-71 stall road gate/spawn (`4295C0`, `48B950`, `48B780`, `51CB50`), post-load road selection (`426DF0`), trade delays from constructor `5DC4A0` (land 0x22, sea 4), tail parts 6/8 cycle gate (`4AC882`) and part 7 no-partner return (`4A8ED0`). Executable read: Chinese build `EmperorCH.exe` (SHA `dbdeca1e…`); the documented `0ca8fc07…` is not on disk. Same section layout; 352 differing `.text` bytes near `525F2A`/`527B2E`, none at read addresses.
+Ported 2026-11-01: type-71 stall road gate/spawn (`4295C0`, `48B950`, `48B780`, `51CB50`), post-load road selection (`426DF0`), trade delays from constructor `5DC4A0` (land 0x22, sea 4), tail parts 6/8 cycle gate (`4AC882`), part 7 no-partner return (`4A8ED0`) and part 12 war/ally gate (`4A90A0`; request `494260` still refused when an at-war partner has an ally). Executable read: Chinese build `EmperorCH.exe` (SHA `dbdeca1e…`); the documented `0ca8fc07…` is not on disk. Same section layout; 352 differing `.text` bytes near `525F2A`/`527B2E`, none at read addresses.
 
 ## Fidelity — 0/0
 
@@ -62,7 +62,7 @@ Process state the SAV does not store, supplied in normal play, withheld by `stri
 
 ## Next step
 
-1. Port tail part 12 `4A90A0` (route table `C5DB78` via `483730`, partner ratings `592370`, war/tribute `441F70`).
+1. Port the month rollover at tail part 15 (stops 3 sources at 745–815).
 2. Port the 16th-cycle city rating `591200` and the remaining accounting refusal at 284.
 3. Port animal spawn placement `4EA8E0` (cell search over `F6A9E0`/`FC3750`).
 4. Clean original pairs: being collected via Codex CLI per `docs/ORIGINAL_GAME_OPERATIONS.md`; isolated copy already has one clean pair (`2026102301/…0102 → …0103`, 1104 updates).
