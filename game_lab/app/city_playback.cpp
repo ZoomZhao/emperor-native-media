@@ -127,6 +127,18 @@ void applyLoadHypotheses(OriginalCombinedProcessInputs& p) {
     // Unresolved table; SAV_FIGURES.md effect premises).
     p.effectDecayCounter = 0;
     p.visualEffectCount = 0;
+    // HYPOTHESIS(force-evolution-off-at-load): 10BFF78 forces house evolution
+    // upward. Phase 39 (518EF0) refuses while it is absent, then treats it as
+    // set only to override the desirability comparison, so zero leaves that
+    // comparison in force. It is zero-filled at process creation and outside the
+    // SAV19 window (SAV.md Unresolved table; SAV_FIGURES.md evolution premises).
+    p.forceHouseEvolution = false;
+    // HYPOTHESIS(previous-health-zero-at-load): D6241C is the previous health
+    // rating. The monthly tail (4AC650, part 3) reads it only when the current
+    // rating is 151 or 152, to suppress a repeated notification. It is
+    // zero-filled at process creation and outside the SAV19 window (SAV.md
+    // Unresolved table; SAV_FIGURES.md health premises).
+    p.previousHealthRating = 0;
 }
 // Explicit, labelled experiment: the documented-but-Unresolved rows are fed
 // the same declared zeros the CLI combined corpus uses. These are caller

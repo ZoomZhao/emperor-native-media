@@ -4,22 +4,22 @@
 
 ## Primary metric
 
-**Original SAVs running ≥100 consecutive updates in normal App Play: 2/6** (baseline 0/6 this morning).
+**Original SAVs running ≥100 consecutive updates in normal App Play: 6/6** (0/6 → 2/6 → 6/6 on 2026-10-31). Release and UBSan both 6/6; headless controller run.
 
-| Source | Updates | First refusal |
+| Source | Live buildings / houses | Updates |
 |---|---|---|
-| zoom/历史战役自动保存_1 | 100 | — |
-| 项羽/历史战役自动保存_1 | 100 | — |
-| zoom/历史战役自动存档_2 | 39 | `house_evolution_519120_518ef0` |
-| zoom/载入旧存档自动保存 | 39 | same |
-| 项羽/历史战役自动存档_2 | 39 | same |
-| 项羽/.sav | 20 | same |
+| zoom/历史战役自动保存_1 | 0 / 0 | 100 |
+| 项羽/历史战役自动保存_1 | 0 / 0 | 100 |
+| zoom/历史战役自动存档_2 | 568 / 26 (type 5) | 100 |
+| zoom/载入旧存档自动保存 | 473 / 26 (type 7) | 100 |
+| 项羽/历史战役自动存档_2 | 7 / 4 (type 3) | 100 |
+| 项羽/.sav | 17 / 14 (types 2, 3) | 100 |
 
-The two passing sources are probably the building-free tutorial cities ([SAV.md](docs/SAV.md) §new SAVs); not yet confirmed. Headless controller run, Release only.
+"Runs" means no refusal; agreement with the original game is **unmeasured**. 100 updates ≈ two monthly tails.
 
 ## Current blocker
 
-`originalBuildingHouseEvolutionStep` (`game_lab/original_building_update.hpp`): only house types 2/3/5/7 are ported; larger house geometry (allocation/merge path of `519120/518EF0`) refuses. Stops 4/6 sources.
+None within 100 updates. Stage 2 target: ≥1000 updates, then one in-game year. Known unported but unreached: larger-house geometry in `519120/518EF0` (no such house in this corpus).
 
 ## Open hypotheses (all in `game_lab/app/city_playback.cpp` `applyLoadHypotheses`)
 
@@ -38,6 +38,8 @@ Process state the SAV does not store, supplied in normal play, withheld by `stri
 | religion-scratch-at-file-initial | 1312F78 = 0, 85D720 = −1 | zero-fill / `.data` initial |
 | producer-tails-zero-at-load | entries 30..35 = 0 | phase 33 preserves them |
 | effect-scratch-zero-at-load | 101D12C = 0, 8900E8 = 0 | phase 45 decays after 7 |
+| force-evolution-off-at-load | 10BFF78 = 0 | phase 39 keeps desirability comparison |
+| previous-health-zero-at-load | D6241C = 0 | monthly tail part 3 reads only at rating 151/152 |
 
 ## Known gaps
 
@@ -45,7 +47,8 @@ Process state the SAV does not store, supplied in normal play, withheld by `stri
 
 ## Next step
 
-Port the larger house-evolution geometry path, re-run `primary-metric`, continue with the next first blocker.
+1. Raise the runner horizon to 1000 updates and a full year; port each first blocker.
+2. Add a fidelity check: compare a run against a later original save of the same city where one exists.
 
 ## Retained, frozen
 
