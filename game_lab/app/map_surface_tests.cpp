@@ -9,6 +9,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <algorithm>
 #include <iomanip>
@@ -257,10 +258,12 @@ void authored(const std::filesystem::path& root){
     std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"original_data\":false}\n";
 }
 // Primary metric: the six catalogued original SAV sources, each driven through
-// the normal App Play path (experiment off, load hypotheses on) for up to 100
-// updates. One line per source, then PRIMARY X/6. Exit 0 with SKIP when the
-// data root is unset; a source that fails to prepare is reported, not thrown.
-void primaryMetric(const std::string& path){
+// the normal App Play path (experiment off, load hypotheses on) for up to
+// `updates` admitted updates (100 unless the caller says otherwise). One line
+// per source — updates, the in-game month and month part reached, then the
+// first refusal — then PRIMARY X/6. Exit 0 with SKIP when the data root is
+// unset; a source that fails to prepare is reported, not thrown.
+void primaryMetric(const std::string& path,unsigned updates){
     using namespace game_lab;
     const auto root=ResourceRoot::fromAbsolute(path);
     if(!root.configured())throw std::runtime_error("explicit existing data root required");
@@ -278,14 +281,17 @@ void primaryMetric(const std::string& path){
         const auto payload=decodeOriginalMapContainer(raw).payload;
         AppMapSurface surface(root);AppCitySessionState session;session.crtRandom=1;
         AppCityPlayback playback(surface,save,payload,preferences,1,0,false,&session);
-        unsigned updates=0;std::string refusal="not_prepared";
+        unsigned reached=0;std::string refusal="not_prepared";
+        std::optional<std::pair<uint32_t,uint32_t>> calendar;
         if(playback.prepared()){
             const auto interval=std::max(1u,playback.status().intervalMs);
-            for(unsigned n=1;n<=100;++n){if(!playback.step(uint64_t(n)*interval))break;}
-            updates=playback.status().updates;refusal=playback.status().refusal;
+            for(unsigned n=1;n<=updates;++n){if(!playback.step(uint64_t(n)*interval))break;}
+            reached=playback.status().updates;refusal=playback.status().refusal;calendar=playback.status().calendar;
         }
-        if(updates>=100&&refusal.empty())++qualified;
-        std::cout<<source.relativePath<<'\t'<<updates<<'\t'<<(refusal.empty()?"none":refusal)<<'\n';
+        if(reached>=updates&&refusal.empty())++qualified;
+        std::cout<<source.relativePath<<'\t'<<reached<<'\t';
+        if(calendar)std::cout<<"month "<<calendar->first<<" part "<<calendar->second;else std::cout<<"calendar -";
+        std::cout<<'\t'<<(refusal.empty()?"none":refusal)<<'\n';
     }
     if(seen!=6)throw std::runtime_error("primary corpus is 6 SAV sources, saw "+std::to_string(seen));
     std::cout<<"PRIMARY "<<qualified<<"/6\n";
@@ -712,6 +718,8 @@ void metrics(const std::string& path){
 }
 int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--metrics"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true}\n";return 0;}metrics(root);}
     else if(argc>=2&&std::string(argv[1])=="--playback"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return 0;}playback(root,std::vector<std::string>(argv+2,argv+argc));}
-    else if(argc==2&&std::string(argv[1])=="--primary-metric"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"SKIP EMPEROR_GAMEDATA_ROOT unset\n";return 0;}primaryMetric(root);}
+    else if(argc>=2&&std::string(argv[1])=="--primary-metric"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"SKIP EMPEROR_GAMEDATA_ROOT unset\n";return 0;}
+        unsigned updates=100;if(argc==4&&std::string(argv[2])=="--updates"){char* end=nullptr;const unsigned long value=std::strtoul(argv[3],&end,10);if(!end||*end||!value||value>1000000ul)throw std::runtime_error("--updates needs 1..1000000");updates=unsigned(value);}
+        else if(argc!=2)throw std::runtime_error("--primary-metric [--updates N]");primaryMetric(root,updates);}
     else if(argc==2)authored(std::filesystem::absolute(argv[1]));else throw std::runtime_error("fixture directory or --metrics required");return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

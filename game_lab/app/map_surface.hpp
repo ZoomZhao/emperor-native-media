@@ -102,6 +102,9 @@ public:
     void setCityPublicationProbe(std::function<void(const char*)> p){publicationProbe_=std::move(p);}
     bool cityPlaybackPrepared() const { return playback_!=nullptr; }
     unsigned cityPlaybackUpdates() const;
+    // In-game calendar of the last admitted state: month (1..12) and the
+    // month part the cycle tail advances. Absent until a frame is admitted.
+    std::optional<std::pair<uint32_t,uint32_t>> cityPlaybackCalendar() const;
     const AppCityNotifications* cityNotifications() const;
     std::optional<AppCityTributeFinances> cityTributeFinances() const;
     AppCityTributeResult respondCityNotification(AppCityTributeId,AppCityTributeDecision);

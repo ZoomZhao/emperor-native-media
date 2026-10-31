@@ -17,9 +17,22 @@
 
 "Runs" means no refusal; agreement with the original game is **unmeasured**. 100 updates ≈ two monthly tails.
 
-## Current blocker
+## Stage 2: 1000 updates — 0/6
 
-None within 100 updates. Stage 2 target: ≥1000 updates, then one in-game year. Known unported but unreached: larger-house geometry in `519120/518EF0` (no such house in this corpus).
+`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates).
+
+| Source | Updates | Calendar | First refusal |
+|---|---|---|---|
+| zoom/历史战役自动存档_2 | 209 | 7 / 4 | animal spawn `4EA8E0` (formation phase, reported as `city_accounting_4f1560_4ac2fa`) |
+| zoom/载入旧存档自动保存 | 235 | 1 / 4 | `poolRoadSelected` missing for building that gained a road after load |
+| 项羽/历史战役自动保存_1 | 236 | 1 / 4 | same |
+| zoom/历史战役自动保存_1 | 305 | 1 / 5 | monthly tail part 6 (`591200` city ratings); parts 7/8/12 also unported |
+| 项羽/.sav | 235 | 8 / 5 | same |
+| 项羽/历史战役自动存档_2 | 305 | 7 / 5 | same |
+
+## Fidelity — 0/0
+
+`make fidelity-metric`. Needs same-city SAV pairs where the original game only advanced time. The corpus has 4 same-map forward pairs, all rejected for player terrain edits (40–113 cells). **Blocked on new clean original saves** (load→save, +1 month, +1 year with no player actions).
 
 ## Open hypotheses (all in `game_lab/app/city_playback.cpp` `applyLoadHypotheses`)
 
@@ -47,8 +60,10 @@ Process state the SAV does not store, supplied in normal play, withheld by `stri
 
 ## Next step
 
-1. Raise the runner horizon to 1000 updates and a full year; port each first blocker.
-2. Add a fidelity check: compare a run against a later original save of the same city where one exists.
+1. Record `poolRoadSelected` for buildings that gain road access after load.
+2. Port monthly tail parts 6/7/8/12 (`591200`, `4A8ED0`, `4A90A0`).
+3. Port animal spawn placement `4EA8E0` (`551690/5516E0/551700/551650`, terrain test `59CBB0`).
+4. Collect clean original save pairs and run `fidelity-metric`.
 
 ## Retained, frozen
 

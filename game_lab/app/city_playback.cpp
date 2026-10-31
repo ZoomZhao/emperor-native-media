@@ -365,6 +365,7 @@ bool AppCityPlayback::advance(uint32_t now) {
         status_.refusal = step.refusal;
         status_.refusedUpdate = step.refusedUpdate;
         status_.updates = step.updates;
+        status_.calendar = surface_.cityPlaybackCalendar();
         return false;
     }
     if (step.updates == status_.updates) return false; // cadence not admitted; keep the clock
@@ -372,6 +373,7 @@ bool AppCityPlayback::advance(uint32_t now) {
     lastAdmission_ = now;
     status_.updates = step.updates;
     status_.frames = step.updates;
+    status_.calendar = surface_.cityPlaybackCalendar();
     status_.state = !status_.continuous && status_.updates >= status_.target ? AppCityPlaybackState::Paused : AppCityPlaybackState::Playing;
     return true;
 }

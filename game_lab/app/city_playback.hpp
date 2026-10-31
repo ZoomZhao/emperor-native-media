@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace game_lab {
@@ -34,6 +35,7 @@ struct AppCityPlaybackStatus {
     unsigned long long frames = 0; // admitted frames drawn
     size_t decodeFailures = 0;    // accumulated over every rendered frame
     std::string refusal;          // exact named refusal, empty when none
+    std::optional<std::pair<uint32_t,uint32_t>> calendar; // month, month part of the last admitted state
     std::string error;            // preparation failure, not a timeline refusal
     std::string premise;          // on-screen provenance label
 };

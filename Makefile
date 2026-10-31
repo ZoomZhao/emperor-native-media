@@ -189,7 +189,7 @@ app-playback-test:
 app-playback-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py playback --mode undefined
 primary-metric:
-	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py primary-metric
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py primary-metric --updates $(or $(UPDATES),100)
 .PHONY: saved-ground-test saved-ground-test-undefined
 saved-ground-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/saved_ground.py
@@ -285,3 +285,9 @@ market-transfer-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/market_transfer.py --output-dir "$$(mktemp -u /tmp/emperor-market-release-XXXXXXXX)"
 market-transfer-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/market_transfer.py --mode undefined --output-dir "$$(mktemp -u /tmp/emperor-market-undefined-XXXXXXXX)"
+
+.PHONY: fidelity-metric fidelity-metric-undefined
+fidelity-metric:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/fidelity.py --mode release
+fidelity-metric-undefined:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/fidelity.py --mode undefined
