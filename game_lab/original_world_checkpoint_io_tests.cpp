@@ -16,6 +16,29 @@ int main(int argc,char** argv){try{
  std::string error;const auto path=(root/"one.emworld").string();const auto saved=writeOriginalWorldCheckpointNew(path,data.string(),s);need(saved.state!=OriginalWorldPublication::NotPublished,"new complete file published");
  const auto bytes=readOriginalWorldCheckpointFile(path,data.string(),error);need(bool(bytes)&&decodeOriginalWorldCheckpoint(*bytes,error).has_value(),"actual disk file reads and decodes");
  need(originalWorldPersistentEqual(s,*decodeOriginalWorldCheckpoint(*bytes,error),error),"actual disk persistent value exact");
+ // Full-path NUL must never resolve to a shorter, different real directory.
+ // Before the guard, canonical() accepted a NUL in the parent, and both APIs
+ // silently operated on that parent's prefix instead of the supplied path.
+ const auto nulParent=root.string()+std::string(1,'\0')+"/ignored/";
+ const auto nulWrite=writeOriginalWorldCheckpointNew(nulParent+"nul-parent.emworld",data.string(),s);
+ need(nulWrite.state==OriginalWorldPublication::NotPublished&&nulWrite.error=="world_io_target_path","NUL parent refuses publication before filesystem access");
+ need(!std::filesystem::exists(root/"nul-parent.emworld"),"NUL parent cannot create truncated-path target");
+ need(!readOriginalWorldCheckpointFile(nulParent+"one.emworld",data.string(),error)&&error=="world_io_target_path","NUL parent cannot alias an existing readable checkpoint");
+ const auto nulLeaf=(root/"nul-leaf").string()+std::string(1,'\0')+".emworld";
+ const auto leafWrite=writeOriginalWorldCheckpointNew(nulLeaf,data.string(),s);
+ need(leafWrite.state==OriginalWorldPublication::NotPublished&&leafWrite.error=="world_io_target_path","NUL leaf also refuses before publication");
+ need(!readOriginalWorldCheckpointFile(nulLeaf,data.string(),error)&&error=="world_io_target_path","NUL leaf read refuses the same target contract");
+ const auto nulData=data.string()+std::string(1,'\0')+"/ignored";
+ const auto rootWrite=writeOriginalWorldCheckpointNew((root/"nul-root.emworld").string(),nulData,s);
+ need(rootWrite.state==OriginalWorldPublication::NotPublished&&rootWrite.error=="world_io_data_root","NUL data root cannot silently change the protected root");
+ need(!std::filesystem::exists(root/"nul-root.emworld"),"invalid data root has no output side effect");
+ need(!readOriginalWorldCheckpointFile(path,nulData,error)&&error=="world_io_data_root","read rejects invalid data root before opening checkpoint");
+ need(readOriginalWorldCheckpointFile(path,data.string(),error)==bytes,"all malformed-path refusals preserve original checkpoint bytes");
+ const auto unicode=root/std::filesystem::u8path(u8"authored-存档");std::filesystem::create_directory(unicode);
+ const auto unicodePath=(unicode/"one.emworld").string();
+ const auto unicodeWrite=writeOriginalWorldCheckpointNew(unicodePath,data.string(),s);
+ need(unicodeWrite.state==OriginalWorldPublication::PublishedDurable,"valid Unicode directory remains a normal durable output");
+ need(readOriginalWorldCheckpointFile(unicodePath,data.string(),error)==bytes,"valid Unicode checkpoint reads exact existing format bytes");
  need(writeOriginalWorldCheckpointNew(path,data.string(),s).state==OriginalWorldPublication::NotPublished,"existing target never replaced");
  std::filesystem::create_symlink(path,root/"alias.emworld");need(writeOriginalWorldCheckpointNew((root/"alias.emworld").string(),data.string(),s).state==OriginalWorldPublication::NotPublished,"existing symlink never replaced");
  need(!readOriginalWorldCheckpointFile((root/"alias.emworld").string(),data.string(),error),"read never follows leaf symlink");

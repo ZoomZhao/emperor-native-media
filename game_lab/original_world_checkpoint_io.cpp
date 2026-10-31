@@ -12,6 +12,10 @@ struct Parent {
  bool current()const{struct stat named{};std::error_code ec;const auto actual=std::filesystem::canonical(canonical,ec);return !ec&&actual==canonical&&!stat(canonical.c_str(),&named)&&named.st_dev==identity.st_dev&&named.st_ino==identity.st_ino;}
 };
 inline std::unique_ptr<Parent> parent(const std::string& path,const std::string& root,std::string& error){
+ // POSIX path APIs stop at NUL, including canonical(parent_path()). Reject the
+ // entire names before resolving them, not only the final leaf after resolution.
+ if(path.find('\0')!=std::string::npos){error="world_io_target_path";return {};}
+ if(root.find('\0')!=std::string::npos){error="world_io_data_root";return {};}
  const std::filesystem::path target(path);std::error_code ec;if(!target.is_absolute()||target.extension()!=".emworld"||target.filename().empty()){error="world_io_target_path";return {};}
  auto out=std::make_unique<Parent>();out->canonical=std::filesystem::canonical(target.parent_path(),ec);if(ec){error="world_io_parent";return {};}
  const auto data=std::filesystem::canonical(root,ec);if(ec||!outside(out->canonical,data)){error="world_io_data_root";return {};}

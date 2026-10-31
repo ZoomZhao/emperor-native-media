@@ -1626,6 +1626,24 @@ Limits:128MiB file,512MiB aggregate decoded allocation charge, depth32,1MiB stri
 
 `writeOriginalWorldCheckpointNew` accepts only a new `.emworld` leaf outside the canonical original-data root and application bundles. It anchors the parent descriptor and verifies named identity, creates its own exclusive0600 temporary, writes all bytes with short-write/EINTR handling, fsyncs/closes the file, then uses exclusive `linkat` to publish without overwrite and fsyncs the directory. It cleans only its own temporary. Concurrent writers cannot replace each other or an existing regular file/symlink. Parent replacement and cancellation before publication fail. Reader uses the same anchored parent and no-follow leaf, stable full reads, bounds and exact decode. Its leaf open uses `O_NONBLOCK` before `fstat` enforces regular-file type: a FIFO with no writer cannot hang the synchronous App menu before validation. The source-binding reader uses the same nonblocking regular-file gate.
 
+The common checkpoint read/write path gate rejects embedded NUL in the entire
+checkpoint path and original-data root before canonicalization or descriptor
+opens. A leaf-only check is insufficient: on macOS, a NUL in the parent could
+silently resolve a shorter directory and publish/read a different file. The
+path-only regression uses authored temporary data; Release/UBSan each pass
+**126/126** I/O checks and **2014/2014** codec checks, plus **8** function/disk
+composition groups (**241** checks, **14** disk cases). Valid Unicode paths and
+normal v1 bytes are unchanged; the complete authored checkpoint remains
+byte-exact with the pre-fix output. The authored invocation initially reports
+real-input SKIP because its data-root environment is unset and no sources are
+passed. A separate final-code Release/UBSan recheck explicitly supplies the two
+previously admitted N0 source files: **244** checks per mode, **2/2** actual
+file/fresh-process next-state comparisons, **6/6** full-world failure oracles and
+**16/16** phase-edge disk comparisons. Both original input hashes remain exact.
+The existing declared-premise continuation tests retain their labels and strict
+ordinary-event refusal; this is not new ordinary-play admission. GUI and physical
+power-loss tests are not rerun or claimed by this path-hardening batch.
+
 There are three outcomes: `NotPublished`, `PublishedDurable`, `PublishedDurabilityUnknown`. Once link succeeds, later errors/exceptions never claim no file was written and never delete the final file. An unknown result must be resolved against the existing file digest/revision; blind retry is unsafe. A save receipt acknowledges only a durable captured revision still current in the same synchronous owner. Later advances, camera changes or accepted tribute invalidate that match; loading another world discards the receipt. Process-termination tests establish atomic visibility at the exercised boundaries, not real hardware power-loss durability.
 
 ### Verification scope
