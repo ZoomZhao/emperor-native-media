@@ -256,6 +256,40 @@ void authored(const std::filesystem::path& root){
     std::filesystem::rename(root/"assets-absent",root/"DATA");pakChecks(root);
     std::cout<<"{\"passed\":true,\"checks\":"<<checks<<",\"original_data\":false}\n";
 }
+// Primary metric: the six catalogued original SAV sources, each driven through
+// the normal App Play path (experiment off, load hypotheses on) for up to 100
+// updates. One line per source, then PRIMARY X/6. Exit 0 with SKIP when the
+// data root is unset; a source that fails to prepare is reported, not thrown.
+void primaryMetric(const std::string& path){
+    using namespace game_lab;
+    const auto root=ResourceRoot::fromAbsolute(path);
+    if(!root.configured())throw std::runtime_error("explicit existing data root required");
+    AppCityPlaybackPreferences preferences;std::string error;
+    if(!readAppCityPlaybackPreferences(root,preferences,error))throw std::runtime_error(error);
+    const auto catalog=enumerateOriginalMapSources(root);
+    if(!catalog.complete)throw std::runtime_error("source catalog incomplete");
+    unsigned qualified=0,seen=0;
+    for(const auto& source:catalog.sources){
+        if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
+        ++seen;
+        const auto save=loadOriginalSave(root.resolve(source.relativePath));
+        std::vector<uint8_t> raw;
+        if(!detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,raw))throw std::runtime_error("source bytes");
+        const auto payload=decodeOriginalMapContainer(raw).payload;
+        AppMapSurface surface(root);AppCitySessionState session;session.crtRandom=1;
+        AppCityPlayback playback(surface,save,payload,preferences,1,0,false,&session);
+        unsigned updates=0;std::string refusal="not_prepared";
+        if(playback.prepared()){
+            const auto interval=std::max(1u,playback.status().intervalMs);
+            for(unsigned n=1;n<=100;++n){if(!playback.step(uint64_t(n)*interval))break;}
+            updates=playback.status().updates;refusal=playback.status().refusal;
+        }
+        if(updates>=100&&refusal.empty())++qualified;
+        std::cout<<source.relativePath<<'\t'<<updates<<'\t'<<(refusal.empty()?"none":refusal)<<'\n';
+    }
+    if(seen!=6)throw std::runtime_error("primary corpus is 6 SAV sources, saw "+std::to_string(seen));
+    std::cout<<"PRIMARY "<<qualified<<"/6\n";
+}
 // App-path playback: every source save is driven through AppCityPlayback, the
 // same controller the window uses. Strict premises must refuse by name at N=0;
 // the labelled experiment premises must complete 100 admitted updates, keep
@@ -303,7 +337,7 @@ void playback(const std::string& path,const std::vector<std::string>& selected={
         AppMapSurface strictSurface(root);
         AppCitySessionState strictSession;strictSession.crtRandom=crtSeed;strictSession.admissionClock=1234;
         strictSession.cityClocks.value[0]=2;strictSession.wildlifeCounter=19;strictSession.randomHistory.cursor=7;
-        AppCityPlayback strict(strictSurface,save,payload,preferences,crtSeed,farmerMs,false,&strictSession);
+        AppCityPlayback strict(strictSurface,save,payload,preferences,crtSeed,farmerMs,false,&strictSession,false,nullptr,true);
         if(!strict.prepared())throw std::runtime_error("strict source="+source.relativePath+" preparation="+strict.status().error);
         need(strict.prepared(),"strict playback prepared");
         need(!strict.status().experiment,"strict default is not the experiment");
@@ -678,5 +712,6 @@ void metrics(const std::string& path){
 }
 int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--metrics"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true}\n";return 0;}metrics(root);}
     else if(argc>=2&&std::string(argv[1])=="--playback"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return 0;}playback(root,std::vector<std::string>(argv+2,argv+argc));}
+    else if(argc==2&&std::string(argv[1])=="--primary-metric"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"SKIP EMPEROR_GAMEDATA_ROOT unset\n";return 0;}primaryMetric(root);}
     else if(argc==2)authored(std::filesystem::absolute(argv[1]));else throw std::runtime_error("fixture directory or --metrics required");return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

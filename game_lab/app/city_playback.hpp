@@ -26,6 +26,7 @@ struct AppCityPlaybackStatus {
     AppCityPlaybackState state = AppCityPlaybackState::Ready;
     bool continuous = false;     // no automatic update target; Pause/Step/refusal stops admission
     bool experiment = false;      // headless mechanics tests only: Unresolved inputs supplied
+    bool strictPremises = false;  // tests only: withhold normal-mode load hypotheses and refuse
     unsigned target = 0;          // requested admitted updates
     unsigned updates = 0;         // N, admitted updates so far
     unsigned long long refusedUpdate = 0;   // 1-based update that refused
@@ -41,7 +42,7 @@ struct AppCityPlaybackStatus {
 class AppCityPlayback {
 public:
     AppCityPlayback(AppMapSurface&, const OriginalSaveResult&, const std::vector<uint8_t>& decodedPayload,
-        const AppCityPlaybackPreferences&, uint32_t crtSeed, uint32_t farmerMs, bool experiment, AppCitySessionState* session=nullptr, bool recordReplay=false,const OriginalWorldBoundSource* boundSource=nullptr);
+        const AppCityPlaybackPreferences&, uint32_t crtSeed, uint32_t farmerMs, bool experiment, AppCitySessionState* session=nullptr, bool recordReplay=false,const OriginalWorldBoundSource* boundSource=nullptr, bool strictPremises=false);
     // VA0x855214 ten scheduler intervals indexed by (100-speed)/10; admission
     // requires interval+2 ms elapsed. False when the speed has no interval.
     static bool admissionIntervalMs(int32_t speed, unsigned& out);

@@ -66,7 +66,7 @@ int main(int argc,char** argv){try{
   std::vector<uint8_t> childBytes;need(detail::readFile((childOutput/"child-next.bin").string(),originalWorldFileLimit,childBytes),"child next-state file");need(*bytes==std::string(childBytes.begin(),childBytes.end()),"fresh process same logical next input gives identical whole canonical world");
   ++crossProcess;
   // Restoring a declared-premise world must replace receiver provenance.
-  AppCityPlayback strict(surface,bound->save,bound->payload,prefs,17,0,false,&session,false,&*bound);need(strict.prepared(),"strict source prepares");strict.play();need(!strict.step(0)&&strict.status().refusal=="event_ui_5eff20_not_closed","normal unknown event gate remains refused");
+  AppCityPlayback strict(surface,bound->save,bound->payload,prefs,17,0,false,&session,false,&*bound,true);need(strict.prepared(),"strict source prepares");strict.play();need(!strict.step(0)&&strict.status().refusal=="event_ui_5eff20_not_closed","strict unknown event gate remains refused");
   auto exp=AppCityPlayback::fromWorldSnapshot(surface,*first,0,&session,error);need(bool(exp)&&exp->status().experiment,"restore retains declared-premise label");auto forged=*first;forged.policy.experimental=false;need(!surface.restoreWorldSnapshot(forged,error)&&error=="world_snapshot_policy_promotion","savefile cannot launderzero gates asordinary");
   if(sources==0){
    // Full represented-world comparison across actual supported phase edges.

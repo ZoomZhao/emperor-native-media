@@ -81,7 +81,12 @@ public:
     bool prepareCityPlayback(const OriginalSaveResult&,const std::vector<uint8_t>& decodedPayload,
         const OriginalCombinedProcessInputs&,const AppCitySessionState* session=nullptr,bool recordReplay=false);
     AppCityTimelineStep advanceCityPlayback(const OriginalSceneTimelineFrame&);
-    bool prepareBoundCityPlayback(const OriginalWorldBoundSource&,const OriginalWorldPolicy&,const AppCitySessionState&,bool replay=false);
+    // `recorded` is what a later world snapshot reports. `played`, when set,
+    // is the process state the first update actually runs; it exists so a
+    // normal-mode load hypothesis can run without being recorded as recovered
+    // original input (a present event gate in a non-experimental snapshot is a
+    // policy promotion).
+    bool prepareBoundCityPlayback(const OriginalWorldBoundSource&,const OriginalWorldPolicy& recorded,const AppCitySessionState&,bool replay=false,const OriginalCombinedProcessInputs* played=nullptr);
     std::optional<OriginalWorldSnapshot> worldSnapshot(std::string& error)const;
     bool restoreWorldSnapshot(const OriginalWorldSnapshot&,std::string& error);
     uint64_t worldRevision()const;

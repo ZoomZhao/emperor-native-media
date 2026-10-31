@@ -1,7 +1,7 @@
 """App stored-surface adapter checks; metrics only read process-local data root."""
 import os
 import sys
-if len(sys.argv)>1 and sys.argv[1] in ('metrics','constraints','playback') and not os.environ.get('EMPEROR_GAMEDATA_ROOT'):
+if len(sys.argv)>1 and sys.argv[1] in ('metrics','constraints','playback','primary-metric') and not os.environ.get('EMPEROR_GAMEDATA_ROOT'):
     print('{"skipped":true,"reason":"EMPEROR_GAMEDATA_ROOT unset or empty"}')
     raise SystemExit(0)
 from pathlib import Path
@@ -46,7 +46,7 @@ def constraint_summary(metrics):
             'note':'Metadata subclasses first encountered in holdout do not have separate discovery support;marker rule was exploratory after aggregate holdout counts.'}
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('task',choices=['test','metrics','constraints','playback']);p.add_argument('--mode',choices=['release','undefined'],default='release');p.add_argument('--build-dir',type=Path)
+    p.add_argument('task',choices=['test','metrics','constraints','playback','primary-metric']);p.add_argument('--mode',choices=['release','undefined'],default='release');p.add_argument('--build-dir',type=Path)
     a=p.parse_args();build=(a.build_dir or Path(tempfile.mkdtemp(prefix='emperor-app-surface-'))).resolve()
     configured=os.environ.get('EMPEROR_GAMEDATA_ROOT')
     if configured and build.is_relative_to(Path(configured).resolve()):p.error('--build-dir must be outside the data root')
@@ -56,8 +56,8 @@ def main():
     flags=['-O2']if a.mode=='release'else['-O1','-g','-fsanitize=undefined','-fno-sanitize-recover=all']
     subprocess.run(['/usr/bin/clang++','-std=c++17','-Wall','-Wextra','-Werror',*flags,*[str(ROOT/s)for s in sources],'-framework','CoreGraphics','-framework','CoreFoundation','-lz','-o',str(binary)],check=True)
     fixture=Path(tempfile.mkdtemp(prefix='owned-fixtures-',dir=build))if a.task=='test'else None
-    if a.task=='playback':
-        result=subprocess.run([str(binary),'--playback'],check=False,capture_output=True,text=True)
+    if a.task in ('playback','primary-metric'):
+        result=subprocess.run([str(binary),'--playback' if a.task=='playback' else '--primary-metric'],check=False,capture_output=True,text=True)
         sys.stdout.write(result.stdout);sys.stderr.write(result.stderr)
         return result.returncode
     if a.task=='constraints':

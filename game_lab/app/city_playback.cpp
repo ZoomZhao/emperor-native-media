@@ -44,6 +44,90 @@ OriginalCombinedProcessInputs documentedPremises(const AppCityPlaybackPreference
     p.wallClock = farmerMs;
     return p;
 }
+// Load/continue hypotheses for ordinary play. Each value is the best-supported
+// reading of an input the SAV does not store, marked in place; none is a
+// recovered runtime observation. strictPremises withholds every one of them so
+// the named refusal stays selectable. They are applied to the live update only:
+// the world-checkpoint policy keeps them absent, because a present gate there
+// is rejected as policy promotion.
+void applyLoadHypotheses(OriginalCombinedProcessInputs& p) {
+    // HYPOTHESIS(event-ui-gates-closed-at-load): 5EFF20 reads singleton 1E53538
+    // bytes +17 then +16 and returns at 5F00A2 with no stores when a byte is
+    // zero (SAV_FIGURES.md). At load/continue no event dialog is open, so both
+    // bytes are zero and only that proven early return runs.
+    p.eventGate17 = 0;
+    p.eventGate16 = 0;
+    // HYPOTHESIS(scenario-slots-empty-at-load): the eight dwords at
+    // A98370+259920 are process state. The SAV19 read window never names that
+    // range, and a fresh process zero-fills it (ORIGINAL_TICK_WIRING_AUDIT.md
+    // §1.6; SAV.md Unresolved table). With every slot null, both 466E90 loops
+    // make no calls. A nonempty slot is still refused by name.
+    p.eventSlots = std::array<uint32_t, 8>{};
+    // HYPOTHESIS(manager-gate-closed-at-load): 425250 reads singleton 10AF4E0
+    // byte +8, and 492452..460 skips a mode5 record when that byte is zero, so
+    // no callback or write happens (SAV_FIGURES.md). The byte is not in the
+    // SAV19 window and a fresh process zero-fills it. A nonzero byte keeps the
+    // named mode5 refusal.
+    p.managerGate8 = 0;
+    // HYPOTHESIS(migrant-spacing-zero-at-load): D62418 is the migrant spacing
+    // counter. Phase 23 (4AD4A0) subtracts 51 and clamps at zero before any
+    // migrant walk, and the SAV19 window does not restore it, so a fresh
+    // process starts it at zero (ORIGINAL_TICK_WIRING_AUDIT.md phase 23; SAV.md
+    // Unresolved table). Zero only delays the first migrant; it invents none.
+    p.migrantSpacing = 0;
+    // HYPOTHESIS(notice-history-at-file-initial): 8501FC/FD are the shortage and
+    // unemployment notice latches. The SAV19 window does not restore them
+    // (ORIGINAL_TICK_WIRING_AUDIT.md phase 1: 25 of 29 written addresses are
+    // outside it) and the initialized .data image holds 1 for both (SAV.md
+    // input table). 4F1590 reads them before it may emit 548210/548270, so a
+    // fresh process starts both set. The experiment's false is a test premise,
+    // not this initial value.
+    p.shortageNotice = true;
+    p.unemploymentNotice = true;
+    // HYPOTHESIS(service-coverage-zero-at-load): C82D58 is the 11-column
+    // coverage scratch. 4AF2D0 rewrites columns 0..3 and 7..10 and keeps 4..6,
+    // and phase 1 refuses before that write when the row is absent. The SAV19
+    // window does not restore it and a fresh process zero-fills it (SAV.md
+    // Unresolved table; SAV_FIGURES.md coverage scratch). Zeros survive only in
+    // the three preserved columns.
+    p.serviceCoverage = std::array<int32_t, 11>{};
+    // HYPOTHESIS(highest-building-slot-zero-at-load): phase 10 (4AEB30) refuses
+    // unless the caller supplies the highest-ever building slot, then sets it to
+    // the max of that value and the highest live slot. It is not restored from
+    // the SAV (original_scene_timeline.hpp; SAV.md Unresolved table), so a fresh
+    // process starts it at zero and the first scan records the live maximum.
+    p.highestEverBuildingSlot = 0;
+    // HYPOTHESIS(religion-bonus-off-at-load): 10BFB50 is the religion-bonus
+    // gate. Phase 18 (5A8170) refuses while it is absent, and its festival
+    // branch only runs when the gate is set, so zero disables that branch. A
+    // fresh process zero-fills it and the SAV19 window does not restore it
+    // (SAV.md Unresolved table; SAV_FIGURES.md religion bonus disabled).
+    p.religionBonusEnabled = false;
+    // HYPOTHESIS(religion-scratch-at-file-initial): 1312F78 is the previous
+    // religion rating and 85D720 the selected worship. Phase 18 reads both and,
+    // in ordinary mode, writes neither (5A832A is the only rating writer, and
+    // only in alternate mode). 85D720's initialized .data value is -1 and
+    // 1312F78 is zero-filled at process creation; neither is in the SAV19
+    // window (SAV.md input table and Unresolved table).
+    p.religionPreviousRating = 0;
+    p.religionSelected = -1;
+    // HYPOTHESIS(producer-tails-zero-at-load): phase 33 (4AF230) resets the
+    // first 30 producer and staffed-producer entries and preserves entries
+    // 30..35, refusing while those rows are absent. They are zero-filled at
+    // process creation and not restored by the SAV19 window (SAV.md Unresolved
+    // table; SAV_FIGURES.md producer tails), so only the preserved tail is
+    // supplied and it starts at zero.
+    p.producerTail = std::array<int32_t, 6>{};
+    p.staffedProducerTail = std::array<int32_t, 6>{};
+    // HYPOTHESIS(effect-scratch-zero-at-load): 101D12C is the effect-decay
+    // counter and 8900E8 the visual-effect count. Phase 45 (5F02C0) refuses
+    // while the counter is absent, then increments it and decays the effect
+    // grid only when it passes 7. The count gates debris emission. Both are
+    // zero-filled at process creation and outside the SAV19 window (SAV.md
+    // Unresolved table; SAV_FIGURES.md effect premises).
+    p.effectDecayCounter = 0;
+    p.visualEffectCount = 0;
+}
 // Explicit, labelled experiment: the documented-but-Unresolved rows are fed
 // the same declared zeros the CLI combined corpus uses. These are caller
 // premises, not recovered SAV values or original runtime observations.
@@ -70,15 +154,17 @@ void applyUnresolvedZeroPremises(OriginalCombinedProcessInputs& p) {
     p.previousHealthRating = 0;
 }
 std::string describePremise(const AppCityPlaybackPreferences& preferences, uint32_t crtSeed, uint32_t farmerMs,
-    bool experiment, unsigned intervalMs) {
+    bool experiment, bool strictPremises, unsigned intervalMs) {
     std::string text = "前提（App 自动供给，无需输入）：SAV 存档时序 + Emperor.inf 速度 " +
         std::to_string(preferences.speed) + "/" + std::to_string(preferences.personalSpeed) + "、音效 " +
         (preferences.soundEffects ? "开" : "关") + " + 会话 CRT 状态 " + std::to_string(crtSeed) +
         "、农夫毫秒 " + std::to_string(farmerMs) + " + 单机会话（进程初值仅初始化一次，跨存档保留）；间隔 " + std::to_string(intervalMs) + " ms。";
     if (experiment)
         text += "实验前提已开启：未解析输入按声明零值/文档初值供给（combinedTestProcess），非原版观测。";
+    else if (strictPremises)
+        text += "严格前提：加载假设不供给，时序一旦需要即显示具名拒绝。";
     else
-        text += "未解析输入不供给：时序一旦需要即显示具名拒绝。";
+        text += "加载假设已供给（HYPOTHESIS，非原版观测）：其余未解析输入不供给，时序一旦需要即显示具名拒绝。";
     return text;
 }
 }
@@ -107,7 +193,7 @@ bool AppCityPlayback::admissionIntervalMs(int32_t speed, unsigned& out) {
 
 AppCityPlayback::AppCityPlayback(AppMapSurface& surface, const OriginalSaveResult& save,
     const std::vector<uint8_t>& payload, const AppCityPlaybackPreferences& preferences,
-    uint32_t crtSeed, uint32_t farmerMs, bool experiment, AppCitySessionState* session, bool recordReplay,const OriginalWorldBoundSource* boundSource)
+    uint32_t crtSeed, uint32_t farmerMs, bool experiment, AppCitySessionState* session, bool recordReplay,const OriginalWorldBoundSource* boundSource, bool strictPremises)
     : surface_(surface), preferences_(preferences), session_(session) {
     AppCitySessionState initial;initial.crtRandom=crtSeed;
     if(session_)initial=*session_;
@@ -115,16 +201,20 @@ AppCityPlayback::AppCityPlayback(AppMapSurface& surface, const OriginalSaveResul
     const auto loaded=originalFigureSchedulerAfterLoad({lastAdmission_,preferences.speed,false,false},preferences.personalSpeed,false);
     preferences_.speed=loaded.speed;
     status_.experiment = experiment;
+    status_.strictPremises = strictPremises;
     if (!admissionIntervalMs(preferences_.speed, intervalMs_)) {
         status_.state = AppCityPlaybackState::Refused;
         status_.error = "Emperor.inf 个人速度 " + std::to_string(preferences.personalSpeed) + " 不在调度区间表内";
         return;
     }
     status_.intervalMs = intervalMs_;
-    status_.premise = describePremise(preferences, initial.crtRandom, farmerMs, experiment, intervalMs_);
+    status_.premise = describePremise(preferences, initial.crtRandom, farmerMs, experiment, strictPremises, intervalMs_);
     auto premises = documentedPremises(preferences, initial, farmerMs);
     const auto documented=premises;
     if (experiment) applyUnresolvedZeroPremises(premises);
+    // Checkpoint policy records documented inputs only. A present event gate,
+    // slot table or manager byte in a non-experimental snapshot is refused as
+    // policy promotion, so load hypotheses never enter that record.
     OriginalWorldPolicy policy;policy.experimental=experiment;policy.initial=premises;
     policy.preferences={preferences_.speed,preferences_.personalSpeed,preferences_.soundEffects,preferences_.annualDemandResponseMode};
     policy.origins[0]=premises.cityClocks?uint8_t(documented.cityClocks?2:3):0;
@@ -168,7 +258,10 @@ AppCityPlayback::AppCityPlayback(AppMapSurface& surface, const OriginalSaveResul
     policy.origins[38]=premises.annualDemandResponseMode?uint8_t(documented.annualDemandResponseMode?2:3):0;
 
     const bool matches=!boundSource||(boundSource->save.snapshotRevision==save.snapshotRevision&&boundSource->binding.payloadDigest==originalWorldDigest(payload.data(),payload.size()));
-    if (!matches||!(boundSource?surface_.prepareBoundCityPlayback(*boundSource,policy,initial,recordReplay):surface_.prepareCityPlayback(save, payload, premises, &initial, recordReplay))) {
+    if (!experiment && !strictPremises) applyLoadHypotheses(premises);
+    // `policy` stays the documented record. The played premises may also carry
+    // a load hypothesis, which must not be written back into that record.
+    if (!matches||!(boundSource?surface_.prepareBoundCityPlayback(*boundSource,policy,initial,recordReplay,&premises):surface_.prepareCityPlayback(save, payload, premises, &initial, recordReplay))) {
         status_.state = AppCityPlaybackState::Refused;
         status_.error = surface_.cityPlaybackError();
         return;

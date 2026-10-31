@@ -252,11 +252,11 @@ bool AppMapSurface::restoreCityCheckpoint(const CityCheckpoint& checkpoint,uint6
     }catch(const std::exception&){return false;}
 }
 
-bool AppMapSurface::prepareBoundCityPlayback(const OriginalWorldBoundSource& source,const OriginalWorldPolicy& policy,const AppCitySessionState& session,bool replay){
+bool AppMapSurface::prepareBoundCityPlayback(const OriginalWorldBoundSource& source,const OriginalWorldPolicy& policy,const AppCitySessionState& session,bool replay,const OriginalCombinedProcessInputs* played){
     try{
         std::string error;if(source.binding.legacyRevision!=source.save.snapshotRevision||source.binding.payloadDigest!=originalWorldDigest(source.payload.data(),source.payload.size())||!verifyOriginalWorldBinding(root_,source.binding,error)){error_=error.empty()?"world_source_context_mismatch":error;return false;}
         AppMapSurface candidate(root_,spriteCache_);candidate.publicationProbe_=publicationProbe_;
-        if(!candidate.prepareCityPlaybackCandidate(source.save,source.payload,policy.initial,&session,replay)){error_=candidate.error_;return false;}
+        if(!candidate.prepareCityPlaybackCandidate(source.save,source.payload,played?*played:policy.initial,&session,replay)){error_=candidate.error_;return false;}
         if(!verifyOriginalWorldBinding(root_,source.binding,error)){error_=error;return false;}
         candidate.playback_->worldSource=source.binding;candidate.playback_->worldPolicy=policy;
         if(publicationProbe_)publicationProbe_("bound_source_prepared");swapPrepared(candidate);error_.clear();return true;

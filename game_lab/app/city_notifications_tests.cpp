@@ -65,7 +65,7 @@ void real(int argc,char** argv){
         OriginalBuildingUpdateContext context(OriginalBuildingUpdateScope::AdmittedTicks,true);
         need(originalBuildingSavedCityContext(decoded.payload,save.sizeOffset,context)&&context.treasury.has_value(),"saved treasury");
         AppMapSurface surface(root);AppCitySessionState session;session.crtRandom=7;
-        AppCityPlayback playback(surface,save,decoded.payload,prefs,7,0,false,&session);
+        AppCityPlayback playback(surface,save,decoded.payload,prefs,7,0,false,&session,false,nullptr,true);
         need(playback.prepared()&&playback.notifications(),"normal App notification preparation");
         size_t count=0;for(unsigned n=0;n<messages->count;++n)if(messages->records[n][2]==29)++count;
         need(playback.notifications()->saved().size()==count&&playback.notifications()->generated().empty(),"all real type29 records displayed, none queued");
@@ -77,7 +77,7 @@ void real(int argc,char** argv){
         need(!playback.step(1000)&&playback.status().refusal=="event_ui_5eff20_not_closed"&&playback.status().updates==0,"normal event refusal retained");
         need(playback.notifications()->report()==before&&surface.installedSceneDigest()==digest&&session.admissionClock==0,"refused update publishes no scene/session/notification changes");
         surface.clearCityPlayback();need(!surface.cityNotifications(),"clearing city removes its inbox");
-        AppCityPlayback replay(surface,save,decoded.payload,prefs,7,0,false,&session);
+        AppCityPlayback replay(surface,save,decoded.payload,prefs,7,0,false,&session,false,nullptr,true);
         need(replay.prepared()&&replay.notifications()->report()==before&&replay.notifications()->generated().empty(),"same saved history on readback, no duplicate queue");
         std::cout<<"{\"source\":"<<std::quoted(argv[i])<<",\"saved_type29\":"<<count<<",\"generated\":0,\"treasury\":"<<*context.treasury<<",\"normal_first_update\":false,\"display_checks_passed\":true}\n";
     }
@@ -186,7 +186,7 @@ void runtimeTransactions(int argc,char** argv){
     for(unsigned n=103;n<=236;++n)need(ctl.step(uint64_t(n)*ctl.status().intervalMs),"continued chain after decisions");
     const auto retained=ctl.tributeFinances();need(retained&&retained->treasury==accepted->treasury&&retained->incomeOther==accepted->incomeOther&&retained->tributeIncomeComponent==accepted->tributeIncomeComponent&&ctl.notifications()->report()==done,"financial decisions survive continuation without replay");
     need(!ctl.step(uint64_t(237)*ctl.status().intervalMs)&&ctl.status().refusal=="explicit_phase_terrain_disabled_context_required"&&ctl.notifications()->report()==done,"unrelated next refusal retained");
-    AppCityPlayback reload(surface,save,d.payload,prefs,1,0,false,&session);need(reload.prepared()&&!reload.notifications()->nextPending()&&reload.respondNotification(*first,AppCityTributeDecision::Accept)==AppCityTributeResult::Stale,"normal reload cannot replay old runtime identity");
+    AppCityPlayback reload(surface,save,d.payload,prefs,1,0,false,&session,false,nullptr,true);need(reload.prepared()&&!reload.notifications()->nextPending()&&reload.respondNotification(*first,AppCityTributeDecision::Accept)==AppCityTributeResult::Stale,"normal reload cannot replay old runtime identity");
     need(!reload.step(1000000)&&reload.status().refusal=="event_ui_5eff20_not_closed","normal event gate still enforced");
     std::cout<<"{\"runtime_transactions_passed\":true,\"committed_receipts\":2,\"accepted\":1,\"rejected\":1,\"retained_through_update\":236,\"explicit_test_premises\":true,\"normal_GUI\":false}\n";
 }
