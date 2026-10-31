@@ -18,6 +18,7 @@ namespace {std::string v6Summary;size_t checks=0;void need(bool ok,const char* w
 - (int64_t)balance;
 - (uint64_t)revision;
 - (size_t)objects;
+- (std::string)serializedState;
 - (size_t)queued;
 - (std::shared_ptr<NativeVisualTransaction>)pending;
 - (void)failGPUAndFinishCPU:(std::shared_ptr<NativeVisualTransaction>)request;
@@ -43,6 +44,7 @@ namespace {std::string v6Summary;size_t checks=0;void need(bool ok,const char* w
 - (int64_t)balance{return _nativeState->funds;}
 - (uint64_t)revision{return _nativeState->revision;}
 - (size_t)objects{return _nativeState->objects.size();}
+- (std::string)serializedState{return game_lab::encodeNativeSession(_nativeSource->seed,*_nativeState);}
 - (size_t)queued{return _nativeCommands.size();}
 - (std::shared_ptr<NativeVisualTransaction>)pending{return _nativePending;}
 - (void)failGPUAndFinishCPU:(std::shared_ptr<NativeVisualTransaction>)request {
@@ -54,12 +56,13 @@ namespace {std::string v6Summary;size_t checks=0;void need(bool ok,const char* w
     if(_nativePending){_nativePending->settled=true;_nativePending->completion=nil;_nativePending.reset();}_nativeCommands.clear();
 }
 - (void)requestFailedReplacement {
-    const auto previous=_nativeState;const auto source=_nativeSource;const auto epoch=_nativeFrameGate.sessionEpoch;
+    const auto previous=_nativeState;const auto previousBytes=[self serializedState];const auto source=_nativeSource;const auto epoch=_nativeFrameGate.sessionEpoch;
     _nativeFrameGate=game_lab::changeSceneFrame(_nativeFrameGate,game_lab::SceneFrameChange::BeginSession).state;
     auto bad=*_nativeState;bad.funds=-1;__block unsigned calls=0;
     auto result=[self beginNativeCandidate:bad source:source camera:_nativeCamera completion:^(BOOL ok){need(!ok,"invalid replacement refuses");++calls;}];
     need(result==NativeInstallResult::Failed&&calls==1,"synchronous refusal invokes completion once");
     need(_nativeState->funds==previous->funds&&_nativeState->revision==previous->revision&&_nativeSource==source&&_nativeFrameGate.sessionEpoch>epoch,"failed replacement preserves city with newer epoch");
+    need([self serializedState]==previousBytes,"failed replacement preserves the entire encoded native city");
 }
 - (void)verifyFeedbackReplacement {
     need(_nativeState->objects.size()==4&&_nativeState->revision==4,"feedback collision fixture has four committed roads");
@@ -174,8 +177,8 @@ void run(const game_lab::ResourceRoot& root,std::shared_ptr<const game_lab::Nati
     [owner failGPUAndFinishCPU:first];need([owner balance]==original-2*cost,"late GPU/CPU duplicates cannot charge again");
     need(place(2)&&place(3),"two more operations accepted");[owner flushNativeVisualForUI];
     need(![owner pending]&&[owner queued]==0&&[owner balance]==original-4*cost&&[owner objects]==4,"save/quit flush publishes all accepted intents before modal UI");
-    need(place(4),"failure transaction accepted");auto bad=[owner pending];auto revision=[owner revision];owner->failCPUImage=true;[owner failGPUAndFinishCPU:bad];owner->failCPUImage=false;
-    need([owner balance]==original-4*cost&&[owner objects]==4&&[owner revision]==revision&&!bad->installed,"actual CPU image failure preserves all live city fields");[owner verifyPixelsRetained];
+    need(place(4),"failure transaction accepted");auto bad=[owner pending];auto revision=[owner revision];const auto previousBytes=[owner serializedState];owner->failCPUImage=true;[owner failGPUAndFinishCPU:bad];owner->failCPUImage=false;
+    need([owner balance]==original-4*cost&&[owner objects]==4&&[owner revision]==revision&&!bad->installed,"actual CPU image failure preserves public city fields");need([owner serializedState]==previousBytes,"actual presentation failure preserves the entire encoded native city");[owner verifyPixelsRetained];
     need(place(4),"retry accepted after allocation failure");[owner flushNativeVisualForUI];need([owner balance]==original-5*cost,"retry commits exactly once");
     need(place(5),"construction before camera change accepted");auto beforeCamera=[owner pending];game_lab::OriginalMapCamera camera=beforeCamera->camera;camera.centerX+=1;
     [owner nativeViewCamera:camera];need([owner balance]==original-6*cost&&[owner objects]==6,"camera change does not drop pending construction");

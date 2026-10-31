@@ -1357,3 +1357,94 @@ The App pauses on such failure and explains the boundary; it does not erase
 risk, reset fireCount or report that disasters are implemented. GUI terminology
 distinguishes employed/pending-dispatch/in-flight/returning and a historical
 actual visit. Selecting a tool or inspecting an object changes no simulation.
+
+### Nonempty native checkpoint/Metal regression (2026-10-31)
+
+`scripts/test_native_checkpoint_metal.py` accepts two explicit, existing native
+ENCITY checkpoints from distinct original-resource sources. The measured inputs
+are paused v8 saves previously produced by normal native App patrol flows, not
+original SAV continuation or newly populated rendering fixtures. The test does
+not advance simulation, invent actors, relax source admission or change a format.
+Original resources stay read-only under `EMPEROR_GAMEDATA_ROOT`; an unset root
+reports SKIP separately. Existing checkpoints must be outside that root, and all
+outputs must use a new absolute directory outside both source and original data.
+
+```sh
+python3 -B scripts/test_native_checkpoint_metal.py --mode release \
+  --build-dir "$NEW_OUTPUT" --checkpoint "$CHECKPOINT_A" --checkpoint "$CHECKPOINT_B"
+```
+
+Each Release/UBSan run passes **152/152** restore assertions: two pre-save real
+Metal frames, two fresh-process disk restores and four post-restore real Metal
+frames, plus two explicitly failed completions. Canonical writes are byte-exact
+with the two accepted input saves; complete encoded state and pre-save CPU image
+hashes match in the new processes. The clipped scenes have **361/367** drawn
+sprite commands, **86/88** drawn resources and **352/354** draw calls. Seven
+existing building-resource handles in each scene reach the captured commands.
+Removing only the figure layer from a separate reference view changes
+**502/2117** actual pixels, proving visible figures rather than relying on a
+decoded-actor counter. Every successful GPU/CPU comparison has zero differing
+pixels. Cameras focus on existing patrol positions; ENCITY camera persistence is
+not inferred from this deterministic test view.
+
+The batch also checks malformed decoding, resource invalidation, failure without
+a replacement frame, retained prior-frame pixels and completed-texture lifetime
+after source/list/renderer destruction. Completion callbacks are checked after
+GPU drain for exactly one off-main delivery. Two path-guard negative tests assert
+the specific refusal reason, so malformed placeholder files cannot accidentally
+stand in for proof of path protection. Build manifests, per-unit dependencies,
+input identities, binary and fresh-process results are bound locally; no original
+checkpoint, pixels or assets are repository fixtures.
+
+These headless renderer checks are separate from actual App publication tests.
+`scripts/native_visual_app.py` passes **177/177** actual-consumer assertions per
+mode with a GPU substitute and no window. Invalid replacement and late GPU plus
+CPU-image failure preserve the entire encoded native state and the old displayed
+image; the existing v6 check retains population14, labor5, employed5, shortage14
+and produced meat25. The two test families are not combined into a claim of
+real GPU execution by the App harness.
+
+No production rendering change is retained by these headless checks. Native defaults,
+v6 bytes and original-world admission remain unchanged. The selected richer
+original SAV inputs still refuse their existing services, goal-prefix or city
+timing prerequisites; they are not silently replaced by native saves. These headless checks do not claim a
+Metal window, original-world nonempty `.emworld` sprite rendering, original-game
+run or physical power-loss result. Delivered Apps remain unchanged.
+
+### Real native checkpoint Metal window checks (2026-10-31)
+
+A separate local candidate built from167 production inputs exercises two existing
+accepted v8 Native App saves through normal file dialogs. Each source has a first
+Metal process and a fresh-process restore: **4/4** functional flows, **50/50**
+checks. Actual renderer completions, completed display copies and local window
+captures agree; `EMPEROR_NATIVE_METAL=1` alone is not counted as GPU execution.
+The presenter is `NativeSessionCanvas` with `CAMetalLayer`, not MTKView. The
+initial renderer self-test can choose a CPU fallback; normal view-only zoom
+requests then produce the measured Metal frames without advancing simulation.
+
+The flows cover old diagnostic MAP38 to the native city picture, normal new-file
+save, repeated restore, a new-process restore, cancellation of Open and Save,
+invalid-file refusal, Home/Return of the native panel, Cmd+Q and standard window
+close. **12/12** within-Metal canvas comparisons are pixel-exact. Eight Metal-flow
+saves and two CPU-reference saves preserve the complete corresponding input
+ENCITY bytes **10/10**; view operations do not change population, goods, clock or
+ownership. All six baseline processes exit normally with code0.
+
+Strict CPU/Metal **window** parity is **not passed**. Two CPU processes use the
+same candidate, paused state, camera and798×720 logical view as their actual
+Metal-window references. For each2,298,240-pixel Retina canvas, Alpha is exact and
+maximum premultiplied RGB difference is2. Respectively751 and734 pixels exceed
+the existing maximum1 criterion; the remaining differing pixels differ by1.
+These actual compositor results are separate from the exact offscreen texture
+comparisons above. No tolerance is widened and no rendering-equivalence claim
+is substituted for the failed metric.
+
+The first screenshot helper incorrectly hashed a cropped image's shared provider
+including the original row stride. Final checks decode actual cropped PNGs into
+tightly packed RGBA; historical false failures stay in local evidence. Initial
+focus and renderer-self-test helper failures are also retained. Presentation and
+window-color-space experiments did not close the parity criterion and were
+reverted; no production rendering, formats, defaults or gameplay changes are
+retained. Source/binary/input bindings, failed comparisons and normal-exit
+receipts remain local. No original game/editor run, original-world admission
+change, delivered-App replacement or new publication is claimed.
