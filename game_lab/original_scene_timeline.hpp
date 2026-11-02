@@ -36,6 +36,7 @@ struct OriginalCombinedProcessInputs {
     std::optional<bool> soundEffectsEnabled,buildingEditMode; //10DE0D3/D62408 caller inputs
     std::optional<uint8_t> annualDemandResponseMode; //C7EDD0->10DE164,4A3A9A..AC caller preference
     std::optional<bool> animalSpawnMissHypothesis; //normal-play hypothesis, never an observed SAV field
+    std::optional<bool> singleMillFoodHypothesis; //normal-play hypothesis; strict callers withhold it
 };
 struct OriginalCombinedBuilding {
     OriginalBuildingUpdateState state;
@@ -402,7 +403,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
             result=originalBuildingProductionStep(b.state,c);}
         else if(city.phase==31){c.typeDisabled=b.context.typeDisabled;c.terrainFlags=b.context.terrainFlags;
             if(b.state.inputs.alive==1||b.state.inputs.alive==3){result=b.state.building.type==33?
-                    originalBuildingHunterDispatchStep(b.state,c):originalBuildingHookStep(b.state,c);
+                    originalBuildingHunterDispatchStep(b.state,c):originalBuildingHookStep(b.state,c,city.process.singleMillFoodHypothesis==true);
                 if(result==OriginalBuildingUpdateBlocker::BuildingVirtual20&&b.state.building.type==54)
                     result=originalCombinedWarehouseHook(b.state,c);}}
         else if(city.phase==35){if(originalBuildingIsHouse(b.state.building.type)&&(b.state.inputs.alive==1||b.state.inputs.alive==3))originalBuildingDecayHouseServices(b.state.inputs);}

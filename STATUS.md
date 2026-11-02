@@ -18,7 +18,7 @@
 | 项羽/历史战役自动存档_2 | 407 | 7 / 7 | `monthly_city_4ac650` |
 | 项羽/.sav | 337 | 8 / 7 | `monthly_city_4ac650` |
 | 项羽/历史战役自动保存_1 | 356 | 1 / 6 | `monthly_city_4ac650` |
-| zoom/载入旧存档自动保存 | 286 | 1 / 5 | `building_virtual20_416d20` |
+| zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
 | zoom/历史战役自动存档_2 | 356 | 7 / 6 | `monthly_city_4ac650` |
 
 Part 8 calls `591200` every cycle; rollover services remain refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
@@ -53,14 +53,16 @@ The load hypotheses below are in `game_lab/app/city_playback.cpp` `applyLoadHypo
 
 `animal-spawn-missed-candidates` (normal-play fallback): assume the 16 placement candidates all fail, so no animal is born. `4EA986..4EA98A` reset the timer and consume one engine random value before the search; actual placement and successful allocation remain unported. Verify by implementing `4EA8E0` placement/allocation or comparing a supervised save across a known spawn attempt. Strict premises and the direct phase API retain refusal.
 
+`single-mill-food-qualifies` (normal-play fallback): assume a sole eligible Mill with ≥100 available food qualifies for the Market's grade-1 request. `541220`/`544480` establish the candidate gates; the blocked save has one matching Mill, 3,000 available food, and saved Market grade range 1–3. The general saved grade bounds and multi-Mill ranking are not yet bound. Verify by retaining the saved bounds and porting `544480`; strict premises retain refusal.
+
 ## Next step
 
-10,000-update diagnostic census, sorted by earliest attempted update (speculative after any no-op; all six saves stopped hard):
+Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempted update (speculative after any no-op; all six saves stopped hard):
 
 1. `city_accounting_4f1560_4ac2fa`: 210, 285 and 1383 (hard; at 210 this is phase 5 animal spawning `4EA8E0`, not accounting). Two live animal formations have spawn timer 26 and are below their limit.
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-The first normal-path blocker is now `building_virtual20_416d20` after 286 admitted updates. Identify its building and missing branch; the animal spawn fallback remains a hypothesis and needs a real port.
+The first normal-path blocker is now type-24 supplier action 6 after 286 admitted updates, created by the phase-31 food stall under the single-Mill hypothesis. Trace its updater; the animal spawn fallback also needs a real port.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

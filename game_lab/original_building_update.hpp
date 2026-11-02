@@ -847,24 +847,45 @@ inline OriginalBuildingUpdateBlocker originalBuildingStorageHook(OriginalBuildin
 //541220 storage-resource arm (descriptor+18=1). Goods registry order,
 //Chebyshev<40,positive availability/distance,policy9/7 andunavailable
 //precede a fresh5B1080 mask10C flood. Strict minimum wins;no RNG.
-inline OriginalBuildingUpdateBlocker originalBuildingStallSupplier(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c,unsigned resource){
+inline OriginalBuildingUpdateBlocker originalBuildingStallSupplier(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c,unsigned resource,bool singleMillFoodHypothesis=false){
     if(!c.stallSuppliers||!*c.stallSuppliers)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
     if(!c.goodsRecords||!c.goods||!c.buildingLinks||!c.buildings||!c.buildingInputs||!c.movement||!c.cropBase||!c.stallHookRoadAccess||!c.stallHookRoadAccess->count(s.building.slot))return OriginalBuildingUpdateBlocker::MissingContext;
-    if(resource!=19||!s.inputs.parentSlot)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+    if((resource!=19&&resource!=28)||!s.inputs.parentSlot)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
     if(!c.buildingLinks->count(*s.inputs.parentSlot))return OriginalBuildingUpdateBlocker::MissingContext;
     auto& parent=c.buildingLinks->at(*s.inputs.parentSlot);const auto& road=c.stallHookRoadAccess->at(s.building.slot);
-    std::vector<size_t> candidates;
+    std::vector<size_t> candidates;bool selectedFoodGrade=false;
     for(size_t n=1;n<c.goodsRecords->size();++n){const auto& g=c.goodsRecords->at(n);if(!g.alive||!g.owner)continue;
         if(g.owner<0||!c.buildingLinks->count(size_t(g.owner))||!c.buildings->count(size_t(g.owner)))return OriginalBuildingUpdateBlocker::InvalidState;
-        const auto& b=c.buildingLinks->at(size_t(g.owner));if(b.alive!=1||(b.type!=54&&b.type!=56&&b.type!=58)||!b.roadAccess||b.roadDistance<=0)continue;
+        const auto& b=c.buildingLinks->at(size_t(g.owner));
+        if(b.alive!=1||!b.roadAccess||b.roadDistance<=0)continue;
+        if(resource==28){
+            if(b.type!=53)continue;
+            if(!singleMillFoodHypothesis||!c.scenarioFoodOverride)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+            if(*c.scenarioFoodOverride||b.category!=s.inputs.network)continue;
+            const auto& f=c.buildings->at(size_t(g.owner));if(std::max(std::abs(int(s.building.x)-int(f.x)),std::abs(int(s.building.y)-int(f.y)))>=40)continue;
+            if(!b.storage||!parent.storagePolicy||*parent.storagePolicy>=c.goods->policies.size())return OriginalBuildingUpdateBlocker::MissingContext;
+            bool anyFood=false,availableGradeOne=false;
+            for(unsigned r=1;r<=7;++r){int32_t stock=0;for(const auto& bay:*b.storage)if(bay.resource==r)stock=originalBuildingAdd32(stock,originalBuildingI32(bay.amount));
+                anyFood|=stock!=0;if(!c.goods->unavailable[r]&&stock>=100)availableGradeOne=true;}
+            if(!anyFood)continue;candidates.push_back(size_t(g.owner));selectedFoodGrade=availableGradeOne;continue;
+        }
+        if(b.type!=54&&b.type!=56&&b.type!=58)continue;
         const auto& f=c.buildings->at(size_t(g.owner));if(std::max(std::abs(int(s.building.x)-int(f.x)),std::abs(int(s.building.y)-int(f.y)))>=40)continue;
         if(c.goods->unavailable[resource])continue;if(!b.storage||n>=c.goods->policies.size()||!parent.marketStorage)return OriginalBuildingUpdateBlocker::MissingContext;
         int64_t stock=0,parentStock=0;for(const auto& bay:*b.storage)if(bay.resource==resource)stock+=bay.amount;
         for(const auto& bay:*parent.marketStorage)if(bay.resource==resource)parentStock+=bay.amount;
         const auto& policy=c.goods->policies[n];if(stock<=0||policy.accept[resource]==9||(b.type!=54&&policy.trade[resource]==7)||parentStock>=20000)continue;
         candidates.push_back(size_t(g.owner));}
+    size_t selected=0;
+    if(resource==28){
+        // HYPOTHESIS(single-mill-food-qualifies): 544480 accepts grade 1
+        // when one Mill meets the cited 541220 gates and has >=100 available
+        // food. The saved Market grade bounds are not yet retained here.
+        if(candidates.size()!=1||!selectedFoodGrade||!parent.storagePolicy||
+           c.goods->policies[*parent.storagePolicy].limit[28]<=0)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+    }
     s.inputs.spawnCounter=0;++c.stallSupplierCalls;
-    size_t selected=0;if(!candidates.empty()){
+    if(!candidates.empty()){
         if(c.movement->cells.size()!=51984)return OriginalBuildingUpdateBlocker::InvalidState;
         const int64_t start=int64_t(*c.cropBase)+road.x+228LL*road.y;if(start<0||start>=51984)return OriginalBuildingUpdateBlocker::InvalidState;
         std::vector<uint32_t> distance(51984);std::vector<size_t> queue{size_t(start)};distance[size_t(start)]=1;
@@ -880,7 +901,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingStallSupplier(OriginalBuild
     if(!c.figureSpeechCounters||!c.figureSpeechCounts||!c.figureSpeechCounts->at(266)||c.figureSpeechCounts->at(266)>INT32_MAX)return OriginalBuildingUpdateBlocker::MissingContext;
     auto& speech=c.figureSpeechCounters->at(266);
     c.figureSpeechChoices[*allocated]=originalBuildingSignedWord(uint16_t(speech%int32_t(c.figureSpeechCounts->at(266))));speech=originalBuildingAdd32(speech,1);
-    c.supplierRequests[*allocated]={1,-1,-1,-1,-1,-1,-1}; //544390 first eligible category,not array[category].
+    c.supplierRequests[*allocated]={resource==28?0:1,-1,-1,-1,-1,-1,-1}; //544390 first eligible category,not array[category].
     if(!c.poolHookRoadAccess||!c.poolHookRoadAccess->count(selected))return OriginalBuildingUpdateBlocker::MissingContext;
     const auto& destination=c.poolHookRoadAccess->at(selected);if(destination.selected){f.destinationX=destination.x;f.destinationY=destination.y;}
     else{f.action=7;f.destinationX=f.x;f.destinationY=f.y;}
@@ -888,7 +909,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingStallSupplier(OriginalBuild
 }
 //541B80->540B40;the parent-specific road query5409D0 preserves the
 //candidate's network write even when another ranked exit wins.
-inline OriginalBuildingUpdateBlocker originalBuildingStallHook(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c){
+inline OriginalBuildingUpdateBlocker originalBuildingStallHook(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c,bool singleMillFoodHypothesis=false){
     auto& i=s.inputs;
     if(!i.parentSlot||!c.buildingInputs||!c.buildings||!c.buildingInputs->count(*i.parentSlot)||!c.buildings->count(*i.parentSlot)||
         !c.terrain||!c.terrainOwners||!c.cropBase||c.roadNetworks.size()!=51984||c.terrain->size()!=51984||c.terrainOwners->size()!=51984)return OriginalBuildingUpdateBlocker::MissingContext;
@@ -930,7 +951,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingStallHook(OriginalBuildingU
     if(parentLink.marketStorage->at(size_t(*i.stallResourceIndex)).amount>=(resource==28?400u:200u))return OriginalBuildingUpdateBlocker::None;
     //Remaining nonzero-road branch needs the parent's descriptor policy and
     //supplier reservation service;do not infer its result from total market stock.
-    return originalBuildingStallSupplier(s,c,resource);
+    return originalBuildingStallSupplier(s,c,resource,singleMillFoodHypothesis);
 }
 //5AEA60/5AEB60/5AEBB0 FIFO flood,mask13D. Unlike the road-refresh
 //flood this admits crop-owned10000000 cells and excludes other such owners.
@@ -1010,7 +1031,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingCropDispatch(OriginalBuildi
 }
 //Per-type+20 targets are individually cited in SAV.md. Guarded service/Hunter
 //allocation executes;unported positive dispatch retains the named refusal.
-inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c){
+inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c,bool singleMillFoodHypothesis=false){
     auto& i=s.inputs;const auto type=s.building.type;
     if(i.alive!=1&&i.alive!=3)return OriginalBuildingUpdateBlocker::None;
     if(type==194||type==196){if(!i.industry)return OriginalBuildingUpdateBlocker::InvalidState;
@@ -1156,7 +1177,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
             if(percent<50)return OriginalBuildingUpdateBlocker::None;
         }
         if(type==53||type==54||type==58)return originalBuildingStorageHook(s,c);
-        if(type==66||type==67)return originalBuildingStallHook(s,c);
+        if(type==66||type==67)return originalBuildingStallHook(s,c,singleMillFoodHypothesis);
         //Storage/market/stall dispatches have positive supplier/reservation
         //effects;retain the named refusal until those complete services exist.
         return OriginalBuildingUpdateBlocker::BuildingVirtual20;

@@ -827,6 +827,19 @@ void authored(){
     supplier.goods->unavailable[19]=0;auto sourceBay=hempStall.building;sourceBay.type=54;sourceBay.slot=8;sourceBay.x=4;
     supplier.buildings->emplace(8,sourceBay);supplier.buildingInputs->emplace(8,OriginalBuildingUpdateInputs{});auto& sourceLink=supplier.buildingLinks->operator[](8);sourceLink.type=54;sourceLink.alive=1;sourceLink.roadAccess=1;sourceLink.roadDistance=1;sourceLink.roadX=4;sourceLink.roadY=4;sourceLink.storage=std::vector<OriginalStorageCompartment>{{19,100,400}};
     supplier.goodsRecords->at(1).alive=1;supplier.goodsRecords->at(1).owner=8;supplier.movement->cells[1145]=4;supplier.poolHookRoadAccess->operator[](8)={1,4,4,std::nullopt,true};supplier.figureSpeechCounts->at(254)=3;supplier.figureSpeechCounts->at(266)=5;supplier.figureSpeechCounters->at(266)=7;supplier.freeFigureSlots={19};
+    auto foodSupplier=supplier;auto foodStall=hempStall;foodStall.building.type=66;
+    foodSupplier.scenarioFoodOverride=0;foodSupplier.buildings->at(8).type=53;auto& foodMill=foodSupplier.buildingLinks->at(8);
+    foodMill.type=53;foodMill.category=foodStall.inputs.network;foodMill.storage=std::vector<OriginalStorageCompartment>{{4,400,400},{4,400,400},{4,400,400},{4,400,400}};
+    foodSupplier.buildingLinks->at(6).storagePolicy=0;foodSupplier.goods->policies[0].limit[28]=800;
+    auto strictFood=foodSupplier;auto strictStall=foodStall;
+    need(originalBuildingStallSupplier(strictStall,strictFood,28)==OriginalBuildingUpdateBlocker::BuildingVirtual20,"food supplier remains refused without the explicit grade hypothesis");
+    auto twoMills=foodSupplier;auto secondMill=twoMills.buildings->at(8);secondMill.slot=9;twoMills.buildings->emplace(9,secondMill);
+    twoMills.buildingLinks->emplace(9,twoMills.buildingLinks->at(8));twoMills.goodsRecords->push_back({});twoMills.goodsRecords->back().alive=1;twoMills.goodsRecords->back().owner=9;
+    auto competingStall=foodStall;need(originalBuildingStallSupplier(competingStall,twoMills,28,true)==OriginalBuildingUpdateBlocker::BuildingVirtual20,"two food Mills retain the unported ranking refusal");
+    need(originalBuildingStallSupplier(foodStall,foodSupplier,28,true)==OriginalBuildingUpdateBlocker::None&&
+         foodStall.inputs.word30==19&&foodSupplier.figures->at(19).delivery==8&&
+         foodSupplier.supplierRequests.at(19)==std::array<int32_t,7>{0,-1,-1,-1,-1,-1,-1},
+         "hypothetical single-Mill food selection publishes the first food request and supplier link");
     need(originalBuildingStallSupplier(hempStall,supplier,19)==OriginalBuildingUpdateBlocker::None&&hempStall.inputs.word30==19&&supplier.figures->at(19).delivery==8&&supplier.figures->at(19).destinationX==4&&supplier.figures->at(19).action==6&&supplier.supplierRequests.at(19)==std::array<int32_t,7>{1,-1,-1,-1,-1,-1,-1},"positive supplier flood chooses stocked Warehouse and publishes type24 delivery request category1");
     need(supplier.figureSpeechCounters->at(254)==1&&supplier.figureSpeechCounters->at(266)==8&&supplier.figureSpeechChoices.at(19)==2,"Stall supplier applies constructor254 then descriptor266 speech rotation");
     auto burning=positiveRisk;burning.phase=43;burning.buildingInputs->at(7)=ignited.state->inputs;burning.buildingInputs->at(7).burning=3;burning.buildingInputs->at(7).fireDirection=0;

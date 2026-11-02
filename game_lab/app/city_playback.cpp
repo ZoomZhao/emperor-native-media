@@ -55,6 +55,10 @@ void applyLoadHypotheses(OriginalCombinedProcessInputs& p) {
     // 4EA8E0 search finds no usable animal spawn location. Strict premises
     // withhold this fallback and retain the original refusal.
     p.animalSpawnMissHypothesis = true;
+    // HYPOTHESIS(single-mill-food-qualifies): the Market accepts the first
+    // food grade when its only eligible Mill has at least 100 available food.
+    // Strict premises retain the refusal until all saved grade inputs are bound.
+    p.singleMillFoodHypothesis = true;
     // HYPOTHESIS(event-ui-gates-closed-at-load): 5EFF20 reads singleton 1E53538
     // bytes +17 then +16 and returns at 5F00A2 with no stores when a byte is
     // zero (SAV_FIGURES.md). At load/continue no event dialog is open, so both
