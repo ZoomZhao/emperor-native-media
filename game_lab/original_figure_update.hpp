@@ -1037,15 +1037,15 @@ inline std::optional<int> originalFigureInitialRoamDirection(OriginalFigure& f,O
     return -1;
 }
 //4E6A70: four attempts, owner+38 mutation, clipped home-road target.
-//Market3B/3C uses544910 and remains outside this ordinary-owner branch.
+//Market3B uses544910's fourth role-1 cell at parent+(3,3).
 inline bool originalFigureBeginRoam(OriginalFigure& f,OriginalFigureUpdateContext& context){
     if(!context.buildings||!context.activeSide||!*context.activeSide)return false;
-    auto b=context.buildings->find(size_t(f.owner));if(b==context.buildings->end()||b->second.type==0x3b||b->second.type==0x3c)return false;
+    auto b=context.buildings->find(size_t(f.owner));if(b==context.buildings->end()||b->second.type==0x3c)return false;
     f.progress=20;f.roamState=0;f.roamCountdown=255;f.roamTurn=2;f.roamOriginX=f.x;f.roamOriginY=f.y;
     for(unsigned attempt=0;attempt<4;++attempt){const auto d=originalFigureInitialRoamDirection(f,context);if(!d)return false;
         if(*d<0)continue;b->second.roamDirection=*d>6?0:uint8_t(*d);
-        f.destinationX=int16_t(std::clamp(int(b->second.roadX),0,int(*context.activeSide)-1));
-        f.destinationY=int16_t(std::clamp(int(b->second.roadY),0,int(*context.activeSide)-1));break;}
+        f.destinationX=int16_t(std::clamp(b->second.type==0x3b?int(b->second.x)+3:int(b->second.roadX),0,int(*context.activeSide)-1));
+        f.destinationY=int16_t(std::clamp(b->second.type==0x3b?int(b->second.y)+3:int(b->second.roadY),0,int(*context.activeSide)-1));break;}
     f.roamState=1;return true;
 }
 //0x4E6B70 ->0x4E6D80, including the bounded entertainment segment.

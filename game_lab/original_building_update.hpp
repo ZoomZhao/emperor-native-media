@@ -784,7 +784,7 @@ inline std::optional<size_t> originalBuildingAllocateService(OriginalBuildingUpd
     //4C9250 reads84E798+40*type. These group IDs are executable metadata.
     const bool fireEffect=(type==1||type==2)&&c.disasters.has_value(); //4C92D0 skips speech for1/2.
     const bool additional=c.additionalWalkers&&*c.additionalWalkers;
-    const int speech=(type==45||type==47)?262:type==28?271:type==39?275:additional&&type==29?273:additional&&type==30?263:additional&&type==34?276:
+    const int speech=(type==45||type==47)?262:type==28?271:type==39?275:additional&&type==23?259:additional&&type==29?273:additional&&type==30?263:additional&&type==34?276:
         (type==26||type==40||(type==24&&c.stallSuppliers&&*c.stallSuppliers)||(type==19&&c.industryCarts&&*c.industryCarts)||(additional&&(type==35||type==36)))?254:-1;
     if(!fireEffect&&(speech<0||!c.figureSpeechCounters||!c.figureSpeechCounts))return std::nullopt;
     const uint32_t divisor=fireEffect?1:c.figureSpeechCounts->at(unsigned(speech));if(!divisor||divisor>INT32_MAX)return std::nullopt;
@@ -1220,7 +1220,17 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
                 required+=model->second;if(input->second.alive==1||input->second.alive==3)workers+=input->second.workers;}
             const int percent=required?workers*100/required:0;if(percent<1)return OriginalBuildingUpdateBlocker::None;
             const unsigned limit=percent>=100?2:percent>=75?3:percent>=50?4:percent>=25?5:10;
-            i.spawnCounter=uint8_t(i.spawnCounter+1);if(i.spawnCounter<=limit)return OriginalBuildingUpdateBlocker::None;}
+            i.spawnCounter=uint8_t(i.spawnCounter+1);if(i.spawnCounter<=limit)return OriginalBuildingUpdateBlocker::None;
+            if(!c.additionalWalkers||!*c.additionalWalkers||!c.activeSide||!s.building.imageInputs||!s.building.imageInputs->marketOrientation||
+               *s.building.imageInputs->marketOrientation>1)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+            i.spawnCounter=0;const int x=int(s.building.x)+3,y=int(s.building.y)+3;
+            if(x>=int(*c.activeSide)||y>=int(*c.activeSide))return OriginalBuildingUpdateBlocker::InvalidState;
+            const auto allocated=originalBuildingAllocateService(c,23,i.faction,int16_t(x),int16_t(y),i.direction);
+            if(!allocated)return OriginalBuildingUpdateBlocker::MissingContext;if(!*allocated)return OriginalBuildingUpdateBlocker::None;
+            auto& f=c.figures->at(*allocated);f.action=1;f.owner=int16_t(s.building.slot);i.primaryFigure=int16_t(*allocated);
+            i.direction=uint8_t((unsigned(i.direction)+4)&7);f.previousDirection=i.direction;
+            if(!originalBuildingBeginServiceRoam(f,i,c))return OriginalBuildingUpdateBlocker::MissingContext;
+            return OriginalBuildingUpdateBlocker::None;}
         if(type==62)return OriginalBuildingUpdateBlocker::None; //541B80 C8(-1)=5408D0 false for empty62.
         if(type==53){ //556130 validates all3 links before its50-percent gate.
             if(!i.hookIndustry||!c.employmentModel||!c.employmentModel->count(type))return OriginalBuildingUpdateBlocker::MissingContext;
