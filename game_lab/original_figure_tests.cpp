@@ -1067,6 +1067,14 @@ void authored(){
         need(stationArrival.state&&stationArrival.state->action==8,"land trader enters station action8 on route arrival when scenario networking is inactive");
         context.traderScenarioNetworkMode=1;
         need(!originalFigureFirstUpdate(arrived,crewRefs,&context,0xc0).state,"positive scenario network mode retains the trader-arrival refusal");
+        context.traderScenarioNetworkMode=0;routeStation.type=58;routeStation.traderFaction=0;
+        auto trading=arrived;trading.action=8;trading.counter=9;trading.traderTransactionMode=2;trading.traderTransactionTimer=37;
+        context.figures[3]=trading;const auto tradeWait=originalFigureFirstUpdate(trading,crewRefs,&context,0xc0);
+        need(tradeWait.state&&tradeWait.state->counter==10&&tradeWait.state->traderTransactionMode==0&&
+             tradeWait.state->traderTransactionTimer==0&&tradeWait.state->frame==0,
+             "trader clears transaction state and waits at a station while networking is inactive");
+        trading.counter=10;context.figures[3]=trading;
+        need(!originalFigureFirstUpdate(trading,crewRefs,&context,0xc0).state,"trader buy and sell searches retain their refusal");
         context.buildings->erase(7);context.figures[3]=returning;
         const auto exited=originalFigureFirstUpdate(returning,crewRefs,&context,0xc0);
         need(exited.state&&exited.state->action==6&&exited.state->alive==2,

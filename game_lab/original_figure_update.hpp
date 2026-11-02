@@ -2316,6 +2316,13 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
                 if(!context->traderScenarioNetworkMode||*context->traderScenarioNetworkMode)return out;
                 f.action=8;
             }else if(f.direction>8)return out; //Route failure requires additional station-side effects.
+        }else if(f.action==8){ //4CE75E: inactive networking clears transaction state before the wait.
+            if(!context->traderScenarioNetworkMode||*context->traderScenarioNetworkMode||!context->buildings)return out;
+            bool stationFound=false;for(const auto& e:*context->buildings){const auto& b=e.second;
+                if((b.type==56||b.type==58)&&(b.alive==1||b.alive==3)&&b.traderFaction==f.faction){stationFound=true;break;}}
+            if(!stationFound)return out;
+            const auto next=originalFigureWord(int(f.counter)+1);if(next>10)return out; //4CE796 buy/sell search.
+            f.traderTransactionMode=0;f.traderTransactionTimer=0;f.counter=next;f.frame=0;
         }else if(f.action!=9)return out;
         if(f.action==9){
         const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;

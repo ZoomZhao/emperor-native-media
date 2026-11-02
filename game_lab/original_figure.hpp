@@ -31,6 +31,7 @@ struct OriginalFigure {
     std::optional<int32_t> effectAnimation; //runtime+16C,42AA5B/4E2D4A;not serialized ambient+17C
     uint8_t effectFrame=0; //flame animation+41,distinct from ambient+5
     uint32_t updateOwner=0; //+13C read0x4C8995;nonzero skips virtual+28 at0x4E2899.
+    uint32_t traderTransactionMode=0,traderTransactionTimer=0; //Figure7 +160/+168.
     // Pheasant virtual predicates/cooldowns, Figure7's cited dword requests.
     uint32_t threat=0,threatDistance=0,herdTarget=0,herdDistance=0,idleCounter=0;
     std::array<int32_t,3> cooldowns{}; //+D0/+D4/+D8; positive values decrement.
@@ -590,6 +591,7 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.effectHeight=detail::i16(r+386);f.effectVelocityX=int8_t(r[388]);f.effectVelocityY=int8_t(r[389]);
         f.effectVelocityZ=detail::i16(r+390);f.effectDraw=r[132];
         f.updateOwner=detail::u32(r+316);
+        f.traderTransactionMode=detail::u32(r+352);f.traderTransactionTimer=detail::u32(r+360);
         f.threat=detail::u32(r+172);f.threatDistance=detail::u32(r+176);
         f.herdTarget=detail::u32(r+188);f.herdDistance=detail::u32(r+192);f.idleCounter=detail::u32(r+204);
         for(size_t k=0;k<3;++k){const auto bits=detail::u32(r+208+4*k);
