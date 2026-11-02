@@ -827,7 +827,13 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
         // One supplied slot means one actual draw, repetitions are meaningful.
         for(size_t slot:frame.buildingDraws){const auto base=bases.find(slot);
             if(city&&city->buildings.count(slot)&&city->buildings.at(slot).state.inputs.alive!=1&&city->buildings.at(slot).state.inputs.alive!=3)continue;
-            if(base==bases.end()){out.refusal="unbound_building_draw";return out;}
+            if(base==bases.end()){
+                // App draw requests originate at load; a later staffing or
+                // suppression change may disable an initially animated building.
+                const auto placed=std::find_if(scene.placed.begin(),scene.placed.end(),[&](const auto& p){return p.footprint.slot==slot;});
+                if(placed!=scene.placed.end()){const auto enabled=originalBuildingAnimationEnabled(placed->footprint,employment);
+                    if(enabled&&!*enabled)continue;}
+                out.refusal="unbound_building_draw_slot_"+std::to_string(slot);return out;}
             const auto phase=originalBuildingAnimationDraw(*base->second,out.buildingPhases.at(slot),out.animationClock.flags);
             if(!phase){out.refusal="building_animation_draw";return out;}
             out.buildingAdvances+=out.animationClock.flags[base->second->animationSpeedId];

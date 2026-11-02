@@ -2337,7 +2337,11 @@ void authored(){
         frame.continueAfterPass={false};auto later=frame;later.animationClock=later.admission.now=74;
         const auto regular=originalSceneTimeline(*ordered.context,supplied,animated,group,&employment,0,{}, {frame,later});
         need(regular.complete&&regular.updates==2&&regular.buildingPhases.at(8)==3&&regular.buildingDraws==2,
-            "same two updates with two observed draws produce a distinct building phase on one explicit timeline");
+             "same two updates with two observed draws produce a distinct building phase on one explicit timeline");
+        auto suppressed=animated;suppressed.placed[0].footprint.animationInputs->suppress=1;
+        const auto staleDraw=originalSceneTimeline(*ordered.context,supplied,suppressed,group,&employment,0,{}, {frame});
+        need(staleDraw.complete&&staleDraw.updates==1&&staleDraw.buildingDraws==0,
+             "an initially requested draw skips an animation that is now suppressed");
         profile.slots[1].leaderLink=1;profile.slots[2].leaderLink=0;
         need(originalFigureOrderedFirstPass(profile,supplied,flags).figures.at(1).state->follower==1,
             "self leader link writes follower on the same record before virtual dispatch");
