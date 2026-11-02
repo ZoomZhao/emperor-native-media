@@ -922,6 +922,9 @@ void authored(){
     stationContext.employmentModel->operator[](66)=8;marketHook.building.imageInputs->marketStalls[0]=8;
     need(originalBuildingHookStep(marketHook,stationContext)==OriginalBuildingUpdateBlocker::BuildingVirtual20,
          "stocked Market retains peddler dispatch refusal");
+    marketHook.inputs.spawnCounter=2;stationContext.buildingInputs->at(8).alive=0;
+    need(originalBuildingHookStep(marketHook,stationContext)==OriginalBuildingUpdateBlocker::BuildingVirtual20,
+         "Market staffing counts the linked nonempty Stall regardless of its live byte");
     std::string houseFixture="HOUSE MODS\n";
     for(unsigned row=0;row<5;++row){houseFixture+="{,";for(unsigned col=0;col<24;++col)houseFixture+=std::to_string(row==2?5:0)+",";houseFixture+="}\n";}
     houseFixture+="ALL HOUSES\n";for(unsigned row=0;row<15;++row){houseFixture+="{,";for(unsigned col=0;col<24;++col)houseFixture+=std::to_string(col==0?-110:col==1?110:10)+",";houseFixture+="}\n";}

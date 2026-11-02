@@ -1217,7 +1217,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
                 if(child==c.buildings->end()||input==c.buildingInputs->end())return OriginalBuildingUpdateBlocker::MissingContext;
                 const auto childType=child->second.type;if(childType==62)continue;
                 const auto model=c.employmentModel->find(childType);if(model==c.employmentModel->end())return OriginalBuildingUpdateBlocker::MissingContext;
-                required+=model->second;if(input->second.alive==1||input->second.alive==3)workers+=input->second.workers;}
+                required+=model->second;workers+=input->second.workers;} //544AA7 uses Stall+ C8(-1), a type predicate, not alive.
             const int percent=required?workers*100/required:0;if(percent<1)return OriginalBuildingUpdateBlocker::None;
             const unsigned limit=percent>=100?2:percent>=75?3:percent>=50?4:percent>=25?5:10;
             i.spawnCounter=uint8_t(i.spawnCounter+1);if(i.spawnCounter<=limit)return OriginalBuildingUpdateBlocker::None;
