@@ -65,6 +65,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: bind the `591180` tax table, then investigate the part-7 and month-rollover refusals. Type-24 supplier action 6 remains blocked after 286 admitted updates; generic dispatch selects `4D1810`. The animal spawn fallback also needs a real port.
+Next: investigate the positive part-7 partner action and month-rollover refusals. The part-7/12 partner gate now uses saved +3ACC (`enabled`), not unrelated +3AB8 reserves. Type-24 supplier action 6 remains blocked after 286 admitted updates; generic dispatch selects `4D1810`. The animal spawn fallback also needs a real port.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

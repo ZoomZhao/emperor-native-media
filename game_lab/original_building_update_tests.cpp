@@ -95,11 +95,17 @@ void cycleTailTransactions(){
     c=tailFixture();c.monthPart=2;c.cycleTail->currentHealthRating=151;refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing previous rating rolls back forecast and health effects");
     c=tailFixture();c.monthPart=3;c.monthlyServices.reset();refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing fortification service rolls back health/date/expiry");
     {
-        auto war=tailFixture();war.monthPart=11;auto& enemy=war.trade->partners[2];enemy.alive=1;enemy.faction=2;enemy.reserves[4]=1;enemy.relations[0].state=2;
+        auto war=tailFixture();war.monthPart=11;auto& enemy=war.trade->partners[2];enemy.alive=1;enemy.faction=2;enemy.enabled=1;enemy.reserves[4]=0;enemy.relations[0].state=2;
         auto& warAlly=war.trade->partners[3];warAlly.alive=1;warAlly.faction=3;warAlly.relations[2].state=2;
         refusedTail(war,OriginalBuildingUpdateBlocker::MonthlyCity,"part 12 partner at war with an ally reaches the unported 494260 request");
         enemy.relations[0].state=1;need(originalBuildingCycleTailStep(war)==OriginalBuildingUpdateBlocker::None&&war.monthPart==12,"part 12 with no allied war partner records nothing");
     }
+    {auto part7=tailFixture();part7.monthPart=6;auto& partner7=part7.trade->partners[2];partner7.alive=1;partner7.faction=2;
+        partner7.reserves[4]=1;partner7.enabled=0;
+        need(originalBuildingCycleTailStep(part7)==OriginalBuildingUpdateBlocker::None,"part7 ignores a disabled partner despite its nonzero unrelated reserve");
+        part7=tailFixture();part7.monthPart=6;auto& enabledPartner=part7.trade->partners[2];enabledPartner.alive=1;enabledPartner.faction=2;
+        enabledPartner.reserves[4]=0;enabledPartner.enabled=1;
+        refusedTail(part7,OriginalBuildingUpdateBlocker::MonthlyCity,"part7 admits the enabled partner gate even with zero unrelated reserve");}
     c=tailFixture();c.cycleTail->alternateMode=true;refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"alternate calendar mode is not silently admitted");
     c=tailFixture();c.monthPart=1;c.scenarioMonths=-1;auto& partner=c.trade->partners[0];partner.alive=1;partner.enabled=1;partner.relationTimers.resize(22);partner.relationTimers[0][0][0]=2;
     refusedTail(c,OriginalBuildingUpdateBlocker::InvalidState,"late invalid scenario age rolls back earlier partner timer decrement");
