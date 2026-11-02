@@ -65,6 +65,7 @@ void applyLoadHypotheses(OriginalCombinedProcessInputs& p) {
     // HYPOTHESIS(stall-food-pickup-empty): the unbound food pickup accepts
     // no stock and allocates no servants. Strict premises retain refusal.
     p.stallFoodPickupEmptyHypothesis = true;
+    p.wellRankedReturn = true; //4E3B37/4BA580; strict callers retain the older boundary.
     // The 591200 subcalls identify their individual normal-play hypotheses.
     // Strict premises preserve the monthly refusal.
     p.sentimentHypotheses = true;

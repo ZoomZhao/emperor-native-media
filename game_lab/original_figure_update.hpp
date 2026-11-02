@@ -292,6 +292,7 @@ struct OriginalFigureUpdateContext {
     // Explicit caller-owned native observation policy. Absent/false preserves
     // strict refusal; never loaded from an original SAV or inferred globally.
     std::optional<bool> wellReturnObservedHomePolicy;
+    std::optional<bool> wellRankedReturn;
     std::vector<size_t> freeSlots; //postload4E9FE0 descending inactive slots; removal appends.
     size_t highestLiveSlot=0;
     std::optional<uint32_t> crtRandom; //Required on consumption:wall-clock seeded,not in SAV;state at timeline entry,not startup srand argument.
@@ -2238,9 +2239,16 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
             f.hidden=0;
             if(returning){
                 if(f.type==28){
-                    if(!originalFigureObservedWellReturnBlocker(f,local).empty()){
-                        out.status=OriginalFigureUpdateStatus::WellReturnDestination;return out;}
-                    f.action=2;f.destinationX=f.homeX;f.destinationY=f.homeY;f.roamSteps=0;
+                    if(context->wellRankedReturn==true){ //4E3B37: Well+19C=416AF0 reads common+1C.
+                        auto origin=owner->second;if(origin.serviceCount){origin.x=origin.roadX;origin.y=origin.roadY;}
+                        const auto road=originalFigureRankedRoadTarget(origin,local);
+                        if(!road||!*road||!local.services||f.route<0||f.route>=1000){out.status=OriginalFigureUpdateStatus::WellReturnDestination;return out;}
+                        f.destinationX=(*road)->first;f.destinationY=(*road)->second;
+                        if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}
+                    }else {if(!originalFigureObservedWellReturnBlocker(f,local).empty()){
+                            out.status=OriginalFigureUpdateStatus::WellReturnDestination;return out;}
+                        f.destinationX=f.homeX;f.destinationY=f.homeY;}
+                    f.action=2;f.roamSteps=0;
                     // Keep route==0/destinationCell and position unchanged. As
                     // in the shared handler, FollowRoute begins NEXT update.
                 }else{

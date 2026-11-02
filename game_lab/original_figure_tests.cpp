@@ -238,6 +238,14 @@ void combinedAuthored(){
     need(begun.state&&begun.state->action==1&&begun.state->counter==30&&begun.state->frame==1&&
         begun.state->cell==well.cell&&begun.state->progress==well.progress,
         "combined allocated Well service enters action1 without countdown or movement");
+    {auto returning=wellContext;auto walker=well;walker.action=1;walker.roamSteps=384;walker.route=0;returning.figures[2]=walker;
+        auto& building=returning.buildings->at(8);building.x=5;building.y=5;building.size=1;building.serviceCount=1;building.roadX=4;building.roadY=5;
+        returning.cropBase=0;returning.activeSide=20;returning.terrain.assign(51984,0);returning.buildingOwners.assign(51984,0);returning.roadNetworks.assign(51984,0);
+        returning.terrain[1144]=0x40;returning.roadNetworks[1144]=1;
+        need(!originalFigureFirstUpdate(walker,walkingRefs,&returning).state,"strict Well return remains withheld");
+        returning.wellRankedReturn=true;const auto result=originalFigureFirstUpdate(walker,walkingRefs,&returning);
+        need(result.state&&result.state->action==2&&result.state->destinationX==4&&result.state->destinationY==5&&result.state->roamSteps==0,
+             "Well return uses ranked road selected from saved owner road coordinates");}
     auto emigrantContext=wellContext;emigrantContext.modelSpeeds[13]=6;auto emigrant=well;emigrant.type=13;emigrant.counter=50;emigrant.frame=9;
     emigrantContext.figures[2]=emigrant;const auto waitingEmigrant=originalFigureFirstUpdate(emigrant,walkingRefs,&emigrantContext);
     need(waitingEmigrant.state&&waitingEmigrant.state->counter==51&&waitingEmigrant.state->frame==0&&waitingEmigrant.state->action==6&&
