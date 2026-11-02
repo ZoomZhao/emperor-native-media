@@ -2,7 +2,7 @@
 
 2026-11-03 · macOS arm64 · `EMPEROR_GAMEDATA_ROOT=<data> make primary-metric UPDATES=1000`
 
-**Stage 1: 6/6 at 100 updates. Stage 2: merged result pending verification.** Before merge: main 4/6 at 1000 (trader 847, supplier 286); supplier branch independently 4/6 (both zoom saves 627). Original behavior agreement is measured separately below. Year rollover remains refused; one year is 12 × 16 × 51 = 9792 updates. Chinese EXE SHA `dbdeca1e…`.
+**Stage 1: 6/6 at 100 updates. Stage 2: 6/6 at 1000 updates**, Release and UBSan verified 2026-11-03. Original behavior agreement is measured separately below. Year rollover remains refused; one year is 12 × 16 × 51 = 9792 updates. Chinese EXE SHA `dbdeca1e…`.
 
 **Fidelity:** `281030 → 281031` 40/40: building common 28407/28409; crop industry 884/884; figure state 5164/5170, images 92/94, type-26 50/50; RNG 2/2; calendar, treasury, accounting, labor, employment, sentiment, population, house goods/services, crop storage and formations agree. `281031 → 280008` previously stopped 807/1008 and `280008 → 280009` 3/860 at `building_virtual20_416d20`. User-observed +75 trade, −60 charge and +786 accepted envoy gift reconcile the reported cash; the empty-event hypotheses may be contradicted if these saves share a trajectory.
 
