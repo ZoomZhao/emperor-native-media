@@ -318,6 +318,7 @@ struct OriginalFigureUpdateContext {
     std::map<size_t,std::optional<std::pair<int16_t,int16_t>>> workerRoadExits;
     std::optional<std::array<int16_t,4>> migrationRoadEndpoints; //C5CDFC..CE02,serialized Scenario6
     std::optional<bool> traderStationGoodsHypothesis;
+    std::optional<int32_t> traderScenarioNetworkMode; //408AC0->4FAE50
 };
 //5AD440's B0C projection for an entirely building-free grid. The pointer
 //arm5AD79F..834 emits only10/1/2, all disjoint from B0C. River-object
@@ -2311,7 +2312,10 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
             const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;
             const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
             if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
-            if(f.direction>=8)return out; //Arrival and failure branches require station-side effects.
+            if(f.direction==8){ //4CE45A: scenario-network positive branch has additional writes.
+                if(!context->traderScenarioNetworkMode||*context->traderScenarioNetworkMode)return out;
+                f.action=8;
+            }else if(f.direction>8)return out; //Route failure requires additional station-side effects.
         }else if(f.action!=9)return out;
         if(f.action==9){
         const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;

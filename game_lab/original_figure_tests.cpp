@@ -1062,6 +1062,11 @@ void authored(){
         const auto travelStep=originalFigureFirstUpdate(travelling,crewRefs,&context,0xc0);
         need(travelStep.state&&travelStep.state->action==7&&travelStep.state->progress>travelling.progress,
              "land trader follows its station route while the station remains staffed");
+        auto arrived=returning;arrived.action=7;arrived.delivery=7;context.figures[3]=arrived;context.traderScenarioNetworkMode=0;
+        const auto stationArrival=originalFigureFirstUpdate(arrived,crewRefs,&context,0xc0);
+        need(stationArrival.state&&stationArrival.state->action==8,"land trader enters station action8 on route arrival when scenario networking is inactive");
+        context.traderScenarioNetworkMode=1;
+        need(!originalFigureFirstUpdate(arrived,crewRefs,&context,0xc0).state,"positive scenario network mode retains the trader-arrival refusal");
         context.buildings->erase(7);context.figures[3]=returning;
         const auto exited=originalFigureFirstUpdate(returning,crewRefs,&context,0xc0);
         need(exited.state&&exited.state->action==6&&exited.state->alive==2,
