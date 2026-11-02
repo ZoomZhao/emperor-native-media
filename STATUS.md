@@ -21,7 +21,7 @@
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
 | zoom/历史战役自动存档_2 | 356 | 7 / 6 | `monthly_city_4ac650` |
 
-Part 8 calls `591200` every cycle; rollover services remain refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
+Priority: part 8 calls `591200` every cycle. Disassembly identifies population reconciliation and city sentiment, including per-house `590F30`, food `591670`, tax/wages/unemployment, building conditions `55AE30`, and notices `548920`; it is not just a culture/prosperity rating. Common5 house +5C/+8C/+A0 are wire 83/125/144; +8C is already retained as `watchRisk`, the other two are not bound. Population7 latch +2C15 is wire 11266; previous sentiment +2BB0 is wire 11173. Bind these and trace remaining subcalls before admitting the update. Rollover services remain refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
 
 Inner loop: 1,000-update Release run 171 s with rebuild before, 46 s warm after; six stop points unchanged. Build conditions differ, and the 30 s target remains unmet.
 
@@ -63,6 +63,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-The first normal-path blocker is type-24 supplier action 6 after 286 admitted updates, created by the phase-31 food stall under the single-Mill hypothesis. Generic dispatch selects `4D1810`: it checks the stall's reciprocal supplier link and destination, follows a route, then selects its image. Bind the stall link and port that path; the animal spawn fallback also needs a real port.
+Next: close the prioritized `591200` sentiment update, then follow the five saves' next refusal. Type-24 supplier action 6 remains blocked after 286 admitted updates; generic dispatch selects `4D1810`. The animal spawn fallback also needs a real port.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).
