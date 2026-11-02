@@ -927,8 +927,14 @@ void authored(){
             hunt.figures[3].runtimeClass=OriginalFigureClass::Pheasant;hunt.models[40]={};hunt.models[40][0]=2;
             hunt.models[76]={};hunt.models[76][0]=6;
             const auto entered=originalFigureFollowRoute(hunter,6,0xc0,&hunt);
+             need(entered.state&&entered.state->cell==10001&&hunt.figures.at(3).next==2&&hunt.figures.at(3).damage==0,
+                 "Hunter category2 enters prey category6 cell through zero relation without collision damage or target mutation");}
+        {auto hunt=context;auto pheasant=walker;pheasant.type=76;pheasant.runtimeClass=OriginalFigureClass::Pheasant;
+            hunt.figures[2]=pheasant;hunt.figures[3].type=40;hunt.models[40]={};hunt.models[40][0]=2;
+            hunt.models[76]={};hunt.models[76][0]=6;
+            const auto entered=originalFigureFollowRoute(pheasant,6,0xc0,&hunt);
             need(entered.state&&entered.state->cell==10001&&hunt.figures.at(3).next==2&&hunt.figures.at(3).damage==0,
-                "Hunter category2 enters prey category6 cell through zero relation without collision damage or target mutation");}
+                 "Pheasant category6 enters Hunter category2 cell through the zero reverse relation");}
         // A model0 walker has the original combat early exit.
         const auto crossed=originalFigureFollowRoute(walker,6,0xc0,&context);
         need(crossed.state&&crossed.state->x==6&&crossed.state->y==6&&crossed.state->cell==10001&&crossed.state->progress==10&&

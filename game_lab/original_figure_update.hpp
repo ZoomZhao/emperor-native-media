@@ -719,6 +719,8 @@ inline OriginalFigureUpdateStatus originalFigureCrossCell(OriginalFigure& f,Orig
                 const auto otherModel=context.models.find(other.type);
                 if(next.type==40&&other.type==76&&model!=context.models.end()&&otherModel!=context.models.end()&&
                     model->second[0]>=0&&model->second[0]<=2&&otherModel->second[0]==6)continue; //84E578 rows0..2,col6=0 after Hunter attack qualification.
+                if(next.type==76&&other.type==40&&model!=context.models.end()&&otherModel!=context.models.end()&&
+                    model->second[0]==6&&otherModel->second[0]>=0&&otherModel->second[0]<=2)continue; //4E53DE/4E54D0: row6,columns0..2=0.
                 const auto ordinary=[](unsigned type){switch(type){case 11:case 13:case 19:case 20:case 21:case 22:case 23:case 26:
                     case 28:case 29:case 30:case 34:case 35:case 36:case 39:case 40:case 45:case 47:return true;default:return false;}};
                 //84E578+12*category+other: rows1/2 columns0/1/2 are0.

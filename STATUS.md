@@ -8,7 +8,7 @@
 
 "Runs" means no refusal; agreement with the original game is **unmeasured**. 100 updates ≈ two monthly tails.
 
-## Stage 2: 1000 updates — 3/6
+## Stage 2: 1000 updates — 4/6
 
 `make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release and UBSan measured 2026-11-03; both produce the counts and refusals below.
 
@@ -16,7 +16,7 @@
 |---|---|---|---|
 | zoom/历史战役自动保存_1 | 1000 | 2 / 3 | none |
 | 项羽/历史战役自动存档_2 | 1000 | 8 / 3 | none |
-| 项羽/.sav | 717 | 8 / 15 | `cell_neighbour_combat_4e57a0_slot_10_type_76_action_32` |
+| 项羽/.sav | 1000 | 9 / 4 | none |
 | 项羽/历史战役自动保存_1 | 1000 | 2 / 3 | none |
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
 | zoom/历史战役自动存档_2 | 627 | 7 / 12 | `type_action_route_target_combat_update_slot_1984_type_45_action_8` (buy/sell search) |
@@ -73,6 +73,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: close the newly exposed Pheasant cell-neighbour refusal at 717 and trace the remaining animal/RNG divergence. Then close the land trader's action-8 buy/sell search and the type-24 supplier; the earlier type-40 refusal may recur. The trader's inactive-network wait clears transaction mode/timer via `4C9AD0`; above 10, station virtuals may change stock and trade state.
+Next: trace the remaining animal/RNG divergence after 280012, then close the land trader's action-8 buy/sell search and the type-24 supplier. The trader's inactive-network wait clears transaction mode/timer via `4C9AD0`; above 10, station virtuals may change stock and trade state. The former type-40 refusal does not recur through 1000 updates on the corrected animal trajectory.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).
