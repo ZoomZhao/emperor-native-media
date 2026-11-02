@@ -5,6 +5,9 @@ Load legally owned original Emperor data with `--data-root`, render it natively 
 The checkpoint preserves current process/input knownness, complete slots and raw24/25 bases, routes/cell/FIFO, population/Goods/calendar roles, offers, message dispositions and write-time scene state. It does not recover unknown FSA or authorize unimplemented events, calendar services or market transport. `.encity`, native v6 defaults, CitySimulation/EMP1 and existing delivered Apps remain unchanged. Checkpoint opening prepares a supported full-plane CPU image, current source/statistics and compatible controls before replacing the live world. A cancelled, invalid or unrenderable load retains the old world and picture. The two startup rendering preferences use this same CPU image panel; they do not establish a Metal presentation path here. New source/build validation is separate from actual GUI qualification and deployment. [Disk format and validation](docs/SAV.md#original-world-disk-checkpoint-v1-2026-10-30) · [measured scope](STATUS.md).
 
 
+原版 Windows 游戏的隔离启动、暂停、存档副本、截图和正常清理步骤，见
+[原版游戏操作与副本指南](docs/ORIGINAL_GAME_OPERATIONS.md)。其中已验证的手动流程与失败的自动控制器分开记录；原始资产、存档和截图不随仓库分发。
+
 ## Launch the local App
 
 Versioned native deliveries contain `EmperorApp.app`, `Start.command`,

@@ -1916,29 +1916,82 @@ inline OriginalBuildingUpdateBlocker originalBuildingFoodForecastStep(OriginalBu
     forecast=originalBuildingAdd32(forecast,crops/12);const auto a=originalBuildingRatio(forecast,25),b=originalBuildingRatio(forecast,originalBuildingPercent(*c.populationTotal,25));
     if(!a||!b)return OriginalBuildingUpdateBlocker::InvalidState;c.cycleTail->foodForecast={*a,*b};return OriginalBuildingUpdateBlocker::None;
 }
+//4AC6C4: the incremented month part is compared with 15. Above it the
+//wrap runs, pins the part at 15, then stores 0 and advances the month.
+//4C1060 maps a crop type to its harvest row; rows 0..5 are types
+//195..199 and 194 (4C108B..4C10C6). 4C16C0 accepts the month when it
+//equals the first entry of that row in 7AE19C.
+inline std::optional<bool> originalBuildingCropHarvestMonth(uint16_t type,uint32_t month){
+    if(month>11)return std::nullopt;
+    int row=-1;
+    if(type>=195&&type<=199)row=int(type-195);
+    else if(type==194)row=5;
+    if(row<0)return false;
+    constexpr int harvest[]={6,10,9,11,8,8};
+    return month==uint32_t(harvest[row]);
+}
+//4C1720, reached from 4BFF20 only for a live record whose harvest row
+//matches the month being closed. +1E8 is the industrial data block;
+//+6A is its harvest-flag word. Both halves are cleared.
+inline OriginalBuildingUpdateBlocker originalBuildingResetHarvestedCrops(OriginalBuildingUpdateContext& c,uint32_t closedMonth){
+    if(!c.buildingInputs||!c.buildings)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    for(auto& e:*c.buildingInputs){auto& i=e.second;if(i.alive!=1)continue;
+        const auto type=c.buildings->at(e.first).type;
+        const auto harvest=originalBuildingCropHarvestMonth(type,closedMonth);if(!harvest)return OriginalBuildingUpdateBlocker::InvalidState;
+        if(!*harvest)continue;
+        if(!i.industry)return OriginalBuildingUpdateBlocker::MonthlyCity;
+        i.industry->at(0x6a-4)=0;i.industry->at(0x6b-4)=0;}
+    return OriginalBuildingUpdateBlocker::None;
+}
+//591130: unemployment sentiment contribution. 4F194B..4F1967 stores the
+//unemployment percentage at 1312208. Negative contributions are
+//suppressed until the population reaches 350 or the historical latch is set.
+inline int32_t originalBuildingUnemploymentSentiment(int32_t percent,int32_t population,bool reached350){
+    const int32_t value=percent>25?-3:percent>17?-2:percent>10?-1:percent<5?1:0;
+    return value<0&&population<350&&!reached350?0:value;
+}
+//5911D0 -> 592BD0: the index is the nearest wage setting, and 85CC5C
+//contains these six signed contributions. Keep the index explicit here so
+//the caller must use the same wage inputs as the original selector.
+inline std::optional<int32_t> originalBuildingWageSentiment(int32_t index,int32_t population,bool reached350){
+    constexpr int32_t values[]={-10,-5,-2,0,2,4};
+    if(index<0||index>=6)return std::nullopt;
+    const int32_t value=values[index];return value<0&&population<350&&!reached350?0:value;
+}
 //4AC650 ordinary parts: health, date construction468210 (returns false),
 //42DA70 expiry,593090 forecast,part-specific work,then4C0570 crop decay.
 inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(OriginalBuildingUpdateContext& c){
-    if(!c.cycleTail||!c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.monthPart||!c.cycle)return OriginalBuildingUpdateBlocker::MonthlyCity;
-    //Part16 monthly/calendar services and alternate UI mode are not ordinary tails.
-    if(*c.monthPart>=15||*c.cycleTail->alternateMode)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    if(!c.cycleTail||!c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.monthPart||!c.month||!c.cycle)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    //Alternate UI mode takes the early return at 4AC9D3 before any part work.
+    if(*c.monthPart>15||*c.cycleTail->alternateMode)return OriginalBuildingUpdateBlocker::MonthlyCity;
     auto& tail=*c.cycleTail;const int old=tail.smoothedHealth;
     if(old<tail.healthTarget)tail.smoothedHealth=originalBuildingAdd32(old,1);else if(old>tail.healthTarget)tail.smoothedHealth=originalBuildingSub32(old,1);
     const int value=tail.smoothedHealth;
     if(old!=value){if(old<value){if(old/10!=value/10&&*c.populationTotal>=301&&value>=10)c.notificationEffects.push_back(0xca+(value-1)/10);}
         else if(!((old/10==value/10||*c.populationTotal<301)&&value>19))c.notificationEffects.push_back(value?0xc0+(value-1)/10:0xc0);}
     tail.smoothedHealth=std::clamp(value,0,100);c.labor->health=tail.smoothedHealth;++*c.cycle;++*c.monthPart;
+    //4AC6C4..4AC799. Crossing 15 closes the month: the part is pinned at
+    //15, harvested crops of that month are reset, then the part becomes 0
+    //and the month advances, wrapping 11 to 0.
+    const bool monthRollover=*c.monthPart>15;
+    if(monthRollover){if(*c.month>11)return OriginalBuildingUpdateBlocker::InvalidState;
+        *c.monthPart=15;const auto reset=originalBuildingResetHarvestedCrops(c,*c.month);if(reset!=OriginalBuildingUpdateBlocker::None)return reset;
+        *c.monthPart=0;*c.month=*c.month==11?0:*c.month+1;}
     for(auto& e:*c.buildingInputs){auto& i=e.second;if(i.alive!=1&&i.alive!=3)continue;i.word92=0;
         if(!i.modelUpgrade)return OriginalBuildingUpdateBlocker::MonthlyCity;if(*i.modelUpgrade){if(!--*i.modelUpgrade)c.buildingRedraws.insert(e.first);
             if(c.buildings->at(e.first).wellImageInputs)c.buildings->at(e.first).wellImageInputs->byte6f=*i.modelUpgrade;}}
     auto blocker=originalBuildingFoodForecastStep(c);if(blocker!=OriginalBuildingUpdateBlocker::None)return blocker;
     //Named remaining services;never interpret a nonempty Empire/calendar as empty.
     const unsigned part=*c.monthPart;
-    //4AC882 masks the cycle with 0x8000000F and runs the 591200 rating only
-    //when the result is zero, i.e. every 16th cycle. Other cycles do nothing
-    //for parts 6 and 8.
-    if(part==6||part==8){const int32_t cycle=int32_t(*c.cycle);const int32_t masked=cycle&0x8000000f;
-        if((masked<0?((masked-1)|~0x0f)+1:masked)==0)return OriginalBuildingUpdateBlocker::MonthlyCity;}
+    //The wrap also invokes month-end services at 4AC700..4AC98C before
+    //the part-0 scan and the 591200 rating at 4ACAFE. Those services and
+    //the rating are not yet closed, so refuse without publishing the
+    //staged calendar and crop changes.
+    if(monthRollover)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    //4ACAFE calls 591200 for part 8 on every cycle. The modulo-16 gate
+    //at 4AC882 belongs to the preceding rollover block and calls 4FF020,
+    //not 591200. Part 6 does not call the rating.
+    if(part==8)return OriginalBuildingUpdateBlocker::MonthlyCity;
     //4A8ED0 selects a partner only when one is alive, holds reserves at +3AB8,
     //is not blocked, is not kind 4 or 6 and is not the current faction. With no
     //such partner the call returns before its request, so nothing is missing.

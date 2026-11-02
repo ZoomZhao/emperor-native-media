@@ -59,21 +59,33 @@ void refusedTail(OriginalBuildingUpdateContext c,OriginalBuildingUpdateBlocker e
     need(originalBuildingCycleTailStep(c)==expected&&tailSnapshot(c)==before,"retry of refused tail has no cumulative health/date/expiry effects");
 }
 void cycleTailTransactions(){
+    need(originalBuildingUnemploymentSentiment(4,0,false)==1&&originalBuildingUnemploymentSentiment(5,0,false)==0&&
+         originalBuildingUnemploymentSentiment(11,349,false)==0&&originalBuildingUnemploymentSentiment(11,350,false)==-1&&
+         originalBuildingUnemploymentSentiment(18,0,true)==-2&&originalBuildingUnemploymentSentiment(26,350,false)==-3,
+         "591130 unemployment bands and historical population gate");
+    need(originalBuildingWageSentiment(0,349,false)==0&&originalBuildingWageSentiment(0,350,false)==-10&&
+         originalBuildingWageSentiment(1,0,true)==-5&&originalBuildingWageSentiment(4,0,false)==2&&
+         originalBuildingWageSentiment(5,0,false)==4&&!originalBuildingWageSentiment(6,0,false),
+         "5911D0 static wage contributions and population gate");
     for(uint32_t part=0;part<=15;++part){auto c=tailFixture();c.monthPart=part;
         //The tail increments the part before its services, so the part read
-        //here is one behind the service that runs. Parts 6 and 7 (entered
-        //from 5 and 6) only act when the cycle is a multiple of 16 or a trade
-        //partner qualifies, and parts 5 and 11 have no service. Part 12
+        //here is one behind the service that runs. Part 7 only acts when a
+        //trade partner qualifies. Part 8 calls the unported rating every time.
+        //Parts 5, 6 and 11 have no corresponding service here. Part 12
         //(4A90A0, entered from 11) records a request only for a partner at war
         //that has an ally. This fixture has none of those, so they pass
-        //through; only the month rollover does not.
-        const bool missing=part==15;
+        //through; part 8 and the month rollover do not.
+        const bool missing=part==7||part==15;
         if(missing){refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"unknown postincrement monthly service remains refused");continue;}
         need(originalBuildingCycleTailStep(c)==OriginalBuildingUpdateBlocker::None,"already supported ordinary parts remain successful");
         need(c.monthPart==part+1&&c.cycle==5&&c.phase==0&&c.cycleTail->calls==1&&c.cycleTail->smoothedHealth==60&&c.labor->health==60,"successful tail commits one health/date/call update");
         need(c.buildingInputs->at(7).word92==0&&c.buildingInputs->at(7).modelUpgrade==1&&c.buildings->at(7).wellImageInputs->byte6f==1&&originalBuildingCropFlags(c.buildingInputs->at(8))==32,"successful expiry/image and crop decay still use the existing rules");
         need(c.cycleTail->foodForecast==std::array<int32_t,2>{3604,901},"successful tail preserves independent production forecast");
     }
+    {auto six=tailFixture();six.monthPart=5;six.cycle=15;
+        need(originalBuildingCycleTailStep(six)==OriginalBuildingUpdateBlocker::None&&six.monthPart==6,"part 6 has no modulo-16 rating call");
+     auto eight=tailFixture();eight.monthPart=7;eight.cycle=4;
+        refusedTail(eight,OriginalBuildingUpdateBlocker::MonthlyCity,"part 8 calls the unported rating independently of cycle");}
     for(uint32_t month:{0u,1u,11u}){auto c=tailFixture();c.month=month;c.monthPart=15;c.cycle=UINT32_MAX;
         refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"unimplemented month/year crossing rejects without changing saved dates");}
     auto c=tailFixture();c.cycle=UINT32_MAX;
