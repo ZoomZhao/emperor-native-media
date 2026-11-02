@@ -153,7 +153,10 @@ void compareCommitted(const game_lab::OriginalCombinedState& city,const SaveView
         compareOptional(groups,"accounting",x.tributeIncomeComponent,y.tributeIncomeComponent);}
     if(c.labor&&late.labor){const auto& x=*c.labor;const auto& y=*late.labor;
 #define LABOR_FIELD(field) compare(groups,"labor",x.field,y.field)
-        LABOR_FIELD(sentiment);LABOR_FIELD(health);LABOR_FIELD(migration);LABOR_FIELD(incoming);LABOR_FIELD(outgoing);
+        compare(groups,"sentiment",x.sentiment,y.sentiment);
+        compareOptional(groups,"sentiment",x.previousSentiment,y.previousSentiment);
+        compareOptional(groups,"sentiment",x.sentimentReached350,y.sentimentReached350);
+        LABOR_FIELD(health);LABOR_FIELD(migration);LABOR_FIELD(incoming);LABOR_FIELD(outgoing);
         LABOR_FIELD(inRemainder);LABOR_FIELD(outRemainder);LABOR_FIELD(inDelay);LABOR_FIELD(outDelay);LABOR_FIELD(arrivals);
         LABOR_FIELD(departures);LABOR_FIELD(unplaced);LABOR_FIELD(yearArrivals);LABOR_FIELD(statisticsPending);LABOR_FIELD(populationSum);
         LABOR_FIELD(sampleCount);LABOR_FIELD(averagePopulation);LABOR_FIELD(growthCursor);LABOR_FIELD(deathCursor);
@@ -290,7 +293,7 @@ int explicitPairs(const game_lab::ResourceRoot& root,const game_lab::AppCityPlay
            !calendar.monthPart||*calendar.monthPart!=late.clock.monthPart||!calendar.month||*calendar.month!=late.clock.month){
             ++blockedPairs;std::cout<<" blocked=calendar_diverged\n";continue;}
         ++reachedPairs;std::map<std::string,Agreement> groups;
-        for(const char* name:{"calendar","treasury","year","population","accounting","labor","employment","building_identity","building_common","house_goods","house_services","crop_industry","crop_storage","figure_identity","figure_images","figure_state"})groups[name]={};
+        for(const char* name:{"calendar","treasury","year","population","sentiment","accounting","labor","employment","building_identity","building_common","house_goods","house_services","crop_industry","crop_storage","figure_identity","figure_images","figure_state"})groups[name]={};
         compareCommitted(*city,late,groups);
         std::cout<<" attribution=unresolved\n";
         for(const auto& [name,row]:groups)std::cout<<"  "<<name<<' '<<row.equal<<'/'<<row.total<<" agree\n";
