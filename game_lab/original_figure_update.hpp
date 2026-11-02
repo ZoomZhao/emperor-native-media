@@ -695,7 +695,7 @@ inline OriginalFigureUpdateStatus originalFigureCrossCell(OriginalFigure& f,Orig
     constexpr int dx[]={0,1,1,1,0,-1,-1,-1},dy[]={-1,-1,0,1,1,1,0,-1};
     const int64_t cell=int64_t(f.cell)+dx[f.direction]+228*dy[f.direction];
     if(cell<0||cell>=51984)return OriginalFigureUpdateStatus::CellContext;
-    if((f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=23&&f.type!=26&&
+    if((f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=23&&f.type!=24&&f.type!=26&&
          f.type!=28&&f.type!=29&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=39&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=76))
         return OriginalFigureUpdateStatus::MovementHeight;
     auto next=f;next.priorX=f.x;next.priorY=f.y;
@@ -755,14 +755,14 @@ inline OriginalFigureMovement originalFigureFollowRouteInContext(const OriginalF
             //0x4EACD0: table service category-1 means no service-grid write.
             // A present owner needs the cited zero-return virtual chain below.
             if(f.type==39||f.type==29||f.type==28||f.type==23||f.type==30||f.type==34||f.type==35||f.type==36){if(!originalFigureEntertainmentSegment(f,*context))return {OriginalFigureUpdateStatus::SegmentService,{}};}
-            else if(f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=26&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=76)
+            else if(f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=24&&f.type!=26&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=76)
                 return {OriginalFigureUpdateStatus::SegmentService,{}};
             if(f.owner&&f.type!=39&&f.type!=29&&f.type!=28&&f.type!=23&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=26){if(!context->buildings)return {OriginalFigureUpdateStatus::SegmentService,{}};
                 const auto owner=context->buildings->find(size_t(f.owner));
                 // Individually cited ordinary owner vtables:+28=429DF0,
                 // +2C=42A210 returns0;4EACD0 still caps signed+1C at300.
                 if(owner==context->buildings->end()||(owner->second.type!=0x21&&owner->second.type!=0x23&&owner->second.type!=0x2b&&owner->second.type!=0x35&&
-                    owner->second.type!=0x36&&owner->second.type!=0x3a&&owner->second.type!=0x3e&&owner->second.type!=0xc0&&owner->second.type!=0xc1))
+                    owner->second.type!=0x36&&owner->second.type!=0x3a&&owner->second.type!=0x3e&&owner->second.type!=0x42&&owner->second.type!=0x43&&owner->second.type!=0xc0&&owner->second.type!=0xc1))
                     return {OriginalFigureUpdateStatus::SegmentService,{}};
                 if(owner->second.serviceCount>300)owner->second.serviceCount=300;}
             if(!context->services)return {OriginalFigureUpdateStatus::NextDirection,{}};
