@@ -4,6 +4,7 @@
 #include "../original_pak.hpp"
 #include "../asset_bytes.hpp"
 #include "../cg_image_conversion.hpp"
+#include "../sg3_sprite_cache.hpp"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -263,7 +264,7 @@ void authored(const std::filesystem::path& root){
 // per source — updates, the in-game month and month part reached, then the
 // first refusal — then PRIMARY X/6. Exit 0 with SKIP when the data root is
 // unset; a source that fails to prepare is reported, not thrown.
-void primaryMetric(const std::string& path,unsigned updates,bool census=false){
+void primaryMetric(const std::string& path,unsigned updates,bool census=false,int selected=-1){
     using namespace game_lab;
     const auto root=ResourceRoot::fromAbsolute(path);
     if(!root.configured())throw std::runtime_error("explicit existing data root required");
@@ -274,12 +275,13 @@ void primaryMetric(const std::string& path,unsigned updates,bool census=false){
     unsigned qualified=0,seen=0;
     for(const auto& source:catalog.sources){
         if(source.kind!=OriginalMapSourceKind::SaveFile)continue;
-        ++seen;
+        const unsigned index=seen++;
+        if(selected>=0&&unsigned(selected)!=index)continue;
         const auto save=loadOriginalSave(root.resolve(source.relativePath));
         std::vector<uint8_t> raw;
         if(!detail::readFile(root.resolve(source.relativePath),4u*1024u*1024u,raw))throw std::runtime_error("source bytes");
         const auto payload=decodeOriginalMapContainer(raw).payload;
-        AppMapSurface surface(root);AppCitySessionState session;session.crtRandom=1;
+        AppMapSurface surface(root,std::make_shared<SG3SpriteCache>());AppCitySessionState session;session.crtRandom=1;
         AppCityPlayback playback(surface,save,payload,preferences,1,0,false,&session);
         unsigned reached=0;std::string refusal="not_prepared";
         std::optional<std::pair<uint32_t,uint32_t>> calendar;
@@ -310,6 +312,7 @@ void primaryMetric(const std::string& path,unsigned updates,bool census=false){
         std::cout<<'\t'<<(refusal.empty()?"none":refusal)<<'\n';
     }
     if(seen!=6)throw std::runtime_error("primary corpus is 6 SAV sources, saw "+std::to_string(seen));
+    if(selected>=0)return;
     if(census)std::cout<<"CENSUS speculative; not a primary metric\n";
     else std::cout<<"PRIMARY "<<qualified<<"/6\n";
 }
@@ -735,8 +738,11 @@ void metrics(const std::string& path){
 }
 int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--metrics"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true}\n";return 0;}metrics(root);}
     else if(argc>=2&&std::string(argv[1])=="--playback"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return 0;}playback(root,std::vector<std::string>(argv+2,argv+argc));}
-    else if(argc>=2&&(std::string(argv[1])=="--primary-metric"||std::string(argv[1])=="--refusal-census")){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"SKIP EMPEROR_GAMEDATA_ROOT unset\n";return 0;}
-        unsigned updates=100;if(argc==4&&std::string(argv[2])=="--updates"){char* end=nullptr;const unsigned long value=std::strtoul(argv[3],&end,10);if(!end||*end||!value||value>1000000ul)throw std::runtime_error("--updates needs 1..1000000");updates=unsigned(value);}
-        else if(argc!=2)throw std::runtime_error("--primary-metric [--updates N]");primaryMetric(root,updates,std::string(argv[1])=="--refusal-census");}
+    else if(argc>=2&&(std::string(argv[1])=="--primary-metric"||std::string(argv[1])=="--refusal-census"||std::string(argv[1])=="--primary-one")){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"SKIP EMPEROR_GAMEDATA_ROOT unset\n";return 0;}
+        const bool one=std::string(argv[1])=="--primary-one";int selected=-1;
+        if(one){if(argc!=6||std::string(argv[4])!="--index")throw std::runtime_error("--primary-one --updates N --index 0..5");
+            char* end=nullptr;const unsigned long value=std::strtoul(argv[5],&end,10);if(!end||*end||value>5)throw std::runtime_error("--index needs 0..5");selected=int(value);}
+        unsigned updates=100;if((argc==4||one)&&std::string(argv[2])=="--updates"){char* end=nullptr;const unsigned long value=std::strtoul(argv[3],&end,10);if(!end||*end||!value||value>1000000ul)throw std::runtime_error("--updates needs 1..1000000");updates=unsigned(value);}
+        else if(argc!=2)throw std::runtime_error("--primary-metric [--updates N]");primaryMetric(root,updates,std::string(argv[1])=="--refusal-census",selected);}
     else if(argc==2)authored(std::filesystem::absolute(argv[1]));else throw std::runtime_error("fixture directory or --metrics required");return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

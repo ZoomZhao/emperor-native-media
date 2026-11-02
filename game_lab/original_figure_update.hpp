@@ -1139,7 +1139,10 @@ inline bool originalFigureWriteWalkingImage(OriginalFigure& f,uint32_t code,
 inline void originalFigurePublishWrites(OriginalFigureFirstUpdate& out,const OriginalFigure& f,
     const OriginalFigureUpdateContext& before,OriginalFigureUpdateContext& after){
     after.figures.at(f.slot)=f;
-    for(const auto& entry:after.figures){const auto& prior=before.figures.at(entry.first);
+    auto priorIt=before.figures.begin();
+    for(const auto& entry:after.figures){while(priorIt!=before.figures.end()&&priorIt->first<entry.first)++priorIt;
+        // Both pools are ordered; retain at()'s refusal if a key is missing.
+        const auto& prior=priorIt!=before.figures.end()&&priorIt->first==entry.first?priorIt->second:before.figures.at(entry.first);
         if(entry.first!=f.slot&&(entry.second.type!=prior.type||entry.second.next!=prior.next||entry.second.secondaryImage!=prior.secondaryImage||entry.second.route!=prior.route||
             entry.second.alive!=prior.alive||entry.second.action!=prior.action||entry.second.direction!=prior.direction||entry.second.counter!=prior.counter||
             entry.second.previousAction!=prior.previousAction||entry.second.target!=prior.target||
@@ -2458,8 +2461,11 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
         if(speed==context->modelSpeeds.end()||speed->second<0||speed->second>255){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
         //0x59F498 halves model speed before the shared fractional schedule.
         const unsigned half=speed->second<=3?1:unsigned(speed->second)/2;
-        const auto movement=originalFigureFollowRoute(f,half,terrainFlags,&local);
+        // local is already the private pheasant candidate. A refusal discards
+        // it, so the public route wrapper's second full copy is unnecessary.
+        const auto route=f.route;const auto movement=originalFigureFollowRouteInContext(f,half,terrainFlags,&local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
+        if(route>0||f.direction<8)local.roadblockGate=0;
         if(f.direction==10)f.action=30; //59F4C3->4E1B00,59F540: failed route restarts destination predicates next call.
         else if(f.direction==9){if(f.target>0){out.status=OriginalFigureUpdateStatus::PheasantRoute;return out;}f.action=30;}
         else if(f.direction==8){
@@ -2707,12 +2713,23 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                 if(f.age>19584&&(f.type==19||f.type==21||f.type==22))result.status=OriginalFigureUpdateStatus::PoolRemoval;
                 else if(f.leaderLink&& !context->figures.count(size_t(f.leaderLink)))result.status=OriginalFigureUpdateStatus::DispatchGate;
                 else {
-                    auto before=*context;
+                    // The dispatch receives a const context. Until its result is
+                    // applied, only these two pool records can have changed.
+                    const auto beforeFigure=context->figures.at(slot);
+                    std::optional<OriginalFigure> beforeLeader;
+                    if(f.leaderLink&&size_t(f.leaderLink)!=slot)beforeLeader=context->figures.at(size_t(f.leaderLink));
+                    const auto restorePrefix=[&](){context->figures.at(slot)=beforeFigure;
+                        if(beforeLeader)context->figures.at(size_t(f.leaderLink))=*beforeLeader;};
                     context->figures.at(slot)=f;
                     if(f.leaderLink){context->figures.at(size_t(f.leaderLink)).follower=int16_t(slot);
                         if(f.leaderLink==int(slot))f.follower=int16_t(slot);}
                     result=originalFigureFirstUpdate(f,archives,&*context,terrainFlags[f.cell]);
-                    if(result.state){result.state->priorProgress=result.state->progress;context->figures.at(slot)=*result.state;
+                    if(result.state){
+                        // Removal may write several pools before refusing; keep
+                        // its full rollback candidate only on that rare path.
+                        std::optional<OriginalFigureUpdateContext> beforeRemoval;
+                        if(result.state->alive==2)beforeRemoval=*context;
+                        result.state->priorProgress=result.state->progress;context->figures.at(slot)=*result.state;
                         for(const auto& write:result.linkedWrites){
                             if(!context->figures.at(write.first).alive&&write.second.alive)context->primaryImageInputs.erase(write.first);
                             context->figures.at(write.first)=write.second;}
@@ -2731,10 +2748,10 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                         if(result.state->alive==2){if(!originalFigureRemoveArrivedWorker(*result.state,*context)){
                                  result.state.reset();result.services.reset();result.buildings.reset();result.goods.reset();result.cellHeads.reset();result.linkedWrites.clear();
                                  result.freeSlots.reset();result.crtRandom.reset();result.roadblockGate.reset();result.allocatedSlots.clear();result.allocationEvents.clear();result.highestLiveSlot=0;
-                                result.status=OriginalFigureUpdateStatus::PoolRemoval;*context=std::move(before);}
+                                 result.status=OriginalFigureUpdateStatus::PoolRemoval;*context=std::move(*beforeRemoval);restorePrefix();}
                             else {result.services=context->services;result.buildings=context->buildings;result.cellHeads=context->cellHeads;}}
                     }
-                    else *context=std::move(before);
+                    else restorePrefix();
                 }
             }
         }
