@@ -310,7 +310,7 @@ struct OriginalFigureSpawnServices {
 struct OriginalFigureHunterLink {uint8_t alive=0,enabled=0;int16_t workers=0;};
 struct OriginalFigureBuildingLink {
     uint16_t type=0;uint8_t alive=0;int16_t worker=0;uint8_t accepting=0;
-    int16_t primaryFigure=0;uint8_t destinationEnabled=0;
+    int16_t primaryFigure=0,stallSupplier=0;uint8_t destinationEnabled=0; // common+30, wire43
     int16_t serviceCount=0;
     std::array<int16_t,8> cargoFigures{};
     std::array<int16_t,2> secondaryFigures{};
@@ -385,7 +385,7 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         const auto type=detail::u16(data.data()+at+16);
         if(b.first>=4000||type!=buildings.slotTypes[b.first])return std::nullopt;
         OriginalFigureBuildingLink link;link.type=type;link.alive=data[at+2];link.worker=detail::i16(data.data()+at+45);link.accepting=data[at+7];
-        link.primaryFigure=detail::i16(data.data()+at+41);link.destinationEnabled=data[at+129];link.serviceCount=detail::i16(data.data()+at+23);
+        link.primaryFigure=detail::i16(data.data()+at+41);link.stallSupplier=detail::i16(data.data()+at+43);link.destinationEnabled=data[at+129];link.serviceCount=detail::i16(data.data()+at+23);
         link.x=detail::i16(data.data()+at+8);link.y=detail::i16(data.data()+at+10);
         link.cell=detail::u32(data.data()+at+12);
         link.size=data[at+5];link.upgrade=data[at+99];

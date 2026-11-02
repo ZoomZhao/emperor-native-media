@@ -37,6 +37,9 @@ struct OriginalCombinedProcessInputs {
     std::optional<uint8_t> annualDemandResponseMode; //C7EDD0->10DE164,4A3A9A..AC caller preference
     std::optional<bool> animalSpawnMissHypothesis; //normal-play hypothesis, never an observed SAV field
     std::optional<bool> singleMillFoodHypothesis; //normal-play hypothesis; strict callers withhold it
+    std::optional<bool> stationCargoDeniedHypothesis; //normal-play fallback; strict callers withhold it
+    std::optional<bool> stallFoodPickupEmptyHypothesis;
+    std::optional<bool> wellRankedReturn;
     std::optional<bool> sentimentHypotheses; //591200 unbound subcalls; strict callers withhold
     std::optional<bool> partnerEventHypotheses; //4A8ED0 unbound event mutations
     std::optional<bool> landTraderDispatch; //explicit 5DC0AC land-caravan opt-in
@@ -203,6 +206,8 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
     c.monthlyRolloverHypotheses=city.process.monthlyRolloverHypotheses;
     c.landTraderDispatch=city.process.landTraderDispatch;
     city.figures.traderStationGoodsHypothesis=city.process.landTraderDispatch;
+    city.figures.stallFoodPickupEmptyHypothesis=city.process.stallFoodPickupEmptyHypothesis;
+    city.figures.wellRankedReturn=city.process.wellRankedReturn;
     city.figures.traderScenarioNetworkMode=city.process.schedulerGate16;
     c.cycleTail->alternateMode=city.process.alternateMode;c.cycleTail->cropQuality=ground.state.gEAC3F0;c.cycleTail->waterMode=ground.waterMode;
     c.effectDecayCounter=city.process.effectDecayCounter;c.effectGrid=city.figures.services->serviceGrid;
@@ -290,7 +295,7 @@ inline std::string originalCombinedSyncBuildings(OriginalCombinedState& city){
         if(link.type>=2&&link.type<18){s.inputs.model=link.houseModel;s.inputs.residents=link.residents;s.inputs.free=link.freeSlots;}
         s.inputs.distance=link.roadDistance;s.inputs.roadX=link.roadX;s.inputs.roadY=link.roadY;
         s.inputs.migrant=link.worker;s.inputs.workers=link.workers;s.inputs.upgrade=link.upgrade;
-        s.inputs.primaryFigure=link.primaryFigure;
+        s.inputs.primaryFigure=link.primaryFigure;s.inputs.word30=link.stallSupplier;
         s.inputs.fireRisk=link.fireRisk;s.inputs.damageRisk=link.damageRisk;s.inputs.watchRisk=link.watchRisk;
         s.inputs.houseInUse=link.accepting;s.inputs.stock=link.industryInput;s.inputs.direction=link.roamDirection;
         s.inputs.operational=link.serviceCount;s.inputs.enabled=link.destinationEnabled;
@@ -445,7 +450,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
             result=originalBuildingProductionStep(b.state,c);}
         else if(city.phase==31){c.typeDisabled=b.context.typeDisabled;c.terrainFlags=b.context.terrainFlags;
             if(b.state.inputs.alive==1||b.state.inputs.alive==3){result=b.state.building.type==33?
-                    originalBuildingHunterDispatchStep(b.state,c):originalBuildingHookStep(b.state,c,city.process.singleMillFoodHypothesis==true);
+                    originalBuildingHunterDispatchStep(b.state,c):originalBuildingHookStep(b.state,c,city.process.singleMillFoodHypothesis==true,city.process.stationCargoDeniedHypothesis==true);
                 if(result==OriginalBuildingUpdateBlocker::BuildingVirtual20&&b.state.building.type==54)
                     result=originalCombinedWarehouseHook(b.state,c);}}
         else if(city.phase==35){if(originalBuildingIsHouse(b.state.building.type)&&(b.state.inputs.alive==1||b.state.inputs.alive==3))originalBuildingDecayHouseServices(b.state.inputs);}
@@ -722,6 +727,8 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
     if(combined){city=*combined;context.workerRoadExits=combined->figures.workerRoadExits;
         context.migrationRoadEndpoints=combined->figures.migrationRoadEndpoints;
         context.traderStationGoodsHypothesis=combined->figures.traderStationGoodsHypothesis;
+        context.stallFoodPickupEmptyHypothesis=combined->figures.stallFoodPickupEmptyHypothesis;
+        context.wellRankedReturn=combined->figures.wellRankedReturn;
         context.traderScenarioNetworkMode=combined->figures.traderScenarioNetworkMode;
         if(combined->process.crtRandom)context.crtRandom=combined->process.crtRandom;
         if(combined->process.soundEffectsEnabled)context.soundEffectsEnabled=combined->process.soundEffectsEnabled;

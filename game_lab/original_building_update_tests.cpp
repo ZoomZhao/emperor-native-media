@@ -918,6 +918,24 @@ void authored(){
     auto hookStation=well;hookStation.building.type=58;hookStation.inputs.hookIndustry.emplace();hookStation.inputs.hookIndustry->fill(0);hookStation.inputs.model=0;hookStation.inputs.workers=8;hookStation.inputs.available=0;hookStation.inputs.suppression=99;
     auto stationContext=service;stationContext.employmentModel=OriginalBuildingEmployment{{58,8}};stationContext.buildingLinks->at(7).storagePolicy=0;stationContext.buildingLinks->at(7).storage.emplace();stationContext.goods.emplace();stationContext.goods->policies.resize(1);stationContext.trade.emplace();
     need(originalBuildingStorageHook(hookStation,stationContext)==OriginalBuildingUpdateBlocker::None&&hookStation.inputs.available==1&&hookStation.inputs.suppression==99,"TradingStation hook writes runtime48 availability while preserving legacy suppression contract");
+    stationContext.trade->partners[0].buys[0]=19;stationContext.goods->policies[0].trade[19]=5;
+    stationContext.buildingLinks->at(7).storage->push_back({19,100,400});
+    need(originalBuildingStorageHook(hookStation,stationContext)==OriginalBuildingUpdateBlocker::BuildingVirtual20&&
+         originalBuildingStorageHook(hookStation,stationContext,true)==OriginalBuildingUpdateBlocker::None,
+         "station cargo permission hypothesis remains opt-in and strict calls refuse");
+    auto marketHook=well;marketHook.building.type=59;marketHook.inputs.primaryFigure=0;marketHook.inputs.spawnCounter=2;
+    stationContext.buildingLinks->at(7).marketStorage=std::vector<OriginalStorageCompartment>(6);
+    need(originalBuildingHookStep(marketHook,stationContext)==OriginalBuildingUpdateBlocker::None&&marketHook.inputs.spawnCounter==2,
+         "empty Market leaves peddler dispatch timer unchanged");
+    stationContext.buildingLinks->at(7).marketStorage->at(0)={28,100,400};
+    auto staffedStall=marketHook.building;staffedStall.type=66;staffedStall.slot=8;stationContext.buildings->operator[](8)=staffedStall;
+    stationContext.buildingInputs->operator[](8)=marketHook.inputs;stationContext.buildingInputs->at(8).alive=1;stationContext.buildingInputs->at(8).workers=8;
+    stationContext.employmentModel->operator[](66)=8;marketHook.building.imageInputs->marketStalls[0]=8;
+    need(originalBuildingHookStep(marketHook,stationContext)==OriginalBuildingUpdateBlocker::BuildingVirtual20,
+         "stocked Market retains peddler dispatch refusal");
+    marketHook.inputs.spawnCounter=2;stationContext.buildingInputs->at(8).alive=0;
+    need(originalBuildingHookStep(marketHook,stationContext)==OriginalBuildingUpdateBlocker::BuildingVirtual20,
+         "Market staffing counts the linked nonempty Stall regardless of its live byte");
     std::string houseFixture="HOUSE MODS\n";
     for(unsigned row=0;row<5;++row){houseFixture+="{,";for(unsigned col=0;col<24;++col)houseFixture+=std::to_string(row==2?5:0)+",";houseFixture+="}\n";}
     houseFixture+="ALL HOUSES\n";for(unsigned row=0;row<15;++row){houseFixture+="{,";for(unsigned col=0;col<24;++col)houseFixture+=std::to_string(col==0?-110:col==1?110:10)+",";houseFixture+="}\n";}
@@ -986,6 +1004,9 @@ void authored(){
          foodStall.inputs.word30==19&&foodSupplier.figures->at(19).delivery==8&&
          foodSupplier.supplierRequests.at(19)==std::array<int32_t,7>{0,-1,-1,-1,-1,-1,-1},
          "hypothetical single-Mill food selection publishes the first food request and supplier link");
+    foodSupplier.buildingInputs->at(7)=foodStall.inputs;
+    need(originalBuildingSynchronizePool(foodSupplier)&&foodSupplier.buildingLinks->at(7).stallSupplier==19,
+         "stall supplier link is visible to the figure pool after allocation");
     need(originalBuildingStallSupplier(hempStall,supplier,19)==OriginalBuildingUpdateBlocker::None&&hempStall.inputs.word30==19&&supplier.figures->at(19).delivery==8&&supplier.figures->at(19).destinationX==4&&supplier.figures->at(19).action==6&&supplier.supplierRequests.at(19)==std::array<int32_t,7>{1,-1,-1,-1,-1,-1,-1},"positive supplier flood chooses stocked Warehouse and publishes type24 delivery request category1");
     need(supplier.figureSpeechCounters->at(254)==1&&supplier.figureSpeechCounters->at(266)==8&&supplier.figureSpeechChoices.at(19)==2,"Stall supplier applies constructor254 then descriptor266 speech rotation");
     auto burning=positiveRisk;burning.phase=43;burning.buildingInputs->at(7)=ignited.state->inputs;burning.buildingInputs->at(7).burning=3;burning.buildingInputs->at(7).fireDirection=0;

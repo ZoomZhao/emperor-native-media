@@ -784,7 +784,7 @@ inline std::optional<size_t> originalBuildingAllocateService(OriginalBuildingUpd
     //4C9250 reads84E798+40*type. These group IDs are executable metadata.
     const bool fireEffect=(type==1||type==2)&&c.disasters.has_value(); //4C92D0 skips speech for1/2.
     const bool additional=c.additionalWalkers&&*c.additionalWalkers;
-    const int speech=(type==45||type==47)?262:type==28?271:type==39?275:additional&&type==29?273:additional&&type==30?263:additional&&type==34?276:
+    const int speech=(type==45||type==47)?262:type==28?271:type==39?275:additional&&type==23?259:additional&&type==29?273:additional&&type==30?263:additional&&type==34?276:
         (type==26||type==40||(type==24&&c.stallSuppliers&&*c.stallSuppliers)||(type==19&&c.industryCarts&&*c.industryCarts)||(additional&&(type==35||type==36)))?254:-1;
     if(!fireEffect&&(speech<0||!c.figureSpeechCounters||!c.figureSpeechCounts))return std::nullopt;
     const uint32_t divisor=fireEffect?1:c.figureSpeechCounts->at(unsigned(speech));if(!divisor||divisor>INT32_MAX)return std::nullopt;
@@ -833,7 +833,7 @@ inline std::optional<int> originalBuildingStorageExport(const OriginalFigureBuil
 }
 //Storage+20=5D5350 ->+29C=556130/5D63C0/5DDD30. Closed
 //negative candidate domain;positive supplier reservations retain refusal.
-inline OriginalBuildingUpdateBlocker originalBuildingStorageHook(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c){
+inline OriginalBuildingUpdateBlocker originalBuildingStorageHook(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c,bool stationCargoDeniedHypothesis=false){
     auto& i=s.inputs;const auto type=s.building.type;
     if(!c.figures||!i.hookIndustry||!c.employmentModel||!c.employmentModel->count(type)||!c.buildingLinks||!c.goods||!c.buildingInputs)return OriginalBuildingUpdateBlocker::MissingContext;
     const auto slot=s.building.slot;auto link=c.buildingLinks->find(slot);if(link==c.buildingLinks->end())return OriginalBuildingUpdateBlocker::MissingContext;
@@ -883,8 +883,10 @@ inline OriginalBuildingUpdateBlocker originalBuildingStorageHook(OriginalBuildin
         unsigned ordinal=0;for(unsigned r=0;r<29;++r)if(std::find(partner.buys.begin(),partner.buys.end(),r)!=partner.buys.end()||std::find(partner.sells.begin(),partner.sells.end(),r)!=partner.sells.end()){
             if(!r)continue;if(ordinal>=8)return OriginalBuildingUpdateBlocker::InvalidState;const bool present=cargoPresent[ordinal++];if(present)continue;
             int32_t stock=0;if(!b.storage)return OriginalBuildingUpdateBlocker::MissingContext;for(const auto& bay:*b.storage)if(bay.resource==r)stock=originalBuildingAdd32(stock,originalBuildingI32(bay.amount));
-            if(policy.trade[r]==5||policy.trade[r]==6){if(stock>0&&!c.goods->unavailable[r])return OriginalBuildingUpdateBlocker::BuildingVirtual20;}
-            if(policy.trade[r]==7&&stock<policy.limit[r]){for(const auto& e:*c.buildingLinks)if(e.first!=slot&&e.second.storage)for(const auto& bay:*e.second.storage)if(bay.resource==r&&bay.amount)return OriginalBuildingUpdateBlocker::BuildingVirtual20;}}
+            // HYPOTHESIS(station-cargo-permission-denied): unbound partner
+            // permission 443BA0/443C00 rejects otherwise eligible dispatches.
+            if(policy.trade[r]==5||policy.trade[r]==6){if(stock>0&&!c.goods->unavailable[r]&&!stationCargoDeniedHypothesis)return OriginalBuildingUpdateBlocker::BuildingVirtual20;}
+            if(policy.trade[r]==7&&stock<policy.limit[r]){for(const auto& e:*c.buildingLinks)if(e.first!=slot&&e.second.storage)for(const auto& bay:*e.second.storage)if(bay.resource==r&&bay.amount&&!stationCargoDeniedHypothesis)return OriginalBuildingUpdateBlocker::BuildingVirtual20;}}
         return OriginalBuildingUpdateBlocker::None;
     }
     return OriginalBuildingUpdateBlocker::BuildingVirtual20;
@@ -1077,7 +1079,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingCropDispatch(OriginalBuildi
 }
 //Per-type+20 targets are individually cited in SAV.md. Guarded service/Hunter
 //allocation executes;unported positive dispatch retains the named refusal.
-inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c,bool singleMillFoodHypothesis=false){
+inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c,bool singleMillFoodHypothesis=false,bool stationCargoDeniedHypothesis=false){
     auto& i=s.inputs;const auto type=s.building.type;
     if(i.alive!=1&&i.alive!=3)return OriginalBuildingUpdateBlocker::None;
     if(type==194||type==196){if(!i.industry)return OriginalBuildingUpdateBlocker::InvalidState;
@@ -1209,8 +1211,33 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
     if(type==53||type==54||type==58||type==59||type==62||type==66||type==67){
         if(!c.walkersDisabled)return OriginalBuildingUpdateBlocker::MissingContext;
         if(*c.walkersDisabled)return OriginalBuildingUpdateBlocker::None;
-        if(type==59){const auto present=originalBuildingHookFigure(i.primaryFigure,23,s.building.slot,c);
-            if(!present)return OriginalBuildingUpdateBlocker::MissingContext;if(*present)return OriginalBuildingUpdateBlocker::None;}
+        if(type==59){if(i.operational<=0)i.roadFailure=2;
+            const auto present=originalBuildingHookFigure(i.primaryFigure,23,s.building.slot,c);
+            if(!present)return OriginalBuildingUpdateBlocker::MissingContext;if(*present)return OriginalBuildingUpdateBlocker::None;
+            //543ED5/543F4B: an empty Market cannot advance its dispatch timer.
+            if(!c.buildingLinks||!c.buildingLinks->count(s.building.slot)||!c.buildingLinks->at(s.building.slot).marketStorage)return OriginalBuildingUpdateBlocker::MissingContext;
+            const auto& bays=*c.buildingLinks->at(s.building.slot).marketStorage;
+            if(std::all_of(bays.begin(),bays.end(),[](const auto& bay){return bay.amount==0;}))return OriginalBuildingUpdateBlocker::None;
+            if(!s.building.imageInputs||!c.buildingInputs||!c.buildings||!c.employmentModel)return OriginalBuildingUpdateBlocker::MissingContext;
+            int required=0,workers=0;for(const auto id:s.building.imageInputs->marketStalls){
+                if(!id||id>INT32_MAX)continue;const auto child=c.buildings->find(id);const auto input=c.buildingInputs->find(id);
+                if(child==c.buildings->end()||input==c.buildingInputs->end())return OriginalBuildingUpdateBlocker::MissingContext;
+                const auto childType=child->second.type;if(childType==62)continue;
+                const auto model=c.employmentModel->find(childType);if(model==c.employmentModel->end())return OriginalBuildingUpdateBlocker::MissingContext;
+                required+=model->second;workers+=input->second.workers;} //544AA7 uses Stall+ C8(-1), a type predicate, not alive.
+            const int percent=required?workers*100/required:0;if(percent<1)return OriginalBuildingUpdateBlocker::None;
+            const unsigned limit=percent>=100?2:percent>=75?3:percent>=50?4:percent>=25?5:10;
+            i.spawnCounter=uint8_t(i.spawnCounter+1);if(i.spawnCounter<=limit)return OriginalBuildingUpdateBlocker::None;
+            if(!c.additionalWalkers||!*c.additionalWalkers||!c.activeSide||!s.building.imageInputs||!s.building.imageInputs->marketOrientation||
+               *s.building.imageInputs->marketOrientation>1)return OriginalBuildingUpdateBlocker::BuildingVirtual20;
+            i.spawnCounter=0;const int x=int(s.building.x)+3,y=int(s.building.y)+3;
+            if(x>=int(*c.activeSide)||y>=int(*c.activeSide))return OriginalBuildingUpdateBlocker::InvalidState;
+            const auto allocated=originalBuildingAllocateService(c,23,i.faction,int16_t(x),int16_t(y),i.direction);
+            if(!allocated)return OriginalBuildingUpdateBlocker::MissingContext;if(!*allocated)return OriginalBuildingUpdateBlocker::None;
+            auto& f=c.figures->at(*allocated);f.action=1;f.owner=int16_t(s.building.slot);i.primaryFigure=int16_t(*allocated);
+            i.direction=uint8_t((unsigned(i.direction)+4)&7);f.previousDirection=i.direction;
+            if(!originalBuildingBeginServiceRoam(f,i,c))return OriginalBuildingUpdateBlocker::MissingContext;
+            return OriginalBuildingUpdateBlocker::None;}
         if(type==62)return OriginalBuildingUpdateBlocker::None; //541B80 C8(-1)=5408D0 false for empty62.
         if(type==53){ //556130 validates all3 links before its50-percent gate.
             if(!i.hookIndustry||!c.employmentModel||!c.employmentModel->count(type))return OriginalBuildingUpdateBlocker::MissingContext;
@@ -1222,7 +1249,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
             const int required=i.laborDisabled?0:c.employmentModel->at(type),percent=required>0?int(i.workers)*100/required:0;
             if(percent<50)return OriginalBuildingUpdateBlocker::None;
         }
-        if(type==53||type==54||type==58)return originalBuildingStorageHook(s,c);
+        if(type==53||type==54||type==58)return originalBuildingStorageHook(s,c,stationCargoDeniedHypothesis);
         if(type==66||type==67)return originalBuildingStallHook(s,c,singleMillFoodHypothesis);
         //Storage/market/stall dispatches have positive supplier/reservation
         //effects;retain the named refusal until those complete services exist.
@@ -2873,7 +2900,7 @@ inline bool originalBuildingSynchronizePool(OriginalBuildingUpdateContext& c){
         if(c.buildingLinks){const auto found=c.buildingLinks->find(e.first);if(found==c.buildingLinks->end())return false;auto& b=found->second;
             b.alive=i.alive;b.residents=i.residents;b.freeSlots=i.free;b.houseModel=i.model;b.worker=i.migrant;
             b.workers=i.workers;b.roadAccess=i.available;b.roadDistance=i.distance;b.roadX=i.roadX;b.roadY=i.roadY;b.roamDirection=i.direction;
-            b.primaryFigure=i.primaryFigure;
+            b.primaryFigure=i.primaryFigure;b.stallSupplier=i.word30;
              b.fireRisk=i.fireRisk;b.damageRisk=i.damageRisk;
              if(c.industryCarts&&*c.industryCarts)b.industryInput=i.stock;
             if(i.cropWorkers)b.suppliers=i.cropWorkers->at(1);

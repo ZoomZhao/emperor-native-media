@@ -238,6 +238,14 @@ void combinedAuthored(){
     need(begun.state&&begun.state->action==1&&begun.state->counter==30&&begun.state->frame==1&&
         begun.state->cell==well.cell&&begun.state->progress==well.progress,
         "combined allocated Well service enters action1 without countdown or movement");
+    {auto returning=wellContext;auto walker=well;walker.action=1;walker.roamSteps=384;walker.route=0;returning.figures[2]=walker;
+        auto& building=returning.buildings->at(8);building.x=5;building.y=5;building.size=1;building.serviceCount=1;building.roadX=4;building.roadY=5;
+        returning.cropBase=0;returning.activeSide=20;returning.terrain.assign(51984,0);returning.buildingOwners.assign(51984,0);returning.roadNetworks.assign(51984,0);
+        returning.terrain[1144]=0x40;returning.roadNetworks[1144]=1;
+        need(!originalFigureFirstUpdate(walker,walkingRefs,&returning).state,"strict Well return remains withheld");
+        returning.wellRankedReturn=true;const auto result=originalFigureFirstUpdate(walker,walkingRefs,&returning);
+        need(result.state&&result.state->action==2&&result.state->destinationX==4&&result.state->destinationY==5&&result.state->roamSteps==0,
+             "Well return uses ranked road selected from saved owner road coordinates");}
     auto emigrantContext=wellContext;emigrantContext.modelSpeeds[13]=6;auto emigrant=well;emigrant.type=13;emigrant.counter=50;emigrant.frame=9;
     emigrantContext.figures[2]=emigrant;const auto waitingEmigrant=originalFigureFirstUpdate(emigrant,walkingRefs,&emigrantContext);
     need(waitingEmigrant.state&&waitingEmigrant.state->counter==51&&waitingEmigrant.state->frame==0&&waitingEmigrant.state->action==6&&
@@ -1148,6 +1156,16 @@ void authored(){
         auto supplier=one;supplier.type=26;supplier.action=8;supplier.owner=8;supplier.counter=2;supplier.frame=11;supplier.variant=0;
         context.figures[supplier.slot]=supplier;context.buildings.emplace();OriginalFigureBuildingLink owner;owner.type=0xc0;owner.alive=1;
         context.buildings->emplace(8,owner);
+        {auto food=context;auto buyer=supplier;buyer.type=24;buyer.action=6;buyer.delivery=9;buyer.direction=2;buyer.progress=19;
+            buyer.route=1;buyer.routeCursor=buyer.routeLength=0;buyer.homeX=4;buyer.homeY=5;
+            food.figures[buyer.slot]=buyer;food.buildings->at(8).type=66;food.buildings->at(8).stallSupplier=int16_t(buyer.slot);
+            (*food.buildings)[9].type=53;food.buildings->at(9).alive=1;food.models[24]={};food.modelSpeeds[24]=6;
+            food.services.emplace();food.services->directions.resize(500000);food.services->routeOwners[1]=int16_t(buyer.slot);
+            need(!originalFigureFirstUpdate(buyer,refs,&food,0x88).state,"strict food supplier arrival retains transfer refusal");
+            food.stallFoodPickupEmptyHypothesis=true;const auto returned=originalFigureFirstUpdate(buyer,refs,&food,0x88);
+            need(returned.state&&returned.state->action==7&&returned.state->alive==1&&returned.state->destinationX==4&&
+                 returned.state->destinationY==5&&returned.state->route==0&&returned.state->frame==0,
+                 "empty pickup hypothesis returns food supplier home after route release");}
         const auto supplied=originalFigureFirstUpdate(supplier,refs,&context,0x88);
         need(supplied.state&&supplied.state->counter==1&&supplied.state->action==8&&supplied.state->frame==0&&
             supplied.state->movementMode==17&&supplied.state->hidden==0&&supplied.state->freeMovement==0&&
@@ -1986,6 +2004,13 @@ void authored(){
         need(retargeted.state&&retargeted.state->action==7&&retargeted.state->route==0&&
             retargeted.state->destinationX==prey.x&&retargeted.state->destinationY==prey.y,
             "Hunter reaching a stale destination retargets still-qualified prey and releases its ended route");
+        context.figures[prey.slot].alive=0;const auto lostPrey=originalFigureFirstUpdate(hunter,refs,&context,0xc0);
+        need(lostPrey.state&&lostPrey.state->action==6&&lostPrey.state->counter==0,
+            "Hunter whose target is no longer alive resets to the prey search state");
+        hunter.action=11;hunter.frame=1;hunter.route=0;hunter.destinationX=hunter.x;hunter.destinationY=hunter.y;
+        context.figures[hunter.slot]=hunter;const auto emptyReturn=originalFigureFirstUpdate(hunter,refs,&context,0xc0);
+        need(emptyReturn.state&&emptyReturn.state->alive==2&&emptyReturn.state->counter==0,
+            "Hunter returning without prey marks removal when the home route ends");
     }
     {
         // Literal Goods1/Population7 inputs, independent of runtime offsets.

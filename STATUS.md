@@ -1,82 +1,20 @@
 # Status — ORIGINAL CITY RUNS
 
-2026-11-03 · macOS arm64 · measure with `EMPEROR_GAMEDATA_ROOT=<data> make primary-metric`
+2026-11-03 · macOS arm64 · `EMPEROR_GAMEDATA_ROOT=<data> make primary-metric UPDATES=1000`
 
-## Primary metric
+**Stage 1: 6/6 at 100 updates. Stage 2: merged result pending verification.** Before merge: main 4/6 at 1000 (trader 847, supplier 286); supplier branch independently 4/6 (both zoom saves 627). Original behavior agreement is measured separately below. Year rollover remains refused; one year is 12 × 16 × 51 = 9792 updates. Chinese EXE SHA `dbdeca1e…`.
 
-**Original SAVs running ≥100 consecutive updates in normal App Play: 6/6** (0/6 → 2/6 → 6/6 on 2026-10-31). Release and UBSan both 6/6; headless controller run.
+**Fidelity:** `281030 → 281031` 40/40: building common 28407/28409; crop industry 884/884; figure state 5164/5170, images 92/94, type-26 50/50; RNG 2/2; calendar, treasury, accounting, labor, employment, sentiment, population, house goods/services, crop storage and formations agree. `281031 → 280008` previously stopped 807/1008 and `280008 → 280009` 3/860 at `building_virtual20_416d20`. User-observed +75 trade, −60 charge and +786 accepted envoy gift reconcile the reported cash; the empty-event hypotheses may be contradicted if these saves share a trajectory.
 
-"Runs" means no refusal; agreement with the original game is **unmeasured**. 100 updates ≈ two monthly tails.
+Animal pairs `0102 → 280011` and `280011 → 280012` match figure state 2310/2310, images 42/42 and RNG 2/2; `0102 → 0103` and `280012 → 0103` have 2278/2310, 41/42 and RNG −36 draws. The midpoint capture is pending; four terrain flag differences remain unexplained.
 
-## Stage 2: 1000 updates — 4/6
+**Open hypotheses** (normal play unless specified; strict premises withhold them). Verify the following process-only load defaults against independent initialization or observed state: `event-ui-gates-closed-at-load`, `scenario-slots-empty-at-load`, `manager-gate-closed-at-load`, `migrant-spacing-zero-at-load`, `notice-history-at-file-initial`, `service-coverage-zero-at-load`, `highest-building-slot-zero-at-load`, `religion-bonus-off-at-load`, `religion-scratch-at-file-initial`, `producer-tails-zero-at-load`, `effect-scratch-zero-at-load`, `force-evolution-off-at-load`, `previous-health-zero-at-load` (evidence: fresh-process initialization or cited gate/phase in `city_playback.cpp`).
 
-`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release and UBSan measured 2026-11-03; both produce the counts and refusals below.
+- `animal-spawn-missed-candidates`: no spawn candidate; verify 4EA8E0 placement. `single-mill-food-qualifies`: sole stocked Mill qualifies; verify 544480 grade selection.
+- `stall-food-pickup-empty`: 5464E0 produces no transfer/servants; a Mill has food. Verify Market grade/capacity and 4E3C70/5464E0. `station-cargo-permission-denied`: 443BA0/443C00 rejects eligible cargo; verify saved permissions and allocations.
+- `trader-station-offers-goods`: 5DB640 finds a trade; verify eligibility. `trader-god-price-neutral`: process modifiers A5B028/A5B024 are inactive; verify process state or supervised transfer.
+- `sentiment-tax-table`, `sentiment-monuments`, `sentiment-notice-state`, `sentiment-reason-multiplier`: fallback model/registry/notice effects; verify the named 591200 subcalls.
+- `monthly-partner-4936d0-empty`, `monthly-partner-495a50-empty`, `monthly-part12-candidates-empty`, `monthly-part12-relation-default`: assume no unbound event/relation effects; verify selected event constructors and the supervised envoy trajectory. `census-skip-phase` is diagnostic only and assumes omitted phases have no effects.
+- Rollover: `rollover-manager-empty`, `rollover-primary-building-inactive`, `rollover-health-target-stable`, `rollover-tax-recount-stable`, `rollover-normal-finance-mode`, `rollover-food-prelude-neutral`, `rollover-monument-timer-inactive`, `rollover-religion-monthly-neutral`, `rollover-other-notice-counters-zero`, `rollover-road-refresh-stable`, `rollover-notice-sort-neutral`, `rollover-incoming-cargo-stable`, `rollover-monthly-events-empty`, `rollover-scenario-events-empty`; verify the named services and target-calendar saves.
 
-| Source | Updates | Calendar | First refusal |
-|---|---|---|---|
-| zoom/历史战役自动保存_1 | 1000 | 2 / 3 | none |
-| 项羽/历史战役自动存档_2 | 1000 | 8 / 3 | none |
-| 项羽/.sav | 1000 | 9 / 4 | none |
-| 项羽/历史战役自动保存_1 | 1000 | 2 / 3 | none |
-| zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
-| zoom/历史战役自动存档_2 | 847 | 8 / 0 | `building_virtual20_416d20` (after the first trader export) |
-
-Ordinary month rollover now runs traced food, wages, debt, production and population-history effects plus explicitly labelled remaining assumptions. Annual rollover remains refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
-
-Inner loop: 1,000-update Release run 171 s with rebuild before, 46 s warm after; six stop points unchanged. Build conditions differ, and the 30 s target remains unmet.
-
-## Fidelity — 1 pair reached (2026-11-03)
-
-`2026102801/280011 → 280012` reaches 123/123 with figure state 2310/2310, images 42/42 and RNG 2/2 after correcting fractional-speed route pauses. `2026102301/202610230102 → 280011` likewise matches those groups at 128/128; the original pair's terrain differs in four cells, with bit400000 cleared on all four, plus200 on one and20000000 on another. `202610230102 → 202610230103` reaches 1104/1104: figure state 2278/2310, images 41/42, RNG 0/2 (original 36 draws behind playback). `280012 → 202610230103` now reaches 853/853 with the same long-pair score and RNG delta, localizing the remaining divergence after 280012. Calendar 5/5, treasury/year/population 1/1 each, sentiment 3/3, accounting 12/12, labor 20/20, employment 55/55, formation identity 100/100 and state 60/60, figure identity 2041/2041. These saves have no live buildings, so building/house groups are 0/0. `280008 → 280009` prepares but stops at 3/860 (`building_virtual20_416d20`); its −60 treasury change remains unattributed.
-
-`2026102802/281030 → 281031` reaches 40/40: building common 28407/28409, crop industry 884/884, figure state 5164/5170, images 92/94, RNG 2/2; calendar, treasury, accounting, labor, employment, sentiment, population, house goods/services, crop storage and formations agree. `281031 → 280008` stops at 807/1008 (`building_virtual20_416d20`, phase 31). User-observed trade +75, charge −60 and accepted envoy gift +786 reconcile the reported money; the no-event hypotheses may be contradicted if this is the same trajectory and require investigation.
-
-## Open hypotheses
-
-The load hypotheses below are in `game_lab/app/city_playback.cpp` `applyLoadHypotheses`: process state the SAV does not store, supplied in normal play, withheld by `strictPremises`, not written into `.emworld` policy. Verify each by reading it from a live original process at load.
-
-| Id | Value | Evidence |
-|---|---|---|
-| event-ui-gates-closed-at-load | 1E53538 +17/+16 = 0 | 5EFF20 proven early return, no stores |
-| scenario-slots-empty-at-load | 8 slots null | fresh process zero-fill; 466E90 loops call nothing |
-| manager-gate-closed-at-load | 10AF4E0 +8 = 0 | 492452..460 skips mode5 |
-| migrant-spacing-zero-at-load | D62418 = 0 | phase 23 clamps at 0 |
-| notice-history-at-file-initial | 8501FC/FD = 1 | `.data` initial image |
-| service-coverage-zero-at-load | C82D58[11] = 0 | 4AF2D0 rewrites 0..3, 7..10 |
-| highest-building-slot-zero-at-load | 0 | phase 10 scan records live max |
-| religion-bonus-off-at-load | 10BFB50 = 0 | phase 18 festival branch off |
-| religion-scratch-at-file-initial | 1312F78 = 0, 85D720 = −1 | zero-fill / `.data` initial |
-| producer-tails-zero-at-load | entries 30..35 = 0 | phase 33 preserves them |
-| effect-scratch-zero-at-load | 101D12C = 0, 8900E8 = 0 | phase 45 decays after 7 |
-| force-evolution-off-at-load | 10BFF78 = 0 | phase 39 keeps desirability comparison |
-| previous-health-zero-at-load | D6241C = 0 | monthly tail part 3 reads only at rating 151/152 |
-
-`census-skip-phase` (diagnostic mode only): a refused accounting or monthly phase has no side effects apart from calendar advancement. Evidence: phase rollback preserves the last complete candidate; there is no evidence that the omitted original effects are empty. Compare a supervised time-only SAV pair and the executable to verify. Other refusals and year rollover remain hard stops.
-
-`animal-spawn-missed-candidates` (normal-play fallback): assume the 16 placement candidates all fail, so no animal is born. `4EA986..4EA98A` reset the timer and consume one engine random value before the search; actual placement and successful allocation remain unported. Verify by implementing `4EA8E0` placement/allocation or comparing a supervised save across a known spawn attempt. Strict premises and the direct phase API retain refusal.
-
-`single-mill-food-qualifies` (normal-play fallback): assume a sole eligible Mill with ≥100 available food qualifies for the Market's grade-1 request. `541220`/`544480` establish the candidate gates; the blocked save has one matching Mill, 3,000 available food, and saved Market grade range 1–3. The general saved grade bounds and multi-Mill ranking are not yet bound. Verify by retaining the saved bounds and porting `544480`; strict premises retain refusal.
-
-`sentiment-tax-table`: if `Model/EmperorTaxSentimentModel.txt` is absent or invalid, assume the `591180` tax contribution is zero; the seven-row table is otherwise parsed from the data root. Verify fallback against the original model-loading failure path. `sentiment-monuments`: assume `55AE30` has no qualifying completed monument and changes no registry flags; verify by binding the process monument registry. `sentiment-notice-state`: assume notices are enabled and process-only achievement flags are clear; verify from the original initialization and notice registry. `sentiment-reason-multiplier`: assume the `5913E0` floating-point term is not the worst notice reason; verify its saved input and runtime rounding. These hypotheses apply only in normal play; strict premises retain refusal.
-
-`monthly-partner-4936d0-empty` and `monthly-partner-495a50-empty`: assume the respective part-7 selected interactions make no relation/event changes or additional random draws. `4A8ED0`'s saved eligibility and scenario flag and its one to three random draws are retained; actual event effects are unported. Verify by porting both selected event constructors and comparing saved event/relationship state. Strict premises retain refusal.
-
-`monthly-part12-candidates-empty`: assume the unbound request flag, strength, ratings and existing-request predicates in `4A90A0` yield no candidate, so the selection draw and `494260` are not reached. The executable proves status 0/4 also requires negative treasury and relation value ≥50; the blocked save has nonnegative treasury but other statuses remain eligible. `monthly-part12-relation-default`: assume `441F70`'s `440C10` default-state normalization changes no relation. Verify by porting the missing gates and event construction; strict premises retain refusal.
-
-`trader-station-offers-goods`: assume `5DB640` finds a trade at the merchant's alive, staffed, road-connected station. The blocked save has such a station with storage records; its partner permission and stock searches remain unbound. Verify by porting those predicates and comparing trade and station state. Strict premises retain refusal.
-
-`trader-god-price-neutral` (normal-play trader candidate): assume the process-only `A5B028/A5B024` price modifiers are inactive. `5DE5A0..5DE5F6` conditionally applies them; verify their values at the transfer using the supervised save pair or independent process-state evidence. Strict premises retain refusal.
-
-Rollover hypotheses (normal play only; strict premises refuse): `rollover-manager-empty` assumes the `4BFF20/4BFE10` manager has no monthly action; `rollover-primary-building-inactive` assumes the type-110 hook in `592060` is inactive; `rollover-health-target-stable` and `rollover-tax-recount-stable` preserve the latest targets across the unbound house recounts `590DB0` and `4AE900`; `rollover-normal-finance-mode` assumes `591AC0`'s editor gate is clear; `rollover-food-prelude-neutral` assumes `4AEDF0`'s additional effects and the `5482E0` notice are absent; `rollover-monument-timer-inactive` assumes `55AF70` has no qualifying timer; `rollover-religion-monthly-neutral` assumes `5A8620` has no additional effects; `rollover-other-notice-counters-zero` assumes the 19 unbound `547670` counters are zero; `rollover-road-refresh-stable` assumes `4B6D00/5AD8F0` leave terrain and roads unchanged; `rollover-notice-sort-neutral` assumes `547440` only changes notice presentation; `rollover-incoming-cargo-stable` preserves the `4EB850` counts; `rollover-monthly-events-empty` and `rollover-scenario-events-empty` assume the event calls named in code produce no additional events. Evidence is the cited executable call order and bound saved state, not proof of these outcomes. Verify by porting each named service and comparing target-calendar saves. The annual branch remains refused.
-
-## Next step
-
-Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempted update (speculative after any no-op; all six saves stopped hard):
-
-1. `city_accounting_4f1560_4ac2fa`: 210, 285 and 1383 (hard; at 210 this is phase 5 animal spawning `4EA8E0`, not accounting). Two live animal formations have spawn timer 26 and are below their limit.
-2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
-3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
-
-Next: verify the trader transfer against `281031 → 281032` when available; its equal-price export and empty import-candidate search now commit atomically. A possible import still refuses at `trader_import_after_export_4ce86e`; changed export prices still refuse. The −36 RNG gap is parked pending the supervised midpoint.
-
-Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).
+**Next:** verify the merged 1000-update metric and checks; finish the original pair's remaining building links, figure list order and process-clock variants; rescore the two city pairs and follow the first full-year blocker. Trader imports and changed-price effects remain partial. The supervised transfer pair and animal midpoint are pending. Frozen checkpoint restore still has pre-existing `world_binding_goal_prefix` failure at `73e0e03`.
