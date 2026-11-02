@@ -10,7 +10,7 @@
 
 ## Stage 2: 1000 updates — 0/6
 
-`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release measured 2026-11-03; this revision has not yet been measured with UBSan.
+`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release and UBSan measured 2026-11-03 with identical results.
 
 | Source | Updates | Calendar | First refusal |
 |---|---|---|---|
