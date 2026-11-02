@@ -154,6 +154,13 @@ void combinedAuthored(){
     auto absent=accounting;absent.phase=1;absent.buildingContext->cityEmployment->shortageNotice.reset();
     need(originalCombinedBeforeFigures(absent,order)=="city_accounting_4f1560_4ac2fa",
         "combined accounting does not invent notification history");
+    auto diagnostic=accounting;diagnostic.phase=1;diagnostic.buildingContext->cityEmployment->shortageNotice.reset();
+    const auto oldCalls=diagnostic.buildingContext->accountingCalls;
+    std::vector<OriginalRefusalCensusEvent> census;originalRefusalCensus=&census;
+    const auto censusResult=originalCombinedBeforeFigures(diagnostic,order);originalRefusalCensus=nullptr;
+    need(censusResult.empty()&&diagnostic.phase==2&&diagnostic.buildingContext->accountingCalls==oldCalls&&
+         census.size()==1&&census[0].refusal=="city_accounting_4f1560_4ac2fa"&&census[0].phase==1,
+         "diagnostic no-op records the refused accounting phase without publishing its writes");
     auto resources=countdown;resources.phase=20;auto& rc=*resources.buildingContext;
     rc.activeSide=4;rc.cropBase=112*229;resources.figures.cropBase=rc.cropBase;resources.figures.activeSide=4;
     rc.resourceGrowth.emplace();auto& growth=*rc.resourceGrowth;growth.surface.image.assign(51984,999);
@@ -358,6 +365,16 @@ void combinedAuthored(){
     need(originalCombinedBeforeFigures(tail,order).empty()&&tail.phase==0&&tail.figures.goods->savedPhase==0&&
         tc.cycle==5&&tc.monthPart==1&&tc.cycleTail->calls==1,
         "combined phase50 completes monthly service before wrapping scheduler phase and Goods cache");
+    auto speculative=tail;speculative.phase=50;speculative.buildingContext->monthPart=7;
+    census.clear();originalRefusalCensus=&census;
+    const auto speculativeResult=originalCombinedBeforeFigures(speculative,order);originalRefusalCensus=nullptr;
+    need(speculativeResult.empty()&&speculative.phase==0&&speculative.buildingContext->monthPart==8&&
+         speculative.buildingContext->cycle==6&&census.size()==1&&census[0].phase==50,
+         "diagnostic monthly no-op advances only the calendar and records its refusal");
+    auto year=tail;year.phase=50;year.buildingContext->month=11;year.buildingContext->monthPart=15;
+    census.clear();originalRefusalCensus=&census;
+    const auto yearResult=originalCombinedBeforeFigures(year,order);originalRefusalCensus=nullptr;
+    need(yearResult=="monthly_city_4ac650"&&census.empty(),"unimplemented year rollover remains a hard census refusal");
     auto tombstone=countdown;tombstone.phase=49;tombstone.figures.buildings->at(8).alive=4;
     need(originalCombinedBeforeFigures(tombstone,order)=="combined_building_removal_4b7660_not_closed"&&tombstone.phase==49,
         "combined building tombstone refuses before stale footprint and reciprocal links can publish");

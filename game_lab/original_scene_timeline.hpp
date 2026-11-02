@@ -52,6 +52,10 @@ struct OriginalCombinedState {
     std::optional<OriginalBuildingScenarioMessages> scenarioMessages;
     uint32_t phase=0;
 };
+// Opt-in diagnostic only. A census records speculative continuations separately
+// from normal playback; a failed later stage is still a hard refusal.
+struct OriginalRefusalCensusEvent {std::string refusal;uint32_t phase,month,part;};
+inline thread_local std::vector<OriginalRefusalCensusEvent>* originalRefusalCensus=nullptr;
 //5AD440 B7C projection with no buildings after SAV load. 534E5B->41F400
 //creates only byte18=1 objects (41F820->41F350->41F25F),which5AD7AF skips.
 //Own river cells are conservatively withheld; a known path proves the exit.
@@ -544,7 +548,28 @@ inline std::string originalCombinedBeforeFigures(OriginalCombinedState& city,std
     //to4AC2E4 without the two later, effectful scheduler prechecks.
     if(!p.schedulerGate16||*p.schedulerGate16)return "scheduler_precheck_4fae50_55b540_55cee0";
     if(city.phase>50)return "invalid_city_phase";
-    const auto blocker=originalCombinedBuildingPhase(city);if(!blocker.empty())return blocker;
+    // HYPOTHESIS(census-skip-phase): for diagnostic exploration only, a failed
+    // accounting or monthly phase has no effects except the calendar advance.
+    // Restore the entire phase candidate before applying this fallback; all
+    // subsequent observations are speculative. Year rollover remains hard.
+    std::optional<OriginalCombinedState> censusBefore;
+    if(originalRefusalCensus&&(city.phase==1||city.phase==50))censusBefore=city;
+    const auto blocker=originalCombinedBuildingPhase(city);
+    if(!blocker.empty()){
+        if(!censusBefore||!censusBefore->buildingContext)return blocker;
+        auto& c=*censusBefore->buildingContext;
+        if(!c.month||!c.monthPart||!c.cycle||*c.month>11||*c.monthPart>15||
+           (city.phase==1&&blocker!="city_accounting_4f1560_4ac2fa")||
+           (city.phase==50&&(blocker!="monthly_city_4ac650"||(*c.month==11&&*c.monthPart==15))))return blocker;
+        const auto phase=city.phase,month=*c.month,part=*c.monthPart;
+        city=std::move(*censusBefore);
+        if(phase==50){auto& calendar=*city.buildingContext;++*calendar.cycle;
+            if(++*calendar.monthPart==16){*calendar.monthPart=0;++*calendar.month;}
+            calendar.phase=0;
+            if(city.figures.crops)city.figures.crops->month=*calendar.month;}
+        else city.buildingContext->phase=phase;
+        originalRefusalCensus->push_back({blocker,phase,month,part});
+    }
     city.phase=city.phase==50?0:city.phase+1; //4AC4C8..4E2;tail already completed through the public API.
     if(city.figures.goods)city.figures.goods->savedPhase=city.phase;
     order.push_back(0x466e90);

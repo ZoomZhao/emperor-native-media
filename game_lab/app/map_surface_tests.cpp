@@ -263,7 +263,7 @@ void authored(const std::filesystem::path& root){
 // per source — updates, the in-game month and month part reached, then the
 // first refusal — then PRIMARY X/6. Exit 0 with SKIP when the data root is
 // unset; a source that fails to prepare is reported, not thrown.
-void primaryMetric(const std::string& path,unsigned updates){
+void primaryMetric(const std::string& path,unsigned updates,bool census=false){
     using namespace game_lab;
     const auto root=ResourceRoot::fromAbsolute(path);
     if(!root.configured())throw std::runtime_error("explicit existing data root required");
@@ -283,18 +283,35 @@ void primaryMetric(const std::string& path,unsigned updates){
         AppCityPlayback playback(surface,save,payload,preferences,1,0,false,&session);
         unsigned reached=0;std::string refusal="not_prepared";
         std::optional<std::pair<uint32_t,uint32_t>> calendar;
+        struct CensusRow {unsigned count=0,first=0;uint32_t month=0,part=0;};
+        std::map<std::string,CensusRow> censusRows;
+        std::vector<OriginalRefusalCensusEvent> events;
+        if(census)originalRefusalCensus=&events;
         if(playback.prepared()){
             const auto interval=std::max(1u,playback.status().intervalMs);
-            for(unsigned n=1;n<=updates;++n){if(!playback.step(uint64_t(n)*interval))break;}
+            for(unsigned n=1;n<=updates;++n){const bool completed=playback.step(uint64_t(n)*interval);
+                for(const auto& event:events){const auto name=event.refusal+"_phase_"+std::to_string(event.phase);
+                    auto& row=censusRows[name];if(!row.count){row.first=n;row.month=event.month;row.part=event.part;}++row.count;}
+                events.clear();if(!completed)break;}
             reached=playback.status().updates;refusal=playback.status().refusal;calendar=playback.status().calendar;
         }
+        originalRefusalCensus=nullptr;
+        if(census){for(const auto& entry:censusRows){const auto& row=entry.second;
+                std::cout<<source.relativePath<<"\tno-op\t"<<entry.first<<"\tcount "<<row.count<<"\tfirst "<<row.first
+                         <<"\tmonth "<<row.month<<" part "<<row.part<<'\n';}
+            std::cout<<source.relativePath<<"\t"<<(refusal.empty()?"complete":"hard")<<"\treached "<<reached;
+            if(!refusal.empty())std::cout<<"\tfirst "<<(playback.prepared()?reached+1:0)<<"\tcount 1";
+            std::cout<<"\t";
+            if(calendar)std::cout<<"month "<<calendar->first<<" part "<<calendar->second;else std::cout<<"calendar -";
+            std::cout<<'\t'<<(refusal.empty()?"none":refusal)<<'\n';continue;}
         if(reached>=updates&&refusal.empty())++qualified;
         std::cout<<source.relativePath<<'\t'<<reached<<'\t';
         if(calendar)std::cout<<"month "<<calendar->first<<" part "<<calendar->second;else std::cout<<"calendar -";
         std::cout<<'\t'<<(refusal.empty()?"none":refusal)<<'\n';
     }
     if(seen!=6)throw std::runtime_error("primary corpus is 6 SAV sources, saw "+std::to_string(seen));
-    std::cout<<"PRIMARY "<<qualified<<"/6\n";
+    if(census)std::cout<<"CENSUS speculative; not a primary metric\n";
+    else std::cout<<"PRIMARY "<<qualified<<"/6\n";
 }
 // App-path playback: every source save is driven through AppCityPlayback, the
 // same controller the window uses. Strict premises must refuse by name at N=0;
@@ -718,8 +735,8 @@ void metrics(const std::string& path){
 }
 int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--metrics"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true}\n";return 0;}metrics(root);}
     else if(argc>=2&&std::string(argv[1])=="--playback"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return 0;}playback(root,std::vector<std::string>(argv+2,argv+argc));}
-    else if(argc>=2&&std::string(argv[1])=="--primary-metric"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"SKIP EMPEROR_GAMEDATA_ROOT unset\n";return 0;}
+    else if(argc>=2&&(std::string(argv[1])=="--primary-metric"||std::string(argv[1])=="--refusal-census")){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"SKIP EMPEROR_GAMEDATA_ROOT unset\n";return 0;}
         unsigned updates=100;if(argc==4&&std::string(argv[2])=="--updates"){char* end=nullptr;const unsigned long value=std::strtoul(argv[3],&end,10);if(!end||*end||!value||value>1000000ul)throw std::runtime_error("--updates needs 1..1000000");updates=unsigned(value);}
-        else if(argc!=2)throw std::runtime_error("--primary-metric [--updates N]");primaryMetric(root,updates);}
+        else if(argc!=2)throw std::runtime_error("--primary-metric [--updates N]");primaryMetric(root,updates,std::string(argv[1])=="--refusal-census");}
     else if(argc==2)authored(std::filesystem::absolute(argv[1]));else throw std::runtime_error("fixture directory or --metrics required");return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

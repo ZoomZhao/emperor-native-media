@@ -1,19 +1,10 @@
 # Status — ORIGINAL CITY RUNS
 
-2026-10-31 · macOS arm64 · measure with `EMPEROR_GAMEDATA_ROOT=<data> make primary-metric`
+2026-11-02 · macOS arm64 · measure with `EMPEROR_GAMEDATA_ROOT=<data> make primary-metric`
 
 ## Primary metric
 
 **Original SAVs running ≥100 consecutive updates in normal App Play: 6/6** (0/6 → 2/6 → 6/6 on 2026-10-31). Release and UBSan both 6/6; headless controller run.
-
-| Source | Live buildings / houses | Updates |
-|---|---|---|
-| zoom/历史战役自动保存_1 | 0 / 0 | 100 |
-| 项羽/历史战役自动保存_1 | 0 / 0 | 100 |
-| zoom/历史战役自动存档_2 | 568 / 26 (type 5) | 100 |
-| zoom/载入旧存档自动保存 | 473 / 26 (type 7) | 100 |
-| 项羽/历史战役自动存档_2 | 7 / 4 (type 3) | 100 |
-| 项羽/.sav | 17 / 14 (types 2, 3) | 100 |
 
 "Runs" means no refusal; agreement with the original game is **unmeasured**. 100 updates ≈ two monthly tails.
 
@@ -30,15 +21,15 @@
 | zoom/载入旧存档自动保存 | 284 | 1 / 5 | `city_accounting_4f1560_4ac2fa` |
 | zoom/历史战役自动存档_2 | 209 | 7 / 4 | `city_accounting_4f1560_4ac2fa` |
 
-Ported 2026-11-01: type-71 stall road gate/spawn (`4295C0`, `48B950`, `48B780`, `51CB50`), post-load road selection (`426DF0`), trade delays from constructor `5DC4A0` (land 0x22, sea 4), tail parts 6/8 cycle gate (`4AC882`), part 7 no-partner return (`4A8ED0`) and part 12 war/ally gate (`4A90A0`; request `494260` still refused when an at-war partner has an ally). Executable read: Chinese build `EmperorCH.exe` (SHA `dbdeca1e…`); the documented `0ca8fc07…` is not on disk. Same section layout; 352 differing `.text` bytes near `525F2A`/`527B2E`, none at read addresses.
+Part 8 calls `591200` every cycle; rollover services remain refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
 
 ## Fidelity — 0/0
 
-`make fidelity-metric`. Needs same-city SAV pairs where the original game only advanced time. The corpus has 4 same-map forward pairs, all rejected for player terrain edits (40–113 cells). **Blocked on new clean original saves** (load→save, +1 month, +1 year with no player actions).
+`make fidelity-metric`. The six-SAV corpus has 4 same-map forward pairs, all rejected for terrain differences (40–113 cells). Isolated pairs `2026102301/202610230102 → 202610230103` and `2026102801/280008 → 280009` are available but not yet evaluated; the latter includes an unmet commodity request and rating-drop notice, both closed by the player. The envoy and gift preceded 280008.
 
-## Open hypotheses (all in `game_lab/app/city_playback.cpp` `applyLoadHypotheses`)
+## Open hypotheses
 
-Process state the SAV does not store, supplied in normal play, withheld by `strictPremises`, not written into `.emworld` policy. Verify each by reading it from a live original process at load.
+The load hypotheses below are in `game_lab/app/city_playback.cpp` `applyLoadHypotheses`: process state the SAV does not store, supplied in normal play, withheld by `strictPremises`, not written into `.emworld` policy. Verify each by reading it from a live original process at load.
 
 | Id | Value | Evidence |
 |---|---|---|
@@ -56,16 +47,16 @@ Process state the SAV does not store, supplied in normal play, withheld by `stri
 | force-evolution-off-at-load | 10BFF78 = 0 | phase 39 keeps desirability comparison |
 | previous-health-zero-at-load | D6241C = 0 | monthly tail part 3 reads only at rating 151/152 |
 
-## Known gaps
-
-`.emworld` restore of a hypothesis-run world refuses again at the next update (policy omits hypotheses; frozen side track). `test_original_world_checkpoint.py` fails `world_binding_goal_prefix` on 项羽/历史战役自动保存_1 — pre-existing at `73e0e03`.
+`census-skip-phase` (diagnostic mode only): a refused accounting or monthly phase has no side effects apart from calendar advancement. Evidence: phase rollback preserves the last complete candidate; there is no evidence that the omitted original effects are empty. Compare a supervised time-only SAV pair and the executable to verify. Other refusals and year rollover remain hard stops.
 
 ## Next step
 
-1. Census refusals over a year, then address the first accounting refusal at update 209 and related functions.
-2. Complete the part-8 city rating `591200` and remaining monthly services.
-3. Compare the existing isolated original pairs, accounting for recorded player actions.
+10,000-update diagnostic census, sorted by earliest attempted update (speculative after any no-op; all six saves stopped hard):
 
-## Retained, frozen
+1. `city_accounting_4f1560_4ac2fa`: 210, 285 and 1383 (hard; the broad name also occurs outside the phase-1 fallback).
+2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
+3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Native v6/v8 city App, EMP1, CitySimulation, `.emworld` checkpoints, CPU/Metal display paths and SG3 rendering keep building and passing their tests; not extended. Details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md) · previous full status at `3c85560:STATUS.md`. Build/use: [README.md](README.md).
+Identify the first accounting refusal, then compare the existing isolated original pairs, accounting for their recorded events.
+
+Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

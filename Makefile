@@ -179,7 +179,7 @@ building-scene-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/building_scene.py --mode release
 building-scene-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/building_scene.py --mode undefined
-.PHONY: app-surface-test app-surface-test-undefined app-playback-test app-playback-test-undefined primary-metric
+.PHONY: app-surface-test app-surface-test-undefined app-playback-test app-playback-test-undefined primary-metric refusal-census
 app-surface-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py test
 app-surface-test-undefined:
@@ -190,6 +190,8 @@ app-playback-test-undefined:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py playback --mode undefined
 primary-metric:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py primary-metric --updates $(or $(UPDATES),100)
+refusal-census:
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/app_map_surface.py refusal-census --updates $(or $(UPDATES),9792)
 .PHONY: saved-ground-test saved-ground-test-undefined
 saved-ground-test:
 	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/saved_ground.py
