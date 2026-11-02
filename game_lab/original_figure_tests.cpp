@@ -1041,6 +1041,13 @@ void authored(){
         auto returning=trader;returning.owner=returning.home=0;returning.follower=2;returning.route=0;
         returning.destinationX=returning.x;returning.destinationY=returning.y;returning.progress=20;returning.direction=8;
         context.terrain[10001]=0xc0;context.figures[3]=returning;context.modelSpeeds[45]=6;
+        auto waiting=returning;waiting.action=6;waiting.counter=10;context.figures[3]=waiting;
+        const auto waited=originalFigureFirstUpdate(waiting,crewRefs,&context,0xc0);
+        need(waited.state&&waited.state->counter==11&&waited.state->hidden==1&&waited.state->frame==0,
+             "new land trader waits hidden before selecting a station");
+        waiting.counter=20;context.figures[3]=waiting;
+        need(!originalFigureFirstUpdate(waiting,crewRefs,&context,0xc0).state,"station selection remains refused after the waiting interval");
+        context.figures[3]=returning;
         context.passability.emplace();context.passability->fullMovementMasks=true;context.passability->cells.assign(51984,0x10);context.passability->spawn.cropBase=0;
         context.services.emplace();context.services->directions.assign(500000,0);context.roadblockGate=0;
         const auto exited=originalFigureFirstUpdate(returning,crewRefs,&context,0xc0);

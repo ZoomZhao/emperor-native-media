@@ -39,6 +39,7 @@ struct OriginalCombinedProcessInputs {
     std::optional<bool> singleMillFoodHypothesis; //normal-play hypothesis; strict callers withhold it
     std::optional<bool> sentimentHypotheses; //591200 unbound subcalls; strict callers withhold
     std::optional<bool> partnerEventHypotheses; //4A8ED0 unbound event mutations
+    std::optional<bool> landTraderDispatch; //explicit 5DC0AC land-caravan opt-in
 };
 struct OriginalCombinedBuilding {
     OriginalBuildingUpdateState state;
@@ -167,6 +168,7 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
     c.evolutionDisabled=city.figures.buildingEditMode;c.forceHouseEvolution=city.process.forceHouseEvolution;
     c.sentimentHypotheses=city.process.sentimentHypotheses;
     c.partnerEventHypotheses=city.process.partnerEventHypotheses;
+    c.landTraderDispatch=city.process.landTraderDispatch;
     c.cycleTail->alternateMode=city.process.alternateMode;c.cycleTail->cropQuality=ground.state.gEAC3F0;c.cycleTail->waterMode=ground.waterMode;
     c.effectDecayCounter=city.process.effectDecayCounter;c.effectGrid=city.figures.services->serviceGrid;
     c.wallClock=city.process.wallClock;c.cropDispatchModel=city.process.cropDispatchModel;c.cropDispatchRadius=city.process.cropDispatchRadius;
@@ -335,6 +337,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
     c.createdFigureRecords.clear();c.removedFigureRecords.clear();c.allocationEvents.clear();const size_t allocatedBefore=c.allocatedFigures.size();
     const auto sync=originalCombinedSyncBuildings(city);if(!sync.empty())return sync;
     c.phase=city.phase;c.figureServices=f.services;c.buildingLinks=f.buildings;c.goods=f.goods;c.figures.emplace();c.figureStationary.emplace();
+    if(c.trade&&f.empireTraders)for(size_t n=0;n<c.trade->partners.size();++n)c.trade->partners[n].traders=f.empireTraders->at(n).figures;
     c.figureOrdinals.clear(); //54CC60 writes only when called, not on intervening phases
     for(const auto& e:f.figures){if(e.first!=c.figures->size())return "combined_ordered_figure_pool_required";
         c.figures->push_back(e.second);c.figureStationary->operator[](e.first)=e.second.formationStationary;}
@@ -457,6 +460,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
                 for(unsigned n=0;n<2;++n)link.secondaryFigures[n]=detail::i16(data.data()+0x6a-4+2*n);}}
     f.allocationEvents.insert(f.allocationEvents.end(),c.allocationEvents.begin(),c.allocationEvents.end());
     f.services=c.figureServices;f.buildings=c.buildingLinks;f.goods=c.goods;f.crtRandom=c.crtRandom;f.crtRandomCalls=c.crtRandomCalls;
+    if(c.trade&&f.empireTraders)for(size_t n=0;n<c.trade->partners.size();++n)f.empireTraders->at(n).figures=c.trade->partners[n].traders;
     f.speechCounters=c.figureSpeechCounters;f.speechCounts=c.figureSpeechCounts;
     if(city.phase==43)f.services->fireCount=c.fireTotals[2]; //4AF9CE writes C82F28 before Inspector4E2E90.
     if(city.phase==45&&c.effectGrid)f.services->serviceGrid=*c.effectGrid;

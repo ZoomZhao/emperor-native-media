@@ -600,6 +600,16 @@ void authored(){
     trading.buildings->emplace(7,station.building);trading.buildingInputs->emplace(7,station.inputs);trading.trade->counters[3]=0;
     const auto tradeRefusal=originalBuildingStateAfterUpdates(station,trading,1);
     need(!tradeRefusal.state&&!tradeRefusal.context&&tradeRefusal.blocker==OriginalBuildingUpdateBlocker::Trade&&partner.timer==0,"positive trader creation refuses atomically after tentative timer service");
+    auto caravan=trading;caravan.landTraderDispatch=true;caravan.roadEndpoints=std::array<int16_t,4>{3,4,5,6};caravan.cropBase=229;
+    caravan.scenarioFigurePlacementCheck=false;caravan.figureCellHeads=std::vector<uint16_t>(51984);caravan.figureStationary.emplace();
+    caravan.figureServices.emplace();caravan.figureServices->allocationSerial=20;caravan.figureServices->randomHistory.emplace();
+    caravan.figureSpeechCounters=std::array<int32_t,359>{};caravan.figureSpeechCounts=std::array<uint32_t,359>{};caravan.figureSpeechCounts->at(262)=3;
+    caravan.freeFigureSlots={19,18,17};caravan.buildingInputs->at(7).identity=7;
+    need(originalBuildingTradeStep(caravan)==OriginalBuildingUpdateBlocker::None&&caravan.trade->partners[1].traders[0]==19&&
+         caravan.figures->at(19).type==45&&caravan.figures->at(19).delivery==7&&caravan.figures->at(19).faction==1&&
+         caravan.figures->at(19).counter==10&&caravan.figures->at(19).follower==18&&caravan.figures->at(18).leaderLink==19&&
+         caravan.figures->at(18).follower==17&&caravan.figures->at(17).leaderLink==18&&caravan.figures->at(17).type==47,
+         "land dispatch allocates its merchant and two reciprocal followers at the entrance");
     auto totals=context(OriginalBuildingUpdateScope::AdmittedTicks);totals.phase=33;totals.figures=std::vector<OriginalFigure>(2000);totals.employmentModel=OriginalBuildingEmployment{{194,0},{71,0}};
     auto totalCrop=field();totalCrop.inputs.workers=2;totalCrop.inputs.migrant=12;totals.figures->at(12).alive=1;totals.figures->at(12).delivery=7;totals.figures->at(12).home=99;
     auto totalHouse=house;totalHouse.building.slot=8;totalHouse.inputs.identity=8;totalHouse.inputs.houseInUse=1;totalHouse.inputs.residents=4;

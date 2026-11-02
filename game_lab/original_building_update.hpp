@@ -586,6 +586,7 @@ struct OriginalBuildingUpdateContext {
     std::optional<Trade> trade;
     std::optional<bool> monthlyServices; //additive annual/quarterly services;legacy tail unchanged
     std::optional<bool> partnerEventHypotheses;
+    std::optional<bool> landTraderDispatch;
     std::optional<uint8_t> scenarioPartnerConflict; //Scenario6+5BF,52D5E4, wire1460
     std::optional<bool> additionalWalkers; //explicit51CF90 remaining ordinary service types
     std::optional<bool> industryCarts; //explicit5F1280 positive Clay/Kiln dispatch
@@ -773,7 +774,7 @@ inline std::optional<size_t> originalBuildingAllocateService(OriginalBuildingUpd
     //4C9250 reads84E798+40*type. These group IDs are executable metadata.
     const bool fireEffect=(type==1||type==2)&&c.disasters.has_value(); //4C92D0 skips speech for1/2.
     const bool additional=c.additionalWalkers&&*c.additionalWalkers;
-    const int speech=type==28?271:type==39?275:additional&&type==29?273:additional&&type==30?263:additional&&type==34?276:
+    const int speech=(type==45||type==47)?262:type==28?271:type==39?275:additional&&type==29?273:additional&&type==30?263:additional&&type==34?276:
         (type==26||type==40||(type==24&&c.stallSuppliers&&*c.stallSuppliers)||(type==19&&c.industryCarts&&*c.industryCarts)||(additional&&(type==35||type==36)))?254:-1;
     if(!fireEffect&&(speech<0||!c.figureSpeechCounters||!c.figureSpeechCounts))return std::nullopt;
     const uint32_t divisor=fireEffect?1:c.figureSpeechCounts->at(unsigned(speech));if(!divisor||divisor>INT32_MAX)return std::nullopt;
@@ -1526,10 +1527,10 @@ inline OriginalBuildingUpdateBlocker originalBuildingTradeStep(OriginalBuildingU
             if(!quota)continue;++resources;weight+=quota>=25?3:quota>=13?2:1;}
         const unsigned wanted=resources>1?(weight+resources-1)/resources:weight;
         if(!wanted||p.suspended)continue;
-        bool vacancy=false;for(unsigned k=0;k<std::min(3u,wanted);++k){const int id=p.traders[k];
+        int vacancy=-1;for(unsigned k=0;k<std::min(3u,wanted);++k){const int id=p.traders[k];
             if(id<0||id>=2000)return OriginalBuildingUpdateBlocker::InvalidState;
-            if(!id||!c.figures->at(size_t(id)).alive||c.figures->at(size_t(id)).action==4){vacancy=true;break;}}
-        if(!vacancy)continue;
+            if(!id||!c.figures->at(size_t(id)).alive||c.figures->at(size_t(id)).action==4){vacancy=int(k);break;}}
+        if(vacancy<0)continue;
         if(p.timer>0){--p.timer;++t.timersChanged;continue;}
         //5DC4A0 constructs the trade service with land delay 0x22 at +8 and
         //sea delay 4 at +C. The saved timer reset matches the land literal.
@@ -1542,8 +1543,24 @@ inline OriginalBuildingUpdateBlocker originalBuildingTradeStep(OriginalBuildingU
         if(t.counters[p.sea==1?2:3])continue;
         const int partnerIndex=int(&p-t.partners.data()); //5DBB00 receives the Grid ordinal.
         for(const auto& b:*c.buildings)if((b.second.type==56||b.second.type==58)&&c.buildingInputs->at(b.first).model==partnerIndex&&
-            (c.buildingInputs->at(b.first).alive==1||c.buildingInputs->at(b.first).alive==3))return OriginalBuildingUpdateBlocker::Trade;
+            (c.buildingInputs->at(b.first).alive==1||c.buildingInputs->at(b.first).alive==3)){
+            if(p.sea==1||c.landTraderDispatch!=true||!c.roadEndpoints)return OriginalBuildingUpdateBlocker::Trade;
+            //5DC0AC: land entrance creates45, then up to two47 followers.
+            //An exhausted pool returns0 and ends the entire trader pass.
+            const auto leader=originalBuildingAllocateService(c,45,1,c.roadEndpoints->at(0),c.roadEndpoints->at(1),0);
+            if(!leader)return OriginalBuildingUpdateBlocker::MissingContext;
+            if(*leader){auto& f=c.figures->at(*leader);p.traders[size_t(vacancy)]=int16_t(*leader);
+                f.faction=uint8_t(partnerIndex);f.delivery=originalBuildingSignedWord(uint16_t(c.buildingInputs->at(b.first).identity));f.action=6;f.counter=10;
+                const auto first=originalBuildingAllocateService(c,47,1,c.roadEndpoints->at(0),c.roadEndpoints->at(1),0);
+                if(!first)return OriginalBuildingUpdateBlocker::MissingContext;
+                if(*first){auto& follower=c.figures->at(*first);follower.action=6;follower.leaderLink=int16_t(*leader);f.follower=int16_t(*first);
+                    const auto second=originalBuildingAllocateService(c,47,1,c.roadEndpoints->at(0),c.roadEndpoints->at(1),0);
+                    if(!second)return OriginalBuildingUpdateBlocker::MissingContext;
+                    if(*second){auto& last=c.figures->at(*second);last.action=6;last.leaderLink=int16_t(*first);follower.follower=int16_t(*second);}}}
+            goto tradersDone;
+        }
     }
+tradersDone:
     //4B02A0's562F70 predicate is a literal type switch,not an empty-pool premise.
     for(const auto& b:*c.buildings){const auto type=b.second.type;
         if((type>=76&&type<=86)||type==92||type==93||(type>=253&&type<=268))return OriginalBuildingUpdateBlocker::Trade;}

@@ -2262,7 +2262,12 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
     f.frame=uint8_t(f.frame+1);if(f.frame>11)f.frame=0;
     const auto live=[](const OriginalFigure& figure){return figure.alive==1&&figure.action!=4;};
     if(f.type==45){const auto follower=context->figures.find(size_t(f.follower));
-        if(f.action!=9||follower==context->figures.end()||!live(follower->second))return out;
+        if(follower==context->figures.end()||!live(follower->second))return out;
+        if(f.action==6){ //4CE386 waits hidden through counter 20 before station selection.
+            if(f.counter>=20)return out;
+            ++f.counter;f.hidden=1;f.frame=0;
+        }else if(f.action!=9)return out;
+        if(f.action==9){
         const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;
         const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
         if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
@@ -2270,7 +2275,7 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
         else if(f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
             if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
         else if(f.direction==10)f.alive=2;
-        else if(f.direction>10)return out;
+        else if(f.direction>10)return out;}
     }else {const auto immediate=context->figures.find(size_t(f.leaderLink));if(f.action!=6||immediate==context->figures.end())return out;
         const auto& lead=immediate->second;const OriginalFigure* trader=&lead;
         if(trader->type==47){const auto next=context->figures.find(size_t(trader->leaderLink));if(next==context->figures.end())return out;trader=&next->second;}
