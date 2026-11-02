@@ -10,7 +10,7 @@
 
 ## Stage 2: 1000 updates — 3/6
 
-`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release measured 2026-11-03; UBSan has not yet been rerun after the sentiment change.
+`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release and UBSan measured 2026-11-03; both produce the counts and refusals below.
 
 | Source | Updates | Calendar | First refusal |
 |---|---|---|---|
@@ -73,6 +73,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: close the land trader's action-8 station trading, then type-24 supplier action 6; the 811-update save stops at type-40 action 7. Investigate the clean pair's animal and RNG divergence when further evidence identifies the missing call.
+Next: close the land trader's action-8 station trading, then type-24 supplier action 6; the 811-update save stops at type-40 action 7. With scenario networking inactive, `4CE75E` invokes trader virtual +98 before incrementing its counter; above 10, station virtuals choose buy/sell and may change stock and trade state. Resolve these virtuals before admitting the branch. Investigate the clean pair's animal and RNG divergence when further evidence identifies the missing call.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).
