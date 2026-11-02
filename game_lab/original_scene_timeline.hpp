@@ -37,6 +37,7 @@ struct OriginalCombinedProcessInputs {
     std::optional<uint8_t> annualDemandResponseMode; //C7EDD0->10DE164,4A3A9A..AC caller preference
     std::optional<bool> animalSpawnMissHypothesis; //normal-play hypothesis, never an observed SAV field
     std::optional<bool> singleMillFoodHypothesis; //normal-play hypothesis; strict callers withhold it
+    std::optional<bool> stationCargoDeniedHypothesis; //normal-play fallback; strict callers withhold it
     std::optional<bool> sentimentHypotheses; //591200 unbound subcalls; strict callers withhold
     std::optional<bool> partnerEventHypotheses; //4A8ED0 unbound event mutations
     std::optional<bool> landTraderDispatch; //explicit 5DC0AC land-caravan opt-in
@@ -414,7 +415,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
             result=originalBuildingProductionStep(b.state,c);}
         else if(city.phase==31){c.typeDisabled=b.context.typeDisabled;c.terrainFlags=b.context.terrainFlags;
             if(b.state.inputs.alive==1||b.state.inputs.alive==3){result=b.state.building.type==33?
-                    originalBuildingHunterDispatchStep(b.state,c):originalBuildingHookStep(b.state,c,city.process.singleMillFoodHypothesis==true);
+                    originalBuildingHunterDispatchStep(b.state,c):originalBuildingHookStep(b.state,c,city.process.singleMillFoodHypothesis==true,city.process.stationCargoDeniedHypothesis==true);
                 if(result==OriginalBuildingUpdateBlocker::BuildingVirtual20&&b.state.building.type==54)
                     result=originalCombinedWarehouseHook(b.state,c);}}
         else if(city.phase==35){if(originalBuildingIsHouse(b.state.building.type)&&(b.state.inputs.alive==1||b.state.inputs.alive==3))originalBuildingDecayHouseServices(b.state.inputs);}

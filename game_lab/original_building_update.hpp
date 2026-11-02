@@ -827,7 +827,7 @@ inline std::optional<int> originalBuildingStorageExport(const OriginalFigureBuil
 }
 //Storage+20=5D5350 ->+29C=556130/5D63C0/5DDD30. Closed
 //negative candidate domain;positive supplier reservations retain refusal.
-inline OriginalBuildingUpdateBlocker originalBuildingStorageHook(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c){
+inline OriginalBuildingUpdateBlocker originalBuildingStorageHook(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c,bool stationCargoDeniedHypothesis=false){
     auto& i=s.inputs;const auto type=s.building.type;
     if(!c.figures||!i.hookIndustry||!c.employmentModel||!c.employmentModel->count(type)||!c.buildingLinks||!c.goods||!c.buildingInputs)return OriginalBuildingUpdateBlocker::MissingContext;
     const auto slot=s.building.slot;auto link=c.buildingLinks->find(slot);if(link==c.buildingLinks->end())return OriginalBuildingUpdateBlocker::MissingContext;
@@ -877,8 +877,10 @@ inline OriginalBuildingUpdateBlocker originalBuildingStorageHook(OriginalBuildin
         unsigned ordinal=0;for(unsigned r=0;r<29;++r)if(std::find(partner.buys.begin(),partner.buys.end(),r)!=partner.buys.end()||std::find(partner.sells.begin(),partner.sells.end(),r)!=partner.sells.end()){
             if(!r)continue;if(ordinal>=8)return OriginalBuildingUpdateBlocker::InvalidState;const bool present=cargoPresent[ordinal++];if(present)continue;
             int32_t stock=0;if(!b.storage)return OriginalBuildingUpdateBlocker::MissingContext;for(const auto& bay:*b.storage)if(bay.resource==r)stock=originalBuildingAdd32(stock,originalBuildingI32(bay.amount));
-            if(policy.trade[r]==5||policy.trade[r]==6){if(stock>0&&!c.goods->unavailable[r])return OriginalBuildingUpdateBlocker::BuildingVirtual20;}
-            if(policy.trade[r]==7&&stock<policy.limit[r]){for(const auto& e:*c.buildingLinks)if(e.first!=slot&&e.second.storage)for(const auto& bay:*e.second.storage)if(bay.resource==r&&bay.amount)return OriginalBuildingUpdateBlocker::BuildingVirtual20;}}
+            // HYPOTHESIS(station-cargo-permission-denied): unbound partner
+            // permission 443BA0/443C00 rejects otherwise eligible dispatches.
+            if(policy.trade[r]==5||policy.trade[r]==6){if(stock>0&&!c.goods->unavailable[r]&&!stationCargoDeniedHypothesis)return OriginalBuildingUpdateBlocker::BuildingVirtual20;}
+            if(policy.trade[r]==7&&stock<policy.limit[r]){for(const auto& e:*c.buildingLinks)if(e.first!=slot&&e.second.storage)for(const auto& bay:*e.second.storage)if(bay.resource==r&&bay.amount&&!stationCargoDeniedHypothesis)return OriginalBuildingUpdateBlocker::BuildingVirtual20;}}
         return OriginalBuildingUpdateBlocker::None;
     }
     return OriginalBuildingUpdateBlocker::BuildingVirtual20;
@@ -1070,7 +1072,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingCropDispatch(OriginalBuildi
 }
 //Per-type+20 targets are individually cited in SAV.md. Guarded service/Hunter
 //allocation executes;unported positive dispatch retains the named refusal.
-inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c,bool singleMillFoodHypothesis=false){
+inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c,bool singleMillFoodHypothesis=false,bool stationCargoDeniedHypothesis=false){
     auto& i=s.inputs;const auto type=s.building.type;
     if(i.alive!=1&&i.alive!=3)return OriginalBuildingUpdateBlocker::None;
     if(type==194||type==196){if(!i.industry)return OriginalBuildingUpdateBlocker::InvalidState;
@@ -1215,7 +1217,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
             const int required=i.laborDisabled?0:c.employmentModel->at(type),percent=required>0?int(i.workers)*100/required:0;
             if(percent<50)return OriginalBuildingUpdateBlocker::None;
         }
-        if(type==53||type==54||type==58)return originalBuildingStorageHook(s,c);
+        if(type==53||type==54||type==58)return originalBuildingStorageHook(s,c,stationCargoDeniedHypothesis);
         if(type==66||type==67)return originalBuildingStallHook(s,c,singleMillFoodHypothesis);
         //Storage/market/stall dispatches have positive supplier/reservation
         //effects;retain the named refusal until those complete services exist.

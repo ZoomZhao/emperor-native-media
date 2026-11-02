@@ -59,6 +59,9 @@ void applyLoadHypotheses(OriginalCombinedProcessInputs& p) {
     // food grade when its only eligible Mill has at least 100 available food.
     // Strict premises retain the refusal until all saved grade inputs are bound.
     p.singleMillFoodHypothesis = true;
+    // HYPOTHESIS(station-cargo-permission-denied): the unbound 443BA0/443C00
+    // partner permission prevents the pending station cargo dispatch.
+    p.stationCargoDeniedHypothesis = true;
     // The 591200 subcalls identify their individual normal-play hypotheses.
     // Strict premises preserve the monthly refusal.
     p.sentimentHypotheses = true;

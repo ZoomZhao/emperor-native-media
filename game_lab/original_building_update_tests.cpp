@@ -907,6 +907,11 @@ void authored(){
     auto hookStation=well;hookStation.building.type=58;hookStation.inputs.hookIndustry.emplace();hookStation.inputs.hookIndustry->fill(0);hookStation.inputs.model=0;hookStation.inputs.workers=8;hookStation.inputs.available=0;hookStation.inputs.suppression=99;
     auto stationContext=service;stationContext.employmentModel=OriginalBuildingEmployment{{58,8}};stationContext.buildingLinks->at(7).storagePolicy=0;stationContext.buildingLinks->at(7).storage.emplace();stationContext.goods.emplace();stationContext.goods->policies.resize(1);stationContext.trade.emplace();
     need(originalBuildingStorageHook(hookStation,stationContext)==OriginalBuildingUpdateBlocker::None&&hookStation.inputs.available==1&&hookStation.inputs.suppression==99,"TradingStation hook writes runtime48 availability while preserving legacy suppression contract");
+    stationContext.trade->partners[0].buys[0]=19;stationContext.goods->policies[0].trade[19]=5;
+    stationContext.buildingLinks->at(7).storage->push_back({19,100,400});
+    need(originalBuildingStorageHook(hookStation,stationContext)==OriginalBuildingUpdateBlocker::BuildingVirtual20&&
+         originalBuildingStorageHook(hookStation,stationContext,true)==OriginalBuildingUpdateBlocker::None,
+         "station cargo permission hypothesis remains opt-in and strict calls refuse");
     std::string houseFixture="HOUSE MODS\n";
     for(unsigned row=0;row<5;++row){houseFixture+="{,";for(unsigned col=0;col<24;++col)houseFixture+=std::to_string(row==2?5:0)+",";houseFixture+="}\n";}
     houseFixture+="ALL HOUSES\n";for(unsigned row=0;row<15;++row){houseFixture+="{,";for(unsigned col=0;col<24;++col)houseFixture+=std::to_string(col==0?-110:col==1?110:10)+",";houseFixture+="}\n";}
