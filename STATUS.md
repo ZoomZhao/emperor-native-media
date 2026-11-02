@@ -27,7 +27,7 @@ Inner loop: 1,000-update Release run 171 s with rebuild before, 46 s warm after;
 
 ## Fidelity — 0/0 (2026-11-03)
 
-Explicit isolated pairs before the animal fallback: `2026102301/202610230102 → 202610230103` stops at 161/1104 (`monthly_city_4ac650`); `2026102801/280008 → 280009` cannot prepare (`combined saved building inputs`). No target-state agreement is scored. The latter includes an unmet request and rating notice; the envoy and gift preceded 280008. Its recorded −60 treasury change has unresolved attribution.
+Explicit isolated pairs after the food-stall hypothesis: `2026102301/202610230102 → 202610230103` stops at 161/1104 (`monthly_city_4ac650`); `2026102801/280008 → 280009` cannot prepare (`combined saved building inputs`). No target-state agreement is scored. The latter includes an unmet request and rating notice; the envoy and gift preceded 280008. Its recorded −60 treasury change has unresolved attribution.
 
 ## Open hypotheses
 
@@ -63,6 +63,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-The first normal-path blocker is now type-24 supplier action 6 after 286 admitted updates, created by the phase-31 food stall under the single-Mill hypothesis. Trace its updater; the animal spawn fallback also needs a real port.
+The first normal-path blocker is type-24 supplier action 6 after 286 admitted updates, created by the phase-31 food stall under the single-Mill hypothesis. Generic dispatch selects `4D1810`: it checks the stall's reciprocal supplier link and destination, follows a route, then selects its image. Bind the stall link and port that path; the animal spawn fallback also needs a real port.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).
