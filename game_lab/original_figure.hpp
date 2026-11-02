@@ -32,6 +32,7 @@ struct OriginalFigure {
     uint8_t effectFrame=0; //flame animation+41,distinct from ambient+5
     uint32_t updateOwner=0; //+13C read0x4C8995;nonzero skips virtual+28 at0x4E2899.
     uint32_t traderTransactionMode=0,traderTransactionTimer=0; //Figure7 +160/+168.
+    int16_t traderSold=0; //Figure7 +7C,5DE65C; +82 is amount/trader purchased count.
     // Pheasant virtual predicates/cooldowns, Figure7's cited dword requests.
     uint32_t threat=0,threatDistance=0,herdTarget=0,herdDistance=0,idleCounter=0;
     std::array<int32_t,3> cooldowns{}; //+D0/+D4/+D8; positive values decrement.
@@ -104,6 +105,7 @@ struct OriginalFigurePopulation {int32_t total=0,peak=0;std::optional<uint32_t> 
 struct OriginalFigureStoragePolicy {
     std::array<uint8_t,36> accept{},trade{};
     std::array<int16_t,36> limit{};
+    std::array<uint8_t,3> tradeCursor{}; //Goods1 +32/+33/+34; 5DE880/5DE430.
 };
 struct OriginalFigureGoodsServices {
     std::vector<OriginalFigureStoragePolicy> policies;
@@ -133,6 +135,7 @@ inline std::optional<OriginalFigureGoodsServices> originalFigureSavedGoodsServic
     for(size_t n=0;n<count;++n){if(at>data.size()||data.size()-at<270||detail::u16(data.data()+at)!=1)return std::nullopt;
         OriginalFigureStoragePolicy policy; //506B0A/58/78;explicit Goods1 field requests.
         std::copy_n(data.begin()+at+12,36,policy.accept.begin());
+        std::copy_n(data.begin()+at+48,3,policy.tradeCursor.begin());
         for(unsigned r=0;r<36;++r)policy.limit[r]=detail::i16(data.data()+at+54+2*r);
         std::copy_n(data.begin()+at+198,36,policy.trade.begin());out.policies.push_back(policy);at+=270;}
     // Population7 reads594522/594868/59487B/59488E; runtime bases
@@ -592,6 +595,7 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.effectVelocityZ=detail::i16(r+390);f.effectDraw=r[132];
         f.updateOwner=detail::u32(r+316);
         f.traderTransactionMode=detail::u32(r+352);f.traderTransactionTimer=detail::u32(r+360);
+        f.traderSold=detail::i16(r+124);
         f.threat=detail::u32(r+172);f.threatDistance=detail::u32(r+176);
         f.herdTarget=detail::u32(r+188);f.herdDistance=detail::u32(r+192);f.idleCounter=detail::u32(r+204);
         for(size_t k=0;k<3;++k){const auto bits=detail::u32(r+208+4*k);

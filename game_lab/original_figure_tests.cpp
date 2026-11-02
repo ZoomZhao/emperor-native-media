@@ -1954,11 +1954,13 @@ void authored(){
         put32(anchor+1452,5);need(!originalFigureSavedDifficulty(data,anchor),"difficulty outside five model modifier rows refuses");
         put16(figuresEnd,1);put32(figuresEnd+2,1);put16(figuresEnd+6,1);
         data[figuresEnd+6+12+25]=2;put16(figuresEnd+6+54+2*25,0xfffe);data[figuresEnd+6+198+25]=7;
+        data[figuresEnd+6+48]=7;data[figuresEnd+6+49]=11;data[figuresEnd+6+50]=23;
         put32(population+10034+4*25,11);put32(population+10578+4*25,22);put32(population+10722+4*25,33);
         put32(population+10866+4*25,44);data.resize(1400000);put32(1299328,2);
         const auto parsed=originalFigureSavedGoodsServices(data,figuresEnd,anchor,0);
         need(parsed&&parsed->policies.size()==1&&parsed->policies[0].accept[25]==2&&parsed->policies[0].limit[25]==-2&&
-            parsed->policies[0].trade[25]==7&&parsed->unavailable[25]==11&&parsed->trade7[25]==22&&parsed->trade5[25]==33&&
+            parsed->policies[0].trade[25]==7&&parsed->policies[0].tradeCursor==std::array<uint8_t,3>{7,11,23}&&
+            parsed->unavailable[25]==11&&parsed->trade7[25]==22&&parsed->trade5[25]==33&&
             parsed->warehouse[25]==44&&parsed->savedPhase==2&&!parsed->storageSearch&&!parsed->industrySearch&&parsed->godGate==0x12345678,
             "Goods1 policy and all four Population7 arrays read independent literal wire offsets without process defaults");
         put32(anchor-28+704,0);need(originalFigureSavedGoodsServices(data,figuresEnd,anchor,0)->godGate==0,

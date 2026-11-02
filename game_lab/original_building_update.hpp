@@ -568,12 +568,14 @@ struct OriginalBuildingUpdateContext {
             int32_t enabled=0,relationship=0;
             int16_t timer=0,suspended=0;
             std::array<int16_t,3> traders{};
-            std::array<uint8_t,36> quota{},quotaBonus{};
+            std::array<uint8_t,36> quota{},quotaBonus{},quotaUsed{};
+            std::array<int16_t,36> basePrice{}; //Grid15 +466, 440B70.
             std::array<uint8_t,4> buys{},sells{};
             uint8_t reserveCountdown=0,reserveAmount=0;
             std::array<int32_t,5> reserves{}; //3ADC/E0/E4/E8,3AB8
             std::vector<std::array<std::array<int32_t,34>,2>> relationTimers; //22 saved children+10C/+194;entry33 survives
-            struct Relation {uint8_t annualFlag=0;int32_t value=0,gift=0,tribute=0,state=0,previousState=0,war=0;};
+            struct Relation {uint8_t annualFlag=0;int32_t value=0,gift=0,tribute=0,state=0,previousState=0,war=0;
+                std::array<int16_t,36> price{},previousPrice{};}; //child5 +7C/+C4,440670/4406A0.
             std::array<Relation,22> relations{}; //child5+5D/+64/+68/+6C/+70/+74/+78
             uint8_t state=0,fortified=0;
         };
@@ -1464,13 +1466,17 @@ inline std::optional<std::array<uint8_t,22>> originalBuildingSavedEmpireStates(c
             if(f.receiver_offset==74)partner.timer=detail::i16(p);if(f.receiver_offset==76)partner.suspended=detail::i16(p);
             if(f.receiver_offset==152)for(unsigned k=0;k<36;++k)partner.quotaBonus[k]=p[24*k];
             if(f.receiver_offset==1016)std::copy_n(p,36,partner.quota.begin());
+            if(f.receiver_offset==1052)std::copy_n(p,36,partner.quotaUsed.begin());
+            if(f.receiver_offset==1126)for(unsigned k=0;k<36;++k)partner.basePrice[k]=detail::i16(p+2*k);
             if(f.receiver_offset==1118)std::copy_n(p,4,partner.buys.begin());
             if(f.receiver_offset==1122)std::copy_n(p,4,partner.sells.begin());
             if(f.receiver_offset==42)placeIDs[n]=detail::i16(data.data()+at-f.bytes);
             if(f.receiver_offset<=0x440&&f.receiver_offset+f.bytes>=0x440+29)std::copy_n(data.begin()+at-f.bytes+(0x440-f.receiver_offset),29,production[n].begin());}
         for(unsigned k=0;k<22;++k){if(!version(5))return std::nullopt;for(const auto& f:empire_grid_child5_fields){if(!take(f.bytes))return std::nullopt;
              const auto* p=data.data()+at-f.bytes;
-            auto& relation=partner.relations[k];if(f.receiver_offset==93)relation.annualFlag=p[0];
+             auto& relation=partner.relations[k];if(f.receiver_offset==93)relation.annualFlag=p[0];
+            if(f.receiver_offset==124||f.receiver_offset==196)for(unsigned j=0;j<36;++j)
+                (f.receiver_offset==124?relation.price:relation.previousPrice)[j]=detail::i16(p+2*j);
             if(f.receiver_offset==100)relation.value=originalBuildingI32(detail::u32(p));
             if(f.receiver_offset==104)relation.gift=originalBuildingI32(detail::u32(p));
             if(f.receiver_offset==108)relation.tribute=originalBuildingI32(detail::u32(p));
