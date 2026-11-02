@@ -1696,7 +1696,7 @@ inline OriginalFigureUpdateStatus originalFigureHunterProjectile(const OriginalF
 //59CC00(1000,0,0): load-reconstructed animal vector is ascending; collect
 //at most30 qualifying prey,5AE970 floods B1D in N,E,S,W order and checks
 //candidate indices in reverse at each dequeued cell. Distance includes start1.
-inline std::optional<size_t> originalFigureHunterPrey(const OriginalFigure& hunter,const OriginalFigureUpdateContext& context){
+inline std::optional<size_t> originalFigureHunterPrey(const OriginalFigure& hunter,const OriginalFigureUpdateContext& context,unsigned maximum=1000){
     if(!context.passability||!context.passability->fullMovementMasks||context.passability->cells.size()!=51984||!context.cropBase)return std::nullopt;
     std::vector<const OriginalFigure*> candidates;
     for(const auto& e:context.figures){const auto& p=e.second;
@@ -1709,7 +1709,7 @@ inline std::optional<size_t> originalFigureHunterPrey(const OriginalFigure& hunt
     std::vector<unsigned> distance(51984);std::vector<size_t> queue{hunter.cell};distance[hunter.cell]=1;
     constexpr int offsets[]={-228,1,228,-1};
     for(size_t at=0;at<queue.size();++at){const auto cell=queue[at];
-        for(auto p=candidates.rbegin();p!=candidates.rend();++p)if((*p)->cell==cell)return distance[cell]<=1000?(*p)->slot:size_t(0);
+        for(auto p=candidates.rbegin();p!=candidates.rend();++p)if((*p)->cell==cell)return distance[cell]<=maximum?(*p)->slot:size_t(0);
         for(int delta:offsets){const int64_t next=int64_t(cell)+delta;if(next<0||next>=51984)continue;
             if(!distance[size_t(next)]&&(context.passability->cells[size_t(next)]&0xb1d)){
                 distance[size_t(next)]=distance[cell]+1;queue.push_back(size_t(next));}}}
@@ -1750,7 +1750,7 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
         if(f.counter<1){f.action=6;f.frame=0;code=0x4ebe;}else code=0x4ebe;
         if(f.action==12){auto draw=f;draw.frame=0;if(!originalFigureWriteWalkingImage(draw,code,archives,context->view)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}f.image=draw.image;}
         else if(!originalFigureWriteWalkingImage(f,code,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
-    }else if(f.action==7||f.action==9||f.action==10){
+    }else if(f.action==7||f.action==9||f.action==10||f.action==11){
         bool nearby=false;
         if(f.action==7){const auto target=context->figures.find(size_t(f.target));const auto model=context->models.find(40);
             if(target==context->figures.end())return out;
@@ -1779,7 +1779,16 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
         const auto speed=context->modelSpeeds.find(40);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
         if(!nearby){const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
             if(!movement.state){out.status=movement.status;return out;}f=*movement.state;}
-        if((f.direction==9||f.direction==8)&&f.action==7){ //4D3249/4D3299:retarget a still-qualified prey after route end.
+        if(f.action==11&&f.frame==12){ //4D3440: search before the animation advances.
+            const auto prey=originalFigureHunterPrey(f,local,100);if(!prey)return out;
+            if(*prey){auto& p=local.figures.at(*prey);f.destinationX=p.x;f.destinationY=p.y;f.target=int16_t(*prey);
+                p.flags120|=2;p.linkedBuilding=unsigned(f.owner);f.action=7;f.counter=0;code=0x4ebf;
+                if(f.route>0){if(!local.services||f.route>=1000)return out;if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}}
+        if(saved.action==11&&f.direction==8){if(!local.services||f.route<0||f.route>=1000)return out;
+            if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}f.alive=2;f.counter=0;}
+        else if(saved.action==11&&f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
+            if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+        else if((f.direction==9||f.direction==8)&&f.action==7){ //4D3249/4D3299:retarget a still-qualified prey after route end.
             const auto target=local.figures.find(size_t(f.target));if(target==local.figures.end()||!local.services)return out;
             f.destinationX=target->second.x;f.destinationY=target->second.y;
             if(f.route>0){if(f.route>=1000)return out;if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}

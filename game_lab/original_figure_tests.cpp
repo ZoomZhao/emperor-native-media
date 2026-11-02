@@ -1955,6 +1955,10 @@ void authored(){
         context.figures[prey.slot].alive=0;const auto lostPrey=originalFigureFirstUpdate(hunter,refs,&context,0xc0);
         need(lostPrey.state&&lostPrey.state->action==6&&lostPrey.state->counter==0,
             "Hunter whose target is no longer alive resets to the prey search state");
+        hunter.action=11;hunter.frame=1;hunter.route=0;hunter.destinationX=hunter.x;hunter.destinationY=hunter.y;
+        context.figures[hunter.slot]=hunter;const auto emptyReturn=originalFigureFirstUpdate(hunter,refs,&context,0xc0);
+        need(emptyReturn.state&&emptyReturn.state->alive==2&&emptyReturn.state->counter==0,
+            "Hunter returning without prey marks removal when the home route ends");
     }
     {
         // Literal Goods1/Population7 inputs, independent of runtime offsets.
