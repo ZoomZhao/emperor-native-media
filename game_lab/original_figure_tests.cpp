@@ -1111,6 +1111,16 @@ void authored(){
         auto supplier=one;supplier.type=26;supplier.action=8;supplier.owner=8;supplier.counter=2;supplier.frame=11;supplier.variant=0;
         context.figures[supplier.slot]=supplier;context.buildings.emplace();OriginalFigureBuildingLink owner;owner.type=0xc0;owner.alive=1;
         context.buildings->emplace(8,owner);
+        {auto food=context;auto buyer=supplier;buyer.type=24;buyer.action=6;buyer.delivery=9;buyer.direction=2;buyer.progress=19;
+            buyer.route=1;buyer.routeCursor=buyer.routeLength=0;buyer.homeX=4;buyer.homeY=5;
+            food.figures[buyer.slot]=buyer;food.buildings->at(8).type=66;food.buildings->at(8).stallSupplier=int16_t(buyer.slot);
+            (*food.buildings)[9].type=53;food.buildings->at(9).alive=1;food.models[24]={};food.modelSpeeds[24]=6;
+            food.services.emplace();food.services->directions.resize(500000);food.services->routeOwners[1]=int16_t(buyer.slot);
+            need(!originalFigureFirstUpdate(buyer,refs,&food,0x88).state,"strict food supplier arrival retains transfer refusal");
+            food.stallFoodPickupEmptyHypothesis=true;const auto returned=originalFigureFirstUpdate(buyer,refs,&food,0x88);
+            need(returned.state&&returned.state->action==7&&returned.state->alive==1&&returned.state->destinationX==4&&
+                 returned.state->destinationY==5&&returned.state->route==0&&returned.state->frame==0,
+                 "empty pickup hypothesis returns food supplier home after route release");}
         const auto supplied=originalFigureFirstUpdate(supplier,refs,&context,0x88);
         need(supplied.state&&supplied.state->counter==1&&supplied.state->action==8&&supplied.state->frame==0&&
             supplied.state->movementMode==17&&supplied.state->hidden==0&&supplied.state->freeMovement==0&&

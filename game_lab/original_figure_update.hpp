@@ -318,6 +318,7 @@ struct OriginalFigureUpdateContext {
     std::map<size_t,std::optional<std::pair<int16_t,int16_t>>> workerRoadExits;
     std::optional<std::array<int16_t,4>> migrationRoadEndpoints; //C5CDFC..CE02,serialized Scenario6
     std::optional<bool> traderStationGoodsHypothesis;
+    std::optional<bool> stallFoodPickupEmptyHypothesis;
     std::optional<int32_t> traderScenarioNetworkMode; //408AC0->4FAE50
 };
 //5AD440's B0C projection for an entirely building-free grid. The pointer
@@ -1920,10 +1921,17 @@ inline OriginalFigureFirstUpdate originalStallSupplierFirstUpdate(const Original
         if(dest==local.buildings->end()||dest->second.alive!=1)return out;}
     const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
     if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
-    if(f.action==6&&f.direction>=8&&f.direction<=10)return out;
-    if(f.action==7&&f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
+    if(f.action==6&&f.direction==8){
+        // HYPOTHESIS(stall-food-pickup-empty): 5464E0 finds no transferable
+        // food and creates no servants; request bookkeeping is not yet bound.
+        if(context->stallFoodPickupEmptyHypothesis!=true||owner->second.type!=66||
+           local.buildings->at(size_t(f.delivery)).type!=53||!local.services||f.route<0||f.route>=1000)return out;
+        f.action=7;f.destinationX=f.homeX;f.destinationY=f.homeY;
+        if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}
+    }else if(f.action==6&&(f.direction==9||f.direction==10))return out;
+    if(saved.action==7&&f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
         if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
-    else if(f.action==7&&(f.direction==8||f.direction==10))f.alive=2;
+    else if(saved.action==7&&(f.direction==8||f.direction==10))f.alive=2;
     if(!originalFigureWriteWalkingImage(f,owner->second.type==66?0x4c24:0x4c19,archives,context->view,false,false)){
         out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     originalFigurePublishWrites(out,f,*context,local);return out;
@@ -2676,7 +2684,7 @@ struct OriginalFigureOrderedPass {
 // releases the route, unlinks and clears target references, then+E8=4C72B0
 // resets represented fields. The inline17C state and priorProgress190 survive.
 inline bool originalFigureRemoveArrivedWorkerWrites(OriginalFigure& f,OriginalFigureUpdateContext& context){
-    if((f.type!=1&&f.type!=2&&f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=23&&f.type!=26&&f.type!=28&&f.type!=29&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=39&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=54&&f.type!=76)||f.alive!=2||
+    if((f.type!=1&&f.type!=2&&f.type!=11&&f.type!=13&&f.type!=19&&f.type!=20&&f.type!=21&&f.type!=22&&f.type!=23&&f.type!=24&&f.type!=26&&f.type!=28&&f.type!=29&&f.type!=30&&f.type!=34&&f.type!=35&&f.type!=36&&f.type!=39&&f.type!=40&&f.type!=45&&f.type!=47&&f.type!=54&&f.type!=76)||f.alive!=2||
         (f.runtimeClass!=OriginalFigureClass::Figure&&!(f.type==76&&f.runtimeClass==OriginalFigureClass::Pheasant))||f.updateOwner||(f.linkedBuilding&&f.type!=76)||
         !context.services||context.cellHeads.size()!=51984||f.cell>=51984)return false;
     if(f.type==34||f.type==40){if(!context.buildings)return false;const auto owner=context.buildings->find(size_t(f.owner));
@@ -2699,6 +2707,11 @@ inline bool originalFigureRemoveArrivedWorkerWrites(OriginalFigure& f,OriginalFi
         else if(f.type==22&&owner->second.secondaryFigures[1]==int(f.slot))owner->second.secondaryFigures[1]=0;
         //4C8DB4..DF8 does not clear embedded6A.5D63FA/5D6401 validates
         //that supplier link on the next phase31 hook before allocating again.
+    }else if(f.type==24){ //4C8DFA: stall has no embedded industrial link.
+        if(!context.buildings)return false;auto owner=context.buildings->find(size_t(f.owner));
+        if(owner==context.buildings->end()||(owner->second.type!=66&&owner->second.type!=67))return false;
+        if(owner->second.primaryFigure==int(f.slot))owner->second.primaryFigure=0;
+        else if(owner->second.stallSupplier==int(f.slot))owner->second.stallSupplier=0;
     }else if(f.type==26){ //4CC9CF/4CCA07 then4C8BFA->4BFDC0.
         if(!context.buildings)return false;
         for(auto& e:*context.buildings)if(e.second.alive==1&&(e.second.type>=0xc2&&e.second.type<=0xc7)&&e.second.primaryFigure==int(f.slot))e.second.primaryFigure=0;

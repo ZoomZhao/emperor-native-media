@@ -38,6 +38,7 @@ struct OriginalCombinedProcessInputs {
     std::optional<bool> animalSpawnMissHypothesis; //normal-play hypothesis, never an observed SAV field
     std::optional<bool> singleMillFoodHypothesis; //normal-play hypothesis; strict callers withhold it
     std::optional<bool> stationCargoDeniedHypothesis; //normal-play fallback; strict callers withhold it
+    std::optional<bool> stallFoodPickupEmptyHypothesis;
     std::optional<bool> sentimentHypotheses; //591200 unbound subcalls; strict callers withhold
     std::optional<bool> partnerEventHypotheses; //4A8ED0 unbound event mutations
     std::optional<bool> landTraderDispatch; //explicit 5DC0AC land-caravan opt-in
@@ -173,6 +174,7 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
     c.monthlyRolloverHypotheses=city.process.monthlyRolloverHypotheses;
     c.landTraderDispatch=city.process.landTraderDispatch;
     city.figures.traderStationGoodsHypothesis=city.process.landTraderDispatch;
+    city.figures.stallFoodPickupEmptyHypothesis=city.process.stallFoodPickupEmptyHypothesis;
     city.figures.traderScenarioNetworkMode=city.process.schedulerGate16;
     c.cycleTail->alternateMode=city.process.alternateMode;c.cycleTail->cropQuality=ground.state.gEAC3F0;c.cycleTail->waterMode=ground.waterMode;
     c.effectDecayCounter=city.process.effectDecayCounter;c.effectGrid=city.figures.services->serviceGrid;
@@ -692,6 +694,7 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
     if(combined){city=*combined;context.workerRoadExits=combined->figures.workerRoadExits;
         context.migrationRoadEndpoints=combined->figures.migrationRoadEndpoints;
         context.traderStationGoodsHypothesis=combined->figures.traderStationGoodsHypothesis;
+        context.stallFoodPickupEmptyHypothesis=combined->figures.stallFoodPickupEmptyHypothesis;
         context.traderScenarioNetworkMode=combined->figures.traderScenarioNetworkMode;
         if(combined->process.crtRandom)context.crtRandom=combined->process.crtRandom;
         if(combined->process.soundEffectsEnabled)context.soundEffectsEnabled=combined->process.soundEffectsEnabled;

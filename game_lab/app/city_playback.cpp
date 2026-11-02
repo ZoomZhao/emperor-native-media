@@ -62,6 +62,9 @@ void applyLoadHypotheses(OriginalCombinedProcessInputs& p) {
     // HYPOTHESIS(station-cargo-permission-denied): the unbound 443BA0/443C00
     // partner permission prevents the pending station cargo dispatch.
     p.stationCargoDeniedHypothesis = true;
+    // HYPOTHESIS(stall-food-pickup-empty): the unbound food pickup accepts
+    // no stock and allocates no servants. Strict premises retain refusal.
+    p.stallFoodPickupEmptyHypothesis = true;
     // The 591200 subcalls identify their individual normal-play hypotheses.
     // Strict premises preserve the monthly refusal.
     p.sentimentHypotheses = true;

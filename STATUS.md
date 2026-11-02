@@ -18,7 +18,7 @@
 | 项羽/历史战役自动存档_2 | 1000 | 8 / 3 | none |
 | 项羽/.sav | 1000 | 9 / 4 | none |
 | 项羽/历史战役自动保存_1 | 1000 | 2 / 3 | none |
-| zoom/载入旧存档自动保存 | 346 | 1 / 6 | `supplier_arrival_owner_delay_4cc8aa_4c2dc0_slot_1966_type_24_action_6` |
+| zoom/载入旧存档自动保存 | 398 | 1 / 7 | `type_action_route_target_combat_update_slot_1981_type_40_action_7` |
 | zoom/历史战役自动存档_2 | 627 | 7 / 12 | `type_action_route_target_combat_update_slot_1984_type_45_action_8` (buy/sell search) |
 
 Ordinary month rollover now runs traced food, wages, debt, production and population-history effects plus explicitly labelled remaining assumptions. Annual rollover remains refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
@@ -65,6 +65,8 @@ The load hypotheses below are in `game_lab/app/city_playback.cpp` `applyLoadHypo
 
 `station-cargo-permission-denied`: assume the unbound `443BA0/443C00` partner permission rejects the station's otherwise eligible cargo dispatch. `5DDD30` checks that permission before allocation; the blocked station has a positive stock candidate, but the permission is not yet bound. Verify by binding the saved partner permission and comparing station cargo allocations. Normal play only; strict premises retain refusal.
 
+`stall-food-pickup-empty`: assume the unbound `5464E0` food selection and capacity gates produce no transfer, no servants, and no relevant request bookkeeping. The Mill has food, so this is not evidence that pickup actually fails; the selection and allocation are unported. Verify by binding the Market grade/capacity inputs and porting `4E3C70` and `5464E0` through `546960`. Normal play only; strict premises retain refusal.
+
 Rollover hypotheses (normal play only; strict premises refuse): `rollover-manager-empty` assumes the `4BFF20/4BFE10` manager has no monthly action; `rollover-primary-building-inactive` assumes the type-110 hook in `592060` is inactive; `rollover-health-target-stable` and `rollover-tax-recount-stable` preserve the latest targets across the unbound house recounts `590DB0` and `4AE900`; `rollover-normal-finance-mode` assumes `591AC0`'s editor gate is clear; `rollover-food-prelude-neutral` assumes `4AEDF0`'s additional effects and the `5482E0` notice are absent; `rollover-monument-timer-inactive` assumes `55AF70` has no qualifying timer; `rollover-religion-monthly-neutral` assumes `5A8620` has no additional effects; `rollover-other-notice-counters-zero` assumes the 19 unbound `547670` counters are zero; `rollover-road-refresh-stable` assumes `4B6D00/5AD8F0` leave terrain and roads unchanged; `rollover-notice-sort-neutral` assumes `547440` only changes notice presentation; `rollover-incoming-cargo-stable` preserves the `4EB850` counts; `rollover-monthly-events-empty` and `rollover-scenario-events-empty` assume the event calls named in code produce no additional events. Evidence is the cited executable call order and bound saved state, not proof of these outcomes. Verify by porting each named service and comparing target-calendar saves. The annual branch remains refused.
 
 ## Next step
@@ -75,6 +77,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: implement the type-24 supplier's Mill pickup at update 347 and its return; close the land trader's action-8 buy/sell search. The −36 RNG gap is parked pending the supervised midpoint. The trader's inactive-network wait clears transaction mode/timer via `4C9AD0`; above 10, station virtuals may change stock and trade state. Goods1 cursors, Grid15 quota usage/base prices, child5 relationship prices, the trader sold count and SAV19's 100 trader ledgers are now bound for those searches. The former type-40 refusal does not recur through 1000 updates on the corrected animal trajectory.
+Next: identify the type-40 action-7 refusal at update 399; replace the empty supplier pickup hypothesis with the Mill transfer and servants; close the land trader's action-8 buy/sell search. The −36 RNG gap is parked pending the supervised midpoint. The trader's inactive-network wait clears transaction mode/timer via `4C9AD0`; above 10, station virtuals may change stock and trade state. Goods1 cursors, Grid15 quota usage/base prices, child5 relationship prices, the trader sold count and SAV19's 100 trader ledgers are now bound for those searches.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).
