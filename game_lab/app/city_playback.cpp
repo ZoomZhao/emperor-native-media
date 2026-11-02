@@ -150,6 +150,10 @@ void applyLoadHypotheses(OriginalCombinedProcessInputs& p) {
     // Unresolved table; SAV_FIGURES.md effect premises).
     p.effectDecayCounter = 0;
     p.visualEffectCount = 0;
+    // HYPOTHESIS(fire-wind-zero-at-load): C82F2C is process-only and starts
+    // zero in a fresh process; 4ACE50 changes it on annual rollover. Strict
+    // premises leave the first fire-spread read refused.
+    p.windDirection = 0;
     // HYPOTHESIS(force-evolution-off-at-load): 10BFF78 forces house evolution
     // upward. Phase 39 (518EF0) refuses while it is absent, then treats it as
     // set only to override the desirability comparison, so zero leaves that
