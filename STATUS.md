@@ -8,7 +8,7 @@
 
 "Runs" means no refusal; agreement with the original game is **unmeasured**. 100 updates ≈ two monthly tails.
 
-## Stage 2: 1000 updates — 2/6
+## Stage 2: 1000 updates — 3/6
 
 `make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release measured 2026-11-03; UBSan has not yet been rerun after the sentiment change.
 
@@ -17,7 +17,7 @@
 | zoom/历史战役自动保存_1 | 1000 | 2 / 3 | none |
 | 项羽/历史战役自动存档_2 | 1000 | 8 / 3 | none |
 | 项羽/.sav | 811 | 9 / 1 | `type_action_route_target_combat_update_slot_1858_type_40_action_7` |
-| 项羽/历史战役自动保存_1 | 611 | 1 / 11 | `monthly_city_4ac650` (part 12) |
+| 项羽/历史战役自动保存_1 | 1000 | 2 / 3 | none |
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
 | zoom/历史战役自动存档_2 | 451 | 7 / 8 | `type_action_route_target_combat_update_slot_1984_type_45_action_7` (station route) |
 
@@ -59,6 +59,8 @@ The load hypotheses below are in `game_lab/app/city_playback.cpp` `applyLoadHypo
 
 `monthly-partner-4936d0-empty` and `monthly-partner-495a50-empty`: assume the respective part-7 selected interactions make no relation/event changes or additional random draws. `4A8ED0`'s saved eligibility and scenario flag and its one to three random draws are retained; actual event effects are unported. Verify by porting both selected event constructors and comparing saved event/relationship state. Strict premises retain refusal.
 
+`monthly-part12-candidates-empty`: assume the unbound request flag, strength, ratings and existing-request predicates in `4A90A0` yield no candidate, so the selection draw and `494260` are not reached. The executable proves status 0/4 also requires negative treasury and relation value ≥50; the blocked save has nonnegative treasury but other statuses remain eligible. `monthly-part12-relation-default`: assume `441F70`'s `440C10` default-state normalization changes no relation. Verify by porting the missing gates and event construction; strict premises retain refusal.
+
 `trader-station-offers-goods`: assume `5DB640` finds a trade at the merchant's alive, staffed, road-connected station. The blocked save has such a station with storage records; its partner permission and stock searches remain unbound. Verify by porting those predicates and comparing trade and station state. Strict premises retain refusal.
 
 Rollover hypotheses (normal play only; strict premises refuse): `rollover-manager-empty` assumes the `4BFF20/4BFE10` manager has no monthly action; `rollover-primary-building-inactive` assumes the type-110 hook in `592060` is inactive; `rollover-health-target-stable` and `rollover-tax-recount-stable` preserve the latest targets across the unbound house recounts `590DB0` and `4AE900`; `rollover-normal-finance-mode` assumes `591AC0`'s editor gate is clear; `rollover-food-prelude-neutral` assumes `4AEDF0`'s additional effects and the `5482E0` notice are absent; `rollover-monument-timer-inactive` assumes `55AF70` has no qualifying timer; `rollover-religion-monthly-neutral` assumes `5A8620` has no additional effects; `rollover-other-notice-counters-zero` assumes the 19 unbound `547670` counters are zero; `rollover-road-refresh-stable` assumes `4B6D00/5AD8F0` leave terrain and roads unchanged; `rollover-notice-sort-neutral` assumes `547440` only changes notice presentation; `rollover-incoming-cargo-stable` preserves the `4EB850` counts; `rollover-monthly-events-empty` and `rollover-scenario-events-empty` assume the event calls named in code produce no additional events. Evidence is the cited executable call order and bound saved state, not proof of these outcomes. Verify by porting each named service and comparing target-calendar saves. The annual branch remains refused.
@@ -71,6 +73,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: diagnose the clean pair's figure divergence and unavailable building comparisons before part 12, the land trader's station route, and type-24 supplier action 6. The part-7/12 partner gate uses saved +3ACC (`enabled`), not unrelated +3AB8 reserves.
+Next: close the land trader's action-7 station route, then type-24 supplier action 6; the 811-update save stops at type-40 action 7. Investigate the clean pair's animal and RNG divergence when further evidence identifies the missing call.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

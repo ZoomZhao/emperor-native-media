@@ -2282,22 +2282,31 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
                     }}
             }
         }}
-    //4A90A0 records a request only for a partner that is alive (481F10 +4),
-    //not the current city (443FC0), joined by a route (483730) and holding
-    //enabled status (4417E0 reads +3ACC). 441F70 then returns 4 when that partner's
-    //relation with the current faction is at war (440410 child +70 == 2) and
-    //444200 finds an ally (child +70 == 2 either way). Nothing else in the
-    //loop is reached for the supplied cities: no partner is at war with an
-    //ally, so the route table, the 592370 ratings and the request at 494260
-    //are never consulted. A partner that is at war and does have an ally
-    //still refuses, because that request is unported.
+    //4A90A0 checks enabled partners' 441F70 status. The 483730 lookup's
+    //return value is unused; it is not an eligibility gate. Status0/4 requires
+    //negative treasury and relation value>=50 before the unbound request flag.
     else if(part==12){if(!c.trade||!c.statistics)return OriginalBuildingUpdateBlocker::MonthlyCity;
         const int current=c.statistics->currentFaction;if(current<0||current>=22)return OriginalBuildingUpdateBlocker::InvalidState;
         for(const auto& p:c.trade->partners){if(!p.alive||int(p.faction)==current||!p.enabled||(p.blocked&4)||p.kind==6)continue;
             if(p.faction>=22)return OriginalBuildingUpdateBlocker::InvalidState;
-            if(p.relations[size_t(current)].state!=2)continue;
-            for(const auto& other:c.trade->partners)if(other.alive&&other.faction<22&&other.faction!=p.faction&&
-                (other.relations[p.faction].state==2||p.relations[other.faction].state==2))return OriginalBuildingUpdateBlocker::MonthlyCity;}}
+            if(p.kind!=0&&p.kind!=2)continue;
+            const auto& relation=p.relations[size_t(current)];int status=relation.state==0?0:relation.state==1?2:-1;
+            if(relation.state==2){bool ally=false;for(const auto& other:c.trade->partners)if(other.alive&&other.faction<22&&other.faction!=p.faction&&
+                    (other.relations[p.faction].state==2||p.relations[other.faction].state==2)){ally=true;break;}
+                status=ally?4:1;}
+            if(status<0){
+                // HYPOTHESIS(monthly-part12-relation-default): 440C10's
+                // default-state normalization changes no saved relation.
+                if(c.partnerEventHypotheses!=true)return OriginalBuildingUpdateBlocker::MonthlyCity;
+            }
+            if(status==0||status==4){if(!c.treasury)return OriginalBuildingUpdateBlocker::MonthlyCity;
+                if(*c.treasury>=0||relation.value<50)continue;}
+            // HYPOTHESIS(monthly-part12-candidates-empty): the unbound
+            // request-flag, strength, rating and existing-request predicates
+            // select no candidate; 4A929F therefore consumes no RNG. Strict
+            // callers refuse. Port 4A90A0's remaining gates to verify.
+            if(c.partnerEventHypotheses!=true)return OriginalBuildingUpdateBlocker::MonthlyCity;
+        }}
     if(part==4){ //4ACB59->442890(1),current Grid only;441310/20 flag
         if(!c.monthlyServices||!*c.monthlyServices||!c.trade||!c.statistics||!c.terrain||!c.terrainOwners||!c.buildings||!c.activeSide||!c.cropBase)return OriginalBuildingUpdateBlocker::MonthlyCity;
         const int current=c.statistics->currentFaction;if(current<0||current>=22||c.terrain->size()!=51984||c.terrainOwners->size()!=51984)return OriginalBuildingUpdateBlocker::InvalidState;

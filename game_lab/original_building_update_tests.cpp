@@ -95,10 +95,17 @@ void cycleTailTransactions(){
     c=tailFixture();c.monthPart=2;c.cycleTail->currentHealthRating=151;refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing previous rating rolls back forecast and health effects");
     c=tailFixture();c.monthPart=3;c.monthlyServices.reset();refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"missing fortification service rolls back health/date/expiry");
     {
-        auto war=tailFixture();war.monthPart=11;auto& enemy=war.trade->partners[2];enemy.alive=1;enemy.faction=2;enemy.enabled=1;enemy.reserves[4]=0;enemy.relations[0].state=2;
+        auto war=tailFixture();war.monthPart=11;war.treasury=-1;auto& enemy=war.trade->partners[2];enemy.alive=1;enemy.faction=2;enemy.enabled=1;enemy.reserves[4]=0;enemy.relations[0].state=2;enemy.relations[0].value=50;
         auto& warAlly=war.trade->partners[3];warAlly.alive=1;warAlly.faction=3;warAlly.relations[2].state=2;
-        refusedTail(war,OriginalBuildingUpdateBlocker::MonthlyCity,"part 12 partner at war with an ally reaches the unported 494260 request");
-        enemy.relations[0].state=1;need(originalBuildingCycleTailStep(war)==OriginalBuildingUpdateBlocker::None&&war.monthPart==12,"part 12 with no allied war partner records nothing");
+        refusedTail(war,OriginalBuildingUpdateBlocker::MonthlyCity,"part 12 deficit request retains the unbound request-flag refusal");
+        war.treasury=0;need(originalBuildingCycleTailStep(war)==OriginalBuildingUpdateBlocker::None&&war.monthPart==12,
+             "part12 allied-war request is skipped when treasury is nonnegative");
+        auto other=tailFixture();other.monthPart=11;auto& friendPartner=other.trade->partners[2];friendPartner.alive=1;friendPartner.faction=2;
+        friendPartner.enabled=1;friendPartner.relations[0].state=1;
+        refusedTail(other,OriginalBuildingUpdateBlocker::MonthlyCity,"strict part12 retains refusal for unbound strength and rating predicates");
+        other.partnerEventHypotheses=true;
+        need(originalBuildingCycleTailStep(other)==OriginalBuildingUpdateBlocker::None&&other.monthPart==12,
+             "part12 normal-play hypothesis admits an empty request candidate set");
     }
     {auto part7=tailFixture();part7.monthPart=6;auto& partner7=part7.trade->partners[2];partner7.alive=1;partner7.faction=2;
         partner7.reserves[4]=1;partner7.enabled=0;
