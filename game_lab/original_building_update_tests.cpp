@@ -657,6 +657,12 @@ void authored(){
     need(originalBuildingDesirabilityStep(desire)==OriginalBuildingUpdateBlocker::None&&desire.desirability->at(origin-228)==6&&desire.desirability->at(origin-456)==6&&desire.desirability->at(origin-684)==4&&desire.desirability->at(origin)==0,"square influence applies step count before delta and excludes source footprint");
     desire.buildings->at(7).size=2;desire.buildingInputs->at(7).desirabilityBonus=1;desire.desirability->at(origin)=-20;desire.desirability->at(origin+229)=95;
     need(originalBuildingApplyDesirability(desire)==OriginalBuildingUpdateBlocker::None&&desire.buildingInputs->at(7).desirability==105,"phase38 takes signed maximum over footprint then applies uncapped bonus10");
+    auto emptyDesire=desire;emptyDesire.desirability.reset();emptyDesire.buildingInputs->clear();
+    need(originalBuildingApplyDesirability(emptyDesire)==OriginalBuildingUpdateBlocker::None,
+         "phase38 needs no desirability grid when no live building reads it");
+    emptyDesire.buildingInputs=desire.buildingInputs;
+    need(originalBuildingApplyDesirability(emptyDesire)==OriginalBuildingUpdateBlocker::MissingContext,
+         "phase38 still requires the grid for a live building");
     desire.buildings->at(7)=emitter.building;desire.buildings->at(7).x=0;desire.buildings->at(7).y=0;desire.buildingModels->at(72)={0,1,1,0,2};
     need(originalBuildingDesirabilityStep(desire)==OriginalBuildingUpdateBlocker::None&&desire.desirability->at(*desire.cropBase)==7&&desire.desirability->at(*desire.cropBase-228)==1,"clipped influence tests perimeter bounds but repeats original source-origin write");
     desire.buildings->at(7)=emitter.building;desire.buildings->at(7).type=59;desire.buildings->at(7).imageInputs->marketOrientation=0;desire.buildingModels->operator[](59)={0,-4,3,1,3};

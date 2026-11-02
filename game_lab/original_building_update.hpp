@@ -1697,7 +1697,10 @@ inline OriginalBuildingUpdateBlocker originalBuildingDesirabilityStep(OriginalBu
 //4ACD10:single-cell+1F8=4273D0 reads origin;larger footprints
 //take the signed maximum over the size-square,then byte+60 adds10.
 inline OriginalBuildingUpdateBlocker originalBuildingApplyDesirability(OriginalBuildingUpdateContext& c){
-    if(!c.desirability||c.desirability->size()!=51984||!c.buildings||!c.buildingInputs)return OriginalBuildingUpdateBlocker::MissingContext;
+    if(!c.buildings||!c.buildingInputs)return OriginalBuildingUpdateBlocker::MissingContext;
+    if(std::none_of(c.buildingInputs->begin(),c.buildingInputs->end(),[](const auto& e){return e.second.alive==1||e.second.alive==3;}))
+        return OriginalBuildingUpdateBlocker::None;
+    if(!c.desirability||c.desirability->size()!=51984)return OriginalBuildingUpdateBlocker::MissingContext;
     for(auto& e:*c.buildingInputs){auto& i=e.second;if(i.alive!=1&&i.alive!=3)continue;auto b=c.buildings->find(e.first);
         if(b==c.buildings->end()||!b->second.imageInputs||!b->second.size||b->second.size>6)return OriginalBuildingUpdateBlocker::InvalidState;
         const uint32_t origin=b->second.imageInputs->gridIndex;int value=-9999;
