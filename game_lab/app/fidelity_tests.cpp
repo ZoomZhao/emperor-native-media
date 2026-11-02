@@ -181,6 +181,12 @@ void compareCommitted(const game_lab::OriginalCombinedState& city,const SaveView
             compare(groups,"employment",a.demand,b.demand);compare(groups,"employment",a.allocated,b.allocated);
             compare(groups,"employment",a.preferred,b.preferred);compare(groups,"employment",a.preferredAllocated,b.preferredAllocated);
             compare(groups,"employment",a.priority,b.priority);}}
+    if(c.formations){const auto saved=originalBuildingSavedFormations(late.payload,late.save.terrainOffset);
+        if(saved)for(size_t n=0;n<c.formations->size();++n){const auto& x=c.formations->at(n);const auto& y=saved->at(n);
+            compare(groups,"formation_identity",bool(x.alive),bool(y.alive));if(!x.alive||!y.alive)continue;
+            compare(groups,"formation_state",x.count,y.count);compare(groups,"formation_state",x.limit,y.limit);
+            compare(groups,"formation_state",x.kind,y.kind);compare(groups,"formation_state",x.spawnTimer,y.spawnTimer);
+            for(size_t k=0;k<x.members.size();++k)compare(groups,"formation_state",x.members[k],y.members[k]);}}
     const auto inputs=originalBuildingUpdateInputs(late.payload,late.save.buildings);
     if(inputs){std::set<size_t> slots;for(const auto& e:*inputs)if(e.second.alive==1||e.second.alive==3)slots.insert(e.first);
         for(const auto& e:city.buildings)if(e.second.state.inputs.alive==1||e.second.state.inputs.alive==3)slots.insert(e.first);
@@ -244,7 +250,10 @@ void compareCommitted(const game_lab::OriginalCombinedState& city,const SaveView
             FIGURE_FIELD(state85);FIGURE_FIELD(raise);FIGURE_FIELD(attackDirection);FIGURE_FIELD(attackFrame);FIGURE_FIELD(cartStyle);FIGURE_FIELD(stationary);
             FIGURE_FIELD(variant);FIGURE_FIELD(faction);FIGURE_FIELD(employmentAmount);FIGURE_FIELD(watchCoverage);FIGURE_FIELD(effectKind);
             FIGURE_FIELD(effectVariant);FIGURE_FIELD(effectFlags);FIGURE_FIELD(effectX);FIGURE_FIELD(effectY);FIGURE_FIELD(effectVelocityX);
-            FIGURE_FIELD(effectVelocityY);FIGURE_FIELD(effectHeight);FIGURE_FIELD(effectVelocityZ);FIGURE_FIELD(effectDraw);FIGURE_FIELD(effectFrame);
+            FIGURE_FIELD(effectVelocityY);FIGURE_FIELD(effectHeight);FIGURE_FIELD(effectVelocityZ);FIGURE_FIELD(effectDraw);
+            // effectFrame and progress both decode Figure7+41. Only flame
+            // animation writes effectFrame; movement writes progress instead.
+            if(x.type==2)FIGURE_FIELD(effectFrame);
             FIGURE_FIELD(updateOwner);FIGURE_FIELD(threat);FIGURE_FIELD(threatDistance);FIGURE_FIELD(herdTarget);FIGURE_FIELD(herdDistance);
             FIGURE_FIELD(idleCounter);FIGURE_FIELD(movementMode);FIGURE_FIELD(attackerCount);FIGURE_FIELD(routePhase);FIGURE_FIELD(speed);
             FIGURE_FIELD(priorProgress);FIGURE_FIELD(reciprocalTarget);FIGURE_FIELD(priorX);FIGURE_FIELD(priorY);FIGURE_FIELD(priorCell);
@@ -306,7 +315,7 @@ int explicitPairs(const game_lab::ResourceRoot& root,const game_lab::AppCityPlay
            !calendar.monthPart||*calendar.monthPart!=late.clock.monthPart||!calendar.month||*calendar.month!=late.clock.month){
             ++blockedPairs;std::cout<<" blocked=calendar_diverged\n";continue;}
         ++reachedPairs;std::map<std::string,Agreement> groups;
-        for(const char* name:{"calendar","treasury","year","population","sentiment","random","accounting","labor","employment","building_identity","building_common","house_goods","house_services","crop_industry","crop_storage","figure_identity","figure_images","figure_state"})groups[name]={};
+        for(const char* name:{"calendar","treasury","year","population","sentiment","random","accounting","labor","employment","formation_identity","formation_state","building_identity","building_common","house_goods","house_services","crop_industry","crop_storage","figure_identity","figure_images","figure_state"})groups[name]={};
         compareCommitted(*city,late,groups);
         std::cout<<" attribution=unresolved live_buildings="<<early.liveSlots.size()<<'/'<<late.liveSlots.size()
                  <<" simulated_buildings="<<city->buildings.size()<<"\n";
