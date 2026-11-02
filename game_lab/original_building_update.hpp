@@ -1204,8 +1204,23 @@ inline OriginalBuildingUpdateBlocker originalBuildingHookStep(OriginalBuildingUp
     if(type==53||type==54||type==58||type==59||type==62||type==66||type==67){
         if(!c.walkersDisabled)return OriginalBuildingUpdateBlocker::MissingContext;
         if(*c.walkersDisabled)return OriginalBuildingUpdateBlocker::None;
-        if(type==59){const auto present=originalBuildingHookFigure(i.primaryFigure,23,s.building.slot,c);
-            if(!present)return OriginalBuildingUpdateBlocker::MissingContext;if(*present)return OriginalBuildingUpdateBlocker::None;}
+        if(type==59){if(i.operational<=0)i.roadFailure=2;
+            const auto present=originalBuildingHookFigure(i.primaryFigure,23,s.building.slot,c);
+            if(!present)return OriginalBuildingUpdateBlocker::MissingContext;if(*present)return OriginalBuildingUpdateBlocker::None;
+            //543ED5/543F4B: an empty Market cannot advance its dispatch timer.
+            if(!c.buildingLinks||!c.buildingLinks->count(s.building.slot)||!c.buildingLinks->at(s.building.slot).marketStorage)return OriginalBuildingUpdateBlocker::MissingContext;
+            const auto& bays=*c.buildingLinks->at(s.building.slot).marketStorage;
+            if(std::all_of(bays.begin(),bays.end(),[](const auto& bay){return bay.amount==0;}))return OriginalBuildingUpdateBlocker::None;
+            if(!s.building.imageInputs||!c.buildingInputs||!c.buildings||!c.employmentModel)return OriginalBuildingUpdateBlocker::MissingContext;
+            int required=0,workers=0;for(const auto id:s.building.imageInputs->marketStalls){
+                if(!id||id>INT32_MAX)continue;const auto child=c.buildings->find(id);const auto input=c.buildingInputs->find(id);
+                if(child==c.buildings->end()||input==c.buildingInputs->end())return OriginalBuildingUpdateBlocker::MissingContext;
+                const auto childType=child->second.type;if(childType==62)continue;
+                const auto model=c.employmentModel->find(childType);if(model==c.employmentModel->end())return OriginalBuildingUpdateBlocker::MissingContext;
+                required+=model->second;if(input->second.alive==1||input->second.alive==3)workers+=input->second.workers;}
+            const int percent=required?workers*100/required:0;if(percent<1)return OriginalBuildingUpdateBlocker::None;
+            const unsigned limit=percent>=100?2:percent>=75?3:percent>=50?4:percent>=25?5:10;
+            i.spawnCounter=uint8_t(i.spawnCounter+1);if(i.spawnCounter<=limit)return OriginalBuildingUpdateBlocker::None;}
         if(type==62)return OriginalBuildingUpdateBlocker::None; //541B80 C8(-1)=5408D0 false for empty62.
         if(type==53){ //556130 validates all3 links before its50-percent gate.
             if(!i.hookIndustry||!c.employmentModel||!c.employmentModel->count(type))return OriginalBuildingUpdateBlocker::MissingContext;

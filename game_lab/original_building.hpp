@@ -48,7 +48,7 @@ struct OriginalBuildingImageInputs {
     std::optional<uint8_t> wallMask,savedView;
     std::optional<std::vector<OriginalStorageCompartment>> compartments;
     std::optional<uint8_t> marketOrientation;
-    std::array<uint32_t,4> marketStalls{};
+    std::array<uint32_t,6> marketStalls{}; //544F3F restores six common-market child slots
     std::vector<uint8_t> marketRandom,marketDraw;
 };
 struct OriginalBuildingFootprint {uint16_t type=0,x=0,y=0;uint8_t size=0,width=0,height=0;size_t slot=0,recordOffset=0;std::optional<OriginalWellImageInputs> wellImageInputs;std::optional<OriginalBuildingImageInputs> imageInputs;std::optional<OriginalBuildingAnimationInputs> animationInputs;};
@@ -422,7 +422,7 @@ inline OriginalBuildingProfile parseOriginalBuildingTable(const std::vector<uint
                     imageLayout=detail::u16(data.data()+tailAt)==1&&detail::u16(data.data()+tailAt+2)==1&&
                         detail::u16(data.data()+tailAt+130)==2&&detail::u16(data.data()+tailAt+216)==6;
                     for(unsigned j=0;j<6;++j)imageLayout&=detail::u16(data.data()+tailAt+132+14*j)==1;
-                    if(imageLayout){inputs.marketOrientation=data[tailAt+96];for(unsigned j=0;j<4;++j)inputs.marketStalls[j]=detail::u32(data.data()+tailAt+218+4*j);}
+                    if(imageLayout){inputs.marketOrientation=data[tailAt+96];for(unsigned j=0;j<6;++j)inputs.marketStalls[j]=detail::u32(data.data()+tailAt+218+4*j);}
                 }
                 if(imageLayout)f.imageInputs=inputs;
                 if(data[at+2]&&validOriginalBuildingFootprint(terrain,f))result.footprints.push_back(f);else ++result.rejectedTerrainFootprints;

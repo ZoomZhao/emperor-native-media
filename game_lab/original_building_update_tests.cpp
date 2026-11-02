@@ -912,6 +912,16 @@ void authored(){
     need(originalBuildingStorageHook(hookStation,stationContext)==OriginalBuildingUpdateBlocker::BuildingVirtual20&&
          originalBuildingStorageHook(hookStation,stationContext,true)==OriginalBuildingUpdateBlocker::None,
          "station cargo permission hypothesis remains opt-in and strict calls refuse");
+    auto marketHook=well;marketHook.building.type=59;marketHook.inputs.primaryFigure=0;marketHook.inputs.spawnCounter=2;
+    stationContext.buildingLinks->at(7).marketStorage=std::vector<OriginalStorageCompartment>(6);
+    need(originalBuildingHookStep(marketHook,stationContext)==OriginalBuildingUpdateBlocker::None&&marketHook.inputs.spawnCounter==2,
+         "empty Market leaves peddler dispatch timer unchanged");
+    stationContext.buildingLinks->at(7).marketStorage->at(0)={28,100,400};
+    auto staffedStall=marketHook.building;staffedStall.type=66;staffedStall.slot=8;stationContext.buildings->operator[](8)=staffedStall;
+    stationContext.buildingInputs->operator[](8)=marketHook.inputs;stationContext.buildingInputs->at(8).alive=1;stationContext.buildingInputs->at(8).workers=8;
+    stationContext.employmentModel->operator[](66)=8;marketHook.building.imageInputs->marketStalls[0]=8;
+    need(originalBuildingHookStep(marketHook,stationContext)==OriginalBuildingUpdateBlocker::BuildingVirtual20,
+         "stocked Market retains peddler dispatch refusal");
     std::string houseFixture="HOUSE MODS\n";
     for(unsigned row=0;row<5;++row){houseFixture+="{,";for(unsigned col=0;col<24;++col)houseFixture+=std::to_string(row==2?5:0)+",";houseFixture+="}\n";}
     houseFixture+="ALL HOUSES\n";for(unsigned row=0;row<15;++row){houseFixture+="{,";for(unsigned col=0;col<24;++col)houseFixture+=std::to_string(col==0?-110:col==1?110:10)+",";houseFixture+="}\n";}
