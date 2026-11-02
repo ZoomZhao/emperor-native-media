@@ -1047,6 +1047,13 @@ void authored(){
              "new land trader waits hidden before selecting a station");
         waiting.counter=20;context.figures[3]=waiting;
         need(!originalFigureFirstUpdate(waiting,crewRefs,&context,0xc0).state,"station selection remains refused after the waiting interval");
+        context.traderStationGoodsHypothesis=true;context.buildings.emplace();auto& station=(*context.buildings)[7];
+        station.type=56;station.alive=1;station.roadDistance=2;station.serviceCount=60;station.roadX=9;station.roadY=8;
+        waiting.delivery=7;context.figures[3]=waiting;
+        const auto selected=originalFigureFirstUpdate(waiting,crewRefs,&context,0xc0);
+        need(selected.state&&selected.state->action==7&&selected.state->counter==0&&selected.state->destinationX==9&&selected.state->destinationY==8,
+             "trader station hypothesis selects the staffed road-connected station after waiting");
+        context.buildings->erase(7);
         context.figures[3]=returning;
         context.passability.emplace();context.passability->fullMovementMasks=true;context.passability->cells.assign(51984,0x10);context.passability->spawn.cropBase=0;
         context.services.emplace();context.services->directions.assign(500000,0);context.roadblockGate=0;

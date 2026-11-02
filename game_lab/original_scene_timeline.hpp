@@ -169,6 +169,7 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
     c.sentimentHypotheses=city.process.sentimentHypotheses;
     c.partnerEventHypotheses=city.process.partnerEventHypotheses;
     c.landTraderDispatch=city.process.landTraderDispatch;
+    city.figures.traderStationGoodsHypothesis=city.process.landTraderDispatch;
     c.cycleTail->alternateMode=city.process.alternateMode;c.cycleTail->cropQuality=ground.state.gEAC3F0;c.cycleTail->waterMode=ground.waterMode;
     c.effectDecayCounter=city.process.effectDecayCounter;c.effectGrid=city.figures.services->serviceGrid;
     c.wallClock=city.process.wallClock;c.cropDispatchModel=city.process.cropDispatchModel;c.cropDispatchRadius=city.process.cropDispatchRadius;
@@ -686,6 +687,7 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
     auto context=initial;std::vector<OriginalKernelAllocation> committedAllocations;std::optional<OriginalCombinedState> city;
     if(combined){city=*combined;context.workerRoadExits=combined->figures.workerRoadExits;
         context.migrationRoadEndpoints=combined->figures.migrationRoadEndpoints;
+        context.traderStationGoodsHypothesis=combined->figures.traderStationGoodsHypothesis;
         if(combined->process.crtRandom)context.crtRandom=combined->process.crtRandom;
         if(combined->process.soundEffectsEnabled)context.soundEffectsEnabled=combined->process.soundEffectsEnabled;
         if(combined->process.buildingEditMode)context.buildingEditMode=combined->process.buildingEditMode;city->figures=context;

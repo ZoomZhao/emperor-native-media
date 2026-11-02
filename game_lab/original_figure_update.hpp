@@ -317,6 +317,7 @@ struct OriginalFigureUpdateContext {
     //Present/nullopt means a complete scan found no exit; absent key is unknown.
     std::map<size_t,std::optional<std::pair<int16_t,int16_t>>> workerRoadExits;
     std::optional<std::array<int16_t,4>> migrationRoadEndpoints; //C5CDFC..CE02,serialized Scenario6
+    std::optional<bool> traderStationGoodsHypothesis;
 };
 //5AD440's B0C projection for an entirely building-free grid. The pointer
 //arm5AD79F..834 emits only10/1/2, all disjoint from B0C. River-object
@@ -2264,8 +2265,17 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
     if(f.type==45){const auto follower=context->figures.find(size_t(f.follower));
         if(follower==context->figures.end()||!live(follower->second))return out;
         if(f.action==6){ //4CE386 waits hidden through counter 20 before station selection.
-            if(f.counter>=20)return out;
-            ++f.counter;f.hidden=1;f.frame=0;
+            if(f.counter<20){++f.counter;f.hidden=1;f.frame=0;}
+            else {
+                if(context->traderStationGoodsHypothesis!=true||!context->buildings||f.delivery<=0)return out;
+                const auto station=context->buildings->find(size_t(f.delivery));
+                if(station==context->buildings->end())return out;const auto& b=station->second;
+                if((b.type!=56&&b.type!=58)||b.alive!=1||b.roadDistance<=0||b.serviceCount<33)return out;
+                // HYPOTHESIS(trader-station-offers-goods): 5DB640's remaining
+                // partner permission and stock searches find an eligible trade.
+                // Keep strict refusal until those predicates are bound.
+                f.action=7;f.counter=0;f.frame=0;f.destinationX=b.roadX;f.destinationY=b.roadY;
+            }
         }else if(f.action!=9)return out;
         if(f.action==9){
         const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;
