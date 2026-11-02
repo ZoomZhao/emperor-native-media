@@ -787,6 +787,14 @@ void authored(){
     need(originalBuildingMonthlyHouseFood(monthlyFood)==OriginalBuildingUpdateBlocker::None&&
          *originalHouseGoodsWord(monthlyFood.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0)==25&&
          monthlyFood.buildingInputs->at(7).house->at(53-4)==20,"scenario food override sets a quarter of residents and quality20");
+    auto wages=sentiment;wages.accounting.emplace();wages.accounting->wages=30;wages.accounting->wagesPaid=10;
+    wages.accounting->incomeOther=300;wages.accounting->expensesOther=20;wages.accounting->treasuryStart=500;
+    wages.cityEmployment->employed=240;wages.treasury=400;
+    need(originalBuildingMonthlyWages(wages,false)==OriginalBuildingUpdateBlocker::None&&*wages.treasury==340&&
+         wages.accounting->wagesPaid==70&&wages.accounting->expenses==90&&wages.accounting->treasuryForecast==710,
+         "monthly wages charge employed workers and refresh accounting totals");
+    need(originalBuildingMonthlyWages(wages,true)==OriginalBuildingUpdateBlocker::None&&*wages.treasury==340,
+         "monthly wages preserve the editor-mode early return");
     auto strictSentiment=sentiment;strictSentiment.sentimentHypotheses.reset();
     need(originalBuildingSentimentStep(strictSentiment)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictSentiment.labor->sentiment==60,"strict sentiment refuses before publishing any assumed inputs");
     need(originalBuildingSentimentStep(sentiment)==OriginalBuildingUpdateBlocker::None&&sentiment.labor->sentiment==64&&

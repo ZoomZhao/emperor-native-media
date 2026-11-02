@@ -2139,6 +2139,18 @@ inline OriginalBuildingUpdateBlocker originalBuildingMonthlyHouseFood(OriginalBu
     }
     c.labor->monthlyFoodConsumed=consumed;return OriginalBuildingUpdateBlocker::None;
 }
+// 4AE950 -> 591AC0(8): charge one twelfth of annual wages for the
+// current employed count, then refresh the saved accounting summaries.
+inline OriginalBuildingUpdateBlocker originalBuildingMonthlyWages(OriginalBuildingUpdateContext& c,bool editorMode){
+    if(!c.accounting||!c.cityEmployment||!c.treasury)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    auto& a=*c.accounting;const int32_t product=originalBuildingI32(uint32_t(a.wages)*uint32_t(c.cityEmployment->employed));
+    const int32_t charge=(product/10)/12;if(editorMode||charge<0)return OriginalBuildingUpdateBlocker::None;
+    *c.treasury=originalBuildingSub32(*c.treasury,charge);a.wagesPaid=originalBuildingAdd32(a.wagesPaid,charge);
+    a.income=originalBuildingAdd32(a.incomeOther,originalBuildingAdd32(a.taxReceived,a.taxOther));
+    a.expenses=originalBuildingAdd32(a.expensesOther,a.wagesPaid);a.profit=originalBuildingSub32(a.income,a.expenses);
+    a.actualProfit=originalBuildingSub32(a.incomeReceived,a.expensesPaid);
+    a.treasuryForecast=originalBuildingAdd32(a.treasuryStart,a.profit);return OriginalBuildingUpdateBlocker::None;
+}
 inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(OriginalBuildingUpdateContext& c){
     if(!c.cycleTail||!c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.monthPart||!c.month||!c.cycle)return OriginalBuildingUpdateBlocker::MonthlyCity;
     //Alternate UI mode takes the early return at 4AC9D3 before any part work.
