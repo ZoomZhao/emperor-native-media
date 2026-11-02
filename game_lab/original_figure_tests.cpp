@@ -1123,6 +1123,12 @@ void authored(){
                 complete.buildings->at(7).storage->at(0).amount==100&&complete.tradeBridge->exportIncome==30&&
                 tc.buildings->at(7).storage->at(0).amount==200,
                 "empty import candidate search publishes the sale and selects the exit without moving early");
+            tc.tradeBridge->partners[1].quotaUsed[25]=12;
+            const auto quotaFull=originalFigureFirstUpdate(sale,crewRefs,&tc,0xc0);
+            need(quotaFull.state&&quotaFull.state->action==9&&quotaFull.state->traderSold==0&&
+                quotaFull.buildings->at(7).storage->at(0).amount==200&&!quotaFull.tradeBridge->changed,
+                "trader leaves without a transfer when stocked exports have exhausted partner quota and no import qualifies");
+            tc.tradeBridge->partners[1].quotaUsed[25]=0;
             tc.tradeBridge->partners[1].sells[0]=26;tc.tradeBridge->partners[1].quota[26]=12;tc.goods->policies[0].limit[26]=400;
             const auto importRefusal=originalFigureFirstUpdate(sale,crewRefs,&tc,0xc0);
             need(!importRefusal.state&&importRefusal.status==OriginalFigureUpdateStatus::TraderImportAfterExport&&

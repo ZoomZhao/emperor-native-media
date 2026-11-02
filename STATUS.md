@@ -4,7 +4,7 @@
 
 **Stage 1: 6/6 at 100 updates. Stage 2: 6/6 at 1000 updates**, Release and UBSan verified 2026-11-03. Original behavior agreement is measured separately below. Year rollover remains refused; one year is 12 × 16 × 51 = 9792 updates. Chinese EXE SHA `dbdeca1e…`.
 
-**Stage 3: 0/6 at 9792**, Release 2026-11-03 before fire-wind hypothesis. In runner order: 9791 (annual rollover), 2412 (trader action 8), 2997 (house evolution), 1197 (fire wind), 9791 (annual rollover), 1777 (fire wind). With the wind hypothesis and stale animation-request fix, the fourth save reaches at least 4000 and the sixth at least 2500; rerun the full corpus to establish the updated metric and first blocker.
+**Stage 3: 0/6 at 9792**, Release 2026-11-03 before subsequent fixes. In runner order: 9791 (annual rollover), 2412 (trader action 8), 2997 (house evolution), 1197 (fire wind), 9791 (annual rollover), 1777 (fire wind). Subsequent targeted runs: second save ≥3000, fourth ≥4000, sixth ≥2500; rerun the full corpus to establish current counts and first blocker.
 
 **Fidelity:** `281030 → 281031` 40/40: building common 28407/28409; crop industry 884/884; figure state 5164/5170, images 92/94, type-26 50/50; RNG 2/2; calendar, treasury, accounting, labor, employment, sentiment, population, house goods/services, crop storage and formations agree. `281031 → 280008` 1008/1008: treasury 0/1, accounting 11/12, RNG 0/2 (−517 draws), building common 28265/28409, crop industry 846/884, house services 375/416, figure identity 1997/2047 and state 619/660; the user-observed +75 trade, −60 charge and +786 accepted envoy gift reconcile the original money. Empty-event hypotheses may be contradicted if the saves share a trajectory. `280008 → 280009` stops 803/860 at trader action 8, phase 15.
 

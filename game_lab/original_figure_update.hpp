@@ -2387,6 +2387,20 @@ inline bool originalTraderStationSale(OriginalFigure& f,OriginalFigureUpdateCont
     // 440700 returns before its price writes when the two quotes agree.
     return true;
 }
+//5DE6A0 cannot find an export without a stocked commodity the partner buys
+//and still has quota for. Return true conservatively if any such candidate
+//exists; the complete sale path handles the remaining policy and price gates.
+inline std::optional<bool> originalTraderExportCandidates(const OriginalFigure& f,const OriginalFigureUpdateContext& c){
+    if(!c.tradeBridge||!c.goods||!c.buildings||f.faction>=22||f.delivery<=0)return std::nullopt;
+    const auto station=c.buildings->find(size_t(f.delivery));if(station==c.buildings->end())return std::nullopt;
+    const auto& b=station->second;if(b.type!=58||b.traderFaction!=f.faction||!b.storage)return std::nullopt;
+    if(f.traderSold>=8)return false;const auto& p=c.tradeBridge->partners[f.faction];
+    for(unsigned r=1;r<29;++r){if(c.goods->unavailable[r]||std::find(p.buys.begin(),p.buys.end(),r)==p.buys.end())continue;
+        const unsigned quota=p.quotaBonus[r]?(p.quota[r]?(p.quota[r]==12?24:36):0):p.quota[r];
+        if(p.quotaUsed[r]>=quota)continue;uint64_t stock=0;for(const auto& bay:*b.storage)if(bay.resource==r)stock+=bay.amount;
+        if(stock>=100)return true;}
+    return false;
+}
 //5DEB80 counts candidates through station virtual+260 before advancing either
 //import cursor. A zero count returns without any cursor or stock writes.
 inline std::optional<bool> originalTraderImportCandidates(const OriginalFigure& f,const OriginalFigureUpdateContext& c){
@@ -2446,7 +2460,8 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
             if(!stationFound)return out;
             const auto next=originalFigureWord(int(f.counter)+1);
             f.traderTransactionMode=0;f.traderTransactionTimer=0;f.counter=next;f.frame=0;
-            if(next>10){if(!originalTraderStationSale(f,local))return out;
+            if(next>10){if(!originalTraderStationSale(f,local)){
+                    const auto exports=originalTraderExportCandidates(f,local);if(!exports||*exports)return out;}
                 const auto imports=originalTraderImportCandidates(f,local);
                 if(!imports||*imports||!local.migrationRoadEndpoints){out.status=OriginalFigureUpdateStatus::TraderImportAfterExport;return out;}
                 f.action=9;f.counter=0;f.destinationX=local.migrationRoadEndpoints->at(2);f.destinationY=local.migrationRoadEndpoints->at(3);
