@@ -592,9 +592,12 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         {const auto bits=detail::u32(p+105);v.supplierStatus=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:bits);}
         v.nextPart=detail::i16(p+56);
         const size_t tail=at+182;const uint16_t type=profile.slotTypes[e.first];
+        // 4C05C0's parent version carries no fields in versions 1 or 2;
+        // 4C08C0 then reads crop version1 and its four-byte pending value.
         if(type==0xc2||type==0xc4){
             if(data.size()-tail<140||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1||
-                detail::u16(data.data()+tail+130)!=1||detail::u16(data.data()+tail+132)!=1||detail::u16(data.data()+tail+138)!=1)return std::nullopt;
+                (detail::u16(data.data()+tail+130)!=1&&detail::u16(data.data()+tail+130)!=2)||
+                detail::u16(data.data()+tail+132)!=1||detail::u16(data.data()+tail+138)!=1)return std::nullopt;
             v.industry.emplace();std::copy_n(data.begin()+tail+4,126,v.industry->begin());
         }
         if(type>=2&&type<=17){

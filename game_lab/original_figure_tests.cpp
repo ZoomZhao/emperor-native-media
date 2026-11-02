@@ -1115,6 +1115,12 @@ void authored(){
         need(cropLink&&cropLink->at(9).cropDelivery&&cropLink->at(9).cropDelivery->pending==0x12345678&&
             cropLink->at(9).cropDelivery->flags==0x103&&cropLink->at(9).watchRisk==-7,
             "crop serializer frames embedded flags and full-width pending separately from signed common risk");
+        cropBytes[314]=2;cropProfile.liveTypeCounts[0xc4]=1;
+        const auto version2Link=originalFigureBuildingLinks(cropBytes,cropProfile);
+        const auto version2Inputs=originalBuildingUpdateInputs(cropBytes,cropProfile);
+        need(version2Link&&version2Link->at(9).cropDelivery&&version2Link->at(9).cropDelivery->pending==0x12345678&&
+             version2Inputs&&version2Inputs->at(9).industry,
+             "crop parent version2 retains the same industrial data and delivery fields");
         cropBytes[70]=0xf9;cropBytes[71]=255;cropBytes[72]=0x34;cropBytes[73]=0x12;cropBytes[56]=7;
         const auto riskLink=originalFigureBuildingLinks(cropBytes,cropProfile);
         need(riskLink&&riskLink->at(9).fireRisk==-7&&riskLink->at(9).damageRisk==0x1234&&riskLink->at(9).parent==7,

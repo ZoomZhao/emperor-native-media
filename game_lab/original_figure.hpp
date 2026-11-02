@@ -393,7 +393,8 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
                 storage.push_back({detail::u32(data.data()+pos+2),detail::u32(data.data()+pos+6),detail::u32(data.data()+pos+10)});}
             if(framed)link.storage=std::move(storage);}
         if((type==0xc2||type==0xc4)&&data.size()-tail>=140&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&
-            detail::u16(data.data()+tail+130)==1&&detail::u16(data.data()+tail+132)==1&&detail::u16(data.data()+tail+138)==1)
+            (detail::u16(data.data()+tail+130)==1||detail::u16(data.data()+tail+130)==2)&&
+            detail::u16(data.data()+tail+132)==1&&detail::u16(data.data()+tail+138)==1)
             link.cropDelivery=OriginalFigureBuildingLink::CropDelivery{detail::u16(data.data()+tail+106),detail::u32(data.data()+tail+134)};
         if((type==0xc0||type==0xc1)&&data.size()-tail>=142&&detail::u16(data.data()+tail)==1&&detail::u16(data.data()+tail+2)==1&&
             detail::u16(data.data()+tail+130)==1&&detail::u16(data.data()+tail+140)==1){
