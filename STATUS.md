@@ -17,9 +17,9 @@
 | zoom/历史战役自动保存_1 | 815 | 1 / 15 | `monthly_city_4ac650` (month rollover) |
 | 项羽/历史战役自动存档_2 | 815 | 7 / 15 | `monthly_city_4ac650` (month rollover) |
 | 项羽/.sav | 745 | 8 / 15 | `monthly_city_4ac650` (month rollover) |
-| 项羽/历史战役自动保存_1 | 356 | 1 / 6 | `monthly_city_4ac650` |
+| 项羽/历史战役自动保存_1 | 611 | 1 / 11 | `monthly_city_4ac650` (part 12) |
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
-| zoom/历史战役自动存档_2 | 356 | 7 / 6 | `monthly_city_4ac650` |
+| zoom/历史战役自动存档_2 | 440 | 7 / 8 | `empire_trade_5dbcc0_4b02a0` |
 
 Priority: part 8 calls `591200` every cycle. Disassembly identifies population reconciliation and city sentiment, including per-house `590F30`, building condition `591670`, tax/wages/unemployment, monuments `55AE30`, and notices `548920`. Common5 +5C/+8C/+A0 (wire 83/125/144) and Population7 latch/previous sentiment (wire 11266/11173) are bound. Legacy checkpoint decoding leaves the new fields absent. Implement the remaining subcalls; rollover services remain refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
 
@@ -57,6 +57,8 @@ The load hypotheses below are in `game_lab/app/city_playback.cpp` `applyLoadHypo
 
 `sentiment-tax-table`: if `Model/EmperorTaxSentimentModel.txt` is absent or invalid, assume the `591180` tax contribution is zero; the seven-row table is otherwise parsed from the data root. Verify fallback against the original model-loading failure path. `sentiment-monuments`: assume `55AE30` has no qualifying completed monument and changes no registry flags; verify by binding the process monument registry. `sentiment-notice-state`: assume notices are enabled and process-only achievement flags are clear; verify from the original initialization and notice registry. `sentiment-reason-multiplier`: assume the `5913E0` floating-point term is not the worst notice reason; verify its saved input and runtime rounding. These hypotheses apply only in normal play; strict premises retain refusal.
 
+`monthly-partner-4936d0-empty` and `monthly-partner-495a50-empty`: assume the respective part-7 selected interactions make no relation/event changes or additional random draws. `4A8ED0`'s saved eligibility and scenario flag and its one to three random draws are retained; actual event effects are unported. Verify by porting both selected event constructors and comparing saved event/relationship state. Strict premises retain refusal.
+
 ## Next step
 
 Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempted update (speculative after any no-op; all six saves stopped hard):
@@ -65,6 +67,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: investigate the positive part-7 partner action and month-rollover refusals. The part-7/12 partner gate now uses saved +3ACC (`enabled`), not unrelated +3AB8 reserves. Type-24 supplier action 6 remains blocked after 286 admitted updates; generic dispatch selects `4D1810`. The animal spawn fallback also needs a real port.
+Next: investigate `empire_trade_5dbcc0_4b02a0` after 440 updates, then the part-12 and month-rollover refusals. The part-7/12 partner gate uses saved +3ACC (`enabled`), not unrelated +3AB8 reserves. Type-24 supplier action 6 remains blocked after 286 admitted updates; generic dispatch selects `4D1810`. The animal spawn fallback also needs a real port.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

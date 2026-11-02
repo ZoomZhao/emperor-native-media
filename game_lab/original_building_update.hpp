@@ -585,6 +585,8 @@ struct OriginalBuildingUpdateContext {
     };
     std::optional<Trade> trade;
     std::optional<bool> monthlyServices; //additive annual/quarterly services;legacy tail unchanged
+    std::optional<bool> partnerEventHypotheses;
+    std::optional<uint8_t> scenarioPartnerConflict; //Scenario6+5BF,52D5E4, wire1460
     std::optional<bool> additionalWalkers; //explicit51CF90 remaining ordinary service types
     std::optional<bool> industryCarts; //explicit5F1280 positive Clay/Kiln dispatch
     std::array<int32_t,36> dispatchedProduction{}; //1312340,caller retained production totals
@@ -2144,8 +2146,32 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
     //is not blocked, is not kind 4 or 6 and is not the current faction. With no
     //such partner the call returns before its request, so nothing is missing.
     else if(part==7){if(!c.trade||!c.statistics)return OriginalBuildingUpdateBlocker::MonthlyCity;
-        const int current=c.statistics->currentFaction;
-        for(const auto& p:c.trade->partners)if(p.alive&&p.enabled&&!(p.blocked&4)&&p.kind!=4&&p.kind!=6&&int(p.faction)!=current)return OriginalBuildingUpdateBlocker::MonthlyCity;}
+        const int current=c.statistics->currentFaction;if(current<0||current>=22)return OriginalBuildingUpdateBlocker::InvalidState;
+        std::vector<size_t> eligible;for(size_t n=0;n<c.trade->partners.size();++n){const auto& p=c.trade->partners[n];
+            if(p.alive&&p.enabled&&!(p.blocked&4)&&p.kind!=4&&p.kind!=6&&int(p.faction)!=current)eligible.push_back(n);}
+        if(!eligible.empty()){
+            if(c.partnerEventHypotheses!=true||!c.scenarioPartnerConflict||!c.figureServices||
+               !c.figureServices->randomHistory||c.figureServices->randomHistory->cursor>=100)return OriginalBuildingUpdateBlocker::MonthlyCity;
+            originalFigureRandomNext(*c.figureServices); //4A8F5C chooses a partner from the full 31-bit register.
+            // HYPOTHESIS(monthly-partner-4936d0-empty): the selected partner
+            // interaction changes no relation or event records and makes no
+            // additional random draws. 4936D0's positive effect construction
+            // is not yet bound; the choice draw
+            // above still occurs. Verify by porting the selected event branch.
+            if(*c.scenarioPartnerConflict){std::vector<size_t> conflict;
+                for(size_t n:eligible)if(c.trade->partners[n].relations[size_t(current)].state==1)conflict.push_back(n);
+                if(!conflict.empty()){originalFigureRandomNext(*c.figureServices);
+                    const auto& partner=c.trade->partners[conflict[c.figureServices->randomFirst%conflict.size()]];
+                    const auto& relation=partner.relations[size_t(current)];
+                    if(relation.value<=30&&relation.tribute>=40){originalFigureRandomNext(*c.figureServices);
+                        // HYPOTHESIS(monthly-partner-495a50-empty): the
+                        // selected conflict produces no pending event or extra
+                        // random draws. The
+                        // third draw at4A9054 is preserved; bind495A50's
+                        // event construction to verify this assumption.
+                    }}
+            }
+        }}
     //4A90A0 records a request only for a partner that is alive (481F10 +4),
     //not the current city (443FC0), joined by a route (483730) and holding
     //enabled status (4417E0 reads +3ACC). 441F70 then returns 4 when that partner's
@@ -2540,6 +2566,7 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     c.scenarioStartYears=detail::i16(data.data()+side-28+2); //52D201 C5CAE0
     c.engineRegion=detail::i16(data.data()+side-28+632); //52D301 C5CD58
     c.scenarioFoodOverride=originalBuildingI32(detail::u32(data.data()+side-28+704));
+    c.scenarioPartnerConflict=data[side-28+1460];
     c.scenarioMonths=originalBuildingI32(detail::u32(data.data()+side-28+1449)); //52D5B4
     c.unavailableResources.emplace();for(unsigned n=0;n<36;++n)c.unavailableResources->at(n)=detail::i16(data.data()+p+9904+2*n);
     OriginalBuildingUpdateContext::Accounting a;a.taxRate=value(10);a.taxReceived=value(10458);a.taxOther=value(10462);

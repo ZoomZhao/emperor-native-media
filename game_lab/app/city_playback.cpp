@@ -62,6 +62,9 @@ void applyLoadHypotheses(OriginalCombinedProcessInputs& p) {
     // The 591200 subcalls identify their individual normal-play hypotheses.
     // Strict premises preserve the monthly refusal.
     p.sentimentHypotheses = true;
+    // The part-7 partner event subcalls retain separately labelled hypotheses.
+    // Strict premises preserve their refusal.
+    p.partnerEventHypotheses = true;
     // HYPOTHESIS(event-ui-gates-closed-at-load): 5EFF20 reads singleton 1E53538
     // bytes +17 then +16 and returns at 5F00A2 with no stores when a byte is
     // zero (SAV_FIGURES.md). At load/continue no event dialog is open, so both

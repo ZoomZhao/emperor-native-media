@@ -38,6 +38,7 @@ struct OriginalCombinedProcessInputs {
     std::optional<bool> animalSpawnMissHypothesis; //normal-play hypothesis, never an observed SAV field
     std::optional<bool> singleMillFoodHypothesis; //normal-play hypothesis; strict callers withhold it
     std::optional<bool> sentimentHypotheses; //591200 unbound subcalls; strict callers withhold
+    std::optional<bool> partnerEventHypotheses; //4A8ED0 unbound event mutations
 };
 struct OriginalCombinedBuilding {
     OriginalBuildingUpdateState state;
@@ -165,6 +166,7 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
     c.houseModels=originalBuildingHouseModels(buildingModels,*difficulty);if(!c.houseModels||!c.cycleTail)return false;
     c.evolutionDisabled=city.figures.buildingEditMode;c.forceHouseEvolution=city.process.forceHouseEvolution;
     c.sentimentHypotheses=city.process.sentimentHypotheses;
+    c.partnerEventHypotheses=city.process.partnerEventHypotheses;
     c.cycleTail->alternateMode=city.process.alternateMode;c.cycleTail->cropQuality=ground.state.gEAC3F0;c.cycleTail->waterMode=ground.waterMode;
     c.effectDecayCounter=city.process.effectDecayCounter;c.effectGrid=city.figures.services->serviceGrid;
     c.wallClock=city.process.wallClock;c.cropDispatchModel=city.process.cropDispatchModel;c.cropDispatchRadius=city.process.cropDispatchRadius;

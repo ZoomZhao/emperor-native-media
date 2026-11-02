@@ -105,7 +105,15 @@ void cycleTailTransactions(){
         need(originalBuildingCycleTailStep(part7)==OriginalBuildingUpdateBlocker::None,"part7 ignores a disabled partner despite its nonzero unrelated reserve");
         part7=tailFixture();part7.monthPart=6;auto& enabledPartner=part7.trade->partners[2];enabledPartner.alive=1;enabledPartner.faction=2;
         enabledPartner.reserves[4]=0;enabledPartner.enabled=1;
-        refusedTail(part7,OriginalBuildingUpdateBlocker::MonthlyCity,"part7 admits the enabled partner gate even with zero unrelated reserve");}
+        refusedTail(part7,OriginalBuildingUpdateBlocker::MonthlyCity,"part7 admits the enabled partner gate even with zero unrelated reserve");
+        part7.partnerEventHypotheses=true;part7.scenarioPartnerConflict=0;part7.figureServices.emplace();part7.figureServices->randomHistory.emplace();
+        need(originalBuildingCycleTailStep(part7)==OriginalBuildingUpdateBlocker::None&&part7.monthPart==7&&
+             part7.figureServices->randomHistory->cursor==1,"part7 hypothetical empty first event preserves its partner selection random draw");
+        auto conflict=tailFixture();conflict.monthPart=6;auto& opposing=conflict.trade->partners[2];opposing.alive=1;opposing.faction=2;opposing.enabled=1;
+        opposing.relations[0].state=1;opposing.relations[0].value=30;opposing.relations[0].tribute=40;
+        conflict.partnerEventHypotheses=true;conflict.scenarioPartnerConflict=1;conflict.figureServices.emplace();conflict.figureServices->randomHistory.emplace();
+        need(originalBuildingCycleTailStep(conflict)==OriginalBuildingUpdateBlocker::None&&conflict.figureServices->randomHistory->cursor==3,
+             "part7 hypothetical empty conflict preserves all three random draws when the saved relation qualifies");}
     c=tailFixture();c.cycleTail->alternateMode=true;refusedTail(c,OriginalBuildingUpdateBlocker::MonthlyCity,"alternate calendar mode is not silently admitted");
     c=tailFixture();c.monthPart=1;c.scenarioMonths=-1;auto& partner=c.trade->partners[0];partner.alive=1;partner.enabled=1;partner.relationTimers.resize(22);partner.relationTimers[0][0][0]=2;
     refusedTail(c,OriginalBuildingUpdateBlocker::InvalidState,"late invalid scenario age rolls back earlier partner timer decrement");
@@ -901,6 +909,8 @@ void authored(){
     need(extraCommon->at(7).sentimentFoodDelay==3&&extraCommon->at(7).sentimentBuildingWeight==-2,"Common5 sentiment inputs retain byte83 and signed dword144");
     savedInputs[anchor-12287+11266]=1;saved32(11173,0xfffffffd);
     need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.labor->sentimentReached350==1&&restoredCity.labor->previousSentiment==-3,"Population7 sentiment latch and previous value use wires11266 and11173");
+    savedInputs[anchor+1432]=1;need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.scenarioPartnerConflict==1,
+         "Scenario6 partner conflict flag uses wire1460");savedInputs[anchor+1432]=0;
     saved32(10722,0x1234);saved32(10722+4*35,0xfffffffd);saved32(10578,99);
     need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.dispatchedProduction[0]==0x1234&&restoredCity.dispatchedProduction[35]==-3,"nested Population7 production array reads59487B wire10722 independently of prior trade7 array");
     auto fortification=tailContext;fortification.monthPart=3;fortification.monthlyServices=true;fortification.trade.emplace();fortification.statistics.emplace();fortification.statistics->currentFaction=0;fortification.trade->partners[0].faction=0;fortification.trade->partners[0].kind=0;fortification.trade->partners[0].fortified=1;fortification.activeSide=1;fortification.cropBase=229;fortification.terrain=std::vector<uint32_t>(51984);fortification.terrainOwners=std::vector<uint16_t>(51984);
