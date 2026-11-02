@@ -778,6 +778,15 @@ void authored(){
     sentiment.buildings->at(7).type=2;auto& sentimentHouse=sentiment.buildingInputs->at(7);sentimentHouse.alive=1;
     sentimentHouse.model=0;sentimentHouse.residents=100;sentimentHouse.houseInUse=1;sentimentHouse.house.emplace();sentimentHouse.house->fill(0);
     sentimentHouse.house->at(53-4)=1;sentimentHouse.sentimentFoodDelay=0;sentimentHouse.sentimentBuildingWeight=0;sentimentHouse.watchRisk=20;
+    auto monthlyFood=sentiment;monthlyFood.scenarioFoodOverride=0;
+    originalHouseSetGoodsWord(monthlyFood.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0,12);
+    need(originalBuildingMonthlyHouseFood(monthlyFood)==OriginalBuildingUpdateBlocker::None&&monthlyFood.labor->monthlyFoodConsumed==12&&
+         *originalHouseGoodsWord(monthlyFood.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0)==0&&
+         monthlyFood.buildingInputs->at(7).house->at(53-4)==0,"monthly house food consumes available stock and clears its quality when exhausted");
+    monthlyFood=sentiment;monthlyFood.scenarioFoodOverride=1;
+    need(originalBuildingMonthlyHouseFood(monthlyFood)==OriginalBuildingUpdateBlocker::None&&
+         *originalHouseGoodsWord(monthlyFood.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0)==25&&
+         monthlyFood.buildingInputs->at(7).house->at(53-4)==20,"scenario food override sets a quarter of residents and quality20");
     auto strictSentiment=sentiment;strictSentiment.sentimentHypotheses.reset();
     need(originalBuildingSentimentStep(strictSentiment)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictSentiment.labor->sentiment==60,"strict sentiment refuses before publishing any assumed inputs");
     need(originalBuildingSentimentStep(sentiment)==OriginalBuildingUpdateBlocker::None&&sentiment.labor->sentiment==64&&

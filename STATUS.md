@@ -69,6 +69,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: complete the land trader's action 7 station route, then investigate the part-12 and month-rollover refusals. The part-7/12 partner gate uses saved +3ACC (`enabled`), not unrelated +3AB8 reserves. Type-24 supplier action 6 remains blocked after 286 admitted updates; generic dispatch selects `4D1810`. The animal spawn fallback also needs a real port.
+Next: port month-rollover services and rerun the clean fidelity pair; then investigate part 12, the land trader's station route, and type-24 supplier action 6. The monthly house-food consumption helper is implemented but not yet invoked; rollover remains refused. The part-7/12 partner gate uses saved +3ACC (`enabled`), not unrelated +3AB8 reserves.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

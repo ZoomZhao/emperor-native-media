@@ -479,6 +479,7 @@ struct OriginalBuildingUpdateContext {
         // Saved Population7 fields 594C48 / 594B18; absent in old checkpoints.
         std::optional<uint8_t> sentimentReached350;
         std::optional<int32_t> previousSentiment;
+        int32_t monthlyFoodConsumed=0; //Population7+2BCC, wire11193; 5187ED
         int32_t sentimentTaxable=0,sentimentShortages=0,sentimentReason=0;
         std::optional<int32_t> sentimentHouseRating;
         std::optional<int32_t> sentimentBuildingPercent;
@@ -2116,6 +2117,28 @@ inline OriginalBuildingUpdateBlocker originalBuildingSentimentStep(OriginalBuild
 }
 //4AC650 ordinary parts: health, date construction468210 (returns false),
 //42DA70 expiry,593090 forecast,part-specific work,then4C0570 crop decay.
+// 518690 consumes one quarter of each occupied house's residents in food.
+// The 4AEDF0 prelude and 5482E0 notice are separate rollover services.
+inline OriginalBuildingUpdateBlocker originalBuildingMonthlyHouseFood(OriginalBuildingUpdateContext& c){
+    if(!c.labor||!c.buildings||!c.buildingInputs||!c.houseModels||!c.scenarioFoodOverride)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    int32_t consumed=0;
+    for(auto& e:*c.buildingInputs){auto& i=e.second;const auto b=c.buildings->find(e.first);
+        if(b==c.buildings->end())return OriginalBuildingUpdateBlocker::MonthlyCity;
+        if(i.alive!=1||b->second.type<2||b->second.type>17)continue;
+        const auto m=c.houseModels->find(i.model);if(m==c.houseModels->end()||!i.house)return OriginalBuildingUpdateBlocker::MonthlyCity;
+        const int amount=int(i.residents)*25/100;
+        if(*c.scenarioFoodOverride){if(!originalHouseSetGoodsWord(i.house->data(),i.house->size(),0,amount))return OriginalBuildingUpdateBlocker::InvalidState;
+            i.house->at(53-4)=20;continue;}
+        if(m->second[8]<=0)continue;
+        const auto food=originalHouseGoodsWord(i.house->data(),i.house->size(),0);if(!food)return OriginalBuildingUpdateBlocker::MonthlyCity;
+        const int taken=*food>=amount?amount:*food;
+        consumed=originalBuildingAdd32(consumed,taken);
+        const int left=*food>=amount?int(*food)-amount:0;
+        if(!originalHouseSetGoodsWord(i.house->data(),i.house->size(),0,left))return OriginalBuildingUpdateBlocker::InvalidState;
+        if(left<=0){originalHouseSetGoodsWord(i.house->data(),i.house->size(),0,0);i.house->at(53-4)=0;}
+    }
+    c.labor->monthlyFoodConsumed=consumed;return OriginalBuildingUpdateBlocker::None;
+}
 inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(OriginalBuildingUpdateContext& c){
     if(!c.cycleTail||!c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.monthPart||!c.month||!c.cycle)return OriginalBuildingUpdateBlocker::MonthlyCity;
     //Alternate UI mode takes the early return at 4AC9D3 before any part work.
@@ -2599,6 +2622,7 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     for(unsigned n=0;n<4;++n){stats.demand[n]=value(11789+4*n);stats.groups[n]=value(11841+4*n);}c.statistics=stats;
     c.accounting=a;OriginalBuildingUpdateContext::Labor l;l.sentiment=value(18);l.health=value(26);l.incoming=value(9754);l.outgoing=value(9758);
     l.sentimentReached350=data[p+11266];l.previousSentiment=value(11173);
+    l.monthlyFoodConsumed=value(11193);
     l.sentimentTaxable=value(10454);l.sentimentShortages=value(11448);l.sentimentReason=value(11177);
     l.outRemainder=value(9762);l.inRemainder=value(9766);l.averagePopulation=value(9778);l.populationSum=value(9782);l.sampleCount=value(9790);
     l.statisticsPending=value(9794);l.growthCursor=value(9798);l.deathCursor=detail::i16(data.data()+p+9802);l.lastPopulationDelta=value(9774);l.excessDepartureTotal=value(9770);
