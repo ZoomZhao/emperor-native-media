@@ -1058,6 +1058,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingCropDispatch(OriginalBuildi
             //no wall time. The public copied-context API keeps refusal atomic.
             if(!c.wallClock)return OriginalBuildingUpdateBlocker::FarmerWallClock;
             const size_t farmer=*allocated;previousFarmer=farmer;auto& f=c.figures->at(farmer);f.action=pass?6:10;f.owner=int16_t(s.building.slot);f.counter=originalBuildingSignedWord(uint16_t(group*10));
+            f.stationary=uint8_t(pass?1:2); //4C38A9/4C3B73 write Figure+89.
             c.farmerTasks[farmer]=uint8_t(pass?1:2);
             const uint32_t seed=*c.wallClock+(uint32_t(i.fireDirection)+uint32_t(farmer))*16u;
             f.variant=int16_t(((seed*1664525u+1013904223u)>>4)%4);++group;++i.cropWorkers->at(pass);
