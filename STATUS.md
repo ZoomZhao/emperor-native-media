@@ -19,7 +19,7 @@
 | 项羽/.sav | 811 | 9 / 1 | `type_action_route_target_combat_update_slot_1858_type_40_action_7` |
 | 项羽/历史战役自动保存_1 | 1000 | 2 / 3 | none |
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
-| zoom/历史战役自动存档_2 | 451 | 7 / 8 | `type_action_route_target_combat_update_slot_1984_type_45_action_7` (station route) |
+| zoom/历史战役自动存档_2 | 541 | 7 / 10 | `type_action_route_target_combat_update_slot_1976_type_29_action_6` |
 
 Ordinary month rollover now runs traced food, wages, debt, production and population-history effects plus explicitly labelled remaining assumptions. Annual rollover remains refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
 
@@ -73,6 +73,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: close the land trader's action-7 station route, then type-24 supplier action 6; the 811-update save stops at type-40 action 7. Investigate the clean pair's animal and RNG divergence when further evidence identifies the missing call.
+Next: investigate the trader save's type-29 action 6, then type-24 supplier action 6; the 811-update save stops at type-40 action 7. Investigate the clean pair's animal and RNG divergence when further evidence identifies the missing call.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

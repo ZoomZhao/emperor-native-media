@@ -2276,6 +2276,14 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
                 // Keep strict refusal until those predicates are bound.
                 f.action=7;f.counter=0;f.frame=0;f.destinationX=b.roadX;f.destinationY=b.roadY;
             }
+        }else if(f.action==7){ //4CE443: travel toward a live, staffed station.
+            if(!context->buildings||f.delivery<=0)return out;
+            const auto station=context->buildings->find(size_t(f.delivery));
+            if(station==context->buildings->end()||station->second.alive!=1||station->second.workers<=0)return out;
+            const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;
+            const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+            if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
+            if(f.direction>=8)return out; //Arrival and failure branches require station-side effects.
         }else if(f.action!=9)return out;
         if(f.action==9){
         const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;

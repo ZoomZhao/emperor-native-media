@@ -1057,6 +1057,12 @@ void authored(){
         context.figures[3]=returning;
         context.passability.emplace();context.passability->fullMovementMasks=true;context.passability->cells.assign(51984,0x10);context.passability->spawn.cropBase=0;
         context.services.emplace();context.services->directions.assign(500000,0);context.roadblockGate=0;
+        auto travelling=returning;travelling.action=7;travelling.delivery=7;travelling.route=3;travelling.direction=2;travelling.progress=2;
+        context.figures[3]=travelling;auto& routeStation=(*context.buildings)[7];routeStation.alive=1;routeStation.workers=9;
+        const auto travelStep=originalFigureFirstUpdate(travelling,crewRefs,&context,0xc0);
+        need(travelStep.state&&travelStep.state->action==7&&travelStep.state->progress>travelling.progress,
+             "land trader follows its station route while the station remains staffed");
+        context.buildings->erase(7);context.figures[3]=returning;
         const auto exited=originalFigureFirstUpdate(returning,crewRefs,&context,0xc0);
         need(exited.state&&exited.state->action==6&&exited.state->alive==2,
             "trader action9 entry arrival marks action6 and removal after the same movement call");
