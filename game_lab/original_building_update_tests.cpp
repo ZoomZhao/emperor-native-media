@@ -159,6 +159,27 @@ void cycleTailTransactions(){
     need(!decodeNativeCityContext(bytes->substr(0,bytes->size()/2),error),"truncated existing C1 data stays refused; no implicit repair");
 }
 void authored(){
+    { // Saved trade fields use independent Grid15 and child5 wire requests.
+        using namespace emperor::file_io::research;std::vector<uint8_t> bytes;
+        const auto word=[&](uint16_t v){bytes.push_back(uint8_t(v));bytes.push_back(uint8_t(v>>8));};
+        const auto dword=[&](uint32_t v){for(unsigned k=0;k<4;++k)bytes.push_back(uint8_t(v>>(8*k)));};
+        word(1);dword(0);word(3);dword(1);word(2);
+        for(const auto& f:empire2_fields)bytes.resize(bytes.size()+f.bytes);
+        for(unsigned grid=0;grid<22;++grid){word(15);
+            for(const auto& f:empire_grid15_pre){const auto at=bytes.size();bytes.resize(at+f.bytes);
+                if(grid==2&&f.receiver_offset==1052)bytes[at+7]=9;
+                if(grid==2&&f.receiver_offset==1126){bytes[at+14]=0xfe;bytes[at+15]=0xff;}}
+            for(unsigned child=0;child<22;++child){word(5);
+                for(const auto& f:empire_grid_child5_fields){const auto at=bytes.size();bytes.resize(at+f.bytes);
+                    if(grid==2&&child==1&&f.receiver_offset==124){bytes[at+14]=0x34;bytes[at+15]=0x12;}
+                    if(grid==2&&child==1&&f.receiver_offset==196){bytes[at+14]=0xfd;bytes[at+15]=0xff;}}}
+            for(const auto& f:empire_grid15_post)bytes.resize(bytes.size()+f.bytes);}
+        dword(0);auto c=context(OriginalBuildingUpdateScope::AdmittedTicks);c.statistics.emplace();c.statistics->currentFaction=0;
+        const auto states=originalBuildingSavedEmpireStates(bytes,0,&c);
+        need(states&&c.trade&&c.trade->partners[2].quotaUsed[7]==9&&c.trade->partners[2].basePrice[7]==-2&&
+             c.trade->partners[2].relations[1].price[7]==0x1234&&c.trade->partners[2].relations[1].previousPrice[7]==-3,
+             "Empire Grid15 and child5 retain used quota and signed resource prices");
+    }
     {
         OriginalBuildingUpdateContext annual(OriginalBuildingUpdateScope::AdmittedTicks,true);
         annual.trade.emplace();annual.statistics.emplace();annual.statistics->currentFaction=3;annual.monthlyServices=true;
