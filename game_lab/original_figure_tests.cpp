@@ -1682,6 +1682,14 @@ void authored(){
              "Watchtower walker waits hidden before selecting its road cell");
         waitingWatch.counter=1;context.figures[waitingWatch.slot]=waitingWatch;
         need(!originalFigureFirstUpdate(waitingWatch,refs,&context,0xc0).state,"Watchtower road-cell selection remains an explicit boundary");
+        {auto roads=context;roads.cropBase=8627;roads.activeSide=84;roads.terrain.assign(51984,0);roads.buildingOwners.assign(51984,0);roads.roadNetworks.assign(51984,0);
+            auto& b=roads.buildings->at(9);b.x=5;b.y=6;b.size=1;
+            const size_t first=8627+5*228+5,second=first+1;roads.terrain[first]=roads.terrain[second]=0x40;
+            roads.roadNetworks[first]=2;roads.roadNetworks[second]=1;roads.roadNetworks[1]=1;roads.figures[waitingWatch.slot]=waitingWatch;
+            const auto departure=originalFigureFirstUpdate(waitingWatch,refs,&roads,0xc0);
+            need(departure.state&&departure.state->action==7&&departure.state->destinationX==6&&departure.state->destinationY==5&&
+                 departure.state->counter==0&&departure.state->hidden==1,
+                 "Watchtower selects the best ranked road within the first successful radius");}
         context.figures[watch.slot]=watch;
         const auto wrapped=originalFigureFirstUpdate(watch,refs,&context,0xc0);
         need(wrapped.state&&wrapped.state->frame==0&&wrapped.state->progress==3,

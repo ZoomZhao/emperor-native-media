@@ -1119,6 +1119,30 @@ inline std::optional<bool> originalFigureMusicRoad(const OriginalFigureBuildingL
         if(found)return true;}
     return false;
 }
+// 4BA580/4BA370: first radius with a road, lowest network rank, row-major ties.
+// The outer optional distinguishes an unbound owner virtual from no road.
+inline std::optional<std::optional<std::pair<int16_t,int16_t>>> originalFigureRankedRoadTarget(
+    const OriginalFigureBuildingLink& b,const OriginalFigureUpdateContext& context){
+    if(!context.cropBase||!context.activeSide||!b.size||context.terrain.size()!=51984||
+       context.buildingOwners.size()!=51984||context.roadNetworks.size()!=51984||!context.buildings)return std::nullopt;
+    std::array<unsigned,256> counts{};for(auto label:context.roadNetworks)if(label)++counts[label];
+    std::vector<unsigned> labels;for(unsigned n=1;n<256;++n)if(counts[n])labels.push_back(n);
+    std::stable_sort(labels.begin(),labels.end(),[&](unsigned a,unsigned d){return counts[a]>counts[d];});
+    for(int radius=0;radius<=2;++radius){int best=12;std::optional<std::pair<int16_t,int16_t>> selected;
+        for(int y=std::max(0,int(b.y)-radius);y<=std::min(int(*context.activeSide)-1,int(b.y)+b.size-1+radius);++y)
+            for(int x=std::max(0,int(b.x)-radius);x<=std::min(int(*context.activeSide)-1,int(b.x)+b.size-1+radius);++x){
+                const size_t cell=*context.cropBase+size_t(y)*228+size_t(x);if(cell>=51984)return std::nullopt;
+                const auto owner=context.buildingOwners[cell];if(owner){const auto found=context.buildings->find(owner);if(found==context.buildings->end())return std::nullopt;
+                    switch(found->second.type){case 2:case 3:case 5:case 7:case 33:case 35:case 43:case 53:case 54:case 58:
+                    case 62:case 66:case 67:case 71:case 72:case 124:case 127:case 192:case 193:case 194:case 196:
+                    case 207:case 211:case 214:case 231:break;default:return std::nullopt;}}
+                if((context.terrain[cell]&0x44)!=0x40)continue;int rank=11;
+                for(size_t n=0;n<std::min<size_t>(5,labels.size());++n)if(labels[n]==context.roadNetworks[cell]){rank=int(n);break;}
+                if(rank<best){best=rank;selected=std::make_pair(int16_t(x),int16_t(y));}}
+        if(selected)return std::optional<std::optional<std::pair<int16_t,int16_t>>>(std::in_place,selected);
+    }
+    return std::optional<std::optional<std::pair<int16_t,int16_t>>>(std::in_place,std::nullopt);
+}
 inline OriginalFigureImageState originalFigureUpdateImageState(const OriginalFigureUpdateContext& context){
     OriginalFigureImageState out;out.factionModels=context.factionModels;
     for(const auto& entry:context.figures)out.figures.emplace(entry.first,originalFigureImageInputs(entry.second));return out;
@@ -2133,8 +2157,9 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
         f.frame=uint8_t(f.frame+1);if(f.frame>11){f.frame=0;
             if(!local.services||!local.services->criminalCount||*local.services->criminalCount>0)return out;}
         if(f.action==6){ //4D3C20 waits hidden; its final call selects a ranked road cell.
-            if(f.counter<=1)return out;
             f.counter=originalFigureWord(int(f.counter)-1);f.hidden=1;f.frame=0;
+            if(f.counter<=0){const auto road=originalFigureRankedRoadTarget(owner->second,local);if(!road)return out;
+                if(!*road)f.alive=2;else {f.action=7;f.destinationX=(*road)->first;f.destinationY=(*road)->second;originalFigureFreeTarget(f);}}
         }else if(f.action==8){const auto road=originalFigureMusicRoad(owner->second,local);if(!road)return out;
             if(!*road)f.alive=2;else {f.action=9;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;
                 if(f.route>0){if(!local.services||f.route>=1000)return out;if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
