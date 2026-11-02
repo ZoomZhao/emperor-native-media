@@ -1086,6 +1086,33 @@ void authored(){
              "trader clears transaction state and waits at a station while networking is inactive");
         trading.counter=10;context.figures[3]=trading;
         need(!originalFigureFirstUpdate(trading,crewRefs,&context,0xc0).state,"trader buy and sell searches retain their refusal");
+        {
+            OriginalCombinedState city;city.process.landTraderDispatch=true;city.figures=context;
+            city.buildingContext.emplace(OriginalBuildingUpdateScope::AdmittedTicks,true);
+            auto& bc=*city.buildingContext;bc.trade.emplace();bc.statistics.emplace();bc.statistics->currentFaction=0;
+            bc.treasury=500;bc.accounting.emplace();auto& partner=bc.trade->partners[1];partner.kind=1;partner.enabled=1;
+            partner.buys[0]=25;partner.quota[25]=12;partner.basePrice[25]=40;partner.relations[0].price[25]=30;
+            partner.relations[0].previousPrice[25]=30;originalCombinedPrepareTrader(city);
+            auto& tc=city.figures;tc.goods.emplace();tc.goods->policies.resize(1);auto& policy=tc.goods->policies[0];
+            policy.trade[25]=7;policy.limit[25]=400;tc.goods->trade7[25]=200;
+            tc.services->traderLedgers.emplace();tc.buildingEmployment[58]=10;
+            auto& b=tc.buildings->at(7);b.type=58;b.alive=1;b.workers=10;b.traderFaction=1;b.storagePolicy=0;
+            b.storage=std::vector<OriginalStorageCompartment>{{25,200,400}};
+            auto sale=trading;sale.faction=1;sale.delivery=7;sale.traderLedgerIndex=3;tc.figures[3]=sale;
+            auto candidate=tc;auto sold=sale;
+            need(originalTraderStationSale(sold,candidate)&&candidate.buildings->at(7).storage->at(0).amount==100&&
+                candidate.goods->trade7[25]==100&&candidate.tradeBridge->partners[1].quotaUsed[25]==1&&
+                candidate.tradeBridge->partners[0].quotaUsed[25]==1&&sold.traderSold==1&&
+                candidate.services->traderLedgers->at(3).soldGoods[25]==1&&candidate.services->traderLedgers->at(3).income==30,
+                "trader sale writes stock, goods, both quotas, figure and ledger on a private candidate");
+            const auto refused=originalFigureFirstUpdate(sale,crewRefs,&tc,0xc0);
+            need(!refused.state&&refused.status==OriginalFigureUpdateStatus::TraderImportAfterExport&&
+                tc.buildings->at(7).storage->at(0).amount==200&&tc.goods->trade7[25]==200&&*bc.treasury==500,
+                "unported import after export refuses the whole figure update without publishing its sale");
+            city.figures=std::move(candidate);need(originalCombinedCommitTrader(city)&&*bc.treasury==530&&
+                bc.accounting->incomeOther==30&&bc.accounting->income==30&&bc.trade->partners[1].quotaUsed[25]==1&&
+                bc.trade->partners[0].quotaUsed[25]==1,"completed figure pass publishes trade quota and accounting together");
+        }
         context.buildings->erase(7);context.figures[3]=returning;
         const auto exited=originalFigureFirstUpdate(returning,crewRefs,&context,0xc0);
         need(exited.state&&exited.state->action==6&&exited.state->alive==2,

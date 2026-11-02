@@ -58,6 +58,37 @@ struct OriginalCombinedState {
     std::optional<OriginalBuildingScenarioMessages> scenarioMessages;
     uint32_t phase=0;
 };
+// Prepare a private transaction candidate for the ordered figure pass. The
+// bridge is published only after the entire pass completes successfully.
+inline void originalCombinedPrepareTrader(OriginalCombinedState& city){
+    city.figures.tradeBridge.reset();
+    if(city.process.landTraderDispatch!=true||!city.buildingContext||!city.buildingContext->trade||
+       !city.buildingContext->statistics||!city.buildingContext->treasury||!city.buildingContext->accounting)return;
+    const auto faction=city.buildingContext->statistics->currentFaction;if(faction<0||faction>=22)return;
+    OriginalFigureTradeBridge bridge;bridge.currentFaction=unsigned(faction);bridge.noGodPriceEffects=true;
+    for(size_t n=0;n<22;++n){const auto& from=city.buildingContext->trade->partners[n];auto& to=bridge.partners[n];
+        to.kind=from.kind;to.faction=from.faction;to.blocked=from.blocked;to.enabled=from.enabled;
+        to.relationState=from.relations[size_t(faction)].previousState;to.buys=from.buys;to.quota=from.quota;
+        to.quotaBonus=from.quotaBonus;to.quotaUsed=from.quotaUsed;to.basePrice=from.basePrice;
+        to.price=from.relations[size_t(faction)].price;to.previousPrice=from.relations[size_t(faction)].previousPrice;}
+    city.figures.tradeBridge=bridge;
+}
+inline bool originalCombinedCommitTrader(OriginalCombinedState& city){
+    if(!city.figures.tradeBridge||!city.figures.tradeBridge->changed)return true;
+    if(!city.buildingContext||!city.buildingContext->trade||!city.buildingContext->accounting||!city.buildingContext->treasury)return false;
+    auto& bridge=*city.figures.tradeBridge;if(bridge.currentFaction>=22)return false;
+    auto& c=*city.buildingContext;
+    for(size_t n=0;n<22;++n){auto& to=c.trade->partners[n];const auto& from=bridge.partners[n];
+        to.quotaUsed=from.quotaUsed;to.relations[bridge.currentFaction].price=from.price;
+        to.relations[bridge.currentFaction].previousPrice=from.previousPrice;}
+    auto& a=*c.accounting;*c.treasury=originalBuildingAdd32(*c.treasury,bridge.exportIncome);
+    a.incomeOther=originalBuildingAdd32(a.incomeOther,bridge.exportIncome);
+    a.income=originalBuildingAdd32(a.incomeOther,originalBuildingAdd32(a.taxReceived,a.taxOther));
+    a.expenses=originalBuildingAdd32(a.expensesOther,a.wagesPaid);a.profit=originalBuildingSub32(a.income,a.expenses);
+    a.actualProfit=originalBuildingSub32(a.incomeReceived,a.expensesPaid);
+    a.treasuryForecast=originalBuildingAdd32(a.treasuryStart,a.profit);bridge.changed=false;bridge.exportIncome=0;
+    return true;
+}
 // Opt-in diagnostic only. A census records speculative continuations separately
 // from normal playback; a failed later stage is still a hard refusal.
 struct OriginalRefusalCensusEvent {std::string refusal;uint32_t phase,month,part;};
@@ -743,7 +774,7 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
                             animated->second=&base;
                         }}
                     out.buildingSelections[p.footprint.slot]=footprint;}
-                context=city->figures;out.lastUpdateOrder.push_back(0x4e27e0);}
+                originalCombinedPrepareTrader(*city);context=city->figures;out.lastUpdateOrder.push_back(0x4e27e0);}
             context.animationFlags=out.animationClock.flags;
             out.lastPass=originalFigureOrderedNextPass(context,archives);
             if(city){out.figureAllocations=out.lastPass.allocationCount;out.buildingFigureAllocations=out.lastPass.buildingAllocationCount;}
@@ -777,7 +808,8 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
             if(city&&out.lastPass.context->buildings)for(const auto& e:*out.lastPass.context->buildings){
                 if(e.second.storage)out.buildingStorage[e.first]=*e.second.storage;}
             if(city){city->figures=*out.lastPass.context;
-                out.refusal=originalCombinedSyncBuildings(*city);
+                if(!originalCombinedCommitTrader(*city))out.refusal="trader_accounting_commit_required";
+                if(out.refusal.empty())out.refusal=originalCombinedSyncBuildings(*city);
                 if(out.refusal.empty())out.refusal=originalKernelAuthorityIssue(*city);
                 if(out.refusal.empty())out.refusal=originalCombinedAfterFigures(*city,out.lastUpdateOrder);
                 if(!out.refusal.empty()){out.refusedUpdate=out.updates+1;out.lastPass={};return out;}

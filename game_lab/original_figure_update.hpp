@@ -72,7 +72,7 @@ enum class OriginalFigureUpdateStatus {Computed,DispatchGate,UnsupportedType,Eff
     PheasantContext,PheasantThreat,PheasantRoute,PheasantDestination,PheasantBuilding,OrderedPoolPass,
     MovementModel,RouteGeneration,RouteBoundary,MovementHeight,EarlierSlot,PoolRemoval,LaterSlotEffects,
     CellContext,CellCombat,SegmentService,NextDirection,InspectorFireContext,InspectorFireSearch,WorkerEmployment,SupplierArrival,SupplierSearch,
-    GoodsSearch,GoodsArrival,Projectile,CrtRandomRequired,MigrantHouseSearch,WellReturnDestination};
+    GoodsSearch,GoodsArrival,Projectile,CrtRandomRequired,MigrantHouseSearch,WellReturnDestination,TraderImportAfterExport};
 inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus status){
     switch(status){case OriginalFigureUpdateStatus::Computed:return "computed";
     case OriginalFigureUpdateStatus::DispatchGate:return "dispatch_gate";
@@ -103,6 +103,7 @@ inline const char* originalFigureUpdateStatusName(OriginalFigureUpdateStatus sta
     case OriginalFigureUpdateStatus::CrtRandomRequired:return "crt_rand_state_required_wall_clock_seeded_not_in_sav";
     case OriginalFigureUpdateStatus::MigrantHouseSearch:return "migrant_nearest_house_4add60_after_wait51";
     case OriginalFigureUpdateStatus::WellReturnDestination:return "well_walker_return_destination_unported";
+    case OriginalFigureUpdateStatus::TraderImportAfterExport:return "trader_import_after_export_4ce86e";
     case OriginalFigureUpdateStatus::PheasantContext:return "pheasant_complete_saved_context";
     case OriginalFigureUpdateStatus::PheasantThreat:return "pheasant_threat_qualification_4e5340";
     case OriginalFigureUpdateStatus::PheasantRoute:return "pheasant_route_4e47a0_and_arrival";
@@ -132,6 +133,7 @@ struct OriginalFigureFirstUpdate {
     std::optional<std::array<int32_t,2>> inspectorMaximum;
     std::vector<OriginalInspectionVisit> inspectionVisits;
     std::optional<OriginalFigureGoodsServices> goods;
+    std::optional<OriginalFigureTradeBridge> tradeBridge;
     std::optional<std::vector<size_t>> freeSlots;
     std::optional<uint32_t> crtRandom;
     uint64_t crtRandomCalls=0;
@@ -285,6 +287,7 @@ struct OriginalFigureUpdateContext {
     std::vector<uint8_t> randomByte; //F1E780,saved public terrain input;4E6690/4E6D80.
     std::optional<unsigned> activeSide;
     std::optional<OriginalFigureGoodsServices> goods;
+    std::optional<OriginalFigureTradeBridge> tradeBridge;
     std::map<uint16_t,int32_t> buildingEmployment;
     std::optional<int32_t> festivalVenue;
     std::optional<std::array<int16_t,3>> entertainmentAvailable;
@@ -1186,6 +1189,7 @@ inline void originalFigurePublishWrites(OriginalFigureFirstUpdate& out,const Ori
     out.watchMaximum=after.watchMaximum;
     out.inspectorMaximum=after.inspectorMaximum;out.inspectionVisits=after.inspectionVisits;
     out.goods=after.goods;
+    out.tradeBridge=after.tradeBridge;
     out.freeSlots=after.freeSlots;out.crtRandom=after.crtRandom;out.crtRandomCalls=after.crtRandomCalls;
     out.allocatedSlots=after.allocatedSlots;out.highestLiveSlot=after.highestLiveSlot;
     out.allocationEvents=after.allocationEvents;
@@ -2289,6 +2293,41 @@ inline OriginalFigureFirstUpdate originalMigratingFirstUpdate(const OriginalFigu
 }
 //0x4CE2D0/action9 and0x4CF380 valid trader crew. Direct crews use
 //4E7520's phase synchronization; indirect crews use4E7460's substeps.
+inline bool originalTraderStationSale(OriginalFigure& f,OriginalFigureUpdateContext& c){
+    if(!c.tradeBridge||!c.tradeBridge->noGodPriceEffects||!c.goods||!c.buildings||!c.services||
+       !c.services->traderLedgers||f.traderLedgerIndex>=100||f.faction>=22||f.delivery<=0||f.traderSold>=8)return false;
+    auto& trade=*c.tradeBridge;if(trade.currentFaction>=22)return false;auto& partner=trade.partners[f.faction];
+    if(partner.kind==5||partner.kind==6||!partner.enabled||(partner.blocked&4)||
+       (partner.kind==0&&partner.faction==trade.currentFaction)||partner.relationState!=0)return false;
+    auto station=c.buildings->find(size_t(f.delivery));if(station==c.buildings->end())return false;auto& b=station->second;
+    if(b.type!=58||b.alive!=1||b.traderFaction!=f.faction||!b.storage||!b.storagePolicy||*b.storagePolicy>=c.goods->policies.size())return false;
+    const auto employment=c.buildingEmployment.find(58);if(employment==c.buildingEmployment.end()||employment->second<=0||
+       int(b.workers)*100/employment->second<50)return false;
+    auto& policy=c.goods->policies[*b.storagePolicy];auto& ledger=c.services->traderLedgers->at(f.traderLedgerIndex);
+    const auto eligible=[&](unsigned r){if(!r||r>=29||c.goods->unavailable[r]||
+        std::find(partner.buys.begin(),partner.buys.end(),r)==partner.buys.end())return false;
+        const unsigned quota=partner.quotaBonus[r]?(partner.quota[r]?(partner.quota[r]==12?24:36):0):partner.quota[r];
+        return partner.quotaUsed[r]<quota&&partner.price[r]<=partner.basePrice[r];};
+    const auto stock=[&](unsigned r){uint64_t total=0;for(const auto& bay:*b.storage)if(bay.resource==r)total+=bay.amount;return total;};
+    bool available=false;for(const auto& bay:*b.storage)if(bay.resource<29&&policy.trade[bay.resource]!=8&&
+        eligible(bay.resource)&&policy.limit[bay.resource]>int(ledger.soldGoods[bay.resource])*100&&
+        stock(bay.resource)>=100){available=true;break;}
+    if(!available)return false;unsigned chosen=0;
+    for(unsigned n=0;n<29;++n){auto& cursor=policy.tradeCursor[2];cursor=uint8_t(cursor+1);if(cursor>=29)cursor=1;
+        if(policy.trade[cursor]==7&&eligible(cursor)&&stock(cursor)>=100){chosen=cursor;break;}}
+    if(!chosen||partner.price[chosen]<0||partner.previousPrice[chosen]!=partner.price[chosen])return false;
+    const auto remaining=originalFigureStorageWithdraw(b,chosen,100,true,*c.goods);if(!remaining||*remaining)return false;
+    int32_t price=partner.price[chosen];
+    if(b.traderPriceBonus)price=int32_t((int64_t(price)*130)/100);
+    // HYPOTHESIS(trader-god-price-neutral): process-only A5B028/A5B024
+    // modifiers are inactive. Strict premises withhold this bridge.
+    trade.exportIncome=int32_t(uint32_t(trade.exportIncome)+uint32_t(price));trade.changed=true;
+    ++partner.quotaUsed[chosen];++trade.partners[trade.currentFaction].quotaUsed[chosen];
+    ++ledger.sold;++ledger.soldGoods[chosen];ledger.income+=uint32_t(price);
+    f.traderSold=originalFigureWord(int(f.traderSold)+1);f.counter=0;f.frame=0;
+    // 440700 returns before its price writes when the two quotes agree.
+    return true;
+}
 inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.status=OriginalFigureUpdateStatus::CombatRouteAndTarget;
@@ -2327,8 +2366,10 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
             bool stationFound=false;for(const auto& e:*context->buildings){const auto& b=e.second;
                 if((b.type==56||b.type==58)&&(b.alive==1||b.alive==3)&&b.traderFaction==f.faction){stationFound=true;break;}}
             if(!stationFound)return out;
-            const auto next=originalFigureWord(int(f.counter)+1);if(next>10)return out; //4CE796 buy/sell search.
+            const auto next=originalFigureWord(int(f.counter)+1);
             f.traderTransactionMode=0;f.traderTransactionTimer=0;f.counter=next;f.frame=0;
+            if(next>10){if(!originalTraderStationSale(f,local))return out;
+                out.status=OriginalFigureUpdateStatus::TraderImportAfterExport;return out;} //Atomic pass rolls back the completed export until the import search is closed.
         }else if(f.action!=9)return out;
         if(f.action==9){
         const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;
@@ -2808,6 +2849,7 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                         if(result.inspectorMaximum)context->inspectorMaximum=*result.inspectorMaximum;
                         if(context->captureInspectionVisits)context->inspectionVisits=result.inspectionVisits;
                         if(result.goods)context->goods=result.goods;
+                        if(result.tradeBridge)context->tradeBridge=result.tradeBridge;
                         if(result.roadblockGate)context->roadblockGate=result.roadblockGate;
                         if(result.freeSlots){context->freeSlots=*result.freeSlots;context->crtRandom=result.crtRandom;context->crtRandomCalls=result.crtRandomCalls;
                             context->allocatedSlots=result.allocatedSlots;context->highestLiveSlot=result.highestLiveSlot;

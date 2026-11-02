@@ -117,6 +117,17 @@ struct OriginalFigureGoodsServices {
     std::optional<uint32_t> godGate; //Scenario6+2C0,C5CDA0;52D366..371 reads4.5350A5 is SAVE,not load.
     std::array<int32_t,10> industryPriority{}; //Population7 runtime1312148,ten20-byte category rows,first dword.
 };
+// Atomic city state needed by the land trader during an ordered figure pass.
+struct OriginalFigureTradeBridge {
+    struct Partner {
+        uint8_t kind=0,faction=0,blocked=0;int32_t enabled=0,relationState=0;
+        std::array<uint8_t,4> buys{};
+        std::array<uint8_t,36> quota{},quotaBonus{},quotaUsed{};
+        std::array<int16_t,36> basePrice{},price{},previousPrice{};
+    };
+    std::array<Partner,22> partners{};unsigned currentFaction=0;
+    int32_t exportIncome=0;bool changed=false,noGodPriceEffects=false;
+};
 //5312CB Scenario6 starts at S-28:2 version bytes+1459 requested body,
 //embedded52C480 own1+16 bytes,then5312D9 byte and5312E7 difficulty.
 inline std::optional<unsigned> originalFigureSavedDifficulty(const std::vector<uint8_t>& data,size_t sizeAnchor){
@@ -340,6 +351,7 @@ struct OriginalFigureBuildingLink {
     int16_t roadDistance=0,suppress=0;
     int16_t incomingFigures=0,incomingAmount=0;
     int16_t traderFaction=0; //common+16,wire18;5D3510 station lookup.
+    uint8_t traderPriceBonus=0; //common+6F,wire100;5DE57A.
     std::optional<size_t> currentTrader; //building+160:5DDBDC constructs null;station serializers do not restore it.
     int16_t industryInput=0; //common runtime+40,wire58;Kiln main input stock.
 };
@@ -384,6 +396,7 @@ inline std::optional<std::map<size_t,OriginalFigureBuildingLink>> originalFigure
         link.incomingFigures=detail::i16(data.data()+at+156);link.incomingAmount=detail::i16(data.data()+at+158);
         link.industryInput=detail::i16(data.data()+at+58);
         link.traderFaction=detail::i16(data.data()+at+18);
+        link.traderPriceBonus=data[at+100];
         if(type==0x38||type==0x3a)link.currentTrader=0; //5E1420->5DDBC0,5E1510->5DDC60->5D5BC0:load-reconstructed null.
         const int policy=detail::i16(data.data()+at+88);if(policy>=0)link.storagePolicy=size_t(policy);
         link.roadX=detail::i16(data.data()+at+37);link.roadY=detail::i16(data.data()+at+39);link.roamDirection=data[at+51];
