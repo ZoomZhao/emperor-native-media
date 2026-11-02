@@ -126,6 +126,12 @@ SaveView explicitSave(const game_lab::ResourceRoot& root,const std::string& name
 }
 
 struct Agreement {size_t equal=0,total=0;};
+std::optional<int> randomAdvanceDifference(uint32_t first,uint32_t second,uint32_t targetFirst,uint32_t targetSecond){
+    const auto next=[](uint32_t value){for(unsigned n=0;n<31;++n)value=(value>>1)|((((value>>4)^value)&1u)<<30);return value;};
+    uint32_t a=first,b=second,c=targetFirst,d=targetSecond;
+    for(int n=0;n<=100000;++n){if(a==targetFirst&&b==targetSecond)return n;if(c==first&&d==second)return -n;
+        a=next(a);b=next(b);c=next(c);d=next(d);}return std::nullopt;
+}
 template<class A,class B> void compare(std::map<std::string,Agreement>& groups,const char* group,const A& a,const B& b){
     auto& row=groups[group];++row.total;if(a==b)++row.equal;
 }
@@ -144,6 +150,10 @@ void compareCommitted(const game_lab::OriginalCombinedState& city,const SaveView
         if(c.elapsedYears)compare(groups,"year",*c.elapsedYears,late.year);
         if(city.figures.services&&city.figures.services->population)compare(groups,"population",city.figures.services->population->total,late.population);}
     if(c.scenarioMonths&&late.scenarioMonths)compare(groups,"calendar",*c.scenarioMonths,*late.scenarioMonths);
+    if(city.figures.services&&late.save.terrainOffset<=late.payload.size()&&
+       original_save19::randomSecond+4<=late.payload.size()-late.save.terrainOffset){const auto* p=late.payload.data()+late.save.terrainOffset;
+        compare(groups,"random",city.figures.services->randomFirst,detail::u32(p+original_save19::randomFirst));
+        compare(groups,"random",city.figures.services->randomSecond,detail::u32(p+original_save19::randomSecond));}
     if(c.accounting&&late.accounting){const auto& x=*c.accounting;const auto& y=*late.accounting;
 #define ACCOUNT_FIELD(field) compare(groups,"accounting",x.field,y.field)
         ACCOUNT_FIELD(taxRate);ACCOUNT_FIELD(taxReceived);ACCOUNT_FIELD(taxOther);ACCOUNT_FIELD(wages);ACCOUNT_FIELD(wagesPaid);
@@ -220,7 +230,10 @@ void compareCommitted(const game_lab::OriginalCombinedState& city,const SaveView
             compare(groups,"figure_identity",x.type,y.type);compare(groups,"figure_identity",x.runtimeClass,y.runtimeClass);
             if(x.type!=y.type||x.runtimeClass!=y.runtimeClass)continue;
             compare(groups,"figure_images",x.image,y.image);compare(groups,"figure_images",x.secondaryImage,y.secondaryImage);
-#define FIGURE_FIELD(field) compare(groups,"figure_state",x.field,y.field)
+            const auto figureType="figure_type."+std::to_string(x.type);
+            for(const auto& pair:std::array<std::pair<int32_t,int32_t>,5>{{{x.x,y.x},{x.y,y.y},{x.action,y.action},{x.direction,y.direction},{x.progress,y.progress}}})
+                compare(groups,figureType.c_str(),pair.first,pair.second);
+#define FIGURE_FIELD(field) do {compare(groups,"figure_state",x.field,y.field);compare(groups,"figure_detail." #field,x.field,y.field);} while(false)
             FIGURE_FIELD(alive);FIGURE_FIELD(cell);FIGURE_FIELD(x);FIGURE_FIELD(y);FIGURE_FIELD(subX);FIGURE_FIELD(subY);FIGURE_FIELD(next);
             FIGURE_FIELD(action);FIGURE_FIELD(progress);FIGURE_FIELD(direction);FIGURE_FIELD(previousDirection);FIGURE_FIELD(frame);
             FIGURE_FIELD(subtype);FIGURE_FIELD(resource);FIGURE_FIELD(counter);FIGURE_FIELD(owner);FIGURE_FIELD(amount);FIGURE_FIELD(target);
@@ -293,10 +306,17 @@ int explicitPairs(const game_lab::ResourceRoot& root,const game_lab::AppCityPlay
            !calendar.monthPart||*calendar.monthPart!=late.clock.monthPart||!calendar.month||*calendar.month!=late.clock.month){
             ++blockedPairs;std::cout<<" blocked=calendar_diverged\n";continue;}
         ++reachedPairs;std::map<std::string,Agreement> groups;
-        for(const char* name:{"calendar","treasury","year","population","sentiment","accounting","labor","employment","building_identity","building_common","house_goods","house_services","crop_industry","crop_storage","figure_identity","figure_images","figure_state"})groups[name]={};
+        for(const char* name:{"calendar","treasury","year","population","sentiment","random","accounting","labor","employment","building_identity","building_common","house_goods","house_services","crop_industry","crop_storage","figure_identity","figure_images","figure_state"})groups[name]={};
         compareCommitted(*city,late,groups);
-        std::cout<<" attribution=unresolved\n";
-        for(const auto& [name,row]:groups)std::cout<<"  "<<name<<' '<<row.equal<<'/'<<row.total<<" agree\n";
+        std::cout<<" attribution=unresolved live_buildings="<<early.liveSlots.size()<<'/'<<late.liveSlots.size()
+                 <<" simulated_buildings="<<city->buildings.size()<<"\n";
+        if(city->figures.services&&late.save.terrainOffset<=late.payload.size()&&
+           original_save19::randomSecond+4<=late.payload.size()-late.save.terrainOffset){const auto* p=late.payload.data()+late.save.terrainOffset;
+            const auto delta=randomAdvanceDifference(city->figures.services->randomFirst,city->figures.services->randomSecond,
+                detail::u32(p+original_save19::randomFirst),detail::u32(p+original_save19::randomSecond));
+            std::cout<<"  random_draw_delta=";if(delta)std::cout<<*delta;else std::cout<<"outside_100000_or_different_state";std::cout<<'\n';}
+        for(const auto& [name,row]:groups){if(name.rfind("figure_detail.",0)==0&&row.equal==row.total)continue;
+            std::cout<<"  "<<name<<' '<<row.equal<<'/'<<row.total<<" agree\n";}
     }
     std::cout<<"FIDELITY pairs_reached="<<reachedPairs<<" blocked="<<blockedPairs<<'\n';return 0;
 }
