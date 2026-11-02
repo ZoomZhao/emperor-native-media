@@ -747,6 +747,23 @@ void authored(){
     auto invalidFaction=savedPart2;invalidFaction.statistics->currentFaction=22;const auto invalidFactionResult=originalBuildingStateAfterUpdates(expiring,invalidFaction,1);
     need(!invalidFactionResult.state&&!invalidFactionResult.context&&invalidFactionResult.blocker==OriginalBuildingUpdateBlocker::InvalidState,"part2 out of range current faction refuses before child indexing");
     auto part3=tailContext;part3.monthPart=2;part3.cycleTail->currentHealthRating=147;
+    auto sentiment=tailContext;sentiment.sentimentHypotheses=true;sentiment.populationTotal=100;sentiment.populationPeak=100;sentiment.treasury=10;
+    sentiment.cityEmployment.emplace();sentiment.labor->sentiment=60;sentiment.labor->previousSentiment=60;
+    sentiment.labor->sentimentReached350=0;sentiment.labor->wageBand=3;sentiment.houseModels.emplace();
+    auto& sentimentModel=(*sentiment.houseModels)[0];sentimentModel.fill(0);sentimentModel[8]=1;sentimentModel[14]=2;
+    sentiment.buildings->at(7).type=2;auto& sentimentHouse=sentiment.buildingInputs->at(7);sentimentHouse.alive=1;
+    sentimentHouse.model=0;sentimentHouse.residents=100;sentimentHouse.houseInUse=1;sentimentHouse.house.emplace();sentimentHouse.house->fill(0);
+    sentimentHouse.house->at(53-4)=1;sentimentHouse.sentimentFoodDelay=0;sentimentHouse.sentimentBuildingWeight=0;sentimentHouse.watchRisk=20;
+    auto strictSentiment=sentiment;strictSentiment.sentimentHypotheses.reset();
+    need(originalBuildingSentimentStep(strictSentiment)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictSentiment.labor->sentiment==60,"strict sentiment refuses before publishing any assumed inputs");
+    need(originalBuildingSentimentStep(sentiment)==OriginalBuildingUpdateBlocker::None&&sentiment.labor->sentiment==64&&
+         sentiment.buildingInputs->at(7).watchRisk==12&&sentiment.buildingInputs->at(7).sentimentFoodDelay==0,
+         "sentiment reconciles houses, updates their state and combines food and unemployment contributions");
+    auto sentimentTail=sentiment;sentimentTail.monthPart=7;sentimentTail.labor->sentiment=60;sentimentTail.labor->previousSentiment=60;
+    sentimentTail.buildingInputs->at(7).watchRisk=90;sentimentTail.cycleTail->currentHealthRating=149;
+    need(originalBuildingCycleTailStep(sentimentTail)==OriginalBuildingUpdateBlocker::None&&sentimentTail.monthPart==8&&
+         sentimentTail.cycleTail->previousHealthRating==149&&sentimentTail.cycleTail->currentHealthRating==148&&
+         sentimentTail.labor->sentimentHouseRating==19,"part8 publishes the post-sentiment house rating and its previous value");
     need(originalBuildingCycleTailStep(part3)==OriginalBuildingUpdateBlocker::None&&part3.notificationEffects.back()==0xd6,"part3 rating147 needs no unused previous-rating premise");
     part3=tailContext;part3.monthPart=2;part3.cycleTail->currentHealthRating=151;
     need(originalBuildingCycleTailStep(part3)==OriginalBuildingUpdateBlocker::MonthlyCity,"part3 rating151 requires previous notification rating when consumed");

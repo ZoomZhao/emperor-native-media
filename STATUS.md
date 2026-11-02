@@ -10,13 +10,13 @@
 
 ## Stage 2: 1000 updates — 0/6
 
-`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release and UBSan measured 2026-11-03 with identical results.
+`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release measured 2026-11-03; UBSan has not yet been rerun after the sentiment change.
 
 | Source | Updates | Calendar | First refusal |
 |---|---|---|---|
-| zoom/历史战役自动保存_1 | 407 | 1 / 7 | `monthly_city_4ac650` (part 8 rating `591200`) |
-| 项羽/历史战役自动存档_2 | 407 | 7 / 7 | `monthly_city_4ac650` |
-| 项羽/.sav | 337 | 8 / 7 | `monthly_city_4ac650` |
+| zoom/历史战役自动保存_1 | 815 | 1 / 15 | `monthly_city_4ac650` (month rollover) |
+| 项羽/历史战役自动存档_2 | 815 | 7 / 15 | `monthly_city_4ac650` (month rollover) |
+| 项羽/.sav | 745 | 8 / 15 | `monthly_city_4ac650` (month rollover) |
 | 项羽/历史战役自动保存_1 | 356 | 1 / 6 | `monthly_city_4ac650` |
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
 | zoom/历史战役自动存档_2 | 356 | 7 / 6 | `monthly_city_4ac650` |
@@ -27,7 +27,7 @@ Inner loop: 1,000-update Release run 171 s with rebuild before, 46 s warm after;
 
 ## Fidelity — 0/0 (2026-11-03)
 
-Explicit isolated pairs after the food-stall hypothesis: `2026102301/202610230102 → 202610230103` stops at 161/1104 (`monthly_city_4ac650`); `2026102801/280008 → 280009` cannot prepare (`combined saved building inputs`). No target-state agreement is scored. The latter includes an unmet request and rating notice; the envoy and gift preceded 280008. Its recorded −60 treasury change has unresolved attribution.
+Explicit isolated pairs: `2026102301/202610230102 → 202610230103` stops at 161/1104 at phase 50, part 15 (month rollover); `2026102801/280008 → 280009` cannot prepare (`combined saved building inputs`). No target-state agreement is scored. The latter includes an unmet request and rating notice; the envoy and gift preceded 280008. Its recorded −60 treasury change has unresolved attribution.
 
 ## Open hypotheses
 
@@ -55,6 +55,8 @@ The load hypotheses below are in `game_lab/app/city_playback.cpp` `applyLoadHypo
 
 `single-mill-food-qualifies` (normal-play fallback): assume a sole eligible Mill with ≥100 available food qualifies for the Market's grade-1 request. `541220`/`544480` establish the candidate gates; the blocked save has one matching Mill, 3,000 available food, and saved Market grade range 1–3. The general saved grade bounds and multi-Mill ranking are not yet bound. Verify by retaining the saved bounds and porting `544480`; strict premises retain refusal.
 
+`sentiment-tax-table`: assume the unbound difficulty-dependent `591180` model table contributes zero; verify by parsing its `5D1BF0` model-text source. `sentiment-monuments`: assume `55AE30` has no qualifying completed monument and changes no registry flags; verify by binding the process monument registry. `sentiment-notice-state`: assume notices are enabled and process-only achievement flags are clear; verify from the original initialization and notice registry. `sentiment-reason-multiplier`: assume the `5913E0` floating-point term is not the worst notice reason; verify its saved input and runtime rounding. These hypotheses apply only in normal play; strict premises retain refusal.
+
 ## Next step
 
 Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempted update (speculative after any no-op; all six saves stopped hard):
@@ -63,6 +65,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: close the prioritized `591200` sentiment update, then follow the five saves' next refusal. Type-24 supplier action 6 remains blocked after 286 admitted updates; generic dispatch selects `4D1810`. The animal spawn fallback also needs a real port.
+Next: bind the `591180` tax table, then investigate the part-7 and month-rollover refusals. Type-24 supplier action 6 remains blocked after 286 admitted updates; generic dispatch selects `4D1810`. The animal spawn fallback also needs a real port.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

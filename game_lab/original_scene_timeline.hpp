@@ -37,6 +37,7 @@ struct OriginalCombinedProcessInputs {
     std::optional<uint8_t> annualDemandResponseMode; //C7EDD0->10DE164,4A3A9A..AC caller preference
     std::optional<bool> animalSpawnMissHypothesis; //normal-play hypothesis, never an observed SAV field
     std::optional<bool> singleMillFoodHypothesis; //normal-play hypothesis; strict callers withhold it
+    std::optional<bool> sentimentHypotheses; //591200 unbound subcalls; strict callers withhold
 };
 struct OriginalCombinedBuilding {
     OriginalBuildingUpdateState state;
@@ -163,6 +164,7 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
     c.buildingModels=originalBuildingModels(buildingModels,*difficulty);if(!c.buildingModels)return false;
     c.houseModels=originalBuildingHouseModels(buildingModels,*difficulty);if(!c.houseModels||!c.cycleTail)return false;
     c.evolutionDisabled=city.figures.buildingEditMode;c.forceHouseEvolution=city.process.forceHouseEvolution;
+    c.sentimentHypotheses=city.process.sentimentHypotheses;
     c.cycleTail->alternateMode=city.process.alternateMode;c.cycleTail->cropQuality=ground.state.gEAC3F0;c.cycleTail->waterMode=ground.waterMode;
     c.effectDecayCounter=city.process.effectDecayCounter;c.effectGrid=city.figures.services->serviceGrid;
     c.wallClock=city.process.wallClock;c.cropDispatchModel=city.process.cropDispatchModel;c.cropDispatchRadius=city.process.cropDispatchRadius;
@@ -433,7 +435,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
     //wire64 is a distinct field. Figures' category name refers to wire20.
     if(c.buildingLinks)for(const auto& e:*c.buildingInputs)c.buildingLinks->at(e.first).category=e.second.network;
     if(c.buildingLinks)for(const auto& e:*c.buildingInputs){auto& link=c.buildingLinks->at(e.first);
-        const auto& i=e.second;link.serviceCount=i.operational;link.destinationEnabled=i.enabled;
+        const auto& i=e.second;link.serviceCount=i.operational;link.destinationEnabled=i.enabled;link.watchRisk=i.watchRisk;
         if(c.productionInputs&&c.productionInputs->count(e.first))link.hunterReturnGoods=c.productionInputs->at(e.first).secondaryStock;
         if(i.cropWorkers){link.harvestFarmers=i.cropWorkers->at(0);link.suppliers=i.cropWorkers->at(1);}
         if(!originalBuildingIsHouse(link.type))link.traderFaction=i.model;

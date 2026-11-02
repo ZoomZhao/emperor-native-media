@@ -462,6 +462,10 @@ struct OriginalBuildingUpdateContext {
         // Saved Population7 fields 594C48 / 594B18; absent in old checkpoints.
         std::optional<uint8_t> sentimentReached350;
         std::optional<int32_t> previousSentiment;
+        int32_t sentimentTaxable=0,sentimentShortages=0,sentimentReason=0;
+        std::optional<int32_t> sentimentHouseRating;
+        std::optional<int32_t> sentimentBuildingPercent;
+        bool sentimentNoticeDirty=false;
         int32_t inDelay=0,outDelay=0,arrivals=0,departures=0,unplaced=0,yearArrivals=0,spacing=0,statisticsPending=0;
         int32_t populationSum=0,sampleCount=0,averagePopulation=0,growthCursor=0;
         int16_t deathCursor=0;int32_t lastPopulationDelta=0,excessDepartureTotal=0; //591900/591950,1311F90/8C.
@@ -613,6 +617,7 @@ struct OriginalBuildingUpdateContext {
         unsigned calls=0;
     };
     std::optional<CycleTail> cycleTail;
+    std::optional<bool> sentimentHypotheses;
     std::optional<int32_t> scenarioMonths; //Scenario6+5B4,52D5B4
     std::optional<bool> cropFestival; //48E110 reads saved Festival4+50/+54/+58.
     std::optional<std::array<int32_t,2>> cropDispatchRadius; //84C558/84C554,process table defaults3/3.
@@ -1982,6 +1987,92 @@ inline std::optional<int32_t> originalBuildingWageSentiment(int32_t index,int32_
     if(index<0||index>=6)return std::nullopt;
     const int32_t value=values[index];return value<0&&population<350&&!reached350?0:value;
 }
+// 591200. The unbound pieces are deliberately scoped to their own calls;
+// normal play opts into them while strict premises retain the old refusal.
+inline OriginalBuildingUpdateBlocker originalBuildingSentimentStep(OriginalBuildingUpdateContext& c){
+    if(c.sentimentHypotheses!=true||!c.labor||!c.populationTotal||!c.populationPeak||!c.treasury||
+       !c.cityEmployment||!c.buildingInputs||!c.buildings||!c.houseModels)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    auto& l=*c.labor;if(!l.sentimentReached350||!l.previousSentiment)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    int32_t residents=0;for(const auto& e:*c.buildingInputs){const auto& i=e.second;const auto b=c.buildings->find(e.first);
+        if(b==c.buildings->end())return OriginalBuildingUpdateBlocker::MonthlyCity;
+        if(b->second.type>=2&&b->second.type<=17&&i.alive&&i.alive!=2&&i.alive!=5&&i.alive!=6&&i.houseInUse)
+            residents=originalBuildingAdd32(residents,i.residents);}
+    // 517CC0/517DE0 recount registered accepting houses;591970 clamps a
+    // reduction and updates the population peak via590A50.
+    *c.populationTotal=std::max(0,residents);*c.populationPeak=std::max(*c.populationPeak,*c.populationTotal);
+    if(*c.populationTotal>=350)*l.sentimentReached350=1;
+    const bool reached=*l.sentimentReached350!=0;const int old=l.sentiment;
+    const auto wage=originalBuildingWageSentiment(l.wageBand,*c.populationTotal,reached);
+    if(!wage)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    const int unemployment=originalBuildingUnemploymentSentiment(c.cityEmployment->unemploymentPercent,*c.populationTotal,reached);
+    // HYPOTHESIS(sentiment-tax-table): 591180's difficulty-dependent table
+    // is process-loaded from model text and is not bound yet. Use neutral tax
+    // contribution; keep the actual saved tax inputs for the eventual port.
+    const int tax=0;
+    // 590F30 updates each ordinary house's common+8C and food delay+5C.
+    int32_t houseSum=0,houseCount=0;const int adjustment=(40-old)/2;
+    for(auto& e:*c.buildingInputs){auto& i=e.second;const auto type=c.buildings->at(e.first).type;
+        if((i.alive!=1&&i.alive!=3)||type<2||type>17)continue;
+        if(!i.residents){i.watchRisk=0;continue;}
+        const auto model=c.houseModels->find(i.model);
+        if(!i.house||!i.sentimentFoodDelay||model==c.houseModels->end())return OriginalBuildingUpdateBlocker::MonthlyCity;
+        const auto& m=model->second;
+        if(type<11){i.watchRisk=originalBuildingAdd32(i.watchRisk,originalBuildingAdd32(m[14],adjustment));
+            i.watchRisk=std::min(100,std::max(m[15],i.watchRisk));}
+        if(m[8]){int contribution=0;auto& delay=*i.sentimentFoodDelay;
+            if(int(i.house->at(53-4))>=m[8]){contribution=2;delay=0;}
+            else {delay=uint8_t(delay+1);if(delay>3)delay=3;contribution=delay>=3?-3:delay>=2?-2:-1;}
+            houseSum=originalBuildingAdd32(houseSum,contribution);++houseCount;}
+        else *i.sentimentFoodDelay=0;
+    }
+    int house=0;if(houseCount){house=houseSum/houseCount;const int remainder=houseSum%houseCount;
+        if(std::abs(remainder)>houseCount/2)house+=houseSum<0?-1:1;}
+    if(house<0&&*c.populationTotal<350&&!reached)house=0;
+    // 5915C0 counts type127 wells; its contribution is at most -4.
+    int32_t wells=0;for(const auto& e:*c.buildingInputs)if((e.second.alive==1||e.second.alive==3)&&c.buildings->at(e.first).type==127)++wells;
+    int well=0;if(*c.populationTotal>350&&int64_t(*c.populationTotal)<=int64_t(wells)*500)
+        well=-std::min(4,int(int64_t(wells)*500 / *c.populationTotal));
+    // 591670 weights common+A0, excluding completed monument models.
+    int32_t weighted=0,total=0;
+    if(*c.populationTotal<=350)l.sentimentBuildingPercent=70;
+    else for(const auto& e:*c.buildingInputs){const auto& i=e.second;if(i.alive!=1&&i.alive!=3)continue;
+        if(!i.sentimentBuildingWeight)return OriginalBuildingUpdateBlocker::MonthlyCity;const int32_t w=*i.sentimentBuildingWeight;
+        if(!w)continue;const unsigned t=c.buildings->at(e.first).type;
+        const bool monument=(t>=76&&t<=86)||t==92||t==93||(t>=253&&t<=268);
+        if(w>1&&monument&&i.model!=0)continue;total=originalBuildingAdd32(total,w>1?w:1);
+        if(w>=1)weighted=originalBuildingAdd32(weighted,w>1?w:1);}
+    int building=0;if(*c.populationTotal>350&&total){const int64_t percent=int64_t(weighted)*100/total;
+        l.sentimentBuildingPercent=int32_t(percent);building=percent==100?2:percent>=90?1:percent>=80?0:percent>=70?-1:percent>=60?-2:percent>=50?-3:percent>=40?-4:-5;}
+    int shortage=-(l.sentimentShortages>=3?4:0)-(l.sentimentShortages>=2?3:0)-(l.sentimentShortages>=1?2:0)-(*c.treasury<0?2:0);
+    // HYPOTHESIS(sentiment-monuments): 55AE30's process monument registry
+    // has no completed qualifying monument. It contributes zero and changes
+    // no registry flags; reconstruct the registry to verify this branch.
+    const int monuments=0;
+    int score=originalBuildingAdd32(originalBuildingAdd32(originalBuildingAdd32(originalBuildingAdd32(tax,*wage),unemployment),house),
+        originalBuildingAdd32(originalBuildingAdd32(shortage,well),originalBuildingAdd32(building,2*monuments+1)));
+    const int drift=old<11?4:old<21?3:old<31?2:old<41?1:old<61?0:old<71?-1:old<81?-2:old<91?-3:-4;
+    if(old<41&&score<0)score=std::min(0,originalBuildingAdd32(score,drift));
+    else if(old>=61&&score>=0)score=std::max(0,originalBuildingAdd32(score,drift));
+    l.sentiment=std::clamp(originalBuildingAdd32(old,score),0,100);
+    // HYPOTHESIS(sentiment-reason-multiplier): the 5913E0 floating-point
+    // contribution does not become the worst notice reason. This changes the
+    // notice attribution only; it is not part of the sentiment sum.
+    int worst=0;for(const auto& row:std::array<std::pair<int,int>,7>{{{house,1},{unemployment,2},{tax,3},{*wage,4},{shortage,5},{building,7},{well,8}}})
+        if(row.first<worst){worst=row.first;l.sentimentReason=row.second;}
+    // Both names refer to Population7+2BB4 (wire11177).
+    if(c.accounting)c.accounting->festivalCount=l.sentimentReason;
+    // HYPOTHESIS(sentiment-notice-state): the notice UI is available and its
+    // process-only achievement flags are clear. 548920 sets UI dirty whenever
+    // it crosses a displayed band, even if no message is emitted.
+    const int before=*l.previousSentiment,after=l.sentiment;
+    if(before/10!=after/10){int notice=0;if(before/10<after/10)notice=after/10+136;
+        else if(*c.populationTotal>350){if(after>=50)notice=after/10+126;
+            else {const int reason=l.sentimentReason-1;notice=after<=0?reason+51:16*(after/10)+reason+67;}}
+        if(notice>0)c.notificationEffects.push_back(unsigned(notice));l.sentimentNoticeDirty=true;}
+    l.previousSentiment=l.sentiment;
+    if(c.figureServices&&c.figureServices->population){c.figureServices->population->total=*c.populationTotal;c.figureServices->population->peak=*c.populationPeak;}
+    return OriginalBuildingUpdateBlocker::None;
+}
 //4AC650 ordinary parts: health, date construction468210 (returns false),
 //42DA70 expiry,593090 forecast,part-specific work,then4C0570 crop decay.
 inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(OriginalBuildingUpdateContext& c){
@@ -2015,7 +2106,18 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
     //4ACAFE calls 591200 for part 8 on every cycle. The modulo-16 gate
     //at 4AC882 belongs to the preceding rollover block and calls 4FF020,
     //not 591200. Part 6 does not call the rating.
-    if(part==8)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    if(part==8){const auto sentiment=originalBuildingSentimentStep(c);if(sentiment!=OriginalBuildingUpdateBlocker::None)return sentiment;
+        // 4ACB03..14 saves the previous 13128C0 value then 53BB30
+        // recomputes both displayed house-sentiment bands from common+8C.
+        tail.previousHealthRating=tail.currentHealthRating;int count=0,above70=0,above80=0;bool above50=false;
+        for(const auto& e:*c.buildingInputs){const auto& i=e.second;const auto type=c.buildings->at(e.first).type;
+            if((i.alive!=1&&i.alive!=3)||type<2||type>17)continue;++count;
+            if(i.watchRisk>80){++above80;above50=true;}else if(i.watchRisk>70){++above70;above50=true;}
+            else if(i.watchRisk>50)above50=true;}
+        const int medium=count?100*above70/count:0,high=count?100*above80/count:0;
+        c.labor->sentimentHouseRating=!above50?23:medium>50?18:high>25?19:high>10?21:22;
+        tail.currentHealthRating=!above50?152:medium>50?147:high>25?148:high>10?149:151;
+    }
     //4A8ED0 selects a partner only when one is alive, holds reserves at +3AB8,
     //is not blocked, is not kind 4 or 6 and is not the current faction. With no
     //such partner the call returns before its request, so nothing is missing.
@@ -2431,6 +2533,7 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     for(unsigned n=0;n<4;++n){stats.demand[n]=value(11789+4*n);stats.groups[n]=value(11841+4*n);}c.statistics=stats;
     c.accounting=a;OriginalBuildingUpdateContext::Labor l;l.sentiment=value(18);l.health=value(26);l.incoming=value(9754);l.outgoing=value(9758);
     l.sentimentReached350=data[p+11266];l.previousSentiment=value(11173);
+    l.sentimentTaxable=value(10454);l.sentimentShortages=value(11448);l.sentimentReason=value(11177);
     l.outRemainder=value(9762);l.inRemainder=value(9766);l.averagePopulation=value(9778);l.populationSum=value(9782);l.sampleCount=value(9790);
     l.statisticsPending=value(9794);l.growthCursor=value(9798);l.deathCursor=detail::i16(data.data()+p+9802);l.lastPopulationDelta=value(9774);l.excessDepartureTotal=value(9770);
     l.arrivals=value(9806);l.departures=value(9810);

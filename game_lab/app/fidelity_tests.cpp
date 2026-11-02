@@ -280,7 +280,10 @@ int explicitPairs(const game_lab::ResourceRoot& root,const game_lab::AppCityPlay
         for(unsigned n=1;n<=*distance;++n)if(!playback.step(uint64_t(n)*interval))break;
         std::cout<<" updates="<<playback.status().updates<<'/'<<*distance;
         if(playback.status().updates!=*distance||!playback.status().refusal.empty()){
-            ++blockedPairs;std::cout<<" blocked="<<(playback.status().refusal.empty()?"not_admitted":playback.status().refusal)<<'\n';continue;}
+            ++blockedPairs;std::cout<<" blocked="<<(playback.status().refusal.empty()?"not_admitted":playback.status().refusal);
+            if(const auto* stopped=surface.cityPlaybackState();stopped&&stopped->buildingContext){const auto& c=*stopped->buildingContext;
+                std::cout<<" phase="<<stopped->phase;if(c.monthPart)std::cout<<" part="<<*c.monthPart;}
+            std::cout<<'\n';continue;}
         const auto* city=surface.cityPlaybackState();if(!city||!city->buildingContext){++blockedPairs;std::cout<<" blocked=city_state_unavailable\n";continue;}
         const auto& calendar=*city->buildingContext;
         if(city->phase!=late.clock.phase||!calendar.cycle||*calendar.cycle!=late.clock.cycle||
