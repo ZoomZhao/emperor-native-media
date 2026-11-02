@@ -1753,9 +1753,13 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
     }else if(f.action==7||f.action==9||f.action==10){
         bool nearby=false;
         if(f.action==7){const auto target=context->figures.find(size_t(f.target));const auto model=context->models.find(40);
-            if(target==context->figures.end()||model==context->models.end()||model->second[6]==INT32_MIN)return out;
+            if(target==context->figures.end())return out;
             const auto& t=target->second;
-            if(t.alive!=1||t.action==4||t.action==10||t.type<75||t.type>77)return out;
+            if(t.alive!=1||t.action==4||t.action==10||t.type<75||t.type>77){ //4D3101..312E ->4D32A4
+                f.action=6;f.counter=0;
+                if(!originalFigureWriteWalkingImage(f,0x4ebe,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+                originalFigurePublishWrites(out,f,*context,local);return out;}
+            if(model==context->models.end()||model->second[6]==INT32_MIN)return out;
             const int distance=std::max(std::abs(int(f.x)-t.x),std::abs(int(f.y)-t.y));
             if(!t.hidden&&distance<=model->second[6]){f.counter=originalFigureWord(int(f.counter)-1);if(f.counter<=0){
                     out.status=OriginalFigureUpdateStatus::Projectile;

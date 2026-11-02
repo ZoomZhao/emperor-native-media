@@ -1952,6 +1952,9 @@ void authored(){
         need(retargeted.state&&retargeted.state->action==7&&retargeted.state->route==0&&
             retargeted.state->destinationX==prey.x&&retargeted.state->destinationY==prey.y,
             "Hunter reaching a stale destination retargets still-qualified prey and releases its ended route");
+        context.figures[prey.slot].alive=0;const auto lostPrey=originalFigureFirstUpdate(hunter,refs,&context,0xc0);
+        need(lostPrey.state&&lostPrey.state->action==6&&lostPrey.state->counter==0,
+            "Hunter whose target is no longer alive resets to the prey search state");
     }
     {
         // Literal Goods1/Population7 inputs, independent of runtime offsets.
