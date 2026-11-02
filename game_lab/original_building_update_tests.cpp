@@ -805,6 +805,11 @@ void authored(){
          "monthly wages charge employed workers and refresh accounting totals");
     need(originalBuildingMonthlyWages(wages,true)==OriginalBuildingUpdateBlocker::None&&*wages.treasury==340,
          "monthly wages preserve the editor-mode early return");
+    auto deficit=wages;deficit.treasury=-1;deficit.labor->debtMonths=11;deficit.labor->sentimentShortages=2;
+    need(originalBuildingMonthlyDebt(deficit)==OriginalBuildingUpdateBlocker::None&&deficit.labor->debtMonths==12&&
+         deficit.labor->sentimentShortages==3&&deficit.notificationEffects.back()==224,"monthly debt advances its saved counter and emits the annual notice");
+    deficit.treasury=0;need(originalBuildingMonthlyDebt(deficit)==OriginalBuildingUpdateBlocker::None&&
+         deficit.labor->debtMonths==0&&deficit.labor->sentimentShortages==0,"nonnegative treasury clears both debt counters");
     auto productionRoll=sentiment;productionRoll.cycleTail->monthlyProduction={17,23};
     productionRoll.cycleTail->monthlyStatistics={1,2,3,4,5,6,7,8,9};
     productionRoll.buildingTotals->producers[4]=4;productionRoll.buildingTotals->producers[2]=2;productionRoll.buildingTotals->producers[8]=8;
@@ -813,6 +818,19 @@ void authored(){
          productionRoll.cycleTail->monthlyProduction==std::array<int32_t,2>{0,0}&&
          productionRoll.cycleTail->monthlyStatistics==std::array<int32_t,9>{8,3,0,0,6,0,0,9,0},
          "monthly production rolls saved counters and clears current values");
+    auto rollover=sentiment;rollover.monthPart=15;rollover.month=7;rollover.monthlyRolloverHypotheses=true;
+    rollover.scenarioMonths=11;rollover.scenarioMonthCounter=7;rollover.shortageNoticeCountdown=2;rollover.scenarioFoodOverride=0;
+    rollover.cycleTail->populationHistory.emplace();rollover.labor->monthlyTimerActive=1;rollover.labor->monthlyTimerRemaining=4;
+    rollover.accounting.emplace();rollover.accounting->wages=30;rollover.cityEmployment->employed=240;rollover.treasury=400;
+    originalHouseSetGoodsWord(rollover.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0,40);
+    auto strictRollover=rollover;strictRollover.monthlyRolloverHypotheses.reset();
+    need(originalBuildingCycleTailStep(strictRollover)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictRollover.monthPart==15,
+         "strict rollover refuses and preserves its calendar");
+    need(originalBuildingCycleTailStep(rollover)==OriginalBuildingUpdateBlocker::None&&rollover.monthPart==0&&rollover.month==8&&
+         rollover.scenarioMonths==12&&rollover.scenarioMonthCounter==8&&*rollover.treasury==340&&rollover.labor->monthlyFoodConsumed==25&&
+         rollover.labor->monthlyTimerRemaining==3&&rollover.shortageNoticeCountdown==1&&
+         rollover.cycleTail->populationHistory->values[0]==100&&rollover.cycleTail->populationHistory->cursor==1,
+         "month rollover publishes wages, food, saved counters, population history and new calendar together");
     auto strictSentiment=sentiment;strictSentiment.sentimentHypotheses.reset();
     need(originalBuildingSentimentStep(strictSentiment)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictSentiment.labor->sentiment==60,"strict sentiment refuses before publishing any assumed inputs");
     need(originalBuildingSentimentStep(sentiment)==OriginalBuildingUpdateBlocker::None&&sentiment.labor->sentiment==64&&

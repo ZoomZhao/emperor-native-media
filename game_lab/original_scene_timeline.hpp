@@ -40,6 +40,7 @@ struct OriginalCombinedProcessInputs {
     std::optional<bool> sentimentHypotheses; //591200 unbound subcalls; strict callers withhold
     std::optional<bool> partnerEventHypotheses; //4A8ED0 unbound event mutations
     std::optional<bool> landTraderDispatch; //explicit 5DC0AC land-caravan opt-in
+    std::optional<bool> monthlyRolloverHypotheses;
 };
 struct OriginalCombinedBuilding {
     OriginalBuildingUpdateState state;
@@ -168,6 +169,7 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
     c.evolutionDisabled=city.figures.buildingEditMode;c.forceHouseEvolution=city.process.forceHouseEvolution;
     c.sentimentHypotheses=city.process.sentimentHypotheses;
     c.partnerEventHypotheses=city.process.partnerEventHypotheses;
+    c.monthlyRolloverHypotheses=city.process.monthlyRolloverHypotheses;
     c.landTraderDispatch=city.process.landTraderDispatch;
     city.figures.traderStationGoodsHypothesis=city.process.landTraderDispatch;
     c.cycleTail->alternateMode=city.process.alternateMode;c.cycleTail->cropQuality=ground.state.gEAC3F0;c.cycleTail->waterMode=ground.waterMode;

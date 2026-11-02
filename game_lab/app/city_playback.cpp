@@ -66,6 +66,7 @@ void applyLoadHypotheses(OriginalCombinedProcessInputs& p) {
     // Strict premises preserve their refusal.
     p.partnerEventHypotheses = true;
     p.landTraderDispatch = true; //5DC0AC traced land caravan; strict retains refusal.
+    p.monthlyRolloverHypotheses = true; //Individual rollover assumptions are labelled at their calls.
     // HYPOTHESIS(event-ui-gates-closed-at-load): 5EFF20 reads singleton 1E53538
     // bytes +17 then +16 and returns at 5F00A2 with no stores when a byte is
     // zero (SAV_FIGURES.md). At load/continue no event dialog is open, so both

@@ -8,26 +8,26 @@
 
 "Runs" means no refusal; agreement with the original game is **unmeasured**. 100 updates ≈ two monthly tails.
 
-## Stage 2: 1000 updates — 0/6
+## Stage 2: 1000 updates — 2/6
 
 `make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release measured 2026-11-03; UBSan has not yet been rerun after the sentiment change.
 
 | Source | Updates | Calendar | First refusal |
 |---|---|---|---|
-| zoom/历史战役自动保存_1 | 815 | 1 / 15 | `monthly_city_4ac650` (month rollover) |
-| 项羽/历史战役自动存档_2 | 815 | 7 / 15 | `monthly_city_4ac650` (month rollover) |
-| 项羽/.sav | 745 | 8 / 15 | `monthly_city_4ac650` (month rollover) |
+| zoom/历史战役自动保存_1 | 1000 | 2 / 3 | none |
+| 项羽/历史战役自动存档_2 | 1000 | 8 / 3 | none |
+| 项羽/.sav | 811 | 9 / 1 | `type_action_route_target_combat_update_slot_1858_type_40_action_7` |
 | 项羽/历史战役自动保存_1 | 611 | 1 / 11 | `monthly_city_4ac650` (part 12) |
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
 | zoom/历史战役自动存档_2 | 451 | 7 / 8 | `type_action_route_target_combat_update_slot_1984_type_45_action_7` (station route) |
 
-Priority: part 8 calls `591200` every cycle. Disassembly identifies population reconciliation and city sentiment, including per-house `590F30`, building condition `591670`, tax/wages/unemployment, monuments `55AE30`, and notices `548920`. Common5 +5C/+8C/+A0 (wire 83/125/144) and Population7 latch/previous sentiment (wire 11266/11173) are bound. Legacy checkpoint decoding leaves the new fields absent. Implement the remaining subcalls; rollover services remain refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
+Ordinary month rollover now runs traced food, wages, debt, production and population-history effects plus explicitly labelled remaining assumptions. Annual rollover remains refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
 
 Inner loop: 1,000-update Release run 171 s with rebuild before, 46 s warm after; six stop points unchanged. Build conditions differ, and the 30 s target remains unmet.
 
-## Fidelity — 0/0 (2026-11-03)
+## Fidelity — 1 pair reached (2026-11-03)
 
-Explicit isolated pairs: `2026102301/202610230102 → 202610230103` stops at 161/1104 at phase 50, part 15 (month rollover); `2026102801/280008 → 280009` cannot prepare (`combined saved building inputs`). No target-state agreement is scored. The latter includes an unmet request and rating notice; the envoy and gift preceded 280008. Its recorded −60 treasury change has unresolved attribution.
+`2026102301/202610230102 → 202610230103` reached 1104/1104: calendar 5/5, treasury 1/1, year 1/1, population 1/1, sentiment 3/3, accounting 12/12, labor 20/20, employment 55/55, figure identity 2041/2041, figure images 22/42, figure state 1918/2331. Building and house groups 0/0; investigate availability and figure divergences. `2026102801/280008 → 280009` cannot prepare (`combined saved building inputs`); its −60 treasury change remains unattributed.
 
 ## Open hypotheses
 
@@ -61,6 +61,8 @@ The load hypotheses below are in `game_lab/app/city_playback.cpp` `applyLoadHypo
 
 `trader-station-offers-goods`: assume `5DB640` finds a trade at the merchant's alive, staffed, road-connected station. The blocked save has such a station with storage records; its partner permission and stock searches remain unbound. Verify by porting those predicates and comparing trade and station state. Strict premises retain refusal.
 
+Rollover hypotheses (normal play only; strict premises refuse): `rollover-manager-empty` assumes the `4BFF20/4BFE10` manager has no monthly action; `rollover-primary-building-inactive` assumes the type-110 hook in `592060` is inactive; `rollover-health-target-stable` and `rollover-tax-recount-stable` preserve the latest targets across the unbound house recounts `590DB0` and `4AE900`; `rollover-normal-finance-mode` assumes `591AC0`'s editor gate is clear; `rollover-food-prelude-neutral` assumes `4AEDF0`'s additional effects and the `5482E0` notice are absent; `rollover-monument-timer-inactive` assumes `55AF70` has no qualifying timer; `rollover-religion-monthly-neutral` assumes `5A8620` has no additional effects; `rollover-other-notice-counters-zero` assumes the 19 unbound `547670` counters are zero; `rollover-road-refresh-stable` assumes `4B6D00/5AD8F0` leave terrain and roads unchanged; `rollover-notice-sort-neutral` assumes `547440` only changes notice presentation; `rollover-incoming-cargo-stable` preserves the `4EB850` counts; `rollover-monthly-events-empty` and `rollover-scenario-events-empty` assume the event calls named in code produce no additional events. Evidence is the cited executable call order and bound saved state, not proof of these outcomes. Verify by porting each named service and comparing target-calendar saves. The annual branch remains refused.
+
 ## Next step
 
 Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempted update (speculative after any no-op; all six saves stopped hard):
@@ -69,6 +71,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: port month-rollover services and rerun the clean fidelity pair; then investigate part 12, the land trader's station route, and type-24 supplier action 6. The monthly house-food consumption helper is implemented but not yet invoked; rollover remains refused. The part-7/12 partner gate uses saved +3ACC (`enabled`), not unrelated +3AB8 reserves.
+Next: diagnose the clean pair's figure divergence and unavailable building comparisons before part 12, the land trader's station route, and type-24 supplier action 6. The part-7/12 partner gate uses saved +3ACC (`enabled`), not unrelated +3AB8 reserves.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

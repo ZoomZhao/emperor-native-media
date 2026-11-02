@@ -480,6 +480,7 @@ struct OriginalBuildingUpdateContext {
         std::optional<uint8_t> sentimentReached350;
         std::optional<int32_t> previousSentiment;
         int32_t monthlyFoodConsumed=0; //Population7+2BCC, wire11193; 5187ED
+        int32_t debtMonths=0,monthlyTimerActive=0,monthlyTimerRemaining=0; //Population7 wire11444/11149/11153
         int32_t sentimentTaxable=0,sentimentShortages=0,sentimentReason=0;
         std::optional<int32_t> sentimentHouseRating;
         std::optional<int32_t> sentimentBuildingPercent;
@@ -586,6 +587,7 @@ struct OriginalBuildingUpdateContext {
     };
     std::optional<Trade> trade;
     std::optional<bool> monthlyServices; //additive annual/quarterly services;legacy tail unchanged
+    std::optional<bool> monthlyRolloverHypotheses;
     std::optional<bool> partnerEventHypotheses;
     std::optional<bool> landTraderDispatch;
     std::optional<uint8_t> scenarioPartnerConflict; //Scenario6+5BF,52D5E4, wire1460
@@ -645,6 +647,7 @@ struct OriginalBuildingUpdateContext {
     std::optional<bool> sentimentHypotheses;
     std::optional<OriginalBuildingSentimentTaxTable> sentimentTaxTable;
     std::optional<int32_t> scenarioMonths; //Scenario6+5B4,52D5B4
+    std::optional<int16_t> scenarioMonthCounter; //Scenario6+0A,52D242
     std::optional<bool> cropFestival; //48E110 reads saved Festival4+50/+54/+58.
     std::optional<std::array<int32_t,2>> cropDispatchRadius; //84C558/84C554,process table defaults3/3.
     std::map<size_t,uint8_t> farmerTasks; //figure+89,1=grow,2=harvest
@@ -2171,6 +2174,14 @@ inline OriginalBuildingUpdateBlocker originalBuildingMonthlyProduction(OriginalB
     s[0]=c.buildingTotals->producers[8];s[1]=s[2];s[4]=s[5];s[7]=s[8];
     s[2]=s[3]=s[5]=s[6]=s[8]=0;return OriginalBuildingUpdateBlocker::None;
 }
+// 4AC5B0 tracks consecutive deficit months and emits a yearly debt notice.
+inline OriginalBuildingUpdateBlocker originalBuildingMonthlyDebt(OriginalBuildingUpdateContext& c){
+    if(!c.labor||!c.treasury)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    auto& l=*c.labor;if(*c.treasury>=0){l.debtMonths=0;l.sentimentShortages=0;return OriginalBuildingUpdateBlocker::None;}
+    l.debtMonths=originalBuildingAdd32(l.debtMonths,1);
+    if(l.debtMonths&&l.debtMonths%12==0){l.sentimentShortages=originalBuildingAdd32(l.sentimentShortages,1);c.notificationEffects.push_back(224);}
+    return OriginalBuildingUpdateBlocker::None;
+}
 inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(OriginalBuildingUpdateContext& c){
     if(!c.cycleTail||!c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.monthPart||!c.month||!c.cycle)return OriginalBuildingUpdateBlocker::MonthlyCity;
     //Alternate UI mode takes the early return at 4AC9D3 before any part work.
@@ -2186,8 +2197,36 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
     //and the month advances, wrapping 11 to 0.
     const bool monthRollover=*c.monthPart>15;
     if(monthRollover){if(*c.month>11)return OriginalBuildingUpdateBlocker::InvalidState;
+        if(c.monthlyRolloverHypotheses!=true||!c.scenarioMonths||!c.scenarioMonthCounter||!c.shortageNoticeCountdown)return OriginalBuildingUpdateBlocker::MonthlyCity;
+        const unsigned nextMonth=*c.month==11?0:*c.month+1;
+        if(nextMonth==1)return OriginalBuildingUpdateBlocker::MonthlyCity; //4AC7FD annual services remain unported.
         *c.monthPart=15;const auto reset=originalBuildingResetHarvestedCrops(c,*c.month);if(reset!=OriginalBuildingUpdateBlocker::None)return reset;
-        *c.monthPart=0;*c.month=*c.month==11?0:*c.month+1;}
+        *c.monthPart=0;
+        // HYPOTHESIS(rollover-manager-empty): 4BFF20/4BFE10's process registry has no monthly action.
+        // HYPOTHESIS(rollover-primary-building-inactive): 592060's special type110 monthly hook is inactive.
+        // HYPOTHESIS(rollover-health-target-stable): 590DB0's house-health recount leaves the current target unchanged.
+        // HYPOTHESIS(rollover-tax-recount-stable): 4AE900's house-tax recount leaves the last computed tax inputs unchanged.
+        // HYPOTHESIS(rollover-normal-finance-mode): 591AC0's process editor-mode gate is clear in normal play.
+        auto result=originalBuildingMonthlyWages(c,false);if(result!=OriginalBuildingUpdateBlocker::None)return result;
+        result=originalBuildingMonthlyDebt(c);if(result!=OriginalBuildingUpdateBlocker::None)return result;
+        result=originalBuildingMonthlyProduction(c);if(result!=OriginalBuildingUpdateBlocker::None)return result;
+        // HYPOTHESIS(rollover-food-prelude-neutral): 4AEDF0's other food-registry effects and 5482E0's notice are absent.
+        result=originalBuildingMonthlyHouseFood(c);if(result!=OriginalBuildingUpdateBlocker::None)return result;
+        // HYPOTHESIS(rollover-monument-timer-inactive): 55AF70 has no qualifying monument timer.
+        if(c.labor->monthlyTimerActive)c.labor->monthlyTimerRemaining=originalBuildingSub32(c.labor->monthlyTimerRemaining,1); //591DB0
+        // HYPOTHESIS(rollover-religion-monthly-neutral): 5A8620 has no additional monthly religion effects.
+        if(*c.shortageNoticeCountdown>0)--*c.shortageNoticeCountdown; //547670, the bound shortage entry.
+        // HYPOTHESIS(rollover-other-notice-counters-zero): the other 19 counters in 547670 are zero.
+        // HYPOTHESIS(rollover-road-refresh-stable): 4B6D00 and 5AD8F0 leave terrain and road state unchanged.
+        // HYPOTHESIS(rollover-notice-sort-neutral): 547440 changes only unbound notice presentation state.
+        // HYPOTHESIS(rollover-incoming-cargo-stable): 4EB850 leaves building incoming-cargo counts unchanged.
+        *c.month=nextMonth;
+        // HYPOTHESIS(rollover-monthly-events-empty): 523740,491CF0 and 4AFF80 have no pending monthly event.
+        result=originalBuildingMonthlyPopulationHistory(c);if(result!=OriginalBuildingUpdateBlocker::None)return result;
+        // HYPOTHESIS(rollover-scenario-events-empty): 55CEE0,48EB90,4A5910 and 4FEC80 produce no scenario event.
+        *c.scenarioMonths=originalBuildingAdd32(*c.scenarioMonths,1);
+        *c.scenarioMonthCounter=originalBuildingSignedWord(uint16_t(uint16_t(*c.scenarioMonthCounter)+1));
+    }
     for(auto& e:*c.buildingInputs){auto& i=e.second;if(i.alive!=1&&i.alive!=3)continue;i.word92=0;
         if(!i.modelUpgrade)return OriginalBuildingUpdateBlocker::MonthlyCity;if(*i.modelUpgrade){if(!--*i.modelUpgrade)c.buildingRedraws.insert(e.first);
             if(c.buildings->at(e.first).wellImageInputs)c.buildings->at(e.first).wellImageInputs->byte6f=*i.modelUpgrade;}}
@@ -2198,11 +2237,10 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
     //the part-0 scan and the 591200 rating at 4ACAFE. Those services and
     //the rating are not yet closed, so refuse without publishing the
     //staged calendar and crop changes.
-    if(monthRollover)return OriginalBuildingUpdateBlocker::MonthlyCity;
     //4ACAFE calls 591200 for part 8 on every cycle. The modulo-16 gate
     //at 4AC882 belongs to the preceding rollover block and calls 4FF020,
     //not 591200. Part 6 does not call the rating.
-    if(part==8){const auto sentiment=originalBuildingSentimentStep(c);if(sentiment!=OriginalBuildingUpdateBlocker::None)return sentiment;
+    if(part==8||monthRollover){const auto sentiment=originalBuildingSentimentStep(c);if(sentiment!=OriginalBuildingUpdateBlocker::None)return sentiment;
         // 4ACB03..14 saves the previous 13128C0 value then 53BB30
         // recomputes both displayed house-sentiment bands from common+8C.
         tail.previousHealthRating=tail.currentHealthRating;int count=0,above70=0,above80=0;bool above50=false;
@@ -2640,6 +2678,7 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     c.scenarioFoodOverride=originalBuildingI32(detail::u32(data.data()+side-28+704));
     c.scenarioPartnerConflict=data[side-28+1460];
     c.scenarioMonths=originalBuildingI32(detail::u32(data.data()+side-28+1449)); //52D5B4
+    c.scenarioMonthCounter=detail::i16(data.data()+side-28+12); //52D242
     c.unavailableResources.emplace();for(unsigned n=0;n<36;++n)c.unavailableResources->at(n)=detail::i16(data.data()+p+9904+2*n);
     OriginalBuildingUpdateContext::Accounting a;a.taxRate=value(10);a.taxReceived=value(10458);a.taxOther=value(10462);
     a.wages=value(10414);a.wagesPaid=value(10426);a.treasuryStart=value(10570);a.festivalCount=value(11177);
@@ -2655,6 +2694,7 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     c.accounting=a;OriginalBuildingUpdateContext::Labor l;l.sentiment=value(18);l.health=value(26);l.incoming=value(9754);l.outgoing=value(9758);
     l.sentimentReached350=data[p+11266];l.previousSentiment=value(11173);
     l.monthlyFoodConsumed=value(11193);
+    l.debtMonths=value(11444);l.monthlyTimerActive=value(11149);l.monthlyTimerRemaining=value(11153);
     l.sentimentTaxable=value(10454);l.sentimentShortages=value(11448);l.sentimentReason=value(11177);
     l.outRemainder=value(9762);l.inRemainder=value(9766);l.averagePopulation=value(9778);l.populationSum=value(9782);l.sampleCount=value(9790);
     l.statisticsPending=value(9794);l.growthCursor=value(9798);l.deathCursor=detail::i16(data.data()+p+9802);l.lastPopulationDelta=value(9774);l.excessDepartureTotal=value(9770);
