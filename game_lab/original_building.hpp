@@ -526,7 +526,7 @@ struct OriginalBuildingUpdateInputs {
     std::optional<std::array<uint8_t,126>> hookIndustry;
     int16_t stock=0; //common5 runtime+40,wire58,427E75.
     uint8_t faction=0,direction=0,houseInUse=0; //+5/+38/+9,427CD5/427E34/427D09.
-    int8_t desirability=0;uint8_t desirabilityBonus=0; //+5E/+60,427F6C/427F86;wire84/86.
+    int8_t desirability=0;uint8_t desirabilityBonus=0; //+5E/+60,427F5F/427F79;wire85/87.
     //Common5 requests427EDD/EEA/EF7 and42806F. +92 IS serialized
     //at wire130;427430 clears it before reading the selected version.
     // Legacy names retained by strict-record codecs: fireRisk is the collapse
@@ -543,7 +543,7 @@ struct OriginalBuildingUpdateInputs {
     //runtime+5E/+6F at wire85/100 (wire84 is+5D,wire99 is+70).
     std::optional<int8_t> modelDesirability;
     std::optional<uint8_t> modelUpgrade;
-    std::optional<uint8_t> modelDesirabilityBonus; //+60,wire87,427F79;legacy bonus keeps wire86.
+    std::optional<uint8_t> modelDesirabilityBonus; //+60,wire87,427F79.
     //CropHold1/MultipleCropHold1:4C3130 restores these
     //outer+150/+154 counters after the nested industrial payload.
     std::optional<std::array<int32_t,2>> cropWorkers;
@@ -580,7 +580,7 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         v.spawnCounter=p[49];v.spawnAux=p[50];v.roadFailure=p[91];
         v.primaryFigure=detail::i16(p+41);v.word30=detail::i16(p+43);v.word34=detail::i16(p+47);
         v.stock=detail::i16(p+58);v.faction=p[3];v.direction=p[51];v.houseInUse=p[7];
-        v.desirability=int8_t(p[84]);v.desirabilityBonus=p[86];
+        v.desirability=int8_t(p[85]);v.desirabilityBonus=p[87];
         const auto risks=originalBuildingRiskWords(p,182);if(!risks)return std::nullopt;
         v.fireRisk=risks->collapse;v.damageRisk=risks->ignition;v.burning=risks->burning;
         v.word92=detail::i16(p+130);v.fireproof=p[74];v.fireDirection=p[75];v.fireSuppressed=p[84];

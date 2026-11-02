@@ -303,8 +303,8 @@ void authored(){
     auto parsed=originalBuildingUpdateInputs(bytes,p);need(parsed&&parsed->size()==1&&parsed->at(7).output==19&&parsed->at(7).identity==7,"common5 exact wire65/162 parsed independently");
     bytes[2+49]=17;bytes[2+50]=18;bytes[2+89]=99;bytes[2+91]=19;w(2+41,123);w(2+43,124);w(2+47,125);
     parsed=originalBuildingUpdateInputs(bytes,p);need(parsed&&parsed->at(7).spawnCounter==17&&parsed->at(7).spawnAux==18&&parsed->at(7).roadFailure==19&&parsed->at(7).primaryFigure==123&&parsed->at(7).word30==124&&parsed->at(7).word34==125,"hook common5 literal bytes avoid adjacent policy and road fields");
-    w(2+58,0xfffd);bytes[2+3]=4;bytes[2+51]=6;bytes[2+7]=1;bytes[2+84]=0x80;bytes[2+86]=9;bytes[2+85]=99;
-    parsed=originalBuildingUpdateInputs(bytes,p);need(parsed&&parsed->at(7).stock==-3&&parsed->at(7).faction==4&&parsed->at(7).direction==6&&parsed->at(7).houseInUse==1&&parsed->at(7).desirability==-128&&parsed->at(7).desirabilityBonus==9,"additive common5 stock faction direction accepting and signed desirability avoid neighboring decoys");
+    w(2+58,0xfffd);bytes[2+3]=4;bytes[2+51]=6;bytes[2+7]=1;bytes[2+84]=99;bytes[2+85]=0x80;bytes[2+86]=9;bytes[2+87]=11;
+    parsed=originalBuildingUpdateInputs(bytes,p);need(parsed&&parsed->at(7).stock==-3&&parsed->at(7).faction==4&&parsed->at(7).direction==6&&parsed->at(7).houseInUse==1&&parsed->at(7).desirability==-128&&parsed->at(7).desirabilityBonus==11&&parsed->at(7).fireSuppressed==99,"common5 desirability and bonus use runtime +5E/+60 independently of neighboring fire suppression");
     need(originalBuildingCropProgress(parsed->at(7))==4321&&originalBuildingCropFlags(parsed->at(7))==0x8021&&parsed->at(7).industry->at(95)==17,"industrial1 byte mapping exact tail4/99/106");
     bytes.pop_back();need(!originalBuildingUpdateInputs(bytes,p),"late crop tail truncation refuses all update inputs");
     for(uint16_t type:{uint16_t(33),uint16_t(35),uint16_t(43)}){
@@ -723,7 +723,7 @@ void authored(){
     saved32(12099,151);saved32(11392,999);saved32(anchor-28+1449,48);
     need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.cycleTail->healthTarget==69&&restoredCity.cycleTail->smoothedHealth==68&&restoredCity.cycleTail->currentHealthRating==151&&restoredCity.scenarioMonths==48,"cycle tail saved health rating uses final59501B wire12099 rather than11392 decoy");
     need(restoredCity.cycleTail->productionHistory==std::array<int32_t,4>{3,901,2,603},"production history retains four independently serialized counters and amounts");
-    //Exact Common5 additions preserve legacy accessors,including misleading names.
+    //Exact Common5 accessors distinguish adjacent runtime fields.
     std::vector<uint8_t> exact(184+140);exact[0]=1;exact[1]=128;
     const auto exact16=[&](size_t at,uint16_t value){exact.at(at)=uint8_t(value);exact.at(at+1)=uint8_t(value>>8);};
     exact16(2,5);exact16(18,194);exact[4]=1;exact[164]=7;
@@ -732,7 +732,7 @@ void authored(){
     exact[86]=11;exact[87]=0xf4;exact[88]=13;exact[89]=14;exact[101]=15;exact[102]=16;
     const auto exactParsed=originalBuildingUpdateInputs(exact,p);
     need(exactParsed&&exactParsed->at(7).fireRisk==123&&exactParsed->at(7).damageRisk==456&&exactParsed->at(7).burning==-1&&exactParsed->at(7).word92==0x1234,"Common5 risk and serialized92 use68 70 72 130 with adjacent poison");
-    need(exactParsed->at(7).desirability==11&&exactParsed->at(7).desirabilityBonus==13&&exactParsed->at(7).upgrade==15&&exactParsed->at(7).modelDesirability==-12&&exactParsed->at(7).modelDesirabilityBonus==14&&exactParsed->at(7).modelUpgrade==16,"legacy accessor contracts survive additive exact5E 60 and6F fields");
+    need(exactParsed->at(7).desirability==-12&&exactParsed->at(7).desirabilityBonus==14&&exactParsed->at(7).upgrade==15&&exactParsed->at(7).modelDesirability==-12&&exactParsed->at(7).modelDesirabilityBonus==14&&exactParsed->at(7).modelUpgrade==16,"Common5 desirability accessors agree on exact runtime5E and60 fields");
     auto bayProfile=p;bayProfile.slotTypes[7]=193;bayProfile.liveTypeCounts={{193,1}};bayProfile.footprints[0].type=193;
     exact.resize(184+222);exact16(18,193);exact16(314,1);exact16(324,1);
     const auto bay32=[&](size_t at,uint32_t value){for(unsigned n=0;n<4;++n)exact.at(at+n)=uint8_t(value>>(8*n));};
