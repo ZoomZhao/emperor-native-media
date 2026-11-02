@@ -2328,12 +2328,31 @@ inline bool originalTraderStationSale(OriginalFigure& f,OriginalFigureUpdateCont
     // 440700 returns before its price writes when the two quotes agree.
     return true;
 }
+//5DEB80 counts candidates through station virtual+260 before advancing either
+//import cursor. A zero count returns without any cursor or stock writes.
+inline std::optional<bool> originalTraderImportCandidates(const OriginalFigure& f,const OriginalFigureUpdateContext& c){
+    if(!c.tradeBridge||!c.goods||!c.buildings||!c.services||!c.services->traderLedgers||
+       f.traderLedgerIndex>=100||f.faction>=22||f.delivery<=0)return std::nullopt;
+    const auto station=c.buildings->find(size_t(f.delivery));if(station==c.buildings->end())return std::nullopt;
+    const auto& b=station->second;if(b.type!=58||!b.storage||!b.storagePolicy||*b.storagePolicy>=c.goods->policies.size())return std::nullopt;
+    const auto& p=c.tradeBridge->partners[f.faction];const auto& policy=c.goods->policies[*b.storagePolicy];
+    const auto& ledger=c.services->traderLedgers->at(f.traderLedgerIndex);
+    if(f.amount>=8)return false;
+    for(unsigned r=1;r<29;++r){if(policy.trade[r]==6||c.goods->unavailable[r]||
+        std::find(p.sells.begin(),p.sells.end(),r)==p.sells.end())continue;
+        const unsigned quota=p.quotaBonus[r]?(p.quota[r]?(p.quota[r]==12?24:36):0):p.quota[r];
+        if(p.quotaUsed[r]>=quota||policy.limit[r]<=int(ledger.purchasedGoods[r])*100)continue;
+        uint64_t stock=0;for(const auto& bay:*b.storage)if(bay.resource==r)stock+=bay.amount;
+        if(int64_t(stock)+100<=policy.limit[r])return true;
+    }
+    return false;
+}
 inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.status=OriginalFigureUpdateStatus::CombatRouteAndTarget;
     out.updaterVA=saved.type==45?0x4ce2d0:0x4cf380;
     if(!context||!context->figures.count(saved.slot))return out;
-    auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.hidden=0;f.movementMode=3;
+    auto local=*context;auto f=saved;bool returnedFromTrade=false;f.image=f.secondaryImage=0;f.hidden=0;f.movementMode=3;
     f.frame=uint8_t(f.frame+1);if(f.frame>11)f.frame=0;
     const auto live=[](const OriginalFigure& figure){return figure.alive==1&&figure.action!=4;};
     if(f.type==45){const auto follower=context->figures.find(size_t(f.follower));
@@ -2369,9 +2388,13 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
             const auto next=originalFigureWord(int(f.counter)+1);
             f.traderTransactionMode=0;f.traderTransactionTimer=0;f.counter=next;f.frame=0;
             if(next>10){if(!originalTraderStationSale(f,local))return out;
-                out.status=OriginalFigureUpdateStatus::TraderImportAfterExport;return out;} //Atomic pass rolls back the completed export until the import search is closed.
+                const auto imports=originalTraderImportCandidates(f,local);
+                if(!imports||*imports||!local.migrationRoadEndpoints){out.status=OriginalFigureUpdateStatus::TraderImportAfterExport;return out;}
+                f.action=9;f.counter=0;f.destinationX=local.migrationRoadEndpoints->at(2);f.destinationY=local.migrationRoadEndpoints->at(3);
+                //4CE917 chooses the return road; movement starts on the next update.
+                returnedFromTrade=true;}
         }else if(f.action!=9)return out;
-        if(f.action==9){
+        if(f.action==9&&!returnedFromTrade){
         const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;
         const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
         if(!moved.state){out.status=moved.status;return out;}f=*moved.state;

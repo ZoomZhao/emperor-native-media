@@ -121,7 +121,7 @@ struct OriginalFigureGoodsServices {
 struct OriginalFigureTradeBridge {
     struct Partner {
         uint8_t kind=0,faction=0,blocked=0;int32_t enabled=0,relationState=0;
-        std::array<uint8_t,4> buys{};
+        std::array<uint8_t,4> buys{},sells{};
         std::array<uint8_t,36> quota{},quotaBonus{},quotaUsed{};
         std::array<int16_t,36> basePrice{},price{},previousPrice{};
     };

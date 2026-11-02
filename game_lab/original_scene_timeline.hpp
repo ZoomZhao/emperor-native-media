@@ -68,7 +68,7 @@ inline void originalCombinedPrepareTrader(OriginalCombinedState& city){
     OriginalFigureTradeBridge bridge;bridge.currentFaction=unsigned(faction);bridge.noGodPriceEffects=true;
     for(size_t n=0;n<22;++n){const auto& from=city.buildingContext->trade->partners[n];auto& to=bridge.partners[n];
         to.kind=from.kind;to.faction=from.faction;to.blocked=from.blocked;to.enabled=from.enabled;
-        to.relationState=from.relations[size_t(faction)].previousState;to.buys=from.buys;to.quota=from.quota;
+        to.relationState=from.relations[size_t(faction)].previousState;to.buys=from.buys;to.sells=from.sells;to.quota=from.quota;
         to.quotaBonus=from.quotaBonus;to.quotaUsed=from.quotaUsed;to.basePrice=from.basePrice;
         to.price=from.relations[size_t(faction)].price;to.previousPrice=from.relations[size_t(faction)].previousPrice;}
     city.figures.tradeBridge=bridge;

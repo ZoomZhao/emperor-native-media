@@ -19,7 +19,7 @@
 | 项羽/.sav | 1000 | 9 / 4 | none |
 | 项羽/历史战役自动保存_1 | 1000 | 2 / 3 | none |
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
-| zoom/历史战役自动存档_2 | 627 | 7 / 12 | `trader_import_after_export_4ce86e_slot_1984_type_45_action_8` (export candidate rolls back with the refused pass) |
+| zoom/历史战役自动存档_2 | 847 | 8 / 0 | `building_virtual20_416d20` (after the first trader export) |
 
 Ordinary month rollover now runs traced food, wages, debt, production and population-history effects plus explicitly labelled remaining assumptions. Annual rollover remains refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
 
@@ -75,6 +75,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: implement the land-trader import search: `4CE855..4CE915` can search imports after a successful export in the same figure update; preserve both searches and their writes in one atomic pass. The equal-price export candidate and city-accounting publication are wired, but the import refusal rolls back the pass. The −36 RNG gap is parked pending the supervised midpoint.
+Next: verify the trader transfer against `281031 → 281032` when available; its equal-price export and empty import-candidate search now commit atomically. A possible import still refuses at `trader_import_after_export_4ce86e`; changed export prices still refuse. The −36 RNG gap is parked pending the supervised midpoint.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

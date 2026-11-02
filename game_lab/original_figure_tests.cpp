@@ -1109,6 +1109,16 @@ void authored(){
             need(!refused.state&&refused.status==OriginalFigureUpdateStatus::TraderImportAfterExport&&
                 tc.buildings->at(7).storage->at(0).amount==200&&tc.goods->trade7[25]==200&&*bc.treasury==500,
                 "unported import after export refuses the whole figure update without publishing its sale");
+            tc.migrationRoadEndpoints=std::array<int16_t,4>{1,2,8,9};
+            const auto complete=originalFigureFirstUpdate(sale,crewRefs,&tc,0xc0);
+            need(complete.state&&complete.state->action==9&&complete.state->destinationX==8&&complete.state->destinationY==9&&
+                complete.buildings->at(7).storage->at(0).amount==100&&complete.tradeBridge->exportIncome==30&&
+                tc.buildings->at(7).storage->at(0).amount==200,
+                "empty import candidate search publishes the sale and selects the exit without moving early");
+            tc.tradeBridge->partners[1].sells[0]=26;tc.tradeBridge->partners[1].quota[26]=12;tc.goods->policies[0].limit[26]=400;
+            const auto importRefusal=originalFigureFirstUpdate(sale,crewRefs,&tc,0xc0);
+            need(!importRefusal.state&&importRefusal.status==OriginalFigureUpdateStatus::TraderImportAfterExport&&
+                tc.buildings->at(7).storage->at(0).amount==200,"a possible import keeps both sides of the transaction uncommitted");
             city.figures=std::move(candidate);need(originalCombinedCommitTrader(city)&&*bc.treasury==530&&
                 bc.accounting->incomeOther==30&&bc.accounting->income==30&&bc.trade->partners[1].quotaUsed[25]==1&&
                 bc.trade->partners[0].quotaUsed[25]==1,"completed figure pass publishes trade quota and accounting together");
