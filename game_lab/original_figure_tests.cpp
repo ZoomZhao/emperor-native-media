@@ -891,6 +891,11 @@ void authored(){
         walker.progress=9;need(originalFigureFollowRoute(walker,5,0).status==OriginalFigureUpdateStatus::RouteBoundary,"cell crossing refuses without publishing partial progress");
         walker.progress=19;need(originalFigureFollowRoute(walker,5,0).status==OriginalFigureUpdateStatus::RouteBoundary,"segment end refuses owner and next-direction mutations");
         walker.routePhase=3;walker.progress=9;need(originalFigureFollowRoute(walker,5,0).state->progress==9,"zero-step fractional phase avoids a crossing");
+        auto paused=walker;paused.route=0;paused.direction=8;paused.routePhase=0;
+        const auto skipped=originalFigureFollowRoute(paused,1,0);
+        need(skipped.state&&skipped.state->route==0&&skipped.state->direction==8&&skipped.state->routePhase==1,
+             "fractional speed pause skips route creation and preserves arrival direction");
+        need(!originalFigureFollowRoute(paused,0,0).state,"zero speed still invokes route following and requires its context");
         walker.routePhase=0;walker.progress=2;walker.state85=100;
         need(originalFigureFollowRoute(walker,5,0).status==OriginalFigureUpdateStatus::MovementHeight,"bridge lookup refuses missing table context");
         walker.state85=1;const auto clear=originalFigureFollowRoute(walker,5,0);

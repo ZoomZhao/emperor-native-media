@@ -738,6 +738,9 @@ inline OriginalFigureMovement originalFigureFollowRouteInContext(const OriginalF
     if(speed>255)return {OriginalFigureUpdateStatus::MovementModel,{}};
     const auto schedule=originalFigureMovementSteps(speed,saved.routePhase);
     auto f=saved;
+    // 4E47A0 fractional-speed cases can skip 4E7EB0 altogether. Speed zero
+    // is different: its case still calls 4E7EB0 with a zero step count.
+    if(speed>0&&!schedule.first){f.routePhase=schedule.second;return {OriginalFigureUpdateStatus::Computed,f};}
     if(f.route<1){if(!context||!originalFigureGenerateRoute(f,*context))return {OriginalFigureUpdateStatus::RouteGeneration,{}};
         if(!originalFigureValidateNextDirection(f,*context))return {OriginalFigureUpdateStatus::NextDirection,{}};
         if(f.direction>7){f.routePhase=schedule.second;return {OriginalFigureUpdateStatus::Computed,f};}}
@@ -790,7 +793,8 @@ inline OriginalFigureMovement originalFigureFollowRoute(const OriginalFigure& sa
     OriginalFigureUpdateContext* context=nullptr){
     if(!context)return originalFigureFollowRouteInContext(saved,speed,terrainFlags);
     auto local=*context;auto result=originalFigureFollowRouteInContext(saved,speed,terrainFlags,&local);
-    if(result.state){if(saved.route>0||result.state->direction<8)local.roadblockGate=0;
+    if(result.state){if((!speed||originalFigureMovementSteps(speed,saved.routePhase).first)&&
+        (saved.route>0||result.state->direction<8))local.roadblockGate=0;
         *context=std::move(local);}return result;
 }
 //0x4EACD0 ->429DF0 ->429E10 ->48B7F0 or5B3ED0.
@@ -2527,7 +2531,7 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
         // it, so the public route wrapper's second full copy is unnecessary.
         const auto route=f.route;const auto movement=originalFigureFollowRouteInContext(f,half,terrainFlags,&local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
-        if(route>0||f.direction<8)local.roadblockGate=0;
+        if((!half||originalFigureMovementSteps(half,saved.routePhase).first)&&(route>0||f.direction<8))local.roadblockGate=0;
         if(f.direction==10)f.action=30; //59F4C3->4E1B00,59F540: failed route restarts destination predicates next call.
         else if(f.direction==9){if(f.target>0){out.status=OriginalFigureUpdateStatus::PheasantRoute;return out;}f.action=30;}
         else if(f.direction==8){

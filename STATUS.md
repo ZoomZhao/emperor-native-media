@@ -16,7 +16,7 @@
 |---|---|---|---|
 | zoom/历史战役自动保存_1 | 1000 | 2 / 3 | none |
 | 项羽/历史战役自动存档_2 | 1000 | 8 / 3 | none |
-| 项羽/.sav | 811 | 9 / 1 | `type_action_route_target_combat_update_slot_1858_type_40_action_7` |
+| 项羽/.sav | 717 | 8 / 15 | `cell_neighbour_combat_4e57a0_slot_10_type_76_action_32` |
 | 项羽/历史战役自动保存_1 | 1000 | 2 / 3 | none |
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
 | zoom/历史战役自动存档_2 | 627 | 7 / 12 | `type_action_route_target_combat_update_slot_1984_type_45_action_8` (buy/sell search) |
@@ -27,7 +27,7 @@ Inner loop: 1,000-update Release run 171 s with rebuild before, 46 s warm after;
 
 ## Fidelity — 1 pair reached (2026-11-03)
 
-`2026102301/202610230102 → 202610230103` reached 1104/1104: calendar 5/5, treasury 1/1, year 1/1, population 1/1, sentiment 3/3, accounting 12/12, labor 20/20, employment 55/55, formation identity 100/100 and state 60/60, figure identity 2041/2041, figure images 22/42, figure state 1913/2310. Both saves have zero live buildings, so building/house groups are 0/0 and this pair cannot validate house sentiment. All 21 compared live figures are type 76; movement/action fields agree 31/105 and the original RNG state is 24 draws ahead. Playback uses 1,306 draws, including one per update; no animal spawn timer resets and no eligible part-7 partner action occurs. The responsible call is unresolved. `2026102801/280008 → 280009` now prepares after accepting crop parent version2, then stops at 3/860 (`building_virtual20_416d20`, phase31); its −60 treasury change remains unattributed.
+`2026102801/280011 → 280012` reaches 123/123 with figure state 2310/2310, images 42/42 and RNG 2/2 after correcting fractional-speed route pauses. `2026102301/202610230102 → 280011` likewise matches those groups at 128/128, although the original pair's terrain differs in four cells. `202610230102 → 202610230103` reaches 1104/1104: figure state 2278/2310, images 41/42, RNG 0/2 (original 36 draws behind playback). Calendar 5/5, treasury/year/population 1/1 each, sentiment 3/3, accounting 12/12, labor 20/20, employment 55/55, formation identity 100/100 and state 60/60, figure identity 2041/2041. These saves have no live buildings, so building/house groups are 0/0. `280012 → 202610230103` stops at phase38 because desirability is unavailable. `280008 → 280009` prepares but stops at 3/860 (`building_virtual20_416d20`); its −60 treasury change remains unattributed.
 
 ## Open hypotheses
 
@@ -73,6 +73,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: close the land trader's action-8 buy/sell search, then type-40 action 7 and type-24 supplier action 6. With scenario networking inactive, `4CE75E` invokes Figure virtual +98=`4C9AD0` to clear transaction mode and timer before incrementing its counter; above 10, station virtuals choose buy/sell and may change stock and trade state. Investigate the clean pair's animal and RNG divergence when further evidence identifies the missing call.
+Next: close the newly exposed Pheasant cell-neighbour refusal at 717 and trace the remaining animal/RNG divergence. Then close the land trader's action-8 buy/sell search and the type-24 supplier; the earlier type-40 refusal may recur. The trader's inactive-network wait clears transaction mode/timer via `4C9AD0`; above 10, station virtuals may change stock and trade state.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).
