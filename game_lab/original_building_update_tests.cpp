@@ -805,6 +805,14 @@ void authored(){
          "monthly wages charge employed workers and refresh accounting totals");
     need(originalBuildingMonthlyWages(wages,true)==OriginalBuildingUpdateBlocker::None&&*wages.treasury==340,
          "monthly wages preserve the editor-mode early return");
+    auto productionRoll=sentiment;productionRoll.cycleTail->monthlyProduction={17,23};
+    productionRoll.cycleTail->monthlyStatistics={1,2,3,4,5,6,7,8,9};
+    productionRoll.buildingTotals->producers[4]=4;productionRoll.buildingTotals->producers[2]=2;productionRoll.buildingTotals->producers[8]=8;
+    need(originalBuildingMonthlyProduction(productionRoll)==OriginalBuildingUpdateBlocker::None&&
+         productionRoll.cycleTail->productionHistory==std::array<int32_t,4>{4,17,2,23}&&
+         productionRoll.cycleTail->monthlyProduction==std::array<int32_t,2>{0,0}&&
+         productionRoll.cycleTail->monthlyStatistics==std::array<int32_t,9>{8,3,0,0,6,0,0,9,0},
+         "monthly production rolls saved counters and clears current values");
     auto strictSentiment=sentiment;strictSentiment.sentimentHypotheses.reset();
     need(originalBuildingSentimentStep(strictSentiment)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictSentiment.labor->sentiment==60,"strict sentiment refuses before publishing any assumed inputs");
     need(originalBuildingSentimentStep(sentiment)==OriginalBuildingUpdateBlocker::None&&sentiment.labor->sentiment==64&&

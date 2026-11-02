@@ -632,6 +632,8 @@ struct OriginalBuildingUpdateContext {
         std::optional<PopulationHistory> populationHistory; //Population7 wire58/9658/9662
         int32_t smoothedHealth=0,healthTarget=0,currentHealthRating=0;
         std::array<int32_t,4> productionHistory{}; //1312608/0C/14/18
+        std::array<int32_t,2> monthlyProduction{}; //1312610/1C
+        std::array<int32_t,9> monthlyStatistics{}; //1312880..94,A4..AC
         std::array<int32_t,2> foodForecast{}; //Population7+2928/2C
         std::optional<bool> alternateMode; //10DE044,process UI mode
         std::optional<int32_t> previousHealthRating; //D6241C,part3 notification
@@ -2160,6 +2162,15 @@ inline OriginalBuildingUpdateBlocker originalBuildingMonthlyPopulationHistory(Or
     h.values[size_t(h.cursor)]=*c.populationTotal;h.cursor=(h.cursor+1)%2400;h.count=originalBuildingAdd32(h.count,1);
     return OriginalBuildingUpdateBlocker::None;
 }
+// 5930B0 rolls the current production and statistics into their previous slots.
+inline OriginalBuildingUpdateBlocker originalBuildingMonthlyProduction(OriginalBuildingUpdateContext& c){
+    if(!c.cycleTail||!c.buildingTotals)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    auto& t=*c.cycleTail;auto& h=t.productionHistory;auto& s=t.monthlyStatistics;
+    h[0]=c.buildingTotals->producers[4];h[1]=t.monthlyProduction[0];
+    h[2]=c.buildingTotals->producers[2];h[3]=t.monthlyProduction[1];t.monthlyProduction.fill(0);
+    s[0]=c.buildingTotals->producers[8];s[1]=s[2];s[4]=s[5];s[7]=s[8];
+    s[2]=s[3]=s[5]=s[6]=s[8]=0;return OriginalBuildingUpdateBlocker::None;
+}
 inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(OriginalBuildingUpdateContext& c){
     if(!c.cycleTail||!c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.monthPart||!c.month||!c.cycle)return OriginalBuildingUpdateBlocker::MonthlyCity;
     //Alternate UI mode takes the early return at 4AC9D3 before any part work.
@@ -2663,6 +2674,9 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     history.cursor=value(9658);history.count=value(9662);
     c.cycleTail->healthTarget=value(22);c.cycleTail->smoothedHealth=value(26);
     c.cycleTail->productionHistory={value(11408),value(11412),value(11420),value(11424)};
+    c.cycleTail->monthlyProduction={value(11416),value(11428)};
+    for(size_t n=0;n<6;++n)c.cycleTail->monthlyStatistics[n]=value(12035+4*n);
+    for(size_t n=0;n<3;++n)c.cycleTail->monthlyStatistics[6+n]=value(12071+4*n);
     c.cycleTail->foodForecast={value(10538),value(10542)};c.cycleTail->currentHealthRating=value(12099);return true; //59501B,+2F60
 }
 inline bool originalBuildingSavedNoticeCountdown(const std::vector<uint8_t>& data,size_t terrain,OriginalBuildingUpdateContext& c){
