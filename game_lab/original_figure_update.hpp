@@ -1901,6 +1901,33 @@ inline std::optional<size_t> originalFigureSupplierCrop(const OriginalFigure& f,
     }
     return size_t(0);
 }
+//4D1810: stall supplier's outward and homeward road journeys. The transfer
+//at 4E3C70 remains an atomic refusal until its market writes are bound.
+inline OriginalFigureFirstUpdate originalStallSupplierFirstUpdate(const OriginalFigure& saved,
+    const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
+    OriginalFigureFirstUpdate out;out.updaterVA=0x4d1810;out.status=OriginalFigureUpdateStatus::SupplierArrival;
+    if(!context||!context->buildings||!context->figures.count(saved.slot))return out;
+    const auto owner=context->buildings->find(size_t(saved.owner));
+    if(owner==context->buildings->end()||(owner->second.type!=66&&owner->second.type!=67)||
+       owner->second.alive!=1||owner->second.stallSupplier!=int(saved.slot))return out;
+    const auto model=context->models.find(24);const auto speed=context->modelSpeeds.find(24);
+    if(model==context->models.end()||model->second[15]==INT32_MIN||speed==context->modelSpeeds.end())return out;
+    if(saved.action!=6&&saved.action!=7)return out;
+    auto local=*context;auto f=saved;f.movementMode=1;f.freeMovement=0;
+    f.roamLimit=originalFigureWord(int((int64_t(model->second[15])*96)%65536));
+    f.frame=uint8_t(f.frame+1);if(f.frame>=12)f.frame=0;
+    if(f.action==6){const auto dest=local.buildings->find(size_t(f.delivery));
+        if(dest==local.buildings->end()||dest->second.alive!=1)return out;}
+    const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+    if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
+    if(f.action==6&&f.direction>=8&&f.direction<=10)return out;
+    if(f.action==7&&f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
+        if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+    else if(f.action==7&&(f.direction==8||f.direction==10))f.alive=2;
+    if(!originalFigureWriteWalkingImage(f,owner->second.type==66?0x4c24:0x4c19,archives,context->view,false,false)){
+        out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
+    originalFigurePublishWrites(out,f,*context,local);return out;
+}
 //0x4CC670 owner-live1 movement, countdown and cited crop delivery writes.
 inline OriginalFigureFirstUpdate originalSupplierFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
@@ -2603,6 +2630,7 @@ inline OriginalFigureFirstUpdate originalFigureFirstUpdate(const OriginalFigure&
     case 40:return originalHunterFirstUpdate(saved,archives,context,terrainFlags);
     case 54:return originalProjectileFirstUpdate(saved,archives,context);
     case 26:return originalSupplierFirstUpdate(saved,archives,context,terrainFlags);
+    case 24:return originalStallSupplierFirstUpdate(saved,archives,context,terrainFlags);
     case 13:return originalMigratingFirstUpdate(saved,archives,context,terrainFlags);
     case 30:case 34:case 35:case 36:return originalDelegatedFirstUpdate(saved,archives,context,terrainFlags);
     case 23:case 28:case 29:case 39:return originalServiceFirstUpdate(saved,archives,context,terrainFlags);
