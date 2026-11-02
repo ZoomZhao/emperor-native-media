@@ -1156,6 +1156,13 @@ void authored(){
             "supplier expired countdown refuses destination virtual before any state or service output");
         supplier.delivery=9;auto& crop=(*context.buildings)[9];crop.type=0xc4;crop.alive=1;crop.primaryFigure=17;
         crop.cropDelivery=OriginalFigureBuildingLink::CropDelivery{0x103,0x12345678};
+        {auto arriving=supplier;arriving.action=7;arriving.route=3;arriving.routeLength=0;arriving.routeCursor=0;arriving.direction=8;arriving.progress=20;
+            arriving.destinationX=arriving.x;arriving.destinationY=arriving.y;crop.cell=100;context.modelSpeeds[26]=6;context.figures[arriving.slot]=arriving;
+            context.services.emplace();context.services->directions.assign(500000,0);
+            const auto entered=originalFigureFirstUpdate(arriving,refs,&context,0xc0);
+            need(entered.state&&entered.state->action==8&&entered.state->counter==51,"farmer arriving at an assigned crop waits 51 updates using the destination virtual");
+            context.terrain[100]|=0x100;const auto flooded=originalFigureFirstUpdate(arriving,refs,&context,0xc0);
+            need(flooded.state&&flooded.state->counter==0,"crop terrain bit100 cancels the arrival wait");context.terrain[100]&=~0x100u;}
         const auto delivered=originalFigureFirstUpdate(supplier,refs,&context,0x88);
         need(delivered.state&&delivered.state->action==6&&delivered.state->counter==0&&delivered.state->hidden==0&&
             delivered.buildings->at(9).primaryFigure==0&&delivered.buildings->at(9).cropDelivery->flags==0x143&&

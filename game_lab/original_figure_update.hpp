@@ -1922,10 +1922,13 @@ inline OriginalFigureFirstUpdate originalSupplierFirstUpdate(const OriginalFigur
                 if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
             else if(f.direction==10)f.alive=2;else return out;
         }
-        if(f.action==7&&f.direction==8){if(owner->second.type!=0xc0&&owner->second.type!=0xc1){out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}
-            //4CC8AA: hold+ C8=4C2A90(-4) is false for typeC1, so
-            //counter=0. The float-to-int helper7650FC is not reached.
-            f.action=8;f.counter=0;
+        if(f.action==7&&f.direction==8){const auto field=local.buildings->find(size_t(f.delivery));
+            if(field==local.buildings->end()||(field->second.type!=194&&field->second.type!=196)||field->second.cell>=local.terrain.size()){
+                out.status=OriginalFigureUpdateStatus::SupplierArrival;return out;}
+            //4CC725 resolves delivery+68 into EDI, not the owner. Both crop
+            //virtuals+C8 accept -4; assigned fields wait 51 updates unless
+            //their terrain has bit100 (4CC936).
+            f.action=8;f.counter=field->second.primaryFigure&&!(local.terrain[field->second.cell]&0x100)?51:0;
         }else if(f.action==7&&f.direction>=8)return out;
         if(f.action==11&&f.direction==8){ //4CCB70..BD9:dry CropField194/196 +C8(-4) false.
             const auto field=local.buildings->find(size_t(f.delivery));if(field==local.buildings->end()||
