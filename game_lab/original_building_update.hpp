@@ -2618,7 +2618,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingAvailabilityStep(OriginalBu
         if((!originalBuildingEmploymentCategory(b.type,c)&&!(b.type==161&&c.disasters))||!b.imageInputs||b.imageInputs->gridIndex>=c.terrain->size())return OriginalBuildingUpdateBlocker::Availability;
         bool inputIndustry=false;if(b.type==33||b.type==35||b.type==43){if(!c.productionInputs)return OriginalBuildingUpdateBlocker::Availability;
             const auto p=c.productionInputs->find(e.first);if(p==c.productionInputs->end())return OriginalBuildingUpdateBlocker::Availability;
-            inputIndustry=p->second.primaryStock!=0||p->second.secondaryStock!=0;}
+            inputIndustry=p->second.primaryResource!=0||p->second.secondaryResource!=0;} //5F1510 tests input-resource virtuals, not stored quantities.
         if(inputIndustry){if(!c.poolRoadSelected)return OriginalBuildingUpdateBlocker::Availability;
             const auto road=c.poolRoadSelected->find(e.first);if(road==c.poolRoadSelected->end())return OriginalBuildingUpdateBlocker::Availability;
             i.available=uint8_t(road->second);if(!road->second){i.operational=0;continue;}}

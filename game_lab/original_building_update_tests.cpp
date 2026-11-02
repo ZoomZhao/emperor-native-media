@@ -764,6 +764,15 @@ void authored(){
     need(farmers.state&&farmers.context->allocatedFigures.empty()&&farmers.state->inputs.cropWorkers->at(0)==3,"exhausted farmer FIFO does not require an unconsumed wall clock");
     auto legacyCrop=cropContext;legacyCrop.cropDispatchModel.reset();const auto legacyBoundary=originalBuildingStateAfterUpdates(hold,legacyCrop,1);
     need(!legacyBoundary.state&&legacyBoundary.blocker==OriginalBuildingUpdateBlocker::BuildingVirtual20,"legacy crop hook context keeps virtual20 refusal until additive farmer model is supplied");
+    {auto availability=cropContext;availability.buildings->clear();availability.buildingInputs->clear();
+        auto hunter=field(33);hunter.inputs.alive=1;hunter.inputs.available=7;hunter.inputs.roadX=3;hunter.inputs.roadY=4;
+        availability.buildings->emplace(7,hunter.building);availability.buildingInputs->emplace(7,hunter.inputs);
+        availability.productionInputs.emplace();auto& production=availability.productionInputs->operator[](7);production.secondaryStock=100;
+        availability.poolRoadSelected=std::map<size_t,bool>{{7,true}};
+        need(originalBuildingAvailabilityStep(availability)==OriginalBuildingUpdateBlocker::None&&availability.buildingInputs->at(7).available==7,
+            "an output-only Hunter preserves its availability byte even when stored output is nonzero");
+        production.primaryResource=18;need(originalBuildingAvailabilityStep(availability)==OriginalBuildingUpdateBlocker::None&&availability.buildingInputs->at(7).available==1,
+            "an input resource invokes the road availability check even when its input stock is zero");}
     auto cropBayContext=cropContext;cropBayContext.buildings->clear();cropBayContext.buildingInputs->clear();auto multi=hold;multi.building.type=193;multi.inputs.cropWorkers=std::array<int32_t,2>{5,2};multi.inputs.cropBays.emplace();
     for(auto& bay:*multi.inputs.cropBays)bay={1,99,400};cropBayContext.buildings->emplace(7,multi.building);cropBayContext.buildingInputs->emplace(7,multi.inputs);cropBayContext.employmentModel=OriginalBuildingEmployment{{193,8}};
     need(originalBuildingCropDispatch(multi,cropBayContext,100)==OriginalBuildingUpdateBlocker::None,"all five crop bays below100 close without cart allocation");
