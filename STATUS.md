@@ -21,7 +21,7 @@
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
 | zoom/历史战役自动存档_2 | 356 | 7 / 6 | `monthly_city_4ac650` |
 
-Priority: part 8 calls `591200` every cycle. Disassembly identifies population reconciliation and city sentiment, including per-house `590F30`, food `591670`, tax/wages/unemployment, building conditions `55AE30`, and notices `548920`; it is not just a culture/prosperity rating. Common5 house +5C/+8C/+A0 are wire 83/125/144; +8C is already retained as `watchRisk`, the other two are not bound. Population7 latch +2C15 is wire 11266; previous sentiment +2BB0 is wire 11173. Bind these and trace remaining subcalls before admitting the update. Rollover services remain refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
+Priority: part 8 calls `591200` every cycle. Disassembly identifies population reconciliation and city sentiment, including per-house `590F30`, building condition `591670`, tax/wages/unemployment, monuments `55AE30`, and notices `548920`. Common5 +5C/+8C/+A0 (wire 83/125/144) and Population7 latch/previous sentiment (wire 11266/11173) are bound. Legacy checkpoint decoding leaves the new fields absent. Implement the remaining subcalls; rollover services remain refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
 
 Inner loop: 1,000-update Release run 171 s with rebuild before, 46 s warm after; six stop points unchanged. Build conditions differ, and the 30 s target remains unmet.
 

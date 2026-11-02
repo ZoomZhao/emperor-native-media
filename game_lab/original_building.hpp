@@ -534,6 +534,10 @@ struct OriginalBuildingUpdateInputs {
     int16_t fireRisk=0,damageRisk=0,burning=0,word92=0;
     uint8_t fireproof=0,fireDirection=0,fireSuppressed=0;
     int32_t watchRisk=0;
+    // 590F30 house food-delay byte and 591670 building condition weight.
+    // Absent in legacy checkpoint state; callers must not infer zero there.
+    std::optional<uint8_t> sentimentFoodDelay;
+    std::optional<int32_t> sentimentBuildingWeight;
     //Exact additional fields;legacy upgrade/desirability names keep their
     //existing wire contract for existing callers.427F5F/427FE1 restore
     //runtime+5E/+6F at wire85/100 (wire84 is+5D,wire99 is+70).
@@ -581,6 +585,8 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         v.fireRisk=risks->collapse;v.damageRisk=risks->ignition;v.burning=risks->burning;
         v.word92=detail::i16(p+130);v.fireproof=p[74];v.fireDirection=p[75];v.fireSuppressed=p[84];
         const auto watch=detail::u32(p+125);v.watchRisk=int32_t(watch>INT32_MAX?int64_t(watch)-4294967296LL:watch);
+        v.sentimentFoodDelay=p[83];const auto weight=detail::u32(p+144);
+        v.sentimentBuildingWeight=int32_t(weight>INT32_MAX?int64_t(weight)-4294967296LL:weight);
         v.modelDesirability=int8_t(p[85]);v.modelUpgrade=p[100];
         v.modelDesirabilityBonus=p[87];
         {const auto bits=detail::u32(p+105);v.supplierStatus=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:bits);}

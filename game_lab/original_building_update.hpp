@@ -459,6 +459,9 @@ struct OriginalBuildingUpdateContext {
     std::optional<int32_t> populationTotal,populationPeak,treasury;
     std::optional<uint32_t> cropBase;
     struct Labor {int32_t sentiment=0,health=0,migration=0,incoming=0,outgoing=0,inRemainder=0,outRemainder=0;
+        // Saved Population7 fields 594C48 / 594B18; absent in old checkpoints.
+        std::optional<uint8_t> sentimentReached350;
+        std::optional<int32_t> previousSentiment;
         int32_t inDelay=0,outDelay=0,arrivals=0,departures=0,unplaced=0,yearArrivals=0,spacing=0,statisticsPending=0;
         int32_t populationSum=0,sampleCount=0,averagePopulation=0,growthCursor=0;
         int16_t deathCursor=0;int32_t lastPopulationDelta=0,excessDepartureTotal=0; //591900/591950,1311F90/8C.
@@ -2427,6 +2430,7 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     stats.emptyCycles=value(11049);stats.currentFaction=value(11065);stats.primaryPresent=detail::i16(data.data()+p+11101);stats.capacity=value(11821);
     for(unsigned n=0;n<4;++n){stats.demand[n]=value(11789+4*n);stats.groups[n]=value(11841+4*n);}c.statistics=stats;
     c.accounting=a;OriginalBuildingUpdateContext::Labor l;l.sentiment=value(18);l.health=value(26);l.incoming=value(9754);l.outgoing=value(9758);
+    l.sentimentReached350=data[p+11266];l.previousSentiment=value(11173);
     l.outRemainder=value(9762);l.inRemainder=value(9766);l.averagePopulation=value(9778);l.populationSum=value(9782);l.sampleCount=value(9790);
     l.statisticsPending=value(9794);l.growthCursor=value(9798);l.deathCursor=detail::i16(data.data()+p+9802);l.lastPopulationDelta=value(9774);l.excessDepartureTotal=value(9770);
     l.arrivals=value(9806);l.departures=value(9810);

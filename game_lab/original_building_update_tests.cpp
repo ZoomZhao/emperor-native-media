@@ -865,8 +865,12 @@ void authored(){
     hookBytes[hookAt+4]=0x34;hookBytes[hookAt+5]=0x12;hookBytes[hookAt+8]=99;
     need(originalBuildingSavedDisasterContext(hookBytes,0,restoredHook)&&restoredHook.disasters->buildingSerial==0x1234,"saved building allocation serial follows hook countdown at53167D and excludes following decoy");
     exact.resize(184+140);exact16(18,194);exact16(184+130,1);exact16(184+132,1);exact16(184+138,1);exact16(2+56,0x1234);bay32(2+105,0xfffffffd);
+    exact[2+83]=3;bay32(2+144,0xfffffffe);
     const auto extraCommon=originalBuildingUpdateInputs(exact,p);
     need(extraCommon&&extraCommon->at(7).nextPart==0x1234&&extraCommon->at(7).supplierStatus==-3,"additive Common5 next3E and supplier74 retain signed56 and105 wire values without legacy changes");
+    need(extraCommon->at(7).sentimentFoodDelay==3&&extraCommon->at(7).sentimentBuildingWeight==-2,"Common5 sentiment inputs retain byte83 and signed dword144");
+    savedInputs[anchor-12287+11266]=1;saved32(11173,0xfffffffd);
+    need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.labor->sentimentReached350==1&&restoredCity.labor->previousSentiment==-3,"Population7 sentiment latch and previous value use wires11266 and11173");
     saved32(10722,0x1234);saved32(10722+4*35,0xfffffffd);saved32(10578,99);
     need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.dispatchedProduction[0]==0x1234&&restoredCity.dispatchedProduction[35]==-3,"nested Population7 production array reads59487B wire10722 independently of prior trade7 array");
     auto fortification=tailContext;fortification.monthPart=3;fortification.monthlyServices=true;fortification.trade.emplace();fortification.statistics.emplace();fortification.statistics->currentFaction=0;fortification.trade->partners[0].faction=0;fortification.trade->partners[0].kind=0;fortification.trade->partners[0].fortified=1;fortification.activeSide=1;fortification.cropBase=229;fortification.terrain=std::vector<uint32_t>(51984);fortification.terrainOwners=std::vector<uint16_t>(51984);
