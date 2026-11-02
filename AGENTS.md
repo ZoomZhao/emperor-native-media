@@ -7,6 +7,8 @@ Make users’ legally owned ORIGINAL Emperor data load and render natively on ma
 - **Primary: original SAVs that run ≥100 consecutive updates in the normal App Play path, X/6** (current corpus). Baseline 2026-10-31: **0/6**, all stop at update 1 with `event_ui_5eff20_not_closed`. Stage 2 raises the bar to ≥1000 updates, then a full in-game year.
 - Every change must either advance the primary metric or remove the blocker currently stopping it. Raising any other count (checks, fields, records, pixels) is not progress on its own.
 - Always work on the **first** blocker the primary path hits. When it is removed, run the path again, record the next blocker in STATUS.md and continue there.
+- The refusal census (all refusals over one in-game year, kept in STATUS.md as the work queue) may be used to batch related functions with the first blocker. Census output is never reported as the primary metric.
+- A divergence from an original SAV pair that points to a wrong existing port is a blocker too: fix it before porting new functions.
 
 ## Unknowns and hypotheses
 
@@ -18,14 +20,15 @@ Make users’ legally owned ORIGINAL Emperor data load and render natively on ma
 
 - Spend at most one working day on a single blocker without moving the primary metric. Then stop and report to the user: what is known, what was tried, the concrete question, and the proposed hypothesis to continue with.
 - Do not switch to side tracks while a blocker is open; escalate instead.
+- Scope guard: a commit that adds more than ~500 lines of non-test code, or touches a frozen side track beyond a build fix, without moving the primary metric, needs the user's approval first. Stop and ask.
 
 ## Frozen side tracks
 
-Until the primary metric reaches 6/6 at ≥100 updates, do not extend: CitySimulation, EMP1, native v6/v8 gameplay, `.emworld` checkpoints, CPU/Metal pixel parity, path/filesystem hardening, Market/House atomicity beyond what the primary path needs, and the `*_lab` components. Keep them building and their existing tests passing; fix them only when they break.
+Until the primary metric reaches 6/6 for a full in-game year, do not extend: CitySimulation, EMP1, native v6/v8 gameplay, `.emworld` checkpoints, CPU/Metal pixel parity, path/filesystem hardening, Market/House atomicity beyond what the primary path needs, and the `*_lab` components. Keep them building and their existing tests passing; fix them only when they break.
 
 ## Verification tiers
 
-- **Inner loop (every change):** one build mode, the tests touching the changed code, plus the primary-path run on the original corpus. Keep this fast.
+- **Inner loop (every change):** Release only, the tests touching the changed code, plus the primary-path run on the original corpus. No UBSan, no full regression, no new docs files per port. Keep this fast: if the primary-path run exceeds ~60 s, speeding it up (semantics unchanged, results identical) is allowed tooling work.
 - **Milestone / before push:** Release and UBSan full regression, frozen golden files, user-data protection check.
 - Do not add tests for code paths outside the primary path in the current phase.
 
