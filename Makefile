@@ -290,6 +290,6 @@ market-transfer-test-undefined:
 
 .PHONY: fidelity-metric fidelity-metric-undefined
 fidelity-metric:
-	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/fidelity.py --mode release
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/fidelity.py --mode release $(FIDELITY_ARGS)
 fidelity-metric-undefined:
-	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/fidelity.py --mode undefined
+	PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 scripts/fidelity.py --mode undefined $(FIDELITY_ARGS)

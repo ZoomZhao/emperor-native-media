@@ -21,16 +21,21 @@ SOURCES = [
 ]
 
 def main():
-    if not os.environ.get('EMPEROR_GAMEDATA_ROOT'):
+    if not os.environ.get('EMPEROR_GAMEDATA_ROOT') and '--self-test' not in sys.argv:
         print('{"skipped":true,"reason":"EMPEROR_GAMEDATA_ROOT unset or empty"}')
         return 0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=['release', 'undefined'], default='release')
     parser.add_argument('--build-dir', type=Path)
+    parser.add_argument('--self-test', action='store_true', help='run synthetic calendar and agreement checks')
+    parser.add_argument('--pair', nargs=2, action='append', default=[], metavar=('EARLY', 'LATE'))
+    parser.add_argument('--event-pair', nargs=2, action='append', default=[], metavar=('EARLY', 'LATE'),
+                        help='pair containing the recorded unmet request and rating notice')
     args = parser.parse_args()
-    data = Path(os.environ['EMPEROR_GAMEDATA_ROOT']).resolve()
+    configured=os.environ.get('EMPEROR_GAMEDATA_ROOT')
+    data=Path(configured).resolve() if configured else None
     build = (args.build_dir or Path(tempfile.mkdtemp(prefix='emperor-fidelity-'))).resolve()
-    if build.is_relative_to(data):
+    if data and build.is_relative_to(data):
         parser.error('--build-dir must be outside the data root')
     build.mkdir(parents=True, exist_ok=True)
     binary = build / ('fidelity-' + args.mode)
@@ -39,7 +44,13 @@ def main():
                     *[str(ROOT / s) for s in SOURCES],
                     '-framework', 'CoreGraphics', '-framework', 'CoreFoundation', '-framework', 'Security',
                     '-lz', '-o', str(binary)], check=True)
-    result = subprocess.run([str(binary)], check=False)
+    command=[str(binary)]
+    if args.self_test:
+        if args.pair or args.event_pair: parser.error('--self-test cannot be combined with pairs')
+        command+=['--self-test']
+    for pair in args.pair: command+=['--pair',*pair]
+    for pair in args.event_pair: command+=['--event-pair',*pair]
+    result = subprocess.run(command, check=False)
     return result.returncode
 
 if __name__ == '__main__':

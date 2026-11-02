@@ -25,9 +25,9 @@ Part 8 calls `591200` every cycle; rollover services remain refused. Executable:
 
 Inner loop: 1,000-update Release run 171 s with rebuild before, 46 s warm after; six stop points unchanged. Build conditions differ, and the 30 s target remains unmet.
 
-## Fidelity — 0/0
+## Fidelity — 0/0 (2026-11-03)
 
-`make fidelity-metric`. The six-SAV corpus has 4 same-map forward pairs, all rejected for terrain differences (40–113 cells). Isolated pairs `2026102301/202610230102 → 202610230103` and `2026102801/280008 → 280009` are available but not yet evaluated; the latter includes an unmet commodity request and rating-drop notice, both closed by the player. The envoy and gift preceded 280008.
+Explicit isolated pairs: `2026102301/202610230102 → 202610230103` stops at 161/1104 (`monthly_city_4ac650`); `2026102801/280008 → 280009` cannot prepare (`combined saved building inputs`). No target-state agreement is scored. The latter includes an unmet request and rating notice; the envoy and gift preceded 280008. Its recorded −60 treasury change has unresolved attribution.
 
 ## Open hypotheses
 

@@ -105,6 +105,8 @@ public:
     // In-game calendar of the last admitted state: month (1..12) and the
     // month part the cycle tail advances. Absent until a frame is admitted.
     std::optional<std::pair<uint32_t,uint32_t>> cityPlaybackCalendar() const;
+    // Read-only view of the committed playback state, valid until the next update.
+    const OriginalCombinedState* cityPlaybackState() const;
     const AppCityNotifications* cityNotifications() const;
     std::optional<AppCityTributeFinances> cityTributeFinances() const;
     AppCityTributeResult respondCityNotification(AppCityTributeId,AppCityTributeDecision);

@@ -514,6 +514,9 @@ AppCityTributeResult AppMapSurface::respondCityNotification(AppCityTributeId id,
     const auto result=p.notifications.respond(id,decision,*p.chainCombined.buildingContext);if(result==AppCityTributeResult::Applied)++p.worldRevision;return result;
 }
 unsigned AppMapSurface::cityPlaybackUpdates()const{return playback_?playback_->updates:0;}
+const OriginalCombinedState* AppMapSurface::cityPlaybackState()const{
+    if(!playback_)return nullptr;const auto& p=*playback_;return p.chained?&p.chainCombined:&p.combined;
+}
 std::optional<std::pair<uint32_t,uint32_t>> AppMapSurface::cityPlaybackCalendar()const{
     if(!playback_)return std::nullopt;const auto& p=*playback_;
     const auto& city=p.chained?p.chainCombined:p.combined;

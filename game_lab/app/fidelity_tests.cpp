@@ -5,18 +5,20 @@
 // (experiment off, the same load hypotheses as play) for that many updates, and
 // compares the aggregates the public playback view exposes.
 //
-// A pair is scored only when the mapper grids are identical, no terrain cell and
-// no live building of the earlier save is missing from the later one, and the
-// saved clocks are exactly one forward run apart. Anything else is reported and
-// not scored: a mismatch there could be the player's edit rather than the
-// simulation. Exit 0 with SKIP when EMPEROR_GAMEDATA_ROOT is unset.
+// Automatic discovery scores only unchanged terrain/building pairs. Explicit
+// pairs are compared even when edits or recorded events make attribution
+// uncertain; only aggregate counts are printed. A pair blocked before its
+// target calendar is never scored. Exit 0 with SKIP when the data root is unset.
 #include "city_playback.hpp"
 #include "../original_building_update.hpp"
 #include "../original_evidence_fields.hpp"
 #include "../asset_bytes.hpp"
+#include <algorithm>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <set>
+#include <stdexcept>
 
 namespace {
 struct SaveView {
@@ -26,7 +28,11 @@ struct SaveView {
     game_lab::EvidenceClock clock;
     bool clockOk = false;
     int32_t population = 0, treasury = 0, year = 0;
-    bool cityOk = false;
+    bool cityOk = false,buildingInputsOk = false;
+    std::optional<game_lab::OriginalBuildingUpdateContext::Accounting> accounting;
+    std::optional<game_lab::OriginalBuildingUpdateContext::Labor> labor;
+    std::optional<game_lab::OriginalBuildingCityEmployment> employment;
+    std::optional<int32_t> scenarioMonths;
     std::map<size_t, uint16_t> liveSlots; // slot -> type, alive 1 or 3
     size_t terrainDiffersFrom(const SaveView& later) const {
         size_t n = 0;
@@ -48,10 +54,11 @@ struct SaveView {
 // the service the port refuses, so a distance that crosses it is derived, not
 // observed.
 std::optional<unsigned> forwardDistance(const game_lab::EvidenceClock& early, const game_lab::EvidenceClock& late) {
-    if (!early.rangesValid() || !late.rangesValid() || late.cycle < early.cycle) return std::nullopt;
+    if (!early.rangesValid() || !late.rangesValid()) return std::nullopt;
     const unsigned tails = late.cycle - early.cycle;
+    if(tails>20000)return std::nullopt;
     const unsigned wrapped = early.monthPart + tails;
-    if (wrapped / 16 != late.month - early.month || wrapped % 16 != late.monthPart) return std::nullopt;
+    if ((early.month + wrapped / 16) % 12 != late.month || wrapped % 16 != late.monthPart) return std::nullopt;
     if (!tails) return late.phase >= early.phase ? std::optional<unsigned>(late.phase - early.phase) : std::nullopt;
     // First tail executes phase 50: (51 - phase) updates from here. Each later
     // tail is another 51, and the tail leaves phase 0, so the target phase
@@ -80,10 +87,12 @@ std::vector<SaveView> inventory(const game_lab::ResourceRoot& root) {
         OriginalBuildingUpdateContext city(OriginalBuildingUpdateScope::AdmittedTicks, true);
         if (originalBuildingSavedCityContext(view.payload, view.save.sizeOffset, city) && city.populationTotal && city.treasury && city.elapsedYears) {
             view.cityOk = true; view.population = *city.populationTotal; view.treasury = *city.treasury; view.year = *city.elapsedYears;
+            view.accounting=city.accounting;view.labor=city.labor;view.employment=city.cityEmployment;view.scenarioMonths=city.scenarioMonths;
         }
-        if (auto inputs = originalBuildingUpdateInputs(view.payload, view.save.buildings))
+        if (auto inputs = originalBuildingUpdateInputs(view.payload, view.save.buildings)){
+            view.buildingInputsOk=true;
             for (const auto& [slot, input] : *inputs)
-                if (input.alive == 1 || input.alive == 3) view.liveSlots.emplace(slot, view.save.buildings.slotTypes[slot]);
+                if (input.alive == 1 || input.alive == 3) view.liveSlots.emplace(slot, view.save.buildings.slotTypes[slot]);}
         out.push_back(std::move(view));
     }
     return out;
@@ -97,25 +106,211 @@ size_t removedBuildings(const SaveView& early, const SaveView& late) {
     for (const auto& [slot, type] : early.liveSlots) if (!late.liveSlots.count(slot)) ++removed;
     return removed;
 }
+
+SaveView explicitSave(const game_lab::ResourceRoot& root,const std::string& name){
+    using namespace game_lab;
+    SaveView view;view.name=name;const auto path=root.resolve(name);
+    if(path.empty())throw std::runtime_error("pair source is not under the data root");
+    view.save=loadOriginalSave(path);
+    if(view.save.status!=OriginalSaveStatus::LoadedSnapshot)throw std::runtime_error("pair save did not load");
+    std::vector<uint8_t> raw;if(!detail::readFile(path,8u*1024u*1024u,raw))throw std::runtime_error("pair save unreadable");
+    view.payload=decodeOriginalMapContainer(raw).payload;
+    if(auto clock=evidenceSavedClock(view.payload,view.save.terrainOffset,view.save.sizeOffset)){view.clock=*clock;view.clockOk=true;}
+    OriginalBuildingUpdateContext c(OriginalBuildingUpdateScope::AdmittedTicks,true);
+    if(originalBuildingSavedCityContext(view.payload,view.save.sizeOffset,c)&&c.populationTotal&&c.treasury&&c.elapsedYears){
+        view.cityOk=true;view.population=*c.populationTotal;view.treasury=*c.treasury;view.year=*c.elapsedYears;
+        view.accounting=c.accounting;view.labor=c.labor;view.employment=c.cityEmployment;view.scenarioMonths=c.scenarioMonths;}
+    if(auto inputs=originalBuildingUpdateInputs(view.payload,view.save.buildings)){view.buildingInputsOk=true;
+        for(const auto& [slot,input]:*inputs)if(input.alive==1||input.alive==3)view.liveSlots.emplace(slot,view.save.buildings.slotTypes[slot]);}
+    return view;
 }
 
-int main() {
+struct Agreement {size_t equal=0,total=0;};
+template<class A,class B> void compare(std::map<std::string,Agreement>& groups,const char* group,const A& a,const B& b){
+    auto& row=groups[group];++row.total;if(a==b)++row.equal;
+}
+template<class T> void compareOptional(std::map<std::string,Agreement>& groups,const char* group,
+    const std::optional<T>& a,const std::optional<T>& b){
+    if(a&&b)compare(groups,group,*a,*b);else if(bool(a)!=bool(b))compare(groups,group,bool(a),bool(b));
+}
+void compareCommitted(const game_lab::OriginalCombinedState& city,const SaveView& late,std::map<std::string,Agreement>& groups){
     using namespace game_lab;
+    const auto& c=*city.buildingContext;
+    compare(groups,"calendar",city.phase,late.clock.phase);
+    if(c.cycle)compare(groups,"calendar",*c.cycle,late.clock.cycle);
+    if(c.monthPart)compare(groups,"calendar",*c.monthPart,late.clock.monthPart);
+    if(c.month)compare(groups,"calendar",*c.month,late.clock.month);
+    if(late.cityOk){if(c.treasury)compare(groups,"treasury",*c.treasury,late.treasury);
+        if(c.elapsedYears)compare(groups,"year",*c.elapsedYears,late.year);
+        if(city.figures.services&&city.figures.services->population)compare(groups,"population",city.figures.services->population->total,late.population);}
+    if(c.scenarioMonths&&late.scenarioMonths)compare(groups,"calendar",*c.scenarioMonths,*late.scenarioMonths);
+    if(c.accounting&&late.accounting){const auto& x=*c.accounting;const auto& y=*late.accounting;
+#define ACCOUNT_FIELD(field) compare(groups,"accounting",x.field,y.field)
+        ACCOUNT_FIELD(taxRate);ACCOUNT_FIELD(taxReceived);ACCOUNT_FIELD(taxOther);ACCOUNT_FIELD(wages);ACCOUNT_FIELD(wagesPaid);
+        ACCOUNT_FIELD(incomeOther);ACCOUNT_FIELD(expensesOther);ACCOUNT_FIELD(treasuryStart);ACCOUNT_FIELD(incomeReceived);
+        ACCOUNT_FIELD(expensesPaid);ACCOUNT_FIELD(festivalCount);
+#undef ACCOUNT_FIELD
+        compareOptional(groups,"accounting",x.tributeIncomeComponent,y.tributeIncomeComponent);}
+    if(c.labor&&late.labor){const auto& x=*c.labor;const auto& y=*late.labor;
+#define LABOR_FIELD(field) compare(groups,"labor",x.field,y.field)
+        LABOR_FIELD(sentiment);LABOR_FIELD(health);LABOR_FIELD(migration);LABOR_FIELD(incoming);LABOR_FIELD(outgoing);
+        LABOR_FIELD(inRemainder);LABOR_FIELD(outRemainder);LABOR_FIELD(inDelay);LABOR_FIELD(outDelay);LABOR_FIELD(arrivals);
+        LABOR_FIELD(departures);LABOR_FIELD(unplaced);LABOR_FIELD(yearArrivals);LABOR_FIELD(statisticsPending);LABOR_FIELD(populationSum);
+        LABOR_FIELD(sampleCount);LABOR_FIELD(averagePopulation);LABOR_FIELD(growthCursor);LABOR_FIELD(deathCursor);
+        LABOR_FIELD(lastPopulationDelta);LABOR_FIELD(excessDepartureTotal);
+#undef LABOR_FIELD
+    }
+    if(c.cityEmployment&&late.employment){const auto& x=*c.cityEmployment;const auto& y=*late.employment;
+        compare(groups,"employment",x.available,y.available);compare(groups,"employment",x.employed,y.employed);
+        compare(groups,"employment",x.unemployed,y.unemployed);compare(groups,"employment",x.unemploymentPercent,y.unemploymentPercent);
+        compare(groups,"employment",x.shortage,y.shortage);
+        for(size_t n=0;n<x.rows.size();++n){const auto& a=x.rows[n];const auto& b=y.rows[n];
+            compare(groups,"employment",a.demand,b.demand);compare(groups,"employment",a.allocated,b.allocated);
+            compare(groups,"employment",a.preferred,b.preferred);compare(groups,"employment",a.preferredAllocated,b.preferredAllocated);
+            compare(groups,"employment",a.priority,b.priority);}}
+    const auto inputs=originalBuildingUpdateInputs(late.payload,late.save.buildings);
+    if(inputs){std::set<size_t> slots;for(const auto& e:*inputs)if(e.second.alive==1||e.second.alive==3)slots.insert(e.first);
+        for(const auto& e:city.buildings)if(e.second.state.inputs.alive==1||e.second.state.inputs.alive==3)slots.insert(e.first);
+        for(size_t slot:slots){const auto a=city.buildings.find(slot);const auto b=inputs->find(slot);
+            const bool presentA=a!=city.buildings.end()&&(a->second.state.inputs.alive==1||a->second.state.inputs.alive==3);
+            const bool presentB=b!=inputs->end()&&(b->second.alive==1||b->second.alive==3);
+            compare(groups,"building_identity",presentA,presentB);if(!presentA||!presentB)continue;
+            const auto& x=a->second.state.inputs;const auto& y=b->second;
+            compare(groups,"building_identity",a->second.state.building.type,late.save.buildings.slotTypes[slot]);
+            if(a->second.state.building.type!=late.save.buildings.slotTypes[slot])continue;
+#define BUILDING_FIELD(field) compare(groups,"building_common",x.field,y.field)
+            BUILDING_FIELD(alive);BUILDING_FIELD(output);BUILDING_FIELD(byte52);BUILDING_FIELD(upgrade);BUILDING_FIELD(identity);
+            BUILDING_FIELD(model);BUILDING_FIELD(residents);BUILDING_FIELD(free);BUILDING_FIELD(distance);BUILDING_FIELD(roadX);BUILDING_FIELD(roadY);
+            BUILDING_FIELD(migrant);BUILDING_FIELD(workers);BUILDING_FIELD(available);BUILDING_FIELD(random);BUILDING_FIELD(network);BUILDING_FIELD(laborCountdown);
+            BUILDING_FIELD(operational);BUILDING_FIELD(parent);BUILDING_FIELD(suppression);BUILDING_FIELD(laborDisabled);BUILDING_FIELD(enabled);
+            BUILDING_FIELD(employmentCategory);BUILDING_FIELD(houseWater);BUILDING_FIELD(houseService);BUILDING_FIELD(spawnCounter);BUILDING_FIELD(spawnAux);
+            BUILDING_FIELD(roadFailure);BUILDING_FIELD(primaryFigure);BUILDING_FIELD(word30);BUILDING_FIELD(word34);BUILDING_FIELD(stock);BUILDING_FIELD(faction);
+            BUILDING_FIELD(direction);BUILDING_FIELD(houseInUse);BUILDING_FIELD(desirability);BUILDING_FIELD(desirabilityBonus);BUILDING_FIELD(fireRisk);
+            BUILDING_FIELD(damageRisk);BUILDING_FIELD(burning);BUILDING_FIELD(word92);BUILDING_FIELD(fireproof);BUILDING_FIELD(fireDirection);
+            BUILDING_FIELD(fireSuppressed);BUILDING_FIELD(watchRisk);
+#undef BUILDING_FIELD
+            compareOptional(groups,"building_common",x.modelDesirability,y.modelDesirability);
+            compareOptional(groups,"building_common",x.modelUpgrade,y.modelUpgrade);
+            compareOptional(groups,"building_common",x.modelDesirabilityBonus,y.modelDesirabilityBonus);
+            compareOptional(groups,"building_common",x.parentSlot,y.parentSlot);
+            compareOptional(groups,"building_common",x.stallResourceIndex,y.stallResourceIndex);
+            compareOptional(groups,"building_common",x.supplierStatus,y.supplierStatus);
+            compareOptional(groups,"building_common",x.nextPart,y.nextPart);
+            if(x.cropWorkers&&y.cropWorkers)for(size_t n=0;n<2;++n)compare(groups,"crop_industry",x.cropWorkers->at(n),y.cropWorkers->at(n));
+            else if(bool(x.cropWorkers)!=bool(y.cropWorkers))compare(groups,"crop_industry",bool(x.cropWorkers),bool(y.cropWorkers));
+            if(x.cropBays&&y.cropBays)for(size_t n=0;n<x.cropBays->size();++n){const auto& p=x.cropBays->at(n);const auto& q=y.cropBays->at(n);
+                compare(groups,"crop_storage",p.resource,q.resource);compare(groups,"crop_storage",p.amount,q.amount);compare(groups,"crop_storage",p.capacity,q.capacity);}
+            else if(bool(x.cropBays)!=bool(y.cropBays))compare(groups,"crop_storage",bool(x.cropBays),bool(y.cropBays));
+            if(x.house&&y.house){const auto goodsA=originalHouseGoodsFromPayload(*x.house),goodsB=originalHouseGoodsFromPayload(*y.house);
+                if(goodsA&&goodsB)for(size_t n=0;n<goodsA->size();++n)compare(groups,"house_goods",goodsA->at(n),goodsB->at(n));
+                compare(groups,"house_goods",x.house->at(53-4),y.house->at(53-4));
+                for(unsigned wire:{13u,14u,15u,16u,41u,42u,43u,44u,45u,49u,50u,51u,54u,55u,56u})
+                    compare(groups,"house_services",x.house->at(wire-4),y.house->at(wire-4));
+                compare(groups,"house_services",x.house->at(55),y.house->at(55));}
+            if(a->second.state.building.type>=194&&a->second.state.building.type<=199&&x.industry&&y.industry){compare(groups,"crop_industry",originalBuildingCropFlags(x),originalBuildingCropFlags(y));
+                compare(groups,"crop_industry",originalBuildingCropProgress(x),originalBuildingCropProgress(y));}
+        }}
+    if(late.save.layers.figures&&late.save.layers.figures->status==OriginalFigureStatus::Complete&&late.save.layers.figures->slots.size()==2000){
+        for(size_t slot=1;slot<2000;++slot){const auto found=city.figures.figures.find(slot);if(found==city.figures.figures.end())continue;
+            const auto& x=found->second;const auto& y=late.save.layers.figures->slots[slot];
+            compare(groups,"figure_identity",bool(x.alive),bool(y.alive));if(!x.alive||!y.alive)continue;
+            compare(groups,"figure_identity",x.type,y.type);compare(groups,"figure_identity",x.runtimeClass,y.runtimeClass);
+            if(x.type!=y.type||x.runtimeClass!=y.runtimeClass)continue;
+            compare(groups,"figure_images",x.image,y.image);compare(groups,"figure_images",x.secondaryImage,y.secondaryImage);
+#define FIGURE_FIELD(field) compare(groups,"figure_state",x.field,y.field)
+            FIGURE_FIELD(alive);FIGURE_FIELD(cell);FIGURE_FIELD(x);FIGURE_FIELD(y);FIGURE_FIELD(subX);FIGURE_FIELD(subY);FIGURE_FIELD(next);
+            FIGURE_FIELD(action);FIGURE_FIELD(progress);FIGURE_FIELD(direction);FIGURE_FIELD(previousDirection);FIGURE_FIELD(frame);
+            FIGURE_FIELD(subtype);FIGURE_FIELD(resource);FIGURE_FIELD(counter);FIGURE_FIELD(owner);FIGURE_FIELD(amount);FIGURE_FIELD(target);
+            FIGURE_FIELD(leaderLink);FIGURE_FIELD(follower);FIGURE_FIELD(formation);FIGURE_FIELD(damage);FIGURE_FIELD(route);
+            FIGURE_FIELD(routeCursor);FIGURE_FIELD(routeLength);FIGURE_FIELD(destinationX);FIGURE_FIELD(destinationY);FIGURE_FIELD(destinationCell);
+            FIGURE_FIELD(age);FIGURE_FIELD(home);FIGURE_FIELD(delivery);FIGURE_FIELD(linkedBuilding);
+            FIGURE_FIELD(extraX);FIGURE_FIELD(extraY);FIGURE_FIELD(freeMovement);FIGURE_FIELD(height);FIGURE_FIELD(hidden);FIGURE_FIELD(drawClass);
+            FIGURE_FIELD(state85);FIGURE_FIELD(raise);FIGURE_FIELD(attackDirection);FIGURE_FIELD(attackFrame);FIGURE_FIELD(cartStyle);FIGURE_FIELD(stationary);
+            FIGURE_FIELD(variant);FIGURE_FIELD(faction);FIGURE_FIELD(employmentAmount);FIGURE_FIELD(watchCoverage);FIGURE_FIELD(effectKind);
+            FIGURE_FIELD(effectVariant);FIGURE_FIELD(effectFlags);FIGURE_FIELD(effectX);FIGURE_FIELD(effectY);FIGURE_FIELD(effectVelocityX);
+            FIGURE_FIELD(effectVelocityY);FIGURE_FIELD(effectHeight);FIGURE_FIELD(effectVelocityZ);FIGURE_FIELD(effectDraw);FIGURE_FIELD(effectFrame);
+            FIGURE_FIELD(updateOwner);FIGURE_FIELD(threat);FIGURE_FIELD(threatDistance);FIGURE_FIELD(herdTarget);FIGURE_FIELD(herdDistance);
+            FIGURE_FIELD(idleCounter);FIGURE_FIELD(movementMode);FIGURE_FIELD(attackerCount);FIGURE_FIELD(routePhase);FIGURE_FIELD(speed);
+            FIGURE_FIELD(priorProgress);FIGURE_FIELD(reciprocalTarget);FIGURE_FIELD(priorX);FIGURE_FIELD(priorY);FIGURE_FIELD(priorCell);
+            FIGURE_FIELD(homeX);FIGURE_FIELD(homeY);FIGURE_FIELD(flags120);FIGURE_FIELD(water);FIGURE_FIELD(roamLimit);FIGURE_FIELD(roamSteps);
+            FIGURE_FIELD(roamState);FIGURE_FIELD(roamTurns);FIGURE_FIELD(roamTurn);FIGURE_FIELD(roamCountdown);FIGURE_FIELD(searchCounter);
+            FIGURE_FIELD(roamOriginX);FIGURE_FIELD(roamOriginY);FIGURE_FIELD(freeTargetX);FIGURE_FIELD(freeTargetY);FIGURE_FIELD(freeRemainingX);
+            FIGURE_FIELD(freeRemainingY);FIGURE_FIELD(freeError);FIGURE_FIELD(freeAxis);FIGURE_FIELD(cellMovement);FIGURE_FIELD(previousAction);
+            FIGURE_FIELD(allocationSerial);FIGURE_FIELD(allocationPhase);FIGURE_FIELD(allocationPhaseCopy);FIGURE_FIELD(projectile);
+            FIGURE_FIELD(projectileDistance);FIGURE_FIELD(projectileStartHeight);FIGURE_FIELD(projectileTargetHeight);FIGURE_FIELD(projectileEndHeight);
+            FIGURE_FIELD(projectileHits);FIGURE_FIELD(formationOrdinal);FIGURE_FIELD(formationStationary);
+#undef FIGURE_FIELD
+            for(size_t n=0;n<x.cooldowns.size();++n)compare(groups,"figure_state",x.cooldowns[n],y.cooldowns[n]);
+            for(size_t n=0;n<x.attackers.size();++n)compare(groups,"figure_state",x.attackers[n],y.attackers[n]);
+        }}
+}
+
+int selfTest(){
+    using namespace game_lab;
+    const EvidenceClock before{50,3,15,11},after{0,4,0,0};
+    if(forwardDistance(before,after)!=1||forwardDistance(before,EvidenceClock{0,4,1,0}))
+        throw std::runtime_error("calendar alignment across year");
+    OriginalCombinedState city;city.phase=0;city.buildingContext.emplace(OriginalBuildingUpdateScope::AdmittedTicks,true);
+    auto& c=*city.buildingContext;c.cycle=4;c.monthPart=0;c.month=0;c.treasury=99;c.elapsedYears=7;
+    city.figures.services.emplace();city.figures.services->population.emplace();city.figures.services->population->total=12;
+    SaveView late;late.clock=after;late.cityOk=true;late.treasury=98;late.year=7;late.population=12;
+    std::map<std::string,Agreement> groups;compareCommitted(city,late,groups);
+    if(groups["calendar"].equal!=4||groups["calendar"].total!=4||groups["treasury"].equal!=0||groups["treasury"].total!=1||
+       groups["year"].equal!=1||groups["population"].equal!=1)
+        throw std::runtime_error("field group agreement counts");
+    std::cout<<"fidelity self-test passed\n";return 0;
+}
+
+int explicitPairs(const game_lab::ResourceRoot& root,const game_lab::AppCityPlaybackPreferences& preferences,int argc,char** argv){
+    using namespace game_lab;
+    if((argc-1)%3)throw std::runtime_error("pairs require --pair EARLY LATE or --event-pair EARLY LATE");
+    unsigned reachedPairs=0,blockedPairs=0;
+    for(int arg=1;arg<argc;arg+=3){const std::string kind=argv[arg];
+        if(kind!="--pair"&&kind!="--event-pair")throw std::runtime_error("unknown pair option");
+        const auto early=explicitSave(root,argv[arg+1]),late=explicitSave(root,argv[arg+2]);
+        const auto distance=early.clockOk&&late.clockOk?forwardDistance(early.clock,late.clock):std::nullopt;
+        std::cout<<"pair "<<early.name<<" -> "<<late.name<<" event_class="<<(kind=="--event-pair"?"unmet_request_and_rating_notice":"unclassified")
+                 <<" same_map="<<early.sameMap(late)<<" terrain_differences="<<early.terrainDiffersFrom(late)<<" removed_buildings=";
+        if(early.buildingInputsOk&&late.buildingInputsOk)std::cout<<removedBuildings(early,late);else std::cout<<"unavailable";
+        if(!distance){++blockedPairs;std::cout<<" blocked=calendar_alignment\n";continue;}
+        AppMapSurface surface(root);AppCitySessionState session;session.crtRandom=1;
+        AppCityPlayback playback(surface,early.save,early.payload,preferences,1,0,false,&session);
+        if(!playback.prepared()){++blockedPairs;std::cout<<" blocked=not_prepared detail="<<playback.status().error<<'\n';continue;}
+        const unsigned interval=std::max(1u,playback.status().intervalMs);
+        for(unsigned n=1;n<=*distance;++n)if(!playback.step(uint64_t(n)*interval))break;
+        std::cout<<" updates="<<playback.status().updates<<'/'<<*distance;
+        if(playback.status().updates!=*distance||!playback.status().refusal.empty()){
+            ++blockedPairs;std::cout<<" blocked="<<(playback.status().refusal.empty()?"not_admitted":playback.status().refusal)<<'\n';continue;}
+        const auto* city=surface.cityPlaybackState();if(!city||!city->buildingContext){++blockedPairs;std::cout<<" blocked=city_state_unavailable\n";continue;}
+        const auto& calendar=*city->buildingContext;
+        if(city->phase!=late.clock.phase||!calendar.cycle||*calendar.cycle!=late.clock.cycle||
+           !calendar.monthPart||*calendar.monthPart!=late.clock.monthPart||!calendar.month||*calendar.month!=late.clock.month){
+            ++blockedPairs;std::cout<<" blocked=calendar_diverged\n";continue;}
+        ++reachedPairs;std::map<std::string,Agreement> groups;
+        for(const char* name:{"calendar","treasury","year","population","accounting","labor","employment","building_identity","building_common","house_goods","house_services","crop_industry","crop_storage","figure_identity","figure_images","figure_state"})groups[name]={};
+        compareCommitted(*city,late,groups);
+        std::cout<<" attribution=unresolved\n";
+        for(const auto& [name,row]:groups)std::cout<<"  "<<name<<' '<<row.equal<<'/'<<row.total<<" agree\n";
+    }
+    std::cout<<"FIDELITY pairs_reached="<<reachedPairs<<" blocked="<<blockedPairs<<'\n';return 0;
+}
+}
+
+int main(int argc,char** argv) {
+    using namespace game_lab;
+    if(argc==2&&std::string(argv[1])=="--self-test"){try{return selfTest();}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
     const char* rootPath = std::getenv("EMPEROR_GAMEDATA_ROOT");
     if (!rootPath || !*rootPath) { std::cout << "SKIP EMPEROR_GAMEDATA_ROOT unset\n"; return 0; }
     const auto root = ResourceRoot::fromAbsolute(rootPath);
     if (!root.configured()) { std::cerr << "data root not configured\n"; return 1; }
     AppCityPlaybackPreferences preferences; std::string error;
     if (!readAppCityPlaybackPreferences(root, preferences, error)) { std::cerr << error << '\n'; return 1; }
+    if(argc>1){try{return explicitPairs(root,preferences,argc,argv);}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
 
     const auto saves = inventory(root);
     std::cout << "FIDELITY saves " << saves.size() << "\n";
     for (const auto& s : saves) {
-        std::cout << "save " << s.name << " side=" << s.save.terrain.activeSide;
-        if (s.clockOk) std::cout << " phase=" << s.clock.phase << " part=" << s.clock.monthPart
-                                 << " cycle=" << s.clock.cycle << " month=" << s.clock.month;
-        if (s.cityOk) std::cout << " year=" << s.year << " pop=" << s.population << " treasury=" << s.treasury;
-        std::cout << " buildings=" << s.liveSlots.size()
+        std::cout << "save " << s.name << " buildings=" << s.liveSlots.size()
                   << " figures=" << (s.save.layers.figures ? s.save.layers.figures->live.size() : 0) << "\n";
     }
 
@@ -151,7 +346,7 @@ int main() {
         const auto calendar = playback.status().calendar;
         auto compare = [&](const std::string& field, auto got, auto want) {
             const bool same = got == want; ++compared; if (same) ++matched;
-            std::cout << "  " << field << " ours=" << got << " original=" << want << (same ? " match" : " MISMATCH") << "\n";
+            std::cout << "  " << field << (same ? " match" : " MISMATCH") << "\n";
         };
         std::cout << "\n";
         if (finances && late.cityOk) compare("treasury", finances->treasury, late.treasury);
