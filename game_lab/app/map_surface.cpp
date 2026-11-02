@@ -10,6 +10,13 @@
 #include <algorithm>
 
 namespace game_lab {
+namespace {
+void bindSentimentTaxTable(const ResourceRoot& root,OriginalCombinedState& city){
+    std::vector<uint8_t> bytes;
+    if(city.buildingContext&&detail::readFile(root.resolve("Model/EmperorTaxSentimentModel.txt"),100000,bytes))
+        city.buildingContext->sentimentTaxTable=originalBuildingSentimentTaxTable(std::string(bytes.begin(),bytes.end()));
+}
+}
 void AppMapSurface::clear() {
     playback_.reset();
     state_.reset(); savedBuildings_.reset(); terrain_ = {}; error_.clear();
@@ -147,7 +154,8 @@ bool AppMapSurface::selectPostLoadTimeline(const OriginalSaveResult& save,const 
         if(!detail::readFile(root_.resolve("EmperorText.eng"),8u*1024u*1024u,speechBytes)){clear();error_="combined speech groups";return false;}
         if(!originalCombinedBindBuildingServices(*combined,save.buildings,figures,payload,save.terrainOffset,save.sizeOffset,
             ground,*savedBuildings_,archives_.at(2).index,archives_.at(3).index,buildingText,originalBuildingSpeechCounts(speechBytes))){
-            clear();error_="combined saved city services";return false;}}
+            clear();error_="combined saved city services";return false;}
+        bindSentimentTaxTable(root_,*combined);}
     const auto timeline=originalSceneTimeline(initial,refs,*savedBuildings_,archives_.at(2).index,&employment,previousAdmission,clocks,suppliedFrames,combined?&*combined:nullptr);
     if(!timeline.complete||!installOriginalSceneTimeline(*savedBuildings_,save.terrain,figures,refs,save.buildings,archives_.at(2).index,timeline,&archives_.at(3).index)){
         clear();error_="post-load timeline: "+timeline.refusal+" (update "+std::to_string(timeline.refusedUpdate)+")";return false;}
@@ -350,6 +358,7 @@ bool AppMapSurface::prepareCityPlaybackCandidate(const OriginalSaveResult& save,
     if(!originalCombinedBindBuildingServices(*combined,save.buildings,figures,payload,save.terrainOffset,save.sizeOffset,
         ground,*savedBuildings_,archives_.at(2).index,archives_.at(3).index,buildingText,originalBuildingSpeechCounts(speechBytes))){
         error_="combined saved city services";return false;}
+    bindSentimentTaxTable(root_,*combined);
     if(!combined->scenarioMessages){error_="app_scenario_messages_required";return false;}
     const auto notifications=AppCityNotifications::fromSaved(*combined->scenarioMessages);
     if(!notifications){error_="app_saved_notifications_invalid";return false;}

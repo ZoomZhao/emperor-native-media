@@ -371,6 +371,23 @@ inline std::optional<std::array<uint32_t,10>> originalBuildingRankedRoadNetworks
         ranked[rank]=label;sizes[rank]=counts[label];}
     return ranked;
 }
+struct OriginalBuildingSentimentTaxTable {
+    std::array<int32_t,7> rates{};
+    std::array<std::array<int32_t,5>,7> values{};
+};
+// 5D1C20 reads seven brace-delimited rows, each with a rate and five
+// difficulty columns. Inputs are supplied by the data root, never embedded.
+inline std::optional<OriginalBuildingSentimentTaxTable> originalBuildingSentimentTaxTable(const std::string& text){
+    if(text.size()>100000||text.find('\0')!=std::string::npos)return std::nullopt;
+    OriginalBuildingSentimentTaxTable out;size_t at=0;
+    for(unsigned row=0;row<7;++row){const auto start=text.find('{',at);if(start==std::string::npos)return std::nullopt;
+        const auto end=text.find('}',start+1);if(end==std::string::npos)return std::nullopt;
+        auto line=text.substr(start+1,end-start-1);std::replace(line.begin(),line.end(),',',' ');std::istringstream input(line);
+        int64_t value=0;for(unsigned column=0;column<6;++column){if(!(input>>value)||value<INT32_MIN||value>INT32_MAX)return std::nullopt;
+            if(!column)out.rates[row]=int32_t(value);else out.values[row][column-1]=int32_t(value);}
+        input>>std::ws;if(!input.eof())return std::nullopt;at=end+1;}
+    if(text.find('{',at)!=std::string::npos)return std::nullopt;return out;
+}
 struct OriginalBuildingUpdateContext {
     // Explicit operation count: admitted ticks are distinct from phase20 calls.
     OriginalBuildingUpdateScope scope;
@@ -618,6 +635,7 @@ struct OriginalBuildingUpdateContext {
     };
     std::optional<CycleTail> cycleTail;
     std::optional<bool> sentimentHypotheses;
+    std::optional<OriginalBuildingSentimentTaxTable> sentimentTaxTable;
     std::optional<int32_t> scenarioMonths; //Scenario6+5B4,52D5B4
     std::optional<bool> cropFestival; //48E110 reads saved Festival4+50/+54/+58.
     std::optional<std::array<int32_t,2>> cropDispatchRadius; //84C558/84C554,process table defaults3/3.
@@ -2005,10 +2023,14 @@ inline OriginalBuildingUpdateBlocker originalBuildingSentimentStep(OriginalBuild
     const auto wage=originalBuildingWageSentiment(l.wageBand,*c.populationTotal,reached);
     if(!wage)return OriginalBuildingUpdateBlocker::MonthlyCity;
     const int unemployment=originalBuildingUnemploymentSentiment(c.cityEmployment->unemploymentPercent,*c.populationTotal,reached);
-    // HYPOTHESIS(sentiment-tax-table): 591180's difficulty-dependent table
-    // is process-loaded from model text and is not bound yet. Use neutral tax
-    // contribution; keep the actual saved tax inputs for the eventual port.
-    const int tax=0;
+    // HYPOTHESIS(sentiment-tax-table): when the data-root model is missing or
+    // unparseable, assume its 591180 tax contribution is zero. Normal App
+    // playback uses the seven saved model rows whenever they are available.
+    int tax=0;
+    if(c.sentimentTaxTable&&c.accounting&&l.difficulty>=0&&l.difficulty<5){size_t selected=0;int64_t nearest=INT64_MAX;
+        if(l.sentimentTaxable>10)for(size_t n=0;n<7;++n){const int64_t distance=std::abs(int64_t(c.accounting->taxRate)-c.sentimentTaxTable->rates[n]);
+            if(distance<nearest){nearest=distance;selected=n;}}
+        tax=c.sentimentTaxTable->values[selected][size_t(l.difficulty)];if(tax<0&&*c.populationTotal<350&&!reached)tax=0;}
     // 590F30 updates each ordinary house's common+8C and food delay+5C.
     int32_t houseSum=0,houseCount=0;const int adjustment=(40-old)/2;
     for(auto& e:*c.buildingInputs){auto& i=e.second;const auto type=c.buildings->at(e.first).type;

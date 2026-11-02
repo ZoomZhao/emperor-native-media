@@ -764,6 +764,13 @@ void authored(){
     need(originalBuildingCycleTailStep(sentimentTail)==OriginalBuildingUpdateBlocker::None&&sentimentTail.monthPart==8&&
          sentimentTail.cycleTail->previousHealthRating==149&&sentimentTail.cycleTail->currentHealthRating==148&&
          sentimentTail.labor->sentimentHouseRating==19,"part8 publishes the post-sentiment house rating and its previous value");
+    const auto taxTable=originalBuildingSentimentTaxTable("{0,0,0,0,0,0}{3,0,0,0,0,0}{7,0,0,-3,0,0}{9,0,0,0,0,0}{11,0,0,0,0,0}{15,0,0,0,0,0}{20,0,0,0,0,0}");
+    auto taxSentiment=strictSentiment;taxSentiment.sentimentHypotheses=true;taxSentiment.sentimentTaxTable=taxTable;
+    taxSentiment.accounting.emplace();taxSentiment.accounting->taxRate=7;taxSentiment.labor->sentimentTaxable=11;
+    taxSentiment.labor->sentimentReached350=1;
+    need(taxTable&&originalBuildingSentimentStep(taxSentiment)==OriginalBuildingUpdateBlocker::None&&taxSentiment.labor->sentiment==61,
+         "saved tax model selects nearest rate and difficulty contribution before applying sentiment");
+    need(!originalBuildingSentimentTaxTable("{0,0,0,0,0,0}"),"incomplete tax model is unavailable rather than padded");
     need(originalBuildingCycleTailStep(part3)==OriginalBuildingUpdateBlocker::None&&part3.notificationEffects.back()==0xd6,"part3 rating147 needs no unused previous-rating premise");
     part3=tailContext;part3.monthPart=2;part3.cycleTail->currentHealthRating=151;
     need(originalBuildingCycleTailStep(part3)==OriginalBuildingUpdateBlocker::MonthlyCity,"part3 rating151 requires previous notification rating when consumed");
