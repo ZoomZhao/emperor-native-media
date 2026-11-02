@@ -2005,6 +2005,11 @@ void authored(){
             "SAV19 read order after shared terrain scalars reaches signed fire count at literal1363850 after two80-byte blocks");
         services.pop_back();need(!originalFigureSavedServices(services,t)->fireCount,"partial saved fire dword cannot publish zero or a truncated count");
         services.resize(t+1391646,0);put(1391638,123);put(1391642,0xfffffffd);
+        put(1372830+88*3,17);services[t+1372830+88*3+8+25]=9;put(1372830+88*3+84,41);
+        const auto ledger=originalFigureSavedServices(services,t);
+        need(ledger&&ledger->traderLedgers&&ledger->traderLedgers->at(3).sold==17&&
+             ledger->traderLedgers->at(3).soldGoods[25]==9&&ledger->traderLedgers->at(3).expense==41,
+             "SAV19 restores the 88-byte trader ledger including counts, commodity and value");
         need(original_save19::criminalCount==1391642&&originalFigureSavedServices(services,t)->criminalCount==-3,
             "Watchtower criminal count follows independent SAV19 request cursor to literal1391642");
         services.pop_back();need(!originalFigureSavedServices(services,t)->criminalCount,

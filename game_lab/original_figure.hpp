@@ -32,7 +32,7 @@ struct OriginalFigure {
     uint8_t effectFrame=0; //flame animation+41,distinct from ambient+5
     uint32_t updateOwner=0; //+13C read0x4C8995;nonzero skips virtual+28 at0x4E2899.
     uint32_t traderTransactionMode=0,traderTransactionTimer=0; //Figure7 +160/+168.
-    int16_t traderSold=0; //Figure7 +7C,5DE65C; +82 is amount/trader purchased count.
+    int16_t traderSold=0;uint8_t traderLedgerIndex=0; //Figure7 +7C/+8D; +82 is purchased count.
     // Pheasant virtual predicates/cooldowns, Figure7's cited dword requests.
     uint32_t threat=0,threatDistance=0,herdTarget=0,herdDistance=0,idleCounter=0;
     std::array<int32_t,3> cooldowns{}; //+D0/+D4/+D8; positive values decrement.
@@ -74,6 +74,7 @@ inline constexpr size_t fireTrailingScalars=fireBlock64000+64000; //0x531510/51E
 inline constexpr size_t fireBlock10=fireTrailingScalars+3*4; //0x53153A
 inline constexpr size_t fireBlocks80=fireBlock10+10; //0x531548/556
 inline constexpr size_t fireCount=fireBlocks80+2*80; //0xC82F28,i32,0x531564
+inline constexpr size_t traderLedger=fireCount+5*4+8960; //C05920,100 records of88 bytes,5315B7.
 inline constexpr size_t criminalCount=fireCount+5*4+8960+8800+4+1000+1000+8000+8; //10AEECC,531629.
 // Continue from road-distance0x5317E3, then32 bytes0x5317F1 and36
 // bytes0x531805. The preceding variable records are already framed at T.
@@ -203,6 +204,7 @@ struct OriginalFigureRandomHistory {
 };
 struct OriginalFigureSavedServices {
     struct FormationImpact {int16_t alert=0,source=0;}; //runtime+5E/+60,5E63A2/A8.
+    struct TraderLedger {uint32_t sold=0,purchased=0;std::array<uint8_t,36> soldGoods{},purchasedGoods{};uint32_t income=0,expense=0;};
     std::array<FormationImpact,100> formationImpacts{};
     std::array<int16_t,1000> routeOwners{};
     std::vector<uint8_t> directions;
@@ -211,6 +213,7 @@ struct OriginalFigureSavedServices {
     std::optional<int32_t> fireCount;
     std::optional<int32_t> criminalCount;
     std::optional<uint32_t> allocationSerial; //10AEEE8,531580,T+fireCount+8.
+    std::optional<std::array<TraderLedger,100>> traderLedgers; //C05920,5315B7;5DBC20/5DBBE0.
     std::vector<uint32_t> serviceGrid;
     std::optional<OriginalFigurePopulation> population;
 };
@@ -235,6 +238,10 @@ inline std::optional<OriginalFigureSavedServices> originalFigureSavedServices(
     if(criminalCount+4<=data.size()-terrain){const auto bits=detail::u32(data.data()+terrain+criminalCount);
         out.criminalCount=int32_t(bits>INT32_MAX?int64_t(bits)-4294967296LL:int64_t(bits));}
     if(fireCount+12<=data.size()-terrain)out.allocationSerial=detail::u32(data.data()+terrain+fireCount+8);
+    if(traderLedger+8800<=data.size()-terrain){out.traderLedgers.emplace();
+        for(size_t n=0;n<100;++n){const auto* p=data.data()+terrain+traderLedger+88*n;auto& row=out.traderLedgers->at(n);
+            row.sold=detail::u32(p);row.purchased=detail::u32(p+4);std::copy_n(p+8,36,row.soldGoods.begin());
+            std::copy_n(p+44,36,row.purchasedGoods.begin());row.income=detail::u32(p+80);row.expense=detail::u32(p+84);}}
     if(serviceGrid+207936<=data.size()-terrain){out.serviceGrid.resize(51984);
         for(size_t n=0;n<51984;++n)out.serviceGrid[n]=detail::u32(data.data()+terrain+serviceGrid+4*n);}
     return out;
@@ -595,7 +602,7 @@ inline OriginalFigureProfile parseOriginalSavedFigures(const std::vector<uint8_t
         f.effectVelocityZ=detail::i16(r+390);f.effectDraw=r[132];
         f.updateOwner=detail::u32(r+316);
         f.traderTransactionMode=detail::u32(r+352);f.traderTransactionTimer=detail::u32(r+360);
-        f.traderSold=detail::i16(r+124);
+        f.traderSold=detail::i16(r+124);f.traderLedgerIndex=r[141];
         f.threat=detail::u32(r+172);f.threatDistance=detail::u32(r+176);
         f.herdTarget=detail::u32(r+188);f.herdDistance=detail::u32(r+192);f.idleCounter=detail::u32(r+204);
         for(size_t k=0;k<3;++k){const auto bits=detail::u32(r+208+4*k);
