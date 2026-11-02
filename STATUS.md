@@ -19,7 +19,7 @@
 | 项羽/.sav | 811 | 9 / 1 | `type_action_route_target_combat_update_slot_1858_type_40_action_7` |
 | 项羽/历史战役自动保存_1 | 1000 | 2 / 3 | none |
 | zoom/载入旧存档自动保存 | 286 | 1 / 5 | `ordered_type_update_slot_1966_type_24_action_6` |
-| zoom/历史战役自动存档_2 | 541 | 7 / 10 | `type_action_route_target_combat_update_slot_1976_type_29_action_6` |
+| zoom/历史战役自动存档_2 | 570 | 7 / 11 | `type_action_route_target_combat_update_slot_1976_type_29_action_6` (road-cell selection) |
 
 Ordinary month rollover now runs traced food, wages, debt, production and population-history effects plus explicitly labelled remaining assumptions. Annual rollover remains refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
 

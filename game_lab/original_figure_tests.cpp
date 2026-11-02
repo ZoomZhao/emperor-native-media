@@ -1676,6 +1676,13 @@ void authored(){
         context.buildings->at(9).type=0x7f;context.buildings->at(9).primaryFigure=int16_t(watch.slot);
         context.models[29]={};context.models[29][15]=30;context.modelSpeeds[29]=6;context.figures[watch.slot]=watch;
         context.services->criminalCount=0;
+        auto waitingWatch=watch;waitingWatch.action=6;waitingWatch.counter=3;waitingWatch.frame=0;context.figures[waitingWatch.slot]=waitingWatch;
+        const auto watchWait=originalFigureFirstUpdate(waitingWatch,refs,&context,0xc0);
+        need(watchWait.state&&watchWait.state->counter==2&&watchWait.state->hidden==1&&watchWait.state->frame==0,
+             "Watchtower walker waits hidden before selecting its road cell");
+        waitingWatch.counter=1;context.figures[waitingWatch.slot]=waitingWatch;
+        need(!originalFigureFirstUpdate(waitingWatch,refs,&context,0xc0).state,"Watchtower road-cell selection remains an explicit boundary");
+        context.figures[watch.slot]=watch;
         const auto wrapped=originalFigureFirstUpdate(watch,refs,&context,0xc0);
         need(wrapped.state&&wrapped.state->frame==0&&wrapped.state->progress==3,
             "Watchtower frame wrap uses saved zero criminal count before continuing normal roam");

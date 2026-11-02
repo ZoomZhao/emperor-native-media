@@ -2129,10 +2129,13 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
         if(!originalFigureWriteWalkingImage(f,0x4c09,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
         originalFigurePublishWrites(out,f,*context,local);return out;
     }
-    if(f.type==29&&(f.action==7||f.action==9||(f.action==8&&f.roamSteps>=f.roamLimit))){ //4D3B50 action7/8/9 return continuations.
+    if(f.type==29&&(f.action==6||f.action==7||f.action==9||(f.action==8&&f.roamSteps>=f.roamLimit))){ //4D3B50 action6/7/8/9 continuations.
         f.frame=uint8_t(f.frame+1);if(f.frame>11){f.frame=0;
             if(!local.services||!local.services->criminalCount||*local.services->criminalCount>0)return out;}
-        if(f.action==8){const auto road=originalFigureMusicRoad(owner->second,local);if(!road)return out;
+        if(f.action==6){ //4D3C20 waits hidden; its final call selects a ranked road cell.
+            if(f.counter<=1)return out;
+            f.counter=originalFigureWord(int(f.counter)-1);f.hidden=1;f.frame=0;
+        }else if(f.action==8){const auto road=originalFigureMusicRoad(owner->second,local);if(!road)return out;
             if(!*road)f.alive=2;else {f.action=9;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;
                 if(f.route>0){if(!local.services||f.route>=1000)return out;if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
             const auto moved=originalFigureRoam(f,unsigned(speed->second),terrainFlags,local);if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
