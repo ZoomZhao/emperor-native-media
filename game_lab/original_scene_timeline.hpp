@@ -35,6 +35,7 @@ struct OriginalCombinedProcessInputs {
     std::optional<uint32_t> crtRandom; //explicit7665FD state,independent of766DA0
     std::optional<bool> soundEffectsEnabled,buildingEditMode; //10DE0D3/D62408 caller inputs
     std::optional<uint8_t> annualDemandResponseMode; //C7EDD0->10DE164,4A3A9A..AC caller preference
+    std::optional<bool> animalSpawnMissHypothesis; //normal-play hypothesis, never an observed SAV field
 };
 struct OriginalCombinedBuilding {
     OriginalBuildingUpdateState state;
@@ -348,7 +349,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
     case 3:case 30:c.citySignal=1;break; //4819F0/4AC42D store13F8E78=1
     case 4:if(!c.treasury)result=OriginalBuildingUpdateBlocker::CityPhase;else if(*c.treasury>=0)c.cityCountA=c.cityCountB=0;
         else return "negative_treasury_city_counters_required";break;
-    case 5:case 29:result=originalBuildingFormationPhase(c,city.phase==5);break;
+    case 5:case 29:result=originalBuildingFormationPhase(c,city.phase==5,city.process.animalSpawnMissHypothesis==true);break;
     case 6:result=originalBuildingLaborCountdown(c);break;
     case 7:if(c.movement)result=originalBuildingNetworkStep(c);
         else { //4AF350; a B0C projection suffices for the building-free river path.

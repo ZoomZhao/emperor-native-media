@@ -389,6 +389,15 @@ void authored(){
     const auto gathered=originalBuildingFormationStep(*formContext.formations,*formContext.figures,*formContext.figureModels,*formContext.figureStationary);
     need(gathered&&gathered->formations[35].count==1&&gathered->formations[35].members[0]==9&&gathered->formations[35].damage==3&&gathered->formations[35].strength==17&&gathered->figureOrdinals.at(9)==0,"formation gather uses actual figure stationary byte and model column1");
     formContext.formations->at(35).skipLifecycle=0;need(!originalBuildingFormationStep(*formContext.formations,*formContext.figures,*formContext.figureModels,*formContext.figureStationary),"positive formation lifecycle refuses despite nonempty supplied pool");
+    formContext.formations->at(35).skipLifecycle=3;formContext.formations->at(35).spawnTimer=26;formContext.engineRegion=1;
+    formContext.figureServices.emplace();formContext.figureServices->randomHistory.emplace();
+    auto refusedSpawn=formContext;
+    need(originalBuildingFormationPhase(refusedSpawn,true)==OriginalBuildingUpdateBlocker::CityPhase,"unimplemented animal spawn remains selectable as a refusal");
+    auto assumedMiss=formContext;
+    need(originalBuildingFormationPhase(assumedMiss,true,true)==OriginalBuildingUpdateBlocker::None&&
+         assumedMiss.formations->at(35).spawnTimer==0&&assumedMiss.figureServices->randomHistory->cursor==1&&
+         assumedMiss.figures->at(9).alive==1&&assumedMiss.allocatedFigures.empty(),
+         "hypothetical missed animal spawn resets the timer and consumes one engine random value");
     auto military=formContext;military.phase=5;military.formations->at(35).skipLifecycle=3;military.figures->at(8).alive=1;military.figures->at(8).type=64;military.figures->at(8).damage=2;
     auto militaryResult=originalBuildingStateAfterUpdates(field(),military,1);
     need(!militaryResult.state&&militaryResult.refusedPhase==5,"formation phase refuses independent military damage writes outside animal domain");

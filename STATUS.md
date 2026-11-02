@@ -1,6 +1,6 @@
 # Status — ORIGINAL CITY RUNS
 
-2026-11-02 · macOS arm64 · measure with `EMPEROR_GAMEDATA_ROOT=<data> make primary-metric`
+2026-11-03 · macOS arm64 · measure with `EMPEROR_GAMEDATA_ROOT=<data> make primary-metric`
 
 ## Primary metric
 
@@ -10,7 +10,7 @@
 
 ## Stage 2: 1000 updates — 0/6
 
-`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release measured 2026-11-02; this revision has not yet been measured with UBSan.
+`make primary-metric UPDATES=1000`. Calendar = month / month part (one part = 51 updates). Release measured 2026-11-03; this revision has not yet been measured with UBSan.
 
 | Source | Updates | Calendar | First refusal |
 |---|---|---|---|
@@ -18,8 +18,8 @@
 | 项羽/历史战役自动存档_2 | 407 | 7 / 7 | `monthly_city_4ac650` |
 | 项羽/.sav | 337 | 8 / 7 | `monthly_city_4ac650` |
 | 项羽/历史战役自动保存_1 | 356 | 1 / 6 | `monthly_city_4ac650` |
-| zoom/载入旧存档自动保存 | 284 | 1 / 5 | `city_accounting_4f1560_4ac2fa` |
-| zoom/历史战役自动存档_2 | 209 | 7 / 4 | `city_accounting_4f1560_4ac2fa` |
+| zoom/载入旧存档自动保存 | 286 | 1 / 5 | `building_virtual20_416d20` |
+| zoom/历史战役自动存档_2 | 356 | 7 / 6 | `monthly_city_4ac650` |
 
 Part 8 calls `591200` every cycle; rollover services remain refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
 
@@ -27,7 +27,7 @@ Inner loop: 1,000-update Release run 171 s with rebuild before, 46 s warm after;
 
 ## Fidelity — 0/0 (2026-11-03)
 
-Explicit isolated pairs: `2026102301/202610230102 → 202610230103` stops at 161/1104 (`monthly_city_4ac650`); `2026102801/280008 → 280009` cannot prepare (`combined saved building inputs`). No target-state agreement is scored. The latter includes an unmet request and rating notice; the envoy and gift preceded 280008. Its recorded −60 treasury change has unresolved attribution.
+Explicit isolated pairs before the animal fallback: `2026102301/202610230102 → 202610230103` stops at 161/1104 (`monthly_city_4ac650`); `2026102801/280008 → 280009` cannot prepare (`combined saved building inputs`). No target-state agreement is scored. The latter includes an unmet request and rating notice; the envoy and gift preceded 280008. Its recorded −60 treasury change has unresolved attribution.
 
 ## Open hypotheses
 
@@ -51,14 +51,16 @@ The load hypotheses below are in `game_lab/app/city_playback.cpp` `applyLoadHypo
 
 `census-skip-phase` (diagnostic mode only): a refused accounting or monthly phase has no side effects apart from calendar advancement. Evidence: phase rollback preserves the last complete candidate; there is no evidence that the omitted original effects are empty. Compare a supervised time-only SAV pair and the executable to verify. Other refusals and year rollover remain hard stops.
 
+`animal-spawn-missed-candidates` (normal-play fallback): assume the 16 placement candidates all fail, so no animal is born. `4EA986..4EA98A` reset the timer and consume one engine random value before the search; actual placement and successful allocation remain unported. Verify by implementing `4EA8E0` placement/allocation or comparing a supervised save across a known spawn attempt. Strict premises and the direct phase API retain refusal.
+
 ## Next step
 
 10,000-update diagnostic census, sorted by earliest attempted update (speculative after any no-op; all six saves stopped hard):
 
-1. `city_accounting_4f1560_4ac2fa`: 210, 285 and 1383 (hard; the broad name also occurs outside the phase-1 fallback).
+1. `city_accounting_4f1560_4ac2fa`: 210, 285 and 1383 (hard; at 210 this is phase 5 animal spawning `4EA8E0`, not accounting). Two live animal formations have spawn timer 26 and are below their limit.
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Identify the first accounting refusal, then compare the existing isolated original pairs, accounting for their recorded events.
+The first normal-path blocker is now `building_virtual20_416d20` after 286 admitted updates. Identify its building and missing branch; the animal spawn fallback remains a hypothesis and needs a real port.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).

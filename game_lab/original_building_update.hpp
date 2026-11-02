@@ -2442,7 +2442,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingLaborCountdown(OriginalBuil
 //54C6F0 modes0/1:the measured source6 animal groups have+69=3,
 //which gates54D450/54C970;54EF10 walks only the first19 groups.
 //4EA8E0 increments an underfilled animal group's timer before allocation27.
-inline OriginalBuildingUpdateBlocker originalBuildingFormationPhase(OriginalBuildingUpdateContext& c,bool gather){
+inline OriginalBuildingUpdateBlocker originalBuildingFormationPhase(OriginalBuildingUpdateContext& c,bool gather,bool animalSpawnMissHypothesis=false){
     if(!c.formations||!c.figures||!c.figureModels||!c.figureStationary)return OriginalBuildingUpdateBlocker::CityPhase;
     //54C8D0 independently decays active63..66 damage. Those military
     //branches are outside this guarded animal-only phase,even with no group.
@@ -2453,7 +2453,14 @@ inline OriginalBuildingUpdateBlocker originalBuildingFormationPhase(OriginalBuil
         if(n<23||g.special||g.lifecycleOwner||g.skipLifecycle!=3||g.kind<75||g.kind>77)return OriginalBuildingUpdateBlocker::CityPhase;
         if(!c.engineRegion)return OriginalBuildingUpdateBlocker::CityPhase;
         g.kind=int16_t(*c.engineRegion==0?77:*c.engineRegion==1?76:75);g.limit=7;
-        if(g.count<g.limit){++g.spawnTimer;if(g.spawnTimer>26)return OriginalBuildingUpdateBlocker::CityPhase;}}
+        if(g.count<g.limit){++g.spawnTimer;if(g.spawnTimer>26){
+            // HYPOTHESIS(animal-spawn-missed-candidates): the 16 candidate
+            // locations are all unusable. 4EA986 resets the timer and 4EA98A
+            // consumes one engine random value before the search. A successful
+            // birth would additionally allocate and initialize a figure.
+            if(!animalSpawnMissHypothesis||!c.figureServices||!c.figureServices->randomHistory||
+               c.figureServices->randomHistory->cursor>=100)return OriginalBuildingUpdateBlocker::CityPhase;
+            g.spawnTimer=0;originalFigureRandomNext(*c.figureServices);}}}
     return OriginalBuildingUpdateBlocker::None;
 }
 inline std::optional<size_t> originalBuildingAllocateMigrant(OriginalBuildingUpdateContext& c,uint8_t type,int16_t x,int16_t y){
