@@ -791,7 +791,13 @@ inline std::optional<size_t> originalBuildingAllocateService(OriginalBuildingUpd
     const int64_t cell=int64_t(*c.cropBase)+x+228LL*y;if(cell<0||cell>=51984)return std::nullopt;
     //4C9160+17 receives caller faction;represented faction+7A remains
     //the constructor0. The +15 constructor byte is not freeMovement+14.
-    OriginalFigure f;f.slot=slot;f.type=type;f.alive=1;f.direction=direction;f.progress=20;
+    OriginalFigure f;const auto& prior=c.figures->at(slot);
+    //4C9160 does not clear the saved effect payload on an ordinary reused
+    //figure slot. The original pair retains these bytes across allocation.
+    if(!fireEffect){f.effectKind=prior.effectKind;f.effectVariant=prior.effectVariant;f.effectFlags=prior.effectFlags;
+        f.effectX=prior.effectX;f.effectY=prior.effectY;f.effectHeight=prior.effectHeight;
+        f.effectVelocityX=prior.effectVelocityX;f.effectVelocityY=prior.effectVelocityY;f.effectVelocityZ=prior.effectVelocityZ;}
+    f.slot=slot;f.type=type;f.alive=1;f.direction=direction;f.progress=20;
     (void)faction;
     f.x=f.priorX=f.homeX=f.destinationX=x;f.y=f.priorY=f.homeY=f.destinationY=y;f.cell=uint32_t(cell);
     f.subX=originalBuildingSignedWord(uint16_t(uint32_t(uint16_t(x))*20));f.subY=originalBuildingSignedWord(uint16_t(uint32_t(uint16_t(y))*20));

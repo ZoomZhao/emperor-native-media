@@ -752,10 +752,12 @@ void authored(){
         cropContext.buildings->emplace(8+n,target.building);cropContext.buildingInputs->emplace(8+n,target.inputs);cropContext.movement->cells[1144+n]=1;}
     cropContext.buildingInputs->at(9).industry->at(0)=0x50;cropContext.buildingInputs->at(9).industry->at(1)=0x14; //5200:score24+distance2 ties field8's25+1.
     cropContext.buildings->emplace(7,hold.building);cropContext.buildingInputs->emplace(7,hold.inputs);cropContext.wallClock=1000;cropContext.freeFigureSlots={19,18};
+    cropContext.figures->at(19).effectKind=9;cropContext.figures->at(19).effectHeight=-123;cropContext.figures->at(19).effectVelocityZ=234;
     auto farmers=originalBuildingStateAfterUpdates(hold,cropContext,1);
     need(farmers.state&&farmers.state->inputs.cropWorkers->at(0)==4&&farmers.context->allocatedFigures==std::vector<size_t>{19}&&farmers.context->figures->at(19).action==10&&farmers.context->farmerTasks.at(19)==2,"harvest staffing allocates one missing farmer after the old counter1 gate");
     need(farmers.context->buildingInputs->at(8).primaryFigure==19&&farmers.context->buildingInputs->at(9).primaryFigure==19&&farmers.context->buildingInputs->at(10).primaryFigure==19&&farmers.context->buildingInputs->at(11).primaryFigure==19,"farmer grouping assigns skipped candidates to the latest allocated farmer");
     need(farmers.context->figures->at(19).counter==0&&farmers.context->figures->at(19).owner==7&&farmers.context->figures->at(19).variant==1&&farmers.context->crtRandomCalls==0,"farmer local LCG consumes explicit wall time after constructor and no CRT draws");
+    need(farmers.context->figures->at(19).effectKind==9&&farmers.context->figures->at(19).effectHeight==-123&&farmers.context->figures->at(19).effectVelocityZ==234,"reused farmer slot retains the saved effect payload that its constructor does not touch");
     auto missingClock=cropContext;missingClock.wallClock.reset();auto farmerRefusal=originalBuildingStateAfterUpdates(hold,missingClock,1);
     need(!farmerRefusal.state&&!farmerRefusal.context&&farmerRefusal.refusedPhase==31&&farmerRefusal.operations==0&&farmerRefusal.blocker==OriginalBuildingUpdateBlocker::FarmerWallClock&&missingClock.freeFigureSlots==std::vector<size_t>({19,18})&&missingClock.figures->at(19).alive==0,"farmer clock refusal names766DA0 and publishes no allocator or field prefix");
     missingClock.freeFigureSlots.clear();farmers=originalBuildingStateAfterUpdates(hold,missingClock,1);
