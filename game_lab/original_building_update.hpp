@@ -2866,7 +2866,7 @@ inline bool originalBuildingSynchronizePool(OriginalBuildingUpdateContext& c){
         if(c.buildingLinks){const auto found=c.buildingLinks->find(e.first);if(found==c.buildingLinks->end())return false;auto& b=found->second;
             b.alive=i.alive;b.residents=i.residents;b.freeSlots=i.free;b.houseModel=i.model;b.worker=i.migrant;
             b.workers=i.workers;b.roadAccess=i.available;b.roadDistance=i.distance;b.roadX=i.roadX;b.roadY=i.roadY;b.roamDirection=i.direction;
-            b.primaryFigure=i.primaryFigure;
+            b.primaryFigure=i.primaryFigure;b.stallSupplier=i.word30;
              b.fireRisk=i.fireRisk;b.damageRisk=i.damageRisk;
              if(c.industryCarts&&*c.industryCarts)b.industryInput=i.stock;
             if(i.cropWorkers)b.suppliers=i.cropWorkers->at(1);

@@ -259,7 +259,7 @@ inline std::string originalCombinedSyncBuildings(OriginalCombinedState& city){
         if(link.type>=2&&link.type<18){s.inputs.model=link.houseModel;s.inputs.residents=link.residents;s.inputs.free=link.freeSlots;}
         s.inputs.distance=link.roadDistance;s.inputs.roadX=link.roadX;s.inputs.roadY=link.roadY;
         s.inputs.migrant=link.worker;s.inputs.workers=link.workers;s.inputs.upgrade=link.upgrade;
-        s.inputs.primaryFigure=link.primaryFigure;
+        s.inputs.primaryFigure=link.primaryFigure;s.inputs.word30=link.stallSupplier;
         s.inputs.fireRisk=link.fireRisk;s.inputs.damageRisk=link.damageRisk;s.inputs.watchRisk=link.watchRisk;
         s.inputs.houseInUse=link.accepting;s.inputs.stock=link.industryInput;s.inputs.direction=link.roamDirection;
         s.inputs.operational=link.serviceCount;s.inputs.enabled=link.destinationEnabled;

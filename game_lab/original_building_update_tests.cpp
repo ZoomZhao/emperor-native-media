@@ -975,6 +975,9 @@ void authored(){
          foodStall.inputs.word30==19&&foodSupplier.figures->at(19).delivery==8&&
          foodSupplier.supplierRequests.at(19)==std::array<int32_t,7>{0,-1,-1,-1,-1,-1,-1},
          "hypothetical single-Mill food selection publishes the first food request and supplier link");
+    foodSupplier.buildingInputs->at(7)=foodStall.inputs;
+    need(originalBuildingSynchronizePool(foodSupplier)&&foodSupplier.buildingLinks->at(7).stallSupplier==19,
+         "stall supplier link is visible to the figure pool after allocation");
     need(originalBuildingStallSupplier(hempStall,supplier,19)==OriginalBuildingUpdateBlocker::None&&hempStall.inputs.word30==19&&supplier.figures->at(19).delivery==8&&supplier.figures->at(19).destinationX==4&&supplier.figures->at(19).action==6&&supplier.supplierRequests.at(19)==std::array<int32_t,7>{1,-1,-1,-1,-1,-1,-1},"positive supplier flood chooses stocked Warehouse and publishes type24 delivery request category1");
     need(supplier.figureSpeechCounters->at(254)==1&&supplier.figureSpeechCounters->at(266)==8&&supplier.figureSpeechChoices.at(19)==2,"Stall supplier applies constructor254 then descriptor266 speech rotation");
     auto burning=positiveRisk;burning.phase=43;burning.buildingInputs->at(7)=ignited.state->inputs;burning.buildingInputs->at(7).burning=3;burning.buildingInputs->at(7).fireDirection=0;
