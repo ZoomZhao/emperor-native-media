@@ -517,6 +517,16 @@ void authored(){
     auto restoredCity=context(OriginalBuildingUpdateScope::AdmittedTicks);
     need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.elapsedYears==1234&&restoredCity.scenarioStartYears==0x1234&&restoredCity.engineRegion==2,"saved city years and animal region use literal outer and Scenario6 wire offsets");
     need(restoredCity.labor->excessDepartureTotal==71&&restoredCity.labor->lastPopulationDelta==-3,"saved departure total and signed last arrival retain distinct adjacent Population7 words");
+    {auto historyData=savedInputs;const auto put=[&](size_t wire,uint32_t v){for(unsigned n=0;n<4;++n)historyData.at(anchor-12287+wire+n)=uint8_t(v>>(8*n));};
+        put(58+4*2399,17);put(9658,2399);put(9662,31);
+        auto historyCity=context(OriginalBuildingUpdateScope::AdmittedTicks);
+        need(originalBuildingSavedCityContext(historyData,anchor,historyCity)&&historyCity.cycleTail->populationHistory->values[2399]==17&&
+             historyCity.cycleTail->populationHistory->cursor==2399&&historyCity.cycleTail->populationHistory->count==31,
+             "population history binds the saved ring and its distinct cursor and count");
+        historyCity.populationTotal=321;
+        need(originalBuildingMonthlyPopulationHistory(historyCity)==OriginalBuildingUpdateBlocker::None&&
+             historyCity.cycleTail->populationHistory->values[2399]==321&&historyCity.cycleTail->populationHistory->cursor==0&&
+             historyCity.cycleTail->populationHistory->count==32,"monthly population history wraps its saved ring");}
     auto availability=ec;availability.empireProduction=std::array<bool,36>{};availability.unavailableResources=std::array<int16_t,36>{};
     availability.buildings->at(7).type=192;availability.buildings->at(8).type=193;availability.buildings->at(9).type=194;
     availability.empireProduction->at(3)=true;

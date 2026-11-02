@@ -628,6 +628,8 @@ struct OriginalBuildingUpdateContext {
     int32_t stallHookOrdinal=0;
     std::map<size_t,int32_t> storageSupplierMismatch; //common+A4 written5D5DB0
     struct CycleTail {
+        struct PopulationHistory {std::array<int32_t,2400> values{};int32_t cursor=0,count=0;};
+        std::optional<PopulationHistory> populationHistory; //Population7 wire58/9658/9662
         int32_t smoothedHealth=0,healthTarget=0,currentHealthRating=0;
         std::array<int32_t,4> productionHistory{}; //1312608/0C/14/18
         std::array<int32_t,2> foodForecast{}; //Population7+2928/2C
@@ -2151,6 +2153,13 @@ inline OriginalBuildingUpdateBlocker originalBuildingMonthlyWages(OriginalBuildi
     a.actualProfit=originalBuildingSub32(a.incomeReceived,a.expensesPaid);
     a.treasuryForecast=originalBuildingAdd32(a.treasuryStart,a.profit);return OriginalBuildingUpdateBlocker::None;
 }
+// 591C50 appends the current population to the serialized 2400-month ring.
+inline OriginalBuildingUpdateBlocker originalBuildingMonthlyPopulationHistory(OriginalBuildingUpdateContext& c){
+    if(!c.cycleTail||!c.cycleTail->populationHistory||!c.populationTotal)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    auto& h=*c.cycleTail->populationHistory;if(h.cursor<0||h.cursor>=2400)return OriginalBuildingUpdateBlocker::InvalidState;
+    h.values[size_t(h.cursor)]=*c.populationTotal;h.cursor=(h.cursor+1)%2400;h.count=originalBuildingAdd32(h.count,1);
+    return OriginalBuildingUpdateBlocker::None;
+}
 inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(OriginalBuildingUpdateContext& c){
     if(!c.cycleTail||!c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.monthPart||!c.month||!c.cycle)return OriginalBuildingUpdateBlocker::MonthlyCity;
     //Alternate UI mode takes the early return at 4AC9D3 before any part work.
@@ -2649,7 +2658,10 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     //uses the explicitly serialized four dwords (59500B).
     for(unsigned n=0;n<4;++n)l.formationLabor[n]=value(12083+4*n);
     c.labor=l;c.roadEndpoints=originalBuildingSavedRoadEndpoints(data,side);
-    c.cycleTail.emplace();c.cycleTail->healthTarget=value(22);c.cycleTail->smoothedHealth=value(26);
+    c.cycleTail.emplace();c.cycleTail->populationHistory.emplace();auto& history=*c.cycleTail->populationHistory;
+    for(size_t n=0;n<history.values.size();++n)history.values[n]=value(58+4*n);
+    history.cursor=value(9658);history.count=value(9662);
+    c.cycleTail->healthTarget=value(22);c.cycleTail->smoothedHealth=value(26);
     c.cycleTail->productionHistory={value(11408),value(11412),value(11420),value(11424)};
     c.cycleTail->foodForecast={value(10538),value(10542)};c.cycleTail->currentHealthRating=value(12099);return true; //59501B,+2F60
 }
