@@ -1041,17 +1041,17 @@ inline OriginalBuildingUpdateBlocker originalBuildingCropDispatch(OriginalBuildi
         if(candidateLimit<0)return OriginalBuildingUpdateBlocker::InvalidState;
         if(candidates.size()>size_t(candidateLimit))candidates.resize(size_t(candidateLimit));
         int remaining=wanted-current;if(remaining<=0||candidates.empty())continue;
-        const int stride=std::max(pass? -1:0,int(candidates.size())/remaining-1);int skip=0,group=0;
+        const int stride=std::max(pass? -1:0,int(candidates.size())/remaining-1);int skip=0,group=0;size_t previousFarmer=0;
         for(const auto& candidate:candidates){auto& target=c.buildingInputs->at(candidate.second);
             if(!c.cropServices)return OriginalBuildingUpdateBlocker::MissingContext;const auto targetType=c.buildings->at(candidate.second).type;
             if(c.cropServices->disabled[targetType]||(!pass&&i.stock>=400))continue;
-            if(skip){--skip;target.primaryFigure=0;continue;}
+            if(skip){--skip;target.primaryFigure=int16_t(previousFarmer);continue;} //4C3834/4C3AFE reuse the latest allocated figure.
             if(i.cropWorkers->at(pass)>=wanted)break;
             const auto allocated=originalBuildingAllocateService(c,26,i.faction,i.roadX,i.roadY,0);if(!allocated)return OriginalBuildingUpdateBlocker::MissingContext;if(!*allocated)continue;
             //766DA0 follows successful allocation;an exhausted FIFO consumes
             //no wall time. The public copied-context API keeps refusal atomic.
             if(!c.wallClock)return OriginalBuildingUpdateBlocker::FarmerWallClock;
-            const size_t farmer=*allocated;auto& f=c.figures->at(farmer);f.action=pass?6:10;f.owner=int16_t(s.building.slot);f.counter=originalBuildingSignedWord(uint16_t(group*10));
+            const size_t farmer=*allocated;previousFarmer=farmer;auto& f=c.figures->at(farmer);f.action=pass?6:10;f.owner=int16_t(s.building.slot);f.counter=originalBuildingSignedWord(uint16_t(group*10));
             c.farmerTasks[farmer]=uint8_t(pass?1:2);
             const uint32_t seed=*c.wallClock+(uint32_t(i.fireDirection)+uint32_t(farmer))*16u;
             f.variant=int16_t(((seed*1664525u+1013904223u)>>4)%4);++group;++i.cropWorkers->at(pass);

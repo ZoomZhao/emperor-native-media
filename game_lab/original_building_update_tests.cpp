@@ -741,7 +741,7 @@ void authored(){
     const auto bays=originalBuildingUpdateInputs(exact,bayProfile);
     need(bays&&bays->at(7).cropWorkers==std::array<int32_t,2>{3,2}&&bays->at(7).cropBays->at(4).resource==5&&bays->at(7).cropBays->at(4).amount==103&&bays->at(7).cropBays->at(4).capacity==400,"MultipleCropHold five framed bays follow both saved farmer counts and own1");
     exact16(184+142+16*4+14,2);need(!originalBuildingUpdateInputs(exact,bayProfile),"last crop bay trailing wrapper version is mandatory");
-    //Farmer grouping:one harvest worker reserves only the first of four fields.
+    //Farmer grouping:one harvest worker reserves all four grouped fields.
     auto cropContext=harvesting;cropContext.buildingLinks.reset();cropContext.productionInputs.reset();cropContext.buildings->clear();cropContext.buildingInputs->clear();
     auto hold=field();hold.building.type=192;hold.building.size=2;hold.building.x=3;hold.building.y=4;hold.building.imageInputs->gridIndex=1144;
     hold.inputs.industry.reset();hold.inputs.output=0;hold.inputs.enabled=1;hold.inputs.workers=8;hold.inputs.operational=100;hold.inputs.roadX=3;hold.inputs.roadY=4;hold.inputs.spawnCounter=1;hold.inputs.cropWorkers=std::array<int32_t,2>{3,2};
@@ -754,7 +754,7 @@ void authored(){
     cropContext.buildings->emplace(7,hold.building);cropContext.buildingInputs->emplace(7,hold.inputs);cropContext.wallClock=1000;cropContext.freeFigureSlots={19,18};
     auto farmers=originalBuildingStateAfterUpdates(hold,cropContext,1);
     need(farmers.state&&farmers.state->inputs.cropWorkers->at(0)==4&&farmers.context->allocatedFigures==std::vector<size_t>{19}&&farmers.context->figures->at(19).action==10&&farmers.context->farmerTasks.at(19)==2,"harvest staffing allocates one missing farmer after the old counter1 gate");
-    need(farmers.context->buildingInputs->at(8).primaryFigure==19&&farmers.context->buildingInputs->at(9).primaryFigure==0&&farmers.context->buildingInputs->at(10).primaryFigure==0&&farmers.context->buildingInputs->at(11).primaryFigure==0,"farmer grouping clears skipped candidates rather than assigning the new farmer");
+    need(farmers.context->buildingInputs->at(8).primaryFigure==19&&farmers.context->buildingInputs->at(9).primaryFigure==19&&farmers.context->buildingInputs->at(10).primaryFigure==19&&farmers.context->buildingInputs->at(11).primaryFigure==19,"farmer grouping assigns skipped candidates to the latest allocated farmer");
     need(farmers.context->figures->at(19).counter==0&&farmers.context->figures->at(19).owner==7&&farmers.context->figures->at(19).variant==1&&farmers.context->crtRandomCalls==0,"farmer local LCG consumes explicit wall time after constructor and no CRT draws");
     auto missingClock=cropContext;missingClock.wallClock.reset();auto farmerRefusal=originalBuildingStateAfterUpdates(hold,missingClock,1);
     need(!farmerRefusal.state&&!farmerRefusal.context&&farmerRefusal.refusedPhase==31&&farmerRefusal.operations==0&&farmerRefusal.blocker==OriginalBuildingUpdateBlocker::FarmerWallClock&&missingClock.freeFigureSlots==std::vector<size_t>({19,18})&&missingClock.figures->at(19).alive==0,"farmer clock refusal names766DA0 and publishes no allocator or field prefix");
