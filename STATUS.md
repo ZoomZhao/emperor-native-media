@@ -18,7 +18,7 @@
 | 项羽/历史战役自动存档_2 | 1000 | 8 / 3 | none |
 | 项羽/.sav | 1000 | 9 / 4 | none |
 | 项羽/历史战役自动保存_1 | 1000 | 2 / 3 | none |
-| zoom/载入旧存档自动保存 | 309 | 1 / 6 | `cell_neighbour_combat_4e57a0_slot_1966_type_24_action_6` |
+| zoom/载入旧存档自动保存 | 337 | 1 / 6 | `building_virtual20_416d20` |
 | zoom/历史战役自动存档_2 | 627 | 7 / 12 | `type_action_route_target_combat_update_slot_1984_type_45_action_8` (buy/sell search) |
 
 Ordinary month rollover now runs traced food, wages, debt, production and population-history effects plus explicitly labelled remaining assumptions. Annual rollover remains refused. Executable: Chinese `EmperorCH.exe` (SHA `dbdeca1e…`).
@@ -73,6 +73,6 @@ Pre-animal-fallback 10,000-update diagnostic census, sorted by earliest attempte
 2. `monthly_city_4ac650` phase 50: first 338, 69 no-op encounters across four saves; year rollover hard at 8976 in two saves.
 3. `type_action_route_target_combat_update` (figure type 40/action 7): 812 (hard).
 
-Next: close the land trader's action-8 buy/sell search and the type-24 supplier; the −36 RNG gap is parked pending the supervised midpoint. `4D1810` now follows the supplier's outward route; its first unresolved neighbour combat check is at update 310, and its arrival transfer remains refused. The trader's inactive-network wait clears transaction mode/timer via `4C9AD0`; above 10, station virtuals may change stock and trade state. Goods1 cursors, Grid15 quota usage/base prices, child5 relationship prices, the trader sold count and SAV19's 100 trader ledgers are now bound for those searches. The former type-40 refusal does not recur through 1000 updates on the corrected animal trajectory.
+Next: identify the update-338 building virtual refusal in the old zoom save, then continue the type-24 supplier whose arrival transfer remains refused; close the land trader's action-8 buy/sell search. The −36 RNG gap is parked pending the supervised midpoint. The trader's inactive-network wait clears transaction mode/timer via `4C9AD0`; above 10, station virtuals may change stock and trade state. Goods1 cursors, Grid15 quota usage/base prices, child5 relationship prices, the trader sold count and SAV19's 100 trader ledgers are now bound for those searches. The former type-40 refusal does not recur through 1000 updates on the corrected animal trajectory.
 
 Frozen checkpoint note: hypothesis-run `.emworld` restore refuses again; `test_original_world_checkpoint.py` has a pre-existing `world_binding_goal_prefix` failure at `73e0e03`. Format details: [SAV.md](docs/SAV.md) · [ENCITY.md](docs/ENCITY.md) · [SG3.md](docs/SG3.md).
