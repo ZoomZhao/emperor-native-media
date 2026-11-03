@@ -3475,8 +3475,11 @@ void corpus(){
                 {300,{6,195,195,3,128,136,128,53,5300,43,11,0}},
                 {500,{6,200,200,8,99,107,99,53,8798,53,18,0}},
                 {1000,{6,203,203,11,82,90,82,53,17649,53,21,0}}};measured=seeded.at(n);}
-        need(std::array<size_t,12>{t.pools,t.computed,t.outcomes,t.allocated,t.placed,t.decoded,t.primary,t.animation,
-            t.animationAdvanced,t.animationChanged,t.reselected,t.prefixReselected}==measured,
+        const std::array<size_t,12> observed{t.pools,t.computed,t.outcomes,t.allocated,t.placed,t.decoded,t.primary,t.animation,
+            t.animationAdvanced,t.animationChanged,t.reselected,t.prefixReselected};
+        if(observed!=measured){std::cerr<<"timeline mismatch N="<<n<<" audio="<<audio<<" crt="<<suppliedCrt<<" observed=";
+            for(auto value:observed)std::cerr<<value<<',';std::cerr<<" expected=";for(auto value:measured)std::cerr<<value<<',';std::cerr<<'\n';}
+        need(observed==measured,
             "perN timeline output denominators and installed building consequences match recorded originals");
         need(t.computed+refused==t.outcomes&&t.consistent==t.primary&&t.animationCandidates==53,
             "perN computed and disjoint refused outcomes close originals plus allocations with every primary consistent");
