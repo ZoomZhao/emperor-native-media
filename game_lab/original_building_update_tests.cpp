@@ -790,7 +790,10 @@ void authored(){
     auto evolving=house;evolving.building.size=2;evolving.building.x=3;evolving.building.y=4;evolving.building.imageInputs->gridIndex=1144;evolving.inputs.model=2;evolving.inputs.modelDesirability=0;evolving.inputs.house->fill(0);evolving.inputs.residents=10;
     evolution.houseModels->at(2)[0]=0;evolving.inputs.house->at(56-4)=8;
     need(originalBuildingHouseEvolutionStep(evolving,evolution)==OriginalBuildingUpdateBlocker::None&&evolving.building.type==5&&evolving.inputs.house->at(56-4)==9,"house failed requirement waits through old delay8 before conversion");
-    need(originalBuildingHouseEvolutionStep(evolving,evolution)==OriginalBuildingUpdateBlocker::HousingEvolution&&evolving.building.type==5,"uncited target4 selector refuses rather than publishing incomplete house geometry");
+    evolving.building.imageInputs->randomByte=0;evolving.building.imageInputs->word20=10;
+    need(originalBuildingHouseEvolutionStep(evolving,evolution)==OriginalBuildingUpdateBlocker::None&&evolving.building.type==4&&evolving.inputs.model==1&&
+        originalBuildingBaseSelection(evolving.building)->variant==0&&originalBuildingEmploymentCategory(4)==-1&&originalFigureBuildingPassThroughFalse(4),
+        "type5 downgrades to the occupied even type4 variant with ordinary house predicates");evolution.houseConversions=0;
     {auto downgraded=evolving;downgraded.building.type=7;downgraded.inputs.model=4;downgraded.inputs.modelDesirability=0;
         downgraded.inputs.house->at(56-4)=9;evolution.houseModels->at(4)[0]=0;
         const auto priorConversions=evolution.houseConversions;

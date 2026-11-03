@@ -134,13 +134,11 @@ inline std::optional<uint16_t> originalResidentialWallVariant(uint8_t mask,unsig
 inline std::optional<OriginalBuildingBaseSelection> originalBuildingBaseSelection(const OriginalBuildingFootprint& f){
     OriginalBuildingBaseSelection out;
     switch(f.type){
-    // Independent local original snapshots 2614/2612: occupied type4 at
-    // grid30224, randomByte95, matches group472 physical1512. Only this
-    // observed variant is admitted; variant0/empty type4 remain unproved.
+    // 518DE0 maps occupied small houses through 8232F8 and the terrain low bit.
+    // Independent snapshots also confirm the occupied odd type4 variant.
     case 0x4:{
-        if(!f.imageInputs||!f.imageInputs->randomByte||
-           !(*f.imageInputs->randomByte&1u)||f.imageInputs->word20<=0)return std::nullopt;
-        out={0x472,1,2,"China_Housing.bmp"};break;}
+        if(!f.imageInputs||!f.imageInputs->randomByte||f.imageInputs->word20<=0)return std::nullopt;
+        out={0x472,uint16_t(*f.imageInputs->randomByte&1u),2,"China_Housing.bmp"};break;}
     case 0x2:case 0x3:case 0x5:case 0x6:case 0x7:case 0x8:{
         if(!f.imageInputs||!f.imageInputs->randomByte)return std::nullopt;
         const auto& i=*f.imageInputs;
