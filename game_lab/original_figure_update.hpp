@@ -1599,7 +1599,13 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
             if(!local.buildings||!local.goods)return out;auto owner=local.buildings->find(size_t(f.owner));
             if(owner==local.buildings->end())return out;
             if(f.amount){const auto delivered=originalFigureWarehouseDeliver(owner->second,f.subtype,unsigned(uint16_t(f.amount)),*local.goods);
-                if(!delivered||*delivered!=unsigned(uint16_t(f.amount)))return out;f.amount=0;}f.alive=2;}
+                if(!delivered)return out;
+                if(*delivered!=unsigned(uint16_t(f.amount))){f.amount=originalFigureWord(int(f.amount)-int(*delivered));f.action=6;f.routePhase=3;f.counter=0;}
+                else {f.amount=0;f.alive=2;}}
+            else f.alive=2;}
+        else if(f.type==22&&f.action==9&&f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
+            if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
+        else if(f.type==22&&f.action==9&&f.direction==10)f.alive=2;
         else if(f.direction>=8){out.status=OriginalFigureUpdateStatus::GoodsArrival;return out;}
     }else return out;
     if(f.type==21){cargo=figureSecondaryImage(originalFigureImageInputs(f),archives,context->view);

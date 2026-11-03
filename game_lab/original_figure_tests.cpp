@@ -1944,11 +1944,12 @@ void authored(){
             auto partialReturn=context;partialReturn.buildings->at(8).storage=
                 std::vector<OriginalStorageCompartment>(8,{24,400,400});partialReturn.buildings->at(8).storage->back()={18,399,400};
             partialReturn.goods->warehouse[18]=399;
-            const auto refusedReturn=originalFigureFirstUpdate(returned,refs,&partialReturn,0xc0);
-            need(!refusedReturn.state&&!refusedReturn.goods&&!refusedReturn.buildings&&
-                partialReturn.buildings->at(8).storage->back().amount==399&&partialReturn.goods->warehouse[18]==399&&
-                partialReturn.figures.at(returned.slot).amount==3,
-                "type22 incomplete home acceptance refuses the entire local candidate without losing retained cargo");
+            const auto partialAccepted=originalFigureFirstUpdate(returned,refs,&partialReturn,0xc0);
+            need(partialAccepted.state&&partialAccepted.state->alive==1&&partialAccepted.state->action==6&&
+                partialAccepted.state->amount==2&&partialAccepted.state->routePhase==3&&partialAccepted.state->counter==0&&
+                partialAccepted.buildings->at(8).storage->back().amount==400&&partialAccepted.goods->warehouse[18]==400&&
+                partialReturn.buildings->at(8).storage->back().amount==399&&partialReturn.figures.at(returned.slot).amount==3,
+                "type22 partial home acceptance keeps the remainder and returns to search on a private candidate");
             const auto accepted=originalFigureFirstUpdate(returned,refs,&context,0xc0);
             need(accepted.state&&accepted.state->alive==2&&accepted.state->amount==0&&
                 accepted.buildings->at(8).storage->at(2).amount==3,
