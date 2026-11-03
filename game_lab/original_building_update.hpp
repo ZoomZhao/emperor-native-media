@@ -654,6 +654,7 @@ struct OriginalBuildingUpdateContext {
         int32_t smoothedHealth=0,healthTarget=0,currentHealthRating=0;
         std::array<int32_t,4> productionHistory{}; //1312608/0C/14/18
         std::array<int32_t,2> monthlyProduction{}; //1312610/1C
+        int32_t previousMonthArrivals=0; //1312604, Population7 wire11404
         std::array<int32_t,9> monthlyStatistics{}; //1312880..94,A4..AC
         std::array<int32_t,2> foodForecast{}; //Population7+2928/2C
         std::optional<bool> alternateMode; //10DE044,process UI mode
@@ -2328,6 +2329,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
         if(c.monthlyRolloverHypotheses!=true||!c.scenarioMonths||!c.scenarioMonthCounter||!c.shortageNoticeCountdown)return OriginalBuildingUpdateBlocker::MonthlyCity;
         const unsigned nextMonth=*c.month==11?0:*c.month+1;
         *c.monthPart=15;const auto reset=originalBuildingResetHarvestedCrops(c,*c.month);if(reset!=OriginalBuildingUpdateBlocker::None)return reset;
+        tail.previousMonthArrivals=c.labor->yearArrivals;c.labor->yearArrivals=0; //4AC70C..4AC721
         *c.monthPart=0;
         // HYPOTHESIS(rollover-manager-empty): 4BFF20/4BFE10's process registry has no monthly action.
         // HYPOTHESIS(rollover-primary-building-inactive): 592060's special type110 monthly hook is inactive.
@@ -2868,6 +2870,7 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     c.cycleTail->healthTarget=value(22);c.cycleTail->smoothedHealth=value(26);
     c.cycleTail->productionHistory={value(11408),value(11412),value(11420),value(11424)};
     c.cycleTail->monthlyProduction={value(11416),value(11428)};
+    c.cycleTail->previousMonthArrivals=value(11404);
     for(size_t n=0;n<6;++n)c.cycleTail->monthlyStatistics[n]=value(12035+4*n);
     for(size_t n=0;n<3;++n)c.cycleTail->monthlyStatistics[6+n]=value(12071+4*n);
     c.cycleTail->foodForecast={value(10538),value(10542)};c.cycleTail->currentHealthRating=value(12099);return true; //59501B,+2F60

@@ -172,6 +172,7 @@ void compareCommitted(const game_lab::OriginalCombinedState& city,const SaveView
         }}
     {OriginalBuildingUpdateContext saved(OriginalBuildingUpdateScope::AdmittedTicks,true);
         if(originalBuildingSavedCityContext(late.payload,late.save.sizeOffset,saved)){
+            if(c.cycleTail&&saved.cycleTail)compare(groups,"monthly_arrivals",c.cycleTail->previousMonthArrivals,saved.cycleTail->previousMonthArrivals);
             for(size_t n=0;n<c.previousYearProduction.size();++n)compare(groups,"annual_production",c.previousYearProduction[n],saved.previousYearProduction[n]);
             if(late.save.layers.figures&&originalBuildingSavedEmpireStates(late.payload,late.save.layers.figures->end,&saved)&&c.trade&&saved.trade)
                 for(size_t p=0;p<c.trade->partners.size();++p)for(size_t n=1;n<=28;++n)

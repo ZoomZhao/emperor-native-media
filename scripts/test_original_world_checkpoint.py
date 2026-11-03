@@ -29,7 +29,7 @@ UNCOVERED = {
     'OriginalBuildingUpdateContext::Labor': 'sentimentReached350 previousSentiment monthlyFoodConsumed debtMonths monthlyTimerActive monthlyTimerRemaining sentimentTaxable sentimentShortages sentimentReason sentimentHouseRating sentimentBuildingPercent sentimentNoticeDirty',
     'OriginalBuildingUpdateContext::Trade::Partner::Relation': 'price previousPrice',
     'OriginalBuildingUpdateContext::Trade::Partner': 'quotaUsed basePrice',
-    'OriginalBuildingUpdateContext::CycleTail': 'populationHistory monthlyProduction monthlyStatistics annualUiFlag annualManagerFlag annualHouseRegistryFlag annualHousePopulation annualElitePopulation',
+    'OriginalBuildingUpdateContext::CycleTail': 'populationHistory monthlyProduction previousMonthArrivals monthlyStatistics annualUiFlag annualManagerFlag annualHouseRegistryFlag annualHousePopulation annualElitePopulation',
     'OriginalBuildingUpdateContext': 'serviceCombinedRating monthlyRolloverHypotheses partnerEventHypotheses landTraderDispatch scenarioPartnerConflict previousYearProduction sentimentHypotheses sentimentTaxTable scenarioMonthCounter',
     'OriginalCombinedProcessInputs': 'animalSpawnMissHypothesis singleMillFoodHypothesis stationCargoDeniedHypothesis stallFoodPickupEmptyHypothesis wellRankedReturn sentimentHypotheses partnerEventHypotheses landTraderDispatch monthlyRolloverHypotheses savedFlameAnimationFromCell savedRuinRoadIdentity',
 }

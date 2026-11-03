@@ -893,12 +893,12 @@ void authored(){
          "monthly production rolls saved counters and clears current values");
     auto heap_rollover=std::make_unique<OriginalBuildingUpdateContext>(sentiment); auto& rollover=*heap_rollover;rollover.monthPart=15;rollover.month=7;rollover.monthlyRolloverHypotheses=true;
     rollover.serviceCoverage=std::array<int32_t,11>{};
-    rollover.scenarioMonths=11;rollover.scenarioMonthCounter=7;rollover.shortageNoticeCountdown=2;rollover.scenarioFoodOverride=0;
+    rollover.scenarioMonths=11;rollover.scenarioMonthCounter=7;rollover.shortageNoticeCountdown=2;rollover.scenarioFoodOverride=0;rollover.labor->yearArrivals=17;
     rollover.cycleTail->populationHistory.emplace();rollover.labor->monthlyTimerActive=1;rollover.labor->monthlyTimerRemaining=4;
     rollover.accounting.emplace();rollover.accounting->wages=30;rollover.cityEmployment->employed=240;rollover.treasury=400;
     originalHouseSetGoodsWord(rollover.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0,40);
     auto heap_strictRollover=std::make_unique<OriginalBuildingUpdateContext>(rollover); auto& strictRollover=*heap_strictRollover;strictRollover.monthlyRolloverHypotheses.reset();
-    need(originalBuildingCycleTailStep(strictRollover)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictRollover.monthPart==15,
+    need(originalBuildingCycleTailStep(strictRollover)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictRollover.monthPart==15&&strictRollover.labor->yearArrivals==17,
          "strict rollover refuses and preserves its calendar");
     auto heap_yearBoundary=std::make_unique<OriginalBuildingUpdateContext>(rollover); auto& yearBoundary=*heap_yearBoundary;yearBoundary.month=0;yearBoundary.elapsedYears=12;
     yearBoundary.buildingLinks.emplace();OriginalFigureBuildingLink ordinaryHouse;ordinaryHouse.type=7;ordinaryHouse.alive=1;ordinaryHouse.accepting=true;ordinaryHouse.residents=12;
@@ -930,7 +930,8 @@ void authored(){
     need(originalBuildingCycleTailStep(rollover)==OriginalBuildingUpdateBlocker::None&&rollover.monthPart==0&&rollover.month==8&&
          rollover.scenarioMonths==12&&rollover.scenarioMonthCounter==8&&*rollover.treasury==340&&rollover.labor->monthlyFoodConsumed==25&&
          rollover.labor->monthlyTimerRemaining==3&&rollover.shortageNoticeCountdown==1&&
-         rollover.cycleTail->populationHistory->values[0]==100&&rollover.cycleTail->populationHistory->cursor==1,
+         rollover.cycleTail->populationHistory->values[0]==100&&rollover.cycleTail->populationHistory->cursor==1&&
+         rollover.cycleTail->previousMonthArrivals==17&&rollover.labor->yearArrivals==0,
          "month rollover publishes wages, food, saved counters, population history and new calendar together");
     auto heap_strictSentiment=std::make_unique<OriginalBuildingUpdateContext>(sentiment); auto& strictSentiment=*heap_strictSentiment;strictSentiment.sentimentHypotheses.reset();
     need(originalBuildingSentimentStep(strictSentiment)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictSentiment.labor->sentiment==60,"strict sentiment refuses before publishing any assumed inputs");
