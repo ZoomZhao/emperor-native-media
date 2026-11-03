@@ -250,6 +250,7 @@ struct OriginalBuildingRoadInputs {
     std::vector<uint8_t> networks;
     std::array<uint32_t,10> rankedNetworks{};
     std::optional<std::array<uint16_t,4000>> ownerTypes;
+    bool savedRuinRoadIdentity=false;
     //4BAF40 calls owner+D0 with(incoming origin,&relative candidate).
     //Unresolved owner handling refuses; explicit complete outcomes are a
     //caller service, never a blanket claim that every owner is traversable.
@@ -299,6 +300,9 @@ inline std::optional<OriginalBuildingRoadAccess> originalBuildingRoadAccess(
                 switch(type){case 2:case 3:case 5:case 7:case 33:case 35:case 43:case 53:case 54:case 58:
                 case 62:case 66:case 67:case 71:case 72:case 124:case 127:case 192:case 193:case 194:case 196:
                 case 207:case 211:case 214:resolved=true;break;default:break;}}
+            // HYPOTHESIS(saved-ruin-road-identity): use the same unchanged
+            // neighbor probe already used for newly created ruins.
+            if(c.savedRuinRoadIdentity&&c.ownerTypes&&owner<4000&&c.ownerTypes->at(owner)==161)resolved=true;
             if(!resolved){const auto p=std::find_if(c.ownerProbes.begin(),c.ownerProbes.end(),[&](const auto& p){return p.owner==owner&&p.origin==unsigned(origin)&&p.relative==relative;});
                 if(p==c.ownerProbes.end())return std::nullopt;if(p->rejected)continue;
                 relative=p->resolvedRelative;cell=origin+relative;if(cell<0||cell>=51984)return std::nullopt;}}
@@ -337,7 +341,7 @@ inline std::optional<OriginalBuildingRoadAccess> originalBuildingHouseRoadAccess
             //for these types;562F70's76..268 table is false for this domain.
             switch(type){case 2:case 3:case 5:case 7:case 33:case 35:case 43:case 53:case 54:case 58:
             case 62:case 66:case 67:case 72:case 124:case 126:case 127:case 192:case 193:case 194:case 196:
-            case 207:case 211:case 214:case 231:break;default:return std::nullopt;}}
+            case 207:case 211:case 214:case 231:break;case 161:if(c.savedRuinRoadIdentity)break;return std::nullopt;default:return std::nullopt;}}
         if((c.terrain[size_t(cell)]&0x44)!=0x40)continue;
         const auto found=std::find(c.rankedNetworks.begin(),c.rankedNetworks.end(),c.networks[size_t(cell)]);
         const int rank=found==c.rankedNetworks.end()?11:int(found-c.rankedNetworks.begin());
@@ -2961,9 +2965,9 @@ inline bool originalBuildingEmigrant(OriginalBuildingUpdateContext& c,size_t hou
 //even if4EA050 returns0. Existing live type11 links suppress duplicates.
 inline bool originalBuildingImmigration(OriginalBuildingUpdateContext& c,int requested){
     if(!c.buildingInputs||!c.buildings||!c.figures||!c.labor)return false;int left=requested;
-    for(auto& e:*c.buildingInputs)if(e.second.house&&e.second.migrant){auto& id=e.second.migrant;
+    for(auto& e:*c.buildingInputs)if(e.second.house&&(e.second.alive==1||e.second.alive==3)&&e.second.migrant){auto& id=e.second.migrant;
         if(id<0||id>=2000)return false;if(c.figures->at(size_t(id)).alive!=1)id=0;}
-    for(unsigned pass=0;pass<3&&left>0;++pass)for(auto& e:*c.buildingInputs){auto& h=e.second;if(!h.house||left<=0||h.distance<=0)continue;
+    for(unsigned pass=0;pass<3&&left>0;++pass)for(auto& e:*c.buildingInputs){auto& h=e.second;if(!h.house||(h.alive!=1&&h.alive!=3)||left<=0||h.distance<=0)continue;
         if(pass==0){if(h.residents||!h.free)continue;if(h.migrant){const auto& f=c.figures->at(size_t(h.migrant));if(f.type==11&&f.alive)continue;h.migrant=0;}}
         else if(h.migrant||(pass==1?h.free<=11:h.free<=0))continue;
         const int amount=std::min(left,pass<2?6:int(h.free));if(!originalBuildingImmigrant(c,e.first,amount))return false;left-=amount;}
@@ -2973,7 +2977,7 @@ inline bool originalBuildingImmigration(OriginalBuildingUpdateContext& c,int req
 inline bool originalBuildingEmigration(OriginalBuildingUpdateContext& c,int requested){
     if(!c.buildingInputs||!c.labor)return false;int left=requested;
     for(int model=0;model<14&&left>0;++model)for(auto& e:*c.buildingInputs){auto& h=e.second;
-        if(!h.house||h.residents<=0||h.model!=model||left<=0)continue;const int amount=std::min({left,6,int(h.residents)});
+        if(!h.house||(h.alive!=1&&h.alive!=3)||h.residents<=0||h.model!=model||left<=0)continue;const int amount=std::min({left,6,int(h.residents)});
         if(!originalBuildingEmigrant(c,e.first,amount))return false;left-=amount;}
     c.labor->departures=originalBuildingAdd32(c.labor->departures,requested-left);return true;
 }
@@ -2981,7 +2985,7 @@ inline bool originalBuildingEmigration(OriginalBuildingUpdateContext& c,int requ
 //and subtracts population only after successful allocation.
 inline OriginalBuildingUpdateBlocker originalBuildingExcessResidents(OriginalBuildingUpdateContext& c){
     if(!c.buildingInputs||!c.buildings||!c.populationTotal||!c.populationPeak||!c.labor)return OriginalBuildingUpdateBlocker::CityLabor;
-    for(auto& e:*c.buildingInputs){auto& i=e.second;if(!i.house||i.free>=0)continue;const auto& b=c.buildings->at(e.first);
+    for(auto& e:*c.buildingInputs){auto& i=e.second;if(!i.house||(i.alive!=1&&i.alive!=3)||i.free>=0)continue;const auto& b=c.buildings->at(e.first);
         const auto slot=originalBuildingAllocateMigrant(c,13,int16_t(b.x),int16_t(b.y));if(!slot)return OriginalBuildingUpdateBlocker::CityLabor;
         if(*slot){auto& f=c.figures->at(*slot);f.action=6;f.counter=0;f.employmentAmount=uint8_t(-int(i.free));
             c.labor->excessDepartureTotal=originalBuildingSub32(c.labor->excessDepartureTotal,int(i.free)); //4AE150->591950.

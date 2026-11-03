@@ -44,6 +44,8 @@ struct OriginalCombinedProcessInputs {
     std::optional<bool> partnerEventHypotheses; //4A8ED0 unbound event mutations
     std::optional<bool> landTraderDispatch; //explicit 5DC0AC land-caravan opt-in
     std::optional<bool> monthlyRolloverHypotheses;
+    std::optional<bool> savedFlameAnimationFromCell; //process-only flame+16C; strict loads withhold
+    std::optional<bool> savedRuinRoadIdentity; //saved ruin owner probe; strict loads withhold
 };
 struct OriginalCombinedBuilding {
     OriginalBuildingUpdateState state;
@@ -146,6 +148,14 @@ inline std::string originalCombinedPhaseBlocker(uint32_t phase){
 }
 // Construct the city/building half from the same validated save. Process inputs
 // remain caller-owned. In particular no city-clock initial value is supplied here.
+inline void originalCombinedBindSavedFlames(OriginalFigureUpdateContext& figures,bool enabled){
+    // HYPOTHESIS(saved-flame-animation-from-cell): 42AA5B initializes the
+    // unserialized flame animation from a terrain random byte modulo five.
+    // Assume its creation cell is the still-stationary saved flame cell.
+    if(enabled)for(auto& entry:figures.figures){auto& f=entry.second;
+        if(f.alive==1&&f.type==2&&!f.effectAnimation&&f.cell<figures.randomByte.size())
+            f.effectAnimation=figures.randomByte[f.cell]%5;}
+}
 inline std::optional<OriginalCombinedState> originalCombinedSavedState(const OriginalFigureUpdateContext& figures,
     const OriginalBuildingProfile& profile,const std::vector<uint8_t>& payload,size_t terrain,size_t side,
     const OriginalCombinedProcessInputs& process){
@@ -153,6 +163,7 @@ inline std::optional<OriginalCombinedState> originalCombinedSavedState(const Ori
     const auto inputs=originalBuildingUpdateInputs(payload,profile);
     const auto production=originalBuildingProductionInputs(payload,profile);if(!inputs||!production)return std::nullopt;
     OriginalCombinedState out;out.figures=figures;out.process=process;
+    originalCombinedBindSavedFlames(out.figures,process.savedFlameAnimationFromCell==true);
     if(process.crtRandom)out.figures.crtRandom=process.crtRandom;
     if(process.soundEffectsEnabled)out.figures.soundEffectsEnabled=process.soundEffectsEnabled;
     if(process.buildingEditMode)out.figures.buildingEditMode=process.buildingEditMode;
@@ -169,6 +180,7 @@ inline std::optional<OriginalCombinedState> originalCombinedSavedState(const Ori
         if(!out.buildings.empty()&&out.phase!=*c->phase)return std::nullopt;
         out.phase=*c->phase;
         OriginalBuildingUpdateState state{f,inputs->at(f.slot),std::nullopt};
+        out.figures.buildingBurning[f.slot]=state.inputs.burning;
         const auto found=production->find(f.slot);if(found!=production->end())state.production=found->second;
         if(!out.buildings.emplace(f.slot,OriginalCombinedBuilding{state,*c}).second)return std::nullopt;
     }
@@ -247,6 +259,7 @@ inline bool originalCombinedBindBuildingServices(OriginalCombinedState& city,con
         const auto distance=entry>=0?originalBuildingRoadDistances(c.movement->cells,uint32_t(entry)):std::nullopt;
         const auto ranked=originalBuildingRankedRoadNetworks(c.roadNetworks);
         if(distance&&ranked){roads.emplace();roads->cropBase=*c.cropBase;roads->terrain=scene.rebuiltMovementTerrain;
+            roads->savedRuinRoadIdentity=city.process.savedRuinRoadIdentity==true;
             roads->distance=*distance;roads->owners=ground.owner;roads->networks=c.roadNetworks;roads->rankedNetworks=*ranked;roads->ownerTypes=profile.slotTypes;
             const int exit=int(*c.cropBase)+c.roadEndpoints->at(2)+228*c.roadEndpoints->at(3);
             c.roadRefreshOrdinaryExit=exit>=0&&exit<51984&&distance->at(size_t(exit))!=0;}}
@@ -727,6 +740,9 @@ inline OriginalSceneTimeline originalSceneTimelineImpl(const OriginalFigureUpdat
     }
     auto context=initial;std::vector<OriginalKernelAllocation> committedAllocations;std::optional<OriginalCombinedState> city;
     if(combined){city=*combined;context.workerRoadExits=combined->figures.workerRoadExits;
+        context.buildingBurning=combined->figures.buildingBurning;
+        for(auto& entry:context.figures){auto& f=entry.second;const auto found=combined->figures.figures.find(entry.first);
+            if(f.type==2&&!f.effectAnimation&&found!=combined->figures.figures.end())f.effectAnimation=found->second.effectAnimation;}
         context.migrationRoadEndpoints=combined->figures.migrationRoadEndpoints;
         context.traderStationGoodsHypothesis=combined->figures.traderStationGoodsHypothesis;
         context.stallFoodPickupEmptyHypothesis=combined->figures.stallFoodPickupEmptyHypothesis;

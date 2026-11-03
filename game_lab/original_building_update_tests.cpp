@@ -350,6 +350,8 @@ void authored(){
     road.owners[4352]=7;access=originalBuildingRoadAccess(rf,road);need(!access,"unknown owner virtual D0 refuses even before fallback");
     road.ownerTypes.emplace();road.ownerTypes->at(7)=231;access=originalBuildingRoadAccess(rf,road);
     need(access&&access->distance==1,"cited wall owner rejects ranked candidate while fallback remains independent");
+    road.ownerTypes->at(7)=161;need(!originalBuildingRoadAccess(rf,road),"strict road probe refuses an unbound saved ruin");
+    road.savedRuinRoadIdentity=true;need(bool(originalBuildingRoadAccess(rf,road)),"normal road probe admits the labelled saved ruin hypothesis");
     road.networks.assign(51984,0);road.networks[0]=2;road.networks[1]=1;
     auto ranks=originalBuildingRankedRoadNetworks(road.networks);need(ranks&&ranks->at(0)==1&&ranks->at(1)==2,"equal network sizes retain ascending label order");
     std::vector<uint16_t> movement(51984);movement[10000]=movement[10001]=4;movement[10002]=0x40;movement[10229]=0x1000;
@@ -512,6 +514,9 @@ void authored(){
     const auto& immigrant=migrated.context->figures->at(19);
     need(immigrant.type==11&&immigrant.action==6&&immigrant.home==7&&immigrant.employmentAmount==6&&immigrant.counter==1&&immigrant.subtype==1&&immigrant.water==1&&immigrant.speed==0&&immigrant.allocationSerial==37,"immigrant constructor and caller writes preserve independent literal fields");
     need(migrated.context->labor->arrivals==6&&migrated.context->labor->unplaced==0&&migrated.context->labor->spacing==50&&migrated.state->inputs.residents==10&&migrated.context->figureCellHeads->at(1144)==19,"migration accounts attempted6 without changing residents before arrival");
+    {auto dead=std::make_unique<OriginalBuildingUpdateContext>(lc);auto& h=dead->buildingInputs->at(7);h.alive=4;h.free=12;h.migrant=0;
+        need(originalBuildingImmigration(*dead,6)&&dead->allocatedFigures.empty()&&dead->labor->arrivals==0&&dead->labor->unplaced==6&&h.migrant==0,
+            "destroyed houses are absent from the live house registry and cannot receive immigrants");}
     need(migrated.context->figureSpeechChoices.at(19)==1&&migrated.context->figureSpeechCounters->at(265)==8&&migrated.context->crtRandom==123&&migrated.context->crtRandomCalls==0,"migrant speech rotation advances saved counter without separate CRT sound call");
     auto heap_chain=std::make_unique<OriginalBuildingUpdateContext>(lc); auto& chain=*heap_chain;chain.figures->at(5).alive=1;chain.figures->at(5).type=11;chain.figures->at(5).cell=1144;chain.figureCellHeads->at(1144)=5;
     auto chained=originalBuildingStateAfterUpdates(migrantHouse,chain,1);

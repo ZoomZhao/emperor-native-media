@@ -415,6 +415,10 @@ void combinedAuthored(){
     auto unknownEffect=debris;unknownEffect.effectAnimation.reset();
     need(!originalFigureFirstUpdate(unknownEffect,effects,&effectContext).state,"combined debris requires runtime16C metadata");
     OriginalFigure flame=debris;flame.type=2;flame.subtype=161;flame.delivery=8;flame.effectAnimation=3;flame.effectFrame=7;
+    {auto loaded=effectContext;auto savedFlame=flame;savedFlame.effectAnimation.reset();loaded.figures[2]=savedFlame;
+        loaded.randomByte.assign(51984,0);loaded.randomByte[flame.cell]=13;
+        originalCombinedBindSavedFlames(loaded,false);need(!loaded.figures.at(2).effectAnimation,"strict load retains unknown flame animation");
+        originalCombinedBindSavedFlames(loaded,true);need(loaded.figures.at(2).effectAnimation==3,"normal load supplies the labelled creation-cell hypothesis");}
     const auto flamePostLoad=originalFigurePostLoadImages(flame.slot,originalFigureImageInputs(flame),effects);
     need(flamePostLoad.images&&flamePostLoad.images->first==0&&flamePostLoad.images->second==0&&flamePostLoad.callbackVA==0x4d6cf0,
         "saved flame uses the type2 post-load image-clearing callback");
@@ -1585,6 +1589,11 @@ void authored(){
             projectiles.sprites[100].animationDirections=projectiles.sprites[200].animationDirections=32;
             projectiles.sprites[100].animationSpeedId=projectiles.sprites[200].animationSpeedId=2;
             const std::map<uint32_t,const SG3Archive*> shotRefs{{14,&projectiles},{38,&group},{39,&group}};
+            {auto finishing=hunter;finishing.action=13;finishing.counter=-100;shot.figures.at(1).action=10;shot.figures.at(2)=finishing;
+                const auto result=originalFigureFirstUpdate(finishing,shotRefs,&shot,0x80);
+                need(result.state&&result.state->action==7&&result.state->counter==-101,
+                    "Hunter action13 finishes its animation before validating a dead target on the next update");
+                shot.figures.at(1)=prey;shot.figures.at(2)=hunter;}
             {auto close=shot;auto waiting=hunter;waiting.counter=5;waiting.frame=7;waiting.progress=8;waiting.direction=2;waiting.route=3;
                 close.figures.at(1).x=12;close.figures.at(1).y=10;close.figures.at(2)=waiting;close.modelSpeeds[40]=6;
                 const auto held=originalFigureFirstUpdate(waiting,shotRefs,&close,0x80);

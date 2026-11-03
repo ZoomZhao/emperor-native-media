@@ -31,7 +31,7 @@ UNCOVERED = {
     'OriginalBuildingUpdateContext::Trade::Partner': 'quotaUsed basePrice',
     'OriginalBuildingUpdateContext::CycleTail': 'populationHistory monthlyProduction monthlyStatistics annualUiFlag annualManagerFlag annualHouseRegistryFlag annualHousePopulation annualElitePopulation',
     'OriginalBuildingUpdateContext': 'serviceCombinedRating monthlyRolloverHypotheses partnerEventHypotheses landTraderDispatch scenarioPartnerConflict previousYearProduction sentimentHypotheses sentimentTaxTable scenarioMonthCounter',
-    'OriginalCombinedProcessInputs': 'animalSpawnMissHypothesis singleMillFoodHypothesis stationCargoDeniedHypothesis stallFoodPickupEmptyHypothesis wellRankedReturn sentimentHypotheses partnerEventHypotheses landTraderDispatch monthlyRolloverHypotheses',
+    'OriginalCombinedProcessInputs': 'animalSpawnMissHypothesis singleMillFoodHypothesis stationCargoDeniedHypothesis stallFoodPickupEmptyHypothesis wellRankedReturn sentimentHypotheses partnerEventHypotheses landTraderDispatch monthlyRolloverHypotheses savedFlameAnimationFromCell savedRuinRoadIdentity',
 }
 
 UNCOVERED_ANNUAL_FINANCE = (
@@ -136,6 +136,11 @@ def main():
         mismatches = {}
         for name, fields in expected.items():
             actual = records.get(name, {}).get('fields')
+            # The playback optimization moved these same fields to a base
+            # class; the frozen wire still writes figures first, then the base.
+            if name == 'OriginalFigureUpdateContext' and actual == ['figures']:
+                base = records.get('OriginalFigureUpdateFields', {}).get('fields')
+                actual = actual + base if base is not None else None
             excluded = uncovered.get(name, [])
             if actual is None or any(field not in actual for field in excluded) or [field for field in actual if field not in excluded] != fields:
                 mismatches[name] = dict(expected=fields, actual=actual, uncovered=excluded)

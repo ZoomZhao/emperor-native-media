@@ -154,7 +154,7 @@ struct OriginalFigurePassability {
 inline bool originalFigureBuildingPassThroughFalse(uint16_t type){
     switch(type){case 2:case 3:case 4:case 5:case 6:case 7:case 8:case 0x21:case 0x23:case 0x2b:case 0x35:case 0x36:case 0x3a:
     case 0x3e:case 0x42:case 0x43:case 0x47:case 0x48:case 0x7c:case 0x7e:case 0x7f:
-    case 0xc0:case 0xc1:case 0xc2:case 0xc4:case 0xcf:case 0xd3:case 0xd6:case 0xe7:return true;
+    case 0xa1:case 0xc0:case 0xc1:case 0xc2:case 0xc4:case 0xcf:case 0xd3:case 0xd6:case 0xe7:return true;
     default:return false;}
 }
 // Full 5AD920/5AD440 words, after the caller's public ground/building rebuild.
@@ -1804,10 +1804,8 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
         if(model==context->models.end()||model->second[7]==INT32_MIN||!group)return out;
         f.counter=originalFigureWord(int(f.counter)-1);
         if(f.counter<model->second[7]-group->second->animationSpriteCount-8)f.action=7;
-        if(f.action==7){const auto target=context->figures.find(size_t(f.target));
-            if(target==context->figures.end()||target->second.alive!=1||target->second.action==4||target->second.action==10||
-                target->second.type<75||target->second.type>77||
-                std::max(std::abs(int(f.x)-target->second.x),std::abs(int(f.y)-target->second.y))<=2)return out;}
+        //4D3320 changes action and jumps straight to image selection; the
+        //action-7 target validation is reached on the following update.
         if(!originalFigureWriteWalkingImage(f,f.action==7?0x4ebf:0x4ec0,archives,context->view,true,true,true)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
     }else if(f.action==8){f.counter=originalFigureWord(int(f.counter)+1);
         if(f.counter>12){if(!local.services||f.route<0||f.route>=1000)return out;

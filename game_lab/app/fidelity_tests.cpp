@@ -150,6 +150,8 @@ void compareCommitted(const game_lab::OriginalCombinedState& city,const SaveView
         if(c.elapsedYears)compare(groups,"year",*c.elapsedYears,late.year);
         if(city.figures.services&&city.figures.services->population)compare(groups,"population",city.figures.services->population->total,late.population);}
     if(c.scenarioMonths&&late.scenarioMonths)compare(groups,"calendar",*c.scenarioMonths,*late.scenarioMonths);
+    if(city.figures.terrain.size()==late.save.terrain.flags.size())
+        for(size_t n=0;n<city.figures.terrain.size();++n)compare(groups,"terrain",city.figures.terrain[n],late.save.terrain.flags[n]);
     if(city.figures.services&&late.save.terrainOffset<=late.payload.size()&&
        original_save19::randomSecond+4<=late.payload.size()-late.save.terrainOffset){const auto* p=late.payload.data()+late.save.terrainOffset;
         compare(groups,"random",city.figures.services->randomFirst,detail::u32(p+original_save19::randomFirst));
@@ -160,9 +162,22 @@ void compareCommitted(const game_lab::OriginalCombinedState& city,const SaveView
         ACCOUNT_FIELD(incomeOther);ACCOUNT_FIELD(expensesOther);ACCOUNT_FIELD(treasuryStart);ACCOUNT_FIELD(incomeReceived);
         ACCOUNT_FIELD(expensesPaid);ACCOUNT_FIELD(festivalCount);
 #undef ACCOUNT_FIELD
-        compareOptional(groups,"accounting",x.tributeIncomeComponent,y.tributeIncomeComponent);}
+        compareOptional(groups,"accounting",x.tributeIncomeComponent,y.tributeIncomeComponent);
+        if(x.buckets&&y.buckets){const auto& a=*x.buckets;const auto& b=*y.buckets;
+#define ANNUAL_FIELD(field) compare(groups,"annual_finance",a.field,b.field)
+            ANNUAL_FIELD(priorTax);ANNUAL_FIELD(priorWages);ANNUAL_FIELD(priorExports);ANNUAL_FIELD(priorImports);
+            ANNUAL_FIELD(priorExpense10514);ANNUAL_FIELD(priorExpense11400);ANNUAL_FIELD(priorExpense11161);ANNUAL_FIELD(priorExpense10534);
+            ANNUAL_FIELD(priorIncome11440);ANNUAL_FIELD(priorIncome11061);ANNUAL_FIELD(priorTribute);ANNUAL_FIELD(priorMisc11121);
+#undef ANNUAL_FIELD
+        }}
+    {OriginalBuildingUpdateContext saved(OriginalBuildingUpdateScope::AdmittedTicks,true);
+        if(originalBuildingSavedCityContext(late.payload,late.save.sizeOffset,saved)){
+            for(size_t n=0;n<c.previousYearProduction.size();++n)compare(groups,"annual_production",c.previousYearProduction[n],saved.previousYearProduction[n]);
+            if(late.save.layers.figures&&originalBuildingSavedEmpireStates(late.payload,late.save.layers.figures->end,&saved)&&c.trade&&saved.trade)
+                for(size_t p=0;p<c.trade->partners.size();++p)for(size_t n=1;n<=28;++n)
+                    compare(groups,"annual_quotas",c.trade->partners[p].quotaUsed[n],saved.trade->partners[p].quotaUsed[n]);}}
     if(c.labor&&late.labor){const auto& x=*c.labor;const auto& y=*late.labor;
-#define LABOR_FIELD(field) compare(groups,"labor",x.field,y.field)
+#define LABOR_FIELD(field) do {compare(groups,"labor",x.field,y.field);compare(groups,"labor_detail." #field,x.field,y.field);} while(false)
         compare(groups,"sentiment",x.sentiment,y.sentiment);
         compareOptional(groups,"sentiment",x.previousSentiment,y.previousSentiment);
         compareOptional(groups,"sentiment",x.sentimentReached350,y.sentimentReached350);
@@ -184,9 +199,11 @@ void compareCommitted(const game_lab::OriginalCombinedState& city,const SaveView
     if(c.formations){const auto saved=originalBuildingSavedFormations(late.payload,late.save.terrainOffset);
         if(saved)for(size_t n=0;n<c.formations->size();++n){const auto& x=c.formations->at(n);const auto& y=saved->at(n);
             compare(groups,"formation_identity",bool(x.alive),bool(y.alive));if(!x.alive||!y.alive)continue;
-            compare(groups,"formation_state",x.count,y.count);compare(groups,"formation_state",x.limit,y.limit);
-            compare(groups,"formation_state",x.kind,y.kind);compare(groups,"formation_state",x.spawnTimer,y.spawnTimer);
-            for(size_t k=0;k<x.members.size();++k)compare(groups,"formation_state",x.members[k],y.members[k]);}}
+            compare(groups,"formation_state",x.count,y.count);compare(groups,"formation_detail.count",x.count,y.count);
+            compare(groups,"formation_state",x.limit,y.limit);compare(groups,"formation_detail.limit",x.limit,y.limit);
+            compare(groups,"formation_state",x.kind,y.kind);compare(groups,"formation_detail.kind",x.kind,y.kind);
+            compare(groups,"formation_state",x.spawnTimer,y.spawnTimer);compare(groups,"formation_detail.spawnTimer",x.spawnTimer,y.spawnTimer);
+            for(size_t k=0;k<x.members.size();++k){compare(groups,"formation_state",x.members[k],y.members[k]);compare(groups,"formation_detail.members",x.members[k],y.members[k]);}}}
     const auto inputs=originalBuildingUpdateInputs(late.payload,late.save.buildings);
     if(inputs){std::set<size_t> slots;for(const auto& e:*inputs)if(e.second.alive==1||e.second.alive==3)slots.insert(e.first);
         for(const auto& e:city.buildings)if(e.second.state.inputs.alive==1||e.second.state.inputs.alive==3)slots.insert(e.first);
@@ -317,14 +334,21 @@ int explicitPairs(const game_lab::ResourceRoot& root,const game_lab::AppCityPlay
         ++reachedPairs;std::map<std::string,Agreement> groups;
         for(const char* name:{"calendar","treasury","year","population","sentiment","random","accounting","labor","employment","formation_identity","formation_state","building_identity","building_common","house_goods","house_services","crop_industry","crop_storage","figure_identity","figure_images","figure_state"})groups[name]={};
         compareCommitted(*city,late,groups);
+        const auto liveSimulated=std::count_if(city->buildings.begin(),city->buildings.end(),[](const auto& e){return e.second.state.inputs.alive==1||e.second.state.inputs.alive==3;});
         std::cout<<" attribution=unresolved live_buildings="<<early.liveSlots.size()<<'/'<<late.liveSlots.size()
-                 <<" simulated_buildings="<<city->buildings.size()<<"\n";
+                 <<" simulated_live_buildings="<<liveSimulated<<" simulated_records="<<city->buildings.size()<<"\n";
+        {size_t simulatedRuins=0,savedRuins=0;
+            for(const auto& e:city->buildings)if(e.second.state.building.type==161&&(e.second.state.inputs.alive==1||e.second.state.inputs.alive==3))++simulatedRuins;
+            for(const auto& e:late.liveSlots)if(e.second==161)++savedRuins;
+            std::cout<<"  live_ruins simulated="<<simulatedRuins<<" original="<<savedRuins;
+            if(calendar.disasters)std::cout<<" simulated_destructions="<<calendar.disasters->destructions;
+            std::cout<<'\n';}
         if(city->figures.services&&late.save.terrainOffset<=late.payload.size()&&
            original_save19::randomSecond+4<=late.payload.size()-late.save.terrainOffset){const auto* p=late.payload.data()+late.save.terrainOffset;
             const auto delta=randomAdvanceDifference(city->figures.services->randomFirst,city->figures.services->randomSecond,
                 detail::u32(p+original_save19::randomFirst),detail::u32(p+original_save19::randomSecond));
             std::cout<<"  random_draw_delta=";if(delta)std::cout<<*delta;else std::cout<<"outside_100000_or_different_state";std::cout<<'\n';}
-        for(const auto& [name,row]:groups){if(name.rfind("figure_detail.",0)==0&&row.equal==row.total)continue;
+        for(const auto& [name,row]:groups){if((name.rfind("figure_detail.",0)==0||name.rfind("labor_detail.",0)==0||name.rfind("formation_detail.",0)==0)&&row.equal==row.total)continue;
             std::cout<<"  "<<name<<' '<<row.equal<<'/'<<row.total<<" agree\n";}
     }
     std::cout<<"FIDELITY pairs_reached="<<reachedPairs<<" blocked="<<blockedPairs<<'\n';return 0;
