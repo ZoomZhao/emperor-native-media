@@ -141,7 +141,7 @@ inline std::optional<OriginalBuildingBaseSelection> originalBuildingBaseSelectio
         if(!f.imageInputs||!f.imageInputs->randomByte||
            !(*f.imageInputs->randomByte&1u)||f.imageInputs->word20<=0)return std::nullopt;
         out={0x472,1,2,"China_Housing.bmp"};break;}
-    case 0x2:case 0x3:case 0x5:case 0x7:{
+    case 0x2:case 0x3:case 0x5:case 0x6:case 0x7:case 0x8:{
         if(!f.imageInputs||!f.imageInputs->randomByte)return std::nullopt;
         const auto& i=*f.imageInputs;
         // 0x519F30 -> 0x519060 (empty-house branch), otherwise 0x518DE0.

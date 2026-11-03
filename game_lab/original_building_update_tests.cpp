@@ -784,6 +784,13 @@ void authored(){
     evolution.houseModels->at(2)[0]=0;evolving.inputs.house->at(56-4)=8;
     need(originalBuildingHouseEvolutionStep(evolving,evolution)==OriginalBuildingUpdateBlocker::None&&evolving.building.type==5&&evolving.inputs.house->at(56-4)==9,"house failed requirement waits through old delay8 before conversion");
     need(originalBuildingHouseEvolutionStep(evolving,evolution)==OriginalBuildingUpdateBlocker::HousingEvolution&&evolving.building.type==5,"uncited target4 selector refuses rather than publishing incomplete house geometry");
+    {auto downgraded=evolving;downgraded.building.type=7;downgraded.inputs.model=4;downgraded.inputs.modelDesirability=0;
+        downgraded.inputs.house->at(56-4)=9;evolution.houseModels->at(4)[0]=0;
+        const auto priorConversions=evolution.houseConversions;
+        need(originalBuildingHouseEvolutionStep(downgraded,evolution)==OriginalBuildingUpdateBlocker::None&&downgraded.building.type==6&&
+            downgraded.inputs.model==3&&evolution.houseConversions==priorConversions+1&&originalBuildingEmploymentCategory(6)==-1&&
+            originalFigureBuildingPassThroughFalse(6)&&originalFigureBuildingPassThroughFalse(8),
+            "delayed type7 downgrade selects type6 and retains its no-employment category");evolution.houseConversions=priorConversions;}
     evolving.building.type=2;evolving.inputs.model=0;evolving.inputs.modelDesirability=10;evolution.houseModels->at(0)[1]=1;
     need(originalBuildingHouseEvolutionStep(evolving,evolution)==OriginalBuildingUpdateBlocker::None&&evolving.building.type==3&&evolving.inputs.model==0&&evolution.houseConversions==1,"supported type2 to3 evolution retains existing selector and model0");
     evolution.monthPart=7;evolution.evolutionDisabled=true;evolution.houseModels->at(0)[10]=3;evolving.inputs.house->at(0x16-1-4)=5;evolving.inputs.house->at(0x18-1-4)=77;

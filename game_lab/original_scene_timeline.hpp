@@ -459,7 +459,9 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
         else {auto local=b.context;local.phase=city.phase;local.month=c.month;local.monthPart=c.monthPart;local.cycle=c.cycle;
             const auto step=originalBuildingStateAfterUpdates(b.state,local,1);
             result=step.blocker;if(step.state)b.state=*step.state;}
-        if(result!=OriginalBuildingUpdateBlocker::None)return originalBuildingUpdateBlockerName(result);
+        if(result!=OriginalBuildingUpdateBlocker::None){std::string reason=originalBuildingUpdateBlockerName(result);
+            if(city.phase==31||city.phase==39)reason+="_slot_"+std::to_string(e.first)+"_type_"+std::to_string(b.state.building.type);
+            return reason;}
         c.buildingInputs->at(e.first)=b.state.inputs;c.buildings->at(e.first)=b.state.building;if(b.state.production)c.productionInputs->at(e.first)=*b.state.production;
     }
     if(city.phase==20){result=originalBuildingResourceGrowthStep(c);if(result!=OriginalBuildingUpdateBlocker::None)return originalBuildingUpdateBlockerName(result);}

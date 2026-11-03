@@ -1777,11 +1777,11 @@ inline std::optional<bool> originalBuildingHouseRequirements(const OriginalBuild
     if(word(0x16)<m[10]||word(0x14)<m[9]||word(0x1e)<m[11]||word(0x18)<m[12])return false;
     if(word(0x1a)<m[13]&&word(0x1c)<m[13])return false;return true;
 }
-//519120/518EF0,typed8541BC dispatch. Port ordinary2/3/5/7; larger
+//519120/518EF0,typed8541BC dispatch. Port ordinary2/3/5/6/7/8; larger
 //house geometry is a separate allocation/merge path and remains refused.
 inline OriginalBuildingUpdateBlocker originalBuildingHouseEvolutionStep(OriginalBuildingUpdateState& s,OriginalBuildingUpdateContext& c){
     auto& i=s.inputs;auto& b=s.building;if(!originalBuildingIsHouse(b.type)||(i.alive!=1&&i.alive!=3))return OriginalBuildingUpdateBlocker::None;
-    if(b.type!=2&&b.type!=3&&b.type!=5&&b.type!=7)return OriginalBuildingUpdateBlocker::HousingEvolution;
+    if(b.type!=2&&b.type!=3&&b.type!=5&&b.type!=6&&b.type!=7&&b.type!=8)return OriginalBuildingUpdateBlocker::HousingEvolution;
     if(!c.cropBase||!c.activeSide||!c.terrainOwners||c.terrainOwners->size()!=51984||!b.imageInputs||!i.house)return OriginalBuildingUpdateBlocker::HousingEvolution;
     auto& image=*b.imageInputs;const uint64_t expected=uint64_t(*c.cropBase)+b.x+228u*b.y;
     if(image.gridIndex>=51984)return OriginalBuildingUpdateBlocker::InvalidState;
@@ -1802,7 +1802,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingHouseEvolutionStep(Original
             //runtime data39=wire56; old delay<9 increments and exits.
             auto& delay=i.house->at(56-4);bool deferred=false;
             if(b.type!=2){if(direction==-1&&delay<9){++delay;deferred=true;}else delay=0;}
-            if(!deferred&&direction){int target=b.type==2?(direction==1?3:2):b.type==3?(direction==1?4:3):b.type==5?(direction==1?6:4):b.type==7?(direction==1?8:6):0;
+            if(!deferred&&direction){int target=b.type==2?(direction==1?3:2):b.type==3?(direction==1?4:3):b.type==5?(direction==1?6:4):b.type==6?(direction==1?7:5):b.type==7?(direction==1?8:6):b.type==8?(direction==1?9:7):0;
                 if(!target||target>10)return OriginalBuildingUpdateBlocker::HousingEvolution;
                 //518DE0 updates the semantic type/model,then existing selector.
                 if(target!=b.type){auto converted=b;converted.type=uint16_t(target);
@@ -1835,7 +1835,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingLifecycleStep(OriginalBuild
             if((int(*i.modelDesirability)<threshold&&upgraded)||(int(*i.modelDesirability)>=threshold&&!upgraded)){
                 i.model=int16_t(int(*i.modelDesirability)>=threshold);if(s.building.wellImageInputs)s.building.wellImageInputs->word16=i.model;
                 ++c.modelChanges;c.buildingRedraws.insert(s.building.slot);}}}
-    else if(type!=2&&type!=3&&type!=5&&type!=7&&type!=33&&type!=35&&type!=43&&type!=53&&type!=54&&type!=58&&type!=59&&type!=62&&type!=66&&type!=67&&type!=71&&type!=126&&type!=192&&type!=193&&type!=194&&type!=196&&type!=207&&type!=211&&type!=214&&type!=231)
+    else if(type!=2&&type!=3&&type!=5&&type!=6&&type!=7&&type!=8&&type!=33&&type!=35&&type!=43&&type!=53&&type!=54&&type!=58&&type!=59&&type!=62&&type!=66&&type!=67&&type!=71&&type!=126&&type!=192&&type!=193&&type!=194&&type!=196&&type!=207&&type!=211&&type!=214&&type!=231)
         return OriginalBuildingUpdateBlocker::UnclosedPhase;
     ++c.lifecycleCalls;return OriginalBuildingUpdateBlocker::None;
 }
@@ -2623,7 +2623,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingReligionStep(OriginalBuildi
 }
 //8235A8 type rows;only independently traced dispatch types are admitted.
 inline std::optional<int> originalBuildingEmploymentCategory(uint16_t type){
-    switch(type){case 2:case 3:case 5:case 7:case 59:case 126:case 231:return -1;
+    switch(type){case 2:case 3:case 5:case 6:case 7:case 8:case 59:case 126:case 231:return -1;
     case 33:case 192:case 193:case 194:case 196:return 0;
     case 35:case 43:return 1;case 53:case 54:case 58:case 62:case 66:case 67:case 71:return 2;
     case 72:case 124:case 127:case 207:return 3;case 211:return 5;case 214:return 6;default:return std::nullopt;}
