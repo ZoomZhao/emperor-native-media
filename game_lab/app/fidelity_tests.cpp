@@ -344,6 +344,11 @@ int explicitPairs(const game_lab::ResourceRoot& root,const game_lab::AppCityPlay
             std::cout<<"  live_ruins simulated="<<simulatedRuins<<" original="<<savedRuins;
             if(calendar.disasters)std::cout<<" simulated_destructions="<<calendar.disasters->destructions;
             std::cout<<'\n';}
+        if(late.save.layers.figures){std::map<unsigned,std::pair<size_t,size_t>> counts;
+            for(const auto& e:city->figures.figures)if(e.second.alive==1)++counts[e.second.type].first;
+            for(const auto& f:late.save.layers.figures->slots)if(f.alive==1)++counts[f.type].second;
+            for(const auto& e:counts)if(e.second.first!=e.second.second)
+                std::cout<<"  live_figure_type "<<e.first<<" simulated="<<e.second.first<<" original="<<e.second.second<<'\n';}
         if(city->figures.services&&late.save.terrainOffset<=late.payload.size()&&
            original_save19::randomSecond+4<=late.payload.size()-late.save.terrainOffset){const auto* p=late.payload.data()+late.save.terrainOffset;
             const auto delta=randomAdvanceDifference(city->figures.services->randomFirst,city->figures.services->randomSecond,
