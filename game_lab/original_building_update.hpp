@@ -428,6 +428,13 @@ struct OriginalBuildingUpdateContext {
     // Explicit already-computed city services used by the accounting pass.
     // Values cannot be inferred from the record under test.
     struct Accounting {
+        // Individual Population7 annual ledger buckets; aggregate fields below
+        // remain available to existing forecast consumers.
+        struct Buckets {
+            int32_t tribute=0,otherIncome11440=0,otherIncome11061=0,exports=0;
+            int32_t expense11400=0,expense11161=0,expense10534=0,expense10514=0,imports=0;
+        };
+        std::optional<Buckets> buckets;
         int32_t taxRate=0,taxableOrdinary=0,taxableElite=0,taxReceived=0,taxOther=0;
         int32_t wages=0,wagesPaid=0,incomeOther=0,expensesOther=0,treasuryStart=0;
         int32_t incomeReceived=0,expensesPaid=0,actualProfit=0;
@@ -2735,9 +2742,12 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     OriginalBuildingUpdateContext::Accounting a;a.taxRate=value(10);a.taxReceived=value(10458);a.taxOther=value(10462);
     a.wages=value(10414);a.wagesPaid=value(10426);a.treasuryStart=value(10570);a.festivalCount=value(11177);
     a.incomeReceived=value(10546);a.expensesPaid=value(10554);a.tributeIncomeComponent=value(12027);
-    for(size_t off:{12027u,11440u,11061u,10498u})a.incomeOther=originalBuildingAdd32(a.incomeOther,value(off));
+    a.buckets.emplace();auto& buckets=*a.buckets;
+    buckets.tribute=value(12027);buckets.otherIncome11440=value(11440);buckets.otherIncome11061=value(11061);buckets.exports=value(10498);
+    buckets.expense11400=value(11400);buckets.expense11161=value(11161);buckets.expense10534=value(10534);buckets.expense10514=value(10514);buckets.imports=value(10506);
+    for(int32_t amount:{buckets.tribute,buckets.otherIncome11440,buckets.otherIncome11061,buckets.exports})a.incomeOther=originalBuildingAdd32(a.incomeOther,amount);
     //591B50 copies1312220(wire10426) to1312224 before4F1A90 consumes it.
-    for(size_t off:{11400u,11161u,10534u,10514u,10506u})a.expensesOther=originalBuildingAdd32(a.expensesOther,value(off));
+    for(int32_t amount:{buckets.expense11400,buckets.expense11161,buckets.expense10534,buckets.expense10514,buckets.imports})a.expensesOther=originalBuildingAdd32(a.expensesOther,amount);
     c.unemploymentTrend=value(10406);
     for(unsigned n=0;n<36;++n)c.dispatchedProduction[n]=value(10722+4*n); //59487B restores1312340
     OriginalBuildingUpdateContext::Statistics stats;stats.primaryBuilding=value(6);stats.alternateBuilding=value(9900);

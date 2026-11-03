@@ -1133,9 +1133,9 @@ void authored(){
             const auto importRefusal=originalFigureFirstUpdate(sale,crewRefs,&tc,0xc0);
             need(!importRefusal.state&&importRefusal.status==OriginalFigureUpdateStatus::TraderImportAfterExport&&
                 tc.buildings->at(7).storage->at(0).amount==200,"a possible import keeps both sides of the transaction uncommitted");
-            city.figures=std::move(candidate);need(originalCombinedCommitTrader(city)&&*bc.treasury==530&&
+            bc.accounting->buckets.emplace();city.figures=std::move(candidate);need(originalCombinedCommitTrader(city)&&*bc.treasury==530&&
                 bc.accounting->incomeOther==30&&bc.accounting->income==30&&bc.trade->partners[1].quotaUsed[25]==1&&
-                bc.trade->partners[0].quotaUsed[25]==1,"completed figure pass publishes trade quota and accounting together");
+                bc.trade->partners[0].quotaUsed[25]==1&&bc.accounting->buckets->exports==30,"completed figure pass publishes trade quota and accounting together");
         }
         context.buildings->erase(7);context.figures[3]=returning;
         const auto exited=originalFigureFirstUpdate(returning,crewRefs,&context,0xc0);

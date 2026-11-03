@@ -86,6 +86,7 @@ inline bool originalCombinedCommitTrader(OriginalCombinedState& city){
         to.relations[bridge.currentFaction].previousPrice=from.previousPrice;}
     auto& a=*c.accounting;*c.treasury=originalBuildingAdd32(*c.treasury,bridge.exportIncome);
     a.incomeOther=originalBuildingAdd32(a.incomeOther,bridge.exportIncome);
+    if(a.buckets)a.buckets->exports=originalBuildingAdd32(a.buckets->exports,bridge.exportIncome);
     a.income=originalBuildingAdd32(a.incomeOther,originalBuildingAdd32(a.taxReceived,a.taxOther));
     a.expenses=originalBuildingAdd32(a.expensesOther,a.wagesPaid);a.profit=originalBuildingSub32(a.income,a.expenses);
     a.actualProfit=originalBuildingSub32(a.incomeReceived,a.expensesPaid);

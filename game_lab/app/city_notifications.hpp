@@ -98,6 +98,7 @@ public:
         const auto fits=[](int64_t v){return v>=INT32_MIN&&v<=INT32_MAX;};
         if(!fits(money)||!fits(income)||!fits(category))return AppCityTributeResult::Overflow;
         *city.treasury=int32_t(money);city.accounting->incomeOther=int32_t(income);*city.accounting->tributeIncomeComponent=int32_t(category);
+        if(city.accounting->buckets)city.accounting->buckets->tribute=int32_t(category);
         row.state=AppCityTributeState::Accepted;return AppCityTributeResult::Applied;
     }
     std::string report() const {

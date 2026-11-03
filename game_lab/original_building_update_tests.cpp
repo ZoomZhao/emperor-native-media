@@ -545,6 +545,13 @@ void authored(){
     auto restoredCity=context(OriginalBuildingUpdateScope::AdmittedTicks);
     need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.elapsedYears==1234&&restoredCity.scenarioStartYears==0x1234&&restoredCity.engineRegion==2,"saved city years and animal region use literal outer and Scenario6 wire offsets");
     need(restoredCity.labor->excessDepartureTotal==71&&restoredCity.labor->lastPopulationDelta==-3,"saved departure total and signed last arrival retain distinct adjacent Population7 words");
+    {auto ledgerData=savedInputs;const auto put=[&](size_t wire,uint32_t v){for(unsigned n=0;n<4;++n)ledgerData.at(anchor-12287+wire+n)=uint8_t(v>>(8*n));};
+        const std::array<size_t,9> wires{12027,11440,11061,10498,11400,11161,10534,10514,10506};
+        for(size_t n=0;n<wires.size();++n)put(wires[n],uint32_t(n+1));auto ledgerCity=context(OriginalBuildingUpdateScope::AdmittedTicks);
+        need(originalBuildingSavedCityContext(ledgerData,anchor,ledgerCity)&&ledgerCity.accounting->buckets&&
+            ledgerCity.accounting->buckets->exports==4&&ledgerCity.accounting->buckets->imports==9&&
+            ledgerCity.accounting->buckets->tribute==1&&ledgerCity.accounting->incomeOther==10&&ledgerCity.accounting->expensesOther==35,
+            "saved annual finance buckets remain distinct while forecasts retain their aggregate totals");}
     {auto historyData=savedInputs;const auto put=[&](size_t wire,uint32_t v){for(unsigned n=0;n<4;++n)historyData.at(anchor-12287+wire+n)=uint8_t(v>>(8*n));};
         put(58+4*2399,17);put(9658,2399);put(9662,31);
         auto historyCity=context(OriginalBuildingUpdateScope::AdmittedTicks);
