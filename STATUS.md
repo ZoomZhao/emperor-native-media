@@ -1,10 +1,10 @@
 # Status — ORIGINAL CITY RUNS
 
-2026-11-03 · macOS arm64 · `EMPEROR_GAMEDATA_ROOT=<data> make primary-metric UPDATES=1000`
+2026-11-03 · macOS arm64 · Stage 3: `EMPEROR_GAMEDATA_ROOT=<data> make primary-metric UPDATES=9792`
 
 **Stage 1: 6/6 at 100 updates. Stage 2: 6/6 at 1000 updates**, Release and UBSan verified 2026-11-03. Original behavior agreement is measured separately below. Year rollover remains refused; one year is 12 × 16 × 51 = 9792 updates. Chinese EXE SHA `dbdeca1e…`.
 
-**Stage 3: 0/6 at 9792**, Release 2026-11-03. In runner order: 9791, 4895, 6729, 4009, 9791, 4895; five stop at annual rollover (`monthly_city_4ac650`), and the third at `goods_route_4e47a0_and_owner_mutations_slot_1227_type_22_action_9`. The earliest stop is annual rollover at update 4010.
+**Stage 3: 0/6 at 9792**, Release 2026-11-03. In runner order: 9791, 4895, 6729, 4009, 9791, 4895; five reach the atomic annual prelude (`annual_prelude_5ef190_590de0`), and the third stops at `goods_route_4e47a0_and_owner_mutations_slot_1227_type_22_action_9`. The earliest stop is the annual prelude at update 4010.
 
 **Fidelity:** `281030 → 281031` 40/40: building common 28407/28409; crop industry 884/884; figure state 5164/5170, images 92/94, type-26 50/50; RNG 2/2; calendar, treasury, accounting, labor, employment, sentiment, population, house goods/services, crop storage and formations agree. `281031 → 280008` 1008/1008: treasury 0/1, accounting 11/12, RNG 0/2 (−517 draws), building common 28265/28409, crop industry 846/884, house services 375/416, figure identity 1997/2047 and state 619/660; the user-observed +75 trade, −60 charge and +786 accepted envoy gift reconcile the original money. Empty-event hypotheses may be contradicted if the saves share a trajectory. `280008 → 280009` 860/860: treasury 1/1 and accounting 12/12; RNG 0/2 (−1330 draws), building common 28238/28409, crop industry 747/884, figure identity 1976/2037 and state 1123/1210.
 

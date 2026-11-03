@@ -191,7 +191,7 @@ inline std::optional<OriginalBuildingFormationResult> originalBuildingFormationS
 enum class OriginalBuildingUpdateBlocker {None,InvalidState,MissingContext,ExternalWrites,
     ProductionVirtuals,RoadRefresh,Employment,HousingEvolution,BuildingVirtual20,
     RiskAndFire,MonthlyCity,Availability,CityPhase,UnclosedPhase,HousingCapacity,CityLabor,Trade,
-    FarmerWallClock,FireWind,EmploymentCategoryPolicy};
+    FarmerWallClock,FireWind,EmploymentCategoryPolicy,AnnualPrelude};
 inline const char* originalBuildingUpdateBlockerName(OriginalBuildingUpdateBlocker b){
     switch(b){case OriginalBuildingUpdateBlocker::None:return "computed";
     case OriginalBuildingUpdateBlocker::InvalidState:return "invalid_saved_building_update_inputs";
@@ -207,6 +207,7 @@ inline const char* originalBuildingUpdateBlockerName(OriginalBuildingUpdateBlock
     case OriginalBuildingUpdateBlocker::BuildingVirtual20:return "building_virtual20_416d20";
     case OriginalBuildingUpdateBlocker::RiskAndFire:return "risk_fire_4af5d0_42a220";
     case OriginalBuildingUpdateBlocker::MonthlyCity:return "monthly_city_4ac650";
+    case OriginalBuildingUpdateBlocker::AnnualPrelude:return "annual_prelude_5ef190_590de0";
     case OriginalBuildingUpdateBlocker::Availability:return "availability_4ace60_virtual1a0";
     case OriginalBuildingUpdateBlocker::CityPhase:return "city_accounting_4f1560_4ac2fa";
     case OriginalBuildingUpdateBlocker::HousingCapacity:return "housing_capacity_4ad3d0_44cc80";
@@ -2249,7 +2250,6 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
     if(monthRollover){if(*c.month>11)return OriginalBuildingUpdateBlocker::InvalidState;
         if(c.monthlyRolloverHypotheses!=true||!c.scenarioMonths||!c.scenarioMonthCounter||!c.shortageNoticeCountdown)return OriginalBuildingUpdateBlocker::MonthlyCity;
         const unsigned nextMonth=*c.month==11?0:*c.month+1;
-        if(nextMonth==1)return OriginalBuildingUpdateBlocker::MonthlyCity; //4AC7FD annual services remain unported.
         *c.monthPart=15;const auto reset=originalBuildingResetHarvestedCrops(c,*c.month);if(reset!=OriginalBuildingUpdateBlocker::None)return reset;
         *c.monthPart=0;
         // HYPOTHESIS(rollover-manager-empty): 4BFF20/4BFE10's process registry has no monthly action.
@@ -2272,6 +2272,13 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
         // HYPOTHESIS(rollover-incoming-cargo-stable): 4EB850 leaves building incoming-cargo counts unchanged.
         *c.month=nextMonth;
         // HYPOTHESIS(rollover-monthly-events-empty): 523740,491CF0 and 4AFF80 have no pending monthly event.
+        if(nextMonth==1){
+            if(!c.elapsedYears)return OriginalBuildingUpdateBlocker::MissingContext;
+            *c.elapsedYears=originalBuildingAdd32(*c.elapsedYears,1); //4AC7DD..E5
+            //4AC7FD begins process-state and house-registry annual work;
+            // the transaction remains unpublished until those writes are bound.
+            return OriginalBuildingUpdateBlocker::AnnualPrelude;
+        }
         result=originalBuildingMonthlyPopulationHistory(c);if(result!=OriginalBuildingUpdateBlocker::None)return result;
         // HYPOTHESIS(rollover-scenario-events-empty): 55CEE0,48EB90,4A5910 and 4FEC80 produce no scenario event.
         *c.scenarioMonths=originalBuildingAdd32(*c.scenarioMonths,1);

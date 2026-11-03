@@ -885,6 +885,10 @@ void authored(){
     auto strictRollover=rollover;strictRollover.monthlyRolloverHypotheses.reset();
     need(originalBuildingCycleTailStep(strictRollover)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictRollover.monthPart==15,
          "strict rollover refuses and preserves its calendar");
+    auto yearBoundary=rollover;yearBoundary.month=0;yearBoundary.elapsedYears=12;
+    need(originalBuildingCycleTailStep(yearBoundary)==OriginalBuildingUpdateBlocker::AnnualPrelude&&yearBoundary.month==0&&
+         yearBoundary.monthPart==15&&yearBoundary.elapsedYears==12&&yearBoundary.treasury==400,
+         "year rollover reaches the annual prelude and retains the whole unpublished transaction");
     need(originalBuildingCycleTailStep(rollover)==OriginalBuildingUpdateBlocker::None&&rollover.monthPart==0&&rollover.month==8&&
          rollover.scenarioMonths==12&&rollover.scenarioMonthCounter==8&&*rollover.treasury==340&&rollover.labor->monthlyFoodConsumed==25&&
          rollover.labor->monthlyTimerRemaining==3&&rollover.shortageNoticeCountdown==1&&
