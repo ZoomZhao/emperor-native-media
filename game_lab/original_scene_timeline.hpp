@@ -396,8 +396,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
     switch(city.phase){
     case 1:result=originalBuildingAccountingStep(c);break;
     case 3:case 30:c.citySignal=1;break; //4819F0/4AC42D store13F8E78=1
-    case 4:if(!c.treasury)result=OriginalBuildingUpdateBlocker::CityPhase;else if(*c.treasury>=0)c.cityCountA=c.cityCountB=0;
-        else return "negative_treasury_city_counters_required";break;
+    case 4:result=originalBuildingTreasuryCounters(c);break;
     case 5:case 29:result=originalBuildingFormationPhase(c,city.phase==5,city.process.animalSpawnMissHypothesis==true);break;
     case 6:result=originalBuildingLaborCountdown(c);break;
     case 7:if(c.movement)result=originalBuildingNetworkStep(c);

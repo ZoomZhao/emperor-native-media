@@ -870,6 +870,11 @@ void authored(){
     auto deficit=wages;deficit.treasury=-1;deficit.labor->debtMonths=11;deficit.labor->sentimentShortages=2;
     need(originalBuildingMonthlyDebt(deficit)==OriginalBuildingUpdateBlocker::None&&deficit.labor->debtMonths==12&&
          deficit.labor->sentimentShortages==3&&deficit.notificationEffects.back()==224,"monthly debt advances its saved counter and emits the annual notice");
+    need(originalBuildingTreasuryCounters(deficit)==OriginalBuildingUpdateBlocker::None&&deficit.cityCountA==12&&deficit.cityCountB==3&&
+         deficit.labor->debtMonths==12&&deficit.labor->sentimentShortages==3,"negative treasury preserves both saved debt counters at phase4");
+    auto recovered=deficit;recovered.treasury=0;
+    need(originalBuildingTreasuryCounters(recovered)==OriginalBuildingUpdateBlocker::None&&recovered.cityCountA==0&&recovered.cityCountB==0&&
+         recovered.labor->debtMonths==0&&recovered.labor->sentimentShortages==0,"nonnegative treasury clears the saved counters and their phase4 mirrors");
     deficit.treasury=0;need(originalBuildingMonthlyDebt(deficit)==OriginalBuildingUpdateBlocker::None&&
          deficit.labor->debtMonths==0&&deficit.labor->sentimentShortages==0,"nonnegative treasury clears both debt counters");
     auto productionRoll=sentiment;productionRoll.cycleTail->monthlyProduction={17,23};

@@ -2239,11 +2239,20 @@ inline OriginalBuildingUpdateBlocker originalBuildingMonthlyProduction(OriginalB
     s[2]=s[3]=s[5]=s[6]=s[8]=0;return OriginalBuildingUpdateBlocker::None;
 }
 // 4AC5B0 tracks consecutive deficit months and emits a yearly debt notice.
+//4819F0 clears these same saved Population7 counters only when cash is nonnegative.
+inline OriginalBuildingUpdateBlocker originalBuildingTreasuryCounters(OriginalBuildingUpdateContext& c){
+    if(!c.treasury)return OriginalBuildingUpdateBlocker::CityPhase;
+    if(*c.treasury>=0){c.cityCountA=c.cityCountB=0;if(c.labor)c.labor->debtMonths=c.labor->sentimentShortages=0;}
+    else {if(!c.labor)return OriginalBuildingUpdateBlocker::CityPhase;
+        c.cityCountA=c.labor->debtMonths;c.cityCountB=c.labor->sentimentShortages;}
+    return OriginalBuildingUpdateBlocker::None;
+}
 inline OriginalBuildingUpdateBlocker originalBuildingMonthlyDebt(OriginalBuildingUpdateContext& c){
     if(!c.labor||!c.treasury)return OriginalBuildingUpdateBlocker::MonthlyCity;
-    auto& l=*c.labor;if(*c.treasury>=0){l.debtMonths=0;l.sentimentShortages=0;return OriginalBuildingUpdateBlocker::None;}
+    auto& l=*c.labor;if(*c.treasury>=0){l.debtMonths=0;l.sentimentShortages=0;c.cityCountA=c.cityCountB=0;return OriginalBuildingUpdateBlocker::None;}
     l.debtMonths=originalBuildingAdd32(l.debtMonths,1);
     if(l.debtMonths&&l.debtMonths%12==0){l.sentimentShortages=originalBuildingAdd32(l.sentimentShortages,1);c.notificationEffects.push_back(224);}
+    c.cityCountA=l.debtMonths;c.cityCountB=l.sentimentShortages;
     return OriginalBuildingUpdateBlocker::None;
 }
 //4AC7FD..4AC810 resets two process flags and invalidates the house registry;
@@ -2848,7 +2857,7 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     //1312564 is rebuilt from live hostile figures;formation labor12112..12124
     //uses the explicitly serialized four dwords (59500B).
     for(unsigned n=0;n<4;++n)l.formationLabor[n]=value(12083+4*n);
-    c.labor=l;c.roadEndpoints=originalBuildingSavedRoadEndpoints(data,side);
+    c.labor=l;c.cityCountA=l.debtMonths;c.cityCountB=l.sentimentShortages;c.roadEndpoints=originalBuildingSavedRoadEndpoints(data,side);
     c.cycleTail.emplace();c.cycleTail->populationHistory.emplace();auto& history=*c.cycleTail->populationHistory;
     for(size_t n=0;n<history.values.size();++n)history.values[n]=value(58+4*n);
     history.cursor=value(9658);history.count=value(9662);
@@ -3324,7 +3333,7 @@ inline OriginalBuildingUpdateResult originalBuildingStateAfterUpdates(
             else if(phase==36&&house){localWrites=true;if(s.inputs.houseInUse&&(s.inputs.alive==1||s.inputs.alive==3))originalBuildingAggregateHouseServices(s.inputs);}
             else if(phase==1)blocker=originalBuildingAccountingStep(c);
             else if(phase==3||phase==30)c.citySignal=1;
-            else if(phase==4){if(!c.treasury)blocker=OriginalBuildingUpdateBlocker::CityPhase;else if(*c.treasury>=0)c.cityCountA=c.cityCountB=0;}
+            else if(phase==4)blocker=originalBuildingTreasuryCounters(c);
             else if(phase==5||phase==29)blocker=originalBuildingFormationPhase(c,phase==5);
             else if(phase==9){} //40FC20 RET
             else if(phase==10){if(!c.buildingInputs||!c.buildings||!c.highestEverBuildingSlot||!c.buildingRegistrySize)blocker=OriginalBuildingUpdateBlocker::CityPhase;
