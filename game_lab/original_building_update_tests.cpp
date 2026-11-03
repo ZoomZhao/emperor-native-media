@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <numeric>
+#include <memory>
 #include <stdexcept>
 using namespace game_lab;
 namespace {
@@ -174,7 +175,7 @@ void authored(){
                     if(grid==2&&child==1&&f.receiver_offset==124){bytes[at+14]=0x34;bytes[at+15]=0x12;}
                     if(grid==2&&child==1&&f.receiver_offset==196){bytes[at+14]=0xfd;bytes[at+15]=0xff;}}}
             for(const auto& f:empire_grid15_post)bytes.resize(bytes.size()+f.bytes);}
-        dword(0);auto c=context(OriginalBuildingUpdateScope::AdmittedTicks);c.statistics.emplace();c.statistics->currentFaction=0;
+        dword(0);auto heap_c=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& c=*heap_c;c.statistics.emplace();c.statistics->currentFaction=0;
         const auto states=originalBuildingSavedEmpireStates(bytes,0,&c);
         need(states&&c.trade&&c.trade->partners[2].quotaUsed[7]==9&&c.trade->partners[2].basePrice[7]==-2&&
              c.trade->partners[2].relations[1].price[7]==0x1234&&c.trade->partners[2].relations[1].previousPrice[7]==-3,
@@ -230,7 +231,7 @@ void authored(){
             parsed->records[0][114]==0x55&&parsed->records[0][214]==0x66,
             "scenario messages parse all150 record9 requests excluding padding and preserving faction array order");
         wire.pop_back();need(!originalBuildingSavedScenarioMessages(wire,side),"scenario messages reject truncated trailing count");
-        auto orderedAnnual=annual;orderedAnnual.monthPart=1;orderedAnnual.cycle=7;orderedAnnual.populationTotal=0;orderedAnnual.labor.emplace();
+        auto heap_orderedAnnual=std::make_unique<OriginalBuildingUpdateContext>(annual); auto& orderedAnnual=*heap_orderedAnnual;orderedAnnual.monthPart=1;orderedAnnual.cycle=7;orderedAnnual.populationTotal=0;orderedAnnual.labor.emplace();
         orderedAnnual.cycleTail.emplace();orderedAnnual.cycleTail->alternateMode=false;orderedAnnual.cycleTail->healthTarget=61;orderedAnnual.cycleTail->smoothedHealth=60;
         orderedAnnual.buildingInputs.emplace();orderedAnnual.buildings.emplace();orderedAnnual.trade->partners[5].relations[3].annualFlag=0;
         need(originalBuildingCycleTailWithAnnualStep(orderedAnnual)==OriginalBuildingUpdateBlocker::MonthlyCity&&
@@ -238,7 +239,7 @@ void authored(){
             orderedAnnual.trade->partners[5].relations[3].annualFlag==0,
             "annual tail with missing forecast publishes neither health nor clock prefix before diplomatic flags");
     }
-    auto c=context(OriginalBuildingUpdateScope::ProductionPasses);
+    auto heap_c=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::ProductionPasses)); auto& c=*heap_c;
     for(uint16_t type:{uint16_t(194),uint16_t(196)})for(uint16_t flags:{uint16_t(0),uint16_t(1),uint16_t(32),uint16_t(33),uint16_t(0x4000),uint16_t(0x8021)}){
         const int delta=(flags&255)>32?(type==194?125:157):(flags&255)?(type==194?63:79):0;
         auto s=field(type,1990,flags);auto r=originalBuildingStateAfterUpdates(s,c,1);
@@ -265,7 +266,7 @@ void authored(){
         const unsigned low=flags&255;need(originalBuildingCropFlags(s.inputs)==((flags&0xc000)|(low?low-1:0)),"crop month-part decay preserves C000 and drops middle bits");
     }
     auto house=field();house.building.type=5;house.inputs.industry.reset();house.inputs.house.emplace();house.inputs.house->fill(3);
-    auto hc=context(OriginalBuildingUpdateScope::HouseServiceDecayPasses);auto h=originalBuildingStateAfterUpdates(house,hc,10);
+    auto heap_hc=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::HouseServiceDecayPasses)); auto& hc=*heap_hc;auto h=originalBuildingStateAfterUpdates(house,hc,10);
     need(h.state&&h.serviceDecayCalls==10,"house service operation horizon closes");
     for(unsigned offset=4;offset<=64;++offset){const bool dec=offset==41||offset==42||offset==43||offset==44||offset==45||offset==49||offset==50||offset==51||(offset>=13&&offset<=16);
         need(h.state->inputs.house->at(offset-4)==(dec?0:3),"house literal serializer bytes decay and saturate; adjacent fields stay intact");}
@@ -310,7 +311,7 @@ void authored(){
     for(uint16_t type:{uint16_t(33),uint16_t(35),uint16_t(43)}){
         auto industrial=field();industrial.building.type=type;industrial.inputs.industry.reset();industrial.production.emplace();
         auto& ip=*industrial.production;ip.operational=1;ip.workers=8;ip.enabled=1;
-        auto pc=context(OriginalBuildingUpdateScope::ProductionPasses);pc.unavailable=0;pc.requiredWorkers=8;pc.festivalProductionBoost=false;
+        auto heap_pc=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::ProductionPasses)); auto& pc=*heap_pc;pc.unavailable=0;pc.requiredWorkers=8;pc.festivalProductionBoost=false;
         auto pr=originalBuildingStateAfterUpdates(industrial,pc,1);
         need(pr.state&&detail::i16(pr.state->production->industry.data())==10,"industry workforce100 percent produces10 with ordinary divisor10");
         pc.festivalProductionBoost=true;pr=originalBuildingStateAfterUpdates(industrial,pc,1);
@@ -356,7 +357,7 @@ void authored(){
     need(distances&&distances->at(10000)==1&&distances->at(10001)==2&&distances->at(10002)==3&&distances->at(10229)==0,
         "road flood uses B7C including40 but excludes1000");
     need(!originalBuildingRoadDistances(movement,0),"road flood refuses original out-of-grid access premise");
-    auto capacityContext=context(OriginalBuildingUpdateScope::AdmittedTicks);capacityContext.phase=22;capacityContext.houses.emplace();capacityContext.houseModelCapacity=std::map<int,int>{{0,3},{1,8},{2,15}};
+    auto heap_capacityContext=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& capacityContext=*heap_capacityContext;capacityContext.phase=22;capacityContext.houses.emplace();capacityContext.houseModelCapacity=std::map<int,int>{{0,3},{1,8},{2,15}};
     capacityContext.houses->emplace(7,OriginalBuildingHouseCapacityInputs{3,1,6,99,1,2,0});
     capacityContext.houses->emplace(8,OriginalBuildingHouseCapacityInputs{11,1,12,99,1,10,0});
     capacityContext.houses->emplace(9,OriginalBuildingHouseCapacityInputs{5,1,4,99,1,8,1});
@@ -365,7 +366,7 @@ void authored(){
     need(capacity.state&&capacity.context->cityHouseCapacity==27&&capacity.context->cityHouseFree==5,"capacity totals include model11 next row and labor-disabled resident override");
     need(capacity.context->houses->at(7).free==2&&capacity.context->houses->at(8).free==3&&capacity.context->houses->at(9).free==0&&capacity.context->houses->at(10).free==0,"capacity resets disconnected free space and preserves signed field arithmetic");
     need(capacity.context->houses->at(7).peak==6&&capacity.context->houses->at(9).peak==8,"capacity peak raises only below residents");
-    auto rc=context(OriginalBuildingUpdateScope::AdmittedTicks);rc.phase=21;rc.roadAccess=OriginalBuildingRoadAccess{12,3,4,uint8_t(2)};rc.roadRefreshOrdinaryExit=true;
+    auto heap_rc=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& rc=*heap_rc;rc.phase=21;rc.roadAccess=OriginalBuildingRoadAccess{12,3,4,uint8_t(2)};rc.roadRefreshOrdinaryExit=true;
     auto rr=originalBuildingStateAfterUpdates(field(),rc,1);need(rr.state&&rr.state->roadDistance==12&&rr.state->roadX==3&&rr.state->roadY==4&&rr.state->roadNetwork==2,"phase21 publishes cited road fields on verified ordinary city exit");
     rc.roadRefreshOrdinaryExit=false;rr=originalBuildingStateAfterUpdates(field(),rc,1);need(!rr.state&&rr.blocker==OriginalBuildingUpdateBlocker::RoadRefresh,"road repair branch refuses atomically");
     rc.roadRefreshOrdinaryExit=true;rc.roadAccess.reset();auto inactive=field();inactive.inputs.alive=2;
@@ -420,11 +421,11 @@ void authored(){
     need(irrigation.state&&irrigation.context->irrigation->image[2746]==100&&irrigation.context->irrigation->image[2747]==118&&irrigation.context->irrigation->image[2748]==100,"staffed irrigation flood traverses Roadblock without rewriting its image");
     ir.ownerTypes[7]=231;irrigation=originalBuildingStateAfterUpdates(field(),ic,1);
     need(irrigation.state&&irrigation.context->irrigation->image[2748]==118,"irrigation rejects nonRoadblock owner before continuing flood");
-    auto wc=context(OriginalBuildingUpdateScope::AdmittedTicks);wc.phase=28;wc.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,house.inputs}};
+    auto heap_wc=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& wc=*heap_wc;wc.phase=28;wc.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,house.inputs}};
     wc.buildingInputs->at(7).house->fill(0);wc.buildingInputs->at(7).house->at(45)=1;wc.buildingInputs->at(7).house->at(47)=1;
     house.inputs=wc.buildingInputs->at(7);auto water=originalBuildingStateAfterUpdates(house,wc,1);
     need(water.state&&water.state->inputs.houseWater==2&&water.state->inputs.houseService==0,"water phase carries common field writes into returned record");
-    auto formContext=context(OriginalBuildingUpdateScope::AdmittedTicks);formContext.figures=std::vector<OriginalFigure>(2000);for(unsigned n=0;n<2000;++n)formContext.figures->at(n).slot=n;
+    auto heap_formContext=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& formContext=*heap_formContext;formContext.figures=std::vector<OriginalFigure>(2000);for(unsigned n=0;n<2000;++n)formContext.figures->at(n).slot=n;
     formContext.formations.emplace();formContext.formations->at(35).alive=1;formContext.formations->at(35).skipLifecycle=3;formContext.formations->at(35).kind=76;
     auto& animal=formContext.figures->at(9);animal.alive=1;animal.type=76;animal.formation=35;animal.damage=3;
     formContext.figureModels=std::map<unsigned,std::array<int32_t,18>>{};formContext.figureModels->operator[](76)[1]=17;formContext.figureStationary=std::map<size_t,uint8_t>{{9,1}};
@@ -433,17 +434,17 @@ void authored(){
     formContext.formations->at(35).skipLifecycle=0;need(!originalBuildingFormationStep(*formContext.formations,*formContext.figures,*formContext.figureModels,*formContext.figureStationary),"positive formation lifecycle refuses despite nonempty supplied pool");
     formContext.formations->at(35).skipLifecycle=3;formContext.formations->at(35).spawnTimer=26;formContext.engineRegion=1;
     formContext.figureServices.emplace();formContext.figureServices->randomHistory.emplace();
-    auto refusedSpawn=formContext;
+    auto heap_refusedSpawn=std::make_unique<OriginalBuildingUpdateContext>(formContext); auto& refusedSpawn=*heap_refusedSpawn;
     need(originalBuildingFormationPhase(refusedSpawn,true)==OriginalBuildingUpdateBlocker::CityPhase,"unimplemented animal spawn remains selectable as a refusal");
-    auto assumedMiss=formContext;
+    auto heap_assumedMiss=std::make_unique<OriginalBuildingUpdateContext>(formContext); auto& assumedMiss=*heap_assumedMiss;
     need(originalBuildingFormationPhase(assumedMiss,true,true)==OriginalBuildingUpdateBlocker::None&&
          assumedMiss.formations->at(35).spawnTimer==0&&assumedMiss.figureServices->randomHistory->cursor==1&&
          assumedMiss.figures->at(9).alive==1&&assumedMiss.allocatedFigures.empty(),
          "hypothetical missed animal spawn resets the timer and consumes one engine random value");
-    auto military=formContext;military.phase=5;military.formations->at(35).skipLifecycle=3;military.figures->at(8).alive=1;military.figures->at(8).type=64;military.figures->at(8).damage=2;
+    auto heap_military=std::make_unique<OriginalBuildingUpdateContext>(formContext); auto& military=*heap_military;military.phase=5;military.formations->at(35).skipLifecycle=3;military.figures->at(8).alive=1;military.figures->at(8).type=64;military.figures->at(8).damage=2;
     auto militaryResult=originalBuildingStateAfterUpdates(field(),military,1);
     need(!militaryResult.state&&militaryResult.refusedPhase==5,"formation phase refuses independent military damage writes outside animal domain");
-    auto religionContext=context(OriginalBuildingUpdateScope::AdmittedTicks);religionContext.phase=18;religionContext.populationTotal=500;
+    auto heap_religionContext=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& religionContext=*heap_religionContext;religionContext.phase=18;religionContext.populationTotal=500;
     religionContext.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,field().inputs}};
     religionContext.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,field().building}};religionContext.labor.emplace();religionContext.labor->difficulty=2;
     religionContext.statistics.emplace();religionContext.statistics->religionBonusEnabled=false;religionContext.religion.emplace();
@@ -464,7 +465,7 @@ void authored(){
     const size_t religionSide=55000;religionBytes[religionSide-28]=6;religionBytes[religionSide-28+6]=1;religionBytes[religionSide-28+10]=1;
     const auto savedReligion=originalBuildingSavedReligion(religionBytes,religionSide);
     need(savedReligion&&savedReligion->worship[0].entries[0].status==2&&savedReligion->worship[0].entries[0].value==99&&savedReligion->worship[0].entries[1].status==0&&savedReligion->worship[0].entries[1].value==0&&savedReligion->worship[1].entries[0].status==0&&savedReligion->worship[1].entries[0].value==0,"religion load preserves status2 only for enabled worship and figure type");
-    auto ac=context(OriginalBuildingUpdateScope::AdmittedTicks);ac.phase=1;ac.month=7;ac.formations.emplace();ac.figures=std::vector<OriginalFigure>(2000);
+    auto heap_ac=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& ac=*heap_ac;ac.phase=1;ac.month=7;ac.formations.emplace();ac.figures=std::vector<OriginalFigure>(2000);
     for(unsigned n=0;n<2000;++n)ac.figures->at(n).slot=n;
     ac.figureModels.emplace();ac.figureStationary.emplace();ac.cityEmployment.emplace();ac.cityEmployment->available=10;
     ac.cityEmployment->rows[0]={6,0,0,0,3};ac.cityEmployment->shortageNotice=false;ac.cityEmployment->unemploymentNotice=false;
@@ -482,14 +483,14 @@ void authored(){
     need(ledgerAfter.taxableOrdinary==40&&ledgerAfter.taxableElite==0&&ledgerAfter.taxForecast==72&&ledgerAfter.wageForecast==56,"accounting independent tax and wage forecasts use month7 remaining6");
     need(ledgerAfter.income==42&&ledgerAfter.expenses==29&&ledgerAfter.profit==13&&ledgerAfter.actualProfit==44&&ledgerAfter.treasuryForecast==113&&ledgerAfter.festivalCapacity==9,"accounting income expense profit and festival cap preserve separate saved inputs");
     need(accounted.context->cityDerived->food==50&&accounted.context->cityDerived->foodConsumption==2&&accounted.context->cityDerived->foodMonths==25&&accounted.context->serviceCoverage->at(1)==100&&accounted.context->serviceCoverage->at(4)==73,"accounting food uses house tail18 and preserves untouched coverage columns");
-    auto load=ac;load.phase=0;load.loadAccountingTransition=true;load.applyLoadRoadRefresh=false;
+    auto heap_load=std::make_unique<OriginalBuildingUpdateContext>(ac); auto& load=*heap_load;load.phase=0;load.loadAccountingTransition=true;load.applyLoadRoadRefresh=false;
     auto loaded=originalBuildingStateAfterUpdates(taxHouse,load,1);auto continued=originalBuildingStateAfterUpdates(*loaded.state,*loaded.context,1);
     need(loaded.state&&loaded.context->loadAccountingApplied&&loaded.context->accountingCalls==1&&continued.state&&continued.context->accountingCalls==2,"explicit UI load accounting transition is applied once before scheduled phase1");
-    auto noLoad=load;noLoad.loadAccountingTransition=false;auto unloaded=originalBuildingStateAfterUpdates(taxHouse,noLoad,1);
+    auto heap_noLoad=std::make_unique<OriginalBuildingUpdateContext>(load); auto& noLoad=*heap_noLoad;noLoad.loadAccountingTransition=false;auto unloaded=originalBuildingStateAfterUpdates(taxHouse,noLoad,1);
     need(unloaded.state&&unloaded.context->accountingCalls==0&&!unloaded.context->loadAccountingApplied,"false UI transition does not invent load accounting reachability");
-    auto incomplete=load;incomplete.figureStationary.reset();auto rejected=originalBuildingStateAfterUpdates(taxHouse,incomplete,1);
+    auto heap_incomplete=std::make_unique<OriginalBuildingUpdateContext>(load); auto& incomplete=*heap_incomplete;incomplete.figureStationary.reset();auto rejected=originalBuildingStateAfterUpdates(taxHouse,incomplete,1);
     need(!rejected.state&&!rejected.context&&rejected.operations==0,"load accounting missing dependency refuses atomically");
-    auto ec=ac;ec.phase=25;ec.employmentModel=OriginalBuildingEmployment{{194,3},{196,4}};ec.buildingUnavailable=std::map<size_t,bool>{{7,false},{8,false},{9,false}};
+    auto heap_ec=std::make_unique<OriginalBuildingUpdateContext>(ac); auto& ec=*heap_ec;ec.phase=25;ec.employmentModel=OriginalBuildingEmployment{{194,3},{196,4}};ec.buildingUnavailable=std::map<size_t,bool>{{7,false},{8,false},{9,false}};
     ec.unemploymentTrend=0;ec.shortageNoticeCountdown=0;ec.elapsedYears=0;ec.scenarioStartYears=0;ec.cityEmployment->available=5;
     auto first=field(194);first.inputs.operational=100;first.inputs.enabled=1;
     auto second=field(196);second.building.slot=8;second.inputs.identity=8;second.inputs.operational=100;second.inputs.enabled=1;
@@ -500,7 +501,7 @@ void authored(){
     auto employed=originalBuildingStateAfterUpdates(first,ec,1);
     need(employed.state&&employed.state->inputs.workers==3&&employed.context->buildingInputs->at(8).workers==2&&employed.context->buildingInputs->at(9).workers==0,"employment distributes ordered integer remainder after proportional first pass");
     need(employed.context->cityEmployment->rows[0].demand==7&&employed.context->cityEmployment->shortage==2&&employed.context->buildingLinks->at(8).workers==2,"employment eligibility excludes suppression and synchronizes whole pool workers");
-    auto lc=ac;lc.phase=23;lc.labor.emplace();lc.labor->sentiment=100;lc.labor->health=50;lc.labor->difficulty=0;lc.labor->wageBand=3;lc.labor->populationNotices=std::array<bool,10>{};
+    auto heap_lc=std::make_unique<OriginalBuildingUpdateContext>(ac); auto& lc=*heap_lc;lc.phase=23;lc.labor.emplace();lc.labor->sentiment=100;lc.labor->health=50;lc.labor->difficulty=0;lc.labor->wageBand=3;lc.labor->populationNotices=std::array<bool,10>{};
     lc.buildingInputs->at(7).distance=1;lc.buildingInputs->at(7).free=12;lc.buildingInputs->at(7).random=129;lc.populationTotal=10;lc.populationPeak=10;
     lc.roadEndpoints=std::array<int16_t,4>{3,4,5,6};lc.cropBase=229;lc.terrain=std::vector<uint32_t>(51984);lc.terrain->at(1144)=0x40;
     lc.figureCellHeads=std::vector<uint16_t>(51984);lc.figureServices.emplace();lc.figureServices->allocationSerial=37;lc.figureServices->randomFirst=1;lc.figureServices->randomSecond=2;
@@ -512,29 +513,29 @@ void authored(){
     need(immigrant.type==11&&immigrant.action==6&&immigrant.home==7&&immigrant.employmentAmount==6&&immigrant.counter==1&&immigrant.subtype==1&&immigrant.water==1&&immigrant.speed==0&&immigrant.allocationSerial==37,"immigrant constructor and caller writes preserve independent literal fields");
     need(migrated.context->labor->arrivals==6&&migrated.context->labor->unplaced==0&&migrated.context->labor->spacing==50&&migrated.state->inputs.residents==10&&migrated.context->figureCellHeads->at(1144)==19,"migration accounts attempted6 without changing residents before arrival");
     need(migrated.context->figureSpeechChoices.at(19)==1&&migrated.context->figureSpeechCounters->at(265)==8&&migrated.context->crtRandom==123&&migrated.context->crtRandomCalls==0,"migrant speech rotation advances saved counter without separate CRT sound call");
-    auto chain=lc;chain.figures->at(5).alive=1;chain.figures->at(5).type=11;chain.figures->at(5).cell=1144;chain.figureCellHeads->at(1144)=5;
+    auto heap_chain=std::make_unique<OriginalBuildingUpdateContext>(lc); auto& chain=*heap_chain;chain.figures->at(5).alive=1;chain.figures->at(5).type=11;chain.figures->at(5).cell=1144;chain.figureCellHeads->at(1144)=5;
     auto chained=originalBuildingStateAfterUpdates(migrantHouse,chain,1);
     need(chained.state&&chained.context->figureCellHeads->at(1144)==5&&chained.context->figures->at(5).next==19&&chained.context->figures->at(19).next==0,"migrant registration appends to existing same-cell list");
-    auto leaving=lc;leaving.labor->sentiment=25;leaving.labor->outRemainder=3;leaving.populationTotal=200;leaving.populationPeak=200;
+    auto heap_leaving=std::make_unique<OriginalBuildingUpdateContext>(lc); auto& leaving=*heap_leaving;leaving.labor->sentiment=25;leaving.labor->outRemainder=3;leaving.populationTotal=200;leaving.populationPeak=200;
     auto leftHouse=originalBuildingStateAfterUpdates(migrantHouse,leaving,1);
     need(leftHouse.state&&leftHouse.state->inputs.residents==4&&leftHouse.context->populationTotal==194&&leftHouse.context->labor->lastPopulationDelta==-6&&leftHouse.context->labor->departures==6&&
         leftHouse.context->figures->at(19).type==12&&leftHouse.context->figures->at(19).employmentAmount==6,"emigration stores signed last arrival and population before allocating type12");
-    auto excess=lc;excess.phase=24;excess.buildingInputs->at(7).free=-3;excess.labor->excessDepartureTotal=7;excess.figureSpeechCounts->at(254)=4;excess.figureSpeechCounters->at(254)=6;
+    auto heap_excess=std::make_unique<OriginalBuildingUpdateContext>(lc); auto& excess=*heap_excess;excess.phase=24;excess.buildingInputs->at(7).free=-3;excess.labor->excessDepartureTotal=7;excess.figureSpeechCounts->at(254)=4;excess.figureSpeechCounters->at(254)=6;
     auto excessHouse=migrantHouse;excessHouse.inputs=excess.buildingInputs->at(7);auto overflow=originalBuildingStateAfterUpdates(excessHouse,excess,1);
     need(overflow.state&&overflow.state->inputs.residents==7&&overflow.context->populationTotal==7&&overflow.context->labor->excessDepartureTotal==10&&
         overflow.context->figures->at(19).type==13&&overflow.context->figures->at(19).employmentAmount==3&&overflow.context->figureSpeechChoices.at(19)==2,"overflow departure increments separate accounting total only after type13 allocation");
     excess.freeFigureSlots.clear();overflow=originalBuildingStateAfterUpdates(excessHouse,excess,1);
     need(overflow.state&&overflow.state->inputs.residents==7&&overflow.context->populationTotal==10&&overflow.context->labor->excessDepartureTotal==7,"overflow allocation exhaustion still trims house but preserves global population and departure total");
-    auto exhausted=lc;exhausted.freeFigureSlots.clear();exhausted.figureSpeechCounters.reset();auto attempted=originalBuildingStateAfterUpdates(migrantHouse,exhausted,1);
+    auto heap_exhausted=std::make_unique<OriginalBuildingUpdateContext>(lc); auto& exhausted=*heap_exhausted;exhausted.freeFigureSlots.clear();exhausted.figureSpeechCounters.reset();auto attempted=originalBuildingStateAfterUpdates(migrantHouse,exhausted,1);
     need(attempted.state&&attempted.context->allocatedFigures.empty()&&attempted.context->labor->arrivals==12&&attempted.state->inputs.migrant==0&&attempted.context->figureServices->allocationSerial==37,"allocation exhaustion counts attempted migrants without consuming constructor inputs");
     auto splitLabor=originalBuildingStateAfterUpdates(*migrated.state,*migrated.context,1);auto wholeLabor=originalBuildingStateAfterUpdates(migrantHouse,lc,2);
     need(splitLabor.state&&wholeLabor.state&&splitLabor.state->inputs.workers==wholeLabor.state->inputs.workers&&splitLabor.context->freeFigureSlots==wholeLabor.context->freeFigureSlots&&splitLabor.context->labor->arrivals==wholeLabor.context->labor->arrivals,"migration split horizon retains global allocation and employment state");
-    auto growing=lc;growing.labor->inDelay=1;growing.labor->statisticsPending=1;growing.labor->health=62;growing.labor->populationSum=15;growing.labor->sampleCount=1;growing.populationTotal=100;
+    auto heap_growing=std::make_unique<OriginalBuildingUpdateContext>(lc); auto& growing=*heap_growing;growing.labor->inDelay=1;growing.labor->statisticsPending=1;growing.labor->health=62;growing.labor->populationSum=15;growing.labor->sampleCount=1;growing.populationTotal=100;
     auto grown=originalBuildingStateAfterUpdates(migrantHouse,growing,1);
     need(grown.state&&grown.state->inputs.residents==12&&grown.state->inputs.free==10&&grown.context->populationTotal==102&&grown.context->labor->statisticsPending==0&&grown.context->labor->averagePopulation==58,"pending population statistics grows ordered ordinary house before sample average");
-    auto broken=lc;broken.figureSpeechCounters.reset();auto absent=originalBuildingStateAfterUpdates(migrantHouse,broken,1);
+    auto heap_broken=std::make_unique<OriginalBuildingUpdateContext>(lc); auto& broken=*heap_broken;broken.figureSpeechCounters.reset();auto absent=originalBuildingStateAfterUpdates(migrantHouse,broken,1);
     need(!absent.state&&!absent.context&&lc.freeFigureSlots==std::vector<size_t>({19,3})&&lc.figureServices->allocationSerial==37,"missing speech provenance refuses migration without consuming caller queue or RNG");
-    auto storage=ac;storage.goodsRecords=std::vector<OriginalBuildingGoodsRecord>(2);storage.goodsRecords->at(1).alive=1;storage.goodsRecords->at(1).owner=8;
+    auto heap_storage=std::make_unique<OriginalBuildingUpdateContext>(ac); auto& storage=*heap_storage;storage.goodsRecords=std::vector<OriginalBuildingGoodsRecord>(2);storage.goodsRecords->at(1).alive=1;storage.goodsRecords->at(1).owner=8;
     OriginalFigureBuildingLink mill;mill.type=53;mill.alive=1;mill.storage=std::vector<OriginalStorageCompartment>{{1,300,1000},{2,200,1000},{30,90,1000}};mill.storagePolicy=0;
     storage.buildingLinks->emplace(8,mill);storage.buildingInputs->emplace(8,OriginalBuildingUpdateInputs{});storage.goods->policies.resize(1);storage.storageRoadStatus->emplace(8,2);storage.poolRoadSelected->emplace(8,true);
     storage.goods->warehouse[1]=999;storage.goods->warehouse[35]=77;
@@ -542,19 +543,19 @@ void authored(){
     need(originalBuildingFoodStep(storage)==OriginalBuildingUpdateBlocker::None&&storage.cityDerived->food==550&&storage.buildingInputs->at(8).available==1&&storage.foodCalls==1,"food rescan overwrites Mill availability with adjacent-road bool and adds house plus nine foods");
     auto savedInputs=population;savedInputs.resize(14000);const auto saved32=[&](size_t at,uint32_t v){for(unsigned k=0;k<4;++k)savedInputs.at(at+k)=uint8_t(v>>(8*k));};
     saved32(anchor-180,1234);saved32(9770,71);saved32(9774,0xfffffffd);savedInputs[anchor-28+2]=0x34;savedInputs[anchor-28+3]=0x12;savedInputs[anchor-28+632]=2;savedInputs[anchor+1433]=1;saved32(anchor+1452,2);
-    auto restoredCity=context(OriginalBuildingUpdateScope::AdmittedTicks);
+    auto heap_restoredCity=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& restoredCity=*heap_restoredCity;
     need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.elapsedYears==1234&&restoredCity.scenarioStartYears==0x1234&&restoredCity.engineRegion==2,"saved city years and animal region use literal outer and Scenario6 wire offsets");
     need(restoredCity.labor->excessDepartureTotal==71&&restoredCity.labor->lastPopulationDelta==-3,"saved departure total and signed last arrival retain distinct adjacent Population7 words");
     {auto ledgerData=savedInputs;const auto put=[&](size_t wire,uint32_t v){for(unsigned n=0;n<4;++n)ledgerData.at(anchor-12287+wire+n)=uint8_t(v>>(8*n));};
         const std::array<size_t,9> wires{12027,11440,11061,10498,11400,11161,10534,10514,10506};
-        for(size_t n=0;n<wires.size();++n)put(wires[n],uint32_t(n+1));auto ledgerCity=context(OriginalBuildingUpdateScope::AdmittedTicks);
+        for(size_t n=0;n<wires.size();++n)put(wires[n],uint32_t(n+1));auto heap_ledgerCity=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& ledgerCity=*heap_ledgerCity;
         need(originalBuildingSavedCityContext(ledgerData,anchor,ledgerCity)&&ledgerCity.accounting->buckets&&
             ledgerCity.accounting->buckets->exports==4&&ledgerCity.accounting->buckets->imports==9&&
             ledgerCity.accounting->buckets->tribute==1&&ledgerCity.accounting->incomeOther==10&&ledgerCity.accounting->expensesOther==35,
             "saved annual finance buckets remain distinct while forecasts retain their aggregate totals");}
     {auto historyData=savedInputs;const auto put=[&](size_t wire,uint32_t v){for(unsigned n=0;n<4;++n)historyData.at(anchor-12287+wire+n)=uint8_t(v>>(8*n));};
         put(58+4*2399,17);put(9658,2399);put(9662,31);
-        auto historyCity=context(OriginalBuildingUpdateScope::AdmittedTicks);
+        auto heap_historyCity=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& historyCity=*heap_historyCity;
         need(originalBuildingSavedCityContext(historyData,anchor,historyCity)&&historyCity.cycleTail->populationHistory->values[2399]==17&&
              historyCity.cycleTail->populationHistory->cursor==2399&&historyCity.cycleTail->populationHistory->count==31,
              "population history binds the saved ring and its distinct cursor and count");
@@ -562,7 +563,7 @@ void authored(){
         need(originalBuildingMonthlyPopulationHistory(historyCity)==OriginalBuildingUpdateBlocker::None&&
              historyCity.cycleTail->populationHistory->values[2399]==321&&historyCity.cycleTail->populationHistory->cursor==0&&
              historyCity.cycleTail->populationHistory->count==32,"monthly population history wraps its saved ring");}
-    auto availability=ec;availability.empireProduction=std::array<bool,36>{};availability.unavailableResources=std::array<int16_t,36>{};
+    auto heap_availability=std::make_unique<OriginalBuildingUpdateContext>(ec); auto& availability=*heap_availability;availability.empireProduction=std::array<bool,36>{};availability.unavailableResources=std::array<int16_t,36>{};
     availability.buildings->at(7).type=192;availability.buildings->at(8).type=193;availability.buildings->at(9).type=194;
     availability.empireProduction->at(3)=true;
     need(originalBuildingUnavailableStep(availability)==OriginalBuildingUpdateBlocker::None&&availability.buildingUnavailable->at(7)&&!availability.buildingUnavailable->at(8)&&!availability.buildingUnavailable->at(9),"CropHold employment checks Empire production while CropField bypasses unavailable resource table");
@@ -579,7 +580,7 @@ void authored(){
     need(parentRoad&&parentRoad->distance==23&&!parentRoad->network,"Stall copies registered Market road fields and does not dispatch network setter");
     need(!originalBuildingMultipartRoadAccess(stall,multipart,marketRoad,6)&&!originalBuildingMultipartRoadAccess(stall,multipart,marketRoad),"Stall requires saved reciprocal parent to match framed Market child table");
     multipart.footprints[0].slot=9;need(!originalBuildingMultipartRoadAccess(stall,multipart,marketRoad,9),"Stall refuses parent after its own registered slot");
-    auto resource=context(OriginalBuildingUpdateScope::AdmittedTicks);resource.activeSide=4;resource.cropBase=112*229;
+    auto heap_resource=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& resource=*heap_resource;resource.activeSide=4;resource.cropBase=112*229;
     resource.terrain=std::vector<uint32_t>(51984);resource.figureServices.emplace();resource.buildings.emplace();resource.buildingInputs.emplace();
     resource.resourceGrowth.emplace();auto& growth=*resource.resourceGrowth;growth.surface.image.assign(51984,999);
     growth.surface.feature.resize(51984);growth.surface.randomByte.resize(51984);growth.surface.roadDistance.resize(51984);growth.owners.resize(51984);
@@ -590,20 +591,20 @@ void authored(){
     resource.terrain->at(tree)=1;resource.terrain->at(reed)=0x40000;resource.terrain->at(farm)=0x80;resource.terrain->at(owned)=1;
     growth.surface.roadDistance[tree]=253;growth.surface.roadDistance[reed]=230;growth.surface.roadDistance[farm]=250;
     growth.surface.feature[tree]=2;growth.surface.randomByte[tree]=10;growth.owners[owned]=7;
-    auto seededResource=resource;seededResource.figureServices->randomFirst=1;seededResource.figureServices->randomSecond=2;
+    auto heap_seededResource=std::make_unique<OriginalBuildingUpdateContext>(resource); auto& seededResource=*heap_seededResource;seededResource.figureServices->randomFirst=1;seededResource.figureServices->randomSecond=2;
     need(originalBuildingResourceGrowthStep(seededResource)==OriginalBuildingUpdateBlocker::None&&seededResource.figureServices->randomFirst==32769&&seededResource.figureServices->randomSecond==65538&&seededResource.resourceGrowth->surface.roadDistance[owned]==5,"resource positive engine RNG advances all four draws in scan order");
     need(originalBuildingResourceGrowthStep(resource)==OriginalBuildingUpdateBlocker::None,"resource positive growth closes all three masks without process clocks");
     need(growth.surface.roadDistance[tree]==255&&growth.surface.roadDistance[reed]==255&&growth.surface.roadDistance[farm]==255&&growth.surface.roadDistance[owned]==4,"resource unsigned byte overflow saturates at255 and grows owned cells");
-    auto sharedImage=resource;sharedImage.resourceGrowth->surface.roadDistance[tree]=253;sharedImage.irrigation.emplace();sharedImage.irrigation->image.assign(51984,777);
+    auto heap_sharedImage=std::make_unique<OriginalBuildingUpdateContext>(resource); auto& sharedImage=*heap_sharedImage;sharedImage.resourceGrowth->surface.roadDistance[tree]=253;sharedImage.irrigation.emplace();sharedImage.irrigation->image.assign(51984,777);
     need(originalBuildingResourceGrowthStep(sharedImage)==OriginalBuildingUpdateBlocker::None&&sharedImage.resourceGrowth->surface.image[farm]==777&&sharedImage.irrigation->image[tree]==3001,"resource image writes preserve prior irrigation surface and publish shared grid");
     need(growth.randomCalls==4&&growth.changed==4&&growth.imageWrites==2&&growth.surface.image[tree]==3001&&growth.surface.image[reed]==1000&&growth.surface.image[farm]==999&&growth.surface.image[owned]==999,"resource RNG precedes owner and farm image gates with explicit table offsets");
     need(growth.flags==std::array<uint8_t,6>{0,1,0,1,0,1},"resource resets six presence and routing flags before ordered scan");
-    auto orderedResource=resource;orderedResource.phase=20;auto resourceState=field();resourceState.inputs.output=0;
+    auto heap_orderedResource=std::make_unique<OriginalBuildingUpdateContext>(resource); auto& orderedResource=*heap_orderedResource;orderedResource.phase=20;auto resourceState=field();resourceState.inputs.output=0;
     orderedResource.buildingInputs->emplace(7,resourceState.inputs);orderedResource.buildings->emplace(7,resourceState.building);
     const auto resourceTick=originalBuildingStateAfterUpdates(resourceState,orderedResource,1);
     need(resourceTick.state&&resourceTick.context->resourceGrowth->calls==2&&resourceTick.context->phase==21,"phase20 invokes terrain growth after production through additive public API");
     resource.terrain->at(owned)=0;need(originalBuildingResourceGrowthStep(resource)==OriginalBuildingUpdateBlocker::None&&growth.randomCalls==4&&growth.changed==0&&growth.matureTrees==std::vector<uint32_t>{uint32_t(tree)}&&growth.matureReeds==std::vector<uint32_t>{uint32_t(reed)},"mature resources collect ordered candidates without RNG or image writes");
-    auto hook=context(OriginalBuildingUpdateScope::AdmittedTicks);hook.phase=31;auto ordinary=house;ordinary.building.type=5;
+    auto heap_hook=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& hook=*heap_hook;hook.phase=31;auto ordinary=house;ordinary.building.type=5;
     auto houseHook=originalBuildingStateAfterUpdates(ordinary,hook,1);need(houseHook.state&&houseHook.virtual20Calls==1,"ordinary house hook exits518D90 before road or wall-clock inputs");
     auto well=field();well.building.type=72;well.inputs.industry.reset();well.inputs.operational=100;well.inputs.workers=8;well.inputs.spawnCounter=1;
     hook.figures=std::vector<OriginalFigure>(2000);hook.walkersDisabled=false;hook.poolRoadSelected=std::map<size_t,bool>{{7,true}};hook.employmentModel=OriginalBuildingEmployment{{72,8}};
@@ -614,19 +615,19 @@ void authored(){
     hook.figures->at(13).owner=8;hook.walkersDisabled=true;wellHook=originalBuildingStateAfterUpdates(well,hook,1);need(wellHook.state&&wellHook.state->inputs.primaryFigure==0,"stale Well figure link clears before walkers-disabled early return");
     std::vector<uint8_t> hookBytes(original_save19::buildingDisabled+269);const size_t hookAt=original_save19::criminalCount+20;
     hookBytes[hookAt]=7;hookBytes[hookAt-4]=99;hookBytes[original_save19::buildingDisabled+172]=1;
-    auto restoredHook=context(OriginalBuildingUpdateScope::AdmittedTicks);
+    auto heap_restoredHook=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& restoredHook=*heap_restoredHook;
     need(originalBuildingSavedHookContext(hookBytes,0,restoredHook)&&restoredHook.buildingHookCountdown==7&&restoredHook.walkersDisabled==true,"hook countdown SAV position follows four independent criminal-adjacent dwords");
-    auto preamble=hook;preamble.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,well.building}};preamble.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,well.inputs}};
+    auto heap_preamble=std::make_unique<OriginalBuildingUpdateContext>(hook); auto& preamble=*heap_preamble;preamble.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,well.building}};preamble.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,well.inputs}};
     preamble.buildingInputs->at(7).hookIndustry.emplace();preamble.buildingInputs->at(7).hookIndustry->at(0x5c-4)=255;
     preamble.buildingHookCountdown=2;preamble.highestBuildingSlot=7;preamble.figures->at(13).type=57;preamble.figures->at(13).owner=7;
     need(originalBuildingHookPreamble(preamble)==OriginalBuildingUpdateBlocker::None&&preamble.buildingHookCountdown==1&&preamble.buildingInputs->at(7).hookIndustry->at(0x5c-4)==0,"hook preamble decrements saved countdown and wraps serialized delivery count byte");
     auto hunter=field();hunter.building.type=33;hunter.inputs.industry.reset();hunter.inputs.workers=8;hunter.inputs.operational=100;
-    auto hunting=context(OriginalBuildingUpdateScope::AdmittedTicks);hunting.phase=31;hunting.poolRoadSelected=std::map<size_t,bool>{{7,true}};hunting.employmentModel=OriginalBuildingEmployment{{33,8}};
+    auto heap_hunting=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& hunting=*heap_hunting;hunting.phase=31;hunting.poolRoadSelected=std::map<size_t,bool>{{7,true}};hunting.employmentModel=OriginalBuildingEmployment{{33,8}};
     const auto hunterCounter=originalBuildingStateAfterUpdates(hunter,hunting,1);
     need(hunterCounter.state&&hunterCounter.state->inputs.spawnCounter==1,"Hunter hook counter1 closes before its strict greater-than1 allocation branch");
     hunter.inputs.spawnCounter=1;const auto hunterAllocate=originalBuildingStateAfterUpdates(hunter,hunting,1);
     need(!hunterAllocate.state&&hunterAllocate.blocker==OriginalBuildingUpdateBlocker::BuildingVirtual20,"Hunter positive allocation retains exact hook refusal");
-    auto trading=context(OriginalBuildingUpdateScope::AdmittedTicks);trading.phase=32;trading.trade.emplace();trading.statistics.emplace();trading.statistics->currentFaction=0;
+    auto heap_trading=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& trading=*heap_trading;trading.phase=32;trading.trade.emplace();trading.statistics.emplace();trading.statistics->currentFaction=0;
     trading.statistics->religionBonusEnabled=false;trading.figures=std::vector<OriginalFigure>(2000);trading.buildings.emplace();trading.buildingInputs.emplace();
     auto& partner=trading.trade->partners[1];partner.alive=1;partner.kind=2;partner.faction=1;partner.enabled=1;partner.buys[0]=3;partner.quota[3]=12;partner.timer=4;
     trading.trade->counters={7,8,2,-3};
@@ -645,7 +646,7 @@ void authored(){
     trading.buildings->emplace(7,station.building);trading.buildingInputs->emplace(7,station.inputs);trading.trade->counters[3]=0;
     const auto tradeRefusal=originalBuildingStateAfterUpdates(station,trading,1);
     need(!tradeRefusal.state&&!tradeRefusal.context&&tradeRefusal.blocker==OriginalBuildingUpdateBlocker::Trade&&partner.timer==0,"positive trader creation refuses atomically after tentative timer service");
-    auto caravan=trading;caravan.landTraderDispatch=true;caravan.roadEndpoints=std::array<int16_t,4>{3,4,5,6};caravan.cropBase=229;
+    auto heap_caravan=std::make_unique<OriginalBuildingUpdateContext>(trading); auto& caravan=*heap_caravan;caravan.landTraderDispatch=true;caravan.roadEndpoints=std::array<int16_t,4>{3,4,5,6};caravan.cropBase=229;
     caravan.scenarioFigurePlacementCheck=false;caravan.figureCellHeads=std::vector<uint16_t>(51984);caravan.figureStationary.emplace();
     caravan.figureServices.emplace();caravan.figureServices->allocationSerial=20;caravan.figureServices->randomHistory.emplace();
     caravan.figureSpeechCounters=std::array<int32_t,359>{};caravan.figureSpeechCounts=std::array<uint32_t,359>{};caravan.figureSpeechCounts->at(262)=3;
@@ -655,7 +656,7 @@ void authored(){
          caravan.figures->at(19).counter==10&&caravan.figures->at(19).follower==18&&caravan.figures->at(18).leaderLink==19&&
          caravan.figures->at(18).follower==17&&caravan.figures->at(17).leaderLink==18&&caravan.figures->at(17).type==47,
          "land dispatch allocates its merchant and two reciprocal followers at the entrance");
-    auto totals=context(OriginalBuildingUpdateScope::AdmittedTicks);totals.phase=33;totals.figures=std::vector<OriginalFigure>(2000);totals.employmentModel=OriginalBuildingEmployment{{194,0},{71,0}};
+    auto heap_totals=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& totals=*heap_totals;totals.phase=33;totals.figures=std::vector<OriginalFigure>(2000);totals.employmentModel=OriginalBuildingEmployment{{194,0},{71,0}};
     auto totalCrop=field();totalCrop.inputs.workers=2;totalCrop.inputs.migrant=12;totals.figures->at(12).alive=1;totals.figures->at(12).delivery=7;totals.figures->at(12).home=99;
     auto totalHouse=house;totalHouse.building.slot=8;totalHouse.inputs.identity=8;totalHouse.inputs.houseInUse=1;totalHouse.inputs.residents=4;
     auto music=field();music.building.type=71;music.building.slot=9;music.inputs.identity=9;music.inputs.hookIndustry.emplace();music.inputs.hookIndustry->at(0x5d-4)=2;music.inputs.hookIndustry->at(0x5f-4)=1;
@@ -678,14 +679,14 @@ void authored(){
     need(adjusted&&adjusted->size()==269&&adjusted->at(268)[1]==-4&&adjusted->at(0)[5]==7,"building model difficulty multiplies thirteen independent columns with signed truncation");
     need(!originalBuildingModels(modelFixture,5)&&!originalBuildingModels(modelFixture.substr(0,modelFixture.find("HOUSE MODS")),2),"building model requires selected difficulty and complete section framing");
     need(originalBuildingInfluenceRing(1,1)==std::vector<std::pair<int,int>>{{-1,-1},{0,-1},{1,-1},{-1,0},{1,0},{-1,1},{0,1},{1,1}}&&originalBuildingInfluenceRing(2,1).front()==std::pair<int,int>{0,-1}&&originalBuildingInfluenceRing(2,2).size()==20,"desirability size1 row order and larger clockwise ring match independent generators");
-    auto desire=context(OriginalBuildingUpdateScope::AdmittedTicks);desire.activeSide=20;desire.cropBase=104*229;desire.terrain=std::vector<uint32_t>(51984);desire.terrainOwners=std::vector<uint16_t>(51984);desire.resourceGrowth.emplace();desire.resourceGrowth->surface.feature.resize(51984);desire.resourceGrowth->surface.subTile.resize(51984);
+    auto heap_desire=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& desire=*heap_desire;desire.activeSide=20;desire.cropBase=104*229;desire.terrain=std::vector<uint32_t>(51984);desire.terrainOwners=std::vector<uint16_t>(51984);desire.resourceGrowth.emplace();desire.resourceGrowth->surface.feature.resize(51984);desire.resourceGrowth->surface.subTile.resize(51984);
     auto emitter=field();emitter.building.x=10;emitter.building.y=10;emitter.building.imageInputs->gridIndex=*desire.cropBase+2290;emitter.building.type=72;
     desire.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,emitter.building}};desire.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,emitter.inputs}};desire.buildingModels.emplace();desire.buildingModels->operator[](72)={0,6,2,-2,3};
     const size_t origin=emitter.building.imageInputs->gridIndex;
     need(originalBuildingDesirabilityStep(desire)==OriginalBuildingUpdateBlocker::None&&desire.desirability->at(origin-228)==6&&desire.desirability->at(origin-456)==6&&desire.desirability->at(origin-684)==4&&desire.desirability->at(origin)==0,"square influence applies step count before delta and excludes source footprint");
     desire.buildings->at(7).size=2;desire.buildingInputs->at(7).desirabilityBonus=1;desire.desirability->at(origin)=-20;desire.desirability->at(origin+229)=95;
     need(originalBuildingApplyDesirability(desire)==OriginalBuildingUpdateBlocker::None&&desire.buildingInputs->at(7).desirability==105,"phase38 takes signed maximum over footprint then applies uncapped bonus10");
-    auto emptyDesire=desire;emptyDesire.desirability.reset();emptyDesire.buildingInputs->clear();
+    auto heap_emptyDesire=std::make_unique<OriginalBuildingUpdateContext>(desire); auto& emptyDesire=*heap_emptyDesire;emptyDesire.desirability.reset();emptyDesire.buildingInputs->clear();
     need(originalBuildingApplyDesirability(emptyDesire)==OriginalBuildingUpdateBlocker::None,
          "phase38 needs no desirability grid when no live building reads it");
     emptyDesire.buildingInputs=desire.buildingInputs;
@@ -698,7 +699,7 @@ void authored(){
     desire.buildingModels->at(59)[1]=4;need(originalBuildingDesirabilityStep(desire)==OriginalBuildingUpdateBlocker::MissingContext,"positive rectangle requires named process8254E4 shadow premise");
     desire.buildings->clear();desire.buildingInputs->clear();const auto desireRows=originalBuildingResourceRows(20,*desire.cropBase);const size_t stale=desireRows->at(0).first;desire.resourceGrowth->surface.subTile[stale]=0x85;
     need(originalBuildingDesirabilityStep(desire)==OriginalBuildingUpdateBlocker::None&&desire.resourceGrowth->surface.subTile[stale]==5,"terrain desirability clears stale bit80 while preserving other subtile bits");
-    auto service=lc;service.phase=31;service.activeSide=20;service.terrainOwners=std::vector<uint16_t>(51984);service.terrainRandom=std::vector<uint8_t>(51984);service.walkersDisabled=false;service.terrain->at(1145)=0x40;
+    auto heap_service=std::make_unique<OriginalBuildingUpdateContext>(lc); auto& service=*heap_service;service.phase=31;service.activeSide=20;service.terrainOwners=std::vector<uint16_t>(51984);service.terrainRandom=std::vector<uint8_t>(51984);service.walkersDisabled=false;service.terrain->at(1145)=0x40;
     service.figureSpeechCounts->at(271)=3;service.figureSpeechCounters->at(271)=7;service.employmentModel=OriginalBuildingEmployment{{72,8}};
     service.poolRoadSelected=std::map<size_t,bool>{{7,true}};service.poolHookRoadAccess=std::map<size_t,OriginalBuildingRoadAccess>{{7,{}}};service.poolHookRoadAccess->at(7).x=3;service.poolHookRoadAccess->at(7).y=4;
     service.poolRoadAccess=std::map<size_t,OriginalBuildingRoadAccess>{{7,{}}};service.poolRoadAccess->at(7).x=9;service.poolRoadAccess->at(7).y=9;
@@ -708,12 +709,12 @@ void authored(){
     auto created=originalBuildingStateAfterUpdates(allocatingWell,service,1);
     need(created.state&&created.state->inputs.primaryFigure==19&&created.state->inputs.spawnCounter==0&&created.context->allocatedFigures==std::vector<size_t>{19}&&created.context->figures->at(19).type==28&&created.context->figures->at(19).action==6&&created.context->figures->at(19).owner==7&&created.context->figures->at(19).counter==30,"Well positive allocation publishes reciprocal identity action and delay after strict counter gate");
     need(created.context->figures->at(19).cell==1144&&created.context->figureCellHeads->at(1144)==19&&created.context->figures->at(19).roamState==1&&created.context->figureSpeechChoices.at(19)==1&&created.context->figureSpeechCounters->at(271)==8&&created.context->crtRandomCalls==0,"service allocation registers cell and speech and starts cited roam without CRT or clock input");
-    auto harvesting=service;auto allocatingHunter=hunter;allocatingHunter.inputs.hookIndustry.emplace();allocatingHunter.production.emplace();allocatingHunter.production->secondaryStock=0;
+    auto heap_harvesting=std::make_unique<OriginalBuildingUpdateContext>(service); auto& harvesting=*heap_harvesting;auto allocatingHunter=hunter;allocatingHunter.inputs.hookIndustry.emplace();allocatingHunter.production.emplace();allocatingHunter.production->secondaryStock=0;
     harvesting.employmentModel=OriginalBuildingEmployment{{33,8}};harvesting.figureSpeechCounts->at(254)=3;harvesting.figureSpeechCounters->at(254)=0;harvesting.freeFigureSlots={19,18,17};
     harvesting.buildings->at(7)=allocatingHunter.building;harvesting.buildingInputs->at(7)=allocatingHunter.inputs;
     created=originalBuildingStateAfterUpdates(allocatingHunter,harvesting,1);
     need(created.state&&created.state->inputs.hookIndustry->at(0x5c-4)==3&&created.context->allocatedFigures==std::vector<size_t>({19,18,17})&&created.context->figures->at(17).type==40&&created.context->figures->at(17).action==12&&created.context->figures->at(17).counter>=20&&created.context->figures->at(17).counter<=51,"Hunter staffing100 creates three hunters below executable400 capacity with independent engine delays");
-    auto dispatch=harvesting;dispatch.industryCarts=true;auto stockedHunter=allocatingHunter;stockedHunter.production->secondaryStock=100;
+    auto heap_dispatch=std::make_unique<OriginalBuildingUpdateContext>(harvesting); auto& dispatch=*heap_dispatch;dispatch.industryCarts=true;auto stockedHunter=allocatingHunter;stockedHunter.production->secondaryStock=100;
     stockedHunter.inputs.output=4;stockedHunter.inputs.upgrade=1;stockedHunter.inputs.hookIndustry->at(0x5c-4)=3;
     dispatch.freeFigureSlots={19};
     need(originalBuildingHunterDispatchStep(stockedHunter,dispatch)==OriginalBuildingUpdateBlocker::None&&
@@ -749,7 +750,7 @@ void authored(){
     need(bays&&bays->at(7).cropWorkers==std::array<int32_t,2>{3,2}&&bays->at(7).cropBays->at(4).resource==5&&bays->at(7).cropBays->at(4).amount==103&&bays->at(7).cropBays->at(4).capacity==400,"MultipleCropHold five framed bays follow both saved farmer counts and own1");
     exact16(184+142+16*4+14,2);need(!originalBuildingUpdateInputs(exact,bayProfile),"last crop bay trailing wrapper version is mandatory");
     //Farmer grouping:one harvest worker reserves all four grouped fields.
-    auto cropContext=harvesting;cropContext.buildingLinks.reset();cropContext.productionInputs.reset();cropContext.buildings->clear();cropContext.buildingInputs->clear();
+    auto heap_cropContext=std::make_unique<OriginalBuildingUpdateContext>(harvesting); auto& cropContext=*heap_cropContext;cropContext.buildingLinks.reset();cropContext.productionInputs.reset();cropContext.buildings->clear();cropContext.buildingInputs->clear();
     auto hold=field();hold.building.type=192;hold.building.size=2;hold.building.x=3;hold.building.y=4;hold.building.imageInputs->gridIndex=1144;
     hold.inputs.industry.reset();hold.inputs.output=0;hold.inputs.enabled=1;hold.inputs.workers=8;hold.inputs.operational=100;hold.inputs.roadX=3;hold.inputs.roadY=4;hold.inputs.spawnCounter=1;hold.inputs.cropWorkers=std::array<int32_t,2>{3,2};
     cropContext.employmentModel=OriginalBuildingEmployment{{192,8}};cropContext.unavailableResources=std::array<int16_t,36>{};cropContext.typeDisabled=false;
@@ -765,13 +766,13 @@ void authored(){
     need(farmers.context->buildingInputs->at(8).primaryFigure==19&&farmers.context->buildingInputs->at(9).primaryFigure==19&&farmers.context->buildingInputs->at(10).primaryFigure==19&&farmers.context->buildingInputs->at(11).primaryFigure==19,"farmer grouping assigns skipped candidates to the latest allocated farmer");
     need(farmers.context->figures->at(19).counter==0&&farmers.context->figures->at(19).owner==7&&farmers.context->figures->at(19).variant==1&&farmers.context->crtRandomCalls==0,"farmer local LCG consumes explicit wall time after constructor and no CRT draws");
     need(farmers.context->figures->at(19).effectKind==9&&farmers.context->figures->at(19).effectHeight==-123&&farmers.context->figures->at(19).effectVelocityZ==234,"reused farmer slot retains the saved effect payload that its constructor does not touch");
-    auto missingClock=cropContext;missingClock.wallClock.reset();auto farmerRefusal=originalBuildingStateAfterUpdates(hold,missingClock,1);
+    auto heap_missingClock=std::make_unique<OriginalBuildingUpdateContext>(cropContext); auto& missingClock=*heap_missingClock;missingClock.wallClock.reset();auto farmerRefusal=originalBuildingStateAfterUpdates(hold,missingClock,1);
     need(!farmerRefusal.state&&!farmerRefusal.context&&farmerRefusal.refusedPhase==31&&farmerRefusal.operations==0&&farmerRefusal.blocker==OriginalBuildingUpdateBlocker::FarmerWallClock&&missingClock.freeFigureSlots==std::vector<size_t>({19,18})&&missingClock.figures->at(19).alive==0,"farmer clock refusal names766DA0 and publishes no allocator or field prefix");
     missingClock.freeFigureSlots.clear();farmers=originalBuildingStateAfterUpdates(hold,missingClock,1);
     need(farmers.state&&farmers.context->allocatedFigures.empty()&&farmers.state->inputs.cropWorkers->at(0)==3,"exhausted farmer FIFO does not require an unconsumed wall clock");
-    auto legacyCrop=cropContext;legacyCrop.cropDispatchModel.reset();const auto legacyBoundary=originalBuildingStateAfterUpdates(hold,legacyCrop,1);
+    auto heap_legacyCrop=std::make_unique<OriginalBuildingUpdateContext>(cropContext); auto& legacyCrop=*heap_legacyCrop;legacyCrop.cropDispatchModel.reset();const auto legacyBoundary=originalBuildingStateAfterUpdates(hold,legacyCrop,1);
     need(!legacyBoundary.state&&legacyBoundary.blocker==OriginalBuildingUpdateBlocker::BuildingVirtual20,"legacy crop hook context keeps virtual20 refusal until additive farmer model is supplied");
-    {auto availability=cropContext;availability.buildings->clear();availability.buildingInputs->clear();
+    {auto heap_availability=std::make_unique<OriginalBuildingUpdateContext>(cropContext); auto& availability=*heap_availability;availability.buildings->clear();availability.buildingInputs->clear();
         auto hunter=field(33);hunter.inputs.alive=1;hunter.inputs.available=7;hunter.inputs.roadX=3;hunter.inputs.roadY=4;
         availability.buildings->emplace(7,hunter.building);availability.buildingInputs->emplace(7,hunter.inputs);
         availability.productionInputs.emplace();auto& production=availability.productionInputs->operator[](7);production.secondaryStock=100;
@@ -780,12 +781,12 @@ void authored(){
             "an output-only Hunter preserves its availability byte even when stored output is nonzero");
         production.primaryResource=18;need(originalBuildingAvailabilityStep(availability)==OriginalBuildingUpdateBlocker::None&&availability.buildingInputs->at(7).available==1,
             "an input resource invokes the road availability check even when its input stock is zero");}
-    auto cropBayContext=cropContext;cropBayContext.buildings->clear();cropBayContext.buildingInputs->clear();auto multi=hold;multi.building.type=193;multi.inputs.cropWorkers=std::array<int32_t,2>{5,2};multi.inputs.cropBays.emplace();
+    auto heap_cropBayContext=std::make_unique<OriginalBuildingUpdateContext>(cropContext); auto& cropBayContext=*heap_cropBayContext;cropBayContext.buildings->clear();cropBayContext.buildingInputs->clear();auto multi=hold;multi.building.type=193;multi.inputs.cropWorkers=std::array<int32_t,2>{5,2};multi.inputs.cropBays.emplace();
     for(auto& bay:*multi.inputs.cropBays)bay={1,99,400};cropBayContext.buildings->emplace(7,multi.building);cropBayContext.buildingInputs->emplace(7,multi.inputs);cropBayContext.employmentModel=OriginalBuildingEmployment{{193,8}};
     need(originalBuildingCropDispatch(multi,cropBayContext,100)==OriginalBuildingUpdateBlocker::None,"all five crop bays below100 close without cart allocation");
     multi.inputs.cropBays->at(4).amount=100;need(originalBuildingCropDispatch(multi,cropBayContext,100)==OriginalBuildingUpdateBlocker::BuildingVirtual20,"fifth crop bay at100 reaches named positive cart boundary");
     //Ordinary house failure delays,goods consumption,and supported conversion.
-    auto evolution=context(OriginalBuildingUpdateScope::AdmittedTicks);evolution.cropBase=229;evolution.activeSide=20;evolution.terrainOwners=std::vector<uint16_t>(51984);evolution.terrainOwners->at(1144)=7;
+    auto heap_evolution=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& evolution=*heap_evolution;evolution.cropBase=229;evolution.activeSide=20;evolution.terrainOwners=std::vector<uint16_t>(51984);evolution.terrainOwners->at(1144)=7;
     evolution.evolutionDisabled=false;evolution.forceHouseEvolution=false;evolution.houseModels.emplace();for(unsigned n=0;n<15;++n)evolution.houseModels->operator[](n)={};
     auto evolving=house;evolving.building.size=2;evolving.building.x=3;evolving.building.y=4;evolving.building.imageInputs->gridIndex=1144;evolving.inputs.model=2;evolving.inputs.modelDesirability=0;evolving.inputs.house->fill(0);evolving.inputs.residents=10;
     evolution.houseModels->at(2)[0]=0;evolving.inputs.house->at(56-4)=8;
@@ -805,10 +806,10 @@ void authored(){
     need(originalBuildingHouseEvolutionStep(evolving,evolution)==OriginalBuildingUpdateBlocker::None&&evolving.building.type==3&&evolving.inputs.model==0&&evolution.houseConversions==1,"supported type2 to3 evolution retains existing selector and model0");
     evolution.monthPart=7;evolution.evolutionDisabled=true;evolution.houseModels->at(0)[10]=3;evolving.inputs.house->at(0x16-1-4)=5;evolving.inputs.house->at(0x18-1-4)=77;
     need(originalBuildingHouseEvolutionStep(evolving,evolution)==OriginalBuildingUpdateBlocker::None&&evolving.inputs.house->at(0x16-1-4)==2&&evolving.inputs.house->at(0x18-1-4)==77,"house part7 consumes model goods at exact omitted-padding offset and preserves decoy");
-    auto upgraded=well;upgraded.building.wellImageInputs.emplace();upgraded.inputs.model=0;upgraded.inputs.modelUpgrade=0;upgraded.inputs.modelDesirability=10;auto lifecycle=context(OriginalBuildingUpdateScope::AdmittedTicks);lifecycle.buildingModels.emplace();lifecycle.buildingModels->operator[](72)[10]=10;
+    auto upgraded=well;upgraded.building.wellImageInputs.emplace();upgraded.inputs.model=0;upgraded.inputs.modelUpgrade=0;upgraded.inputs.modelDesirability=10;auto heap_lifecycle=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& lifecycle=*heap_lifecycle;lifecycle.buildingModels.emplace();lifecycle.buildingModels->operator[](72)[10]=10;
     need(originalBuildingLifecycleStep(upgraded,lifecycle)==OriginalBuildingUpdateBlocker::None&&upgraded.inputs.model==1&&upgraded.building.wellImageInputs->word16==1&&lifecycle.buildingRedraws.count(7)==1,"phase40 inclusive desirability threshold upgrades model and existing Well selector");
     //Risk draw order:the eligible slot's damage draw precedes phase mismatch.
-    auto risks=context(OriginalBuildingUpdateScope::AdmittedTicks);risks.evolutionDisabled=false;risks.figureServices.emplace();risks.engineRegion=0;risks.terrain=std::vector<uint32_t>(51984);risks.terrainRandom=std::vector<uint8_t>(51984);risks.buildingModels.emplace();risks.buildingModels->operator[](33)[6]=2;risks.buildingModels->at(33)[7]=3;
+    auto heap_risks=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& risks=*heap_risks;risks.evolutionDisabled=false;risks.figureServices.emplace();risks.engineRegion=0;risks.terrain=std::vector<uint32_t>(51984);risks.terrainRandom=std::vector<uint8_t>(51984);risks.buildingModels.emplace();risks.buildingModels->operator[](33)[6]=2;risks.buildingModels->at(33)[7]=3;
     auto riskBuilding=field();riskBuilding.building.type=33;riskBuilding.building.imageInputs->gridIndex=1144;riskBuilding.inputs.industry.reset();riskBuilding.inputs.output=0;riskBuilding.inputs.fireRisk=5;riskBuilding.inputs.damageRisk=7;
     risks.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,riskBuilding.building}};risks.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,riskBuilding.inputs}};
     risks.terrainRandom->at(1144)=1;
@@ -819,38 +820,38 @@ void authored(){
     risks.effectDecayCounter=7;risks.effectGrid=std::vector<uint32_t>(51984,0);risks.activeSide=4;risks.cropBase=112*229;const size_t effectCell=112*229+1;
     risks.effectGrid->at(effectCell)=0xf8000039;
     need(originalBuildingMonumentStep(risks)==OriginalBuildingUpdateBlocker::None&&risks.effectGrid->at(effectCell)==0xf8000030&&risks.effectDecayCounter==0,"eighth monument pass decays packed3-bit lanes and preserves upper five bits");
-    auto resetCounters=context(OriginalBuildingUpdateScope::AdmittedTicks);resetCounters.phase=47;resetCounters.phase47Counters={1,2,3,4};
+    auto heap_resetCounters=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& resetCounters=*heap_resetCounters;resetCounters.phase=47;resetCounters.phase47Counters={1,2,3,4};
     const auto resetResult=originalBuildingStateAfterUpdates(riskBuilding,resetCounters,1);
     need(resetResult.state&&resetResult.context->phase47Counters==std::array<int32_t,4>{}&&resetResult.context->counterCalls==1&&resetResult.context->phase==48,"phase47 clears four literal counters and advances to48");
     //An ordinary cycle tail with two independent production averages.
-    auto tailContext=context(OriginalBuildingUpdateScope::AdmittedTicks);tailContext.phase=50;tailContext.monthPart=0;tailContext.cycleTail.emplace();tailContext.cycleTail->alternateMode=false;tailContext.cycleTail->smoothedHealth=59;tailContext.cycleTail->healthTarget=80;
+    auto heap_tailContext=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& tailContext=*heap_tailContext;tailContext.phase=50;tailContext.monthPart=0;tailContext.cycleTail.emplace();tailContext.cycleTail->alternateMode=false;tailContext.cycleTail->smoothedHealth=59;tailContext.cycleTail->healthTarget=80;
     tailContext.labor.emplace();tailContext.labor->difficulty=2;tailContext.populationTotal=400;tailContext.buildingTotals.emplace();tailContext.buildingTotals->staffedProducers[4]=2;tailContext.buildingTotals->staffedProducers[2]=1;tailContext.cycleTail->productionHistory={3,901,2,603};
     tailContext.buildings=std::map<size_t,OriginalBuildingFootprint>{{7,upgraded.building}};tailContext.buildingInputs=std::map<size_t,OriginalBuildingUpdateInputs>{{7,upgraded.inputs}};tailContext.goodsRecords.emplace();tailContext.goods.emplace();tailContext.buildingInputs->at(7).word92=123;tailContext.buildingInputs->at(7).modelUpgrade=1;
     auto expiring=upgraded;expiring.inputs=tailContext.buildingInputs->at(7);auto wrapped=originalBuildingStateAfterUpdates(expiring,tailContext,1);
     need(wrapped.state&&wrapped.context->phase==0&&wrapped.context->monthPart==1&&wrapped.context->cycle==5&&wrapped.context->cycleTail->smoothedHealth==60&&wrapped.context->notificationEffects==std::vector<unsigned>{0xcf},"ordinary phase50 increments both clocks smooths health59 to60 and resets phase");
     need(wrapped.context->cycleTail->foodForecast==std::array<int32_t,2>{3604,901}&&wrapped.context->buildingInputs->at(7).word92==0&&wrapped.context->buildingInputs->at(7).modelUpgrade==0&&wrapped.context->buildingRedraws.count(7)==1,"cycle tail uses production averages and25 denominators then expires exact6F and saved92");
-    auto part2=tailContext;part2.monthPart=1;part2.trade.emplace();part2.scenarioMonths=0;part2.statistics.emplace();part2.statistics->currentFaction=21;
+    auto heap_part2=std::make_unique<OriginalBuildingUpdateContext>(tailContext); auto& part2=*heap_part2;part2.monthPart=1;part2.trade.emplace();part2.scenarioMonths=0;part2.statistics.emplace();part2.statistics->currentFaction=21;
     auto& timed=part2.trade->partners[0];timed.alive=1;timed.enabled=1;timed.reserveCountdown=1;timed.reserveAmount=2;timed.reserves={0,0,3,0,10};timed.relationTimers.resize(22);timed.relationTimers[21][0][32]=2;timed.relationTimers[21][1][32]=50;timed.relationTimers[21][0][33]=77;timed.relationTimers[21][1][33]=88;
     timed.relationTimers[0][0][32]=13;timed.relationTimers[0][1][32]=17;timed.relationTimers[20][0][0]=23;timed.relationTimers[20][1][0]=29;
-    const auto savedPart2=part2;
+    auto heap_savedPart2=std::make_unique<OriginalBuildingUpdateContext>(part2); const auto& savedPart2=*heap_savedPart2;
     need(originalBuildingCycleTailStep(part2)==OriginalBuildingUpdateBlocker::None&&part2.trade->partners[0].relationTimers[21][0][32]==1&&part2.trade->partners[0].relationTimers[21][1][32]==48&&part2.trade->partners[0].reserves[0]==3&&part2.trade->partners[0].reserves[2]==1,"part2 current faction21 decrements last timer and releases reserves before capacity increment");
     need(part2.trade->partners[0].relationTimers[21][0][33]==77&&part2.trade->partners[0].relationTimers[21][1][33]==88,"part2 preserves serialized34th timer outside33-entry decrement loop");
     need(part2.trade->partners[0].relationTimers[0]==savedPart2.trade->partners[0].relationTimers[0]&&part2.trade->partners[0].relationTimers[20]==savedPart2.trade->partners[0].relationTimers[20],"part2 preserves other faction child timers selected neither by592360 nor442040");
-    auto firstFaction=savedPart2;firstFaction.statistics->currentFaction=0;
+    auto heap_firstFaction=std::make_unique<OriginalBuildingUpdateContext>(savedPart2); auto& firstFaction=*heap_firstFaction;firstFaction.statistics->currentFaction=0;
     need(originalBuildingCycleTailStep(firstFaction)==OriginalBuildingUpdateBlocker::None&&firstFaction.trade->partners[0].relationTimers[0][0][32]==12&&firstFaction.trade->partners[0].relationTimers[0][1][32]==16&&firstFaction.trade->partners[0].relationTimers[21]==savedPart2.trade->partners[0].relationTimers[21],"part2 current faction0 selects first child and preserves last child");
-    auto missingFaction=savedPart2;missingFaction.statistics.reset();const auto missingFactionResult=originalBuildingStateAfterUpdates(expiring,missingFaction,1);
+    auto heap_missingFaction=std::make_unique<OriginalBuildingUpdateContext>(savedPart2); auto& missingFaction=*heap_missingFaction;missingFaction.statistics.reset();const auto missingFactionResult=originalBuildingStateAfterUpdates(expiring,missingFaction,1);
     need(!missingFactionResult.state&&!missingFactionResult.context&&missingFactionResult.blocker==OriginalBuildingUpdateBlocker::MonthlyCity&&missingFaction.monthPart==1,"part2 missing consumed faction refuses atomically through public API");
-    auto invalidFaction=savedPart2;invalidFaction.statistics->currentFaction=22;const auto invalidFactionResult=originalBuildingStateAfterUpdates(expiring,invalidFaction,1);
+    auto heap_invalidFaction=std::make_unique<OriginalBuildingUpdateContext>(savedPart2); auto& invalidFaction=*heap_invalidFaction;invalidFaction.statistics->currentFaction=22;const auto invalidFactionResult=originalBuildingStateAfterUpdates(expiring,invalidFaction,1);
     need(!invalidFactionResult.state&&!invalidFactionResult.context&&invalidFactionResult.blocker==OriginalBuildingUpdateBlocker::InvalidState,"part2 out of range current faction refuses before child indexing");
-    auto part3=tailContext;part3.monthPart=2;part3.cycleTail->currentHealthRating=147;
-    auto sentiment=tailContext;sentiment.sentimentHypotheses=true;sentiment.populationTotal=100;sentiment.populationPeak=100;sentiment.treasury=10;
+    auto heap_part3=std::make_unique<OriginalBuildingUpdateContext>(tailContext); auto& part3=*heap_part3;part3.monthPart=2;part3.cycleTail->currentHealthRating=147;
+    auto heap_sentiment=std::make_unique<OriginalBuildingUpdateContext>(tailContext); auto& sentiment=*heap_sentiment;sentiment.sentimentHypotheses=true;sentiment.populationTotal=100;sentiment.populationPeak=100;sentiment.treasury=10;
     sentiment.cityEmployment.emplace();sentiment.labor->sentiment=60;sentiment.labor->previousSentiment=60;
     sentiment.labor->sentimentReached350=0;sentiment.labor->wageBand=3;sentiment.houseModels.emplace();
     auto& sentimentModel=(*sentiment.houseModels)[0];sentimentModel.fill(0);sentimentModel[8]=1;sentimentModel[14]=2;
     sentiment.buildings->at(7).type=2;auto& sentimentHouse=sentiment.buildingInputs->at(7);sentimentHouse.alive=1;
     sentimentHouse.model=0;sentimentHouse.residents=100;sentimentHouse.houseInUse=1;sentimentHouse.house.emplace();sentimentHouse.house->fill(0);
     sentimentHouse.house->at(53-4)=1;sentimentHouse.sentimentFoodDelay=0;sentimentHouse.sentimentBuildingWeight=0;sentimentHouse.watchRisk=20;
-    auto monthlyFood=sentiment;monthlyFood.scenarioFoodOverride=0;
+    auto heap_monthlyFood=std::make_unique<OriginalBuildingUpdateContext>(sentiment); auto& monthlyFood=*heap_monthlyFood;monthlyFood.scenarioFoodOverride=0;
     originalHouseSetGoodsWord(monthlyFood.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0,12);
     need(originalBuildingMonthlyHouseFood(monthlyFood)==OriginalBuildingUpdateBlocker::None&&monthlyFood.labor->monthlyFoodConsumed==12&&
          *originalHouseGoodsWord(monthlyFood.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0)==0&&
@@ -859,7 +860,7 @@ void authored(){
     need(originalBuildingMonthlyHouseFood(monthlyFood)==OriginalBuildingUpdateBlocker::None&&
          *originalHouseGoodsWord(monthlyFood.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0)==25&&
          monthlyFood.buildingInputs->at(7).house->at(53-4)==20,"scenario food override sets a quarter of residents and quality20");
-    auto wages=sentiment;wages.accounting.emplace();wages.accounting->wages=30;wages.accounting->wagesPaid=10;
+    auto heap_wages=std::make_unique<OriginalBuildingUpdateContext>(sentiment); auto& wages=*heap_wages;wages.accounting.emplace();wages.accounting->wages=30;wages.accounting->wagesPaid=10;
     wages.accounting->incomeOther=300;wages.accounting->expensesOther=20;wages.accounting->treasuryStart=500;
     wages.cityEmployment->employed=240;wages.treasury=400;
     need(originalBuildingMonthlyWages(wages,false)==OriginalBuildingUpdateBlocker::None&&*wages.treasury==340&&
@@ -867,17 +868,17 @@ void authored(){
          "monthly wages charge employed workers and refresh accounting totals");
     need(originalBuildingMonthlyWages(wages,true)==OriginalBuildingUpdateBlocker::None&&*wages.treasury==340,
          "monthly wages preserve the editor-mode early return");
-    auto deficit=wages;deficit.treasury=-1;deficit.labor->debtMonths=11;deficit.labor->sentimentShortages=2;
+    auto heap_deficit=std::make_unique<OriginalBuildingUpdateContext>(wages); auto& deficit=*heap_deficit;deficit.treasury=-1;deficit.labor->debtMonths=11;deficit.labor->sentimentShortages=2;
     need(originalBuildingMonthlyDebt(deficit)==OriginalBuildingUpdateBlocker::None&&deficit.labor->debtMonths==12&&
          deficit.labor->sentimentShortages==3&&deficit.notificationEffects.back()==224,"monthly debt advances its saved counter and emits the annual notice");
     need(originalBuildingTreasuryCounters(deficit)==OriginalBuildingUpdateBlocker::None&&deficit.cityCountA==12&&deficit.cityCountB==3&&
          deficit.labor->debtMonths==12&&deficit.labor->sentimentShortages==3,"negative treasury preserves both saved debt counters at phase4");
-    auto recovered=deficit;recovered.treasury=0;
+    auto heap_recovered=std::make_unique<OriginalBuildingUpdateContext>(deficit); auto& recovered=*heap_recovered;recovered.treasury=0;
     need(originalBuildingTreasuryCounters(recovered)==OriginalBuildingUpdateBlocker::None&&recovered.cityCountA==0&&recovered.cityCountB==0&&
          recovered.labor->debtMonths==0&&recovered.labor->sentimentShortages==0,"nonnegative treasury clears the saved counters and their phase4 mirrors");
     deficit.treasury=0;need(originalBuildingMonthlyDebt(deficit)==OriginalBuildingUpdateBlocker::None&&
          deficit.labor->debtMonths==0&&deficit.labor->sentimentShortages==0,"nonnegative treasury clears both debt counters");
-    auto productionRoll=sentiment;productionRoll.cycleTail->monthlyProduction={17,23};
+    auto heap_productionRoll=std::make_unique<OriginalBuildingUpdateContext>(sentiment); auto& productionRoll=*heap_productionRoll;productionRoll.cycleTail->monthlyProduction={17,23};
     productionRoll.cycleTail->monthlyStatistics={1,2,3,4,5,6,7,8,9};
     productionRoll.buildingTotals->producers[4]=4;productionRoll.buildingTotals->producers[2]=2;productionRoll.buildingTotals->producers[8]=8;
     need(originalBuildingMonthlyProduction(productionRoll)==OriginalBuildingUpdateBlocker::None&&
@@ -885,16 +886,16 @@ void authored(){
          productionRoll.cycleTail->monthlyProduction==std::array<int32_t,2>{0,0}&&
          productionRoll.cycleTail->monthlyStatistics==std::array<int32_t,9>{8,3,0,0,6,0,0,9,0},
          "monthly production rolls saved counters and clears current values");
-    auto rollover=sentiment;rollover.monthPart=15;rollover.month=7;rollover.monthlyRolloverHypotheses=true;
+    auto heap_rollover=std::make_unique<OriginalBuildingUpdateContext>(sentiment); auto& rollover=*heap_rollover;rollover.monthPart=15;rollover.month=7;rollover.monthlyRolloverHypotheses=true;
     rollover.serviceCoverage=std::array<int32_t,11>{};
     rollover.scenarioMonths=11;rollover.scenarioMonthCounter=7;rollover.shortageNoticeCountdown=2;rollover.scenarioFoodOverride=0;
     rollover.cycleTail->populationHistory.emplace();rollover.labor->monthlyTimerActive=1;rollover.labor->monthlyTimerRemaining=4;
     rollover.accounting.emplace();rollover.accounting->wages=30;rollover.cityEmployment->employed=240;rollover.treasury=400;
     originalHouseSetGoodsWord(rollover.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0,40);
-    auto strictRollover=rollover;strictRollover.monthlyRolloverHypotheses.reset();
+    auto heap_strictRollover=std::make_unique<OriginalBuildingUpdateContext>(rollover); auto& strictRollover=*heap_strictRollover;strictRollover.monthlyRolloverHypotheses.reset();
     need(originalBuildingCycleTailStep(strictRollover)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictRollover.monthPart==15,
          "strict rollover refuses and preserves its calendar");
-    auto yearBoundary=rollover;yearBoundary.month=0;yearBoundary.elapsedYears=12;
+    auto heap_yearBoundary=std::make_unique<OriginalBuildingUpdateContext>(rollover); auto& yearBoundary=*heap_yearBoundary;yearBoundary.month=0;yearBoundary.elapsedYears=12;
     yearBoundary.buildingLinks.emplace();OriginalFigureBuildingLink ordinaryHouse;ordinaryHouse.type=7;ordinaryHouse.alive=1;ordinaryHouse.accepting=true;ordinaryHouse.residents=12;
     auto eliteHouse=ordinaryHouse;eliteHouse.type=11;eliteHouse.residents=8;yearBoundary.buildingLinks->emplace(7,ordinaryHouse);yearBoundary.buildingLinks->emplace(8,eliteHouse);
     yearBoundary.buildingInputs->emplace(8,yearBoundary.buildingInputs->at(7));yearBoundary.buildings->emplace(8,yearBoundary.buildings->at(7));yearBoundary.accounting->buckets.emplace();
@@ -902,7 +903,7 @@ void authored(){
     need(originalBuildingAnnualPrelude(yearBoundary)==OriginalBuildingUpdateBlocker::None&&yearBoundary.cycleTail->annualHousePopulation==20&&
          yearBoundary.cycleTail->annualElitePopulation==8&&yearBoundary.cycleTail->annualUiFlag==0&&yearBoundary.cycleTail->annualManagerFlag==0,
          "annual prelude clears process flags and recounts accepting ordinary and elite houses");
-    {auto finance=yearBoundary;auto& a=*finance.accounting;auto& b=*a.buckets;a.taxReceived=3;a.taxOther=4;a.wagesPaid=8;
+    {auto heap_finance=std::make_unique<OriginalBuildingUpdateContext>(yearBoundary); auto& finance=*heap_finance;auto& a=*finance.accounting;auto& b=*a.buckets;a.taxReceived=3;a.taxOther=4;a.wagesPaid=8;
         b.exports=5;b.otherIncome11440=6;b.otherIncome11061=7;b.imports=9;b.expense10534=10;b.expense11161=11;
         b.expense10514=12;b.expense11400=13;b.tribute=14;a.tributeIncomeComponent=14;finance.dispatchedProduction[35]=27;
         finance.buildingInputs->at(7).house->at(57)=42;
@@ -911,7 +912,7 @@ void authored(){
              a.incomeReceived==25&&a.expensesPaid==38&&a.actualProfit==-13&&a.treasuryStart==400&&
              finance.previousYearProduction[35]==27&&finance.dispatchedProduction[35]==0&&finance.buildingInputs->at(7).house->at(57)==0,
              "annual finance rolls distinct saved buckets, accepting house ledger and production before quota reset");}
-    {auto quota=yearBoundary;quota.trade->partners[0].alive=1;quota.trade->partners[0].quotaUsed.fill(9);quota.trade->partners[1].quotaUsed.fill(7);
+    {auto heap_quota=std::make_unique<OriginalBuildingUpdateContext>(yearBoundary); auto& quota=*heap_quota;quota.trade->partners[0].alive=1;quota.trade->partners[0].quotaUsed.fill(9);quota.trade->partners[1].quotaUsed.fill(7);
         auto expected=*quota.figureServices;const unsigned wind=originalFigureRandomNext(expected)&7u;
         need(originalBuildingAnnualQuotaAndWind(quota)==OriginalBuildingUpdateBlocker::None&&quota.trade->partners[0].quotaUsed[0]==9&&
              quota.trade->partners[0].quotaUsed[1]==0&&quota.trade->partners[0].quotaUsed[28]==0&&quota.trade->partners[0].quotaUsed[29]==9&&
@@ -926,18 +927,18 @@ void authored(){
          rollover.labor->monthlyTimerRemaining==3&&rollover.shortageNoticeCountdown==1&&
          rollover.cycleTail->populationHistory->values[0]==100&&rollover.cycleTail->populationHistory->cursor==1,
          "month rollover publishes wages, food, saved counters, population history and new calendar together");
-    auto strictSentiment=sentiment;strictSentiment.sentimentHypotheses.reset();
+    auto heap_strictSentiment=std::make_unique<OriginalBuildingUpdateContext>(sentiment); auto& strictSentiment=*heap_strictSentiment;strictSentiment.sentimentHypotheses.reset();
     need(originalBuildingSentimentStep(strictSentiment)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictSentiment.labor->sentiment==60,"strict sentiment refuses before publishing any assumed inputs");
     need(originalBuildingSentimentStep(sentiment)==OriginalBuildingUpdateBlocker::None&&sentiment.labor->sentiment==64&&
          sentiment.buildingInputs->at(7).watchRisk==12&&sentiment.buildingInputs->at(7).sentimentFoodDelay==0,
          "sentiment reconciles houses, updates their state and combines food and unemployment contributions");
-    auto sentimentTail=sentiment;sentimentTail.monthPart=7;sentimentTail.labor->sentiment=60;sentimentTail.labor->previousSentiment=60;
+    auto heap_sentimentTail=std::make_unique<OriginalBuildingUpdateContext>(sentiment); auto& sentimentTail=*heap_sentimentTail;sentimentTail.monthPart=7;sentimentTail.labor->sentiment=60;sentimentTail.labor->previousSentiment=60;
     sentimentTail.buildingInputs->at(7).watchRisk=90;sentimentTail.cycleTail->currentHealthRating=149;
     need(originalBuildingCycleTailStep(sentimentTail)==OriginalBuildingUpdateBlocker::None&&sentimentTail.monthPart==8&&
          sentimentTail.cycleTail->previousHealthRating==149&&sentimentTail.cycleTail->currentHealthRating==148&&
          sentimentTail.labor->sentimentHouseRating==19,"part8 publishes the post-sentiment house rating and its previous value");
     const auto taxTable=originalBuildingSentimentTaxTable("{0,0,0,0,0,0}{3,0,0,0,0,0}{7,0,0,-3,0,0}{9,0,0,0,0,0}{11,0,0,0,0,0}{15,0,0,0,0,0}{20,0,0,0,0,0}");
-    auto taxSentiment=strictSentiment;taxSentiment.sentimentHypotheses=true;taxSentiment.sentimentTaxTable=taxTable;
+    auto heap_taxSentiment=std::make_unique<OriginalBuildingUpdateContext>(strictSentiment); auto& taxSentiment=*heap_taxSentiment;taxSentiment.sentimentHypotheses=true;taxSentiment.sentimentTaxTable=taxTable;
     taxSentiment.accounting.emplace();taxSentiment.accounting->taxRate=7;taxSentiment.labor->sentimentTaxable=11;
     taxSentiment.labor->sentimentReached350=1;
     need(taxTable&&originalBuildingSentimentStep(taxSentiment)==OriginalBuildingUpdateBlocker::None&&taxSentiment.labor->sentiment==61,
@@ -946,12 +947,12 @@ void authored(){
     need(originalBuildingCycleTailStep(part3)==OriginalBuildingUpdateBlocker::None&&part3.notificationEffects.back()==0xd6,"part3 rating147 needs no unused previous-rating premise");
     part3=tailContext;part3.monthPart=2;part3.cycleTail->currentHealthRating=151;
     need(originalBuildingCycleTailStep(part3)==OriginalBuildingUpdateBlocker::MonthlyCity,"part3 rating151 requires previous notification rating when consumed");
-    auto forecast=tailContext;forecast.engineRegion=0;forecast.activeSide=20;forecast.cropBase=229;forecast.terrain=std::vector<uint32_t>(51984);forecast.cycleTail->cropQuality=std::vector<uint8_t>(51984,100);
+    auto heap_forecast=std::make_unique<OriginalBuildingUpdateContext>(tailContext); auto& forecast=*heap_forecast;forecast.engineRegion=0;forecast.activeSide=20;forecast.cropBase=229;forecast.terrain=std::vector<uint32_t>(51984);forecast.cycleTail->cropQuality=std::vector<uint8_t>(51984,100);
     auto cropForecast=field(196).building;cropForecast.x=3;cropForecast.y=4;cropForecast.imageInputs->gridIndex=1144;
     need(originalBuildingCropForecast(cropForecast,forecast)==69,"forecast preserves single precision .01 rounding before extended rate multiplication");
     //Stall road query walks parent-owned pavement;bay ordinal is a saved
     //index,not the requested resource number or the parent's total stock.
-    auto stallContext=context(OriginalBuildingUpdateScope::AdmittedTicks);stallContext.cropBase=229;stallContext.terrain=std::vector<uint32_t>(51984);stallContext.terrainOwners=std::vector<uint16_t>(51984);stallContext.roadNetworks.resize(51984);stallContext.rankedNetworks[0]=2;
+    auto heap_stallContext=std::make_unique<OriginalBuildingUpdateContext>(context(OriginalBuildingUpdateScope::AdmittedTicks)); auto& stallContext=*heap_stallContext;stallContext.cropBase=229;stallContext.terrain=std::vector<uint32_t>(51984);stallContext.terrainOwners=std::vector<uint16_t>(51984);stallContext.roadNetworks.resize(51984);stallContext.rankedNetworks[0]=2;
     auto stallState=field();stallState.building.type=66;stallState.building.size=2;stallState.building.x=3;stallState.building.y=4;stallState.building.imageInputs->gridIndex=1144;
     stallState.inputs.industry.reset();stallState.inputs.parentSlot=6;stallState.inputs.stallResourceIndex=2;stallState.inputs.workers=8;stallState.inputs.spawnCounter=2;
     auto stallParent=stallState.building;stallParent.slot=6;stallParent.type=59;stallParent.imageInputs->marketOrientation=0;
@@ -966,7 +967,7 @@ void authored(){
     exportGoods.policies[0].accept[1]=2;exportGoods.policies[0].limit[1]=1;
     need(originalBuildingStorageExport(exportBay,exportGoods,50,true)==0,"storage mode2 unmet limit precedes a stocked mode3 resource");
     auto hookStation=well;hookStation.building.type=58;hookStation.inputs.hookIndustry.emplace();hookStation.inputs.hookIndustry->fill(0);hookStation.inputs.model=0;hookStation.inputs.workers=8;hookStation.inputs.available=0;hookStation.inputs.suppression=99;
-    auto stationContext=service;stationContext.employmentModel=OriginalBuildingEmployment{{58,8}};stationContext.buildingLinks->at(7).storagePolicy=0;stationContext.buildingLinks->at(7).storage.emplace();stationContext.goods.emplace();stationContext.goods->policies.resize(1);stationContext.trade.emplace();
+    auto heap_stationContext=std::make_unique<OriginalBuildingUpdateContext>(service); auto& stationContext=*heap_stationContext;stationContext.employmentModel=OriginalBuildingEmployment{{58,8}};stationContext.buildingLinks->at(7).storagePolicy=0;stationContext.buildingLinks->at(7).storage.emplace();stationContext.goods.emplace();stationContext.goods->policies.resize(1);stationContext.trade.emplace();
     need(originalBuildingStorageHook(hookStation,stationContext)==OriginalBuildingUpdateBlocker::None&&hookStation.inputs.available==1&&hookStation.inputs.suppression==99,"TradingStation hook writes runtime48 availability while preserving legacy suppression contract");
     stationContext.trade->partners[0].buys[0]=19;stationContext.goods->policies[0].trade[19]=5;
     stationContext.buildingLinks->at(7).storage->push_back({19,100,400});
@@ -991,17 +992,17 @@ void authored(){
     houseFixture+="ALL HOUSES\n";for(unsigned row=0;row<15;++row){houseFixture+="{,";for(unsigned col=0;col<24;++col)houseFixture+=std::to_string(col==0?-110:col==1?110:10)+",";houseFixture+="}\n";}
     const auto houseAdjusted=originalBuildingHouseModels(houseFixture,2);
     need(houseAdjusted&&houseAdjusted->at(14)[0]==-99&&houseAdjusted->at(14)[1]==100&&houseAdjusted->at(14)[23]==15&&!originalBuildingHouseModels(houseFixture,5),"HOUSE MODS adds selected row then clamps all24 independent model columns");
-    auto missedPhase=risks;missedPhase.figureServices->randomFirst=1;missedPhase.figureServices->randomSecond=2;missedPhase.figureServices->randomHistory.emplace();missedPhase.figureServices->randomHistory->cursor=0;
+    auto heap_missedPhase=std::make_unique<OriginalBuildingUpdateContext>(risks); auto& missedPhase=*heap_missedPhase;missedPhase.figureServices->randomFirst=1;missedPhase.figureServices->randomSecond=2;missedPhase.figureServices->randomHistory.emplace();missedPhase.figureServices->randomHistory->cursor=0;
     missedPhase.buildingInputs->at(7).damageRisk=10;missedPhase.terrainRandom->at(1144)=0;missedPhase.buildingInputs->at(7).burning=0;
     need(originalBuildingRiskStep(missedPhase)==OriginalBuildingUpdateBlocker::None&&missedPhase.figureServices->randomHistory->cursor==2&&missedPhase.buildingInputs->at(7).damageRisk==10,"risk consumes damage RNG even when slot phase comparison fails");
-    auto modelContinuation=tailContext;modelContinuation.phase=40;modelContinuation.buildingModels=lifecycle.buildingModels;
+    auto heap_modelContinuation=std::make_unique<OriginalBuildingUpdateContext>(tailContext); auto& modelContinuation=*heap_modelContinuation;modelContinuation.phase=40;modelContinuation.buildingModels=lifecycle.buildingModels;
     auto unupgraded=upgraded;unupgraded.inputs.model=0;unupgraded.inputs.modelUpgrade=0;unupgraded.building.wellImageInputs->word16=0;
     modelContinuation.buildingInputs->at(7)=unupgraded.inputs;modelContinuation.buildings->at(7)=unupgraded.building;
     const auto modelStep=originalBuildingStateAfterUpdates(unupgraded,modelContinuation,1);
     need(modelStep.state&&modelStep.context->buildings->at(7).wellImageInputs->word16==1,"phase40 publishes changed Well selector into continued building pool");
     auto modelTail=*modelStep.context;modelTail.phase=50;const auto keptModel=originalBuildingStateAfterUpdates(*modelStep.state,modelTail,1);
     need(keptModel.state&&keptModel.state->building.wellImageInputs->word16==1&&keptModel.state->inputs.model==1,"phase50 preserves phase40 model selection through copied continuation");
-    auto positiveRisk=service;positiveRisk.phase=44;positiveRisk.disasters.emplace();positiveRisk.evolutionDisabled=false;positiveRisk.engineRegion=0;
+    auto heap_positiveRisk=std::make_unique<OriginalBuildingUpdateContext>(service); auto& positiveRisk=*heap_positiveRisk;positiveRisk.phase=44;positiveRisk.disasters.emplace();positiveRisk.evolutionDisabled=false;positiveRisk.engineRegion=0;
     positiveRisk.figureServices->randomFirst=positiveRisk.figureServices->randomSecond=0;
     positiveRisk.buildingModels.emplace();positiveRisk.buildingModels->operator[](33)[6]=2;
     positiveRisk.terrainRandom->at(1144)=1;positiveRisk.buildings->at(7)=riskBuilding.building;
@@ -1010,7 +1011,7 @@ void authored(){
     const auto ignited=originalBuildingStateAfterUpdates(riskBuilding,positiveRisk,1);
     need(ignited.state&&ignited.state->inputs.damageRisk==0&&ignited.state->inputs.fireRisk==0&&ignited.state->inputs.distance==0&&ignited.state->inputs.burning==6&&ignited.state->inputs.workers==0&&ignited.state->inputs.fireproof==1,"ignition counter threshold calls42A700 and initializes burning from saved direction low bits");
     need(ignited.context->createdFigureRecords.size()==1&&ignited.context->createdFigureRecords[0].slot==19&&ignited.context->createdFigureRecords[0].type==2&&ignited.context->createdFigureRecords[0].delivery==7&&ignited.context->createdFigureRecords[0].subtype==33&&ignited.context->createdFigureRecords[0].speed==1&&ignited.context->disasters->figureEffects[0].animation==1,"ignition publishes finalized type2 figure and separate16C animation without speech or CRT draws");
-    auto exhaustedFire=positiveRisk;exhaustedFire.freeFigureSlots.clear();exhaustedFire.figureSpeechCounters.reset();exhaustedFire.figureSpeechCounts.reset();
+    auto heap_exhaustedFire=std::make_unique<OriginalBuildingUpdateContext>(positiveRisk); auto& exhaustedFire=*heap_exhaustedFire;exhaustedFire.freeFigureSlots.clear();exhaustedFire.figureSpeechCounters.reset();exhaustedFire.figureSpeechCounts.reset();
     const auto noFlame=originalBuildingStateAfterUpdates(riskBuilding,exhaustedFire,1);
     need(noFlame.state&&noFlame.state->inputs.burning==6&&noFlame.context->createdFigureRecords.empty(),"fire allocation exhaustion preserves ignition and requires no unused speech inputs");
     auto ignitionContinuation=*ignited.context;ignitionContinuation.phase=46;
@@ -1018,20 +1019,20 @@ void authored(){
     need(afterIgnition.state&&afterIgnition.context->createdFigureRecords.empty()&&afterIgnition.context->removedFigureRecords.empty()&&afterIgnition.context->allocatedFigures==std::vector<size_t>{19},"created records describe only this call while cumulative allocator bookkeeping survives continuation");
     auto cart=allocatingHunter;cart.building.type=43;cart.inputs.output=11;cart.inputs.primaryFigure=0;cart.inputs.upgrade=1;cart.production->industry[0]=0x40;cart.production->industry[1]=1;
     cart.production->primaryResource=18;cart.production->primaryStock=150;cart.production->secondaryResource=20;cart.production->secondaryStock=200;
-    auto cartContext=harvesting;cartContext.industryCarts=true;cartContext.freeFigureSlots={19};cartContext.productionInputs=std::map<size_t,OriginalBuildingProductionInputs>{{7,*cart.production}};
+    auto heap_cartContext=std::make_unique<OriginalBuildingUpdateContext>(harvesting); auto& cartContext=*heap_cartContext;cartContext.industryCarts=true;cartContext.freeFigureSlots={19};cartContext.productionInputs=std::map<size_t,OriginalBuildingProductionInputs>{{7,*cart.production}};
     cartContext.buildings->at(7)=cart.building;cartContext.buildingInputs->at(7)=cart.inputs;
     const auto shipped=originalBuildingStateAfterUpdates(cart,cartContext,1);
     need(shipped.state&&shipped.state->production->industry[0]==0&&shipped.state->production->industry[1]==0&&shipped.state->production->primaryStock==50&&shipped.state->production->secondaryStock==100&&shipped.state->inputs.upgrade==0,"Kiln cart consumes progress and both100 input stocks before allocation using literal runtime70 flag");
     need(shipped.context->createdFigureRecords.size()==1&&shipped.context->createdFigureRecords[0].type==19&&shipped.context->createdFigureRecords[0].amount==400&&shipped.context->createdFigureRecords[0].subtype==11&&shipped.context->createdFigureRecords[0].action==21&&shipped.context->createdFigureRecords[0].counter==30&&shipped.state->inputs.primaryFigure==19&&shipped.context->dispatchedProduction[11]==400,"Kiln publishes finalized cart19 amount400 pottery action21 reciprocal link and production total");
-    auto exhaustedCart=cartContext;exhaustedCart.freeFigureSlots.clear();exhaustedCart.figureSpeechCounts.reset();const auto lostShipment=originalBuildingStateAfterUpdates(cart,exhaustedCart,1);
+    auto heap_exhaustedCart=std::make_unique<OriginalBuildingUpdateContext>(cartContext); auto& exhaustedCart=*heap_exhaustedCart;exhaustedCart.freeFigureSlots.clear();exhaustedCart.figureSpeechCounts.reset();const auto lostShipment=originalBuildingStateAfterUpdates(cart,exhaustedCart,1);
     need(lostShipment.state&&lostShipment.state->production->primaryStock==50&&lostShipment.context->createdFigureRecords.empty()&&lostShipment.context->dispatchedProduction[11]==0,"exhausted cart allocator still consumes industry inputs without publishing shipment totals or unused speech");
     auto clay=cart;clay.building.type=35;clay.inputs.upgrade=0;clay.inputs.output=18;clay.production->industry[0]=160;clay.production->industry[1]=0;
     cartContext.buildings->at(7)=clay.building;cartContext.buildingInputs->at(7)=clay.inputs;
     const auto rawShipment=originalBuildingStateAfterUpdates(clay,cartContext,1);
     need(rawShipment.state&&rawShipment.context->createdFigureRecords[0].amount==100&&rawShipment.context->createdFigureRecords[0].action==17,"Clay160 threshold dispatches100 raw resource18 with action17 rather than generic delivery6");
-    auto legacyCart=cartContext;legacyCart.industryCarts.reset();const auto refusedCart=originalBuildingStateAfterUpdates(clay,legacyCart,1);
+    auto heap_legacyCart=std::make_unique<OriginalBuildingUpdateContext>(cartContext); auto& legacyCart=*heap_legacyCart;legacyCart.industryCarts.reset();const auto refusedCart=originalBuildingStateAfterUpdates(clay,legacyCart,1);
     need(!refusedCart.state&&refusedCart.blocker==OriginalBuildingUpdateBlocker::BuildingVirtual20,"positive industry cart remains opt in for legacy callers");
-    auto supplier=service;supplier.stallSuppliers=true;supplier.goodsRecords=std::vector<OriginalBuildingGoodsRecord>(2);supplier.goods.emplace();supplier.goods->policies.resize(2);supplier.movement.emplace();supplier.movement->cells.resize(51984);
+    auto heap_supplier=std::make_unique<OriginalBuildingUpdateContext>(service); auto& supplier=*heap_supplier;supplier.stallSuppliers=true;supplier.goodsRecords=std::vector<OriginalBuildingGoodsRecord>(2);supplier.goods.emplace();supplier.goods->policies.resize(2);supplier.movement.emplace();supplier.movement->cells.resize(51984);
     auto hempStall=stallState;hempStall.building.type=67;hempStall.inputs.parentSlot=6;hempStall.inputs.spawnCounter=9;
     supplier.stallHookRoadAccess=std::map<size_t,OriginalBuildingRoadAccess>{{7,{1,3,4,std::nullopt,true}}};
     supplier.buildings->emplace(6,stallParent);supplier.buildingInputs->emplace(6,OriginalBuildingUpdateInputs{});supplier.buildingLinks->emplace(6,OriginalFigureBuildingLink{});supplier.buildingLinks->at(6).marketStorage=std::vector<OriginalStorageCompartment>(1);
@@ -1041,13 +1042,13 @@ void authored(){
     supplier.goods->unavailable[19]=0;auto sourceBay=hempStall.building;sourceBay.type=54;sourceBay.slot=8;sourceBay.x=4;
     supplier.buildings->emplace(8,sourceBay);supplier.buildingInputs->emplace(8,OriginalBuildingUpdateInputs{});auto& sourceLink=supplier.buildingLinks->operator[](8);sourceLink.type=54;sourceLink.alive=1;sourceLink.roadAccess=1;sourceLink.roadDistance=1;sourceLink.roadX=4;sourceLink.roadY=4;sourceLink.storage=std::vector<OriginalStorageCompartment>{{19,100,400}};
     supplier.goodsRecords->at(1).alive=1;supplier.goodsRecords->at(1).owner=8;supplier.movement->cells[1145]=4;supplier.poolHookRoadAccess->operator[](8)={1,4,4,std::nullopt,true};supplier.figureSpeechCounts->at(254)=3;supplier.figureSpeechCounts->at(266)=5;supplier.figureSpeechCounters->at(266)=7;supplier.freeFigureSlots={19};
-    auto foodSupplier=supplier;auto foodStall=hempStall;foodStall.building.type=66;
+    auto heap_foodSupplier=std::make_unique<OriginalBuildingUpdateContext>(supplier); auto& foodSupplier=*heap_foodSupplier;auto foodStall=hempStall;foodStall.building.type=66;
     foodSupplier.scenarioFoodOverride=0;foodSupplier.buildings->at(8).type=53;auto& foodMill=foodSupplier.buildingLinks->at(8);
     foodMill.type=53;foodMill.category=foodStall.inputs.network;foodMill.storage=std::vector<OriginalStorageCompartment>{{4,400,400},{4,400,400},{4,400,400},{4,400,400}};
     foodSupplier.buildingLinks->at(6).storagePolicy=0;foodSupplier.goods->policies[0].limit[28]=800;
-    auto strictFood=foodSupplier;auto strictStall=foodStall;
+    auto heap_strictFood=std::make_unique<OriginalBuildingUpdateContext>(foodSupplier); auto& strictFood=*heap_strictFood;auto strictStall=foodStall;
     need(originalBuildingStallSupplier(strictStall,strictFood,28)==OriginalBuildingUpdateBlocker::BuildingVirtual20,"food supplier remains refused without the explicit grade hypothesis");
-    auto twoMills=foodSupplier;auto secondMill=twoMills.buildings->at(8);secondMill.slot=9;twoMills.buildings->emplace(9,secondMill);
+    auto heap_twoMills=std::make_unique<OriginalBuildingUpdateContext>(foodSupplier); auto& twoMills=*heap_twoMills;auto secondMill=twoMills.buildings->at(8);secondMill.slot=9;twoMills.buildings->emplace(9,secondMill);
     twoMills.buildingLinks->emplace(9,twoMills.buildingLinks->at(8));twoMills.goodsRecords->push_back({});twoMills.goodsRecords->back().alive=1;twoMills.goodsRecords->back().owner=9;
     auto competingStall=foodStall;need(originalBuildingStallSupplier(competingStall,twoMills,28,true)==OriginalBuildingUpdateBlocker::BuildingVirtual20,"two food Mills retain the unported ranking refusal");
     need(originalBuildingStallSupplier(foodStall,foodSupplier,28,true)==OriginalBuildingUpdateBlocker::None&&
@@ -1059,25 +1060,25 @@ void authored(){
          "stall supplier link is visible to the figure pool after allocation");
     need(originalBuildingStallSupplier(hempStall,supplier,19)==OriginalBuildingUpdateBlocker::None&&hempStall.inputs.word30==19&&supplier.figures->at(19).delivery==8&&supplier.figures->at(19).destinationX==4&&supplier.figures->at(19).action==6&&supplier.supplierRequests.at(19)==std::array<int32_t,7>{1,-1,-1,-1,-1,-1,-1},"positive supplier flood chooses stocked Warehouse and publishes type24 delivery request category1");
     need(supplier.figureSpeechCounters->at(254)==1&&supplier.figureSpeechCounters->at(266)==8&&supplier.figureSpeechChoices.at(19)==2,"Stall supplier applies constructor254 then descriptor266 speech rotation");
-    auto burning=positiveRisk;burning.phase=43;burning.buildingInputs->at(7)=ignited.state->inputs;burning.buildingInputs->at(7).burning=3;burning.buildingInputs->at(7).fireDirection=0;
+    auto heap_burning=std::make_unique<OriginalBuildingUpdateContext>(positiveRisk); auto& burning=*heap_burning;burning.phase=43;burning.buildingInputs->at(7)=ignited.state->inputs;burning.buildingInputs->at(7).burning=3;burning.buildingInputs->at(7).fireDirection=0;
     auto spreading=*ignited.state;spreading.inputs=burning.buildingInputs->at(7);
     const auto missingWind=originalBuildingStateAfterUpdates(spreading,burning,1);
     need(!missingWind.state&&!missingWind.context&&missingWind.blocker==OriginalBuildingUpdateBlocker::FireWind&&missingWind.refusedPhase==43&&burning.buildingInputs->at(7).burning==3,"positive spread requires actual process wind only after periodic and random gates and refuses atomically");
-    auto collapse=positiveRisk;collapse.phase=44;collapse.buildingModels->at(33)[7]=1;collapse.resourceGrowth.emplace();auto& ruinSurface=collapse.resourceGrowth->surface;
+    auto heap_collapse=std::make_unique<OriginalBuildingUpdateContext>(positiveRisk); auto& collapse=*heap_collapse;collapse.phase=44;collapse.buildingModels->at(33)[7]=1;collapse.resourceGrowth.emplace();auto& ruinSurface=collapse.resourceGrowth->surface;
     ruinSurface.image.resize(51984);ruinSurface.subTile.resize(51984,0x9f);ruinSurface.draw.resize(51984);ruinSurface.feature.resize(51984,4);
     collapse.irrigation.emplace();collapse.irrigation->image.resize(51984);collapse.irrigation->owners.resize(51984);collapse.disasters->freeBuildingSlots=std::vector<size_t>{8};collapse.disasters->buildingSerial=37;collapse.disasters->ruinImageBase=100;collapse.disasters->effectPlacementCulled=true;collapse.freeFigureSlots={19};
     auto destroyed=riskBuilding;destroyed.building.size=1;destroyed.inputs.damageRisk=0;destroyed.inputs.fireRisk=999;collapse.buildings->at(7)=destroyed.building;collapse.buildingInputs->at(7)=destroyed.inputs;collapse.terrainOwners->at(1144)=7;
     const auto ruins=originalBuildingStateAfterUpdates(destroyed,collapse,1);
     need(ruins.state&&ruins.state->inputs.alive==4&&ruins.context->disasters->createdBuildings.size()==1&&ruins.context->disasters->destroyedBuildings==std::vector<size_t>{7}&&ruins.context->buildingInputs->at(8).alive==3&&ruins.context->buildingInputs->at(8).burning==0&&ruins.context->disasters->buildingSerial==38,"collapse counter threshold replaces original with ascending free-slot ruin161 and retains original tombstone identity");
     need(ruins.context->terrainOwners->at(1144)==8&&ruins.context->terrain->at(1144)==0x1008&&ruins.context->resourceGrowth->surface.image[1144]==101&&ruins.context->createdFigureRecords.empty(),"ruin terrain612 image and owner use threshold argument0 without flames while viewport culling skips debris");
-    auto burningRuin=collapse;need(originalBuildingDestroy(burningRuin,7,true)==OriginalBuildingUpdateBlocker::None&&burningRuin.buildingInputs->at(8).burning==2&&burningRuin.figures->at(19).delivery==8&&burningRuin.figures->at(19).subtype==161,"active fire destruction argument1 independently creates burning ruins and flame2");
-    auto musicService=service;musicService.additionalWalkers=true;musicService.employmentModel=OriginalBuildingEmployment{{211,8}};musicService.figureSpeechCounts->at(276)=3;
+    auto heap_burningRuin=std::make_unique<OriginalBuildingUpdateContext>(collapse); auto& burningRuin=*heap_burningRuin;need(originalBuildingDestroy(burningRuin,7,true)==OriginalBuildingUpdateBlocker::None&&burningRuin.buildingInputs->at(8).burning==2&&burningRuin.figures->at(19).delivery==8&&burningRuin.figures->at(19).subtype==161,"active fire destruction argument1 independently creates burning ruins and flame2");
+    auto heap_musicService=std::make_unique<OriginalBuildingUpdateContext>(service); auto& musicService=*heap_musicService;musicService.additionalWalkers=true;musicService.employmentModel=OriginalBuildingEmployment{{211,8}};musicService.figureSpeechCounts->at(276)=3;
     auto musician=allocatingWell;musician.building.type=211;musician.inputs.spawnCounter=3;musicService.buildings->at(7)=musician.building;musicService.buildingInputs->at(7)=musician.inputs;
     const auto musicWalker=originalBuildingStateAfterUpdates(musician,musicService,1);
     need(musicWalker.state&&musicWalker.context->createdFigureRecords.size()==1&&musicWalker.context->createdFigureRecords[0].type==34&&musicWalker.context->createdFigureRecords[0].counter==30,"Music strict greater than3 allocates shared service34 through opt in without wall time");
-    auto annual=savedPart2;annual.month=1;annual.monthlyServices=true;annual.trade->partners[0].faction=1;annual.trade->partners[0].relations[21].annualFlag=9;annual.trade->partners[0].relations[20].annualFlag=7;
+    auto heap_annual=std::make_unique<OriginalBuildingUpdateContext>(savedPart2); auto& annual=*heap_annual;annual.month=1;annual.monthlyServices=true;annual.trade->partners[0].faction=1;annual.trade->partners[0].relations[21].annualFlag=9;annual.trade->partners[0].relations[20].annualFlag=7;
     need(originalBuildingCycleTailStep(annual)==OriginalBuildingUpdateBlocker::None&&annual.trade->partners[0].relations[21].annualFlag==0&&annual.trade->partners[0].relations[20].annualFlag==7,"annual false444160 branch clears only current faction annual flag and preserves other children");
-    auto annualWar=savedPart2;annualWar.month=1;annualWar.monthlyServices=true;annualWar.trade->partners[0].faction=1;annualWar.trade->partners[0].relations[21].state=2;annualWar.trade->partners[0].relations[21].war=0;
+    auto heap_annualWar=std::make_unique<OriginalBuildingUpdateContext>(savedPart2); auto& annualWar=*heap_annualWar;annualWar.month=1;annualWar.monthlyServices=true;annualWar.trade->partners[0].faction=1;annualWar.trade->partners[0].relations[21].state=2;annualWar.trade->partners[0].relations[21].war=0;
     need(originalBuildingCycleTailStep(annualWar)==OriginalBuildingUpdateBlocker::MonthlyCity,"positive annual offer or war service remains refused rather than inferred from absent event state");
     hookBytes[hookAt+4]=0x34;hookBytes[hookAt+5]=0x12;hookBytes[hookAt+8]=99;
     need(originalBuildingSavedDisasterContext(hookBytes,0,restoredHook)&&restoredHook.disasters->buildingSerial==0x1234,"saved building allocation serial follows hook countdown at53167D and excludes following decoy");
@@ -1092,14 +1093,14 @@ void authored(){
          "Scenario6 partner conflict flag uses wire1460");savedInputs[anchor+1432]=0;
     saved32(10722,0x1234);saved32(10722+4*35,0xfffffffd);saved32(10578,99);
     need(originalBuildingSavedCityContext(savedInputs,anchor,restoredCity)&&restoredCity.dispatchedProduction[0]==0x1234&&restoredCity.dispatchedProduction[35]==-3,"nested Population7 production array reads59487B wire10722 independently of prior trade7 array");
-    auto fortification=tailContext;fortification.monthPart=3;fortification.monthlyServices=true;fortification.trade.emplace();fortification.statistics.emplace();fortification.statistics->currentFaction=0;fortification.trade->partners[0].faction=0;fortification.trade->partners[0].kind=0;fortification.trade->partners[0].fortified=1;fortification.activeSide=1;fortification.cropBase=229;fortification.terrain=std::vector<uint32_t>(51984);fortification.terrainOwners=std::vector<uint16_t>(51984);
-    for(unsigned n=0;n<99;++n)fortification.terrain->at(229+n)=0x4000;const auto belowFort=fortification;
+    auto heap_fortification=std::make_unique<OriginalBuildingUpdateContext>(tailContext); auto& fortification=*heap_fortification;fortification.monthPart=3;fortification.monthlyServices=true;fortification.trade.emplace();fortification.statistics.emplace();fortification.statistics->currentFaction=0;fortification.trade->partners[0].faction=0;fortification.trade->partners[0].kind=0;fortification.trade->partners[0].fortified=1;fortification.activeSide=1;fortification.cropBase=229;fortification.terrain=std::vector<uint32_t>(51984);fortification.terrainOwners=std::vector<uint16_t>(51984);
+    for(unsigned n=0;n<99;++n)fortification.terrain->at(229+n)=0x4000;auto heap_belowFort=std::make_unique<OriginalBuildingUpdateContext>(fortification); const auto& belowFort=*heap_belowFort;
     need(originalBuildingCycleTailStep(fortification)==OriginalBuildingUpdateBlocker::None&&fortification.trade->partners[0].fortified==0,"part4 current city fortification rescans99 wall cells and clears prior flag");
     fortification=belowFort;fortification.terrain->at(328)=0x8000;
     need(originalBuildingCycleTailStep(fortification)==OriginalBuildingUpdateBlocker::None&&fortification.trade->partners[0].fortified==1,"part4 inclusive100 terrain wall cells sets fortified using full228 row scan");
-    auto debrisContext=positiveRisk;debrisContext.disasters->effectPlacementCulled=false;debrisContext.disasters->visualEffectCount=2999;debrisContext.freeFigureSlots={19,18};
+    auto heap_debrisContext=std::make_unique<OriginalBuildingUpdateContext>(positiveRisk); auto& debrisContext=*heap_debrisContext;debrisContext.disasters->effectPlacementCulled=false;debrisContext.disasters->visualEffectCount=2999;debrisContext.freeFigureSlots={19,18};
     need(originalBuildingDebris(debrisContext,3,4,1)==OriginalBuildingUpdateBlocker::None&&debrisContext.disasters->visualEffectCount==3000&&debrisContext.allocatedFigures==std::vector<size_t>{19}&&debrisContext.figures->at(19).effectFlags==2&&debrisContext.figures->at(19).freeMovement==1,"debris respects actual3000 process effect limit between individual allocations");
-    auto missingDebrisCount=positiveRisk;missingDebrisCount.disasters->effectPlacementCulled=false;
+    auto heap_missingDebrisCount=std::make_unique<OriginalBuildingUpdateContext>(positiveRisk); auto& missingDebrisCount=*heap_missingDebrisCount;missingDebrisCount.disasters->effectPlacementCulled=false;
     need(originalBuildingDebris(missingDebrisCount,3,4,1)==OriginalBuildingUpdateBlocker::MissingContext,"visible debris requires consumed process effect count rather than defaulting it to zero");
 }
 void original(){
