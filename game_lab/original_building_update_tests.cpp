@@ -878,6 +878,7 @@ void authored(){
          productionRoll.cycleTail->monthlyStatistics==std::array<int32_t,9>{8,3,0,0,6,0,0,9,0},
          "monthly production rolls saved counters and clears current values");
     auto rollover=sentiment;rollover.monthPart=15;rollover.month=7;rollover.monthlyRolloverHypotheses=true;
+    rollover.serviceCoverage=std::array<int32_t,11>{};
     rollover.scenarioMonths=11;rollover.scenarioMonthCounter=7;rollover.shortageNoticeCountdown=2;rollover.scenarioFoodOverride=0;
     rollover.cycleTail->populationHistory.emplace();rollover.labor->monthlyTimerActive=1;rollover.labor->monthlyTimerRemaining=4;
     rollover.accounting.emplace();rollover.accounting->wages=30;rollover.cityEmployment->employed=240;rollover.treasury=400;
@@ -886,9 +887,32 @@ void authored(){
     need(originalBuildingCycleTailStep(strictRollover)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictRollover.monthPart==15,
          "strict rollover refuses and preserves its calendar");
     auto yearBoundary=rollover;yearBoundary.month=0;yearBoundary.elapsedYears=12;
-    need(originalBuildingCycleTailStep(yearBoundary)==OriginalBuildingUpdateBlocker::AnnualPrelude&&yearBoundary.month==0&&
+    yearBoundary.buildingLinks.emplace();OriginalFigureBuildingLink ordinaryHouse;ordinaryHouse.type=7;ordinaryHouse.alive=1;ordinaryHouse.accepting=true;ordinaryHouse.residents=12;
+    auto eliteHouse=ordinaryHouse;eliteHouse.type=11;eliteHouse.residents=8;yearBoundary.buildingLinks->emplace(7,ordinaryHouse);yearBoundary.buildingLinks->emplace(8,eliteHouse);
+    yearBoundary.buildingInputs->emplace(8,yearBoundary.buildingInputs->at(7));yearBoundary.buildings->emplace(8,yearBoundary.buildings->at(7));yearBoundary.accounting->buckets.emplace();
+    yearBoundary.trade.emplace();yearBoundary.figureServices.emplace();yearBoundary.figureServices->randomHistory=OriginalFigureRandomHistory{};yearBoundary.disasters.emplace();
+    need(originalBuildingAnnualPrelude(yearBoundary)==OriginalBuildingUpdateBlocker::None&&yearBoundary.cycleTail->annualHousePopulation==20&&
+         yearBoundary.cycleTail->annualElitePopulation==8&&yearBoundary.cycleTail->annualUiFlag==0&&yearBoundary.cycleTail->annualManagerFlag==0,
+         "annual prelude clears process flags and recounts accepting ordinary and elite houses");
+    {auto finance=yearBoundary;auto& a=*finance.accounting;auto& b=*a.buckets;a.taxReceived=3;a.taxOther=4;a.wagesPaid=8;
+        b.exports=5;b.otherIncome11440=6;b.otherIncome11061=7;b.imports=9;b.expense10534=10;b.expense11161=11;
+        b.expense10514=12;b.expense11400=13;b.tribute=14;a.tributeIncomeComponent=14;finance.dispatchedProduction[35]=27;
+        finance.buildingInputs->at(7).house->at(57)=42;
+        need(originalBuildingAnnualFinance(finance)==OriginalBuildingUpdateBlocker::None&&b.priorTax==7&&b.priorWages==8&&b.priorExports==5&&
+             b.priorImports==9&&b.priorExpense10514==12&&b.priorExpense11400==13&&b.priorTribute==14&&
+             a.incomeReceived==25&&a.expensesPaid==38&&a.actualProfit==-13&&a.treasuryStart==400&&
+             finance.previousYearProduction[35]==27&&finance.dispatchedProduction[35]==0&&finance.buildingInputs->at(7).house->at(57)==0,
+             "annual finance rolls distinct saved buckets, accepting house ledger and production before quota reset");}
+    {auto quota=yearBoundary;quota.trade->partners[0].alive=1;quota.trade->partners[0].quotaUsed.fill(9);quota.trade->partners[1].quotaUsed.fill(7);
+        auto expected=*quota.figureServices;const unsigned wind=originalFigureRandomNext(expected)&7u;
+        need(originalBuildingAnnualQuotaAndWind(quota)==OriginalBuildingUpdateBlocker::None&&quota.trade->partners[0].quotaUsed[0]==9&&
+             quota.trade->partners[0].quotaUsed[1]==0&&quota.trade->partners[0].quotaUsed[28]==0&&quota.trade->partners[0].quotaUsed[29]==9&&
+             quota.trade->partners[1].quotaUsed[1]==7&&quota.disasters->windDirection==wind&&quota.figureServices->randomFirst==expected.randomFirst,
+             "annual reset clears the live partner's 28 resource quotas and draws wind once from the saved RNG");}
+    yearBoundary.figureServices->randomHistory.reset();
+    need(originalBuildingCycleTailStep(yearBoundary)==OriginalBuildingUpdateBlocker::MissingContext&&yearBoundary.month==0&&
          yearBoundary.monthPart==15&&yearBoundary.elapsedYears==12&&yearBoundary.treasury==400,
-         "year rollover reaches the annual prelude and retains the whole unpublished transaction");
+         "year rollover with missing RNG history retains the whole unpublished transaction");
     need(originalBuildingCycleTailStep(rollover)==OriginalBuildingUpdateBlocker::None&&rollover.monthPart==0&&rollover.month==8&&
          rollover.scenarioMonths==12&&rollover.scenarioMonthCounter==8&&*rollover.treasury==340&&rollover.labor->monthlyFoodConsumed==25&&
          rollover.labor->monthlyTimerRemaining==3&&rollover.shortageNoticeCountdown==1&&

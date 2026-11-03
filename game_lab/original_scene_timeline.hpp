@@ -534,7 +534,7 @@ inline std::string originalCombinedBuildingPhase(OriginalCombinedState& city,con
     for(const auto& e:*c.buildingInputs)f.buildingBurning[e.first]=e.second.burning;
     if(c.disasters){for(const auto& effect:c.disasters->figureEffects){auto& record=f.figures.at(effect.slot);
             record.effectAnimation=effect.animation;c.figures->at(effect.slot)=record;}
-        f.visualEffectCount=c.disasters->visualEffectCount;
+        f.visualEffectCount=c.disasters->visualEffectCount;city.process.windDirection=c.disasters->windDirection;
         if(c.terrainOwners)f.buildingOwners=*c.terrainOwners;
         if(c.terrain)f.terrain=*c.terrain;
         if(c.movement){f.passability=c.movement;f.movementMasks=c.movement->cells;}

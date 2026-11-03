@@ -191,7 +191,7 @@ inline std::optional<OriginalBuildingFormationResult> originalBuildingFormationS
 enum class OriginalBuildingUpdateBlocker {None,InvalidState,MissingContext,ExternalWrites,
     ProductionVirtuals,RoadRefresh,Employment,HousingEvolution,BuildingVirtual20,
     RiskAndFire,MonthlyCity,Availability,CityPhase,UnclosedPhase,HousingCapacity,CityLabor,Trade,
-    FarmerWallClock,FireWind,EmploymentCategoryPolicy,AnnualPrelude};
+    FarmerWallClock,FireWind,EmploymentCategoryPolicy};
 inline const char* originalBuildingUpdateBlockerName(OriginalBuildingUpdateBlocker b){
     switch(b){case OriginalBuildingUpdateBlocker::None:return "computed";
     case OriginalBuildingUpdateBlocker::InvalidState:return "invalid_saved_building_update_inputs";
@@ -207,7 +207,6 @@ inline const char* originalBuildingUpdateBlockerName(OriginalBuildingUpdateBlock
     case OriginalBuildingUpdateBlocker::BuildingVirtual20:return "building_virtual20_416d20";
     case OriginalBuildingUpdateBlocker::RiskAndFire:return "risk_fire_4af5d0_42a220";
     case OriginalBuildingUpdateBlocker::MonthlyCity:return "monthly_city_4ac650";
-    case OriginalBuildingUpdateBlocker::AnnualPrelude:return "annual_prelude_5ef190_590de0";
     case OriginalBuildingUpdateBlocker::Availability:return "availability_4ace60_virtual1a0";
     case OriginalBuildingUpdateBlocker::CityPhase:return "city_accounting_4f1560_4ac2fa";
     case OriginalBuildingUpdateBlocker::HousingCapacity:return "housing_capacity_4ad3d0_44cc80";
@@ -434,6 +433,11 @@ struct OriginalBuildingUpdateContext {
         struct Buckets {
             int32_t tribute=0,otherIncome11440=0,otherIncome11061=0,exports=0;
             int32_t expense11400=0,expense11161=0,expense10534=0,expense10514=0,imports=0;
+            int32_t priorTax=0,priorWages=0,priorExports=0,priorImports=0,priorExpense10514=0;
+            int32_t priorExpense11400=0,priorExpense11161=0,priorExpense10534=0;
+            int32_t priorIncome11440=0,priorIncome11061=0,priorTribute=0;
+            int32_t taxScratchA=0,taxScratchB=0,misc11125=0,priorMisc11121=0;
+            int32_t reset11109=0,reset11113=0,reset11133=0,reset11137=0,reset10526=0;
         };
         std::optional<Buckets> buckets;
         int32_t taxRate=0,taxableOrdinary=0,taxableElite=0,taxReceived=0,taxOther=0;
@@ -457,6 +461,7 @@ struct OriginalBuildingUpdateContext {
         std::array<int32_t,10> millFood{};std::array<uint32_t,36> warehouse{},trade5{},trade7{};};
     std::optional<CityDerived> cityDerived;
     int32_t serviceRating=100,serviceWeakest=0,servicePenalty=0;
+    std::optional<int32_t> serviceCombinedRating; //1312460, Population7 wire11010
     std::optional<std::array<int32_t,11>> serviceCoverage;
     std::optional<OriginalFigureGoodsServices> goods;
     std::optional<std::map<size_t,uint8_t>> storageRoadStatus;
@@ -603,7 +608,7 @@ struct OriginalBuildingUpdateContext {
     std::optional<uint8_t> scenarioPartnerConflict; //Scenario6+5BF,52D5E4, wire1460
     std::optional<bool> additionalWalkers; //explicit51CF90 remaining ordinary service types
     std::optional<bool> industryCarts; //explicit5F1280 positive Clay/Kiln dispatch
-    std::array<int32_t,36> dispatchedProduction{}; //1312340,caller retained production totals
+    std::array<int32_t,36> dispatchedProduction{},previousYearProduction{}; //1312340/13122B0
     struct BuildingTotals {
         std::array<int32_t,269> total{},staffed{};
         std::array<int32_t,36> producers{},staffedProducers{};
@@ -649,6 +654,8 @@ struct OriginalBuildingUpdateContext {
         std::array<int32_t,2> foodForecast{}; //Population7+2928/2C
         std::optional<bool> alternateMode; //10DE044,process UI mode
         std::optional<int32_t> previousHealthRating; //D6241C,part3 notification
+        std::optional<uint8_t> annualUiFlag,annualManagerFlag; //10DE3F4,1E53549
+        std::optional<int32_t> annualHouseRegistryFlag,annualHousePopulation,annualElitePopulation; //1311FA4,517DE0
         std::optional<uint8_t> waterMode; //4EDDA0 saved singleton+8
         std::vector<uint8_t> cropQuality; //EAC3F0,531383
         unsigned calls=0;
@@ -1352,6 +1359,21 @@ inline OriginalBuildingUpdateBlocker originalBuildingFoodStep(OriginalBuildingUp
     if(result==OriginalBuildingUpdateBlocker::None)c=std::move(candidate);
     return result;
 }
+//44B970->44B9B0/44BA30 uses the process coverage columns and writes 1312460.
+inline OriginalBuildingUpdateBlocker originalBuildingServiceRatingStep(OriginalBuildingUpdateContext& c){
+    if(!c.serviceCoverage)return OriginalBuildingUpdateBlocker::MissingContext;
+    constexpr int index[]={0,1,2,3,7,9,10};
+    constexpr int ratings[7][7]={{5,15,25,40,55,75,100},{10,20,30,45,60,80,100},{15,25,35,50,65,85,100},
+        {50,55,65,75,85,95,100},{15,20,25,35,50,65,100},{20,25,30,40,55,70,100},{35,45,55,70,85,100,100}};
+    c.serviceRating=100;c.servicePenalty=0;
+    for(unsigned n=0;n<7;++n){const int input=c.serviceCoverage->at(unsigned(index[n]));
+        const unsigned band=input<=0?0:input<20?1:input<40?2:input<60?3:input<80?4:input<(n==4||n==5?90:100)?5:6;
+        if(ratings[n][band]<c.serviceRating){c.serviceRating=ratings[n][band];c.serviceWeakest=int32_t(n);}}
+    for(unsigned n=0;n<7;++n){const int input=c.serviceCoverage->at(unsigned(index[n]));
+        const unsigned band=input<1?0:input<20?1:input<40?2:input<60?3:input<80?4:input<100?5:6;
+        if(ratings[n][band]+30<c.serviceRating)c.servicePenalty+=5;}
+    c.serviceCombinedRating=std::clamp(c.serviceRating+c.servicePenalty,0,100);return OriginalBuildingUpdateBlocker::None;
+}
 inline OriginalBuildingUpdateBlocker originalBuildingAccountingStep(OriginalBuildingUpdateContext& c){
     if(!c.cityEmployment||!c.accounting||!c.formations||!c.figures||!c.figureModels||!c.figureStationary)
         return OriginalBuildingUpdateBlocker::CityPhase;
@@ -1375,16 +1397,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingAccountingStep(OriginalBuil
     for(unsigned k:{0u,1u,2u,3u,7u,8u,9u,10u}){auto ratio=originalBuildingRatio(served[k],derived.population);if(!ratio)return OriginalBuildingUpdateBlocker::CityPhase;derived.serviceCoverage[k]=*ratio;}
     c.cityDerived=derived;c.serviceCoverage=derived.serviceCoverage;
     const auto food=originalBuildingFoodStep(c);if(food!=OriginalBuildingUpdateBlocker::None)return food;
-    //44B9B0/44BAB0 table81E748:7 rows,index,7 ratings,6 bounds.
-    constexpr int index[]={0,1,2,3,7,9,10};
-    constexpr int ratings[7][7]={{5,15,25,40,55,75,100},{10,20,30,45,60,80,100},{15,25,35,50,65,85,100},
-        {50,55,65,75,85,95,100},{15,20,25,35,50,65,100},{20,25,30,40,55,70,100},{35,45,55,70,85,100,100}};
-    c.serviceRating=100;c.servicePenalty=0;std::array<int,7> rowRatings{};
-    for(unsigned n=0;n<7;++n){const int input=derived.serviceCoverage[unsigned(index[n])];
-        unsigned band=input<=0?0:input<20?1:input<40?2:input<60?3:input<80?4:input<(n==4||n==5?90:100)?5:6;
-        rowRatings[n]=ratings[n][band];if(rowRatings[n]<c.serviceRating){c.serviceRating=rowRatings[n];c.serviceWeakest=int32_t(n);}}
-    for(unsigned n=0;n<7;++n){const int input=derived.serviceCoverage[unsigned(index[n])];const unsigned band=input<1?0:input<20?1:input<40?2:input<60?3:input<80?4:input<100?5:6;
-        if(ratings[n][band]+30<c.serviceRating)c.servicePenalty+=5;}
+    const auto rating=originalBuildingServiceRatingStep(c);if(rating!=OriginalBuildingUpdateBlocker::None)return rating;
     const int32_t months=*c.month==0?1:13-int32_t(*c.month);
     a.ordinaryTax=originalBuildingPercent(a.taxableOrdinary,a.taxRate);a.eliteTax=originalBuildingPercent(a.taxableElite,a.taxRate);
     a.taxTotal=originalBuildingAdd32(a.taxReceived,a.taxOther);
@@ -2233,6 +2246,57 @@ inline OriginalBuildingUpdateBlocker originalBuildingMonthlyDebt(OriginalBuildin
     if(l.debtMonths&&l.debtMonths%12==0){l.sentimentShortages=originalBuildingAdd32(l.sentimentShortages,1);c.notificationEffects.push_back(224);}
     return OriginalBuildingUpdateBlocker::None;
 }
+//4AC7FD..4AC810 resets two process flags and invalidates the house registry;
+//590DE0->517CC0->517DE0 rebuilds its accepting-house totals, not city treasury.
+inline OriginalBuildingUpdateBlocker originalBuildingAnnualPrelude(OriginalBuildingUpdateContext& c){
+    if(!c.cycleTail||!c.buildingLinks)return OriginalBuildingUpdateBlocker::MissingContext;
+    int32_t population=0,elite=0;
+    for(const auto& entry:*c.buildingLinks){const auto& house=entry.second;
+        if(house.type<2||house.type>=18||!house.alive||house.alive==2||house.alive==5||house.alive==6||!house.accepting)continue;
+        population=originalBuildingAdd32(population,house.residents);
+        if(house.type>=11)elite=originalBuildingAdd32(elite,house.residents);}
+    auto& tail=*c.cycleTail;tail.annualUiFlag=0;tail.annualManagerFlag=0;tail.annualHouseRegistryFlag=1;
+    tail.annualHousePopulation=population;tail.annualElitePopulation=elite;return OriginalBuildingUpdateBlocker::None;
+}
+//4AC815..4AC858: retain each saved yearly bucket before clearing it.
+// The caller stages these writes together with the rest of the cycle tail.
+inline OriginalBuildingUpdateBlocker originalBuildingAnnualFinance(OriginalBuildingUpdateContext& c){
+    if(!c.accounting||!c.accounting->buckets||!c.treasury||!c.buildingInputs||!c.buildingLinks)return OriginalBuildingUpdateBlocker::MissingContext;
+    for(const auto& entry:*c.buildingLinks){const auto& h=entry.second;
+        if(h.type<2||h.type>=18||!h.alive||h.alive==2||h.alive==5||h.alive==6||!h.accepting)continue;
+        const auto found=c.buildingInputs->find(entry.first);if(found==c.buildingInputs->end()||!found->second.house)return OriginalBuildingUpdateBlocker::MissingContext;}
+    auto& a=*c.accounting;auto& b=*a.buckets;
+    b.priorTax=originalBuildingAdd32(a.taxReceived,a.taxOther);a.taxReceived=a.taxOther=b.taxScratchA=b.taxScratchB=0;
+    for(const auto& entry:*c.buildingLinks){const auto& h=entry.second;
+        if(h.type<2||h.type>=18||!h.alive||h.alive==2||h.alive==5||h.alive==6||!h.accepting)continue;
+        auto& data=*c.buildingInputs->at(entry.first).house;std::fill(data.begin()+57,data.end(),0); //517950, runtime+40
+    }
+    b.priorExpense10514=b.expense10514;b.expense10514=0;
+    b.priorWages=a.wagesPaid;a.wagesPaid=0;
+    b.priorExports=b.exports;b.exports=0;b.priorImports=b.imports;b.imports=0;
+    b.priorExpense10534=b.expense10534;b.expense10534=0;
+    b.priorExpense11400=b.expense11400;b.expense11400=0;
+    b.priorIncome11061=b.otherIncome11061;b.otherIncome11061=0;
+    b.priorTribute=b.tribute;b.tribute=0;if(a.tributeIncomeComponent)*a.tributeIncomeComponent=0;
+    b.priorIncome11440=b.otherIncome11440;b.otherIncome11440=0;
+    b.priorExpense11161=b.expense11161;b.expense11161=0;
+    a.incomeReceived=originalBuildingAdd32(originalBuildingAdd32(b.priorTax,b.priorExports),originalBuildingAdd32(b.priorIncome11440,b.priorIncome11061));
+    a.expensesPaid=originalBuildingAdd32(originalBuildingAdd32(b.priorExpense10534,b.priorWages),originalBuildingAdd32(b.priorImports,b.priorExpense11161));
+    a.treasuryStart=*c.treasury;b.priorMisc11121=b.misc11125;b.misc11125=0;
+    b.reset11109=b.reset11113=b.reset11133=b.reset11137=b.reset10526=0;
+    c.previousYearProduction=c.dispatchedProduction;c.dispatchedProduction.fill(0);
+    a.incomeOther=a.expensesOther=a.income=a.expenses=a.profit=0;a.actualProfit=originalBuildingSub32(a.incomeReceived,a.expensesPaid);
+    a.treasuryForecast=*c.treasury;return OriginalBuildingUpdateBlocker::None;
+}
+//481960 resets the 28 resource slots at Grid15+1053 for each live partner;
+//4ACE50 then draws from the shared saved RNG and writes the process wind.
+inline OriginalBuildingUpdateBlocker originalBuildingAnnualQuotaAndWind(OriginalBuildingUpdateContext& c){
+    if(!c.trade||!c.figureServices||!c.figureServices->randomHistory||!c.disasters||c.figureServices->randomHistory->cursor>=100)
+        return OriginalBuildingUpdateBlocker::MissingContext;
+    for(auto& partner:c.trade->partners)if(partner.alive)std::fill(partner.quotaUsed.begin()+1,partner.quotaUsed.begin()+29,0);
+    c.disasters->windDirection=originalFigureRandomNext(*c.figureServices)&7u;
+    return OriginalBuildingUpdateBlocker::None;
+}
 inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(OriginalBuildingUpdateContext& c){
     if(!c.cycleTail||!c.cycleTail->alternateMode||!c.labor||!c.populationTotal||!c.buildingInputs||!c.buildings||!c.monthPart||!c.month||!c.cycle)return OriginalBuildingUpdateBlocker::MonthlyCity;
     //Alternate UI mode takes the early return at 4AC9D3 before any part work.
@@ -2271,14 +2335,15 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
         // HYPOTHESIS(rollover-notice-sort-neutral): 547440 changes only unbound notice presentation state.
         // HYPOTHESIS(rollover-incoming-cargo-stable): 4EB850 leaves building incoming-cargo counts unchanged.
         *c.month=nextMonth;
-        // HYPOTHESIS(rollover-monthly-events-empty): 523740,491CF0 and 4AFF80 have no pending monthly event.
+        // HYPOTHESIS(rollover-monthly-events-empty): 523740 and 491CF0 have no pending monthly event.
         if(nextMonth==1){
             if(!c.elapsedYears)return OriginalBuildingUpdateBlocker::MissingContext;
             *c.elapsedYears=originalBuildingAdd32(*c.elapsedYears,1); //4AC7DD..E5
-            //4AC7FD begins process-state and house-registry annual work;
-            // the transaction remains unpublished until those writes are bound.
-            return OriginalBuildingUpdateBlocker::AnnualPrelude;
+            result=originalBuildingAnnualPrelude(c);if(result!=OriginalBuildingUpdateBlocker::None)return result;
+            result=originalBuildingAnnualFinance(c);if(result!=OriginalBuildingUpdateBlocker::None)return result;
+            result=originalBuildingAnnualQuotaAndWind(c);if(result!=OriginalBuildingUpdateBlocker::None)return result;
         }
+        result=originalBuildingServiceRatingStep(c);if(result!=OriginalBuildingUpdateBlocker::None)return result; //4AFF80->44B970
         result=originalBuildingMonthlyPopulationHistory(c);if(result!=OriginalBuildingUpdateBlocker::None)return result;
         // HYPOTHESIS(rollover-scenario-events-empty): 55CEE0,48EB90,4A5910 and 4FEC80 produce no scenario event.
         *c.scenarioMonths=originalBuildingAdd32(*c.scenarioMonths,1);
@@ -2738,6 +2803,7 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     const auto value=[&](size_t wire){return originalBuildingI32(detail::u32(data.data()+p+wire));};
     c.cityEmployment=originalBuildingSavedCityEmployment(data,side);if(!c.cityEmployment)return false;
     c.populationTotal=value(38);c.populationPeak=value(11271);c.treasury=value(14);
+    c.serviceCombinedRating=value(11010);
     c.elapsedYears=originalBuildingI32(detail::u32(data.data()+side-180)); //5312A1 D623FC
     c.scenarioStartYears=detail::i16(data.data()+side-28+2); //52D201 C5CAE0
     c.engineRegion=detail::i16(data.data()+side-28+632); //52D301 C5CD58
@@ -2752,11 +2818,16 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     a.buckets.emplace();auto& buckets=*a.buckets;
     buckets.tribute=value(12027);buckets.otherIncome11440=value(11440);buckets.otherIncome11061=value(11061);buckets.exports=value(10498);
     buckets.expense11400=value(11400);buckets.expense11161=value(11161);buckets.expense10534=value(10534);buckets.expense10514=value(10514);buckets.imports=value(10506);
+    buckets.priorTax=value(10478);buckets.priorWages=value(10434);buckets.priorExports=value(10502);buckets.priorImports=value(10510);buckets.priorExpense10514=value(10518);
+    buckets.priorExpense11400=value(11396);buckets.priorExpense11161=value(11165);buckets.priorExpense10534=value(10530);
+    buckets.priorIncome11440=value(11436);buckets.priorIncome11061=value(11057);buckets.priorTribute=value(12031);
+    buckets.taxScratchA=value(10466);buckets.taxScratchB=value(10470);buckets.misc11125=value(11125);buckets.priorMisc11121=value(11121);
+    buckets.reset11109=value(11109);buckets.reset11113=value(11113);buckets.reset11133=value(11133);buckets.reset11137=value(11137);buckets.reset10526=value(10526);
     for(int32_t amount:{buckets.tribute,buckets.otherIncome11440,buckets.otherIncome11061,buckets.exports})a.incomeOther=originalBuildingAdd32(a.incomeOther,amount);
     //591B50 copies1312220(wire10426) to1312224 before4F1A90 consumes it.
     for(int32_t amount:{buckets.expense11400,buckets.expense11161,buckets.expense10534,buckets.expense10514,buckets.imports})a.expensesOther=originalBuildingAdd32(a.expensesOther,amount);
     c.unemploymentTrend=value(10406);
-    for(unsigned n=0;n<36;++n)c.dispatchedProduction[n]=value(10722+4*n); //59487B restores1312340
+    for(unsigned n=0;n<36;++n){c.dispatchedProduction[n]=value(10722+4*n);c.previousYearProduction[n]=value(10578+4*n);} //59487B,594868
     OriginalBuildingUpdateContext::Statistics stats;stats.primaryBuilding=value(6);stats.alternateBuilding=value(9900);
     stats.emptyCycles=value(11049);stats.currentFaction=value(11065);stats.primaryPresent=detail::i16(data.data()+p+11101);stats.capacity=value(11821);
     for(unsigned n=0;n<4;++n){stats.demand[n]=value(11789+4*n);stats.groups[n]=value(11841+4*n);}c.statistics=stats;
