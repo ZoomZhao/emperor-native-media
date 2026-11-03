@@ -195,7 +195,10 @@ void retailThenTail(){
     ++groups;Retail retail;require(retail.distribute(),"tail composition starts with actual known market transaction");retail.arrived();require(originalFigureRemoveArrivedWorker(retail.actor,retail.context),"tail composition starts after actual known retirement");
     const auto retailCommitted=retail.snapshot();auto c=tailFixture();c.goods=retail.context.goods;
     // These contexts have distinct owners. No unimplemented food conversion or city adapter is asserted.
-    for(unsigned part:{5u,6u,7u,11u,15u}){auto missing=c;missing.monthPart=part;const auto before=tailSnapshot(missing);
+    for(unsigned part:{5u,6u,11u}){auto supported=c;supported.monthPart=part;
+        require(originalBuildingCycleTailStep(supported)==OriginalBuildingUpdateBlocker::None&&supported.monthPart==part+1&&
+                retail.snapshot()==retailCommitted,"supported calendar part advances without replaying committed market work");}
+    for(unsigned part:{7u,15u}){auto missing=c;missing.monthPart=part;const auto before=tailSnapshot(missing);
         for(unsigned retry=0;retry<2;++retry)require(originalBuildingCycleTailStep(missing)==OriginalBuildingUpdateBlocker::MonthlyCity&&tailSnapshot(missing)==before&&retail.snapshot()==retailCommitted,"missing monthly/calendar service rolls back tail and cannot undo or replay committed market work");}
     auto noForecast=c;noForecast.buildingTotals.reset();const auto prior=tailSnapshot(noForecast);
     require(originalBuildingCycleTailStep(noForecast)==OriginalBuildingUpdateBlocker::MonthlyCity&&tailSnapshot(noForecast)==prior,"missing food forecast rejects health/date/expiry prefix");

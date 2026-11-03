@@ -10,7 +10,7 @@ clang++ -std=c++17 -O3 -Wall -Wextra -Werror -fobjc-arc \
     -I"$ROOT" \
     -framework Foundation -framework ImageIO -framework CoreGraphics -lz \
     "$DIR/emperor_assets.mm" \
-    "$DIR/wav_pcm.cpp" "$DIR/asset_pixels.cpp" \
+    "$DIR/wav_pcm.cpp" "$DIR/asset_pixels.cpp" "$DIR/sg3.cpp" "$DIR/resource_root.cpp" \
     "$ROOT/surface_lab/surface.cpp" \
     "$DIR/tests.mm" \
     -o "$DIR/build/game-assets-tests"

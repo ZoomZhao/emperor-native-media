@@ -14,6 +14,34 @@ from pathlib import Path
 import re
 import subprocess
 
+# These runtime fields postdate the frozen world wire format. They are not
+# encoded or restored; adding them requires a separately reviewed wire version.
+UNCOVERED = {
+    'OriginalFigure': 'traderTransactionMode traderTransactionTimer traderSold traderLedgerIndex',
+    'OriginalFigureSavedServices': 'traderLedgers',
+    'OriginalFigureBuildingLink': 'stallSupplier traderPriceBonus',
+    'OriginalFigureStoragePolicy': 'tradeCursor',
+    'OriginalFigureUpdateContext': 'tradeBridge wellRankedReturn traderStationGoodsHypothesis stallFoodPickupEmptyHypothesis traderScenarioNetworkMode',
+    'OriginalBuildingUpdateInputs': 'sentimentFoodDelay sentimentBuildingWeight',
+    # Accounting::Buckets is a single omitted optional containing all of these
+    # current and previous-year ledger values, including scratch/reset words.
+    'OriginalBuildingUpdateContext::Accounting': 'buckets',
+    'OriginalBuildingUpdateContext::Labor': 'sentimentReached350 previousSentiment monthlyFoodConsumed debtMonths monthlyTimerActive monthlyTimerRemaining sentimentTaxable sentimentShortages sentimentReason sentimentHouseRating sentimentBuildingPercent sentimentNoticeDirty',
+    'OriginalBuildingUpdateContext::Trade::Partner::Relation': 'price previousPrice',
+    'OriginalBuildingUpdateContext::Trade::Partner': 'quotaUsed basePrice',
+    'OriginalBuildingUpdateContext::CycleTail': 'populationHistory monthlyProduction monthlyStatistics annualUiFlag annualManagerFlag annualHouseRegistryFlag annualHousePopulation annualElitePopulation',
+    'OriginalBuildingUpdateContext': 'serviceCombinedRating monthlyRolloverHypotheses partnerEventHypotheses landTraderDispatch scenarioPartnerConflict previousYearProduction sentimentHypotheses sentimentTaxTable scenarioMonthCounter',
+    'OriginalCombinedProcessInputs': 'animalSpawnMissHypothesis singleMillFoodHypothesis stationCargoDeniedHypothesis stallFoodPickupEmptyHypothesis wellRankedReturn sentimentHypotheses partnerEventHypotheses landTraderDispatch monthlyRolloverHypotheses',
+}
+
+UNCOVERED_ANNUAL_FINANCE = (
+    'tribute otherIncome11440 otherIncome11061 exports expense11400 expense11161 '
+    'expense10534 expense10514 imports priorTax priorWages priorExports priorImports '
+    'priorExpense10514 priorExpense11400 priorExpense11161 priorExpense10534 '
+    'priorIncome11440 priorIncome11061 priorTribute taxScratchA taxScratchB '
+    'misc11125 priorMisc11121 reset11109 reset11113 reset11133 reset11137 reset10526'
+).split()
+
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -104,13 +132,27 @@ def main():
                         stack[-1]['fields'].append(name)
         schema = (repo / 'game_lab/original_world_checkpoint_fields.inc').read_text()
         expected = {m[1]: re.findall(r'v.field\(\d+,x\.(\w+)\)', m[2]) for m in re.finditer(r'worldFields\(V& v,([\w:]+)& x\)\{(.*?)\n\}', schema, re.S)}
-        mismatches = {n: dict(expected=f, actual=records.get(n, {}).get('fields')) for n, f in expected.items() if records.get(n, {}).get('fields') != f}
+        uncovered = {name: fields.split() for name, fields in UNCOVERED.items()}
+        mismatches = {}
+        for name, fields in expected.items():
+            actual = records.get(name, {}).get('fields')
+            excluded = uncovered.get(name, [])
+            if actual is None or any(field not in actual for field in excluded) or [field for field in actual if field not in excluded] != fields:
+                mismatches[name] = dict(expected=fields, actual=actual, uncovered=excluded)
+        for name in uncovered.keys() - expected.keys():
+            mismatches[name] = dict(error='uncovered record is absent from the frozen schema')
+        buckets = records.get('OriginalBuildingUpdateContext::Accounting::Buckets', {}).get('fields')
+        if buckets != UNCOVERED_ANNUAL_FINANCE:
+            mismatches['OriginalBuildingUpdateContext::Accounting::Buckets'] = dict(
+                expected_uncovered=UNCOVERED_ANNUAL_FINANCE, actual=buckets)
         implementation = (repo / 'game_lab/original_world_checkpoint_codec.cpp').read_text()
         remainder = re.search(r'worldFields\(V& v,Remainder& x\)\{(.*?)\nstruct Writer', implementation, re.S)
         remainder_fields = re.findall(r'v.field\(\d+,x.f\.(\w+)\)', remainder[1]) if remainder else []
         if remainder_fields != [f for f in expected['OriginalFigureUpdateContext'] if f != 'figures']:
             mismatches['section5-remainder'] = dict(actual=remainder_fields)
-        coverage = dict(records=len(expected), direct_fields=sum(map(len, expected.values())), mismatches=mismatches)
+        coverage = dict(records=len(expected), direct_fields=sum(map(len, expected.values())),
+                        uncovered=uncovered, uncovered_annual_finance=UNCOVERED_ANNUAL_FINANCE,
+                        uncovered_reason='Not represented in frozen .emworld wire format; restoration requires a new reviewed wire version.', mismatches=mismatches)
         (build / 'coverage.json').write_text(json.dumps(coverage, indent=2) + '\n')
         if mismatches or not expected:
             raise RuntimeError('current declarations differ from the reviewed persistent wire schema')
