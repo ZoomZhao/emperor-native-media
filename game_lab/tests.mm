@@ -65,14 +65,18 @@ int main(int argc, char** argv) {
             CHECK(elev.version == 213);
             CHECK(elev.numImages == 372);
             CHECK(elev.sprites.size() == 372);
-            CHECK(elev.sprites[201].offset == 39218);
-            CHECK(elev.sprites[201].type == 78);
+            // The wire table starts with a reserved record. The current reader
+            // exposes logical image 1 at index 0; the old test counted it.
+            CHECK(elev.sprites[200].offset == 39218);
+            CHECK(elev.sprites[200].width == 78);
+            CHECK(elev.sprites[200].type == 30);
 
             const auto gen = loadSG3(data("DATA/China_General.sg3"));
             CHECK(gen.version == 213);
             CHECK(gen.numImages == 2941);
             CHECK(gen.sprites.size() == 2941);
-            CHECK(gen.sprites[6].type == 16);
+            CHECK(gen.sprites[6].width == 16);
+            CHECK(gen.sprites[6].type == 10);
             CHECK(gen.sprites[6].length == 512);
             std::cout << "  -> Elevation SG3: 372 sprites verified; General SG3: 2941 sprites verified" << std::endl;
             ++g_stats.testsPassed;
