@@ -80,7 +80,7 @@ def constraint_summary(metrics):
             'note':'Metadata subclasses first encountered in holdout do not have separate discovery support;marker rule was exploratory after aggregate holdout counts.'}
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('task',choices=['test','metrics','constraints','playback','primary-metric','refusal-census']);p.add_argument('--mode',choices=['release','undefined'],default='release');p.add_argument('--build-dir',type=Path);p.add_argument('--updates',type=int,default=100)
+    p.add_argument('task',choices=['test','metrics','constraints','playback','primary-metric','refusal-census']);p.add_argument('--mode',choices=['release','undefined'],default='release');p.add_argument('--build-dir',type=Path);p.add_argument('--updates',type=int,default=100);p.add_argument('--state-hash',action='store_true')
     a=p.parse_args();cache='emperor-app-surface-'+hashlib.sha256(str(ROOT).encode()).hexdigest()[:12]
     build=(a.build_dir or Path(tempfile.gettempdir())/cache).resolve()
     configured=os.environ.get('EMPEROR_GAMEDATA_ROOT')
@@ -97,7 +97,7 @@ def main():
             argv+=['--updates',str(a.updates)]
         if a.task=='primary-metric':
             def one(index):
-                return subprocess.run([str(binary),'--primary-one','--updates',str(a.updates),'--index',str(index)],check=False,capture_output=True,text=True)
+                return subprocess.run([str(binary),'--primary-one','--updates',str(a.updates),'--index',str(index)]+(['--state-hash'] if a.state_hash else []),check=False,capture_output=True,text=True)
             with ThreadPoolExecutor(max_workers=6) as workers:
                 results=list(workers.map(one,range(6)))
             qualified=0;names=set()
@@ -107,7 +107,7 @@ def main():
                 rows=result.stdout.splitlines()
                 if len(rows)!=1:raise RuntimeError('primary source did not produce one row')
                 columns=rows[0].split('\t')
-                if len(columns)!=4 or columns[0] in names:raise RuntimeError('invalid or duplicate primary source row')
+                if len(columns)!=(5 if a.state_hash else 4) or columns[0] in names:raise RuntimeError('invalid or duplicate primary source row')
                 names.add(columns[0]);qualified+=int(columns[1])>=a.updates and columns[3]=='none'
                 print(rows[0])
             print('PRIMARY %d/6'%qualified);return 0
