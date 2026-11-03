@@ -264,7 +264,7 @@ void authored(const std::filesystem::path& root){
 // per source — updates, the in-game month and month part reached, then the
 // first refusal — then PRIMARY X/6. Exit 0 with SKIP when the data root is
 // unset; a source that fails to prepare is reported, not thrown.
-void primaryMetric(const std::string& path,unsigned updates,bool census=false,int selected=-1){
+void primaryMetric(const std::string& path,unsigned updates,bool census=false,int selected=-1,bool stateHash=false){
     using namespace game_lab;
     const auto root=ResourceRoot::fromAbsolute(path);
     if(!root.configured())throw std::runtime_error("explicit existing data root required");
@@ -309,7 +309,14 @@ void primaryMetric(const std::string& path,unsigned updates,bool census=false,in
         if(reached>=updates&&refusal.empty())++qualified;
         std::cout<<source.relativePath<<'\t'<<reached<<'\t';
         if(calendar)std::cout<<"month "<<calendar->first<<" part "<<calendar->second;else std::cout<<"calendar -";
-        std::cout<<'\t'<<(refusal.empty()?"none":refusal)<<'\n';
+        std::cout<<'\t'<<(refusal.empty()?"none":refusal);
+        if(stateHash){uint64_t h=1469598103934665603ull;const auto mix=[&](uint64_t v){for(unsigned k=0;k<8;++k){h^=uint8_t(v>>(8*k));h*=1099511628211ull;}};
+            const auto* city=surface.cityPlaybackState();if(city){mix(city->phase);
+                for(const auto& e:city->figures.figures){const auto& f=e.second;mix(e.first);mix(f.type);mix(f.alive);mix(f.action);mix(f.frame);mix(f.cell);mix(uint16_t(f.x));mix(uint16_t(f.y));mix(f.direction);mix(f.progress);mix(uint16_t(f.counter));mix(uint16_t(f.owner));mix(uint16_t(f.target));mix(uint16_t(f.route));mix(uint16_t(f.routeCursor));mix(f.age);mix(f.image);mix(f.secondaryImage);}
+                if(city->figures.services){mix(city->figures.services->randomFirst);mix(city->figures.services->randomSecond);}
+                for(const auto& e:city->buildings){const auto& s=e.second.state;mix(e.first);mix(s.building.type);mix(s.inputs.alive);mix(uint16_t(s.inputs.workers));mix(uint16_t(s.inputs.stock));mix(uint16_t(s.inputs.primaryFigure));mix(s.inputs.spawnCounter);}}
+            std::cout<<'\t'<<std::hex<<h<<std::dec;}
+        std::cout<<'\n';
     }
     if(seen!=6)throw std::runtime_error("primary corpus is 6 SAV sources, saw "+std::to_string(seen));
     if(selected>=0)return;
@@ -740,9 +747,10 @@ int main(int argc,char** argv){try{if(argc==2&&std::string(argv[1])=="--metrics"
     else if(argc>=2&&std::string(argv[1])=="--playback"){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"{\"skipped\":true,\"reason\":\"EMPEROR_GAMEDATA_ROOT unset or empty\"}\n";return 0;}playback(root,std::vector<std::string>(argv+2,argv+argc));}
     else if(argc>=2&&(std::string(argv[1])=="--primary-metric"||std::string(argv[1])=="--refusal-census"||std::string(argv[1])=="--primary-one")){const char* root=std::getenv("EMPEROR_GAMEDATA_ROOT");if(!root||!*root){std::cout<<"SKIP EMPEROR_GAMEDATA_ROOT unset\n";return 0;}
         const bool one=std::string(argv[1])=="--primary-one";int selected=-1;
-        if(one){if(argc!=6||std::string(argv[4])!="--index")throw std::runtime_error("--primary-one --updates N --index 0..5");
+        const bool stateHash=one&&argc==7&&std::string(argv[6])=="--state-hash";
+        if(one){if((argc!=6&&!stateHash)||std::string(argv[4])!="--index")throw std::runtime_error("--primary-one --updates N --index 0..5 [--state-hash]");
             char* end=nullptr;const unsigned long value=std::strtoul(argv[5],&end,10);if(!end||*end||value>5)throw std::runtime_error("--index needs 0..5");selected=int(value);}
         unsigned updates=100;if((argc==4||one)&&std::string(argv[2])=="--updates"){char* end=nullptr;const unsigned long value=std::strtoul(argv[3],&end,10);if(!end||*end||!value||value>1000000ul)throw std::runtime_error("--updates needs 1..1000000");updates=unsigned(value);}
-        else if(argc!=2)throw std::runtime_error("--primary-metric [--updates N]");primaryMetric(root,updates,std::string(argv[1])=="--refusal-census",selected);}
+        else if(argc!=2)throw std::runtime_error("--primary-metric [--updates N]");primaryMetric(root,updates,std::string(argv[1])=="--refusal-census",selected,stateHash);}
     else if(argc==2)authored(std::filesystem::absolute(argv[1]));else throw std::runtime_error("fixture directory or --metrics required");return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

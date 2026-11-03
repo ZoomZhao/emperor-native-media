@@ -37,6 +37,16 @@ OriginalCombinedProcessInputs combinedTestProcess(){
     p.cropDispatchModel=std::array<int32_t,14>{5,3,4,2,3,2,10,6,8,4,3,4,50,8};p.cropDispatchRadius=std::array<int32_t,2>{3,3};return p;
 }
 void combinedAuthored(){
+    {OriginalFigureUpdateContext base;base.figures[1].slot=1;base.figures[1].counter=7;base.services.emplace();base.services->randomFirst=9;
+        {OriginalFigureCandidate outer(base);outer.get().figures.at(1).counter=11;
+            {OriginalFigureCandidate inner(outer.get());inner.get().figures.at(1).counter=13;inner.get().services->randomFirst=15;}
+            need(outer.get().figures.at(1).counter==11&&outer.get().services->randomFirst==9&&base.figures.at(1).counter==7,
+                 "nested figure candidates isolate speculative mutations");}
+        OriginalFigureCandidate reused(base);need(reused.get().figures.at(1).counter==7&&reused.get().services->randomFirst==9,
+            "reused figure candidate discards refused writes before the next lease");
+        OriginalFigureUpdateContext different;different.figures[2].slot=2;different=base;
+        need(different.figures.size()==1&&different.figures.count(1)&&!different.figures.count(2)&&different.services->randomFirst==9,
+            "figure candidate assignment replaces different slot keys and copies other state");}
     OriginalCombinedState city;city.process=combinedTestProcess();city.figures.services.emplace();
     city.figures.services->randomFirst=1;city.figures.services->randomSecond=2;
     city.figures.goods.emplace();city.phase=0;

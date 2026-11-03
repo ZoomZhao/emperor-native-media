@@ -2,6 +2,7 @@
 #include "original_figure_image.hpp"
 #include "original_kernel_contract.hpp"
 #include <set>
+#include <memory>
 #include <type_traits>
 
 namespace game_lab {
@@ -259,8 +260,8 @@ inline std::optional<std::vector<uint8_t>> originalFigureReachableCells(
 // Complete saved context, ordered by pool slot. Both image words are erased.
 // This models one virtual call against that explicit context, not the global
 // pool pass: preceding unsupported slot updates are not silently invented.
-struct OriginalFigureUpdateContext {
-    std::map<size_t,OriginalFigure> figures;unsigned view=0;
+struct OriginalFigureUpdateFields {
+    unsigned view=0;
     std::map<unsigned,int> modelSpeeds;
     std::optional<OriginalFigureSavedServices> services;
     std::optional<OriginalFigurePassability> passability;
@@ -324,6 +325,39 @@ struct OriginalFigureUpdateContext {
     std::optional<bool> traderStationGoodsHypothesis;
     std::optional<bool> stallFoodPickupEmptyHypothesis;
     std::optional<int32_t> traderScenarioNetworkMode; //408AC0->4FAE50
+};
+struct OriginalFigureUpdateContext : OriginalFigureUpdateFields {
+    std::map<size_t,OriginalFigure> figures;
+    OriginalFigureUpdateContext()=default;
+    OriginalFigureUpdateContext(const OriginalFigureUpdateContext&)=default;
+    OriginalFigureUpdateContext(OriginalFigureUpdateContext&&)=default;
+    OriginalFigureUpdateContext& operator=(OriginalFigureUpdateContext&&)=default;
+    OriginalFigureUpdateContext& operator=(const OriginalFigureUpdateContext& other){
+        if(this==&other)return *this;
+        static_cast<OriginalFigureUpdateFields&>(*this)=other;
+        bool same=figures.size()==other.figures.size();
+        if(same){auto a=figures.begin();auto b=other.figures.begin();
+            for(;a!=figures.end();++a,++b)if(a->first!=b->first){same=false;break;}}
+        if(same){auto a=figures.begin();for(const auto& b:other.figures){a->second=b.second;++a;}}
+        else figures=other.figures;
+        return *this;
+    }
+};
+// Reuse private candidate storage without sharing a candidate across nested
+// calls or threads. Every lease copies the complete source before use; a
+// refused call simply releases its private candidate, as with a local copy.
+class OriginalFigureCandidate {
+    struct Pool {std::vector<std::unique_ptr<OriginalFigureUpdateContext>> slots;size_t depth=0;};
+    static Pool& pool(){static thread_local Pool p;return p;}
+    OriginalFigureUpdateContext* value_;
+public:
+    explicit OriginalFigureCandidate(const OriginalFigureUpdateContext& source){auto& p=pool();
+        if(p.depth==p.slots.size())p.slots.push_back(std::make_unique<OriginalFigureUpdateContext>());
+        value_=p.slots[p.depth].get();*value_=source;++p.depth;}
+    ~OriginalFigureCandidate(){--pool().depth;}
+    OriginalFigureCandidate(const OriginalFigureCandidate&)=delete;
+    OriginalFigureCandidate& operator=(const OriginalFigureCandidate&)=delete;
+    OriginalFigureUpdateContext& get(){return *value_;}
 };
 //5AD440's B0C projection for an entirely building-free grid. The pointer
 //arm5AD79F..834 emits only10/1/2, all disjoint from B0C. River-object
@@ -804,6 +838,15 @@ inline OriginalFigureMovement originalFigureFollowRoute(const OriginalFigure& sa
         (saved.route>0||result.state->direction<8))local.roadblockGate=0;
         *context=std::move(local);}return result;
 }
+// The caller owns this candidate and discards it on refusal, so a nested
+// route transaction need not copy it a second time.
+inline OriginalFigureMovement originalFigureFollowRouteCandidate(const OriginalFigure& saved,unsigned speed,uint32_t terrainFlags,
+    OriginalFigureUpdateContext& context){
+    auto result=originalFigureFollowRouteInContext(saved,speed,terrainFlags,&context);
+    if(result.state&&(!speed||originalFigureMovementSteps(speed,saved.routePhase).first)&&
+       (saved.route>0||result.state->direction<8))context.roadblockGate=0;
+    return result;
+}
 //0x4EACD0 ->429DF0 ->429E10 ->48B7F0 or5B3ED0.
 //44E550's sixteen angular sectors, in44E770 first-match order. Inclusive
 //integer cross products are exact for this radius2 query; no atan rounding.
@@ -1052,17 +1095,17 @@ inline bool originalFigureBeginRoam(OriginalFigure& f,OriginalFigureUpdateContex
     f.roamState=1;return true;
 }
 //0x4E6B70 ->0x4E6D80, including the bounded entertainment segment.
-inline OriginalFigureMovement originalFigureRoam(const OriginalFigure& saved,unsigned speed,uint32_t terrainFlags,
+inline OriginalFigureMovement originalFigureRoamCandidate(const OriginalFigure& saved,unsigned speed,uint32_t terrainFlags,
     OriginalFigureUpdateContext& context){
     if(!saved.roamState||saved.direction>7||saved.progress>20)return {OriginalFigureUpdateStatus::RouteBoundary,{}};
-    auto local=context;auto f=saved;const auto schedule=originalFigureMovementSteps(speed,f.routePhase);
+    auto& local=context;auto f=saved;const auto schedule=originalFigureMovementSteps(speed,f.routePhase);
     f.roamSteps=originalFigureWord(int(f.roamSteps)+int(speed));
     for(unsigned n=0;n<schedule.first;++n){if(f.progress>=19){
             f.progress=20;f.roamTurns=uint8_t(f.roamTurns+1);
             if(!originalFigureEntertainmentSegment(f,local))return {OriginalFigureUpdateStatus::SegmentService,{}};
             const auto roads=originalFigureRoamRoads(f,local);if(!roads)return {OriginalFigureUpdateStatus::NextDirection,{}};
             const unsigned count=unsigned(std::count(roads->begin(),roads->end(),true));
-            if(!count){f.direction=9;f.roamSteps=f.roamLimit;f.routePhase=schedule.second;context=std::move(local);return {OriginalFigureUpdateStatus::Computed,f};}
+            if(!count){f.direction=9;f.roamSteps=f.roamLimit;f.routePhase=schedule.second;return {OriginalFigureUpdateStatus::Computed,f};}
             if(count==1){for(unsigned d=0;d<8;d+=2)if((*roads)[d])f.direction=uint8_t(d);}
             else if(count==2){int reverse=(f.previousDirection+4u)&7;
                 if(f.roamCountdown==255){if(!originalFigureRoamTargetTurn(f,local))return {OriginalFigureUpdateStatus::NextDirection,{}};reverse=-1;}
@@ -1086,13 +1129,18 @@ inline OriginalFigureMovement originalFigureRoam(const OriginalFigure& saved,uns
         if(f.progress==10){const auto crossed=originalFigureCrossCell(f,local);if(crossed!=OriginalFigureUpdateStatus::Computed)return {crossed,{}};
             terrainFlags=local.terrain[f.cell];}
     }
-    f.routePhase=schedule.second;context=std::move(local);return {OriginalFigureUpdateStatus::Computed,f};
+    f.routePhase=schedule.second;return {OriginalFigureUpdateStatus::Computed,f};
+}
+inline OriginalFigureMovement originalFigureRoam(const OriginalFigure& saved,unsigned speed,uint32_t terrainFlags,
+    OriginalFigureUpdateContext& context){
+    auto candidate=context;auto result=originalFigureRoamCandidate(saved,speed,terrainFlags,candidate);
+    if(result.state)context=std::move(candidate);return result;
 }
 //0x4E9620 single free step; exhaustion is tested BEFORE movement. The caller
 // handles arrival writes. Unlink/append happens even without a cell change.
-inline std::optional<std::pair<OriginalFigure,bool>> originalFigureFreeStep(const OriginalFigure& saved,
+inline std::optional<std::pair<OriginalFigure,bool>> originalFigureFreeStepCandidate(const OriginalFigure& saved,
     OriginalFigureUpdateContext& context){
-    if(!context.cropBase)return std::nullopt;auto local=context;auto f=saved;
+    if(!context.cropBase)return std::nullopt;auto& local=context;auto f=saved;
     if(f.raise)--f.raise;const bool arrived=int(f.freeRemainingX)+f.freeRemainingY<1;
     if(!arrived){
         if(f.freeAxis==1){f.freeError=originalFigureWord(int(f.freeError)+2*(f.freeError<0?int(f.freeRemainingY):int(f.freeRemainingY)-f.freeRemainingX));
@@ -1106,8 +1154,11 @@ inline std::optional<std::pair<OriginalFigure,bool>> originalFigureFreeStep(cons
     f.x=int16_t(f.subX/20);f.y=int16_t(f.subY/20);f.cellMovement=0;
     const int64_t cell=int64_t(*context.cropBase)+f.x+228LL*f.y;if(cell<0||cell>=51984)return std::nullopt;
     if(!originalFigureRelink(f,uint32_t(cell),local))return std::nullopt;
-    context=std::move(local);return std::make_pair(f,arrived);
+    return std::make_pair(f,arrived);
 }
+inline std::optional<std::pair<OriginalFigure,bool>> originalFigureFreeStep(const OriginalFigure& saved,
+    OriginalFigureUpdateContext& context){auto candidate=context;auto result=originalFigureFreeStepCandidate(saved,candidate);
+    if(result)context=std::move(candidate);return result;}
 //4E98A0,shared non-reversed integer free-movement initialization.
 inline void originalFigureFreeTarget(OriginalFigure& f){
     f.freeTargetX=originalFigureWord(int(f.destinationX)*20);f.freeTargetY=originalFigureWord(int(f.destinationY)*20);
@@ -1199,6 +1250,14 @@ inline void originalFigurePublishWrites(OriginalFigureFirstUpdate& out,const Ori
     out.speechCounters=after.speechCounters;
     out.roadblockGate=after.roadblockGate;
     out.services=after.services;out.buildings=after.buildings;out.state=f;out.status=OriginalFigureUpdateStatus::Computed;
+}
+// Equivalent publication when the update changed only its own figure.
+inline void originalFigurePublishUnchanged(OriginalFigureFirstUpdate& out,const OriginalFigure& f,const OriginalFigureUpdateContext& c){
+    out.watchMaximum=c.watchMaximum;out.inspectorMaximum=c.inspectorMaximum;out.inspectionVisits=c.inspectionVisits;
+    out.goods=c.goods;out.tradeBridge=c.tradeBridge;out.freeSlots=c.freeSlots;out.crtRandom=c.crtRandom;out.crtRandomCalls=c.crtRandomCalls;
+    out.allocatedSlots=c.allocatedSlots;out.highestLiveSlot=c.highestLiveSlot;out.allocationEvents=c.allocationEvents;
+    out.allocationCount=c.allocationCount;out.buildingAllocationCount=c.buildingAllocationCount;out.speechCounters=c.speechCounters;
+    out.roadblockGate=c.roadblockGate;out.services=c.services;out.buildings=c.buildings;out.state=f;out.status=OriginalFigureUpdateStatus::Computed;
 }
 inline bool originalFigureBulkGoods(const OriginalFigure& f){const unsigned r=f.subtype?f.subtype:f.resource;return r==10||r==18||r==20;}
 inline bool originalFigureSpecialGoods(const OriginalFigure& f){const unsigned r=f.subtype?f.subtype:f.resource;
@@ -1384,7 +1443,7 @@ inline OriginalFigureFirstUpdate originalCartFirstUpdate(const OriginalFigure& s
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=0x4d4c70;out.status=OriginalFigureUpdateStatus::CartLeaderMovement;
     if(!context||!context->figures.count(saved.slot)||saved.leaderLink<=0)return out;
-    auto local=*context;const auto immediate=local.figures.find(size_t(saved.leaderLink));if(immediate==local.figures.end())return out;
+    OriginalFigureCandidate candidate(*context);auto& local=candidate.get();const auto immediate=local.figures.find(size_t(saved.leaderLink));if(immediate==local.figures.end())return out;
     const auto lead=immediate->second;auto goods=immediate;std::set<size_t> seen;
     const auto missingGoods=[&](){auto f=saved;f.alive=2;originalFigurePublishWrites(out,f,*context,local);return out;};
     for(unsigned n=0;n<8;++n){if(!seen.insert(goods->first).second)return out;
@@ -1439,7 +1498,7 @@ inline OriginalFigureFirstUpdate originalCartFirstUpdate(const OriginalFigure& s
 inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& saved,
     const std::map<uint32_t,const SG3Archive*>& archives,const OriginalFigureUpdateContext* context,uint32_t terrainFlags){
     OriginalFigureFirstUpdate out;out.updaterVA=saved.type==19?0x4cbec0:saved.type==21?0x4cd8f0:0x4d13c0;out.status=OriginalFigureUpdateStatus::GoodsRouteAndOwner;
-    if(!context||!context->figures.count(saved.slot))return out;auto local=*context;auto f=saved;f.image=f.secondaryImage=0;
+    if(!context||!context->figures.count(saved.slot))return out;OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;f.image=f.secondaryImage=0;
     const bool initializedCarrier=f.type==19&&(f.action==17||f.action==21);
     const bool initializedSupplier=(f.type==22&&(f.action==10||f.action==11))||initializedCarrier;
     if(initializedSupplier){ //4D1467..15B2->4CBC70/4CBA70.
@@ -1573,7 +1632,7 @@ inline OriginalFigureFirstUpdate originalGoodsFirstUpdate(const OriginalFigure& 
             if(dest==context->buildings->end()||(dest->second.type!=0x35&&dest->second.type!=0x36&&dest->second.type!=0x2b)||!dest->second.destinationEnabled)return out;
             f.hidden=0;}
         const auto speed=context->modelSpeeds.find(f.type);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
-        const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+        const auto movement=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
         if(f.type==21&&f.action==11&&f.direction==8)f.action=12; //4CDDF4: withdrawal is a later action12 call.
         else if(f.type==21&&f.action==10&&f.direction==8){ //4CDF22->4E34E0 accepted owner return.
@@ -1631,18 +1690,18 @@ inline OriginalFigureFirstUpdate originalWorkerFirstUpdate(const OriginalFigure&
     const bool rejectedCommon=(home->second.alive!=1&&home->second.alive!=3)||home->second.worker!=int(saved.slot);
     if(!rejectedCommon&&(home->second.type<2||home->second.type>=18))return out; //uncited virtual+B8
     if(rejectedCommon||!home->second.accepting){
-        auto local=*context;auto f=saved;f.movementMode=3;f.secondaryImage=0;f.alive=2;
+        OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;f.movementMode=3;f.secondaryImage=0;f.alive=2;
         originalFigurePublishWrites(out,f,*context,local);return out;}
     if(saved.action!=6&&saved.action!=7&&saved.action!=8)return out;
     const auto speed=context->modelSpeeds.find(11);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
-    auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;f.hidden=0;f.frame=uint8_t(f.frame+1);if(f.frame>=12)f.frame=0;
+    OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;f.hidden=0;f.frame=uint8_t(f.frame+1);if(f.frame>=12)f.frame=0;
     if(f.action==6){ //4CA0AB..106:countdown,then4BA6F0;no movement this call.
         f.counter=originalFigureWord(int(f.counter)-1);f.hidden=1;f.frame=0;
         if(f.counter<=0){const auto road=local.workerRoadExits.find(size_t(f.home));
             if(road==local.workerRoadExits.end())return out;
             if(!road->second)f.alive=2;
             else {f.action=7;f.destinationX=road->second->first;f.destinationY=road->second->second;f.roamSteps=0;}}
-    }else if(f.action==8){f.freeMovement=1;const auto movement=originalFigureFreeStep(f,local);
+    }else if(f.action==8){f.freeMovement=1;const auto movement=originalFigureFreeStepCandidate(f,local);
         if(!movement)return out;f=movement->first;
         if(movement->second){out.status=OriginalFigureUpdateStatus::WorkerEmployment;
             auto& house=local.buildings->at(size_t(f.home));
@@ -1662,7 +1721,7 @@ inline OriginalFigureFirstUpdate originalWorkerFirstUpdate(const OriginalFigure&
                 pop.total=bits>INT32_MAX?0:int32_t(bits);pop.peak=std::max(pop.peak,pop.total);}
             house.worker=0;
         }f.hidden=bool(f.cellMovement);
-    }else {const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+    }else {const auto movement=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
         if(f.direction==8){f.action=8;f.destinationX=home->second.x;f.destinationY=home->second.y;f.roamSteps=0;
             f.freeTargetX=originalFigureWord(int(f.destinationX)*20);f.freeTargetY=originalFigureWord(int(f.destinationY)*20);
@@ -1732,7 +1791,7 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
     if(!context||!context->buildings||!context->figures.count(saved.slot))return out;
     const auto owner=context->buildings->find(size_t(saved.owner));
     if(owner==context->buildings->end()||(owner->second.alive!=1&&owner->second.alive!=3))return out;
-    auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;f.freeMovement=f.hidden=0;
+    OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;f.freeMovement=f.hidden=0;
     uint32_t code=0;
     if(f.action==6){f.counter=originalFigureWord(int(f.counter)-1);f.direction=f.previousDirection;
         if(f.counter<=0){const auto prey=originalFigureHunterPrey(f,local);if(!prey)return out;
@@ -1788,7 +1847,7 @@ inline OriginalFigureFirstUpdate originalHunterFirstUpdate(const OriginalFigure&
             nearby=distance<=2;code=nearby?0x4ec0:0x4ebf;
         }else code=f.action==10?0x4ec2:0x4ebe;
         const auto speed=context->modelSpeeds.find(40);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
-        if(!nearby){const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+        if(!nearby){const auto movement=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
             if(!movement.state){out.status=movement.status;return out;}f=*movement.state;}
         if(f.action==11&&f.frame==12){ //4D3440: search before the animation advances.
             const auto prey=originalFigureHunterPrey(f,local,100);if(!prey)return out;
@@ -1848,12 +1907,12 @@ inline OriginalFigureFirstUpdate originalProjectileFirstUpdate(const OriginalFig
     OriginalFigureFirstUpdate out;out.updaterVA=0x5e6200;out.status=OriginalFigureUpdateStatus::Projectile;
     if(!context||!context->animationFlags||!context->models.count(40)||!context->figures.count(saved.slot)||saved.type!=54||saved.owner<=0||
         !context->services||context->buildingOwners.size()!=51984)return out;
-    auto local=*context;auto f=saved;const auto shooter=local.figures.find(size_t(f.owner));
+    OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;const auto shooter=local.figures.find(size_t(f.owner));
     if(shooter==local.figures.end()||shooter->second.type!=40||shooter->second.alive==2||f.home<0)return out;
     const int range=local.models.at(40)[6];if(range==INT32_MIN||range<1)return out;
     f.home=originalFigureWord(int(f.home)+1);if(f.home>10*(3*range/4))f.alive=2;
     f.freeMovement=1;bool arrived=false;
-    for(unsigned n=0;n<7;++n){const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;
+    for(unsigned n=0;n<7;++n){const auto moved=originalFigureFreeStepCandidate(f,local);if(!moved)return out;f=moved->first;
         if(moved->second){arrived=true;break;}}
     if(f.cell>=51984)return out;
     if(arrived){ //5E34D0 has no soldier in this bounded cell;5E3400 first eligible candidate.
@@ -1938,12 +1997,12 @@ inline OriginalFigureFirstUpdate originalStallSupplierFirstUpdate(const Original
     const auto model=context->models.find(24);const auto speed=context->modelSpeeds.find(24);
     if(model==context->models.end()||model->second[15]==INT32_MIN||speed==context->modelSpeeds.end())return out;
     if(saved.action!=6&&saved.action!=7)return out;
-    auto local=*context;auto f=saved;f.movementMode=1;f.freeMovement=0;
+    OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;f.movementMode=1;f.freeMovement=0;
     f.roamLimit=originalFigureWord(int((int64_t(model->second[15])*96)%65536));
     f.frame=uint8_t(f.frame+1);if(f.frame>=12)f.frame=0;
     if(f.action==6){const auto dest=local.buildings->find(size_t(f.delivery));
         if(dest==local.buildings->end()||dest->second.alive!=1)return out;}
-    const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+    const auto moved=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
     if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
     if(f.action==6&&f.direction==8){
         // HYPOTHESIS(stall-food-pickup-empty): 5464E0 finds no transferable
@@ -1967,9 +2026,9 @@ inline OriginalFigureFirstUpdate originalSupplierFirstUpdate(const OriginalFigur
     if(!context||!context->buildings||!context->figures.count(saved.slot))return out;
     const auto owner=context->buildings->find(size_t(saved.owner));
     if(owner==context->buildings->end()||owner->second.alive!=1)return out;
-    auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=17;f.freeMovement=f.hidden=0;
+    OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;f.image=f.secondaryImage=0;f.movementMode=17;f.freeMovement=f.hidden=0;
     if(f.action==7||f.action==9||f.action==11){const auto speed=context->modelSpeeds.find(26);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
-        const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+        const auto movement=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
         if(f.action==9&&f.direction>=8){
             if(f.direction==8){f.hidden=1;f.alive=2;}
@@ -2084,7 +2143,7 @@ inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigu
     else if(type==0xcf)code=0x4c1e;else if(type==0xd6)code=0x4c11;else if(type==0x47)code=0x4ca0;else return out;
     const auto model=context->models.find(saved.type);
     if(model==context->models.end()||model->second[15]==INT32_MIN)return out;
-    auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.freeMovement=0;f.movementMode=type==0xd3?18:7;
+    OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;f.image=f.secondaryImage=0;f.freeMovement=0;f.movementMode=type==0xd3?18:7;
     f.roamLimit=originalFigureWord(int((int64_t(model->second[15])*96)%65536));
     f.frame=uint8_t(f.frame+1);if(type!=0xd3)f.hidden=0;
     if(f.action==6){f.counter=originalFigureWord(int(f.counter)-1);f.hidden=1;f.frame=0;
@@ -2092,7 +2151,7 @@ inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigu
             const auto road=originalFigureMusicRoad(owner->second,local);if(!road||!*road)return out;
             f.action=7;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;f.roamSteps=0;originalFigureFreeTarget(f);}
     }else if(f.action==7){f.freeMovement=f.hidden=1;if(type==0xd3)f.movementMode=1;
-        const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;f.hidden=1;
+        const auto moved=originalFigureFreeStepCandidate(f,local);if(!moved)return out;f=moved->first;f.hidden=1;
         if(moved->second){if(!local.buildings)return out;
             if(type!=0xd3){
                 if(type==0xcf||type==0xd6||type==0x47){if(local.buildingOwners.size()!=51984||f.cell>=51984)return out;
@@ -2104,7 +2163,7 @@ inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigu
             if(!*venue)f.alive=2;else {f.action=8;f.delivery=int16_t(*venue);f.roamSteps=0;}}}
     }else if(type==0xd3&&f.action==8){f.movementMode=1;f.hidden=0;f.roamSteps=originalFigureWord(int(f.roamSteps)+1);
         if(f.roamSteps>=3200)f.alive=2;
-        const auto movement=originalFigureFollowRoute(f,6,terrainFlags,&local);if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
+        const auto movement=originalFigureFollowRouteCandidate(f,6,terrainFlags,local);if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
         if(f.direction==8){const auto venue=local.buildings->find(size_t(f.delivery));if(venue==local.buildings->end()||venue->second.type!=71||!venue->second.entertainment)return out;
             venue->second.entertainment->at(1)=96;f.alive=2;}
         else if(f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
@@ -2116,8 +2175,8 @@ inline OriginalFigureFirstUpdate originalDelegatedFirstUpdate(const OriginalFigu
             else {if(!local.services||f.route<0||f.route>=1000)return out;
                 f.action=9;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;
                 if(f.route>0){if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}}
-        const auto movement=originalFigureRoam(f,6,terrainFlags,local);if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
-    }else if(type!=0xd3&&f.action==9){const auto movement=originalFigureFollowRoute(f,6,terrainFlags,&local);
+        const auto movement=originalFigureRoamCandidate(f,6,terrainFlags,local);if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
+    }else if(type!=0xd3&&f.action==9){const auto movement=originalFigureFollowRouteCandidate(f,6,terrainFlags,local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
         if(f.direction==8&&(type==0xcf||type==0xd6||type==0x47)){ //+23C=66EFA0 false: return from road to occupied cell.
             f.action=7;f.destinationX=owner->second.x;f.destinationY=owner->second.y;originalFigureFreeTarget(f);f.roamSteps=0;}
@@ -2177,7 +2236,7 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
     if((saved.type==23&&ownerType!=0x3b)||(saved.type==28&&ownerType!=0x48)||
         (saved.type==29&&ownerType!=0x7f)||(saved.type==39&&ownerType!=0x7c))return out;
     const auto speed=context->modelSpeeds.find(saved.type);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
-    auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=18;f.freeMovement=0;
+    OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;f.image=f.secondaryImage=0;f.movementMode=18;f.freeMovement=0;
     f.roamLimit=originalFigureWord(int((int64_t(model->second[15])*96)%65536));
     //4D3ADD->4E3BE3: Well's common service handler sends every ordinary
     //initial action outside1/2/4/5 to1. The transition does not move or
@@ -2204,16 +2263,16 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
                     if(f.route>0){if(f.route>=1000||!local.services)return out;
                         if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}}
             f.hidden=0;
-            const auto moved=originalFigureRoam(f,unsigned(speed->second),terrainFlags,local);
+            const auto moved=originalFigureRoamCandidate(f,unsigned(speed->second),terrainFlags,local);
             if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
-        }else if(f.action==9){const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+        }else if(f.action==9){const auto moved=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
             if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
             if(f.direction==8){f.action=7;f.destinationX=owner->second.x;f.destinationY=owner->second.y;
                 originalFigureFreeTarget(f);f.roamSteps=0;}
             else if(f.direction==9||f.direction==10)f.alive=2;
             else if(f.direction>7)return out;
         }else if(f.action==7){ //0x4E2E90 has no side effect for action7 at any count.
-            f.freeMovement=f.hidden=1;const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;
+            f.freeMovement=f.hidden=1;const auto moved=originalFigureFreeStepCandidate(f,local);if(!moved)return out;f=moved->first;
             if(moved->second){ //4CD3E0..408: reaching the owner's occupied cell removes;otherwise begin ordinary roam.
                 if(local.buildingOwners.size()!=51984||f.cell>=51984)return out;
                 if(local.buildingOwners[f.cell]==f.owner)f.alive=2;
@@ -2232,12 +2291,12 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
         }else if(f.action==8){const auto road=originalFigureMusicRoad(owner->second,local);if(!road)return out;
             if(!*road)f.alive=2;else {f.action=9;f.destinationX=owner->second.roadX;f.destinationY=owner->second.roadY;
                 if(f.route>0){if(!local.services||f.route>=1000)return out;if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}}
-            const auto moved=originalFigureRoam(f,unsigned(speed->second),terrainFlags,local);if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
-        }else if(f.action==9){const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+            const auto moved=originalFigureRoamCandidate(f,unsigned(speed->second),terrainFlags,local);if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
+        }else if(f.action==9){const auto moved=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
             if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
             if(f.direction==8){f.action=7;f.destinationX=owner->second.x;f.destinationY=owner->second.y;originalFigureFreeTarget(f);f.roamSteps=0;}
             else if(f.direction==9||f.direction==10)f.alive=2;else if(f.direction>7)return out;
-        }else {f.frame=1;f.freeMovement=f.hidden=1;const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;
+        }else {f.frame=1;f.freeMovement=f.hidden=1;const auto moved=originalFigureFreeStepCandidate(f,local);if(!moved)return out;f=moved->first;
             if(moved->second){if(local.buildingOwners.size()!=51984)return out;
                 if(local.buildingOwners[f.cell]==f.owner)f.alive=2;else {f.action=8;if(!originalFigureBeginRoam(f,local))return out;f.roamSteps=0;}}}
         if(!originalFigureWriteWalkingImage(f,0x4c1b,archives,context->view)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
@@ -2274,13 +2333,13 @@ inline OriginalFigureFirstUpdate originalServiceFirstUpdate(const OriginalFigure
                 if(f.route>0){if(f.route>=1000||!local.services)return out;
                     if(local.services->routeOwners[f.route]==int(f.slot))local.services->routeOwners[f.route]=0;f.route=0;}
                 }
-            }else {const auto movement=originalFigureRoam(f,unsigned(speed->second),terrainFlags,local);
+            }else {const auto movement=originalFigureRoamCandidate(f,unsigned(speed->second),terrainFlags,local);
                 if(!movement.state){out.status=movement.status;return out;}f=*movement.state;}
-        }else{const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+        }else{const auto movement=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
             if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
             if(f.direction>=8){if(f.direction<=10)f.alive=2;else return out;}}
     }else {if(f.action!=8||f.roamSteps>=f.roamLimit)return out;
-        f.hidden=0;const auto movement=originalFigureRoam(f,unsigned(speed->second),terrainFlags,local);
+        f.hidden=0;const auto movement=originalFigureRoamCandidate(f,unsigned(speed->second),terrainFlags,local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
     }
     const unsigned code=f.type==23?0x4c01:f.type==28?0x4c55:f.type==29?0x4c1b:0x4c09;
@@ -2305,7 +2364,7 @@ inline OriginalFigureFirstUpdate originalMigratingFirstUpdate(const OriginalFigu
     OriginalFigureFirstUpdate out;out.updaterVA=0x4ca960;out.status=OriginalFigureUpdateStatus::CombatRouteAndTarget;
     if(!context||!context->figures.count(saved.slot)||(saved.action!=6&&saved.action!=7&&saved.action!=8&&saved.action!=9))return out;
     const auto speed=context->modelSpeeds.find(13);if(speed==context->modelSpeeds.end()){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
-    auto local=*context;auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;
+    OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;f.image=f.secondaryImage=0;f.movementMode=3;
     f.frame=uint8_t(f.frame+1);if(f.frame>11)f.frame=0;
     if(f.action==6){ //4CAA4D..4CAA7F:initial wait is inclusive51,not constructor countdown.
         f.frame=0;f.counter=originalFigureWord(int(f.counter)+1);
@@ -2322,7 +2381,7 @@ inline OriginalFigureFirstUpdate originalMigratingFirstUpdate(const OriginalFigu
     if(f.action==8){if(!local.buildings||!local.buildings->count(size_t(f.home)))return out;
         const auto alive=local.buildings->at(size_t(f.home)).alive;
         if(alive!=1&&alive!=3)f.action=6; //4CB097->4CB204..217.
-        else {const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;f=moved->first;f.freeMovement=f.hidden=1;
+        else {const auto moved=originalFigureFreeStepCandidate(f,local);if(!moved)return out;f=moved->first;f.freeMovement=f.hidden=1;
         if(moved->second){f.alive=2;auto& house=local.buildings->at(size_t(f.home));
             if(house.type>=2&&house.type<18){if(!house.laborDisabled)return out;if(!*house.laborDisabled){
                 const auto capacity=local.houseCapacities.find(house.type==11?11:house.houseModel);if(capacity==local.houseCapacities.end()||!local.services||!local.services->population)return out;
@@ -2333,7 +2392,7 @@ inline OriginalFigureFirstUpdate originalMigratingFirstUpdate(const OriginalFigu
                 const uint32_t total=uint32_t(population.total)+f.employmentAmount;population.total=total>INT32_MAX?0:int32_t(total);population.peak=std::max(population.peak,population.total);house.worker=0;}}}}
         if(!originalFigureWriteWalkingImage(f,0x4c0f,archives,context->view,false,false)){out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
         originalFigurePublishWrites(out,f,*context,local);return out;}
-    const auto movement=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+    const auto movement=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
     if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
     if(f.action==7){if(!local.buildings||!local.buildings->count(size_t(f.home)))return out;auto& house=local.buildings->at(size_t(f.home));
         f.hidden=0;
@@ -2431,7 +2490,7 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
     OriginalFigureFirstUpdate out;out.status=OriginalFigureUpdateStatus::CombatRouteAndTarget;
     out.updaterVA=saved.type==45?0x4ce2d0:0x4cf380;
     if(!context||!context->figures.count(saved.slot))return out;
-    auto local=*context;auto f=saved;bool returnedFromTrade=false;f.image=f.secondaryImage=0;f.hidden=0;f.movementMode=3;
+    OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;bool returnedFromTrade=false;f.image=f.secondaryImage=0;f.hidden=0;f.movementMode=3;
     f.frame=uint8_t(f.frame+1);if(f.frame>11)f.frame=0;
     const auto live=[](const OriginalFigure& figure){return figure.alive==1&&figure.action!=4;};
     if(f.type==45){const auto follower=context->figures.find(size_t(f.follower));
@@ -2453,7 +2512,7 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
             const auto station=context->buildings->find(size_t(f.delivery));
             if(station==context->buildings->end()||station->second.alive!=1||station->second.workers<=0)return out;
             const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;
-            const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+            const auto moved=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
             if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
             if(f.direction==8){ //4CE45A: scenario-network positive branch has additional writes.
                 if(!context->traderScenarioNetworkMode||*context->traderScenarioNetworkMode)return out;
@@ -2476,7 +2535,7 @@ inline OriginalFigureFirstUpdate originalTraderFirstUpdate(const OriginalFigure&
         }else if(f.action!=9)return out;
         if(f.action==9&&!returnedFromTrade){
         const auto speed=context->modelSpeeds.find(45);if(speed==context->modelSpeeds.end())return out;
-        const auto moved=originalFigureFollowRoute(f,unsigned(speed->second),terrainFlags,&local);
+        const auto moved=originalFigureFollowRouteCandidate(f,unsigned(speed->second),terrainFlags,local);
         if(!moved.state){out.status=moved.status;return out;}f=*moved.state;
         if(f.direction==8){f.action=6;f.alive=2;} //4CE972..976:leave map after returning to entry.
         else if(f.direction==9){if(!local.services||f.route<0||f.route>=1000)return out;
@@ -2570,7 +2629,9 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
     for(const auto& entry:context->figures){const auto& f=entry.second;
         if(f.slot!=saved.slot&&f.alive&&f.action!=4&&!(f.type>=75&&f.type<=77)&&distance(f)<=3){
             if(!originalFigureHarmlessToPheasant(f,*context)){out.status=OriginalFigureUpdateStatus::PheasantThreat;return out;}}}
-    auto f=saved;f.image=f.secondaryImage=0;auto local=*context;
+    auto f=saved;f.image=f.secondaryImage=0;
+    std::optional<OriginalFigureCandidate> candidate;OriginalFigureUpdateContext* local=nullptr;
+    bool clearRoadblock=false;
     std::optional<OriginalFigureSavedServices> updatedServices;
     f.linkedBuilding=linkedBuilding;
     f.threat=0;f.threatDistance=100; //0x59EB33..4A: no qualified threat in this domain.
@@ -2601,7 +2662,7 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
             f.counter=originalFigureWord(int(f.counter)+1);if(f.counter>500)f.action=4;
         }else {if(f.counter<0)f.counter=0;f.counter=originalFigureWord(int(f.counter)+1);if(f.counter>127){f.counter=127;f.alive=2;}}
         const auto group=originalFigureImageGroup(0x4c2d,archives);if(!group||f.counter<0)return out;
-        f.image=group->first+unsigned(std::min<int>(f.counter,7));originalFigurePublishWrites(out,f,*context,local);return out;
+        f.image=group->first+unsigned(std::min<int>(f.counter,7));originalFigurePublishUnchanged(out,f,*context);return out;
     }
     if(saved.action==19||saved.action==30){
         // No threat/mate; successful herd predicate bypasses0x59E7B0. Whether
@@ -2615,18 +2676,18 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
             // returns an animal-vector ordinal, then pool-rereads that ordinal.
             // EBX/EDI stay -1 on this search branch (59E860..59E8D7).
             uint32_t ordinal=0,chosen=0;int nearest=100;bool found=false;
-            for(const auto& e:local.figures){const auto& candidate=e.second;
+            for(const auto& e:context->figures){const auto& candidate=e.second;
                 if(!candidate.slot||!candidate.alive||candidate.type<69||candidate.type>77)continue;
                 if(candidate.slot!=f.slot&&candidate.type==76&&candidate.action!=4&&distance(candidate)<=nearest){
                     nearest=distance(candidate);chosen=ordinal;if(nearest<=12){found=true;break;}}
                 ++ordinal;}
             found|=chosen!=0;
-            if(found){const auto reread=local.figures.find(chosen);if(reread==local.figures.end())return out;
-                f.herdTarget=chosen;f.herdDistance=uint32_t(distance(reread->second));auto services=*local.services;
+            if(found){const auto reread=context->figures.find(chosen);if(reread==context->figures.end())return out;
+                f.herdTarget=chosen;f.herdDistance=uint32_t(distance(reread->second));auto services=*context->services;
                 f.destinationX=originalFigureWord(-1+12-originalFigureRandomNext(services)%26);
                 f.destinationY=originalFigureWord(-1+12-originalFigureRandomNext(services)%26);
-                if(!local.cropBase)return out;
-                f.destinationCell=uint32_t(int64_t(*local.cropBase)+f.destinationX+228LL*f.destinationY);
+                if(!context->cropBase)return out;
+                f.destinationCell=uint32_t(int64_t(*context->cropBase)+f.destinationX+228LL*f.destinationY);
                 if(f.route>0){if(f.route>=1000)return out;if(services.routeOwners[f.route]==int(f.slot))services.routeOwners[f.route]=0;f.route=0;}
                 f.action=32;updatedServices=std::move(services);
             }
@@ -2673,11 +2734,15 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
         if(speed==context->modelSpeeds.end()||speed->second<0||speed->second>255){out.status=OriginalFigureUpdateStatus::MovementModel;return out;}
         //0x59F498 halves model speed before the shared fractional schedule.
         const unsigned half=speed->second<=3?1:unsigned(speed->second)/2;
+        const auto schedule=originalFigureMovementSteps(half,f.routePhase);
+        const bool interior=f.route>0&&f.direction<8&&f.progress<19&&
+            unsigned(f.progress)+schedule.first<19&&!(f.progress<10&&unsigned(f.progress)+schedule.first>=10);
+        if(schedule.first&& !interior){candidate.emplace(*context);local=&candidate->get();}
         // local is already the private pheasant candidate. A refusal discards
         // it, so the public route wrapper's second full copy is unnecessary.
-        const auto route=f.route;const auto movement=originalFigureFollowRouteInContext(f,half,terrainFlags,&local);
+        const auto route=f.route;const auto movement=originalFigureFollowRouteInContext(f,half,terrainFlags,local);
         if(!movement.state){out.status=movement.status;return out;}f=*movement.state;
-        if((!half||originalFigureMovementSteps(half,saved.routePhase).first)&&(route>0||f.direction<8))local.roadblockGate=0;
+        if((!half||schedule.first)&&(route>0||f.direction<8)){if(local)local->roadblockGate=0;else clearRoadblock=true;}
         if(f.direction==10)f.action=30; //59F4C3->4E1B00,59F540: failed route restarts destination predicates next call.
         else if(f.direction==9){if(f.target>0){out.status=OriginalFigureUpdateStatus::PheasantRoute;return out;}f.action=30;}
         else if(f.direction==8){
@@ -2704,7 +2769,8 @@ inline OriginalFigureFirstUpdate originalPheasantFirstUpdate(const OriginalFigur
     const uint64_t image=uint64_t(group->first)+f.frame*directions+std::min(unsigned(direction),unsigned(directions)-1);
     if(image>>14!=group->first>>14||(image&0x3fff)>=archives.at(code>>9)->sprites.size()){
         out.status=OriginalFigureUpdateStatus::MissingGroup;return out;}
-    f.image=uint32_t(image);originalFigurePublishWrites(out,f,*context,local);
+    f.image=uint32_t(image);if(local)originalFigurePublishWrites(out,f,*context,*local);else originalFigurePublishUnchanged(out,f,*context);
+    if(clearRoadblock)out.roadblockGate=0;
     if(updatedServices)out.services=std::move(updatedServices);return out;
 }
 // One per-type virtual update, after callback clearing, with an explicit k=1
@@ -2731,7 +2797,7 @@ inline OriginalFigureFirstUpdate originalFigureFirstUpdate(const OriginalFigure&
     if(saved.type==1&&saved.effectKind==0){out.updaterVA=0x417550;out.status=OriginalFigureUpdateStatus::EffectState;
         if(!context||!saved.effectAnimation||*saved.effectAnimation<0||*saved.effectAnimation>4||
             saved.effectFlags!=2||!saved.speed||!context->visualEffectCount)return out;
-        auto local=*context;auto f=saved;const auto moved=originalFigureFreeStep(f,local);if(!moved)return out;
+        OriginalFigureCandidate candidate(*context);auto& local=candidate.get();auto f=saved;const auto moved=originalFigureFreeStepCandidate(f,local);if(!moved)return out;
         f=moved->first;if(moved->second)f.alive=2;
         const uint32_t code=*f.effectAnimation?0x2200+uint32_t(*f.effectAnimation):0x220a;
         const auto group=originalFigureImageGroup(code,archives);if(!group)return out;
@@ -2948,7 +3014,7 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                         std::optional<OriginalFigureUpdateContext> beforeRemoval;
                         if(result.state->alive==2)beforeRemoval=*context;
                         result.state->priorProgress=result.state->progress;context->figures.at(slot)=*result.state;
-                        for(const auto& write:result.linkedWrites){
+                         for(const auto& write:result.linkedWrites){
                             if(!context->figures.at(write.first).alive&&write.second.alive)context->primaryImageInputs.erase(write.first);
                             context->figures.at(write.first)=write.second;}
                         if(result.cellHeads)context->cellHeads=*result.cellHeads;
@@ -2964,7 +3030,7 @@ inline OriginalFigureOrderedPass originalFigureOrderedNextPass(const OriginalFig
                             context->allocatedSlots=result.allocatedSlots;context->highestLiveSlot=result.highestLiveSlot;
                             context->allocationEvents=result.allocationEvents;context->allocationCount=result.allocationCount;context->buildingAllocationCount=result.buildingAllocationCount;}
                         if(result.speechCounters)context->speechCounters=result.speechCounters;
-                        if(result.state->alive==2){if(!originalFigureRemoveArrivedWorker(*result.state,*context)){
+                         if(result.state->alive==2){if(!originalFigureRemoveArrivedWorker(*result.state,*context)){
                                  result.state.reset();result.services.reset();result.buildings.reset();result.goods.reset();result.cellHeads.reset();result.linkedWrites.clear();
                                  result.freeSlots.reset();result.crtRandom.reset();result.roadblockGate.reset();result.allocatedSlots.clear();result.allocationEvents.clear();result.highestLiveSlot=0;
                                  result.status=OriginalFigureUpdateStatus::PoolRemoval;*context=std::move(*beforeRemoval);restorePrefix();}
