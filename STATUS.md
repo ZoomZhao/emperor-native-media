@@ -6,6 +6,17 @@
 
 **Stage 3: 6/6 at 9792**, Release and UBSan 2026-11-03: all six original saves complete one in-game year in normal App Play without refusal. This is a run-length result, not a claim of full fidelity.
 
+**Fidelity** (original save pairs; — means not scored):
+
+| Pair | Updates | Buildings | Figures | Images | Formation | Labor | RNG |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 280014 → 280015 | 2678/2678 | unscored; later now parses 12 buildings and 41 ruins | 888/1100 | 11/20 | 41/60 | 16/20 | −1621 draws |
+| 280014 → 280016 | 3450/3450 | unscored | 797/990 | — | 42/60 | 16/20 | −1519 draws |
+| 280015 → 280016 | 0/772 | no removals | — | — | — | — | — |
+| 281030 → 281031 | 40/40 | 28407/28409 | 5164/5170 | 92/94 | 60/60 | 20/20 | 2/2 |
+
+The new annual pair prepares after loading saved type-161 ruins and applying the verified type-2 post-load callback. Its first update refuses `inline_effect_state_slot_1770_type_2_action_0`: saved flames lack runtime animation metadata and the initial burning-owner bridge. The 45 terrain differences and event attribution remain unclassified.
+
 **Fidelity:** `281030 → 281031` 40/40: building common 28407/28409 (farmer link differs on two adjacent, equal-scored fields); crop industry 884/884; figure state 5164/5170 (four cell-list links across two cells, two process-clock variants), images 92/94, type-26 50/50; RNG 2/2; calendar, treasury, accounting, labor, employment, sentiment, population, house goods/services, crop storage and formations agree. The original process's field-registration order is unverified. `281031 → 280008` 1008/1008: treasury 0/1, accounting 11/12, RNG 0/2 (−517 draws), building common 28265/28409, crop industry 846/884, house services 375/416, figure identity 1997/2047 and state 619/660; the user-observed +75 trade, −60 charge and +786 accepted envoy gift reconcile the original money. Empty-event hypotheses may be contradicted if the saves share a trajectory. `280008 → 280009` 860/860: treasury 1/1 and accounting 12/12; RNG 0/2 (−1330 draws), building common 28238/28409, crop industry 747/884, figure identity 1976/2037 and state 1123/1210.
 
 Animal pairs `0102 → 280011` and `280011 → 280012` match figure state 2310/2310, images 42/42 and RNG 2/2; `0102 → 0103` and `280012 → 0103` have 2278/2310, 41/42 and RNG −36 draws. The midpoint capture is pending; four terrain flag differences remain unexplained.
@@ -20,4 +31,4 @@ Animal pairs `0102 → 280011` and `280011 → 280012` match figure state 2310/2
 - `monthly-partner-4936d0-empty`, `monthly-partner-495a50-empty`, `monthly-part12-candidates-empty`, `monthly-part12-relation-default`: assume no unbound event/relation effects; verify selected event constructors and the supervised envoy trajectory. `census-skip-phase` is diagnostic only and assumes omitted phases have no effects.
 - Rollover: `rollover-manager-empty`, `rollover-primary-building-inactive`, `rollover-health-target-stable`, `rollover-tax-recount-stable`, `rollover-normal-finance-mode`, `rollover-food-prelude-neutral`, `rollover-monument-timer-inactive`, `rollover-religion-monthly-neutral`, `rollover-other-notice-counters-zero`, `rollover-road-refresh-stable`, `rollover-notice-sort-neutral`, `rollover-incoming-cargo-stable`, `rollover-monthly-events-empty`, `rollover-scenario-events-empty`; verify the named services and target-calendar saves.
 
-**Next:** finish the default-stack kernel test fix, milestone regression and primary-path speedup. Release full-year playback improved from the supplied 1,106 s baseline to 665 s; all six stop counts, calendars and partial state fingerprints match, but the 300 s target remains open. Trader imports and changed-price effects remain partial. The supervised transfer pair and animal midpoint are pending. Checkpoint coverage now explicitly identifies fields absent from the frozen wire format; authored checkpoint and food-composition cases pass in both modes, and game-lab links. Real App restore was skipped and previously failed `world_binding_goal_prefix` at `73e0e03`.
+**Next:** bind saved flame inputs, score the short annual pair, and follow its first divergence. Explain the collapse/fire terrain changes and labor/formation differences. The supervised transfer pair and animal midpoint are pending. Checkpoint coverage explicitly identifies fields absent from the frozen wire format; real App restore was skipped and previously failed `world_binding_goal_prefix` at `73e0e03`.

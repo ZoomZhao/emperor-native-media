@@ -415,6 +415,9 @@ void combinedAuthored(){
     auto unknownEffect=debris;unknownEffect.effectAnimation.reset();
     need(!originalFigureFirstUpdate(unknownEffect,effects,&effectContext).state,"combined debris requires runtime16C metadata");
     OriginalFigure flame=debris;flame.type=2;flame.subtype=161;flame.delivery=8;flame.effectAnimation=3;flame.effectFrame=7;
+    const auto flamePostLoad=originalFigurePostLoadImages(flame.slot,originalFigureImageInputs(flame),effects);
+    need(flamePostLoad.images&&flamePostLoad.images->first==0&&flamePostLoad.images->second==0&&flamePostLoad.callbackVA==0x4d6cf0,
+        "saved flame uses the type2 post-load image-clearing callback");
     flame.frame=33;flame.effectFlags=0;flame.cell=10458;effectContext.figures[2]=flame;effectContext.buildings->at(8).type=161;
     effectContext.buildingBurning[8]=4;effectContext.animationFlags->at(0)=true;
     const auto selectedFlame=originalFigureFirstUpdate(flame,effects,&effectContext);

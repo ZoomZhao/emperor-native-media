@@ -312,7 +312,7 @@ inline bool originalBuildingSquareType(uint16_t type){
     case 0xdc:case 0xdd:case 0xdf:case 0xe0:case 0xe1: // multipart forts
     case 0x47:case 0x6f:case 0x71: // no published ordinary footprint placement
     case 0x8a:case 0x97:case 0xb1:case 0xb2:case 0xb3:case 0xb4:case 0xb5:case 0xb7:
-    case 0xb9:case 0xba:case 0xbb:case 0xbc:case 0xbd:case 0xa1:case 0xa2:case 0xa3:
+    case 0xb9:case 0xba:case 0xbb:case 0xbc:case 0xbd:case 0xa2:case 0xa3:
     case 0xa4:case 0xa5:case 0xa7:case 0xad:case 0xae:case 0xaf:return false; // editor placeholders
     default:return true;}
 }
@@ -606,7 +606,7 @@ inline std::optional<std::map<size_t,OriginalBuildingUpdateInputs>> originalBuil
         //51C3A0;the126-byte data payload is contiguous after outer/data1.
         switch(type){case 33:case 35:case 43:case 53:case 54:case 58:case 59:
         case 62:case 66:case 67:case 71:case 72:case 124:case 126:case 127:
-        case 192:case 193:case 207:case 211:case 214:
+        case 161:case 192:case 193:case 207:case 211:case 214:
             if(data.size()-tail<130||detail::u16(data.data()+tail)!=1||detail::u16(data.data()+tail+2)!=1)return std::nullopt;
             v.hookIndustry.emplace();std::copy_n(data.begin()+tail+4,126,v.hookIndustry->begin());break;default:break;}
         //Stall541DE0: industrial130,own4,word150 then parent154.

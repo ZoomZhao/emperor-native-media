@@ -122,7 +122,7 @@ inline OriginalFigurePostLoadImages originalFigurePostLoadImages(size_t slot,con
         out.status=OriginalFigurePostLoadStatus::ImagesSelected;
         out.images=std::make_pair(uint32_t(word),0u);return out;
     }
-    case 1:case 13:case 19:case 20:case 21:case 22:case 23:case 26:case 28:case 29:
+    case 1:case 2:case 13:case 19:case 20:case 21:case 22:case 23:case 26:case 28:case 29:
     case 30:case 34:case 35:case 36:case 39:case 40:case 45:case 47:case 76:
         out.status=OriginalFigurePostLoadStatus::ImagesCleared;out.callbackVA=0x4d6cf0;
         out.images=std::make_pair(0u,0u);return out;

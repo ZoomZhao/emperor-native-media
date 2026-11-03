@@ -47,6 +47,11 @@ int main(){try{
  }
  need(!originalBuildingSquareType(0x82)&&!originalBuildingSquareType(0x3b)&&!originalBuildingSquareType(0xd2)&&!originalBuildingSquareType(0xdc),"nonsquare and dock layouts never become size-square annotations");
  need(originalBuildingSquareType(0xcf)&&originalBuildingSquareType(0x21)&&originalBuildingSquareType(5),"published ordinary footprint families are eligible by semantic type");
+ {auto bytes=table();auto root=parseOriginalSavedBuildings(bytes,bytes.size(),grid);bytes.resize(root.footprints[0].recordOffset);
+  auto ruin=record(161,"cRuin",5,7,9,1,3);const size_t header=6+std::string("cRuin").size();ruin.resize(header+182+130);word(ruin,header+182,1);word(ruin,header+184,1);
+  append(bytes,ruin);for(size_t n=2;n<4000;++n)append(bytes,record(0,"",5));auto parsed=parseOriginalSavedBuildings(bytes,bytes.size(),grid);
+  auto inputs=originalBuildingUpdateInputs(bytes,parsed);need(parsed.status==OriginalBuildingStatus::Complete&&parsed.footprints.size()==1&&parsed.footprints[0].type==161&&
+   inputs&&inputs->at(1).alive==3&&inputs->at(1).hookIndustry,"saved live ruin is retained as a one-cell building with its industrial data");}
  // Opaque class references are NOT resolved:the separately stored semantic type
  // supplies the published footprint profile,not a guessed serialization class.
  auto referenced=table();auto rr=parseOriginalSavedBuildings(referenced,referenced.size(),grid);referenced.resize(rr.footprints[0].recordOffset);auto house=record(5,"",5,7,9,2,1);house.resize(house.size()+65);append(referenced,house);append(referenced,record(0x1234,"UnknownTail",5));auto ref=parseOriginalSavedBuildings(referenced,referenced.size(),grid);need(ref.footprints.size()==1&&ref.footprints[0].type==5,"semantic type remains independently usable with an opaque class-reference tag");
