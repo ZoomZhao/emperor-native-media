@@ -652,6 +652,8 @@ struct OriginalBuildingUpdateContext {
         struct PopulationHistory {std::array<int32_t,2400> values{};int32_t cursor=0,count=0;};
         std::optional<PopulationHistory> populationHistory; //Population7 wire58/9658/9662
         int32_t smoothedHealth=0,healthTarget=0,currentHealthRating=0;
+        int32_t healthHighPopulation=0,healthHerbalistPopulation=0; //130F98C/90, Population7 wire42/46
+        int32_t healthScratch11392=0,healthScratch12067=0; //13125F8/13128A0
         std::array<int32_t,4> productionHistory{}; //1312608/0C/14/18
         std::array<int32_t,2> monthlyProduction{}; //1312610/1C
         int32_t previousMonthArrivals=0; //1312604, Population7 wire11404
@@ -2260,6 +2262,30 @@ inline OriginalBuildingUpdateBlocker originalBuildingMonthlyDebt(OriginalBuildin
     c.cityCountA=l.debtMonths;c.cityCountB=l.sentimentShortages;
     return OriginalBuildingUpdateBlocker::None;
 }
+//590DB0 -> 518490(1) recounts the live house registry after the month closes.
+inline OriginalBuildingUpdateBlocker originalBuildingMonthlyHealth(OriginalBuildingUpdateContext& c){
+    if(!c.cycleTail||!c.buildingInputs||!c.buildings||!c.statistics||!c.statistics->religionBonusEnabled)
+        return OriginalBuildingUpdateBlocker::MonthlyCity;
+    if(*c.statistics->religionBonusEnabled&&!c.statistics->religionBonus)return OriginalBuildingUpdateBlocker::MonthlyCity;
+    auto& tail=*c.cycleTail;tail.healthScratch11392=tail.healthScratch12067=0;
+    tail.healthHighPopulation=tail.healthHerbalistPopulation=0;int32_t population=0,weighted=0;
+    for(const auto& entry:*c.buildingInputs){const auto& h=entry.second;const auto found=c.buildings->find(entry.first);
+        if(found==c.buildings->end())return OriginalBuildingUpdateBlocker::MissingContext;
+        if(!originalBuildingIsHouse(found->second.type)||(h.alive!=1&&h.alive!=3))continue;
+        if(!h.house)return OriginalBuildingUpdateBlocker::MissingContext;
+        const int residents=h.residents,score=int8_t(h.house->at(51));
+        if(h.house->at(40)>0)tail.healthHerbalistPopulation=originalBuildingAdd32(tail.healthHerbalistPopulation,residents);
+        if(h.house->at(49)>=20)tail.healthHighPopulation=originalBuildingAdd32(tail.healthHighPopulation,residents);
+        population=originalBuildingAdd32(population,residents);
+        int32_t part=int32_t((int64_t(score)*residents)/100);if(!part&&score>0&&residents>0)part=1;
+        weighted=originalBuildingAdd32(weighted,part);
+    }
+    if(population<=0){tail.healthTarget=100;return OriginalBuildingUpdateBlocker::None;}
+    const int bonus=*c.statistics->religionBonusEnabled&&*c.statistics->religionBonus==6?10:0;
+    const int32_t scaled=originalBuildingI32(uint32_t(weighted)*100u)/population;
+    tail.healthTarget=std::min(100,originalBuildingAdd32(scaled,(population<1000?(1000-population)/10:0)+bonus));
+    return OriginalBuildingUpdateBlocker::None;
+}
 //4AC7FD..4AC810 resets two process flags and invalidates the house registry;
 //590DE0->517CC0->517DE0 rebuilds its accepting-house totals, not city treasury.
 inline OriginalBuildingUpdateBlocker originalBuildingAnnualPrelude(OriginalBuildingUpdateContext& c){
@@ -2333,7 +2359,7 @@ inline OriginalBuildingUpdateBlocker originalBuildingCycleTailStepWrites(Origina
         *c.monthPart=0;
         // HYPOTHESIS(rollover-manager-empty): 4BFF20/4BFE10's process registry has no monthly action.
         // HYPOTHESIS(rollover-primary-building-inactive): 592060's special type110 monthly hook is inactive.
-        // HYPOTHESIS(rollover-health-target-stable): 590DB0's house-health recount leaves the current target unchanged.
+        auto health=originalBuildingMonthlyHealth(c);if(health!=OriginalBuildingUpdateBlocker::None)return health;
         // HYPOTHESIS(rollover-tax-recount-stable): 4AE900's house-tax recount leaves the last computed tax inputs unchanged.
         // HYPOTHESIS(rollover-normal-finance-mode): 591AC0's process editor-mode gate is clear in normal play.
         auto result=originalBuildingMonthlyWages(c,false);if(result!=OriginalBuildingUpdateBlocker::None)return result;
@@ -2868,6 +2894,8 @@ inline bool originalBuildingSavedCityContext(const std::vector<uint8_t>& data,si
     for(size_t n=0;n<history.values.size();++n)history.values[n]=value(58+4*n);
     history.cursor=value(9658);history.count=value(9662);
     c.cycleTail->healthTarget=value(22);c.cycleTail->smoothedHealth=value(26);
+    c.cycleTail->healthHighPopulation=value(42);c.cycleTail->healthHerbalistPopulation=value(46);
+    c.cycleTail->healthScratch11392=value(11392);c.cycleTail->healthScratch12067=value(12067);
     c.cycleTail->productionHistory={value(11408),value(11412),value(11420),value(11424)};
     c.cycleTail->monthlyProduction={value(11416),value(11428)};
     c.cycleTail->previousMonthArrivals=value(11404);

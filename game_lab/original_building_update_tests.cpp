@@ -892,10 +892,24 @@ void authored(){
          productionRoll.cycleTail->monthlyStatistics==std::array<int32_t,9>{8,3,0,0,6,0,0,9,0},
          "monthly production rolls saved counters and clears current values");
     auto heap_rollover=std::make_unique<OriginalBuildingUpdateContext>(sentiment); auto& rollover=*heap_rollover;rollover.monthPart=15;rollover.month=7;rollover.monthlyRolloverHypotheses=true;
+    rollover.statistics.emplace();rollover.statistics->religionBonusEnabled=false;
     rollover.serviceCoverage=std::array<int32_t,11>{};
     rollover.scenarioMonths=11;rollover.scenarioMonthCounter=7;rollover.shortageNoticeCountdown=2;rollover.scenarioFoodOverride=0;rollover.labor->yearArrivals=17;
     rollover.cycleTail->populationHistory.emplace();rollover.labor->monthlyTimerActive=1;rollover.labor->monthlyTimerRemaining=4;
     rollover.accounting.emplace();rollover.accounting->wages=30;rollover.cityEmployment->employed=240;rollover.treasury=400;
+    {auto health=std::make_unique<OriginalBuildingUpdateContext>(rollover);auto& first=health->buildingInputs->at(7);
+        first.alive=1;first.residents=450;first.house->at(51)=8;first.house->at(40)=1;first.house->at(49)=20;
+        auto second=first;second.residents=450;second.house->at(51)=2;second.house->at(40)=second.house->at(49)=0;
+        health->buildingInputs->emplace(8,second);health->buildings->emplace(8,health->buildings->at(7));
+        auto dead=first;dead.alive=4;dead.residents=100;health->buildingInputs->emplace(9,dead);health->buildings->emplace(9,health->buildings->at(7));
+        health->cycleTail->healthScratch11392=9;health->cycleTail->healthScratch12067=10;
+        need(originalBuildingMonthlyHealth(*health)==OriginalBuildingUpdateBlocker::None&&health->cycleTail->healthTarget==15&&
+            health->cycleTail->healthHighPopulation==450&&health->cycleTail->healthHerbalistPopulation==450&&
+            health->cycleTail->healthScratch11392==0&&health->cycleTail->healthScratch12067==0,
+            "monthly health recount weights live houses and clears both saved scratch counters");
+        health->statistics->religionBonusEnabled=true;health->statistics->religionBonus=6;
+        need(originalBuildingMonthlyHealth(*health)==OriginalBuildingUpdateBlocker::None&&health->cycleTail->healthTarget==25,
+            "health deity bonus adds ten after the population-weighted recount");}
     originalHouseSetGoodsWord(rollover.buildingInputs->at(7).house->data(),originalHousePayloadBytes,0,40);
     auto heap_strictRollover=std::make_unique<OriginalBuildingUpdateContext>(rollover); auto& strictRollover=*heap_strictRollover;strictRollover.monthlyRolloverHypotheses.reset();
     need(originalBuildingCycleTailStep(strictRollover)==OriginalBuildingUpdateBlocker::MonthlyCity&&strictRollover.monthPart==15&&strictRollover.labor->yearArrivals==17,
